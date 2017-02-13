@@ -1,0 +1,77 @@
+=pod
+
+=head1 NAME
+
+ CMP_doInitialRequestSeq,
+ CMP_doKeyUpdateRequestSeq,
+ CMP_doCertificateRequestSeq,
+ CMP_doGeneralMessageSeq,
+ CMP_doRevocationRequestSeq
+
+=head1 SYNOPSIS
+
+ #include <openssl/cmp.h>
+
+ X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx);
+ X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx);
+ X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx);
+ STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_doGeneralMessageSeq(CMP_CTX *ctx, int nid, char *value);
+ int CMP_doRevocationRequestSeq(CMP_CTX *ctx);
+
+=head1 DESCRIPTION
+
+This is the API for doing CMP (Certificate Management Protocol)  client-server
+message sequences using with OpenSSL. The conveying protocol is HTTP.
+
+CMP_doInitialRequestSeq() does the transaction which obtains an initial certificate
+from the CA. A populated CMP_CTX structure has to be given as argument.
+
+CMP_doKeyUpdateRequestSeq() does the transaction which obtains a certificate for an
+updated key from the CA. A populated CMP_CTX structure has to be given as argument.
+
+CMP_doCertificateRequestSeq() requests an additional certificate for an existing
+key from the CA. A populated CMP_CTX structure has to be given as argument.
+
+CMP_doGeneralMessageSeq() sends a general message and returns the Infotype and
+value structures returned by the server.  This can e.g. be used to poll for the
+CRL or CA Key Updates.
+
+CMP_doRevocationRequestSeq() requests the revocation of the used certificate via
+an revocation request sent to the server.
+
+=head1 NOTES
+
+CMP is defined in RFC 4210 (and CRMF in RFC 4211).
+
+=head1 RETURN VALUES
+
+CMP_doInitialRequestSeq(), CMP_doCertificateRequestSeq() and
+CMP_doKeyUpdateRequestSeq() return a pointer the newly obtained X509 certificate
+on success, NULL on error.
+
+=head1 EXAMPLE
+
+See CMP_CTX for examples on how to prepare the context for these
+functions.
+
+=head1 TODO
+
+The functions for IR, CR, and KUR do not yet support requesting multiple
+certificates.
+
+The function for sending GENM does not yet directly support sending multiple
+ITAV structures.
+
+The reason for an IP/KUP/CP returning waiting status as optional sent in a
+PKIFreetext structure could be printed/returned to the user.
+
+The function to request revocation of certificates only can revoke the current
+certificate which is also used for signing the messages.  It should be changed
+so that the certificate to revoke is explicitly given.  So far only one
+certificate can be revoked although that could be several.
+
+The message sequences for other CMP operations are missing so far.
+
+=head1 SEE ALSO
+
+CMP_CTX, CMP_http

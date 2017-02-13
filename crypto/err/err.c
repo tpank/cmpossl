@@ -59,6 +59,8 @@ static ERR_STRING_DATA ERR_str_libraries[] = {
     {ERR_PACK(ERR_LIB_CT, 0, 0), "CT routines"},
     {ERR_PACK(ERR_LIB_ASYNC, 0, 0), "ASYNC routines"},
     {ERR_PACK(ERR_LIB_KDF, 0, 0), "KDF routines"},
+    {ERR_PACK(ERR_LIB_CMP, 0, 0), "CMP routines"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, 0), "CRMF routines"},
     {0, NULL},
 };
 
@@ -104,6 +106,8 @@ static ERR_STRING_DATA ERR_str_reasons[] = {
     {ERR_R_X509V3_LIB, "X509V3 lib"},
     {ERR_R_ENGINE_LIB, "ENGINE lib"},
     {ERR_R_ECDSA_LIB, "ECDSA lib"},
+    {ERR_R_CMP_LIB, "CMP lib"},
+    {ERR_R_CRMF_LIB, "CRMF lib"},
 
     {ERR_R_NESTED_ASN1_ERROR, "nested asn1 error"},
     {ERR_R_MISSING_ASN1_EOS, "missing asn1 eos"},
