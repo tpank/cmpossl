@@ -1,0 +1,326 @@
+
+=pod
+
+=head1 NAME
+
+cmp - client for the Certificate Management Protocol (RFC4210)
+
+=head1 SYNOPSIS
+
+B<openssl> B<cmp>
+[B<-help>]
+[B<-server address:port>]
+[B<-proxy address>]
+[B<-proxyport number>]
+
+[B<-use-tls>]
+[B<-tls-cert filename>]
+[B<-tls-key filename>]
+[B<-tls-keypass password>]
+[B<-tls-trusted filename>]
+[B<-tls-crls url>]
+[B<-tls-cdps>]
+[B<-tls-crl-all>]
+
+[B<-user username>]
+[B<-pass password>]
+[B<-cert filename>]
+[B<-key filename>]
+[B<-keypass password>]
+[B<-extcerts filenames>]
+
+[B<-srvcert filename>]
+[B<-trusted filename>]
+[B<-untrusted filename>]
+
+[B<-recipient name>]
+[B<-path remote_path>]
+[B<-cmd ir|cr|kur|rr>]
+
+[B<-newkey filename>]
+[B<-newkeypass password>]
+[B<-subject name>]
+
+[B<-implicitconfirm>]
+[B<-disableconfirm>]
+[B<-unprotectederrors>]
+
+[B<-digest name>]
+[B<-oldcert filename>]
+[B<-revreason number>]
+
+[B<-cacertsout filename>]
+[B<-certout filename>]
+[B<-extracertsout filename>]
+
+[B<-keyfmt DER|PEM|P12>]
+[B<-certfmt DER|PEM|P12>]
+
+=head1 DESCRIPTION
+
+The B<cmp> command is a client implementation for the Certificate
+Management Protocol (CMP) as defined in RFC4210. It can be used to 
+request certificates from a CA server, update their keys, 
+request certificates to be revoked, and perform other CMP requests.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-help>
+
+Display a summary of all options
+
+=item B<-server address:port>
+
+The IP address or hostname and port of the CMP server to connect to.
+
+=item B<-proxy address>
+
+The address of the HTTP proxy server, if needed for accessing the CMP server.
+
+=item B<-proxyport number>
+
+The port number of the HTTP proxy server.
+
+=item B<-use-tls>
+
+Force using TLS (even when other TLS-related options are not set) when connecting to CMP server
+
+=item B<-tls-cert filename>
+
+Client's TLS certificate. PEM format may also include certificate chain to be provided to server.
+
+=item B<-tls-key filename>
+
+Key for the client's TLS certificate.
+
+=item B<-tls-keypass password>
+
+Password for client's TLS key.  If not given here, the
+password will be prompted for if needed.
+
+=item B<-tls-trusted filename>
+
+Client's trusted certificates for verifying TLS certificates.  The file may 
+contain multiple certificates.  This implies host name validation.
+
+=item B<-tls-crls URL>
+
+Use given CRL(s) as primary source when verifying TLS certificates. URL may point to local file if prefixed by 'file:'.
+
+=item B<-tls-cdps>
+
+Retrieve CRLs from distribution points given in certificates as secondary source while verifying TLS certificates.
+
+=item B<-tls-crl-all>
+
+Check CRLs not only for TLS server but also for TLS CA certificates.
+
+=item B<-user username>
+
+Username (reference value) to be used when messages are authenticated
+with pre-shared keys.
+
+=item B<-pass password>
+
+Password (secret value) to be used when messages are authenticated with
+pre-shared keys.
+
+=item B<-cert filename>
+
+The client's currently existing certificate. This will be used for
+signing messages for example in the Key Update Request, or when
+authenticating the IR using an existing certificate (as defined in
+appendix E.7 of the RFC).
+For KUR this is also used as certificate to be re-keyed if -oldcert option
+is not given.
+
+=item B<-key filename>
+
+The corresponding private key file for the client's current certificate given in
+the -cert option.
+
+=item B<-keypass password>
+
+Password for the private key given with the -key option.  If not given here, the
+password will be prompted for if needed.
+
+=item B<-extcerts filenames>
+
+File with certificates to include in the extraCerts field of requests.
+
+=item B<-srvcert filename>
+
+Certificate of the CMP server, to be used if the certificate is available and directly
+trusted.
+
+=item B<-trusted filename>
+
+Trusted certificates for CMP server authentication. The file could contain multiple
+certificates concatenated.
+
+=item B<-untrusted filename>
+
+Untrusted certificates needed for path construction in CMP server authentication. 
+The file can contain multiple certificates.
+
+=item B<-recipient name>
+
+X509 name of the recipient, i.e. the name of the CA we are sending the request to.
+For RR, defaults to issuer of certificate to be revoked.
+If no CA certificate is provided, then at least the
+recipient name must be specified in order for the IR to work.
+The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
+characters may be escaped by \ (backslash), no spaces are skipped.
+
+=item B<-path remote_path>
+
+HTTP path location to use for the CMP server (aka CMP alias).
+
+=item B<-cmd ir|cr|kur|rr>
+
+CMP command to execute. Currently implemented commands are:
+    ir  - Initial Request
+    cr  - Certificate Request
+    kur - Key Update Request
+    rr  - Revocation Request
+
+=item B<-newkey filename>
+
+The file containing the key corresponding to the requested certificate in IR, CR or KUR. 
+For CR, default is the current key.
+
+=item B<-newkeypass password>
+
+Password for the key given with the -newkey option.  If not given here, the 
+password will be prompted for if needed.
+
+=item B<-subject distinguished_name>
+
+X509 subject name to be used in the requested certificate template.
+The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
+characters may be escaped by \ (backslash), no spaces are skipped.
+
+=item B<-implicitconfirm>
+
+Request implicit confirmation of the enrolled certificate.
+
+=item B<-disableconfirm>
+
+Do not send certificate confirmation message for enrolled certificates to 
+cope with broken servers not supporting implicit confirmation correctly.
+
+=item B<-unprotectederrors>
+
+Accept unprotected error responses
+
+=item B<-digest name>
+
+Specifies name of supported digest to be used in RFC 4210's MSG_SIG_ALG. 
+If applicable, this is used for message protection and Proof-of-Possession 
+signatures.  To see the list of supported digests, use the command 
+I<list --digest-commands>.  Defaults to 'sha1'.  
+
+=item B<-oldcert filename>
+
+The certificate to be renewed in KUR or to be revoked in RR.
+
+=item B<-revreason number>
+
+Set CRLReason to be included in revocation request (RR); values: 0..10. None set by default.
+
+Reason numbers defined in RFC 5280 are:
+   CRLReason ::= ENUMERATED {
+        unspecified             (0),
+        keyCompromise           (1),
+        cACompromise            (2),
+        affiliationChanged      (3),
+        superseded              (4),
+        cessationOfOperation    (5),
+        certificateHold         (6),
+             -- value 7 is not used
+        removeFromCRL           (8),
+        privilegeWithdrawn      (9),
+        aACompromise           (10) }
+
+=item B<-cacertsout filename>
+
+The file where to save any received CA certificates.
+
+=item B<-certout filename>
+
+The file where the newly enrolled certificate should be saved.
+
+=item B<-extracertsout filename>
+
+The file where to save any extra certificates received in a response message.
+
+=item B<-keyfmt DER|PEM|P12>
+
+Format to try first when reading key files. Default value is PEM.
+
+=item B<-certfmt DER|PEM|P12>
+
+Format to try first when reading and to use for writing certificate files. Default value is PEM.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+Note: in these examples the '\' at line ends means 
+the invocation should be all on one line.
+
+Sending an initial request message to a CMP server running on the local
+host, using a pre-shared secret key for authentication. In this example
+the client does not have the CA certificate yet, so we specify the CA's
+name with -recipient and save any CA certificates that we may receive
+in the ./capubs.pem file.
+
+  openssl genrsa -out cl_key.pem
+  openssl cmp -cmd ir -server 127.0.0.1:8080 -path pkix/ -user 1234 -pass password \
+    -recipient "/CN=CMPserver" -newkey cl_key.pem -subject "/CN=MyName" \
+    -cacertsout capubs.pem -certout cl_cert.pem
+
+Then, when the keys for this certificate need to be updated, the client
+can send a key update request. 
+
+  openssl genrsa -out cl_key_new.pem
+  openssl cmp -cmd kur -server 127.0.0.1:8080 -path pkix/ -cert cl_cert.pem \
+    -key cl_key.pem -srvcert capubs.pem -newkey cl_key_new.pem -certout cl_cert_new.pem
+
+=back
+
+=head1 TODO
+
+=over 4
+
+=item * Option for selecting the OpenSSL engine to use.
+
+=item * Option for printing more verbose information.
+
+=item * Receiving a CKUANN using a CMP general message.  Generally: Sending CMP
+general messages for requesting certain information.
+
+=item * Multiple certificate/revocation requests in one session (functionality not yet
+available in the library).
+
+=item * Revocation of other certificates than the one used for signing
+certificates (functionality not yet available in the library).
+
+=item * Message sequences other than those needed for IR/CR/KUR/RR (functionality not yet
+available in the library).
+
+=item * Many optionally available settings from the RFC which are not yet
+available in the library and are probably not supported by any available CMP
+server.
+
+=back
+
+=head1 SEE ALSO
+
+L<genrsa(1)|genrsa(1)>, L<gendsa(1)|gendsa(1)>, L<x509v3_config(5)|x509(1)> 
+
+=cut

@@ -1,0 +1,222 @@
+=pod
+
+=head1 NAME
+
+  CMP_REVREPCONTENT_PKIStatus_get,
+  CMP_CERTREPMESSAGE_PKIStatus_get,
+  CMP_CERTREPMESSAGE_certResponse_get0,
+  CMP_CERTREPMESSAGE_certType_get,
+  CMP_CERTSTATUS_set_certHash,
+  CMP_PKIFAILUREINFO_check,
+  CMP_PKIHEADER_generalInfo_item_push0,
+  CMP_PKIHEADER_new_senderNonce,
+  CMP_PKIHEADER_push0_freeText,
+  CMP_PKIHEADER_push1_freeText,
+  CMP_PKIHEADER_init,
+  CMP_PKIHEADER_set1_recipNonce,
+  CMP_PKIHEADER_set1_recipient,
+  CMP_PKIHEADER_set1_sender,
+  CMP_PKIHEADER_set1_senderKID,
+  CMP_PKIHEADER_set1_transactionID,
+  CMP_PKIHEADER_set_messageTime,
+  CMP_PKIHEADER_set_version,
+  CMP_PKIMESSAGE_check_implicitConfirm,
+  CMP_PKIMESSAGE_genm_item_push0,
+  CMP_PKIMESSAGE_get_bodytype,
+  CMP_PKIMESSAGE_parse_error_msg,
+  CMP_PKIMESSAGE_set_bodytype,
+  CMP_PKIMESSAGE_set_implicitConfirm,
+  CMP_calc_protection_pbmac,
+  CMP_PKIMESSAGE_protect,
+  CMP_PKIMESSAGE_add_extraCerts,
+  CMP_PKISTATUSINFO_PKIstatus_get,
+  CMP_get_protectionAlg_pbmac,
+  CMP_protection_new,
+  CMP_CERTREPMESSAGE_PKIFailureInfoString_get0,
+  CMP_CERTREPMESSAGE_PKIStatusString_get0,
+  CMP_CERTREPMESSAGE_PKIFailureInfo_get0,
+  CMP_CERTREPMESSAGE_get_certificate,
+  CMP_build_cert_chain,
+  CMP_ITAV_stack_item_push0
+
+=head1 SYNOPSIS
+
+  #include <openssl/cmp.h>
+
+  long CMP_REVREPCONTENT_PKIStatus_get( CMP_REVREPCONTENT *revRep, long reqId);
+  long CMP_CERTREPMESSAGE_PKIStatus_get( CMP_CERTREPMESSAGE *certRep, long certReqId);
+  CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
+  int CMP_CERTREPMESSAGE_certType_get( CMP_CERTREPMESSAGE *certRep, long certReqId);
+  int CMP_CERTSTATUS_set_certHash( CMP_CERTSTATUS *certStatus, const X509 *cert);
+  char *CMP_ERRORMSGCONTENT_PKIStatus_get_string( CMP_ERRORMSGCONTENT *error);
+  int CMP_PKIFAILUREINFO_check( ASN1_BIT_STRING *failInfo, int codeBit);
+  int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr, const CMP_INFOTYPEANDVALUE *itav);
+  int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
+  int CMP_PKIHEADER_push0_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
+  int CMP_PKIHEADER_push1_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
+  int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr);
+  int CMP_PKIHEADER_set1_recipNonce(CMP_PKIHEADER *hdr, const ASN1_OCTET_STRING *recipNonce);
+  int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
+  int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm);
+  int CMP_PKIHEADER_set1_senderKID(CMP_PKIHEADER *hdr, const ASN1_OCTET_STRING *senderKID);
+  int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr, const ASN1_OCTET_STRING *transactionID);
+  int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr);
+  int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
+  int CMP_PKIMESSAGE_check_implicitConfirm(CMP_PKIMESSAGE *msg);
+  int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg, const CMP_INFOTYPEANDVALUE *itav);
+  int CMP_PKIMESSAGE_get_bodytype( CMP_PKIMESSAGE *msg);
+  char *CMP_PKIMESSAGE_parse_error_msg( CMP_PKIMESSAGE *msg, char *errormsg, int bufsize);
+  int CMP_PKIMESSAGE_set_bodytype( CMP_PKIMESSAGE *msg, int type);
+  int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
+  ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage, const ASN1_OCTET_STRING *secret);
+  int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
+  int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg); 
+  long CMP_PKISTATUSINFO_PKIstatus_get( CMP_PKISTATUSINFO *statusInfo);
+  X509_ALGOR *CMP_get_protectionAlg_pbmac();
+  ASN1_BIT_STRING *CMP_protection_new(CMP_PKIMESSAGE *pkimessage, const EVP_PKEY *pkey, const ASN1_OCTET_STRING *secret);
+  char *CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(CMP_CERTREPMESSAGE *certRep, long certReqId);
+  STACK_OF(ASN1_UTF8STRING)* CMP_CERTREPMESSAGE_PKIStatusString_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
+  CMP_PKIFAILUREINFO *CMP_CERTREPMESSAGE_PKIFailureInfo_get0(CMP_CERTREPMESSAGE *certRep, long certReqId);
+  X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx, CMP_CERTREPMESSAGE *certrep);
+  STACK_OF(X509) *CMP_build_cert_chain(X509_STORE *store, X509 *cert);
+  int CMP_ITAV_stack_item_push0(STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p, const CMP_INFOTYPEANDVALUE *itav);
+
+=head1 DESCRIPTION
+
+CMP_REVREPCONTENT_PKIStatus_get() returns the PKIStatus of the given Rev, or -1 on error.
+
+CMP_CERTREPMESSAGE_PKIStatus_get() returns the PKIStatus of the given
+certReqId inside a CertRepMessage, or -1 on error.
+
+CMP_CERTREPMESSAGE_certResponse_get0() returns a pointer to the
+CertResponse with the given certReqId inside a CertRepMessage. If no
+CertResponse is available or if there's an error, the function returns
+NULL.
+
+CMP_CERTREPMESSAGE_certType_get() returns the type of the certificate
+contained in the certificate response, or -1 on error.
+
+CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
+using the same hash algorithm as is used to create and verify the
+certificate signature, and places the hash into the certHash field of a
+CMP_CERTSTATUS structure. This is used in the certConf message, for
+example, to confirm that the certificate was received successfully.
+
+CMP_PKIFAILUREINFO_check() checks whether a given bit is set within a
+given PKIFailureInfo.
+
+CMP_PKIHEADER_generalInfo_item_push0() adds the given InfoTypeAndValue
+item to the hdr->generalInfo stack.
+
+CMP_PKIHEADER_new_senderNonce() generates a random value for the
+hdr->senderNonce field, which is used to protect the PKIMessage against
+replay attacks.
+
+CMP_PKIHEADER_push0_freeText() pushes an ASN1_UTF8STRING to
+hdr->freeText and consumes the given pointer.
+
+CMP_PKIHEADER_push1_freeText() pushes an ASN1_UTF8STRING to
+hdr->freeText and does not consume the pointer.
+
+CMP_PKIHEADER_init() initializes a PKIHeader structure based on the
+values in the given CMP_CTX structure.
+
+CMP_PKIHEADER_set1_recipNonce() sets the recpiNonce field in the given
+hdr to the given value.
+
+CMP_PKIHEADER_set1_recipient() sets the recipient field in the given
+PKIHeader to the given X509 Name value, without consuming the pointer.
+
+CMP_PKIHEADER_set1_sender() sets the sender field in the given PKIHeader
+to the given X509 Name value, without consuming the pointer.
+
+CMP_PKIHEADER_set1_senderKID() Sets hdr->senderKID to the given
+string. In IR this is the reference number issued by the CA. In KUR 
+this is set to the public key ID from the previously issued certificate.
+
+CMP_PKIHEADER_set1_transactionID() copies the given transactionID to
+hdr->transactionID. If the transactionID parameter is NULL, a new random
+value is generated for it.
+
+CMP_PKIHEADER_set_messageTime() sets the messageTime to the current system time.
+
+CMP_PKIHEADER_set_version() sets hdr->pvno to the given integer.
+
+CMP_PKIMESSAGE_check_implicitConfirm() returns 1 if implicitConfirm is
+set in the given PKIMessage, 0 if not.
+
+CMP_PKIMESSAGE_genm_item_push0() pushes an InfoTypeAndValue item to the
+stack of general messages (GenMsg).
+
+CMP_PKIMESSAGE_get_bodytype() returns the body type of the given
+PKIMessage.
+
+CMP_PKIMESSAGE_parse_error_msg() reads the error messages from the given
+PKIMessage, and prints out the results in the given errormsg buffer.
+
+CMP_PKIMESSAGE_set_bodytype() sets the type of the message contained in
+the PKIMessage body field.
+
+CMP_PKIMESSAGE_set_implicitConfirm() sets implicitConfirm in the
+generalInfo field of the header.
+
+CMP_calc_protection_pbmac calculates the PBMAC protection for given PKImessage utilizing the given secret.
+
+CMP_PKIMESSAGE_protect() protects the given message deciding on the algorithm
+depending on the available context information:  If there is a secretValue it
+selects PBMAC. If not and there is a clCert it selects Signature.  Generates and
+sets the protection to the given pkimessage.
+
+CMP_PKIMESSAGE_add_extraCerts() fills the extraCerts field in the message.
+
+CMP_PKISTATUSINFO_PKIstatus_get() returns the status value of the given PKIStatusInfo.
+
+CMP_get_protectionAlg_pbmac() initializes an X509_ALGOR structure for
+Password Based MAC. Creates a CRMF_PBMPARAMETER structure for the
+parameters.
+
+CMP_protection_new() calculates the value of protection field for the
+PKIMessage, either by using Password based MAC or signing it with a
+private key.
+
+CMP_CERTREPMESSAGE_PKIFailureInfoString_get0() returns PKIFailureInfoString 
+character array of given certRep message, or NULL on error
+
+CMP_CERTREPMESSAGE_PKIStatusString_get0() gets the CertResponse with the
+given certReqId inside the given CertReqMessage, and returns the
+status->statuString field contained in it.
+
+CMP_CERTREPMESSAGE_PKIFailureInfo_get0() returns PKIFailureInfo of given certRep message.
+
+CMP_CERTREPMESSAGE_get_certificate() retrieves the returned certificate 
+from the given certrepmessage, or NULL if not found.
+
+CMP_build_cert_chain() builds up the certificate chain of cert as high up as possible 
+using the given X509_STORE containing all possible intermediate certificates and
+optionally the (possible) trust anchor(s).
+
+CMP_ITAV_stack_item_push0() pushes the given InfoTypeAndValue to the
+given stack, creating a new stack if one does not exist yet.
+
+
+=head1 NOTES
+
+CMP is defined in RFC 4210 (and CRMF in RFC 4211).
+
+The implementation of CMP for OpenSSL is still work in progress. The API
+might change every release!
+
+=head1 RETURN VALUES
+
+
+
+=head1 EXAMPLE
+
+
+=head1 TODO
+
+A lot!
+
+=head1 SEE ALSO
+
+CMP_CTX, CMP_session, CMP_msg, CMP_http

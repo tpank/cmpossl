@@ -103,6 +103,7 @@ my @known_algorithms = ( "RC2", "RC4", "RC5", "IDEA", "DES", "BF",
 			 "RFC3779",
 			 # TLS
 			 "PSK", "SRP", "HEARTBEATS",
+			 "CMP", "CRMF",
 			 # CMS
 			 "CMS",
                          "OCSP",
@@ -297,6 +298,8 @@ $crypto.=" include/openssl/x509.h";
 $crypto.=" include/openssl/x509_vfy.h";
 $crypto.=" include/openssl/x509v3.h";
 $crypto.=" include/openssl/ts.h";
+$crypto.=" include/openssl/cmp.h";
+$crypto.=" include/openssl/crmf.h";
 $crypto.=" include/openssl/rand.h";
 $crypto.=" include/openssl/comp.h" ; # unless $no_comp;
 $crypto.=" include/openssl/ocsp.h";

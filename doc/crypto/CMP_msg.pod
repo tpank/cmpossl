@@ -1,0 +1,66 @@
+=pod
+
+=head1 NAME
+
+ CMP_certConf_new,
+ CMP_pollReq_new,
+ CMP_cr_new,
+ CMP_genm_new,
+ CMP_ir_new,
+ CMP_rr_new,
+ CMP_kur_new	
+
+=head1 SYNOPSIS
+
+ #include <openssl/cmp.h>
+
+ CMP_PKIMESSAGE * CMP_ir_new( CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_cr_new( CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_rr_new(CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_kur_new( CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_certConf_new( CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_pollReq_new(CMP_CTX *ctx, int reqId);
+ CMP_PKIMESSAGE * CMP_genm_new( CMP_CTX *ctx);
+
+=head1 DESCRIPTION
+
+This is the API for creating different CMP related PKIMESSAGES. The
+functions allocate a new message and fill it with the relevant data from
+the given CMP_CTX.
+
+CMP_ir_new() creates an Initial Request message.
+
+CMP_cr_new() creates a Certificate Request message.
+
+CMP_rr_new() creates a Revocation Request message.
+
+CMP_kur_new() creates a Key Update Request message.
+
+CMP_certConf_new() creates a Certificate Confirmation message.
+
+CMP_pollReq_new() creates a Polling Request message.
+
+CMP_genm_new() creates a new General Message.
+
+=head1 NOTES
+
+CMP is defined in RFC 4210 (and CRMF in RFC 4211).
+
+The implementation of CMP for OpenSSL is still work in progress. The API
+might change every release!
+
+=head1 RETURN VALUES
+
+All of the functions return a new CMP_PKIMESSAGE structure containing
+the generated message.
+
+=head1 EXAMPLE
+
+
+=head1 TODO
+
+A lot!
+
+=head1 SEE ALSO
+
+CMP_CTX, CMP_session, CMP_http

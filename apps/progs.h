@@ -27,6 +27,7 @@ DEFINE_LHASH_OF(FUNCTION);
 extern int asn1parse_main(int argc, char *argv[]);
 extern int ca_main(int argc, char *argv[]);
 extern int ciphers_main(int argc, char *argv[]);
+extern int cmp_main(int argc, char *argv[]);
 extern int cms_main(int argc, char *argv[]);
 extern int crl_main(int argc, char *argv[]);
 extern int crl2pkcs7_main(int argc, char *argv[]);
@@ -128,6 +129,9 @@ static FUNCTION functions[] = {
     {FT_general, "ca", ca_main, ca_options},
 #ifndef OPENSSL_NO_SOCK
     {FT_general, "ciphers", ciphers_main, ciphers_options},
+#endif
+#ifndef OPENSSL_NO_CMP
+    { FT_general, "cmp", cmp_main, cmp_options },
 #endif
 #ifndef OPENSSL_NO_CMS
     {FT_general, "cms", cms_main, cms_options},
