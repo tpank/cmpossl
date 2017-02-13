@@ -338,7 +338,9 @@ my @disablables = (
     "chacha",
     "cmac",
     "cms",
+    "cmp",
     "comp",
+    "crmf",
     "crypto-mdebug",
     "crypto-mdebug-backtrace",
     "ct",
@@ -502,6 +504,8 @@ my @disable_cascades = (
     sub { !$disabled{"msan"} } => [ "asm" ],
 
     sub { $disabled{cmac}; } => [ "siv" ],
+
+    "crmf"              => [ "cmp" ],
     );
 
 # Avoid protocol support holes.  Also disable all versions below N, if version
