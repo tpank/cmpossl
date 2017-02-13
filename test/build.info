@@ -51,6 +51,7 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
           recordlentest drbgtest drbg_cavs_test sslbuffertest \
           time_offset_test pemtest ssl_cert_table_internal_test ciphername_test \
           servername_test ocspapitest rsa_mp_test fatalerrtest tls13ccstest \
+          cmp_ctx_test cmp_lib_test cmp_msg_test cmp_ses_test cmp_vfy_test \
           sysdefaulttest
 
   SOURCE[versions]=versions.c
@@ -288,6 +289,7 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
   INCLUDE[ssl_test_ctx.o]=../include
   INCLUDE[handshake_helper.o]=.. ../include
   INCLUDE[ssltestlib.o]=.. ../include
+  INCLUDE[cmptestlib.o]=.. ../include
 
   SOURCE[x509aux]=x509aux.c
   INCLUDE[x509aux]=../include
@@ -420,6 +422,26 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
   INCLUDE[conf_include_test]=../include
   DEPEND[conf_include_test]=../libcrypto libtestutil.a
 
+  SOURCE[cmp_msg_test]=cmp_msg_test.c cmptestlib.c
+  INCLUDE[cmp_msg_test]=.. ../include
+  DEPEND[cmp_msg_test]=../libcrypto.a libtestutil.a
+
+  SOURCE[cmp_vfy_test]=cmp_vfy_test.c cmptestlib.c
+  INCLUDE[cmp_vfy_test]=.. ../include
+  DEPEND[cmp_vfy_test]=../libcrypto.a libtestutil.a
+
+  SOURCE[cmp_lib_test]=cmp_lib_test.c cmptestlib.c
+  INCLUDE[cmp_lib_test]=.. ../include
+  DEPEND[cmp_lib_test]=../libcrypto.a libtestutil.a
+
+  SOURCE[cmp_ctx_test]=cmp_ctx_test.c cmptestlib.c
+  INCLUDE[cmp_ctx_test]=.. ../include
+  DEPEND[cmp_ctx_test]=../libcrypto.a libtestutil.a
+
+  SOURCE[cmp_ses_test]=cmp_ses_test.c cmptestlib.c
+  INCLUDE[cmp_ses_test]=.. ../include
+  DEPEND[cmp_ses_test]=../libcrypto.a libtestutil.a
+
   # Internal test programs.  These are essentially a collection of internal
   # test routines.  Some of them need to reach internal symbols that aren't
   # available through the shared library (at least on Linux, Solaris, Windows
@@ -431,7 +453,7 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
   IF[{- $disabled{shared} || $target{build_scheme}->[1] ne 'windows' -}]
     PROGRAMS_NO_INST=asn1_internal_test modes_internal_test x509_internal_test \
                      tls13encryptiontest wpackettest ctype_internal_test \
-                     rdrand_sanitytest
+                     rdrand_sanitytest cmp_internal_test
     IF[{- !$disabled{poly1305} -}]
       PROGRAMS_NO_INST=poly1305_internal_test
     ENDIF
@@ -479,6 +501,10 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
     SOURCE[ctype_internal_test]=ctype_internal_test.c
     INCLUDE[ctype_internal_test]=.. ../crypto/include ../include
     DEPEND[ctype_internal_test]=../libcrypto.a libtestutil.a
+
+    SOURCE[cmp_internal_test]=cmp_internal_test.c cmptestlib.c
+    INCLUDE[cmp_internal_test]=.. ../include
+    DEPEND[cmp_internal_test]=../libcrypto.a libtestutil.a
 
     SOURCE[siphash_internal_test]=siphash_internal_test.c
     INCLUDE[siphash_internal_test]=.. ../include ../crypto/include
