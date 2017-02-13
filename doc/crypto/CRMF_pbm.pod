@@ -1,0 +1,60 @@
+=pod
+
+=head1 NAME
+
+  CRMF_pbmp_new,
+  CRMF_passwordBasedMac_new
+
+=head1 SYNOPSIS
+
+  #include <openssl/crmf.h>
+
+  int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
+                                const unsigned char *msg, size_t msgLen,
+                                const unsigned char *secret, size_t secretLen,
+                                unsigned char **mac, unsigned int *macLen);
+
+  CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid, long itercnt,
+                                   int macnid);
+
+=head1 DESCRIPTION
+
+CRMF_passwordBasedMac_new() generates a PBM based on the given CRMF_PBMPARAMETER.
+Expects pointers to the message and the secret to use, and their respective
+lenghts.  Writes the pointers to the newly allocated MAC and its lenght into the
+respective given parameters.  In the CRMF_PBMPARAMETER structure, the NIDs for
+the OWF (one-way function) and for the MAC (message authentication code) may be
+any ones known to OpenSSL, including NID_hmac_sha1 as mandated by RFC 4210.
+
+CRMF_pbmp_new() inializes and returns a new CRMF_PBMPARAMETER structure. Returns
+NULL on error.  It generates a random salt with length as given in the slen
+parameter.  It copies the algorithms for OWF and MAC as given by their NIDs.
+It copies the iterationCount as given, and enforces it to be at least 100.
+
+=head1 NOTES
+
+CRMF is defined in RFC 4211.
+
+=head1 RETURN VALUES
+
+CRMF_passwordBasedMac_new() Returns 1 on success, 0 on error.
+
+CRMF_pbmp_new() returns a new and initialized CRMF_PBMPARAMETER structure, or
+NULL on error.
+
+=head1 EXAMPLE
+
+CRMF_PBMPARAMETER *pbm = NULL;
+unsiged char *msg = "Hello";
+unsiged char *sec = "SeCrEt";
+unsiged char *mac = NULL;
+unsiged int macLen;
+
+if ((pbm = CRMF_pbmp_new(16, NID_sha256, 500, NID_hmac_sha1) == NULL))
+    goto err;
+if (!CRMF_passwordBasedMac_new(pbm, msg, 5, sec, 6, &mac, &macLen))
+    goto err;
+
+=head1 SEE ALSO
+
+RFC 4210

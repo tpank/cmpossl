@@ -1,0 +1,61 @@
+=pod
+
+=head1 NAME
+
+ CMP_validate_msg,
+ CMP_validate_cert_path
+
+=head1 SYNOPSIS
+
+ #include <openssl/cmp.h>
+ int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
+ int CMP_validate_cert_path(X509_STORE *trusted_store,
+                            const STACK_OF(X509) *untrusted_certs, X509 *cert);
+
+=head1 DESCRIPTION
+
+This is the API for validating the protection of CMP messages,
+which includes validating CMP server certificates and their paths
+while optionally checking the revocation status of the certificates(s).
+
+CMP_validate_msg() validates the protection of the given PKIMessage
+using either password-based mac (PBM) or a signature algorithm.
+
+In case of signature algorithm, the certificate to use for protection
+validation is taken from ctx->srvCert if set. Otherwise potentially suitable
+sender certificates are determined by matching the PKIMessage's sender DN and
+senderKID to the certificates available in the PKIMessage's extraCerts,
+ctx->untrusted_certs, and ctx->trusted_store.  The first candidate that can be
+validated against ctx->trusted_store, utilizing ctx->untrusted_certs and
+extraCerts, is used.
+
+In case of successful validation of PBM protection of a certificate response,
+the certificates in the caPubs field (if any) are added to ctx->trusted_store,
+to be available for validating future messages in the same context.
+Those could e.g. apply to later Polling Responses (pollRep) or PKI Confirmation
+(PKIConf) messages in the same transaction.
+
+If ctx->permitTAInExtraCertsForIR is true, a self-signed certificate from the
+PKIMessage's extraCerts field may also be used as trust anchor during
+protection validation if it can be used to validate the issued certificate
+returned in IP.  This is according to 3GPP TS 33.310.
+
+CMP_validate_cert_path() attempts to validate a certificate and its path
+using the given store of trusted certs (possibly including CRLs and a cert
+verification callbadk) and the given stack of non-trusted intermediate certs.
+
+=head1 NOTES
+
+CMP is defined in RFC 4210 (and CRMF in RFC 4211).
+
+=head1 RETURN VALUES
+
+CMP_validate_msg() returns 1 on success, 0 on error or validation failed.
+
+CMP_validate_cert_path() returns 1 on successful validation and 0 otherwise.
+
+=head1 EXAMPLE
+
+=head1 SEE ALSO
+
+CMP_CTX, CMP_ses

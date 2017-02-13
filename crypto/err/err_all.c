@@ -34,6 +34,8 @@
 #include <openssl/ts.h>
 #include <openssl/cms.h>
 #include <openssl/ct.h>
+#include <openssl/cmp.h>
+#include <openssl/crmf.h>
 #include <openssl/async.h>
 #include <openssl/kdf.h>
 #include <openssl/store.h>
@@ -93,6 +95,10 @@ int err_load_crypto_strings_int(void)
         ERR_load_ASYNC_strings() == 0 ||
 #endif
         ERR_load_KDF_strings() == 0 ||
+#ifndef OPENSSL_NO_CMP
+        ERR_load_CMP_strings() == 0 ||
+        ERR_load_CRMF_strings() == 0 ||
+# endif
         ERR_load_OSSL_STORE_strings() == 0)
         return 0;
 

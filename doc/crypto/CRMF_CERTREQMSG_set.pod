@@ -1,0 +1,104 @@
+=pod
+
+=head1 NAME
+
+CRMF_CERTREQMSG_set_version2,
+CRMF_CERTREQMSG_set_validity,
+CRMF_CERTREQMSG_set_certReqId,
+CRMF_CERTREQMSG_set1_publicKey,
+CRMF_CERTREQMSG_set1_subject,
+CRMF_CERTREQMSG_set1_issuer,
+CRMF_CERTREQMSG_set0_extensions,
+CRMF_CERTREQMSG_push0_extension,
+CRMF_CERTREQMSG_create_popo - functions populating the CRMF CERTREQMSG structures
+
+=head1 SYNOPSIS
+
+ #include <openssl/crmf.h>
+
+ int CRMF_CERTREQMSG_set_version2(CRMF_CERTREQMSG *crm)
+
+ int CRMF_CERTREQMSG_set_validity(CRMF_CERTREQMSG *crm, time_t from, time_t to)
+
+ int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, const long rid)
+
+ int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey)
+
+ int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *crm, const X509_NAME *subj)
+
+ int CRMF_CERTREQMSG_set1_issuer( CRMF_CERTREQMSG *crm, const X509_NAME *is)
+
+ int CRMF_CERTREQMSG_set0_extensions( CRMF_CERTREQMSG *crm,
+                                      X509_EXTENSIONS *exts);
+
+ int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
+                                     const X509_EXTENSION *ext)
+
+ # define CRMF_POPO_NONE          0
+ # define CRMF_POPO_SIGNATURE     1
+ # define CRMF_POPO_ENCRCERT      2
+ # define CRMF_POPO_RAVERIFIED    3
+
+ int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
+                                 int dgst, int ppmtd)
+
+=head1 DESCRIPTION
+
+CRMF_CERTREQMSG_set_version2() sets version 2 in the certTemplate of B<crm>.
+
+CRMF_CERTREQMSG_set_validity() sets B<from> as notBefore and B<to> as notAfter
+as the validity in the certTemplate of B<crm>.
+
+CRMF_CERTREQMSG_set_certReqId() sets B<rid> as the certReqId of B<crm>.
+
+CRMF_CERTREQMSG_set1_publicKey() sets B<pkey> as the public key in the
+certTemplate of B<crm>.  Does not consume B<pkey>.
+
+CRMF_CERTREQMSG_set1_subject() sets B<subj> as the subject name in the
+certTemplate of B<crm>.  Does not consume B<subj>.
+
+CRMF_CERTREQMSG_set1_issuer() sets B<is> as the issuer name in the certTemplate
+of B<crm>.  Does not consume B<is>.
+
+CRMF_CERTREQMSG_set0_extensions() sets B<exts> as the extensions in the
+certTemplate of B<crm>. Consumes B<exts>.
+
+CRMF_CERTREQMSG_push0_extension() pushes the X509 extension B<ext> to the
+extensions in the certTemplate of B<crm>.  Consumes B<ext>.
+
+CRMF_CERTREQMSG_create_popo() creates and sets the Proof-of-Possession (POP)
+according to the method B<ppmtd> for B<pkey> to B<crm>. In case the method is
+CRMF_POPO_SIGNATURE, POP is calculated using the B<dgst>.
+
+B<ppmtd> can be one of the following:
+
+=over 8
+
+=item * CRMF_POPO_NONE       - RFC 4211, section 4, POP field omitted. CA/RA uses out-of-band method to verify POP. Note that servers may fail in this case, resulting for instance in HTTP error code 500 (Internal error).
+
+=item * CRMF_POPO_SIGNATURE  - RFC 4211, section 4.1, only case 3 supported so far.
+
+=item * CRMF_POPO_ENCRCERT   - RFC 4211, section 4.2, only indirect method (subsequentMessage/enccert) supported, challenge-response exchange (challengeResp) not yet supported.
+
+=item * CRMF_POPO_RAVERIFIED - RFC 4211, section 4, explicit indication that the RA has already verified the POP.
+
+=back
+
+=head1 RETURN VALUES
+
+Returns 1 on success, 0 on error.
+
+=head1 SEE ALSO
+
+B<RFC 4211>
+
+=head1 COPYRIGHT
+
+Copyright 2007-2017 The OpenSSL Project Authors. All Rights Reserved.
+
+Licensed under the OpenSSL license (the "License").  You may not use
+this file except in compliance with the License.  You can obtain a copy
+in the file LICENSE in the source distribution or at
+L<https://www.openssl.org/source/license.html>.
+
+=cut
