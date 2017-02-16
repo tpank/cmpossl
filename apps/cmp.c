@@ -204,6 +204,7 @@ OPTIONS cmp_options[] = {
     {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
 
     {"recipient", OPT_RECIPIENT, 's', "X509 name of the recipient.\n"
+                             "\t\t     Defaults to subject name of srvcert if given.\n"},
                              "\t\t     For RR, defaults to issuer of certificate to be revoked for RR"},
     {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
     {"cmd", OPT_CMD, 's', "CMP command to execute: ir/cr/kur/rr/..."},
