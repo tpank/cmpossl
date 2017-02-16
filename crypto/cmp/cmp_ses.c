@@ -179,11 +179,16 @@ void add_error_data(const char *txt)
 /* ############################################################################ *
  * internal function
  *
+ * type_rep - bit field with the message types set which are expected. E.g.
+ *            (1U<<V_CMP_PKIBODY_POLLREP)|(1U<<V_CMP_PKIBODY_IP)
+ *            or
+ *            1U<<V_CMP_PKIBODY_IP 
+ *
  * performs the generic aspects of sending a request and receiving a response
  * ############################################################################ */
 static int send_receive_check(CMP_CTX *ctx,
                         const CMP_PKIMESSAGE *req, const char *type_string, int type_function,
-                              CMP_PKIMESSAGE **rep, int type_rep, int not_received)
+                              CMP_PKIMESSAGE **rep, uint32_t type_rep, int not_received)
 {
     CMP_printf(ctx, "INFO: Sending %s", type_string);
     if (!(CMP_PKIMESSAGE_http_perform(ctx, req, rep))) {
@@ -196,8 +201,8 @@ static int send_receive_check(CMP_CTX *ctx,
         CMP_printf(ctx, "INFO: response message is not protected");
     }
 
-    /* catch if the received message type is not the expected one (e.g., error) */
-    if (CMP_PKIMESSAGE_get_bodytype(*rep) != type_rep) {
+    /* catch if the received message type is not one the expected ones (e.g. error) */
+    if (!((1U << CMP_PKIMESSAGE_get_bodytype(*rep)) & type_rep)) {
         if (!(*rep)->header->protectionAlg && ctx->unprotectedErrors) {
             CMP_printf(ctx, "WARN: ignoring missing protection of unexpected (e.g., error) response message");
         } else {
@@ -253,13 +258,16 @@ static int send_receive_check(CMP_CTX *ctx,
  * is before the "checkAfter" sent by the server.  If ctx->maxPollTime is 0, the
  * timeout is disabled.
  *
+ * type_rep - bit field with the message types set which are expected. E.g.
+ *            1U<<V_CMP_PKIBODY_IP 
+ *
  * returns 1 on success, returns received PKIMESSAGE in *msg argument
  * returns 0 on error or when timeout is reached without a received messsage
  *
  * TODO handle multiple pollreqs for multiple certificates
  * ############################################################################ */
 static int pollForResponse(CMP_CTX *ctx, CMP_CERTREPMESSAGE *certrep,
-                           CMP_PKIMESSAGE **msg)
+                           CMP_PKIMESSAGE **msg, uint32_t type_rep)
 {
     int maxTimeLeft = ctx->maxPollTime;
     CMP_PKIMESSAGE *preq = NULL;
@@ -273,7 +281,7 @@ static int pollForResponse(CMP_CTX *ctx, CMP_CERTREPMESSAGE *certrep,
             goto err;           /* TODO: this only handles one certificate request so far */
 
         if (!send_receive_check(ctx, preq, "pollReq", CMP_F_POLLFORRESPONSE,
-                                    &prep, V_CMP_PKIBODY_POLLREP, CMP_R_POLLREP_NOT_RECEIVED))
+                                    &prep, (type_rep | (1U<<V_CMP_PKIBODY_POLLREP)), CMP_R_POLLREP_NOT_RECEIVED))
              goto err;
 
         /* handle potential pollRep */
@@ -335,7 +343,7 @@ static int sendCertConf(CMP_CTX *ctx)
         goto err;
 
     if (!send_receive_check(ctx, certConf, "certConf", CMP_F_SENDCERTCONF,
-                                 &PKIconf, V_CMP_PKIBODY_PKICONF, CMP_R_PKICONF_NOT_RECEIVED))
+                                 &PKIconf, (1U << V_CMP_PKIBODY_PKICONF), CMP_R_PKICONF_NOT_RECEIVED))
         goto err;
 
     CMP_PKIMESSAGE_free(certConf);
@@ -404,7 +412,7 @@ X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx)
         goto err;
 
     if (!send_receive_check(ctx, ir, "ir", CMP_F_CMP_DOINITIALREQUESTSEQ,
-                                &ip, V_CMP_PKIBODY_IP, CMP_R_IP_NOT_RECEIVED))
+                                &ip, (1U << V_CMP_PKIBODY_IP), CMP_R_IP_NOT_RECEIVED))
         goto err;
 
     save_certrep_statusInfo(ctx, ip->body->value.ip);
@@ -413,7 +421,7 @@ X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx)
     /* TODO handle second CERTrepmessages if two would have sent */
     if (CMP_CERTREPMESSAGE_PKIStatus_get(ip->body->value.ip, 0) ==
         CMP_PKISTATUS_waiting)
-        if (!pollForResponse(ctx, ip->body->value.ip, &ip)) {
+        if (!pollForResponse(ctx, ip->body->value.ip, &ip, (1U << V_CMP_PKIBODY_IP))) {
             CMPerr(CMP_F_CMP_DOINITIALREQUESTSEQ, CMP_R_IP_NOT_RECEIVED);
             ERR_add_error_data(1,
                                "received 'waiting' pkistatus but polling failed");
@@ -497,7 +505,7 @@ int CMP_doRevocationRequestSeq(CMP_CTX *ctx)
         goto err;
 
     if (!send_receive_check(ctx, rr, "rr", CMP_F_CMP_DOREVOCATIONREQUESTSEQ,
-                                &rp, V_CMP_PKIBODY_RP, CMP_R_RP_NOT_RECEIVED))
+                                &rp, (1U << V_CMP_PKIBODY_RP), CMP_R_RP_NOT_RECEIVED))
         goto err;
 
     /* evaluate PKIStatus field */
@@ -565,7 +573,7 @@ X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx)
         goto err;
 
     if (!send_receive_check(ctx, cr, "cr", CMP_F_CMP_DOCERTIFICATEREQUESTSEQ,
-                                &cp, V_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED))
+                                &cp, (1U << V_CMP_PKIBODY_CP), CMP_R_CP_NOT_RECEIVED))
         goto err;
 
     save_certrep_statusInfo(ctx, cp->body->value.cp);
@@ -573,7 +581,7 @@ X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx)
     /* evaluate PKIStatus field */
     if (CMP_CERTREPMESSAGE_PKIStatus_get(cp->body->value.cp, 0) ==
         CMP_PKISTATUS_waiting)
-        if (!pollForResponse(ctx, cp->body->value.cp, &cp)) {
+        if (!pollForResponse(ctx, cp->body->value.cp, &cp, (1U << V_CMP_PKIBODY_CP))) {
             CMPerr(CMP_F_CMP_DOCERTIFICATEREQUESTSEQ, CMP_R_CP_NOT_RECEIVED);
             ERR_add_error_data(1,
                                "received 'waiting' pkistatus but polling failed");
@@ -638,7 +646,7 @@ X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx)
         goto err;
 
     if (!send_receive_check(ctx, kur, "kur", CMP_F_CMP_DOKEYUPDATEREQUESTSEQ,
-                                &kup, V_CMP_PKIBODY_KUP, CMP_R_KUP_NOT_RECEIVED))
+                                &kup, (1U << V_CMP_PKIBODY_KUP), CMP_R_KUP_NOT_RECEIVED))
         goto err;
 
     save_certrep_statusInfo(ctx, kup->body->value.kup);
@@ -646,7 +654,7 @@ X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx)
     /* evaluate PKIStatus field */
     if (CMP_CERTREPMESSAGE_PKIStatus_get(kup->body->value.kup, 0) ==
         CMP_PKISTATUS_waiting) {
-        if (!pollForResponse(ctx, kup->body->value.kup, &kup)) {
+        if (!pollForResponse(ctx, kup->body->value.kup, &kup, (1U << V_CMP_PKIBODY_KUP))) {
             CMPerr(CMP_F_CMP_DOKEYUPDATEREQUESTSEQ, CMP_R_KUP_NOT_RECEIVED);
             ERR_add_error_data(1,
                                "received 'waiting' pkistatus but polling failed");
@@ -720,7 +728,7 @@ STACK_OF (CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx,
     CMP_PKIMESSAGE_genm_item_push0(genm, itav);
 
     if (!send_receive_check(ctx, genm, "genm", CMP_F_CMP_DOGENERALMESSAGESEQ,
-                                &genp, V_CMP_PKIBODY_GENP, CMP_R_GENP_NOT_RECEIVED))
+                                &genp, (1U << V_CMP_PKIBODY_GENP), CMP_R_GENP_NOT_RECEIVED))
          goto err;
 
 
@@ -736,11 +744,4 @@ STACK_OF (CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx,
  err:
     if (genm)
         CMP_PKIMESSAGE_free(genm);
-    if (genp)
-        CMP_PKIMESSAGE_free(genp);
-
-    /* print out openssl and cmp errors to error_cb if it's set */
-    if (ctx && ctx->error_cb)
-        ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
-    return NULL;
-}
+    if (genp) CMP_PKIMESSAGE_free(genp); /* print out openssl and cmp errors to error_cb if it's set */ if (ctx && ctx->error_cb) ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx); return NULL; }
