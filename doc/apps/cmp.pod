@@ -167,10 +167,10 @@ The file can contain multiple certificates.
 
 =item B<-recipient name>
 
-X509 name of the recipient, i.e. the name of the CA we are sending the request to.
-For RR, defaults to issuer of certificate to be revoked.
-If no CA certificate is provided, then at least the
-recipient name must be specified in order for the IR to work.
+Distinguished Name of the recipient, i.e. the CMP server the request is sent to.
+Defaults to the subject name of the CA certificate if option is given.
+For RR, defaults to the subject name of the issuer of the certificate to be revoked.
+If neither srvcert is given nor RR is tdone, then the recipient name option is mandatory.
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \ (backslash), no spaces are skipped.
 
