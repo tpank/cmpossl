@@ -126,6 +126,7 @@ static int opt_crlfmt = FORMAT_PEM; // default to be tried first for file input;
 
 static char *opt_extcerts = NULL;
 static char *opt_subject = NULL;
+static char *opt_issuer = NULL;
 static char *opt_recipient = NULL;
 static long  opt_disableConfirm = 0;
 static long  opt_implicitConfirm = 0;
@@ -148,7 +149,7 @@ typedef enum OPTION_choice {
     OPT_USER, OPT_PASS, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
     OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED, 
     OPT_RECIPIENT, OPT_PATH, OPT_CMD,
-    OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT,
+    OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, 
     OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
     OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
     OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
@@ -199,19 +200,20 @@ OPTIONS cmp_options[] = {
     {"keypass", OPT_KEYPASS, 's', "Password for the client key"},
     {"extcerts", OPT_EXTCERTS, 's', "Certificates to include in the extraCerts field of request"},
 
-    {"srvcert", OPT_SRVCERT, 's', "Certificate of the CMP server"},
+    {"srvcert", OPT_SRVCERT, 's', "certificate of CMP server to be used as recipient and for verifying the protection of replies"},
     {"trusted", OPT_TRUSTED, 's', "Trusted certificates for CMP server authentication"},
     {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
 
-    {"recipient", OPT_RECIPIENT, 's', "X509 name of the recipient.\n"
-                             "\t\t     Defaults to subject name of srvcert if given.\n"},
-                             "\t\t     For RR, defaults to issuer of certificate to be revoked for RR"},
+    {"recipient", OPT_RECIPIENT, 's', "X509 name of the recipient to use unless the -srvcert option is given.\n"
+                             "\t\t     If both are not set, the recipient defaults to the -issuer argument.\n"
+                             "\t\t     For RR, the recipient defaults to the issuer of the certificate to be revoked"},
     {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
     {"cmd", OPT_CMD, 's', "CMP command to execute: ir/cr/kur/rr/..."},
 
-    {"newkey", OPT_NEWKEY, 's', "Key corresponding to the requested certificate. For CR, default is current key"},
+    {"newkey", OPT_NEWKEY, 's', "Key corresponding to the requested certificate. Default is current client certificate's key if given."},
     {"newkeypass", OPT_NEWKEYPASS, 's', "Password for the key for corresponding to the requested certificate"},
     {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
+    {"issuer", OPT_ISSUER, 's', "X509 name of the issuer, to be put in the requested certificate template"},
 
     {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm enrolled certificates"},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of enrolled certificate"},
@@ -228,7 +230,8 @@ OPTIONS cmp_options[] = {
 
     // TODO: should be aligned to "keyform" as in other OpenSSL apps
     {"keyfmt", OPT_KEYFMT, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
-    {"certfmt", OPT_CERTFMT, 's', "Format (PEM/DER/P12) to try first when for writing certificate files. Default PEM"},
+    {"certfmt", OPT_CERTFMT, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM.\n"
+                             "\t\t     This also determines format to use for writing (not supported for P12)"},
     {NULL}
 };
 
@@ -243,7 +246,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_user}, {&opt_pass}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
     {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
     {&opt_recipient}, {&opt_path}, {&opt_cmd_s},
-    {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, 
+    {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
     { (char **)&opt_disableConfirm}, { (char **)&opt_implicitConfirm}, { (char **)&opt_unprotectedErrors},
     {&opt_digest}, {&opt_oldcert}, { (char **)&opt_revreason},
     {&opt_cacertsout}, {&opt_certout}, {&opt_extracertsout},
@@ -269,7 +272,7 @@ static void opt_help(const OPTIONS *unused_arg) {
 
 /*
  * ########################################################################## 
- * use the commandline option table to read values from the [cmp] section 
+ * use the command line option table to read values from the [cmp] section 
  * of openssl.cnf.  Defaults are taken from the config file, they can be
  * overwritten on the command line.
  * ########################################################################## 
@@ -324,6 +327,10 @@ static int check_options(void)
         strncpy(server_address, opt_server, addrlen);
         server_address[addrlen] = 0;
         server_port = atoi(++p);
+	if (server_port <= 0) {
+            BIO_printf(bio_err, "error: invalid server port number: %s\n", p);
+            goto err;
+	}
     } else {
         BIO_puts(bio_err, "error: missing server address:port\n");
         goto err;
@@ -343,6 +350,10 @@ static int check_options(void)
             BIO_printf(bio_err, "error: missing -tls-key option\n");
             goto err;
         }
+    }
+
+    if (opt_recipient && opt_srvcert) {
+        BIO_puts(bio_err, "warning: -recipient option is ignored since -srvcert option is present\n");
     }
 
     if (opt_cmd_s) {
@@ -388,8 +399,8 @@ static int check_options(void)
     }
 
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
-        if (opt_cmd != CMP_CR && !opt_newkey) {
-            BIO_puts(bio_err, "error: missing new key file\n");
+        if (!opt_newkey && !opt_key) {
+            BIO_puts(bio_err, "error: missing key to be certified\n");
             goto err;
         }
         if (!opt_certout) {
@@ -1172,6 +1183,16 @@ static int setup_ctx(CMP_CTX * ctx)
         X509_NAME_free(n);
     }
 
+    if (opt_issuer) {
+        X509_NAME *n=parse_name(opt_issuer, MBSTRING_ASC, 0);
+        if (n == NULL) {
+            BIO_printf(bio_err, "error: unable to parse issuer name '%s'\n", opt_issuer);
+            goto err;
+        }
+        CMP_CTX_set1_issuer(ctx, n);
+        X509_NAME_free(n);
+    }
+
     if (opt_recipient) {
         X509_NAME *n = parse_name(opt_recipient, MBSTRING_ASC, 0);
         if (n == NULL) {
@@ -1247,7 +1268,7 @@ static int write_cert(BIO *bio, X509 *cert)
         return 1;
     if (opt_certfmt != FORMAT_PEM && opt_certfmt != FORMAT_ASN1)
         BIO_printf(bio_err, "error: unsupported type '%s' for writing certificates\n", opt_certfmt_s);
-     return 0;
+    return 0;
 }
 
 /*
@@ -1369,7 +1390,7 @@ int cmp_main(int argc, char **argv)
         case OPT_ERR:
 opt_err:
             // BIO_printf(bio_err, "%s: Use -help for the following summary.\n", prog);
-            //goto err;
+            // goto err;
         case OPT_HELP:
             ret = 0;
             opt_help(cmp_options);
@@ -1455,6 +1476,9 @@ opt_err:
             break;
         case OPT_SUBJECT:
             opt_subject = opt_arg();
+            break;
+        case OPT_ISSUER:
+            opt_issuer = opt_arg();
             break;
         case OPT_RECIPIENT:
             opt_recipient = opt_arg();

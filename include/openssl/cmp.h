@@ -381,6 +381,7 @@ int CMP_CTX_set1_regToken(CMP_CTX *ctx, const char *regtoken,
 int CMP_CTX_set1_srvCert(CMP_CTX *ctx, const X509 *cert);
 int CMP_CTX_set1_clCert(CMP_CTX *ctx, const X509 *cert);
 int CMP_CTX_set1_oldClCert(CMP_CTX *ctx, const X509 *cert);
+int CMP_CTX_set1_issuer(CMP_CTX *ctx, const X509_NAME *name);
 int CMP_CTX_set1_subjectName(CMP_CTX *ctx, const X509_NAME *name);
 int CMP_CTX_set1_recipient(CMP_CTX *ctx, const X509_NAME *name);
 int CMP_CTX_subjectAltName_push1(CMP_CTX *ctx, const GENERAL_NAME *name);
@@ -424,8 +425,8 @@ int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
 int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO * failInfo);
 unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
 STACK_OF(ASN1_UTF8STRING) * CMP_CTX_statusString_get(CMP_CTX *ctx);
-# define CMP_CTX_OPT_UNSET                      0
-# define CMP_CTX_OPT_SET                        1
+# define CMP_CTX_OPT_UNSET                      0 // unused
+# define CMP_CTX_OPT_SET                        1 // unused
 # define CMP_CTX_OPT_IMPLICITCONFIRM            2
 # define CMP_CTX_OPT_POPMETHOD                  3
 # define CMP_CTX_OPT_MAXPOLLTIME                4
@@ -530,6 +531,7 @@ void ERR_load_CMP_strings(void);
 # define CMP_F_SENDCERTCONF                               170
 # define CMP_F_CMP_CTX_SET0_TLSBIO                        171
 # define CMP_F_CMP_CTX_SET1_DIGEST                        172
+# define CMP_F_CMP_CTX_SET1_ISSUER                        173
 
 /* Reason codes. */
 # define CMP_R_ALGORITHM_NOT_SUPPORTED                    100

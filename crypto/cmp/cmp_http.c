@@ -363,7 +363,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     if (ctx->tlsBIO) {
         BIO_pop(ctx->tlsBIO);
     }
-    CMP_delete_http_bio(cbio);
+    CMP_delete_http_bio(hbio);
 
  err:
     if (err) {

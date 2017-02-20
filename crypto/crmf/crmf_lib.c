@@ -619,6 +619,21 @@ int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *certReqMsg,
 }
 
 /* ############################################################################ *
+ * Set the suggested issuer name in the given certificate template (section 5)
+ * returns 1 on success, 0 on error
+ * ############################################################################ */
+int CRMF_CERTREQMSG_set1_issuer( CRMF_CERTREQMSG *certReqMsg, const X509_NAME *issuer)
+{
+    if (!certReqMsg || !issuer) goto err;
+
+    /* this function is *not* consuming the pointer */
+    return X509_NAME_set(&(certReqMsg->certReq->certTemplate->issuer), (X509_NAME*) issuer);
+err:
+    CRMFerr(CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER, CRMF_R_CRMFERROR);
+    return 0;
+}
+
+/* ############################################################################ *
  * push an extension to the extension stack (section 5)
  *        extensions contains extensions that the requestor wants to have
  *        placed in the certificate.  These extensions would generally deal
@@ -626,7 +641,7 @@ int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *certReqMsg,
  * returns 1 on success, 0 on error
  * ############################################################################ */
 int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *certReqMsg,
-                                    X509_EXTENSION *ext)
+                                    const X509_EXTENSION *ext)
 {
     int createdStack = 0;
 
@@ -642,7 +657,8 @@ int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *certReqMsg,
         createdStack = 1;
     }
 
-    if (!sk_X509_EXTENSION_push(certReqMsg->certReq->certTemplate->extensions, ext))
+    if (!sk_X509_EXTENSION_push(certReqMsg->certReq->certTemplate->extensions,
+                                (X509_EXTENSION *)ext))
         goto err;
     return 1;
  err:

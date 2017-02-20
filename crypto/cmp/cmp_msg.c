@@ -215,7 +215,7 @@ CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
     X509_EXTENSIONS *extensions = NULL;
     X509_NAME *subject = NULL;
 
-    if (!ctx || !ctx->newPkey ||
+    if (!ctx || (!ctx->pkey && !ctx->newPkey) ||
         /* for authentication we need either reference/secret or external 
          * identity certificate and private key, the server name/cert might not be
          * known here yet especiallaly in case of E.7 */
@@ -252,7 +252,8 @@ CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
 
     if (!(msg->body->value.ir = sk_CRMF_CERTREQMSG_new_null()))
         goto err;
-    if (!(certReq0 = CRMF_cr_new(0L, ctx->newPkey, subject, extensions)))
+    EVP_PKEY *requestKey = ctx->newPkey ? ctx->newPkey : ctx->pkey; // default is current client key
+    if (!(certReq0 = CRMF_certreq_new(0L, requestKey, subject, ctx->issuer, 0, 0, extensions)))
         goto err;
     sk_CRMF_CERTREQMSG_push(msg->body->value.ir, certReq0);
     /* TODO: here also the optional 2nd certreqmsg could be pushed to the stack */
@@ -263,7 +264,7 @@ CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
         if (!CRMF_CERTREQMSG_set1_regInfo_regToken(certReq0, ctx->regToken))
             goto err;
 
-    if (!CRMF_CERTREQMSG_calc_and_set_popo(certReq0, ctx->newPkey, ctx->digest, ctx->popoMethod))
+    if (!CRMF_CERTREQMSG_calc_and_set_popo(certReq0, requestKey, ctx->digest, ctx->popoMethod))
         goto err;
 
     if (!CMP_PKIMESSAGE_protect(ctx, msg))
@@ -309,12 +310,11 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
 
     if (!(msg = CMP_PKIMESSAGE_new()))
         goto err;
-    if (!ctx->recipient) { // set default recipient
-        if (!CMP_CTX_set1_recipient(ctx, X509_get_issuer_name(revcert)))
-            goto err;
-    }
     if (!CMP_PKIHEADER_init(ctx, msg->header))
         goto err;
+    if (!ctx->srvCert && !ctx->recipient && !ctx->issuer) // set default recipient
+        if (!CMP_PKIHEADER_set1_recipient(msg->header, X509_get_issuer_name(revcert)))
+            goto err;
     CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_RR);
 
     if (!(msg->body->value.rr = sk_CMP_REVDETAILS_new_null()))
@@ -376,7 +376,7 @@ CMP_PKIMESSAGE *CMP_cr_new(CMP_CTX *ctx)
 
     /* for authentication we need either a reference value/secret for MSG_MAC_ALG 
      * or existing certificate and private key for MSG_SIG_ALG */
-    if (!ctx ||
+    if (!ctx || (!ctx->pkey && !ctx->newPkey) ||
         (!(ctx->referenceValue && ctx->secretValue) && /* MSG_MAC_ALG */
          !(ctx->pkey && ctx->clCert && (ctx->srvCert || ctx->trusted_store)))) { /* MSG_SIG_ALG */
         CMPerr(CMP_F_CMP_CR_NEW, CMP_R_INVALID_ARGS);
@@ -410,9 +410,7 @@ CMP_PKIMESSAGE *CMP_cr_new(CMP_CTX *ctx)
     if (!(msg->body->value.cr = sk_CRMF_CERTREQMSG_new_null()))
         goto err;
     EVP_PKEY *requestKey = ctx->newPkey ? ctx->newPkey : ctx->pkey; // default is current client key
-    if (!requestKey)
-        goto err;
-    if (!(certReq0 = CRMF_cr_new(0L, requestKey, subject, extensions)))
+    if (!(certReq0 = CRMF_certreq_new(0L, requestKey, subject, ctx->issuer, 0, 0, extensions)))
         goto err;
     sk_CRMF_CERTREQMSG_push(msg->body->value.cr, certReq0);
     /* TODO: here also the optional 2nd certreqmsg could be pushed to the stack */
@@ -454,7 +452,7 @@ CMP_PKIMESSAGE *CMP_kur_new(CMP_CTX *ctx)
 
     /* for authentication we need either a reference value/secret for MSG_MAC_ALG 
      * or existing certificate and private key for MSG_SIG_ALG */
-    if (!ctx || !ctx->newPkey ||
+    if (!ctx || (!ctx->pkey && !ctx->newPkey) ||
         (!(ctx->referenceValue && ctx->secretValue) && /* MSG_MAC_ALG */
          !(ctx->pkey && ctx->clCert && (ctx->srvCert || ctx->trusted_store)))) { /* MSG_SIG_ALG */
         CMPerr(CMP_F_CMP_KUR_NEW, CMP_R_INVALID_ARGS);
@@ -487,7 +485,8 @@ CMP_PKIMESSAGE *CMP_kur_new(CMP_CTX *ctx)
 
     if (!(msg->body->value.kur = sk_CRMF_CERTREQMSG_new_null()))
         goto err;
-    if (!(certReq0 = CRMF_cr_new(0L, ctx->newPkey, subject, extensions)))
+    EVP_PKEY *requestKey = ctx->newPkey ? ctx->newPkey : ctx->pkey; // default is current client key
+    if (!(certReq0 = CRMF_certreq_new(0L, requestKey, subject, ctx->issuer, 0, 0, extensions)))
         goto err;
     sk_CRMF_CERTREQMSG_push(msg->body->value.kur, certReq0);
     /* TODO: here also the optional 2nd certreqmsg could be pushed to the stack */
@@ -500,7 +499,7 @@ CMP_PKIMESSAGE *CMP_kur_new(CMP_CTX *ctx)
     else
         CRMF_CERTREQMSG_set1_control_oldCertId(certReq0, ctx->clCert);
 
-    if (!CRMF_CERTREQMSG_calc_and_set_popo(certReq0, ctx->newPkey, ctx->digest, ctx->popoMethod))
+    if (!CRMF_CERTREQMSG_calc_and_set_popo(certReq0, requestKey, ctx->digest, ctx->popoMethod))
         goto err;
 
     if (!CMP_PKIMESSAGE_protect(ctx, msg))

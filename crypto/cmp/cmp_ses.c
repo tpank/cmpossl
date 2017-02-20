@@ -469,8 +469,6 @@ X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx)
  *
  * TODO: this function can only revoke one certifcate so far, should be possible
  * for several according to 5.3.9
- * TODO: this actually revokes the current clCertificate - it might be desired
- * to revoke another certificate the EE posesses.
  *
  * The RFC is vague in which PKIStatus should be returned by the server, so we
  * take "accepted, grantedWithMods, revocationWarning, revocationNotification"
