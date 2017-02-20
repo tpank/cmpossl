@@ -13,6 +13,7 @@
  CMP_CTX_set1_clCert,
  CMP_CTX_set1_oldClCert,
  CMP_CTX_set1_subjectName,
+ CMP_CTX_set1_issuer,
  CMP_CTX_set1_newClCert,
  CMP_CTX_set0_pkey,
  CMP_CTX_set0_newPkey,
@@ -49,6 +50,7 @@
  CMP_CTX_set0_tlsBIO
  CMP_CTX_get_tlsBIO
  CMP_CTX_set1_recipient
+ CMP_CTX_set1_serverName
  CMP_CTX_set1_serverPath
  CMP_CTX_set1_serverPort
  CMP_CTX_set_digest
@@ -72,6 +74,7 @@
  int CMP_CTX_set1_clCert( CMP_CTX *ctx, const X509 *cert);
  int CMP_CTX_set1_oldClCert( CMP_CTX *ctx, const X509 *cert);
  int CMP_CTX_set1_subjectName( CMP_CTX *ctx, const X509_NAME *name);
+ int CMP_CTX_set1_issuer( CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_newClCert( CMP_CTX *ctx, const X509 *cert);
  int CMP_CTX_set0_pkey( CMP_CTX *ctx, const EVP_PKEY *pkey);
  int CMP_CTX_set0_newPkey( CMP_CTX *ctx, const EVP_PKEY *pkey);
@@ -168,6 +171,9 @@ CMP_CTX_set1_subjectName() sets the subject name that will be used in
 the CertTemplate structure when requesting a new certificate. Note that
 if clCert is set, the name will be read from them and this will be
 ignored.
+
+CMP_CTX_set1_issuer() sets the name of the intended issuer that 
+will be set in the PKIHeader, i.e., the X509 name of the CA server.
 
 CMP_CTX_set1_newClCert() sets the given (newly obtained) Client
 Certificate in the given CMP_CTX structure.
@@ -325,8 +331,9 @@ CMP_CTX_set0_tlsBIO() sets the SSL/TLS BIO to be used for HTTPS
 
 CMP_CTX_get_tlsBIO() returns the SSL/TLS BIO to be used for HTTPS
 
-CMP_CTX_set1_recipient() sets the recipient name that will be set in the
-PKIHeader, i.e. the X509 name of the CA server.
+CMP_CTX_set1_recipient() sets the recipient name that will be used in the
+PKIHeader, i.e. the X509 name of the CA server, unless srvCert is set.
+Defaults to given issuer; for RR, further defaults to issuer of certificate to be revoked.
 
 CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 

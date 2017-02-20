@@ -135,7 +135,7 @@ int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm)
 
     gen->type = GEN_DIRNAME;
 
-    /* if nm is not set an empty dirname is created */
+    /* if nm is not set, an empty dirname is created */
     if (nm == NULL) {
         gen->d.directoryName = X509_NAME_new();
     } else {
@@ -171,7 +171,7 @@ int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm)
 
     gen->type = GEN_DIRNAME;
 
-    /* if nm is not set an empty dirname will be set */
+    /* if nm is not set, an empty dirname is created */
     if (nm == NULL) {
         gen->d.directoryName = X509_NAME_new();
     } else {
@@ -414,6 +414,8 @@ int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
  * ############################################################################ */
 int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
 {
+    X509_NAME *recipient = NULL;
+
     if (!hdr)
         goto err;
     if (!ctx)
@@ -432,18 +434,16 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
             goto err;
     }
 
-    /* set recipient name either from known server certificate or recipient name in ctx, leave empty if not set in ctx */
-    if (ctx->srvCert) {
-        if (!CMP_PKIHEADER_set1_recipient
-            (hdr, X509_get_subject_name((X509 *)ctx->srvCert)))
-            goto err;
-    } else if (ctx->recipient) {
-        if (!CMP_PKIHEADER_set1_recipient(hdr, ctx->recipient))
-            goto err;
-    } else {
-        if (!CMP_PKIHEADER_set1_recipient(hdr, NULL))
-            goto err;
-    }
+    /* set recipient name either from known server certificate or 
+       recipient or issuer name in ctx, leave empty if not set in ctx */
+    if (ctx->srvCert)
+        recipient = X509_get_subject_name((X509 *)ctx->srvCert);
+    else if (ctx->recipient)
+        recipient = ctx->recipient;
+    else if (ctx->issuer)
+        recipient = ctx->issuer;
+    if (!CMP_PKIHEADER_set1_recipient(hdr, recipient))
+        goto err;
 
     /* set current time as message time */
     if (!CMP_PKIHEADER_set_messageTime(hdr))
@@ -755,6 +755,12 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
             ASN1_OCTET_STRING *subjKeyIDStr = NULL;
             int algNID = 0;
             ASN1_OBJECT *alg = NULL;
+
+            /* make sure that key and certificate match */
+            if (!X509_check_private_key(ctx->clCert, ctx->pkey)) {
+                CMPerr(CMP_F_CMP_PKIMESSAGE_PROTECT, CMP_R_INVALID_KEY);
+                goto err;
+            }
 
             if (!msg->header->protectionAlg)
                 msg->header->protectionAlg = X509_ALGOR_new();

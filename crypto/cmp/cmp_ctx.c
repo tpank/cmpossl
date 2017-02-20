@@ -100,6 +100,7 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, oldClCert, X509),
     ASN1_OPT(CMP_CTX, subjectName, X509_NAME),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, subjectAltNames, GENERAL_NAME),
+    ASN1_OPT(CMP_CTX, issuer, X509_NAME),
     ASN1_OPT(CMP_CTX, recipient, X509_NAME),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, caPubs, X509),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, extraCertsOut, X509),
@@ -263,10 +264,8 @@ void CMP_CTX_delete(CMP_CTX *ctx)
 
     if (ctx->sourceAddress)
         OPENSSL_free(ctx->sourceAddress);
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     if (ctx->tlsBIO)
         BIO_free(ctx->tlsBIO);
-#endif
     CMP_CTX_free(ctx);
 }
 
@@ -737,6 +736,28 @@ int CMP_CTX_set1_recipient(CMP_CTX *ctx, const X509_NAME *name)
     return 1;
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_RECIPIENT, CMP_R_NULL_ARGUMENT);
+    return 0;
+}
+
+/* ################################################################ *
+ * Set the X509 name of the issuer. Set in the PKIHeader.
+ * returns 1 on success, 0 on error
+ * ################################################################ */
+int CMP_CTX_set1_issuer( CMP_CTX *ctx, const X509_NAME *name)
+{
+    if (!ctx) goto err;
+    if (!name) goto err;
+
+    if (ctx->issuer)
+        {
+            X509_NAME_free(ctx->issuer);
+            ctx->issuer = NULL;
+        }
+
+    if (!(ctx->issuer = X509_NAME_dup( (X509_NAME*)name))) goto err;
+    return 1;
+err:
+    CMPerr(CMP_F_CMP_CTX_SET1_ISSUER, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 
@@ -1295,7 +1316,7 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
     case CMP_CTX_OPT_IMPLICITCONFIRM:
         ctx->implicitConfirm = val;
         break;
-    case CMP_CTX_OPT_DISABLECONFIRM: /* to cope with broken server ignoring implicit confirmirmation */
+    case CMP_CTX_OPT_DISABLECONFIRM: /* to cope with broken server ignoring implicit confirmation */
         ctx->disableConfirm = val;
         break;
     case CMP_CTX_OPT_UNPROTECTED_ERRORS:

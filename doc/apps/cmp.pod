@@ -27,7 +27,7 @@ B<openssl> B<cmp>
 [B<-cert filename>]
 [B<-key filename>]
 [B<-keypass password>]
-[B<-extcerts filenames>]
+[B<-extcerts filename>]
 
 [B<-srvcert filename>]
 [B<-trusted filename>]
@@ -40,6 +40,7 @@ B<openssl> B<cmp>
 [B<-newkey filename>]
 [B<-newkeypass password>]
 [B<-subject name>]
+[B<-issuer name>]
 
 [B<-implicitconfirm>]
 [B<-disableconfirm>]
@@ -130,11 +131,9 @@ pre-shared keys.
 =item B<-cert filename>
 
 The client's currently existing certificate. This will be used for
-signing messages for example in the Key Update Request, or when
-authenticating the IR using an existing certificate (as defined in
-appendix E.7 of the RFC).
-For KUR this is also used as certificate to be re-keyed if -oldcert option
-is not given.
+authenticating a request message using an existing certificate
+(as defined in appendix E.7 of the RFC). For KUR this is also used 
+as certificate to be re-keyed if the -oldcert option is not given.
 
 =item B<-key filename>
 
@@ -146,19 +145,20 @@ the -cert option.
 Password for the private key given with the -key option.  If not given here, the
 password will be prompted for if needed.
 
-=item B<-extcerts filenames>
+=item B<-extcerts filename>
 
 File with certificates to include in the extraCerts field of requests.
 
 =item B<-srvcert filename>
 
-Certificate of the CMP server, to be used if the certificate is available and directly
-trusted.
+CMP server certificate to be used for verifying the protection of messages received.
+May be set if the certificate is available and should be directly trusted.
+In this case the issuer of the certificate is also used as the receiver.
 
 =item B<-trusted filename>
 
-Trusted certificates for CMP server authentication. The file could contain multiple
-certificates concatenated.
+Trusted certificates for CMP server authentication. 
+The file can contain multiple certificates.
 
 =item B<-untrusted filename>
 
@@ -167,10 +167,17 @@ The file can contain multiple certificates.
 
 =item B<-recipient name>
 
-Distinguished Name of the recipient, i.e. the CMP server the request is sent to.
-Defaults to the subject name of the CA certificate if option is given.
-For RR, defaults to the subject name of the issuer of the certificate to be revoked.
-If neither srvcert is given nor RR is tdone, then the recipient name option is mandatory.
+Distinguished Name of the CMP message recipient, i.e. the CMP server (usually a CA or RA entity).
+Setting the recipient field in the CMP header is mandatory.
+
+If the CMP server certificate is given with the -srvcert option, recipient name is taken from there 
+and the -recipient option is ignored.  If the -recipient option is not given, the recipient name defaults 
+to the name given in the -issuer option.  For Revocation Request (RR), it defaults to the subject name 
+of the issuer of the certificate to be revoked.
+
+Therefore, if neither -srvcert nor -issuer options are given, nor RR is done, 
+this recipient name option is mandatory.
+
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \ (backslash), no spaces are skipped.
 
@@ -189,7 +196,7 @@ CMP command to execute. Currently implemented commands are:
 =item B<-newkey filename>
 
 The file containing the key corresponding to the requested certificate in IR, CR or KUR. 
-For CR, default is the current key.
+Default is the current client key.
 
 =item B<-newkeypass password>
 
@@ -198,7 +205,14 @@ password will be prompted for if needed.
 
 =item B<-subject distinguished_name>
 
-X509 subject name to be used in the requested certificate template.
+X509 subject DN to be used in the requested certificate template.
+The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
+characters may be escaped by \ (backslash), no spaces are skipped.
+
+=item B<-issuer distinguished_name>
+
+X509 issuer DN, i.e., the X509 distinguished name of the CA server, 
+to be put in the requested certificate template in IR/CR/KUR.
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \ (backslash), no spaces are skipped.
 
@@ -306,9 +320,6 @@ general messages for requesting certain information.
 
 =item * Multiple certificate/revocation requests in one session (functionality not yet
 available in the library).
-
-=item * Revocation of other certificates than the one used for signing
-certificates (functionality not yet available in the library).
 
 =item * Message sequences other than those needed for IR/CR/KUR/RR (functionality not yet
 available in the library).

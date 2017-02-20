@@ -183,9 +183,12 @@ DECLARE_ASN1_FUNCTIONS(CRMF_ENCRYPTEDVALUE)
  * function DECLARATIONS
  * ########################################################################## */
 /* crmf_msg.c */
-CRMF_CERTREQMSG *CRMF_cr_new(const long certReqId, const EVP_PKEY *pkey,
-                             const X509_NAME *subject,
-                             X509_EXTENSIONS * extensions);
+CRMF_CERTREQMSG *CRMF_certreq_new(const long certReqId,
+                                  const EVP_PKEY *pkey,
+                                  const X509_NAME *subject,
+                                  const X509_NAME *issuer,
+			          time_t notBefore, time_t notAfter,
+                                  const X509_EXTENSIONS * extensions);
 
 /* crmf_pbm.c */
 CRMF_PBMPARAMETER *CRMF_pbm_new(void);
@@ -216,8 +219,10 @@ int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *certReqMsg,
                                    const EVP_PKEY *pkey);
 int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *certReqMsg,
                                  const X509_NAME *subject);
+int CRMF_CERTREQMSG_set1_issuer(CRMF_CERTREQMSG *certReqMsg,
+                                const X509_NAME *issuer);
 int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *certReqMsg,
-                                    X509_EXTENSION *ext);
+                                    const X509_EXTENSION *ext);
 
 # define CRMF_POPO_NONE          0
 # define CRMF_POPO_SIGNATURE     1
@@ -254,6 +259,7 @@ void ERR_load_CRMF_strings(void);
 # define CRMF_F_CRMF_CERTREQMSG_SET1_CONTROL_PKIPUBLICATIONINFO 123
 # define CRMF_F_CRMF_CERTREQMSG_SET1_CONTROL_PROTOCOLENCRKEY 124
 # define CRMF_F_CRMF_CERTREQMSG_SET1_CONTROL_REGTOKEN     108
+# define CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER               132
 # define CRMF_F_CRMF_CERTREQMSG_SET1_PUBLICKEY            103
 # define CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_CERTREQ      125
 # define CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_REGTOKEN     126
@@ -262,7 +268,7 @@ void ERR_load_CRMF_strings(void);
 # define CRMF_F_CRMF_CERTREQMSG_SET_CERTREQID             129
 # define CRMF_F_CRMF_CERTREQMSG_SET_VALIDITY              104
 # define CRMF_F_CRMF_CERTREQMSG_SET_VERSION2              130
-# define CRMF_F_CRMF_CR_NEW                               105
+# define CRMF_F_CRMF_CERTREQ_NEW                          105
 # define CRMF_F_CRMF_PASSWORDBASEDMAC_NEW                 106
 # define CRMF_F_CRMF_POPOSIGNINGKEY_NEW                   109
 # define CRMF_F_CRMF_SET1_CONTROL_AUTHENTICATOR           110
