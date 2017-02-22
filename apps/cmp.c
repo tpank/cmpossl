@@ -204,7 +204,7 @@ OPTIONS cmp_options[] = {
     {"trusted", OPT_TRUSTED, 's', "Trusted certificates for CMP server authentication"},
     {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
 
-    {"recipient", OPT_RECIPIENT, 's', "X509 name of the recipient to use unless the -srvcert option is given.\n"
+    {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given.\n"
                              "\t\t     If both are not set, the recipient defaults to the -issuer argument.\n"
                              "\t\t     For RR, the recipient defaults to the issuer of the certificate to be revoked"},
     {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
@@ -213,7 +213,7 @@ OPTIONS cmp_options[] = {
     {"newkey", OPT_NEWKEY, 's', "Key corresponding to the requested certificate. Default is current client certificate's key if given."},
     {"newkeypass", OPT_NEWKEYPASS, 's', "Password for the key for corresponding to the requested certificate"},
     {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
-    {"issuer", OPT_ISSUER, 's', "X509 name of the issuer, to be put in the requested certificate template"},
+    {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template"},
 
     {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm enrolled certificates"},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of enrolled certificate"},
