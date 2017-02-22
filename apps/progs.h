@@ -77,6 +77,7 @@ extern int x509_main(int argc, char *argv[]);
 extern const OPTIONS asn1parse_options[];
 extern const OPTIONS ca_options[];
 extern const OPTIONS ciphers_options[];
+extern const OPTIONS cmp_options[];
 extern const OPTIONS cms_options[];
 extern const OPTIONS crl_options[];
 extern const OPTIONS crl2pkcs7_options[];
@@ -131,7 +132,7 @@ static FUNCTION functions[] = {
     {FT_general, "ciphers", ciphers_main, ciphers_options},
 #endif
 #ifndef OPENSSL_NO_CMP
-    { FT_general, "cmp", cmp_main, cmp_options },
+    {FT_general, "cmp", cmp_main, cmp_options},
 #endif
 #ifndef OPENSSL_NO_CMS
     {FT_general, "cms", cms_main, cms_options},
