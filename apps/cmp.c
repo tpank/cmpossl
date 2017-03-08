@@ -422,6 +422,11 @@ static int check_options(void)
         }
     }
 
+    if (opt_popo < 0 || opt_popo > 3) {
+        BIO_printf(bio_err, "error: invalid value for popo method (must be between 0 and 3): %d\n", opt_popo);
+        goto err;
+    }
+
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     if (opt_keyfmt_s
         && !opt_format(opt_keyfmt_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12, &opt_keyfmt)) {
