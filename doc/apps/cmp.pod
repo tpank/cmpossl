@@ -41,6 +41,7 @@ B<openssl> B<cmp>
 [B<-newkeypass password>]
 [B<-subject name>]
 [B<-issuer name>]
+[B<-popo number>]
 
 [B<-implicitconfirm>]
 [B<-disableconfirm>]
@@ -215,6 +216,11 @@ X509 issuer DN, i.e., the X509 distinguished name of the CA server,
 to be put in the requested certificate template in IR/CR/KUR.
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \ (backslash), no spaces are skipped.
+
+=item B<-popo number>
+
+Set Proof-of-Possession (POPO) method; values: 0..3. 
+0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED
 
 =item B<-implicitconfirm>
 
