@@ -128,6 +128,7 @@ static char *opt_extcerts = NULL;
 static char *opt_subject = NULL;
 static char *opt_issuer = NULL;
 static char *opt_recipient = NULL;
+static long  opt_popo = -1;
 static long  opt_disableConfirm = 0;
 static long  opt_implicitConfirm = 0;
 static long  opt_unprotectedErrors = 0;
@@ -150,6 +151,7 @@ typedef enum OPTION_choice {
     OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED, 
     OPT_RECIPIENT, OPT_PATH, OPT_CMD,
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, 
+    OPT_POPO,
     OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
     OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
     OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
@@ -214,6 +216,8 @@ OPTIONS cmp_options[] = {
     {"newkeypass", OPT_NEWKEYPASS, 's', "Password for the key for corresponding to the requested certificate"},
     {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template"},
+    {"popo", OPT_POPO, 'l', "Set Proof-of-Possession (POPO) method.\n"
+                   "\t\t     0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
 
     {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm enrolled certificates"},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of enrolled certificate"},
@@ -248,6 +252,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
     {&opt_recipient}, {&opt_path}, {&opt_cmd_s},
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
+    { (char **)&opt_popo},
     { (char **)&opt_disableConfirm}, { (char **)&opt_implicitConfirm}, { (char **)&opt_unprotectedErrors},
     {&opt_digest}, {&opt_oldcert}, { (char **)&opt_revreason},
     {&opt_cacertsout}, {&opt_certout}, {&opt_extracertsout},
@@ -1207,6 +1212,9 @@ static int setup_ctx(CMP_CTX * ctx)
         X509_NAME_free(n);
     }
 
+    if (opt_popo >= 0)
+        CMP_CTX_set1_popoMethod(ctx, opt_popo);
+
     if (opt_disableConfirm)
         CMP_CTX_set_option(ctx, CMP_CTX_OPT_DISABLECONFIRM, 1);
 
@@ -1506,6 +1514,10 @@ opt_err:
             break;
         case OPT_UNPROTECTEDERRORS:
             opt_unprotectedErrors = 1;
+            break;
+        case OPT_POPO:
+            if (!opt_long(opt_arg(), &opt_popo))
+                goto opt_err;
             break;
 
         case OPT_DIGEST:
