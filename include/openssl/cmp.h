@@ -270,6 +270,8 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
  * ########################################################################## */
 typedef void (*cmp_logfn_t) (const char *msg);
 typedef int (*cmp_certConfFn_t) (int status, const X509 *cert);
+typedef int (*cert_verify_cb_t) (int ok, X509_STORE_CTX *ctx);
+typedef STACK_OF(X509_CRL) *(*cdp_cb_t) (X509_STORE_CTX *ctx, X509_NAME *nm);
 
 /* ########################################################################## *
  * function DECLARATIONS
@@ -371,10 +373,13 @@ CMP_CTX *CMP_CTX_create(void);
 int CMP_CTX_init(CMP_CTX *ctx);
 int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
 int CMP_CTX_set0_untrustedStore(CMP_CTX *ctx, X509_STORE *store);
+int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls);
+int CMP_CTX_set_cdp_callback(CMP_CTX *ctx, cdp_cb_t cb);
 void CMP_CTX_delete(CMP_CTX *ctx);
 int CMP_CTX_set_error_callback(CMP_CTX *ctx, cmp_logfn_t cb);
 int CMP_CTX_set_debug_callback(CMP_CTX *ctx, cmp_logfn_t cb);
 int CMP_CTX_set_certConf_callback(CMP_CTX *ctx, cmp_certConfFn_t cb);
+int CMP_CTX_set_certVerify_callback(CMP_CTX *ctx, cert_verify_cb_t cb);
 int CMP_CTX_set1_referenceValue(CMP_CTX *ctx, const unsigned char *ref,
                                 size_t len);
 int CMP_CTX_set1_secretValue(CMP_CTX *ctx, const unsigned char *sec,
@@ -441,6 +446,7 @@ STACK_OF(ASN1_UTF8STRING) * CMP_CTX_statusString_get(CMP_CTX *ctx);
 # define CMP_CTX_OPT_DISABLECONFIRM             7
 # define CMP_CTX_OPT_UNPROTECTED_ERRORS         8
 # define CMP_CTX_OPT_REVOCATION_REASON          9
+# define CMP_CTX_OPT_CRLALL                    10
 int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val);
 # if 0
 int CMP_CTX_push_freeText(CMP_CTX *ctx, const char *text);

@@ -109,10 +109,20 @@ struct cmp_ctx_st {
     /* callback for letting the user check the received certificate and 
      * reject if necessary */
     cmp_certConfFn_t certConf_cb;
+    /* callback to be used during verification of server certificate */
+    cert_verify_cb_t cert_verify_cb;
 
     /* stores for trusted and untrusted (intermediate) certificates */
     X509_STORE *trusted_store;
     X509_STORE *untrusted_store;
+    /* CRLs to be used as primary source during CMP certificate verification */
+    STACK_OF(X509_CRL) *crls;
+    /* Callback function for CRL retrieval to be used as
+     * secondary source during CMP certificate verification */
+    cdp_cb_t cdp_cb;
+    /* Check CRLs not only for CMP server but also for CMP CA certificates */
+    int crlAll;
+
 
     /* include root certs from extracerts when validating? Used for 3GPP-style E.7 */
     int permitTAInExtraCertsForIR;

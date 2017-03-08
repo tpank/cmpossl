@@ -34,6 +34,9 @@ B<openssl> B<cmp>
 [B<-srvcert filename>]
 [B<-trusted filename>]
 [B<-untrusted filename>]
+[B<-crls url>]
+[B<-cdps>]
+[B<-crl-all>]
 
 [B<-recipient name>]
 [B<-path remote_path>]
@@ -172,6 +175,18 @@ The file can contain multiple certificates.
 
 Untrusted certificates needed for path construction in CMP server authentication. 
 The file can contain multiple certificates.
+
+=item B<-crls URL>
+
+Use given CRL(s) as primary source when verifying CMP certificates. URL may point to local file if prefixed by 'file:'.
+
+=item B<-cdps>
+
+Retrieve CRLs from distribution points given in certificates as secondary source while verifying CMP certificates.
+
+=item B<-crl-all>
+
+Check CRLs not only for CMP server but also for CMP CA certificates
 
 =item B<-recipient name>
 

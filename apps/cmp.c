@@ -120,6 +120,10 @@ static char *opt_newkeypass = NULL;
 static char *opt_srvcert = NULL;
 static char *opt_trusted = NULL;
 static char *opt_untrusted = NULL;
+static char *opt_crls = NULL;
+static long  opt_cdps = 0;
+static long  opt_crl_all = 0;
+
 static char *opt_keyfmt_s = "PEM";
 static char *opt_certfmt_s = "PEM";
 static int opt_keyfmt = FORMAT_PEM;
@@ -153,6 +157,7 @@ typedef enum OPTION_choice {
     OPT_TLSTRUSTED, OPT_TLSCRLS, OPT_TLSCDPS, OPT_TLSCRLALL,
     OPT_USER, OPT_PASS, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
     OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED, 
+    OPT_CRLS, OPT_CDPS, OPT_CRLALL,
     OPT_RECIPIENT, OPT_PATH, OPT_CMD,
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, 
     OPT_POPO,
@@ -212,6 +217,11 @@ OPTIONS cmp_options[] = {
     {"srvcert", OPT_SRVCERT, 's', "certificate of CMP server to be used as recipient and for verifying the protection of replies"},
     {"trusted", OPT_TRUSTED, 's', "Trusted certificates for CMP server authentication"},
     {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
+    {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying CMP certificates.\n"
+                   "\t\t     URL may point to local file if prefixed by 'file:'"},
+    {"cdps", OPT_CDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source\n"
+                   "\t\t     while verifying CMP certifiates"},
+    {"crl-all", OPT_CRLALL, '-', "Check CRLs not only for CMP server but also for CMP CA certificates"},
 
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given.\n"
                              "\t\t     If both are not set, the recipient defaults to the -issuer argument.\n"
@@ -259,6 +269,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_tls_trusted}, {&opt_tls_crls}, { (char **)&opt_tls_cdps}, { (char **)&opt_tls_crl_all},
     {&opt_user}, {&opt_pass}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
     {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
+    {&opt_crls}, { (char **)&opt_cdps}, { (char **)&opt_crl_all},
     {&opt_recipient}, {&opt_path}, {&opt_cmd_s},
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
     { (char **)&opt_popo},
@@ -1193,6 +1204,22 @@ static int setup_ctx(CMP_CTX * ctx)
         goto err;
     }
 
+    CMP_CTX_set_certVerify_callback(ctx, print_cert_verify_cb);
+
+    if (opt_crls) {
+        STACK_OF(X509_CRL) *crls = load_crls_autofmt(opt_crls, opt_crlfmt, "CRL(s) for CMP protection");
+        if (!crls) {
+            goto err;
+        }
+        CMP_CTX_set0_crls(ctx, crls);
+    }
+    
+    if (opt_cdps)
+        CMP_CTX_set_cdp_callback(ctx, crls_http_cb);
+
+    if (opt_crl_all)
+        CMP_CTX_set_option(ctx, CMP_CTX_OPT_CRLALL, 1);
+
     if (opt_subject) {
         X509_NAME *n = parse_name(opt_subject, MBSTRING_ASC, 0);
         if (n == NULL) {
@@ -1511,6 +1538,16 @@ opt_err:
         case OPT_UNTRUSTED:
             opt_untrusted = opt_arg();
             break;
+        case OPT_CRLS:
+            opt_crls = opt_arg();
+            break;
+        case OPT_CDPS:
+            opt_cdps = 1;
+            break;
+        case OPT_CRLALL:
+            opt_crl_all = 1;
+            break;
+
         case OPT_KEYFMT:
             opt_keyfmt_s = opt_arg();
             break;

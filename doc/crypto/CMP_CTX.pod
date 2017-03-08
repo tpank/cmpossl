@@ -37,6 +37,8 @@
  CMP_CTX_extraCertsIn_num,
  CMP_CTX_set0_trustedStore,
  CMP_CTX_set0_untrustedStore,
+ CMP_CTX_set0_crls,
+ CMP_CTX_set_cdp_callback,
  CMP_CTX_set_error_callback,
  CMP_CTX_set_debug_callback,
  CMP_printf,
@@ -101,6 +103,8 @@
 
  int CMP_CTX_set0_trustedStore( CMP_CTX *ctx, X509_STORE *store);
  int CMP_CTX_set0_untrustedStore( CMP_CTX *ctx, X509_STORE *store);
+ int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls);
+ int CMP_CTX_set_cdp_callback(CMP_CTX *ctx, cdp_cb_t cb);
 
  int CMP_CTX_set_error_callback( CMP_CTX *ctx, cmp_logfn_t cb);
  int CMP_CTX_set_debug_callback( CMP_CTX *ctx, cmp_logfn_t cb);
@@ -116,6 +120,7 @@
  #define CMP_CTX_OPT_DISABLECONFIRM             7
  #define CMP_CTX_OPT_UNPROTECTED_ERRORS         8
  #define CMP_CTX_OPT_REVOCATION_REASON          9
+ #define CMP_CTX_OPT_CRLALL                    10
  int CMP_CTX_set_option( CMP_CTX *ctx, const int opt, const int val);
 
  STACK_OF(ASN1_UTF8STRING) *CMP_CTX_statusString_get(CMP_CTX *ctx);
@@ -246,6 +251,9 @@ The following options can be set:
         Set the reason code to be included in revocation request (RR);
         values: 0..10 (RFC 5210, 5.3.1). None set by default
 
+    CMP_CTX_OPT_CRLALL
+        Check CRLs not only for CMP server but also for CMP CA certificates
+
 CMP_CTX_caPubs_num() can be used after an Initial Request or Key Update
 request to check the number of CA certificates that were sent from the
 server.
@@ -291,6 +299,11 @@ containing trusted root CA certificates, used for CMP server authentication.
 CMP_CTX_set0_untrustedStore() sets the X509_STORE type certificate store
 containing intermediate certificates used for path construction 
 in CMP server authentication.
+
+CMP_CTX_set0_crls() sets CRLs to be used as primary source during CMP certificate verification.
+
+CMP_CTX_set_cdp_callback() sets callback function for CRL retrieval 
+to be used as secondary source during CMP certificate verification.
 
 CMP_CTX_set_error_callback() sets a callback function for receiving
 error messages.
