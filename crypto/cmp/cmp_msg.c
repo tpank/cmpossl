@@ -174,6 +174,7 @@ CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId)
 {
     CMP_PKIMESSAGE *msg = NULL;
     CMP_POLLREQ *preq = NULL;
+
     if (!ctx)
         goto err;
 
@@ -323,7 +324,8 @@ CMP_PKIMESSAGE *CMP_kur_new(CMP_CTX *ctx)
 }
 
 /* ############################################################################ *
- * Creates a new Revocation Request PKIMessage based on the settings in ctx
+ * Creates a new Revocation Request PKIMessage for ctx->oldClCert based on
+ * the settings in ctx.
  * returns a pointer to the PKIMessage on success, NULL on error
  * ############################################################################ */
 CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
@@ -332,25 +334,18 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
     CRMF_CERTTEMPLATE *certTpl = NULL;
     X509_NAME *subject = NULL;
     CMP_REVDETAILS *rd = NULL;
-    X509 *revcert = NULL;
 
-    /* for authentication we need either a reference value/secret for MSG_MAC_ALG 
-     * or existing certificate and private key for MSG_SIG_ALG */
-    if (!ctx || !ctx->oldClCert || 
-        (!(ctx->referenceValue && ctx->secretValue) && /* MSG_MAC_ALG */
-         !(ctx->pkey && ctx->clCert && (ctx->srvCert || ctx->trusted_store)))) { /* MSG_SIG_ALG */
+    if (!ctx) {
         CMPerr(CMP_F_CMP_RR_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
-
-    revcert = ctx->oldClCert; // could also default to ctx->clCert, but this would be dangerous
 
     if (!(msg = CMP_PKIMESSAGE_new()))
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))
         goto err;
     if (!ctx->srvCert && !ctx->recipient && !ctx->issuer) // set default recipient
-        if (!CMP_PKIHEADER_set1_recipient(msg->header, X509_get_issuer_name(revcert)))
+        if (!CMP_PKIHEADER_set1_recipient(msg->header, X509_get_issuer_name(ctx->oldClCert)))
             goto err;
     CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_RR);
 
@@ -365,14 +360,14 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
     rd->certDetails = certTpl;
 
     /* Fill the template from the contents of the certificate to be revoked; TODO: maybe add further fields */
-    if (!(subject = X509_get_subject_name(revcert)))
+    if (!(subject = X509_get_subject_name(ctx->oldClCert)))
         goto err;
     X509_NAME_set(&certTpl->subject, subject);
-    X509_PUBKEY_set(&certTpl->publicKey, X509_get_pubkey(revcert));
+    X509_PUBKEY_set(&certTpl->publicKey, X509_get_pubkey(ctx->oldClCert));
     if (!(certTpl->serialNumber =
-          ASN1_INTEGER_dup(X509_get_serialNumber(revcert))))
+          ASN1_INTEGER_dup(X509_get_serialNumber(ctx->oldClCert))))
         goto err;
-    X509_NAME_set(&certTpl->issuer, X509_get_issuer_name(revcert));
+    X509_NAME_set(&certTpl->issuer, X509_get_issuer_name(ctx->oldClCert));
 
     /* Fill in (optional) revocation reason code; if nothing set, EJBCA fails miserably (NPE) and yields status 500 */
     rd->crlEntryDetails = NULL; /* X509v3_add_ext will allocate new stack */
@@ -411,11 +406,7 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx)
     CMP_PKIMESSAGE *msg = NULL;
     CMP_CERTSTATUS *certStatus = NULL;
 
-    /* for authentication we need either a reference value/secret for MSG_MAC_ALG 
-     * or existing certificate and private key for MSG_SIG_ALG */
-    if (!ctx || !ctx->newClCert ||
-        (!(ctx->referenceValue && ctx->secretValue) &&
-         !(ctx->pkey && ctx->clCert && (ctx->srvCert || ctx->trusted_store)))) {
+    if (!ctx) {
         CMPerr(CMP_F_CMP_CERTCONF_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
@@ -436,7 +427,8 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx)
     ASN1_INTEGER_set(certStatus->certReqId, 0L);
     /* -- the hash of the certificate, using the same hash algorithm
      * -- as is used to create and verify the certificate signature */
-    CMP_CERTSTATUS_set_certHash(certStatus, ctx->newClCert);
+    if (!CMP_CERTSTATUS_set_certHash(certStatus, ctx->newClCert))
+		goto err;
 
     /* execute the callback function set in ctx which can be used to examine a
      * certificate and reject it */
@@ -469,9 +461,7 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *msg = NULL;
 
-    if (!ctx ||
-        (!(ctx->referenceValue && ctx->secretValue) && /* MSG_MAC_ALG */
-         !(ctx->pkey && ctx->clCert && (ctx->srvCert || ctx->trusted_store)))) { /* MSG_SIG_ALG */
+    if (!ctx) {
         CMPerr(CMP_F_CMP_GENM_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
