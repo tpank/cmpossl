@@ -217,11 +217,11 @@ OPTIONS cmp_options[] = {
     {"srvcert", OPT_SRVCERT, 's', "certificate of CMP server to be used as recipient and for verifying the protection of replies"},
     {"trusted", OPT_TRUSTED, 's', "Trusted certificates for CMP server authentication"},
     {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
-    {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying CMP certificates.\n"
+    {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying CMP server certificates.\n"
                    "\t\t     URL may point to local file if prefixed by 'file:'"},
     {"cdps", OPT_CDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source\n"
-                   "\t\t     while verifying CMP certifiates"},
-    {"crl-all", OPT_CRLALL, '-', "Check CRLs not only for CMP server but also for CMP CA certificates"},
+                   "\t\t     when verifying CMP server certificates"},
+    {"crl-all", OPT_CRLALL, '-', "Check CRLs not only for CMP server but also for the whole certificate chain"},
 
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given.\n"
                              "\t\t     If both are not set, the recipient defaults to the -issuer argument.\n"
@@ -480,7 +480,7 @@ static int check_options(void)
  * ########################################################################## 
  * * code for loading certs, keys, and CRLs
  * TODO: the whole Cert, Key and CRL loading logic should be given upstream
- * by DvO to bin included in apps.c, and then used from here.
+ * by DvO to be included in apps.c, and then used from here.
  * ########################################################################## 
  */
 
@@ -1194,9 +1194,31 @@ static int setup_ctx(CMP_CTX * ctx)
         X509_free(srvcert);
     }
 
-    if (opt_trusted
-        && !CMP_CTX_set0_trustedStore(ctx, create_cert_store(opt_trusted, "trusted certificates"))) {
-        goto err;
+    if (opt_crls) {
+        STACK_OF(X509_CRL) *crls = load_crls_autofmt(opt_crls, opt_crlfmt, "CRL(s) for CMP protection");
+        if (!crls) {
+            goto err;
+        }
+        CMP_CTX_set0_crls(ctx, crls);
+    }
+
+    if (opt_cdps) /* TODO: needed to be set in CTX? */
+        CMP_CTX_set_cdp_callback(ctx, crls_http_cb);
+
+    if (opt_crl_all) /* TODO: needed to be set in CTX? */
+        CMP_CTX_set_option(ctx, CMP_CTX_OPT_CRLALL, 1);
+
+    if (opt_trusted) {
+        X509_STORE *ts = create_cert_store(opt_trusted, "trusted certificates");
+
+        X509_STORE_set_flags(ts, opt_crls || opt_cdps || opt_crl_all ?  X509_V_FLAG_CRL_CHECK
+                                 | (opt_crl_all ? X509_V_FLAG_CRL_CHECK_ALL : 0) : 0);
+
+        if (opt_cdps)
+          X509_STORE_set_lookup_crls(ts, opt_cdps);
+
+        if( !CMP_CTX_set0_trustedStore(ctx, ts))
+            goto err;
     }
 
     if (opt_untrusted
@@ -1205,20 +1227,6 @@ static int setup_ctx(CMP_CTX * ctx)
     }
 
     CMP_CTX_set_certVerify_callback(ctx, print_cert_verify_cb);
-
-    if (opt_crls) {
-        STACK_OF(X509_CRL) *crls = load_crls_autofmt(opt_crls, opt_crlfmt, "CRL(s) for CMP protection");
-        if (!crls) {
-            goto err;
-        }
-        CMP_CTX_set0_crls(ctx, crls);
-    }
-    
-    if (opt_cdps)
-        CMP_CTX_set_cdp_callback(ctx, crls_http_cb);
-
-    if (opt_crl_all)
-        CMP_CTX_set_option(ctx, CMP_CTX_OPT_CRLALL, 1);
 
     if (opt_subject) {
         X509_NAME *n = parse_name(opt_subject, MBSTRING_ASC, 0);
@@ -1547,7 +1555,6 @@ opt_err:
         case OPT_CRLALL:
             opt_crl_all = 1;
             break;
-
         case OPT_KEYFMT:
             opt_keyfmt_s = opt_arg();
             break;

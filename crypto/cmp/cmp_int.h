@@ -123,7 +123,6 @@ struct cmp_ctx_st {
     /* Check CRLs not only for CMP server but also for CMP CA certificates */
     int crlAll;
 
-
     /* include root certs from extracerts when validating? Used for 3GPP-style E.7 */
     int permitTAInExtraCertsForIR;
     /* stores the server Cert as soon as it's trust chain has been validated */

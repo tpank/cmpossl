@@ -178,15 +178,24 @@ The file can contain multiple certificates.
 
 =item B<-crls URL>
 
-Use given CRL(s) as primary source when verifying CMP certificates. URL may point to local file if prefixed by 'file:'.
+Use given CRL(s) as primary source of revocation information. URL may point to local file if prefixed by 'file:'.
+
+This option enables CRL checking for the CMP server certificate used for CMP message protection as it is the
+leaf certificate of the certificate chain.  Compare B<X509_V_FLAG_CRL_CHECK>.
 
 =item B<-cdps>
 
-Retrieve CRLs from distribution points given in certificates as secondary source while verifying CMP certificates.
+Retrieve CRLs from distribution points given in certificates, as secondary source.
+
+This option enables CRL checking for the CMP server certificate used for CMP message protection as it is the
+leaf certificate of the certificate chain.  Compare B<X509_V_FLAG_CRL_CHECK>.
 
 =item B<-crl-all>
 
-Check CRLs not only for CMP server but also for CMP CA certificates
+Enables CRL checking for the entire certificate chain when verifying certificates used for CMP message protection.
+Compare B<X509_V_FLAG_CRL_CHECK_ALL>.
+
+This option requires that either the B<-crls> or B<-cdps> option is also set.
 
 =item B<-recipient name>
 

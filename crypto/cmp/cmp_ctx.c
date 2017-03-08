@@ -193,7 +193,7 @@ int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls)
         return 0;
     if (ctx->crls)
         sk_X509_CRL_pop_free(ctx->crls, X509_CRL_free);
-    ctx->crls = crls; /* TODO: is that actually ever cleaned up? */
+    ctx->crls = crls;
     return 1;
 }
 
