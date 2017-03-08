@@ -53,6 +53,7 @@
  CMP_CTX_set1_serverName
  CMP_CTX_set1_serverPath
  CMP_CTX_set1_serverPort
+ CMP_CTX_set0_reqExtensions
  CMP_CTX_set_digest
  CMP_CTX_set_HttpTimeOut
  CMP_CTX_set_certConf_callback
@@ -127,6 +128,7 @@
  BIO *CMP_CTX_get_tlsBIO(CMP_CTX *ctx);
  int CMP_CTX_set1_recipient( CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_serverPath( CMP_CTX *ctx, const char *path);
+ int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
  int CMP_CTX_set_digest(CMP_CTX *ctx, int digest);
  int CMP_CTX_set_HttpTimeOut( CMP_CTX *ctx, int time);
  int CMP_CTX_set_certConf_callback( CMP_CTX *ctx, cmp_certConfFn_t cb);
@@ -337,6 +339,8 @@ PKIHeader, i.e. the X509 name of the CA server, unless srvCert is set.
 Defaults to given issuer; for RR, further defaults to issuer of certificate to be revoked.
 
 CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
+
+CMP_CTX_set0_reqExtensions() sets the X.509v3 extensions to be used in IR/CR/KUR
 
 CMP_CTX_set_digest() sets the digest algorithm NID to be used in RFC 4210's 
 MSG_SIG_ALG, if applicable used for message protection and Proof-of-Posession.

@@ -417,6 +417,7 @@ int CMP_CTX_set1_proxyPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio);
 BIO *CMP_CTX_get_tlsBIO(CMP_CTX *ctx);
 int CMP_CTX_set1_sourceAddress(CMP_CTX *ctx, const char *ip); // unused, TODO remove
+int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
 int CMP_CTX_set1_digest(CMP_CTX *ctx, int digest);
 /* for backwards compatibility, TODO: remove asap */
 # define CMP_CTX_set1_timeOut CMP_CTX_set_HttpTimeOut
@@ -533,6 +534,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET0_TLSBIO                        171
 # define CMP_F_CMP_CTX_SET1_DIGEST                        172
 # define CMP_F_CMP_CTX_SET1_ISSUER                        173
+# define CMP_F_CMP_CTX_SET0_REQEXTENSIONS                 174
 
 /* Reason codes. */
 # define CMP_R_ALGORITHM_NOT_SUPPORTED                    100

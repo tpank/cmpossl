@@ -204,23 +204,27 @@ CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId)
 }
 
 /* ############################################################################ *
- * Create a new Initial Request PKIMessage based on the settings in given ctx
- * returns a pointer to the PKIMessage on success, NULL on error
+ * internal function
+ *
+ * performs the generic generation of certificate requests for IR/CR/KUR
  * ############################################################################ */
-CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
+static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int type_function, int type_body, int err_code)
 {
     CMP_PKIMESSAGE *msg = NULL;
     CRMF_CERTREQMSG *certReq0 = NULL;
-    X509_EXTENSIONS *extensions = NULL;
+    X509_EXTENSIONS *extensions = ctx->reqExtensions;
     X509_NAME *subject = NULL;
+    EVP_PKEY *requestKey = NULL;
 
     if (!ctx || (!ctx->pkey && !ctx->newPkey) ||
-        /* for authentication we need either reference/secret or external 
-         * identity certificate and private key, the server name/cert might not be
+        /* for authentication we need either reference/secret for MSG_MAC_ALG 
+         * or external identity certificate and private key for MSG_SIG_ALG.
+         * For IR, the server name/cert might not be
          * known here yet especiallaly in case of E.7 */
         (!(ctx->referenceValue && ctx->secretValue) && /* MSG_MAC_ALG */
-         !(ctx->pkey && ctx->clCert))) { /* MSG_SIG_ALG for E.7 */
-        CMPerr(CMP_F_CMP_IR_NEW, CMP_R_INVALID_ARGS);
+         !(ctx->pkey && ctx->clCert &&
+           (type_body == V_CMP_PKIBODY_IR || ctx->srvCert || ctx->trusted_store)))) { /* MSG_SIG_ALG for E.7 */
+        CMPerr(type_function, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
@@ -232,7 +236,7 @@ CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
     if (ctx->implicitConfirm)
         if (!CMP_PKIMESSAGE_set_implicitConfirm(msg))
             goto err;
-    CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_IR);
+    CMP_PKIMESSAGE_set_bodytype(msg, type_body);
 
     if (ctx->subjectName)
         subject = ctx->subjectName;
@@ -241,6 +245,7 @@ CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
         subject = X509_get_subject_name(ctx->clCert);
 
     if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0)
+        /* TODO: if <= 0, maybe copy any existing SANs from cert to be renewed, e.g., clCert? */
         /* According to RFC5280, subjectAltName MUST be critical if subject is null */
         add_altname_extensions(&extensions, ctx->subjectAltNames,
                                ctx->setSubjectAltNameCritical
@@ -251,7 +256,7 @@ CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
 
     if (!(msg->body->value.ir = sk_CRMF_CERTREQMSG_new_null()))
         goto err;
-    EVP_PKEY *requestKey = ctx->newPkey ? ctx->newPkey : ctx->pkey; // default is current client key
+    requestKey = ctx->newPkey ? ctx->newPkey : ctx->pkey; // default is current client key
     if (!(certReq0 = CRMF_certreq_new(0L, requestKey, subject, ctx->issuer, 0, 0, extensions)))
         goto err;
     sk_CRMF_CERTREQMSG_push(msg->body->value.ir, certReq0);
@@ -259,8 +264,14 @@ CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
 
     /* sets the id-regCtrl-regToken to regInfo (not described in RFC, but EJBCA
      * in CA mode might insist on that) */
-    if (ctx->regToken)
+    if (type_body == V_CMP_PKIBODY_IR && ctx->regToken)
         if (!CRMF_CERTREQMSG_set1_regInfo_regToken(certReq0, ctx->regToken))
+            goto err;
+
+    /* setting OldCertId according to D.6:
+       7.  regCtrl OldCertId SHOULD be used */
+    if (type_body == V_CMP_PKIBODY_KUR)
+        if (!CRMF_CERTREQMSG_set1_control_oldCertId(certReq0, ctx->oldClCert ? ctx->oldClCert : ctx->clCert))
             goto err;
 
     if (!CRMF_CERTREQMSG_calc_and_set_popo(certReq0, requestKey, ctx->digest, ctx->popoMethod))
@@ -269,19 +280,22 @@ CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
     if (!CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
 
-    /* cleanup */
-    if (extensions)
-        sk_X509_EXTENSION_pop_free(extensions, X509_EXTENSION_free);
-
     return msg;
 
  err:
-    CMPerr(CMP_F_CMP_IR_NEW, CMP_R_ERROR_CREATING_IR);
-    if (extensions)
-        sk_X509_EXTENSION_pop_free(extensions, X509_EXTENSION_free);
+    CMPerr(type_function, err_code);
     if (msg)
         CMP_PKIMESSAGE_free(msg);
     return NULL;
+}
+
+/* ############################################################################ *
+ * Create a new Initial Request PKIMessage based on the settings in given ctx
+ * returns a pointer to the PKIMessage on success, NULL on error
+ * ############################################################################ */
+CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
+{
+    return certreq_new(ctx, CMP_F_CMP_IR_NEW, V_CMP_PKIBODY_IR, CMP_R_ERROR_CREATING_IR);
 }
 
 /* ############################################################################ *
@@ -368,71 +382,7 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
  * ############################################################################ */
 CMP_PKIMESSAGE *CMP_cr_new(CMP_CTX *ctx)
 {
-    CMP_PKIMESSAGE *msg = NULL;
-    CRMF_CERTREQMSG *certReq0 = NULL;
-    X509_EXTENSIONS *extensions = NULL;
-    X509_NAME *subject = NULL;
-
-    /* for authentication we need either a reference value/secret for MSG_MAC_ALG 
-     * or existing certificate and private key for MSG_SIG_ALG */
-    if (!ctx || (!ctx->pkey && !ctx->newPkey) ||
-        (!(ctx->referenceValue && ctx->secretValue) && /* MSG_MAC_ALG */
-         !(ctx->pkey && ctx->clCert && (ctx->srvCert || ctx->trusted_store)))) { /* MSG_SIG_ALG */
-        CMPerr(CMP_F_CMP_CR_NEW, CMP_R_INVALID_ARGS);
-        return NULL;
-    }
-
-    if (ctx->subjectName)
-        subject = ctx->subjectName;
-    else if (ctx->clCert && sk_GENERAL_NAME_num(ctx->subjectAltNames) <= 0)
-        /* get subject name from existing certificate */
-        subject = X509_get_subject_name(ctx->clCert);
-
-    if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0)
-        /* According to RFC5280, subjectAltName MUST be critical if subject is null */
-        add_altname_extensions(&extensions, ctx->subjectAltNames,
-                               ctx->setSubjectAltNameCritical
-                               || subject == NULL);
-
-    if (!(msg = CMP_PKIMESSAGE_new()))
-        goto err;
-    if (!CMP_PKIHEADER_init(ctx, msg->header))
-        goto err;
-    if (ctx->implicitConfirm)
-        if (!CMP_PKIMESSAGE_set_implicitConfirm(msg))
-            goto err;
-    CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_CR);
-
-    if (ctx->policies)
-        add_policy_extensions(&extensions, ctx->policies);
-
-    if (!(msg->body->value.cr = sk_CRMF_CERTREQMSG_new_null()))
-        goto err;
-    EVP_PKEY *requestKey = ctx->newPkey ? ctx->newPkey : ctx->pkey; // default is current client key
-    if (!(certReq0 = CRMF_certreq_new(0L, requestKey, subject, ctx->issuer, 0, 0, extensions)))
-        goto err;
-    sk_CRMF_CERTREQMSG_push(msg->body->value.cr, certReq0);
-    /* TODO: here also the optional 2nd certreqmsg could be pushed to the stack */
-
-    if (!CRMF_CERTREQMSG_calc_and_set_popo(certReq0, requestKey, ctx->digest, ctx->popoMethod))
-        goto err;
-
-    if (!CMP_PKIMESSAGE_protect(ctx, msg))
-        goto err;
-
-    /* cleanup */
-    if (extensions)
-        sk_X509_EXTENSION_pop_free(extensions, X509_EXTENSION_free);
-
-    return msg;
-
- err:
-    CMPerr(CMP_F_CMP_CR_NEW, CMP_R_ERROR_CREATING_CR);
-    if (extensions)
-        sk_X509_EXTENSION_pop_free(extensions, X509_EXTENSION_free);
-    if (msg)
-        CMP_PKIMESSAGE_free(msg);
-    return NULL;
+    return certreq_new(ctx, CMP_F_CMP_CR_NEW, V_CMP_PKIBODY_CR, CMP_R_ERROR_CREATING_CR);
 }
 
 /* ############################################################################ *
@@ -444,78 +394,7 @@ CMP_PKIMESSAGE *CMP_cr_new(CMP_CTX *ctx)
  * ############################################################################ */
 CMP_PKIMESSAGE *CMP_kur_new(CMP_CTX *ctx)
 {
-    CMP_PKIMESSAGE *msg = NULL;
-    CRMF_CERTREQMSG *certReq0 = NULL;
-    X509_EXTENSIONS *extensions = NULL;
-    X509_NAME *subject = NULL;
-
-    /* for authentication we need either a reference value/secret for MSG_MAC_ALG 
-     * or existing certificate and private key for MSG_SIG_ALG */
-    if (!ctx || (!ctx->pkey && !ctx->newPkey) ||
-        (!(ctx->referenceValue && ctx->secretValue) && /* MSG_MAC_ALG */
-         !(ctx->pkey && ctx->clCert && (ctx->srvCert || ctx->trusted_store)))) { /* MSG_SIG_ALG */
-        CMPerr(CMP_F_CMP_KUR_NEW, CMP_R_INVALID_ARGS);
-        return NULL;
-    }
-
-    if (!(msg = CMP_PKIMESSAGE_new()))
-        goto err;
-    if (!CMP_PKIHEADER_init(ctx, msg->header))
-        goto err;
-    if (ctx->implicitConfirm)
-        if (!CMP_PKIMESSAGE_set_implicitConfirm(msg))
-            goto err;
-    CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_KUR);
-
-    if (ctx->subjectName)
-        subject = ctx->subjectName;
-    else if (ctx->clCert)
-        subject = X509_get_subject_name((X509 *)ctx->clCert); /* TODO: from certificate to be renewed */
-
-    if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0)
-        /* TODO: if <= 0, maybe copy any existing SANs from cert to be renewed, e.g., clCert? */
-        /* According to RFC5280, subjectAltName MUST be critical if subject is null */
-        add_altname_extensions(&extensions, ctx->subjectAltNames,
-                               ctx->setSubjectAltNameCritical
-                               || subject == NULL);
-
-    if (ctx->policies)
-        add_policy_extensions(&extensions, ctx->policies);
-
-    if (!(msg->body->value.kur = sk_CRMF_CERTREQMSG_new_null()))
-        goto err;
-    EVP_PKEY *requestKey = ctx->newPkey ? ctx->newPkey : ctx->pkey; // default is current client key
-    if (!(certReq0 = CRMF_certreq_new(0L, requestKey, subject, ctx->issuer, 0, 0, extensions)))
-        goto err;
-    sk_CRMF_CERTREQMSG_push(msg->body->value.kur, certReq0);
-    /* TODO: here also the optional 2nd certreqmsg could be pushed to the stack */
-
-    /* setting OldCertId according to D.6:
-       7.  regCtrl OldCertId SHOULD be used */
-
-    if (ctx->oldClCert)
-        CRMF_CERTREQMSG_set1_control_oldCertId(certReq0, ctx->oldClCert);
-    else
-        CRMF_CERTREQMSG_set1_control_oldCertId(certReq0, ctx->clCert);
-
-    if (!CRMF_CERTREQMSG_calc_and_set_popo(certReq0, requestKey, ctx->digest, ctx->popoMethod))
-        goto err;
-
-    if (!CMP_PKIMESSAGE_protect(ctx, msg))
-        goto err;
-
-    if (extensions)
-        sk_X509_EXTENSION_pop_free(extensions, X509_EXTENSION_free);
-
-    return msg;
-
- err:
-    CMPerr(CMP_F_CMP_KUR_NEW, CMP_R_ERROR_CREATING_KUR);
-    if (msg)
-        CMP_PKIMESSAGE_free(msg);
-    if (extensions)
-        sk_X509_EXTENSION_pop_free(extensions, X509_EXTENSION_free);
-    return NULL;
+    return certreq_new(ctx, CMP_F_CMP_KUR_NEW, V_CMP_PKIBODY_KUR, CMP_R_ERROR_CREATING_KUR);
 }
 
 /* ############################################################################ *

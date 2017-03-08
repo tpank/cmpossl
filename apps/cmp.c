@@ -65,6 +65,9 @@
 
 #define CONFIG_FILE "openssl.cnf"
 #define CMP_SECTION "cmp"
+static char *opt_section = CMP_SECTION;
+static char *opt_comment = NULL; // useful, e.g., to temporarily disable parameters
+
 #undef PROG
 #define PROG    cmp_main
 char *prog = "cmp";
@@ -129,6 +132,7 @@ static char *opt_subject = NULL;
 static char *opt_issuer = NULL;
 static char *opt_recipient = NULL;
 static long  opt_popo = -1;
+static char *opt_reqexts = NULL;
 static long  opt_disableConfirm = 0;
 static long  opt_implicitConfirm = 0;
 static long  opt_unprotectedErrors = 0;
@@ -144,6 +148,7 @@ static long opt_proxyPort = 0;
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
+    OPT_SECTION, OPT_COMMENT,
     OPT_SERVER, OPT_PROXY, OPT_PROXYPORT,
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
     OPT_TLSTRUSTED, OPT_TLSCRLS, OPT_TLSCDPS, OPT_TLSCRLALL,
@@ -152,6 +157,7 @@ typedef enum OPTION_choice {
     OPT_RECIPIENT, OPT_PATH, OPT_CMD,
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, 
     OPT_POPO,
+    OPT_REQEXTS,
     OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
     OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
     OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
@@ -178,6 +184,9 @@ const
 OPTIONS cmp_options[] = {
     // OPTION_CHOICE values must be in the same order as enumerated above!!
     {"help", OPT_HELP, '-', "Display this summary"},
+    {"section", OPT_SECTION, 's', "Name of section in OpenSSL config file defining cmp default options. Default 'cmp'"},
+    {"comment", OPT_COMMENT, 's', "Comment (gets ignored)"},
+
     {"server", OPT_SERVER, 's', "The 'address:port' of the CMP server (domain name or IP address)"},
     {"proxy", OPT_PROXY, 's', "Address of HTTP proxy server, if needed for accessing the CMP server"},
     {"proxyport", OPT_PROXYPORT, 'l', "Port of the HTTP proxy server"},
@@ -218,6 +227,7 @@ OPTIONS cmp_options[] = {
     {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template"},
     {"popo", OPT_POPO, 'l', "Set Proof-of-Possession (POPO) method.\n"
                    "\t\t     0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
+    {"reqexts", OPT_REQEXTS, 's', "Name of section in OpenSSL config file defining certificate request extensions"},
 
     {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm enrolled certificates"},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of enrolled certificate"},
@@ -245,6 +255,8 @@ typedef union {
     long *num;
 } varref;
 static varref cmp_vars[]= { // must be in the same order as enumerated above!!
+    {&opt_comment}, // dump value of section option
+    {&opt_comment},
     {&opt_server}, {&opt_proxy}, { (char **)&opt_proxyPort},
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
     {&opt_tls_trusted}, {&opt_tls_crls}, { (char **)&opt_tls_cdps}, { (char **)&opt_tls_crl_all},
@@ -253,6 +265,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_recipient}, {&opt_path}, {&opt_cmd_s},
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
     { (char **)&opt_popo},
+    {&opt_reqexts},
     { (char **)&opt_disableConfirm}, { (char **)&opt_implicitConfirm}, { (char **)&opt_unprotectedErrors},
     {&opt_digest}, {&opt_oldcert}, { (char **)&opt_revreason},
     {&opt_cacertsout}, {&opt_certout}, {&opt_extracertsout},
@@ -293,10 +306,10 @@ static int read_config(CONF *conf)
         switch (opt->valtype) {
         case '-':
         case 'l':
-            NCONF_get_number_e(conf, CMP_SECTION, opt->name, cmp_vars[i].num);
+            NCONF_get_number_e(conf, opt_section, opt->name, cmp_vars[i].num);
             break;
         case 's':
-            *cmp_vars[i].txt = NCONF_get_string(conf, CMP_SECTION, opt->name);
+            *cmp_vars[i].txt = NCONF_get_string(conf, opt_section, opt->name);
             break;
         default:
             BIO_printf(bio_err, "internal error: unsupported type '%c' for option '%s'\n", opt->valtype, opt->name);
@@ -1219,6 +1232,17 @@ static int setup_ctx(CMP_CTX * ctx)
 
     if (opt_popo >= 0)
         CMP_CTX_set1_popoMethod(ctx, opt_popo);
+    if (opt_reqexts) {
+        X509V3_CTX ext_ctx;
+        X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
+        X509V3_set_ctx(&ext_ctx, NULL, NULL, NULL, NULL, 0);
+        X509V3_set_nconf(&ext_ctx, conf);
+        if (!X509V3_EXT_add_nconf_sk(conf, &ext_ctx, opt_reqexts, &exts)) {
+            BIO_printf(bio_err, "error loading extension section '%s'\n", opt_reqexts);
+            goto err;
+        }
+        CMP_CTX_set0_reqExtensions(ctx, exts);
+    }
 
     if (opt_disableConfirm)
         CMP_CTX_set_option(ctx, CMP_CTX_OPT_DISABLECONFIRM, 1);
@@ -1356,6 +1380,13 @@ int cmp_main(int argc, char **argv)
 
     bio_c_out = BIO_new_fp(stdout, BIO_NOCLOSE);
 
+    int i;
+    for (i = argc-2; i >= 0; i--)
+        if (!strcmp(argv[i], "-section")) {
+            opt_section = argv[i+1];
+            break;
+         }
+
     if (configfile == NULL)
         configfile = getenv("OPENSSL_CONF");
     if (configfile == NULL)
@@ -1409,6 +1440,12 @@ opt_err:
             ret = 0;
             opt_help(cmp_options);
             goto err;
+        case OPT_SECTION: // already handled
+            break;
+        case OPT_COMMENT:
+            opt_comment = opt_arg();
+            break;
+
         case OPT_SERVER:
             opt_server = opt_arg();
             break;
@@ -1497,6 +1534,10 @@ opt_err:
         case OPT_RECIPIENT:
             opt_recipient = opt_arg();
             break;
+        case OPT_REQEXTS:
+            opt_reqexts = opt_arg();
+            break;
+
         case OPT_EXTRACERTSOUT:
             opt_extracertsout = opt_arg();
             break;

@@ -9,6 +9,9 @@ cmp - client for the Certificate Management Protocol (RFC4210)
 
 B<openssl> B<cmp>
 [B<-help>]
+[B<-section name>]
+[B<-comment string>]
+
 [B<-server address:port>]
 [B<-proxy address>]
 [B<-proxyport number>]
@@ -42,6 +45,7 @@ B<openssl> B<cmp>
 [B<-subject name>]
 [B<-issuer name>]
 [B<-popo number>]
+[B<-reqexts name>]
 
 [B<-implicitconfirm>]
 [B<-disableconfirm>]
@@ -72,6 +76,14 @@ request certificates to be revoked, and perform other CMP requests.
 =item B<-help>
 
 Display a summary of all options
+
+=item B<-section name>
+
+Name of section in OpenSSL config file defining cmp default options. Default is "cmp".
+
+=item B<-comment string>
+
+Given string is ignored.
 
 =item B<-server address:port>
 
@@ -221,6 +233,9 @@ characters may be escaped by \ (backslash), no spaces are skipped.
 
 Set Proof-of-Possession (POPO) method; values: 0..3. 
 0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED
+=item B<-reqexts name>
+
+Name of section in OpenSSL config file defining certificate request extensions.
 
 =item B<-implicitconfirm>
 

@@ -99,6 +99,7 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, clCert, X509),
     ASN1_OPT(CMP_CTX, oldClCert, X509),
     ASN1_OPT(CMP_CTX, subjectName, X509_NAME),
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, reqExtensions, X509_EXTENSION),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, subjectAltNames, GENERAL_NAME),
     ASN1_OPT(CMP_CTX, issuer, X509_NAME),
     ASN1_OPT(CMP_CTX, recipient, X509_NAME),
@@ -789,6 +790,25 @@ int CMP_CTX_set1_subjectName(CMP_CTX *ctx, const X509_NAME *name)
     return 1;
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_SUBJECTNAME, CMP_R_NULL_ARGUMENT);
+    return 0;
+}
+
+/* ################################################################ *
+ * sets the X.509v3 extensions to be used in IR/CR/KUR
+ * returns 1 on success, 0 on error
+ * ################################################################ */
+int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts)
+{
+    if (!ctx)
+        goto err;
+    if (!exts)
+        goto err;
+
+    ctx->reqExtensions = exts;
+    
+    return 1;
+ err:
+    CMPerr(CMP_F_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 
