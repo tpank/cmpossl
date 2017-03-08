@@ -191,6 +191,8 @@ static int send_receive_check(CMP_CTX *ctx,
         return 0;
     }
 
+    int rcvd_type = CMP_PKIMESSAGE_get_bodytype(*rep);
+
     CMP_printf(ctx, "INFO: Got response");
     /* validate message protection */
     if ((*rep)->header->protectionAlg) {
@@ -204,11 +206,11 @@ static int send_receive_check(CMP_CTX *ctx,
         /* detect explicitly permitted exceptions */
         int exception = 0;
         if (ctx->unprotectedErrors) {
-            if( CMP_PKIMESSAGE_get_bodytype(*rep) == V_CMP_PKIBODY_ERROR) {
+            if (rcvd_type == V_CMP_PKIBODY_ERROR) {
                 CMP_printf(ctx, "WARN: ignoring missing protection of error response");
                 exception = 1;
             }
-            if (CMP_PKIMESSAGE_get_bodytype(*rep) == V_CMP_PKIBODY_RP &&
+            if (rcvd_type == V_CMP_PKIBODY_RP &&
                     CMP_REVREPCONTENT_PKIStatus_get((*rep)->body->value.rp, 0) == CMP_PKISTATUS_rejection) {
                 CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
                 exception = 1;
@@ -221,7 +223,11 @@ static int send_receive_check(CMP_CTX *ctx,
     }
 
     /* catch if the received message type is not one of the expected ones (e.g. error) */
-    if (CMP_PKIMESSAGE_get_bodytype(*rep) != type_rep) {
+    if (rcvd_type != type_rep &&
+        !(type_rep == V_CMP_PKIBODY_POLLREP && /* instead of pollrep there could be IP/CP/KUP */
+        (rcvd_type == V_CMP_PKIBODY_IP ||
+         rcvd_type == V_CMP_PKIBODY_CP ||
+         rcvd_type == V_CMP_PKIBODY_KUP))) {
         char errmsg[256];
         CMPerr(type_function, CMP_R_PKIBODY_ERROR);
         ERR_add_error_data(1, PKIError_data(*rep, errmsg, sizeof(errmsg)));
