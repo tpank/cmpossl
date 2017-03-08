@@ -392,34 +392,28 @@ static int cert_response(CMP_CTX *ctx,
                          CMP_PKIMESSAGE **resp,
                          int type_function, int not_received)
 {
-    CMP_CERTREPMESSAGE *body = (*resp)->body->value.ip/* same for cp and kup*/;
+    CMP_CERTREPMESSAGE *body = (*resp)->body->value.ip /* same for cp and kup*/;
     save_certrep_statusInfo(ctx, body);
 
     /* make sure the PKIStatus for the *first* CERTrepmessage indicates a certificate was granted */
     /* TODO handle second CERTrepmessages if two would have sent */
-    if (CMP_CERTREPMESSAGE_PKIStatus_get(body, 0) ==
-        CMP_PKISTATUS_waiting) {
-        if (!pollForResponse(ctx, body, resp)) {
-            CMPerr(type_function, not_received);
-            ERR_add_error_data(1, "received 'waiting' pkistatus but polling failed");
-            return 0;
-        } else
-            body = (*resp)->body->value.ip/* same for cp and kup*/;
-        }
+    if (CMP_CERTREPMESSAGE_PKIStatus_get(body, 0) == CMP_PKISTATUS_waiting) {
+		if (pollForResponse(ctx, body, resp)) {
+			body = (*resp)->body->value.ip /* same for cp and kup*/;
+		} else {
+			CMPerr(type_function, not_received);
+			ERR_add_error_data(1, "received 'waiting' pkistatus but polling failed");
+			return 0;
+		}
+	}
 
     if (!(ctx->newClCert = CMP_CERTREPMESSAGE_get_certificate(ctx, body))) {
         ERR_add_error_data(1, "cannot extract certficate from response");
         return 0;
     }
 
-    /* if the CA returned certificates in the caPubs field, copy them
-     * to the context so that they can be retrieved if necessary 
-     *
-     * section 5.3.2:
-     * Note that if the PKI
-     * Message Protection is "shared secret information" (see Section
-     * 5.1.3), then any certificate transported in the caPubs field may be
-     * directly trusted as a root CA certificate by the initiator. */
+    /* if the CMP server returned certificates in the caPubs field, copy them
+     * to the context so that they can be retrieved if necessary */
 
     if (body->caPubs)
         CMP_CTX_set1_caPubs(ctx, body->caPubs);
