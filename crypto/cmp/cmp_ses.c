@@ -1,4 +1,4 @@
-/* vim: set noet ts=4 sts=4 sw=4: */
+/* vim: set et ts=4 sts=4 sw=4: */
  /* crypto/cmp/cmp_ses.c
   * Functions to do CMP (RFC 4210) message sequences for OpenSSL
   */
@@ -192,45 +192,45 @@ static int send_receive_check(CMP_CTX *ctx,
     }
 
     CMP_printf(ctx, "INFO: Got response");
-    if (!(*rep)->header->protectionAlg) {
+    /* validate message protection */
+    if ((*rep)->header->protectionAlg) {
+        if (!CMP_validate_msg(ctx, *rep)) {
+            /* validation failed */
+             CMPerr(type_function, CMP_R_ERROR_VALIDATING_PROTECTION);
+             return 0;
+         }
+    } else {
         CMP_printf(ctx, "INFO: response message is not protected");
-    }
-
-    /* catch if the received message type is not the expected one (e.g., error) */
-    if (CMP_PKIMESSAGE_get_bodytype(*rep) != type_rep) {
-        if (!(*rep)->header->protectionAlg && ctx->unprotectedErrors) {
-            CMP_printf(ctx, "WARN: ignoring missing protection of unexpected (e.g., error) response message");
-        } else {
-            if (CMP_validate_msg(ctx, *rep)) {
-                // CMP_printf(ctx, "SUCCESS: validating protection of incoming message");
-            } else {
-                CMPerr(type_function, CMP_R_ERROR_VALIDATING_PROTECTION);
-                return 0;
+        /* detect explicitly permitted exceptions */
+        int exception = 0;
+        if (ctx->unprotectedErrors) {
+            if( CMP_PKIMESSAGE_get_bodytype(*rep) == V_CMP_PKIBODY_ERROR) {
+                CMP_printf(ctx, "WARN: ignoring missing protection of error response");
+                exception = 1;
+            }
+            if (CMP_PKIMESSAGE_get_bodytype(*rep) == V_CMP_PKIBODY_RP &&
+                    CMP_REVREPCONTENT_PKIStatus_get((*rep)->body->value.rp, 0) == CMP_PKISTATUS_rejection) {
+                CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
+                exception = 1;
             }
         }
+        if (!exception) {
+            CMPerr(type_function, CMP_R_ERROR_VALIDATING_PROTECTION);
+            return 0;
+        }
+    }
+
+    /* catch if the received message type is not one of the expected ones (e.g. error) */
+    if (CMP_PKIMESSAGE_get_bodytype(*rep) != type_rep) {
         char errmsg[256];
         CMPerr(type_function, CMP_R_PKIBODY_ERROR);
         ERR_add_error_data(1, PKIError_data(*rep, errmsg, sizeof(errmsg)));
         return 0;
     }
 
-    if (CMP_PKIMESSAGE_get_bodytype(*rep) == V_CMP_PKIBODY_RP &&
-        CMP_REVREPCONTENT_PKIStatus_get((*rep)->body->value.rp, 0) == CMP_PKISTATUS_rejection &&
-        !(*rep)->header->protectionAlg && ctx->unprotectedErrors) {
-        CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
-    } else {
-        if (CMP_validate_msg(ctx, *rep)) {
-            // CMP_printf(ctx, "SUCCESS: validating protection of incoming message");
-        } else {
-            CMPerr(type_function, CMP_R_ERROR_VALIDATING_PROTECTION);
-            return 0;
-        }
-    }
-
     /* compare received nonce with the one sent in request */
     if ((*rep)->header->recipNonce) {
-        if (ASN1_OCTET_STRING_cmp
-            (req->header->senderNonce, (*rep)->header->recipNonce)) {
+        if (ASN1_OCTET_STRING_cmp(req->header->senderNonce, (*rep)->header->recipNonce)) {
             /* senderNonce != recipNonce (sic although there is no "!" in the if) */
             CMPerr(type_function, CMP_R_ERROR_NONCES_DO_NOT_MATCH);
             return 0;
