@@ -90,7 +90,6 @@ static int add_altname_extensions(X509_EXTENSIONS ** extensions,
 {
     X509_EXTENSION *ext = NULL;
     unsigned char *der = NULL;
-    int derlen = 0;
     ASN1_OCTET_STRING *str = NULL;;
 
     if (!extensions)
@@ -105,7 +104,7 @@ static int add_altname_extensions(X509_EXTENSIONS ** extensions,
     if (derLen == 0 || der == NULL)
         goto err;
 
-    if (!ASN1_STRING_set(str, der, derlen))
+    if (!ASN1_STRING_set(str, der, derLen))
         goto err;
     if (!X509_EXTENSION_create_by_NID
         (&ext, NID_subject_alt_name, critical, str))
