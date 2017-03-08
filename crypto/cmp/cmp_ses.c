@@ -258,7 +258,7 @@ static int send_receive_check(CMP_CTX *ctx,
  *
  * TODO handle multiple pollreqs for multiple certificates
  * ############################################################################ */
-static int pollForResponse(CMP_CTX *ctx, CMP_CERTREPMESSAGE *certrep,
+static int pollForResponse(CMP_CTX *ctx, const CMP_CERTREPMESSAGE *certrep,
                            CMP_PKIMESSAGE **msg)
 {
     int maxTimeLeft = ctx->maxPollTime;
@@ -384,6 +384,59 @@ static void save_certrep_statusInfo(CMP_CTX *ctx, CMP_CERTREPMESSAGE *certrep)
 }
 
 /* ############################################################################ *
+ * internal function
+ *
+ * performs the generic handling of certificate responses for IR/CR/KUR
+ * ############################################################################ */
+static int cert_response(CMP_CTX *ctx,
+                         CMP_PKIMESSAGE **resp,
+                         int type_function, int not_received)
+{
+    CMP_CERTREPMESSAGE *body = (*resp)->body->value.ip/* same for cp and kup*/;
+    save_certrep_statusInfo(ctx, body);
+
+    /* make sure the PKIStatus for the *first* CERTrepmessage indicates a certificate was granted */
+    /* TODO handle second CERTrepmessages if two would have sent */
+    if (CMP_CERTREPMESSAGE_PKIStatus_get(body, 0) ==
+        CMP_PKISTATUS_waiting) {
+        if (!pollForResponse(ctx, body, resp)) {
+            CMPerr(type_function, not_received);
+            ERR_add_error_data(1, "received 'waiting' pkistatus but polling failed");
+            return 0;
+        } else
+            body = (*resp)->body->value.ip/* same for cp and kup*/;
+        }
+
+    if (!(ctx->newClCert = CMP_CERTREPMESSAGE_get_certificate(ctx, body))) {
+        ERR_add_error_data(1, "cannot extract certficate from response");
+        return 0;
+    }
+
+    /* if the CA returned certificates in the caPubs field, copy them
+     * to the context so that they can be retrieved if necessary 
+     *
+     * section 5.3.2:
+     * Note that if the PKI
+     * Message Protection is "shared secret information" (see Section
+     * 5.1.3), then any certificate transported in the caPubs field may be
+     * directly trusted as a root CA certificate by the initiator. */
+
+    if (body->caPubs)
+        CMP_CTX_set1_caPubs(ctx, body->caPubs);
+
+    /* copy any received extraCerts to ctx->extraCertsIn so they can be retrieved */
+    if ((*resp)->extraCerts)
+        CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts);
+
+    /* check if implicit confirm is set in generalInfo and send certConf if not */
+    if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(*resp))
+        if (!sendCertConf(ctx))
+            return 0;
+
+    return 1;
+}
+
+/* ############################################################################ *
  * do the full sequence for IR, including IR, IP, certConf, PKIconf and
  * potential polling
  *
@@ -397,59 +450,21 @@ X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *ir = NULL;
     CMP_PKIMESSAGE *ip = NULL;
+    X509 *result = NULL;
 
     /* check if all necessary options are set is done in CMP_ir_new */
     /* create Initialization Request - ir */
     if (!(ir = CMP_ir_new(ctx)))
-        goto err;
+            goto err;
 
     if (!send_receive_check(ctx, ir, "ir", CMP_F_CMP_DOINITIALREQUESTSEQ,
                                 &ip, V_CMP_PKIBODY_IP, CMP_R_IP_NOT_RECEIVED))
         goto err;
 
-    save_certrep_statusInfo(ctx, ip->body->value.ip);
-
-    /* make sure the PKIStatus for the *first* CERTrepmessage indicates a certificate was granted */
-    /* TODO handle second CERTrepmessages if two would have sent */
-    if (CMP_CERTREPMESSAGE_PKIStatus_get(ip->body->value.ip, 0) ==
-        CMP_PKISTATUS_waiting)
-        if (!pollForResponse(ctx, ip->body->value.ip, &ip)) {
-            CMPerr(CMP_F_CMP_DOINITIALREQUESTSEQ, CMP_R_IP_NOT_RECEIVED);
-            ERR_add_error_data(1,
-                               "received 'waiting' pkistatus but polling failed");
-            goto err;
-        }
-
-    if (!(ctx->newClCert = CMP_CERTREPMESSAGE_get_certificate(ctx, ip->body->value.ip))) {
-        ERR_add_error_data(1, "cannot extract certficate from response");
+    if (!cert_response(ctx, &ip, CMP_F_CMP_DOINITIALREQUESTSEQ, CMP_R_IP_NOT_RECEIVED))
         goto err;
-    }
 
-    /* if the CA returned certificates in the caPubs field, copy them
-     * to the context so that they can be retrieved if necessary 
-     *
-     * section 5.3.2:
-     * Note that if the PKI
-     * Message Protection is "shared secret information" (see Section
-     * 5.1.3), then any certificate transported in the caPubs field may be
-     * directly trusted as a root CA certificate by the initiator. */
-
-    if (ip->body->value.ip->caPubs)
-        CMP_CTX_set1_caPubs(ctx, ip->body->value.ip->caPubs);
-
-    /* copy any received extraCerts to ctx->extraCertsIn so they can be retrieved */
-    if (ip->extraCerts)
-        CMP_CTX_set1_extraCertsIn(ctx, ip->extraCerts);
-
-    /* check if implicit confirm is set in generalInfo and send certConf if not */
-    if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(ip))
-        if (!sendCertConf(ctx))
-            goto err;
-
-    CMP_PKIMESSAGE_free(ir);
-    CMP_PKIMESSAGE_free(ip);
-    return ctx->newClCert;
-
+    result = ctx->newClCert;
  err:
     if (ir)
         CMP_PKIMESSAGE_free(ir);
@@ -457,9 +472,9 @@ X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx)
         CMP_PKIMESSAGE_free(ip);
 
     /* print out openssl and cmp errors to error_cb if it's set */
-    if (ctx && ctx->error_cb)
+    if (!result && ctx && ctx->error_cb)
         ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
-    return NULL;
+    return result;
 }
 
 /* ############################################################################ *
@@ -488,6 +503,7 @@ int CMP_doRevocationRequestSeq(CMP_CTX *ctx)
     CMP_PKIMESSAGE *rr = NULL;
     CMP_PKIMESSAGE *rp = NULL;
     int pkiStatus = 0;
+    int result = 0;
 
     /* check if all necessary options are set is done in CMP_rr_new */
     /* create Revocation Request - ir */
@@ -529,17 +545,17 @@ int CMP_doRevocationRequestSeq(CMP_CTX *ctx)
         goto err;
     }
 
-    CMP_PKIMESSAGE_free(rr);
-    CMP_PKIMESSAGE_free(rp);
-    return (pkiStatus + 1);
+    result = pkiStatus + 1;
  err:
-    if (ctx && ctx->error_cb)
-        ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
     if (rr)
         CMP_PKIMESSAGE_free(rr);
     if (rp)
         CMP_PKIMESSAGE_free(rp);
-    return 0;
+
+    /* print out openssl and cmp errors to error_cb if it's set */
+    if (!result && ctx && ctx->error_cb)
+        ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
+    return result;
 }
 
 /* ############################################################################ *
@@ -556,6 +572,7 @@ X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *cr = NULL;
     CMP_PKIMESSAGE *cp = NULL;
+    X509 *result = NULL;
 
     /* check if all necessary options are set is done by CMP_cr_new */
     /* create Certificate Request - cr */
@@ -566,36 +583,10 @@ X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx)
                                 &cp, V_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED))
         goto err;
 
-    save_certrep_statusInfo(ctx, cp->body->value.cp);
-
-    /* evaluate PKIStatus field */
-    if (CMP_CERTREPMESSAGE_PKIStatus_get(cp->body->value.cp, 0) ==
-        CMP_PKISTATUS_waiting)
-        if (!pollForResponse(ctx, cp->body->value.cp, &cp)) {
-            CMPerr(CMP_F_CMP_DOCERTIFICATEREQUESTSEQ, CMP_R_CP_NOT_RECEIVED);
-            ERR_add_error_data(1,
-                               "received 'waiting' pkistatus but polling failed");
-            goto err;
-        }
-
-    if (!(ctx->newClCert = CMP_CERTREPMESSAGE_get_certificate(ctx, cp->body->value.cp))) {
-        ERR_add_error_data(1, "cannot extract certficate from response");
+    if (!cert_response(ctx, &cp, CMP_F_CMP_DOCERTIFICATEREQUESTSEQ, CMP_R_CP_NOT_RECEIVED))
         goto err;
-    }
 
-    /* copy any received extraCerts to ctx->etraCertsIn so they can be retrieved */
-    if (cp->extraCerts)
-        CMP_CTX_set1_extraCertsIn(ctx, cp->extraCerts);
-
-    /* check if implicit confirm is set in generalInfo and send certConf if not */
-    if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(cp))
-        if (!sendCertConf(ctx))
-            goto err;
-
-    CMP_PKIMESSAGE_free(cr);
-    CMP_PKIMESSAGE_free(cp);
-    return ctx->newClCert;
-
+    result = ctx->newClCert;
  err:
     if (cr)
         CMP_PKIMESSAGE_free(cr);
@@ -603,9 +594,9 @@ X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx)
         CMP_PKIMESSAGE_free(cp);
 
     /* print out openssl and cmp errors to error_cb if it's set */
-    if (ctx && ctx->error_cb)
+    if (!result && ctx && ctx->error_cb)
         ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
-    return NULL;
+    return result;
 }
 
 /* ############################################################################ *
@@ -629,6 +620,7 @@ X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *kur = NULL;
     CMP_PKIMESSAGE *kup = NULL;
+    X509 *result = NULL;
 
     /* check if all necessary options are set is done in CMP_kur_new */
     /* create Key Update Request - kur */
@@ -639,41 +631,10 @@ X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx)
                                 &kup, V_CMP_PKIBODY_KUP, CMP_R_KUP_NOT_RECEIVED))
         goto err;
 
-    save_certrep_statusInfo(ctx, kup->body->value.kup);
-
-    /* evaluate PKIStatus field */
-    if (CMP_CERTREPMESSAGE_PKIStatus_get(kup->body->value.kup, 0) ==
-        CMP_PKISTATUS_waiting) {
-        if (!pollForResponse(ctx, kup->body->value.kup, &kup)) {
-            CMPerr(CMP_F_CMP_DOKEYUPDATEREQUESTSEQ, CMP_R_KUP_NOT_RECEIVED);
-            ERR_add_error_data(1,
-                               "received 'waiting' pkistatus but polling failed");
-            goto err;
-        }
-    }
-
-    if (!(ctx->newClCert = CMP_CERTREPMESSAGE_get_certificate(ctx, kup->body->value.kup))) {
-        ERR_add_error_data(1, "cannot extract certficate from response");
-        goto err;
-    }
-
-    /* copy received capubs to the context */
-    if (kup->body->value.kup->caPubs)
-        CMP_CTX_set1_caPubs(ctx, kup->body->value.kup->caPubs);
-
-    /* copy any received extraCerts to ctx->etraCertsIn so they can be retrieved */
-    if (kup->extraCerts)
-        CMP_CTX_set1_extraCertsIn(ctx, kup->extraCerts);
-
-    /* check if implicit confirm is set in generalInfo and send certConf if not */
-    if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(kup))
-        if (!sendCertConf(ctx))
+    if (!cert_response(ctx, &kup, CMP_F_CMP_DOKEYUPDATEREQUESTSEQ, CMP_R_KUP_NOT_RECEIVED))
             goto err;
 
-    CMP_PKIMESSAGE_free(kur);
-    CMP_PKIMESSAGE_free(kup);
-    return ctx->newClCert;
-
+    result = ctx->newClCert;
  err:
     if (kur)
         CMP_PKIMESSAGE_free(kur);
@@ -681,9 +642,9 @@ X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx)
         CMP_PKIMESSAGE_free(kup);
 
     /* print out openssl and cmp errors to error_cb if it's set */
-    if (ctx && ctx->error_cb)
+    if (!result && ctx && ctx->error_cb)
         ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
-    return NULL;
+    return result;
 }
 
 /* ############################################################################ *
@@ -721,15 +682,9 @@ STACK_OF (CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx,
                                 &genp, V_CMP_PKIBODY_GENP, CMP_R_GENP_NOT_RECEIVED))
          goto err;
 
-
     /* the received stack of itavs shouldn't be freed with the message */
     rcvdItavs = genp->body->value.genp;
     genp->body->value.genp = NULL;
-
-    CMP_PKIMESSAGE_free(genm);
-    CMP_PKIMESSAGE_free(genp);
-
-    return rcvdItavs;
 
  err:
     if (genm)
@@ -738,7 +693,7 @@ STACK_OF (CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx,
         CMP_PKIMESSAGE_free(genp);
 
     /* print out openssl and cmp errors to error_cb if it's set */
-    if (ctx && ctx->error_cb)
+    if (!rcvdItavs && ctx && ctx->error_cb)
         ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
-    return NULL;
+    return rcvdItavs;
 }
