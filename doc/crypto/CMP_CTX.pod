@@ -354,7 +354,11 @@ should be accepted the callback must return 1, and 0 if the certificate
 is to be rejected.
 
 CMP_CTX_subjectAltName_push1() adds the given X509 name to the list of
-alternate names on the certificate template request.
+alternate names on the certificate template request.  If this is done,
+and the subject name is not set with CMP_CTX_set1_subjectName(), then in
+IR and CR, the certificate template will not be filled with the subject
+name from the existig client certificate.  If a subject name is desired
+it needs to be set explicitly with CMP_CTX_set1_subjectName().
 
 =head1 NOTES
 
