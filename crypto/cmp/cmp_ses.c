@@ -215,6 +215,14 @@ static int send_receive_check(CMP_CTX *ctx,
                 CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
                 exception = 1;
             }
+            if (rcvd_type == type_rep &&
+                (rcvd_type == V_CMP_PKIBODY_IP ||
+                 rcvd_type == V_CMP_PKIBODY_CP ||
+                 rcvd_type == V_CMP_PKIBODY_KUP) &&
+                    CMP_CERTREPMESSAGE_PKIStatus_get((*rep)->body->value.ip , 0) == CMP_PKISTATUS_rejection) {
+                CMP_printf(ctx, "WARN: ignoring missing protection of CertRepMessage with rejection status");
+                exception = 1;
+            }
         }
         if (!exception) {
             CMPerr(type_function, CMP_R_ERROR_VALIDATING_PROTECTION);
