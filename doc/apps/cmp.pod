@@ -195,7 +195,7 @@ leaf certificate of the certificate chain.  Compare B<X509_V_FLAG_CRL_CHECK>.
 Enables CRL checking for the entire certificate chain when verifying certificates used for CMP message protection.
 Compare B<X509_V_FLAG_CRL_CHECK_ALL>.
 
-This option requires that either the B<-crls> or B<-cdps> option is also set.
+This option implies the B<-crls> option.
 
 =item B<-recipient name>
 

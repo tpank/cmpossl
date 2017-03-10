@@ -247,8 +247,6 @@ int CMP_CTX_init(CMP_CTX *ctx)
 
     ctx->trusted_store = X509_STORE_new();
     ctx->untrusted_store = X509_STORE_new();
-    ctx->cdp_cb = NULL;
-    ctx->crlAll = 0;
     ctx->cert_verify_cb = NULL;
 
     ctx->maxPollTime = 0;
@@ -352,21 +350,6 @@ int CMP_CTX_set_certVerify_callback(CMP_CTX *ctx, cert_verify_cb_t cb)
     if (!ctx)
         goto err;
     ctx->cert_verify_cb = cb;
-    return 1;
- err:
-    return 0;
-}
-
-/* ################################################################ *
- * Set callback function for CRL retrieval to be used as
- * secondary source during CMP certificate verification
- * returns 1 on success, 0 on error
- * ################################################################ */
-int CMP_CTX_set_cdp_callback(CMP_CTX *ctx, cdp_cb_t cb)
-{
-    if (!ctx)
-        goto err;
-    ctx->cdp_cb = cb;
     return 1;
  err:
     return 0;
@@ -1397,9 +1380,6 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
         break;
     case CMP_CTX_OPT_REVOCATION_REASON:
         ctx->revocationReason = val;
-        break;
-    case CMP_CTX_OPT_CRLALL:
-        ctx->crlAll = val;
         break;
     default:
         goto err;

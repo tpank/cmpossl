@@ -117,11 +117,6 @@ struct cmp_ctx_st {
     X509_STORE *untrusted_store;
     /* CRLs to be used as primary source during CMP certificate verification */
     STACK_OF(X509_CRL) *crls;
-    /* Callback function for CRL retrieval to be used as
-     * secondary source during CMP certificate verification */
-    cdp_cb_t cdp_cb;
-    /* Check CRLs not only for CMP server but also for CMP CA certificates */
-    int crlAll;
 
     /* include root certs from extracerts when validating? Used for 3GPP-style E.7 */
     int permitTAInExtraCertsForIR;

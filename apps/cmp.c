@@ -1202,20 +1202,16 @@ static int setup_ctx(CMP_CTX * ctx)
         CMP_CTX_set0_crls(ctx, crls);
     }
 
-    if (opt_cdps) /* TODO: needed to be set in CTX? */
-        CMP_CTX_set_cdp_callback(ctx, crls_http_cb);
-
-    if (opt_crl_all) /* TODO: needed to be set in CTX? */
-        CMP_CTX_set_option(ctx, CMP_CTX_OPT_CRLALL, 1);
-
     if (opt_trusted) {
         X509_STORE *ts = create_cert_store(opt_trusted, "trusted certificates");
 
         X509_STORE_set_flags(ts, opt_crls || opt_cdps || opt_crl_all ?  X509_V_FLAG_CRL_CHECK
                                  | (opt_crl_all ? X509_V_FLAG_CRL_CHECK_ALL : 0) : 0);
 
-        if (opt_cdps)
-          X509_STORE_set_lookup_crls(ts, opt_cdps);
+        if (opt_cdps) {
+            X509_STORE_set_lookup_crls(ts, opt_cdps);
+            X509_STORE_set_lookup_crls_cb(ts, crls_http_cb);
+        }
 
         if( !CMP_CTX_set0_trustedStore(ctx, ts))
             goto err;
