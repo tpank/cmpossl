@@ -77,6 +77,7 @@ extern int x509_main(int argc, char *argv[]);
 extern const OPTIONS asn1parse_options[];
 extern const OPTIONS ca_options[];
 extern const OPTIONS ciphers_options[];
+extern const OPTIONS cmp_options[];
 extern const OPTIONS cms_options[];
 extern const OPTIONS crl_options[];
 extern const OPTIONS crl2pkcs7_options[];
