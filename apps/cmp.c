@@ -214,9 +214,8 @@ OPTIONS cmp_options[] = {
 
     {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm enrolled certificates"},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of enrolled certificate"},
-    {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-', "Accept unprotected error, response (IP/CP/KUP) with rejection\n"
-                       "\t\t     to certificate requst, and revocation response (RP) rejection\n"
-                       "\t\t     messages."},
+    {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-', "Accept unprotected error responses: regular error messages as well as\n"
+                       "\t\t     certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection"},
 
     {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and Proof-of-Possession signatures. Defaults to 'sha1'"},
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be renewed in KUR or to be revoked in RR"},
