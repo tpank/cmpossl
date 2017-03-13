@@ -227,7 +227,8 @@ cope with broken servers not supporting implicit confirmation correctly.
 
 =item B<-unprotectederrors>
 
-Accept unprotected error responses
+Accept unprotected error responses: regular error messages as well as
+certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection.
 
 =item B<-digest name>
 
