@@ -56,7 +56,7 @@ struct cmp_ctx_st {
     /* NID of digest algorithm used in MSG_SIG_ALG, defaults to SHA256 */
     int digest;
     /* X.509 extensions to be added to certificate request */
-    STACK_OF (X509_EXTENSION) * reqExtensions;
+    X509_EXTENSIONS *reqExtensions;
     /* names to be added to the cert template as the subjectAltName extension */
     STACK_OF (GENERAL_NAME) * subjectAltNames;
     /* whether or not the subjectAltName extension should be set critical */
