@@ -217,7 +217,7 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     X509_NAME *subject = NULL;
     EVP_PKEY *requestKey = NULL;
 
-    if (!ctx) {
+    if (!ctx || (!ctx->pkey && !ctx->newPkey) ) {
         CMPerr(CMP_F_CERTREQ_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
