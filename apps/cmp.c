@@ -255,7 +255,7 @@ typedef union {
     long *num;
 } varref;
 static varref cmp_vars[]= { // must be in the same order as enumerated above!!
-    {&opt_comment}, // dump value of section option
+    {&opt_section},
     {&opt_comment},
     {&opt_server}, {&opt_proxy}, { (char **)&opt_proxyPort},
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
@@ -300,7 +300,8 @@ static int read_config(CONF *conf)
 {
     int i = 0;
 
-    for (i = 0; i   < sizeof(cmp_vars   )/sizeof(cmp_vars   [0]) && 
+    // starting with i = 1 because OPT_SECTION has already been handled
+    for (i = 1; i   < sizeof(cmp_vars   )/sizeof(cmp_vars   [0]) &&
          i+OPT_HELP < sizeof(cmp_options)/sizeof(cmp_options[0]); i++) {
         const OPTIONS *opt = &cmp_options[i+OPT_HELP];
         switch (opt->valtype) {
@@ -1380,9 +1381,9 @@ int cmp_main(int argc, char **argv)
 
     bio_c_out = BIO_new_fp(stdout, BIO_NOCLOSE);
 
-    int i;
+    int i; // must handle OPT_SECTION upfront to take effect for all other args
     for (i = argc-2; i >= 0; i--)
-        if (!strcmp(argv[i], "-section")) {
+        if (argv[i][0] == '-' && !strcmp(argv[i]+1, cmp_options[OPT_SECTION-OPT_HELP].name)) {
             opt_section = argv[i+1];
             break;
          }
@@ -1440,7 +1441,7 @@ opt_err:
             ret = 0;
             opt_help(cmp_options);
             goto err;
-        case OPT_SECTION: // already handled
+        case OPT_SECTION: // has already been handled
             break;
         case OPT_COMMENT:
             opt_comment = opt_arg();
@@ -1591,7 +1592,8 @@ opt_err:
             }
 
         found=0;
-        for (i = 0; i   < sizeof(cmp_vars   )/sizeof(cmp_vars   [0]) && 
+        // starting with i = 1 because OPT_SECTION has already been handled
+        for (i = 1; i   < sizeof(cmp_vars   )/sizeof(cmp_vars   [0]) &&
              i+OPT_HELP < sizeof(cmp_options)/sizeof(cmp_options[0]); i++) {
             const OPTIONS *opt = &cmp_options[i+OPT_HELP];
             if (opt->name && !strcmp(arg, opt->name)) {
