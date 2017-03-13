@@ -218,8 +218,8 @@ The following options can be set:
         not supporting implicit confirmation correctly.
 
     CMP_CTX_OPT_UNPROTECTED_ERRORS
-        Accept unprotected error, response (IP/CP/KUP) with rejection to
-        certificate requst, and revocation response (RP) rejection messages.
+        Accept unprotected error responses: regular error messages as well as
+        certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection.
 
     CMP_CTX_OPT_POPMETHOD
         Select the proof of possession method to use. Possible values are:
