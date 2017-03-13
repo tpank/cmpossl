@@ -335,7 +335,7 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
     X509_NAME *subject = NULL;
     CMP_REVDETAILS *rd = NULL;
 
-    if (!ctx) {
+    if (!ctx || !ctx->oldClCert) {
         CMPerr(CMP_F_CMP_RR_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
@@ -406,7 +406,7 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx)
     CMP_PKIMESSAGE *msg = NULL;
     CMP_CERTSTATUS *certStatus = NULL;
 
-    if (!ctx) {
+    if (!ctx || !ctx->newClCert) {
         CMPerr(CMP_F_CMP_CERTCONF_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
@@ -432,8 +432,7 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx)
 
     /* execute the callback function set in ctx which can be used to examine a
      * certificate and reject it */
-    if (ctx->certConf_cb && ctx->newClCert
-        && ctx->certConf_cb(ctx->lastPKIStatus, ctx->newClCert) == 0) {
+    if (ctx->certConf_cb && ctx->certConf_cb(ctx->lastPKIStatus, ctx->newClCert) == 0) {
         certStatus->statusInfo = CMP_PKISTATUSINFO_new();
         ASN1_INTEGER_set(certStatus->statusInfo->status,
                          CMP_PKISTATUS_rejection);
