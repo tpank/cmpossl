@@ -232,15 +232,15 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
             goto err;
     CMP_PKIMESSAGE_set_bodytype(msg, bodytype);
 
+    X509 *oldcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
     if (ctx->subjectName)
         subject = ctx->subjectName;
-    else if (ctx->clCert && (bodytype == V_CMP_PKIBODY_KUR))
-		/* for KUR, copy subjectName from existing certificate in any case,
-		   this is either the clCert as used for message protection or explicitly given oldClCert */
-        subject = X509_get_subject_name(ctx->oldClCert ? ctx->oldClCert : ctx->clCert);
-    else if (ctx->clCert && sk_GENERAL_NAME_num(ctx->subjectAltNames) <= 0)
-        /* for IR, CR get subject name from existing certificate, but only if there's no subjectAltName */
-        subject = X509_get_subject_name(ctx->clCert);
+    else if (oldcert && (bodytype == V_CMP_PKIBODY_KUR ||
+                         sk_GENERAL_NAME_num(ctx->subjectAltNames) <= 0))
+        /* For KUR, copy subjectName from the previous certificate in any case, */
+        /* for IR or CR, get subject name from any previous certificate, but only if there's no subjectAltName. */
+        /* This is the explicitly given oldClCert, if present, or else the clCert as used for message protection. */
+        subject = X509_get_subject_name(oldcert);
 
     if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0)
         /* TODO: for KUR, if <= 0, maybe copy any existing SANs from cert to be renewed; clCert or oldClCert? */
@@ -269,7 +269,7 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     /* for KUR, setting OldCertId according to D.6:
        7.  regCtrl OldCertId SHOULD be used */
     if (bodytype == V_CMP_PKIBODY_KUR)
-        if (!CRMF_CERTREQMSG_set1_control_oldCertId(certReq0, ctx->oldClCert ? ctx->oldClCert : ctx->clCert))
+        if (!CRMF_CERTREQMSG_set1_control_oldCertId(certReq0, oldcert))
             goto err;
 
     if (!CRMF_CERTREQMSG_calc_and_set_popo(certReq0, requestKey, ctx->digest, ctx->popoMethod))
