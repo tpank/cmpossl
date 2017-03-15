@@ -1246,7 +1246,7 @@ static int setup_ctx(CMP_CTX * ctx)
                                : 0);
 
         if (opt_cdps) {
-            X509_STORE_set_lookup_crls(ts, LOCAL_crls_http_cb);
+            X509_STORE_set_lookup_crls(ts, crls_local_then_http_cb);
             /* TODO dvo: to be replaced with "store_setup_crl_download(ts)" from apps.h,
                after extended version of crls_http_cb has been pushed upstream */
         }
