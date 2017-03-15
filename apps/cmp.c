@@ -479,12 +479,12 @@ static int check_options(void)
 /*
  * ########################################################################## 
  * * code for loading certs, keys, and CRLs
- * TODO: the whole Cert, Key and CRL loading logic should be given upstream
- * by DvO to be included in apps.c, and then used from here.
+ * TODO dvo: the whole Cert, Key and CRL loading logic should be given upstream
+ * to be included in apps.c, and then used from here.
  * ########################################################################## 
  */
 
-/* TODO dvo: push that seperately upstream with the autofmt options */
+/* TODO dvo: push that separately upstream with the autofmt options */
 /* declaration copied from apps/apps.c just for visibility reasons */
 static int load_pkcs12(BIO *in, const char *desc,
                        pem_password_cb *pem_cb, void *cb_data,
@@ -526,7 +526,7 @@ static int load_pkcs12(BIO *in, const char *desc,
     return ret;
 }
 
-/* TODO dvo: push that seperately upstream with the autofmt options */
+/* TODO dvo: push that separately upstream with the autofmt options */
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
 /* declaration copied from apps/apps.c just for visibility reasons */
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
@@ -581,7 +581,7 @@ static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
 #define load_cert_crl_http(url, pcert, pcrl) load_cert_crl_http(url, bio_err, pcert, pcrl)
 #endif
 
-/* TODO dvo: push that seperately upstream with the autofmt options */
+/* TODO dvo: push that separately upstream with the autofmt options */
 /* improved version of load_cert() found in apps/apps.c */
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
 static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass, const char *cert_descrip)
@@ -709,7 +709,7 @@ X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass,
 }
 #endif
 
-/* TODO dvo: push that seperately upstream with the autofmt options */
+/* TODO dvo: push that separately upstream with the autofmt options */
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L // compatibility declarations
 static STACK_OF(X509) *load_certs_(const char *file, int format,
                            const char *pass, const char *desc)
@@ -719,7 +719,7 @@ static STACK_OF(X509) *load_certs_(const char *file, int format,
         return NULL;
     return certs;
 }
-/* TODO dvo: push that seperately upstream with the autofmt options */
+/* TODO dvo: push that separately upstream with the autofmt options */
 static STACK_OF(X509_CRL) *load_crls_(const char *file, int format,
                            const char *pass, const char *desc)
 {
@@ -734,7 +734,7 @@ static STACK_OF(X509_CRL) *load_crls_(const char *file, int format,
 #define load_key(  bio, file, fmt, stdin, pass, e, desc) load_key   (file, fmt, stdin, pass, e, desc)
 #endif
 
-/* TODO dvo: push that seperately upstream with the autofmt options */
+/* TODO dvo: push that separately upstream with the autofmt options */
 static int adjust_format(const char **infile, int format, int engine_ok) {
     if (strncmp(*infile, "http://", 7) == 0)
         format = FORMAT_HTTP;
@@ -775,6 +775,9 @@ static char *get_passwd(const char *pass, const char *desc) {
     return result;
 }
 
+<<<<<<< HEAD
+/* TODO dvo: push that separately upstream */
+/* in apps.c there is load_key which should be used for CMP upstream submission */
 EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
     char *pass_string = get_passwd(pass, desc);
@@ -791,7 +794,7 @@ EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, con
     return pkey;
 }
 
-/* TODO dvo: push that seperately upstream */
+/* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_certs_fmt */
 X509 *load_cert_autofmt(const char *infile, int *format, const char *pass, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
@@ -810,7 +813,7 @@ X509 *load_cert_autofmt(const char *infile, int *format, const char *pass, const
     return cert;
 }
 
-/* TODO dvo: push that seperately upstream */
+/* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_certs_autofmt */
 STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char *desc) {
     if (format == FORMAT_PEM) {
@@ -829,7 +832,7 @@ STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char *desc)
     }
 }
 
-/* TODO dvo: push that seperately upstream */
+/* TODO dvo: push that separately upstream */
 /* in apps.c there is load_certs which should be used for CMP upstream submission */
 STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
@@ -845,8 +848,7 @@ STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const char *d
 }
 
 <<<<<<< HEAD
-static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
-/* TODO dvo: push that seperately upstream */
+/* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_crls_fmt */
 X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
@@ -857,7 +859,7 @@ X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
     return crl;
 }
 
-/* TODO dvo: push that seperately upstream */
+/* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_crls_autofmt */
 STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const char *desc) {
     if (format == FORMAT_PEM) {
@@ -878,8 +880,8 @@ STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const char *de
 }
 
 <<<<<<< HEAD
-static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, const char *desc) {
-/* TODO dvo: push that seperately upstream */
+<<<<<<< HEAD
+/* TODO dvo: push that separately upstream */
 /* in apps.c there is load_crls which should be used for CMP upstream submission */
 STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, const char *desc) {
     format = adjust_format(&infile, format, 0);
@@ -931,14 +933,14 @@ static X509_STORE *create_cert_store(const char *infile, const char *desc)
     return NULL;
 }
 
-/* TODO dvo: push that seperately upstream
+/* TODO dvo: push that separately upstream
  * ########################################################################## 
  * * code for loading CRL via HTTP or from file, slightly adapted from apps/apps.c
  * ########################################################################## 
  * This is exclusively used in load_crl_crldp()
  */
 
-static const char *get_dp_url(DIST_POINT *dp)
+static const char *LOCAL_get_dp_url(DIST_POINT *dp)
 {
     GENERAL_NAMES *gens;
     GENERAL_NAME *gen;
@@ -963,9 +965,10 @@ static const char *get_dp_url(DIST_POINT *dp)
     return NULL;
 }
 
-/* TODO dvo: push that seperately upstream */
-/* THIS IS load_crl_crldp() FROM AND LOCAL TO apps.c,
- * only modification is BIO_printf and use of *_autofmt */
+/* TODO dvo: push that separately upstream */
+/* THIS IS an extension of load_crl_crldp() FROM AND LOCAL TO apps.c,
+ * with support for loading local CRL files, logging of URL use, and use of *_autofmt */
+
 /* Look through a CRLDP structure and attempt to find an http URL to
  * downloads a CRL from.
  */
@@ -976,7 +979,7 @@ static X509_CRL *LOCAL_load_crl_crldp(STACK_OF(DIST_POINT) *crldp)
     const char *urlptr = NULL;
     for (i = 0; i < sk_DIST_POINT_num(crldp); i++) {
         DIST_POINT *dp = sk_DIST_POINT_value(crldp, i);
-        urlptr = get_dp_url(dp);
+        urlptr = LOCAL_get_dp_url(dp);
         if (urlptr) {
             BIO_printf(bio_c_out, "Loading CRL via CDP entry in cert from URL '%s'\n", urlptr);
             return load_crl_autofmt(urlptr, FORMAT_HTTP, "CRL via CDP entry in certificate");
@@ -985,7 +988,7 @@ static X509_CRL *LOCAL_load_crl_crldp(STACK_OF(DIST_POINT) *crldp)
     return NULL;
 }
 
-/* TODO dvo: push that seperately upstream */
+/* TODO dvo: push that separately upstream */
 /* THIS IS crls_http_cb() FROM AND LOCAL TO apps.c,
  * but using LOCAL_load_crl_crldp instead of the one from apps.c */
 /*
@@ -1022,12 +1025,11 @@ static STACK_OF(X509_CRL) *LOCAL_crls_http_cb(X509_STORE_CTX *ctx, X509_NAME *nm
     return crls;
 }
 
-/* TODO dvo: push that seperately upstream
+/* TODO dvo: push that separately upstream
  *
- * This SEEMS to be to allow for local CRLs and remote lookup through
- * the callback.  In upstream openssl, X509_STORE_CTX_init() is setting
- * up the STORE_CTX so that CRLs already loaded to the store get ignored
- * if a callback is set.
+ * This allows for local CRLs and remote lookup through the callback.
+ * In upstream openssl, X509_STORE_CTX_init() sets up the STORE_CTX
+ * so that CRLs already loaded to the store get ignored if a callback is set.
  *
  * First try local CRLs from store, then try downloading CRLs from CRLDP
  */
@@ -1126,6 +1128,8 @@ static int setup_ctx(CMP_CTX * ctx)
         }
         if (opt_tls_cdps)
             X509_STORE_set_lookup_crls(SSL_CTX_get_cert_store(ssl_ctx), crls_local_then_http_cb);
+            /* TODO dvo: to be replaced with "store_setup_crl_download(ts)" from apps.h,
+               after extended version of crls_http_cb has been pushed upstream */
         if (opt_tls_crls || opt_tls_cdps || opt_tls_crl_all)
             X509_VERIFY_PARAM_set_flags(SSL_CTX_get0_param(ssl_ctx),
                                         X509_V_FLAG_CRL_CHECK | (opt_tls_crl_all ? X509_V_FLAG_CRL_CHECK_ALL: 0));
@@ -1243,7 +1247,8 @@ static int setup_ctx(CMP_CTX * ctx)
 
         if (opt_cdps) {
             X509_STORE_set_lookup_crls(ts, LOCAL_crls_http_cb);
-            /* TODO: to be replaced with "store_setup_crl_download(ts)" from apps.h */
+            /* TODO dvo: to be replaced with "store_setup_crl_download(ts)" from apps.h,
+               after extended version of crls_http_cb has been pushed upstream */
         }
 
         if( !CMP_CTX_set0_trustedStore(ctx, ts))
