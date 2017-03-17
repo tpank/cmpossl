@@ -122,7 +122,8 @@ static char *opt_trusted = NULL;
 static char *opt_untrusted = NULL;
 static char *opt_crls = NULL;
 static long  opt_cdps = 0;
-static long  opt_crl_all = 0;
+static int vpmtouched = 0;
+static X509_VERIFY_PARAM *vpm = NULL;
 
 static char *opt_keyfmt_s = "PEM";
 static char *opt_certfmt_s = "PEM";
@@ -149,25 +150,6 @@ static char *opt_extracertsout = NULL;
 static char *opt_proxy = NULL;
 static long opt_proxyPort = 0;
 
-typedef enum OPTION_choice {
-    OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
-    OPT_SECTION,
-    OPT_SERVER, OPT_PROXY, OPT_PROXYPORT,
-    OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
-    OPT_TLSTRUSTED, OPT_TLSCRLS, OPT_TLSCDPS, OPT_TLSCRLALL,
-    OPT_USER, OPT_PASS, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
-    OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED, 
-    OPT_CRLS, OPT_CDPS, OPT_CRLALL,
-    OPT_RECIPIENT, OPT_PATH, OPT_CMD,
-    OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, 
-    OPT_POPO,
-    OPT_REQEXTS,
-    OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
-    OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
-    OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
-    OPT_KEYFMT, OPT_CERTFMT,
-} OPTION_CHOICE;
-
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 typedef struct options_st {
     const char *name;
@@ -181,8 +163,95 @@ typedef struct options_st {
     int valtype;
     const char *helpstr;
 } OPTIONS;
+
+/*
+ * Common verification options.
+ */
+# define OPT_V_ENUM \
+        OPT_V__FIRST=2000, \
+        OPT_V_POLICY, OPT_V_PURPOSE, OPT_V_VERIFY_NAME, OPT_V_VERIFY_DEPTH, \
+        OPT_V_ATTIME, OPT_V_VERIFY_HOSTNAME, OPT_V_VERIFY_EMAIL, \
+        OPT_V_VERIFY_IP, OPT_V_IGNORE_CRITICAL, OPT_V_ISSUER_CHECKS, \
+        OPT_V_CRL_CHECK, OPT_V_CRL_CHECK_ALL, OPT_V_POLICY_CHECK, \
+        OPT_V_EXPLICIT_POLICY, OPT_V_INHIBIT_ANY, OPT_V_INHIBIT_MAP, \
+        OPT_V_X509_STRICT, OPT_V_EXTENDED_CRL, OPT_V_USE_DELTAS, \
+        OPT_V_POLICY_PRINT, OPT_V_CHECK_SS_SIG, OPT_V_TRUSTED_FIRST, \
+        OPT_V_SUITEB_128_ONLY, OPT_V_SUITEB_128, OPT_V_SUITEB_192, \
+        OPT_V_PARTIAL_CHAIN, OPT_V_NO_ALT_CHAINS, OPT_V_NO_CHECK_TIME, \
+        OPT_V_VERIFY_AUTH_LEVEL, OPT_V_ALLOW_PROXY_CERTS, \
+        OPT_V__LAST
+
+# define OPT_V_OPTIONS \
+        { "policy", OPT_V_POLICY, 's', "adds policy to the acceptable policy set"}, \
+        { "purpose", OPT_V_PURPOSE, 's', \
+            "certificate chain purpose"}, \
+        { "verify_name", OPT_V_VERIFY_NAME, 's', "verification policy name"}, \
+        { "verify_depth", OPT_V_VERIFY_DEPTH, 'n', \
+            "chain depth limit" }, \
+        { "auth_level", OPT_V_VERIFY_AUTH_LEVEL, 'n', \
+            "chain authentication security level" }, \
+        { "attime", OPT_V_ATTIME, 'M', "verification epoch time" }, \
+        { "verify_hostname", OPT_V_VERIFY_HOSTNAME, 's', \
+            "expected peer hostname" }, \
+        { "verify_email", OPT_V_VERIFY_EMAIL, 's', \
+            "expected peer email" }, \
+        { "verify_ip", OPT_V_VERIFY_IP, 's', \
+            "expected peer IP address" }, \
+        { "ignore_critical", OPT_V_IGNORE_CRITICAL, '-', \
+            "permit unhandled critical extensions"}, \
+        { "issuer_checks", OPT_V_ISSUER_CHECKS, '-', "(deprecated)"}, \
+        { "crl_check", OPT_V_CRL_CHECK, '-', "check leaf certificate revocation" }, \
+        { "crl_check_all", OPT_V_CRL_CHECK_ALL, '-', "check full chain revocation" }, \
+        { "policy_check", OPT_V_POLICY_CHECK, '-', "perform rfc5280 policy checks"}, \
+        { "explicit_policy", OPT_V_EXPLICIT_POLICY, '-', \
+            "set policy variable require-explicit-policy"}, \
+        { "inhibit_any", OPT_V_INHIBIT_ANY, '-', \
+            "set policy variable inhibit-any-policy"}, \
+        { "inhibit_map", OPT_V_INHIBIT_MAP, '-', \
+            "set policy variable inhibit-policy-mapping"}, \
+        { "x509_strict", OPT_V_X509_STRICT, '-', \
+            "disable certificate compatibility work-arounds"}, \
+        { "extended_crl", OPT_V_EXTENDED_CRL, '-', \
+            "enable extended CRL features"}, \
+        { "use_deltas", OPT_V_USE_DELTAS, '-', \
+            "use delta CRLs"}, \
+        { "policy_print", OPT_V_POLICY_PRINT, '-', \
+            "print policy processing diagnostics"}, \
+        { "check_ss_sig", OPT_V_CHECK_SS_SIG, '-', \
+            "check root CA self-signatures"}, \
+        { "trusted_first", OPT_V_TRUSTED_FIRST, '-', \
+            "search trust store first (default)" }, \
+        { "suiteB_128_only", OPT_V_SUITEB_128_ONLY, '-', "Suite B 128-bit-only mode"}, \
+        { "suiteB_128", OPT_V_SUITEB_128, '-', \
+            "Suite B 128-bit mode allowing 192-bit algorithms"}, \
+        { "suiteB_192", OPT_V_SUITEB_192, '-', "Suite B 192-bit-only mode" }, \
+        { "partial_chain", OPT_V_PARTIAL_CHAIN, '-', \
+            "accept chains anchored by intermediate trust-store CAs"}, \
+        { "no_alt_chains", OPT_V_NO_ALT_CHAINS, '-', "(deprecated)" }, \
+        { "no_check_time", OPT_V_NO_CHECK_TIME, '-', "ignore certificate validity time" }, \
+        { "allow_proxy_certs", OPT_V_ALLOW_PROXY_CERTS, '-', "allow the use of proxy certificates" }
 #endif
-#if OPENSSL_VERSION_NUMBER >= 0x10101000L
+
+typedef enum OPTION_choice {
+    OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
+    OPT_SECTION,
+    OPT_SERVER, OPT_PROXY, OPT_PROXYPORT,
+    OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
+    OPT_TLSTRUSTED, OPT_TLSCRLS, OPT_TLSCDPS, OPT_TLSCRLALL,
+    OPT_USER, OPT_PASS, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
+    OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED, 
+    OPT_CRLS, OPT_CDPS, OPT_V_ENUM/* OPT_CRLALL etc. */,
+    OPT_RECIPIENT, OPT_PATH, OPT_CMD,
+    OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, 
+    OPT_POPO,
+    OPT_REQEXTS,
+    OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
+    OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
+    OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
+    OPT_KEYFMT, OPT_CERTFMT,
+} OPTION_CHOICE;
+
+#if OPENSSL_VERSION_NUMBER >= 0x1010001fL
 const
 #endif
 OPTIONS cmp_options[] = {
@@ -192,7 +261,7 @@ OPTIONS cmp_options[] = {
 
     {"server", OPT_SERVER, 's', "The 'address:port' of the CMP server (domain name or IP address)"},
     {"proxy", OPT_PROXY, 's', "Address of HTTP proxy server, if needed for accessing the CMP server"},
-    {"proxyport", OPT_PROXYPORT, 'l', "Port of the HTTP proxy server"},
+    {"proxyport", OPT_PROXYPORT, 'n', "Port of the HTTP proxy server"},
 
     {"use-tls", OPT_USETLS, '-', "Force using TLS (even when other TLS-related options are not set) when connecting to CMP server"},
     {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. PEM format may also include certificate chain to be provided to server"},
@@ -203,9 +272,9 @@ OPTIONS cmp_options[] = {
                                 "\t\t     This implies host name validation"},
     {"tls-crls", OPT_TLSCRLS, 's', "Use given CRL(s) as primary source when verifying TLS certificates.\n"
                           "\t\t     URL may point to local file if prefixed by 'file:'"},
-    {"tls-cdps", OPT_TLSCDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source\n"
+    {"tls-crl_download", OPT_TLSCDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source\n"
                           "\t\t     while verifying TLS certificates"},
-    {"tls-crl-all", OPT_TLSCRLALL, '-', "Check CRLs not only for TLS server but also for TLS CA certificates"},
+    {"tls-crl_check_all", OPT_TLSCRLALL, '-', "Check CRLs not only for TLS server but also for TLS CA certificates"},
 
     {"user", OPT_USER, 's', "Username for client authentication with a pre-shared key"},
     {"pass", OPT_PASS, 's', "Password for client authentication with a pre-shared key (password-based MAC)"},
@@ -219,9 +288,9 @@ OPTIONS cmp_options[] = {
     {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
     {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying CMP server certificates.\n"
                    "\t\t     URL may point to local file if prefixed by 'file:'"},
-    {"cdps", OPT_CDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source\n"
+    {"crl_download", OPT_CDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source\n"
                    "\t\t     when verifying CMP server certificates"},
-    {"crl-all", OPT_CRLALL, '-', "Check CRLs not only for CMP server but also for the whole certificate chain"},
+    OPT_V_OPTIONS, // subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for CMP server but also for the whole certificate chain"},
 
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given.\n"
                              "\t\t     If both are not set, the recipient defaults to the -issuer argument.\n"
@@ -244,7 +313,7 @@ OPTIONS cmp_options[] = {
 
     {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and Proof-of-Possession signatures. Defaults to 'sha256'"},
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be renewed in KUR or to be revoked in RR"},
-    {"revreason", OPT_REVREASON, 'l', "Set reason code to be included in revocation request (RR).\n"
+    {"revreason", OPT_REVREASON, 'n', "Set reason code to be included in revocation request (RR).\n"
                        "\t\t     Values: 0..10 (see RFC5280, 5.3.1). None set by default"},
 
     {"cacertsout", OPT_CACERTSOUT, 's', "File to save received CA certificates"},
@@ -269,7 +338,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_tls_trusted}, {&opt_tls_crls}, { (char **)&opt_tls_cdps}, { (char **)&opt_tls_crl_all},
     {&opt_user}, {&opt_pass}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
     {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
-    {&opt_crls}, { (char **)&opt_cdps}, { (char **)&opt_crl_all},
+    {&opt_crls}, { (char **)&opt_cdps}, /* virtually at this point: OPT_CRLALL etc. */
     {&opt_recipient}, {&opt_path}, {&opt_cmd_s},
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
     { (char **)&opt_popo},
@@ -306,24 +375,66 @@ static void opt_help(const OPTIONS *unused_arg) {
  */
 static int read_config()
 {
-    unsigned int i = 0;
+    unsigned int i = 0, j;
+    long num = 0;
+    char *txt = NULL;
 
-    // starting with i = 1 because OPT_SECTION has already been handled
-    for (i = 1; i   < sizeof(cmp_vars   )/sizeof(cmp_vars   [0]) &&
-         i+OPT_HELP < sizeof(cmp_options)/sizeof(cmp_options[0]); i++) {
-        const OPTIONS *opt = &cmp_options[i+OPT_HELP];
+    for (j = OPT_HELP; j < sizeof(cmp_options)/sizeof(cmp_options[0]) - 1; j++) {
+        const OPTIONS *opt = &cmp_options[j];
         switch (opt->valtype) {
         case '-':
-        case 'l':
-            NCONF_get_number_e(conf, opt_section, opt->name, cmp_vars[i].num);
+            if (!NCONF_get_number_e(conf, CMP_SECTION, opt->name, &num))
+                num = 0;
             break;
+        case 'n':
+        case 'l':
         case 's':
-            *cmp_vars[i].txt = NCONF_get_string(conf, opt_section, opt->name);
+        case 'M':
+            txt = NCONF_get_string(conf, CMP_SECTION, opt->name);
             break;
         default:
             BIO_printf(bio_err, "internal error: unsupported type '%c' for option '%s'\n", opt->valtype, opt->name);
             return 0;
             break;
+        }
+        if (OPT_CDPS <= j && j < OPT_CDPS + OPT_V__LAST-OPT_V__FIRST-1) { /* OPT_CRLALL etc. */
+            int conf_argc = 1;
+            char *conf_argv[3];
+            char arg1[82];
+            snprintf(arg1, 81, "-%s", (char *)opt->name);
+            conf_argv[0] = ""; // dummy prog name
+            conf_argv[1] = arg1;
+            if (opt->valtype == '-') {
+                if (num != 0)
+                    conf_argc = 2;
+            } else {
+                if (txt) {
+                    conf_argc = 3;
+                    conf_argv[2] = txt;
+                }
+            }
+            if (conf_argc > 1) {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+                (void)opt_init(conf_argc, conf_argv, cmp_options);
+                if (!opt_verify(opt_next(), vpm))
+#else
+                char **conf_argvp = conf_argv+1;
+                int badops = 0;
+                (void)args_verify(&conf_argvp, &conf_argc, &badops, bio_err, &vpm);
+                if (badops)
+#endif
+                {
+                    BIO_printf(bio_err, "error for option '%s' in config file section '%s'\n", opt->name, CMP_SECTION);
+                    return 0;
+                } else
+                    vpmtouched++;
+            }
+        } else {
+            if (opt->valtype == '-')
+                *cmp_vars[i].num = num;
+            else
+                *cmp_vars[i].txt = txt;
+            i++;
         }
     }
 
@@ -355,10 +466,10 @@ static int check_options(void)
         strncpy(server_address, opt_server, addrlen);
         server_address[addrlen] = 0;
         server_port = atoi(++p);
-	if (server_port <= 0) {
+        if (server_port <= 0) {
             BIO_printf(bio_err, "error: invalid server port number: %s\n", p);
             goto err;
-	}
+        }
     } else {
         BIO_puts(bio_err, "error: missing server address:port\n");
         goto err;
@@ -1243,11 +1354,11 @@ static int setup_ctx(CMP_CTX * ctx)
     if (opt_trusted) {
         X509_STORE *ts = create_cert_store(opt_trusted, "trusted certificates");
 
-        X509_STORE_set_flags(ts,
-                             opt_crls || opt_cdps || opt_crl_all ?
-                               X509_V_FLAG_CRL_CHECK |
-                                 (opt_crl_all ? X509_V_FLAG_CRL_CHECK_ALL : 0)
-                               : 0);
+        if (vpmtouched)
+            X509_STORE_set1_param(ts, vpm);
+        ERR_clear_error();
+        if (opt_crls || opt_cdps)
+            X509_STORE_set_flags(ts, X509_V_FLAG_CRL_CHECK);
 
         if (opt_cdps) {
             X509_STORE_set_lookup_crls(ts, crls_local_then_http_cb);
@@ -1458,6 +1569,12 @@ int cmp_main(int argc, char **argv)
             break;
          }
 
+    vpm = X509_VERIFY_PARAM_new();
+    if (vpm == NULL) {
+        BIO_printf(bio_err, "%s: out of memory\n", prog);
+        goto err;
+    }
+
     if (configfile == NULL)
         configfile = getenv("OPENSSL_CONF");
     if (configfile == NULL)
@@ -1590,8 +1707,10 @@ opt_err:
         case OPT_CDPS:
             opt_cdps = 1;
             break;
-        case OPT_CRLALL:
-            opt_crl_all = 1;
+        case OPT_V_CASES/* OPT_CRLALL etc. */:
+            if (!opt_verify(o, vpm))
+                goto bad_ops;
+            vpmtouched++;
             break;
         case OPT_KEYFMT:
             opt_keyfmt_s = opt_arg();
@@ -1658,8 +1777,13 @@ opt_err:
 #else /* OPENSSL_VERSION_NUMBER */
     /* parse commandline options */
     while (--argc > 0 && ++argv) {
+        if (args_verify(&argv, &argc, &badops, bio_err, &vpm)) { /* OPT_CRLALL etc. */
+            if (badops)
+                goto bad_ops;
+            vpmtouched++;
+            continue;
+        }
         char *arg=*argv;
-        int found,i;
 
         if (*arg++ != '-' || *arg == 0)
             {
@@ -1667,11 +1791,12 @@ opt_err:
             break;
             }
 
-        found=0;
+        int found = 0, i = 0, j = OPT_HELP;
         // starting with i = 1 because OPT_SECTION has already been handled
-        for (i = 1; i   < sizeof(cmp_vars   )/sizeof(cmp_vars   [0]) &&
-             i+OPT_HELP < sizeof(cmp_options)/sizeof(cmp_options[0]); i++) {
-            const OPTIONS *opt = &cmp_options[i+OPT_HELP];
+        for (i = 0; i < sizeof(cmp_vars)/sizeof(cmp_vars[0]); i++, j++) {
+            if (j == OPT_CDPS)
+                j += OPT_V__LAST-OPT_V__FIRST - 1;
+            const OPTIONS *opt = &cmp_options[j];
             if (opt->name && !strcmp(arg, opt->name)) {
                 if (argc <= 1 && opt->valtype != '-') {
                     BIO_printf(bio_err, "missing argument for '-%s'\n", opt->name);
@@ -1682,6 +1807,7 @@ opt_err:
                 case '-':
                     *cmp_vars[i].num = 1;
                     break;
+                case 'n':
                 case 'l':
                     *cmp_vars[i].num = atoi(*++argv);
                     argc--;
@@ -1776,6 +1902,8 @@ opt_err:
         ERR_print_errors_fp(stderr);
     if (cmp_ctx)
         CMP_CTX_delete(cmp_ctx);
+    if (vpm)
+        X509_VERIFY_PARAM_free(vpm);
 
     return ret;
 }

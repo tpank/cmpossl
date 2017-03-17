@@ -21,8 +21,8 @@ B<openssl> B<cmp>
 [B<-tls-keypass password>]
 [B<-tls-trusted filename>]
 [B<-tls-crls url>]
-[B<-tls-cdps>]
-[B<-tls-crl-all>]
+[B<-tls-crl_download>]
+[B<-tls-crl_check_all>]
 
 [B<-user username>]
 [B<-pass password>]
@@ -35,8 +35,36 @@ B<openssl> B<cmp>
 [B<-trusted filename>]
 [B<-untrusted filename>]
 [B<-crls url>]
-[B<-cdps>]
-[B<-crl-all>]
+[B<-crl_download>]
+[B<-policy arg>]
+[B<-purpose purpose>]
+[B<-verify_name name>]
+[B<-verify_depth num>]
+[B<-auth_level level>]
+[B<-attime timestamp>]
+[B<-verify_hostname hostname>]
+[B<-verify_email email>]
+[B<-verify_ip ip>]
+[B<-ignore_critical>]
+[B<-crl_check>]
+[B<-crl_check_all>]
+[B<-policy_check>]
+[B<-explicit_policy>]
+[B<-inhibit_any>]
+[B<-inhibit_map>]
+[B<-x509_strict>]
+[B<-extended_crl>]
+[B<-use_deltas>]
+[B<-policy_print>]
+[B<-check_ss_sig>]
+[B<-trusted_first>]
+[B<-suiteB_128_only>]
+[B<-suiteB_128>]
+[B<-suiteB_192>]
+[B<-partial_chain>]
+[B<-no_alt_chains>]
+[B<-no_check_time>]
+[B<-allow_proxy_certs>]
 
 [B<-recipient name>]
 [B<-path remote_path>]
@@ -121,11 +149,11 @@ contain multiple certificates.  This implies host name validation.
 
 Use given CRL(s) as primary source when verifying TLS certificates. URL may point to local file if prefixed by 'file:'.
 
-=item B<-tls-cdps>
+=item B<-tls-crl_download>
 
 Retrieve CRLs from distribution points given in certificates as secondary source while verifying TLS certificates.
 
-=item B<-tls-crl-all>
+=item B<-tls-crl_check_all>
 
 Check CRLs not only for TLS server but also for TLS CA certificates.
 
@@ -183,19 +211,22 @@ Use given CRL(s) as primary source of revocation information. URL may point to l
 This option enables CRL checking for the CMP server certificate used for CMP message protection as it is the
 leaf certificate of the certificate chain.  Compare B<X509_V_FLAG_CRL_CHECK>.
 
-=item B<-cdps>
+=item B<-crl_download>
 
 Retrieve CRLs from distribution points given in certificates, as secondary source.
 
 This option enables CRL checking for the CMP server certificate used for CMP message protection as it is the
 leaf certificate of the certificate chain.  Compare B<X509_V_FLAG_CRL_CHECK>.
 
-=item B<-crl-all>
+=item B<-policy>, B<-purpose>, B<-verify_name>, B<-verify_depth>, B<-auth_level>,
+B<-attime>, B<-verify_hostname>, B<-verify_email>, B<-verify_ip>, B<-ignore_critical>,
+B<-crl_check>, B<-crl_check_all>, B<-policy_check>,  B<-explicit_policy>, B<-inhibit_any>, 
+B<-inhibit_map>, B<-x509_strict>, B<-extended_crl>, B<-use_deltas>, B<-policy_print>,
+B<-check_ss_sig>, B<-trusted_first>, B<-suiteB_128_only>, B<-suiteB_128>, B<-suiteB_192>,
+B<-partial_chain>, B<-no_alt_chains>, B<-no_check_time>, B<-allow_proxy_certs>
 
-Enables CRL checking for the entire certificate chain when verifying certificates used for CMP message protection.
-Compare B<X509_V_FLAG_CRL_CHECK_ALL>.
-
-This option implies the B<-crls> option.
+Set various certificate chain validation options. 
+See the L<verify(1)> manual page for details.
 
 =item B<-recipient name>
 
