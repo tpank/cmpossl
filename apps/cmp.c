@@ -476,6 +476,11 @@ static int check_options(void)
     return 0;
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+#define X509_STORE_set_lookup_crls X509_STORE_set_lookup_crls_cb
+#define ASN1_STRING_get0_data ASN1_STRING_data
+#endif
+
 /*
  * ########################################################################## 
  * * code for loading certs, keys, and CRLs
@@ -953,11 +958,7 @@ static const char *LOCAL_get_dp_url(DIST_POINT *dp)
         gen = sk_GENERAL_NAME_value(gens, i);
         uri = GENERAL_NAME_get0_value(gen, &gtype);
         if (gtype == GEN_URI && ASN1_STRING_length(uri) > 6) {
-#if OPENSSL_VERSION_NUMBER >= 0x1010001fL
             char *uptr = (char *)ASN1_STRING_get0_data(uri);
-#else
-            char *uptr = (char *)ASN1_STRING_data(uri);
-#endif
             if (strncmp(uptr, "http://", 7) == 0  || strncmp(uptr, "file:", 5) == 0)
                 return uptr;
         }
