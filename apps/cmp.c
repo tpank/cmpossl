@@ -1022,34 +1022,12 @@ STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, const char
  */
 static X509_STORE *create_cert_store(const char *infile, const char *desc)
 {
-    X509_STORE *cert_ctx = NULL;
-    X509_LOOKUP *lookup = NULL;
-
-    if (opt_certfmt != FORMAT_PEM && opt_certfmt != FORMAT_ASN1)
-        BIO_printf(bio_c_out, "warning: unsupported type '%s' for reading certificates, trying PEM, then DER\n", opt_certfmt_s);
     // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
-    cert_ctx = X509_STORE_new();
-    if (cert_ctx == NULL)
-        goto err;
+    if (opt_certfmt != FORMAT_PEM)
+        BIO_printf(bio_c_out, "warning: unsupported type '%s' for reading %s, trying PEM\n", opt_certfmt_s, desc);
 
-    lookup = X509_STORE_add_lookup(cert_ctx, X509_LOOKUP_file());
-    if (lookup == NULL)
-        goto err;
-
-    if (!X509_LOOKUP_load_file(lookup, infile,
-                          opt_certfmt == FORMAT_ASN1 ? X509_FILETYPE_ASN1 : X509_FILETYPE_PEM)) {
-        if (!X509_LOOKUP_load_file(lookup, infile,
-                          opt_certfmt == FORMAT_ASN1 ? X509_FILETYPE_PEM : X509_FILETYPE_ASN1)) {
-            goto err;
-        }
-    }
-
-    return cert_ctx;
-
- err:
-    ERR_print_errors(bio_err);
-    BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc, infile);
-    return NULL;
+    // TODO: extend upstream setup_verify() to allow for further file formats, in particular PKCS12
+    return setup_verify(infile, NULL/* CApath */, 0/* noCAfile */, 0/* noCApath */);
 }
 
 /* TODO dvo: push that separately upstream
