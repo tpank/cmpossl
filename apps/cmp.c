@@ -407,7 +407,7 @@ static int check_options(void)
         BIO_puts(bio_err, "error: must give both -cert and -key options or neither of them\n");
         goto err;
     }
-    if (!(opt_user && opt_pass) && !(opt_cert && opt_key)) {
+    if (opt_cmd != CMP_IR && !(opt_user && opt_pass) && !(opt_cert && opt_key)) {
         BIO_puts(bio_err,
                  "error: missing user/pass or certificate/key for client authentication\n");
         goto err;

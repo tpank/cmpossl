@@ -789,7 +789,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
             if (!(msg->protection = CMP_calc_protection_sig(msg, ctx->pkey)))
                 goto err;
-        } else {
+        } else if (msg->body->type != V_CMP_PKIBODY_IR) {
             CMPerr(CMP_F_CMP_PKIMESSAGE_PROTECT,
                    CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION);
             goto err;
