@@ -240,7 +240,7 @@ Accept unprotected error responses
 Specifies name of supported digest to be used in RFC 4210's MSG_SIG_ALG. 
 If applicable, this is used for message protection and Proof-of-Possession 
 signatures.  To see the list of supported digests, use the command 
-I<list --digest-commands>.  Defaults to 'sha1'.  
+I<list --digest-commands>.  Defaults to 'sha256'.
 
 =item B<-oldcert filename>
 
