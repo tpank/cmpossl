@@ -423,8 +423,8 @@ static int check_options(void)
         }
     }
 
-    if (opt_popo < 0 || opt_popo > 3) {
-        BIO_printf(bio_err, "error: invalid value for popo method (must be between 0 and 3): %d\n", opt_popo);
+    if (opt_popo < -1 || opt_popo > 3) {
+        BIO_printf(bio_err, "error: invalid value for popo method (must be between 0 and 3): %ld\n", opt_popo);
         goto err;
     }
 
@@ -1587,8 +1587,8 @@ opt_err:
     }
 #endif /* OPENSSL_VERSION_NUMBER */
 
-    if (!badops)
-        badops = check_options() == 0;
+    if (!badops && !check_options())
+        goto err;
 
  bad_ops:
     if (badops) {
