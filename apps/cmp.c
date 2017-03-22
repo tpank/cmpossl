@@ -224,7 +224,7 @@ OPTIONS cmp_options[] = {
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-', "Accept unprotected error responses: regular error messages as well as\n"
                        "\t\t     certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection"},
 
-    {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and Proof-of-Possession signatures. Defaults to 'sha1'"},
+    {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and Proof-of-Possession signatures. Defaults to 'sha256'"},
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be renewed in KUR or to be revoked in RR"},
     {"revreason", OPT_REVREASON, 'l', "Set reason code to be included in revocation request (RR).\n"
                        "\t\t     Values: 0..10 (see RFC5280, 5.3.1). None set by default"},
