@@ -47,7 +47,7 @@ typedef struct cmp_ctx_st {
     X509_NAME *recipient;
     /* to set in issuer in pkiheader */
     X509_NAME *issuer;
-    /* NID of digest algorithm used in MSG_SIG_ALG, defaults to SHA-1 */
+    /* NID of digest algorithm used in MSG_SIG_ALG, defaults to SHA256 */
     int digest;
     /* names to be added to the cert template as the subjectAltName extension */
     STACK_OF (GENERAL_NAME) * subjectAltNames;
