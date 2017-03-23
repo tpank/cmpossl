@@ -1014,16 +1014,15 @@ int CMP_CTX_set1_transactionID(CMP_CTX *ctx, const ASN1_OCTET_STRING *id)
 {
     if (!ctx)
         goto err;
-    if (!id)
-        goto err;
 
     if (ctx->transactionID) {
         ASN1_OCTET_STRING_free(ctx->transactionID);
         ctx->transactionID = NULL;
     }
+    if (!id)
+        return 1;
 
-    if (!
-        (ctx->transactionID = ASN1_OCTET_STRING_dup((ASN1_OCTET_STRING *)id)))
+    if (!(ctx->transactionID = ASN1_OCTET_STRING_dup((ASN1_OCTET_STRING *)id)))
         return 0;
     return 1;
  err:

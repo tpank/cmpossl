@@ -222,6 +222,7 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
         return NULL;
     }
 
+    (void)CMP_CTX_set1_transactionID(ctx, NULL); // start new transaction
     if (!(msg = CMP_PKIMESSAGE_new()))
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))
@@ -340,6 +341,7 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
         return NULL;
     }
 
+    (void)CMP_CTX_set1_transactionID(ctx, NULL); // start new transaction
     if (!(msg = CMP_PKIMESSAGE_new()))
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))
@@ -465,6 +467,7 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
         return NULL;
     }
 
+    (void)CMP_CTX_set1_transactionID(ctx, NULL); // start new transaction
     if (!(msg = CMP_PKIMESSAGE_new()))
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))

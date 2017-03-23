@@ -595,6 +595,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_WRONG_ALGORITHM_OID                        156
 # define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               157
 # define CMP_R_FAILED_TO_SEND_REQUEST                     158
+# define CMP_R_ERROR_TRANSACTIONID_UNMATCHED              159
 
 # ifdef  __cplusplus
 }

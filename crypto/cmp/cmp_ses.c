@@ -252,6 +252,14 @@ static int send_receive_check(CMP_CTX *ctx,
     /* it's not clear from the RFC whether recipNonce MUST be set or not */
     CMP_CTX_set1_recipNonce(ctx, (*rep)->header->senderNonce); /* store for setting in the next msg */
 
+    /* compare received transactionID with our current one */
+    if (ctx->transactionID && (*rep)->header->transactionID) {
+        if (ASN1_OCTET_STRING_cmp(ctx->transactionID, (*rep)->header->transactionID)) {
+            CMPerr(type_function, CMP_R_ERROR_TRANSACTIONID_UNMATCHED);
+            return 0;
+        }
+    }
+
     return 1;
 }
 
