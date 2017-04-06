@@ -212,9 +212,14 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
      * [HMAC].      All implementations SHOULD support DES-MAC and Triple-
      * DES-MAC [PKCS11].
      */
-    if ((m = EVP_get_digestbyobj(pbm->owf->algorithm)))
-        HMAC(m, basekey, basekeyLen, msg, msgLen, *mac, macLen);
-    else {
+    /* TODO right now only HMAC-SHA1 is supported */
+    switch (OBJ_obj2nid(pbm->mac->algorithm)) {
+    case NID_hmac_sha1:
+        HMAC(EVP_sha1(), basekey, basekeyLen, msg, msgLen, *mac, macLen);
+        break;
+        /* optional TODO: DES-MAC, Triple DES-MAC */
+        /* which NIDs to use for these algorithms??? */
+    default:
         CRMFerr(CRMF_F_CRMF_PASSWORDBASEDMAC_NEW,
                 CRMF_R_UNSUPPORTED_ALGORITHM);
         goto err;
