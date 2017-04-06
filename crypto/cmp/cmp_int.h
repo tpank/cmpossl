@@ -32,6 +32,12 @@ typedef struct cmp_ctx_st {
     /* "reference and secret" for MSG_MAC_ALG */
     ASN1_OCTET_STRING *referenceValue;
     ASN1_OCTET_STRING *secretValue;
+    /* PBMParameters */
+    size_t pbm_slen;
+    int pbm_owf;
+    long pbm_itercnt;
+    int pbm_mac;
+
     /* for setting itav for EJBCA in CA mode */
     ASN1_UTF8STRING *regToken;
     /* certificate used to identify the server */

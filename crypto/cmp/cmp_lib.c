@@ -680,11 +680,11 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
 
 /* ############################################################################ *
  * internal function
- * Create an X509_ALGOR structure for PasswordBasedMAC protection
+ * Create an X509_ALGOR structure for PasswordBasedMAC protection based on
+ * the pbm settings in the context
  * returns pointer to X509_ALGOR on success, NULL on error
- * TODO: this could take options to configure the pbmac
  * ############################################################################ */
-X509_ALGOR *CMP_create_pbmac_algor(void)
+X509_ALGOR *CMP_create_pbmac_algor(CMP_CTX *ctx)
 {
     X509_ALGOR *alg = NULL;
     CRMF_PBMPARAMETER *pbm = NULL;
@@ -694,7 +694,8 @@ X509_ALGOR *CMP_create_pbmac_algor(void)
 
     if (!(alg = X509_ALGOR_new()))
         goto err;
-    if (!(pbm = CRMF_pbm_new()))
+    if (!(pbm = CRMF_pbmp_new(ctx->pbm_slen, ctx->pbm_owf,
+		                      ctx->pbm_itercnt, ctx->pbm_mac)))
         goto err;
     if (!(pbmStr = ASN1_STRING_new()))
         goto err;
@@ -737,7 +738,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
     /* use PasswordBasedMac according to 5.1.3.1 if secretValue is given */
     if (ctx->secretValue) {
-        if (!(msg->header->protectionAlg = CMP_create_pbmac_algor()))
+        if (!(msg->header->protectionAlg = CMP_create_pbmac_algor(ctx)))
             goto err;
         CMP_PKIHEADER_set1_senderKID(msg->header, ctx->referenceValue);
 
