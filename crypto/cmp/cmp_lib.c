@@ -530,7 +530,7 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage,
                     pkimessage->header->protectionAlg);
 
     if (NID_id_PasswordBasedMAC == OBJ_obj2nid(algorOID)) {
-        /* there is no pmb set in this message */
+        /* there is no pbm set in this message */
         if (!ppval)
             goto err;
 

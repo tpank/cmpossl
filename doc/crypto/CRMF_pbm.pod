@@ -22,19 +22,11 @@
 CRMF_passwordBasedMac_new() generates a PBM based on the given CRMF_PBMPARAMETER.
 Expects pointers to the message and the secret to use, and their respective
 lenghts.  Writes the pointers to the newly allocated MAC and its lenght into the
-respective given parameters.  In the CRMF_PBMPARAMETER structure, the NID for the
-owf may be any known to OpenSSL.  The NID for the mac may be one of the following
-while RFC 4210 mandates only that NID_hmac_sha1 is available.
-   NID_hmac_sha1      /* explicitly mentioned in RFC 4210, D2 - and RFC 3370 */
-   NID_hmacWithSHA1   /* shouldn't be actively used; above OID is in RFC 4210*/
-   NID_hmacWithSHA224 /* RFC 4231 */
-   NID_hmacWithSHA256 /* RFC 4231 */
-   NID_hmacWithSHA384 /* RFC 4231 */
-   NID_hmacWithSHA512 /* RFC 4231 */
-   NID_hmac_md5       /* if MD5 is supported by OpenSSL */
-   NID_hmacWithMD5    /* if Md5 is supported by OpenSSL */
+respective given parameters.  In the CRMF_PBMPARAMETER structure, the NIDs for
+the OWF (one-way function) and for the MAC (message authentication code) may be
+any ones known to OpenSSL, including NID_hmac_sha1 as mandated by RFC 4210.
 
-CRMF_pbmp_new() inializes and returns a new CRMF_PBMPARAMETER structure. Returns 
+CRMF_pbmp_new() inializes and returns a new CRMF_PBMPARAMETER structure. Returns
 NULL on error.  It generates a random salt with length as given in the slen
 parameter.  It copies the algorithms for OWF and MAC as given by their NIDs.
 It copies the iterationCount as given, and enforces it to be at least 100.
@@ -56,7 +48,7 @@ CRMF_PBMPARAMETER *pbm = NULL;
 unsiged char *msg = "Hello";
 unsiged char *sec = "SeCrEt";
 unsiged char *mac = NULL;
-unsiged int *macLen;
+unsiged int macLen;
 
 if ((pbm = CRMF_pbmp_new(16, NID_sha256, 500, NID_hmac_sha1) == NULL))
     goto err;

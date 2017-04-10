@@ -247,7 +247,7 @@ int CRMF_CERTREQMSG_set1_control_oldCertId(CRMF_CERTREQMSG *certReqMsg,
  * made after this point may be overwritten when the script is next run.
  */
 
-int ERR_load_CRMF_strings(void);
+void ERR_load_CRMF_strings(void);
 
 /* Error codes for the CRMF functions. */
 
@@ -304,11 +304,12 @@ int ERR_load_CRMF_strings(void);
 # define CRMF_R_ERROR_SETTING_VERSION_2                   114
 # define CRMF_R_ITERATIONCOUNT_BELOW_100                  117
 # define CRMF_R_MALLOC_FAILURE                            118
-# define CRMF_R_SETTING_MAC_ALRGOR_FAILUR                 119
-# define CRMF_R_SETTING_OWF_ALRGOR_FAILUR                 120
+# define CRMF_R_SETTING_MAC_ALRGOR_FAILURE                119
+# define CRMF_R_SETTING_OWF_ALRGOR_FAILURE                120
 # define CRMF_R_UNSUPPORTED_ALGORITHM                     102
 # define CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY         115
 # define CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO      116
+# define CRMF_R_NULL_ARGUMENT                             134
 
 # ifdef  __cplusplus
 }
