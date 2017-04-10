@@ -121,9 +121,14 @@ static ERR_STRING_DATA CRMF_str_reasons[]=
 {ERR_REASON(CRMF_R_ERROR_SETTING_REGTOKEN_ATAV),"error setting regtoken atav"},
 {ERR_REASON(CRMF_R_ERROR_SETTING_REGTOKEN_CERTREQ_ATAV),"error setting regtoken certreq atav"},
 {ERR_REASON(CRMF_R_ERROR_SETTING_VERSION_2),"error setting version 2"},
+{ERR_REASON(CRMF_R_ITERATIONCOUNT_BELOW_100),"PBM OWF iteration count is less than 100"},
+{ERR_REASON(CRMF_R_MALLOC_FAILURE),"out of memory"},
+{ERR_REASON(CRMF_R_SETTING_MAC_ALRGOR_FAILURE),"error setting PBM MAC"},
+{ERR_REASON(CRMF_R_SETTING_OWF_ALRGOR_FAILURE),"error setting PBM OWF"},
 {ERR_REASON(CRMF_R_UNSUPPORTED_ALGORITHM),"unsupported algorithm"},
 {ERR_REASON(CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY),"unsupported alg for popsigningkey"},
 {ERR_REASON(CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO),"unsupported method for creating popo"},
+{ERR_REASON(CRMF_R_NULL_ARGUMENT), "null argument"},
 {0,NULL}
 	};
 
