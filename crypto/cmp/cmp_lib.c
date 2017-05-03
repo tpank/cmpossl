@@ -95,6 +95,9 @@
 #include <openssl/rand.h>
 /* for bio_err */
 #include <openssl/err.h>
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define X509_STORE_CTX_get0_chain X509_STORE_CTX_get_chain
+#endif
 
 #include <time.h>
 #include <string.h>
@@ -1715,7 +1718,7 @@ STACK_OF (X509) * CMP_build_cert_chain(X509_STORE *store, X509 *cert)
 
     X509_verify_cert(csc);      /* ignore return value as it would fail without trust anchor given in store */
 
-    chain = X509_STORE_CTX_get_chain(csc);
+    chain = X509_STORE_CTX_get0_chain(csc);
     for (i = 0; i < sk_X509_num(chain); i++) {
         X509 *certDup = X509_dup(sk_X509_value(chain, i));
         sk_X509_push(chainDup, certDup);
