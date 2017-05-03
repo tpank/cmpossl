@@ -1,4 +1,3 @@
-/* VIM: set noet ts=4 sts=4 sw=4: */
 /* crypto/cmp/cmp_http.c
  * HTTP functions for CMP (RFC 4210) for OpenSSL
  */
@@ -290,6 +289,8 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
         return 0;
     }
+
+    *out = NULL;
 
     if (!ctx->serverName || !ctx->serverPath || !ctx->serverPort) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
