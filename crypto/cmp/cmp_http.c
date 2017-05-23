@@ -151,7 +151,6 @@ struct ocsp_req_ctx_st { // dummy declaration to get access to internal state va
     BIO *mem;                   /* Memory BIO response is built into */
 };
 #define OHS_NOREAD              0x1000
-#define OHS_ERROR               (0 | OHS_NOREAD)
 #define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
 
 // adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c - TODO: generalize the function there
@@ -258,7 +257,7 @@ int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, CMP_PKI
         rv = CMP_sendreq_nbio(out, ctx);
     } while ((rv == -1) && BIO_should_retry(b));
 
-    if (ctx->state == OHS_ERROR) 
+    if (rv == 0)
         rv = 1;
 
     OCSP_REQ_CTX_free(ctx);
