@@ -249,7 +249,6 @@ int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, CMP_PKI
     OCSP_REQ_CTX *ctx;
     int rv;
 
-    *out = NULL;
     ctx = CMP_sendreq_new(b, path, req, -1);
 
     if (!ctx)
@@ -289,8 +288,6 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-
-    *out = NULL;
 
     if (!ctx->serverName || !ctx->serverPath || !ctx->serverPort) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);

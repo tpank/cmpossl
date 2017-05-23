@@ -16,7 +16,7 @@ This is the API for creating a BIO for CMP (Certificate Management
 Protocol) over HTTP(S) with OpenSSL.
 
 CMP_PKIMESSAGE_http_perform() sends the given pkimessage msg to the CMP server
-specified in ctx, and returns the servers response in out.
+specified in ctx, and assigns the server's response to *out on success (return 1).
 
 =head1 NOTES
 
