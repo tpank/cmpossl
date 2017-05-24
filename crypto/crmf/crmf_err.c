@@ -134,8 +134,8 @@ static ERR_STRING_DATA CRMF_str_reasons[]=
 
 #endif
 
-void ERR_load_CRMF_strings(void)
-	{
+int ERR_load_CRMF_strings(void)
+{
 #ifndef OPENSSL_NO_ERR
 
 	if (ERR_func_error_string(CRMF_str_functs[0].error) == NULL)
@@ -144,4 +144,5 @@ void ERR_load_CRMF_strings(void)
 		ERR_load_strings(0,CRMF_str_reasons);
 		}
 #endif
-	}
+    return 1;
+}

@@ -34,6 +34,8 @@
 #include <openssl/ts.h>
 #include <openssl/cms.h>
 #include <openssl/ct.h>
+#include <openssl/cmp.h>
+#include <openssl/crmf.h>
 #include <openssl/async.h>
 #include <openssl/kdf.h>
 
