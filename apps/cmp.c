@@ -170,7 +170,7 @@ typedef struct options_st {
     const char *helpstr;
 } OPTIONS;
 #endif
-#if OPENSSL_VERSION_NUMBER >= 0x1010001fL
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
 const
 #endif
 OPTIONS cmp_options[] = {
