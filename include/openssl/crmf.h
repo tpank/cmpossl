@@ -92,6 +92,7 @@ extern "C" {
 
 
 typedef struct crmf_certreqmsg_st CRMF_CERTREQMSG;
+DEFINE_STACK_OF(CRMF_CERTREQMSG)
 typedef struct crmf_attributetypeandvalue_st CRMF_ATTRIBUTETYPEANDVALUE;
 typedef struct crmf_pbmparameter_st CRMF_PBMPARAMETER;
 DECLARE_ASN1_FUNCTIONS(CRMF_PBMPARAMETER);
@@ -105,7 +106,6 @@ typedef struct crmf_certtemplate_st CRMF_CERTTEMPLATE;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTTEMPLATE);
 typedef STACK_OF(CRMF_CERTREQMSG) CRMF_CERTREQMESSAGES;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTREQMESSAGES)
-DEFINE_STACK_OF(CRMF_CERTREQMSG)
     
 typedef struct crmf_optionalvalidity_st CRMF_OPTIONALVALIDITY;
 
@@ -187,7 +187,7 @@ CRMF_CERTREQMSG *CRMF_certreq_new(const long certReqId,
                                   const EVP_PKEY *pkey,
                                   const X509_NAME *subject,
                                   const X509_NAME *issuer,
-			          time_t notBefore, time_t notAfter,
+                                  time_t notBefore, time_t notAfter,
                                   const X509_EXTENSIONS * extensions);
 
 /* crmf_pbm.c */
