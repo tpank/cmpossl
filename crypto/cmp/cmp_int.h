@@ -240,7 +240,6 @@ typedef struct cmp_infotypeandvalue_st {
     } infoValue;
 } CMP_INFOTYPEANDVALUE;
 DECLARE_ASN1_FUNCTIONS(CMP_INFOTYPEANDVALUE)
-// DEFINE_STACK_OF(CMP_INFOTYPEANDVALUE)
 
 typedef STACK_OF(ASN1_UTF8STRING) CMP_PKIFREETEXT;
 
@@ -280,7 +279,6 @@ typedef struct cmp_pkistatusinfo_st {
     CMP_PKIFAILUREINFO *failInfo;
 } CMP_PKISTATUSINFO;
 DECLARE_ASN1_FUNCTIONS(CMP_PKISTATUSINFO)
-DEFINE_STACK_OF(CMP_PKISTATUSINFO)
 
 /*
      RevReqContent ::= SEQUENCE OF RevDetails
@@ -367,7 +365,6 @@ typedef struct cmp_certstatus_st {
     ASN1_INTEGER *certReqId;
     CMP_PKISTATUSINFO *statusInfo;
 } CMP_CERTSTATUS;
-DEFINE_STACK_OF(CMP_CERTSTATUS)
 DECLARE_ASN1_FUNCTIONS(CMP_CERTSTATUS)
 
 typedef STACK_OF(CMP_CERTSTATUS) CMP_CERTCONFIRMCONTENT;
@@ -391,7 +388,6 @@ typedef struct cmp_certresponse_st {
     CMP_CERTIFIEDKEYPAIR *certifiedKeyPair;
     ASN1_OCTET_STRING *rspInfo;
 } CMP_CERTRESPONSE;
-DEFINE_STACK_OF(CMP_CERTRESPONSE);
 
 /*
      CertRepMessage ::= SEQUENCE {
@@ -404,7 +400,6 @@ typedef struct cmp_certrepmessage_st {
     STACK_OF (X509) * caPubs;
     STACK_OF (CMP_CERTRESPONSE) * response;
 } CMP_CERTREPMESSAGE;
-DEFINE_STACK_OF(CMP_CERTREPMESSAGE);
 
 /* the following is from RFC 2986 - PKCS #10
 
@@ -675,7 +670,6 @@ typedef struct cmp_pkimessage_st {
     STACK_OF (X509) * extraCerts; /* 1 */
 } CMP_PKIMESSAGE;
 DECLARE_ASN1_FUNCTIONS(CMP_PKIMESSAGE)
-DEFINE_STACK_OF(CMP_PKIMESSAGE)
 
     /*
        ProtectedPart ::= SEQUENCE {
