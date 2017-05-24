@@ -191,9 +191,6 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
         goto err;
     }
 
-    // Not anymore in OpenSSL 1.1: OpenSSL_add_all_digests(); should not be needed anyway
-    // TODO else use OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_DIGESTS, NULL)
-
     /*
      * owf identifies the hash algorithm and associated parameters used to
      * compute the key used in the MAC process.  All implementations MUST
