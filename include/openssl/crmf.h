@@ -122,7 +122,7 @@ CertTemplate ::= SEQUENCE {
  subjectUID   [8] UniqueIdentifier              OPTIONAL,
  extensions   [9] Extensions                    OPTIONAL }
  */
-typedef struct crmf_certtemplate_st {
+struct crmf_certtemplate_st {
     ASN1_INTEGER *version;  /* 0 */
     /* serialNumber MUST be omitted.  This field is assigned by the CA
      * during certificate creation. */
@@ -146,7 +146,7 @@ typedef struct crmf_certtemplate_st {
     X509_EXTENSIONS *extensions; /* 9 */
 # endif
     STACK_OF (X509_EXTENSION) * extensions; /* 9 */
-} CRMF_CERTTEMPLATE;
+} /* CRMF_CERTTEMPLATE */;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTTEMPLATE)
 
 /*
