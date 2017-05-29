@@ -1065,7 +1065,7 @@ static X509_CRL *LOCAL_load_crl_crldp(STACK_OF(DIST_POINT) *crldp)
         DIST_POINT *dp = sk_DIST_POINT_value(crldp, i);
         urlptr = LOCAL_get_dp_url(dp);
         if (urlptr) {
-            BIO_printf(bio_c_out, "Loading CRL via CDP entry in cert from URL '%s'\n", urlptr);
+            // BIO_printf(bio_c_out, "Loading CRL via CDP entry in cert from URL '%s'\n", urlptr);
             return load_crl_autofmt(urlptr, FORMAT_HTTP, "CRL via CDP entry in certificate");
         }
     }
