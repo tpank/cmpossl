@@ -185,6 +185,7 @@ int CMP_CTX_set0_untrustedStore(CMP_CTX *ctx, X509_STORE *store)
 
 /* ############################################################################ *
  * Set CRLs to be used as primary source during CMP certificate verification.
+ * CRL stack will be freed by CMP_CTX_delete().
  * returns 1 on success, 0 on error
  * ############################################################################ */
 int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls)

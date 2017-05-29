@@ -99,9 +99,6 @@ static char *opt_tls_cert = NULL;
 static char *opt_tls_key = NULL;
 static char *opt_tls_keypass = NULL;
 static char *opt_tls_trusted = NULL;
-static char *opt_tls_crls = NULL;
-static long  opt_tls_cdps = 0;
-static long  opt_tls_crl_all = 0;
 
 static char *opt_path = "/";
 static char *opt_cmd_s = NULL;
@@ -237,7 +234,7 @@ typedef enum OPTION_choice {
     OPT_SECTION,
     OPT_SERVER, OPT_PROXY, OPT_PROXYPORT,
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
-    OPT_TLSTRUSTED, OPT_TLSCRLS, OPT_TLSCDPS, OPT_TLSCRLALL,
+    OPT_TLSTRUSTED,
     OPT_USER, OPT_PASS, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
     OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED, 
     OPT_CRLS, OPT_CDPS, OPT_V_ENUM/* OPT_CRLALL etc. */,
@@ -270,11 +267,6 @@ OPTIONS cmp_options[] = {
 
     {"tls-trusted", OPT_TLSTRUSTED, 's', "Client's trusted certificates for verifying TLS certificates.\n"
                                 "\t\t     This implies host name validation"},
-    {"tls-crls", OPT_TLSCRLS, 's', "Use given CRL(s) as primary source when verifying TLS certificates.\n"
-                          "\t\t     URL may point to local file if prefixed by 'file:'"},
-    {"tls-crl_download", OPT_TLSCDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source\n"
-                          "\t\t     while verifying TLS certificates"},
-    {"tls-crl_check_all", OPT_TLSCRLALL, '-', "Check CRLs not only for TLS server but also for TLS CA certificates"},
 
     {"user", OPT_USER, 's', "Username for client authentication with a pre-shared key"},
     {"pass", OPT_PASS, 's', "Password for client authentication with a pre-shared key (password-based MAC)"},
@@ -286,11 +278,10 @@ OPTIONS cmp_options[] = {
     {"srvcert", OPT_SRVCERT, 's', "certificate of CMP server to be used as recipient and for verifying the protection of replies"},
     {"trusted", OPT_TRUSTED, 's', "Trusted certificates for CMP server authentication"},
     {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
-    {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying CMP server certificates.\n"
+    {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates.\n"
                    "\t\t     URL may point to local file if prefixed by 'file:'"},
-    {"crl_download", OPT_CDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source\n"
-                   "\t\t     when verifying CMP server certificates"},
-    OPT_V_OPTIONS, // subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for CMP server but also for the whole certificate chain"},
+    {"crl_download", OPT_CDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source"},
+    OPT_V_OPTIONS, // subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for leaf certificate but for full certificate chain"},
 
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given.\n"
                              "\t\t     If both are not set, the recipient defaults to the -issuer argument.\n"
@@ -335,7 +326,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_section},
     {&opt_server}, {&opt_proxy}, { (char **)&opt_proxyPort},
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
-    {&opt_tls_trusted}, {&opt_tls_crls}, { (char **)&opt_tls_cdps}, { (char **)&opt_tls_crl_all},
+    {&opt_tls_trusted},
     {&opt_user}, {&opt_pass}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
     {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
     {&opt_crls}, { (char **)&opt_cdps}, /* virtually at this point: OPT_CRLALL etc. */
@@ -475,7 +466,7 @@ static int check_options(void)
         goto err;
     }
 
-    if (opt_tls_trusted || opt_tls_crls || opt_tls_cdps || opt_tls_crl_all) {
+    if (opt_tls_trusted) {
         opt_use_tls = 1;
     }
 
@@ -593,11 +584,11 @@ static int check_options(void)
 #endif
 
 /*
- * ########################################################################## 
+ * ##########################################################################
  * * code for loading certs, keys, and CRLs
  * TODO dvo: the whole Cert, Key and CRL loading logic should be given upstream
  * to be included in apps.c, and then used from here.
- * ########################################################################## 
+ * ##########################################################################
  */
 
 /* TODO dvo: push that separately upstream with the autofmt options */
@@ -752,7 +743,7 @@ X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass,
 {
     X509 *x = NULL;
     BIO *cert;
-  
+
     BIO *err = bio_err;
     EVP_PKEY *pkey = NULL;
     PW_CB_DATA cb_data;
@@ -1031,9 +1022,9 @@ static X509_STORE *create_cert_store(const char *infile, const char *desc)
 }
 
 /* TODO dvo: push that separately upstream
- * ########################################################################## 
+ * ##########################################################################
  * * code for loading CRL via HTTP or from file, slightly adapted from apps/apps.c
- * ########################################################################## 
+ * ##########################################################################
  * This is exclusively used in load_crl_crldp()
  */
 
@@ -1141,9 +1132,9 @@ static STACK_OF(X509_CRL) *crls_local_then_http_cb(X509_STORE_CTX *ctx, X509_NAM
 }
 
 /*
- * ########################################################################## 
+ * ##########################################################################
  * * code for improving certificate error diagnostics
- * ########################################################################## 
+ * ##########################################################################
  */
 
 /*
@@ -1181,6 +1172,14 @@ static int setup_ctx(CMP_CTX * ctx)
     CMP_CTX_set1_serverPath(ctx, opt_path);
     CMP_CTX_set1_serverPort(ctx, server_port);
 
+    STACK_OF(X509_CRL) *crls = NULL;
+    if (opt_crls) {
+        crls = load_crls_autofmt(opt_crls, opt_crlfmt, "CRL(s) for checking certificate revocation");
+        if (!crls) {
+            goto err;
+        }
+    }
+
     if (opt_use_tls) {
         X509 *cert = NULL;
         EVP_PKEY *pkey = NULL;
@@ -1212,20 +1211,19 @@ static int setup_ctx(CMP_CTX * ctx)
             SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, print_cert_verify_cb);
         }
 
-        if (opt_tls_crls) {
-            STACK_OF(X509_CRL) *crls = load_crls_autofmt(opt_tls_crls, opt_crlfmt, "CRL(s) for TLS");
-            if (!crls) {
-                goto tls_err;
-            }
+	if (vpmtouched)
+            SSL_CTX_set1_param(ssl_ctx, vpm);
+        ERR_clear_error();
+        if (opt_crls || opt_cdps)
+            X509_VERIFY_PARAM_set_flags(SSL_CTX_get0_param(ssl_ctx), X509_V_FLAG_CRL_CHECK);
+
+        if (crls) {
             ssl_ctx_add_crls(ssl_ctx, crls, 0);
         }
-        if (opt_tls_cdps)
+        if (opt_cdps)
             X509_STORE_set_lookup_crls(SSL_CTX_get_cert_store(ssl_ctx), crls_local_then_http_cb);
             /* TODO dvo: to be replaced with "store_setup_crl_download(ts)" from apps.h,
                after extended version of crls_http_cb has been pushed upstream */
-        if (opt_tls_crls || opt_tls_cdps || opt_tls_crl_all)
-            X509_VERIFY_PARAM_set_flags(SSL_CTX_get0_param(ssl_ctx),
-                                        X509_V_FLAG_CRL_CHECK | (opt_tls_crl_all ? X509_V_FLAG_CRL_CHECK_ALL: 0));
 
         if (opt_tls_cert && opt_tls_key) {
             certfmt = opt_certfmt;
@@ -1321,11 +1319,7 @@ static int setup_ctx(CMP_CTX * ctx)
         X509_free(srvcert);
     }
 
-    if (opt_crls) {
-        STACK_OF(X509_CRL) *crls = load_crls_autofmt(opt_crls, opt_crlfmt, "CRL(s) for CMP protection");
-        if (!crls) {
-            goto err;
-        }
+    if (crls) { // will be freed by CMP_CTX_delete()
         CMP_CTX_set0_crls(ctx, crls);
     }
 
@@ -1627,15 +1621,6 @@ opt_err:
             break;
         case OPT_TLSTRUSTED:
             opt_tls_trusted = opt_arg();
-            break;
-        case OPT_TLSCRLS:
-            opt_tls_crls = opt_arg();
-            break;
-        case OPT_TLSCDPS:
-            opt_tls_cdps = 1;
-            break;
-        case OPT_TLSCRLALL:
-            opt_tls_crl_all = 1;
             break;
 
         case OPT_PATH:
