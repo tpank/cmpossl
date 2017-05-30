@@ -191,8 +191,6 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
         goto err;
     }
 
-    OpenSSL_add_all_digests();
-
     /*
      * owf identifies the hash algorithm and associated parameters used to
      * compute the key used in the MAC process.  All implementations MUST
