@@ -207,7 +207,13 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->serverPort = 0;
     ctx->proxyName = NULL;
     ctx->proxyPort = 0;
-    ctx->digest = NID_sha1;
+    ctx->digest = NID_sha256;
+
+    ctx->pbm_slen = 16;
+    ctx->pbm_owf = NID_sha256;
+    ctx->pbm_itercnt = 500;
+    ctx->pbm_mac = NID_hmac_sha1;
+
     ctx->implicitConfirm = 0;
     ctx->disableConfirm = 0;
     ctx->unprotectedErrors = 0;

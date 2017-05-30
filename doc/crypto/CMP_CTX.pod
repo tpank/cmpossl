@@ -407,7 +407,7 @@ The following code does a Key Update Request:
 
 =head1 TODO
 
-A lot!
+Create functions to tune the PBM parameters pbm_* which are pre-set.
 
 =head1 SEE ALSO
 

@@ -32,6 +32,12 @@ typedef struct cmp_ctx_st {
     /* "reference and secret" for MSG_MAC_ALG */
     ASN1_OCTET_STRING *referenceValue;
     ASN1_OCTET_STRING *secretValue;
+    /* PBMParameters */
+    size_t pbm_slen;
+    int pbm_owf;
+    long pbm_itercnt;
+    int pbm_mac;
+
     /* for setting itav for EJBCA in CA mode */
     ASN1_UTF8STRING *regToken;
     /* certificate used to identify the server */
@@ -47,7 +53,7 @@ typedef struct cmp_ctx_st {
     X509_NAME *recipient;
     /* to set in issuer in pkiheader */
     X509_NAME *issuer;
-    /* NID of digest algorithm used in MSG_SIG_ALG, defaults to SHA-1 */
+    /* NID of digest algorithm used in MSG_SIG_ALG, defaults to SHA256 */
     int digest;
     /* names to be added to the cert template as the subjectAltName extension */
     STACK_OF (GENERAL_NAME) * subjectAltNames;

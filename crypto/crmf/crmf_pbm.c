@@ -1,4 +1,3 @@
-/* vim: set cino={1s noet ts=4 sts=4 sw=4: */
 /* crypto/crmf/crmf_pbm.c
  * CRMF (RFC 4211) "Password Based Mac" functions for OpenSSL
  */
@@ -75,36 +74,46 @@
 #include <openssl/err.h>
 #include "crmf_int.h"
 
-#define SALT_LEN                 16
-#define ITERATION_COUNT 500
-
 /* ############################################################################ *
  * creates and initializes CRMF_PBMPARAMETER (section 4.4)
+ * slen SHOULD be > 8    (16 is common)
+ * owfnid e.g. NID_sha256
+ * itercnt MUST be > 100 (500 is common)
+ * macnid e.g. NID_hmac_sha1
  * returns pointer to CRMF_PBMPARAMETER on success, NULL on error
- * TODO: this should take the parameters to be set via the arguments
  * ############################################################################ */
-CRMF_PBMPARAMETER *CRMF_pbm_new(void)
+CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
+                                 long itercnt, int macnid)
 {
     CRMF_PBMPARAMETER *pbm = NULL;
-    unsigned char salt[SALT_LEN];
+    unsigned char *salt = NULL;
+    int error = CRMF_R_CRMFERROR;
 
-    if (!(pbm = CRMF_PBMPARAMETER_new()))
+    if (!(pbm = CRMF_PBMPARAMETER_new())) {
+        error = CRMF_R_MALLOC_FAILURE;
         goto err;
+    }
 
     /* salt contains a randomly generated value used in computing the key
      * of the MAC process.  The salt SHOULD be at least 8 octets (64
      * bits) long.
      */
-    RAND_bytes(salt, SALT_LEN);
-    if (!(ASN1_OCTET_STRING_set(pbm->salt, salt, SALT_LEN)))
+    if ((salt = OPENSSL_malloc(slen)) == NULL) {
+        error = CRMF_R_MALLOC_FAILURE;
+        goto err;
+    }
+    RAND_bytes(salt, slen);
+    if (!(ASN1_OCTET_STRING_set(pbm->salt, salt, slen)))
         goto err;
 
     /* owf identifies the hash algorithm and associated parameters used to
      * compute the key used in the MAC process.  All implementations MUST
      * support SHA-1.
      */
-    /* TODO right now SHA-1 is hardcoded */
-    X509_ALGOR_set0(pbm->owf, OBJ_nid2obj(NID_sha1), V_ASN1_UNDEF, NULL);
+    if (!X509_ALGOR_set0(pbm->owf, OBJ_nid2obj(owfnid), V_ASN1_UNDEF, NULL)) {
+        error = CRMF_R_SETTING_OWF_ALRGOR_FAILURE;
+        goto err;
+    }
 
     /*
        iterationCount identifies the number of times the hash is applied
@@ -116,26 +125,37 @@ CRMF_PBMPARAMETER *CRMF_pbm_new(void)
        passwords.  Hashing is generally considered a cheap operation but
        this may not be true with all hash functions in the future.
      */
-    ASN1_INTEGER_set(pbm->iterationCount, ITERATION_COUNT);
+    if (itercnt < 100) {
+        error = CRMF_R_ITERATIONCOUNT_BELOW_100;
+        goto err;
+    }
+
+    if (!ASN1_INTEGER_set(pbm->iterationCount, itercnt))
+        goto err;
 
     /* mac identifies the algorithm and associated parameters of the MAC
        function to be used.  All implementations MUST support HMAC-SHA1
        [HMAC].      All implementations SHOULD support DES-MAC and Triple-
        DES-MAC [PKCS11].
      */
-    /* TODO right now HMAC-SHA1 is hardcoded */
-    /* X509_ALGOR_set0(mac, OBJ_nid2obj(NID_id_alg_dh_sig_hmac_sha1), V_ASN1_UNDEF, NULL); */
-    X509_ALGOR_set0(pbm->mac, OBJ_nid2obj(NID_hmac_sha1), V_ASN1_UNDEF, NULL);
+    if (!X509_ALGOR_set0(pbm->mac, OBJ_nid2obj(macnid), V_ASN1_UNDEF, NULL)) {
+        error = CRMF_R_SETTING_MAC_ALRGOR_FAILURE;
+        goto err;
+    }
 
+    OPENSSL_free(salt);
     return pbm;
  err:
+    if (salt)
+        OPENSSL_free(salt);
     if (pbm)
         CRMF_PBMPARAMETER_free(pbm);
+    CRMFerr(CRMF_F_CRMF_PBMP_NEW, error);
     return NULL;
 }
 
 /* ############################################################################
- * this function calculates the PBM based on the settings of the given CRMF_PBMPARAMENTER
+ * calculates the PBM based on the settings of the given CRMF_PBMPARAMETER
  * @pbm identifies the algorithms to use
  * @msg message to apply the PBM for
  * @msgLen length of the message
@@ -152,27 +172,24 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
                               const unsigned char *secret, size_t secretLen,
                               unsigned char **mac, unsigned int *macLen)
 {
+    int mac_nid, hmac_md_nid = NID_undef;
     const EVP_MD *m = NULL;
     EVP_MD_CTX *ctx = NULL;
     unsigned char basekey[EVP_MAX_MD_SIZE];
     unsigned int basekeyLen;
     long iterations;
+    int error = CRMF_R_CRMFERROR;
 
-    if (!mac)
+    if (!mac || !pbm | !msg | !secret) {
+        error = CRMF_R_NULL_ARGUMENT;
         goto err;
+    }
     if (*mac)
         OPENSSL_free(*mac);
-
-    if (!pbm)
+    if ((*mac = OPENSSL_malloc(EVP_MAX_MD_SIZE)) == NULL) {
+        error = CRMF_R_MALLOC_FAILURE;
         goto err;
-    if (!msg)
-        goto err;
-    if (!secret)
-        goto err;
-
-    *mac = OPENSSL_malloc(EVP_MAX_MD_SIZE);
-    if (!*mac) 
-        goto err;
+    }
 
     OpenSSL_add_all_digests();
 
@@ -181,10 +198,15 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
      * compute the key used in the MAC process.  All implementations MUST
      * support SHA-1.
      */
-    if (!(m = EVP_get_digestbyobj(pbm->owf->algorithm)))
+    if ((m = EVP_get_digestbyobj(pbm->owf->algorithm)) == NULL) {
+        error = CRMF_R_UNSUPPORTED_ALGORITHM;
         goto err;
+    }
 
-    ctx = EVP_MD_CTX_create();
+    if ((ctx = EVP_MD_CTX_create()) == NULL) {
+        error = CRMF_R_MALLOC_FAILURE;
+        goto err;
+    }
 
     /* compute the basekey of the salted secret */
     if (!(EVP_DigestInit_ex(ctx, m, NULL)))
@@ -212,18 +234,26 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
      * [HMAC].      All implementations SHOULD support DES-MAC and Triple-
      * DES-MAC [PKCS11].
      */
-    /* TODO right now only HMAC-SHA1 is supported */
-    switch (OBJ_obj2nid(pbm->mac->algorithm)) {
-    case NID_hmac_sha1:
-        HMAC(EVP_sha1(), basekey, basekeyLen, msg, msgLen, *mac, macLen);
-        break;
-        /* optional TODO: DES-MAC, Triple DES-MAC */
-        /* which NIDs to use for these algorithms??? */
-    default:
-        CRMFerr(CRMF_F_CRMF_PASSWORDBASEDMAC_NEW,
-                CRMF_R_UNSUPPORTED_ALGORITHM);
+    mac_nid = OBJ_obj2nid(pbm->mac->algorithm);
+
+    /* OID 1.3.6.1.5.5.8.1.2 associated with NID_hmac_sha1 is explicitly
+       mentioned in RFC 4210 and RFC 3370, but NID_hmac_sha1 is not included in
+       builitin_pbe[] of crypto/evp/evp_pbe.c */
+    if (mac_nid == NID_hmac_sha1)
+        mac_nid = NID_hmacWithSHA1;
+    /* NID_hmac_md5 not included in builtin_pbe[] of crypto/evp/evp_pbe.c as
+       it is not explicitly referenced in the RFC it might not be used by any
+       implementation although its OID 1.3.6.1.5.5.8.1.1 it is in the same OID
+       branch as NID_hmac_sha1 */
+    else if (mac_nid == NID_hmac_md5)
+        mac_nid = NID_hmacWithMD5;
+
+    if (!EVP_PBE_find(EVP_PBE_TYPE_PRF, mac_nid, NULL, &hmac_md_nid, NULL) ||
+            ((m = EVP_get_digestbynid(hmac_md_nid)) == NULL)) {
+        error = CRMF_R_UNSUPPORTED_ALGORITHM;
         goto err;
     }
+    HMAC(m, basekey, basekeyLen, msg, msgLen, *mac, macLen);
 
     /* cleanup */
     EVP_MD_CTX_destroy(ctx);
@@ -232,8 +262,8 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
  err:
     if (mac && *mac) {
         OPENSSL_free(*mac);
-        *mac = 0;
+        *mac = NULL;
     }
-    CRMFerr(CRMF_F_CRMF_PASSWORDBASEDMAC_NEW, CRMF_R_CRMFERROR);
+    CRMFerr(CRMF_F_CRMF_PASSWORDBASEDMAC_NEW, error);
     return 0;
 }
