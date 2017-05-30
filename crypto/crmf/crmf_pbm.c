@@ -1,4 +1,3 @@
-/* vim: set cino={1s noet ts=4 sts=4 sw=4: */
 /* crypto/crmf/crmf_pbm.c
  * CRMF (RFC 4211) "Password Based Mac" functions for OpenSSL
  */
@@ -182,7 +181,7 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
     int error = CRMF_R_CRMFERROR;
 
     if (!mac || !pbm | !msg | !secret) {
-	error = CRMF_R_NULL_ARGUMENT;
+        error = CRMF_R_NULL_ARGUMENT;
         goto err;
     }
     if (*mac)
@@ -236,12 +235,21 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
      * DES-MAC [PKCS11].
      */
     mac_nid = OBJ_obj2nid(pbm->mac->algorithm);
-    if (mac_nid == NID_hmac_sha1) /* explicitly mentioned in RFC 4210 and RFC 3370, but seems outdated alias */
+
+    /* OID 1.3.6.1.5.5.8.1.2 associated with NID_hmac_sha1 is explicitly
+       mentioned in RFC 4210 and RFC 3370, but NID_hmac_sha1 is not included in
+       builitin_pbe[] of crypto/evp/evp_pbe.c */
+    if (mac_nid == NID_hmac_sha1)
         mac_nid = NID_hmacWithSHA1;
-    else if (mac_nid == NID_hmac_md5) /* seems to be outdated alias */
-	mac_nid = NID_hmacWithMD5;
+    /* NID_hmac_md5 not included in builtin_pbe[] of crypto/evp/evp_pbe.c as
+       it is not explicitly referenced in the RFC it might not be used by any
+       implementation although its OID 1.3.6.1.5.5.8.1.1 it is in the same OID
+       branch as NID_hmac_sha1 */
+    else if (mac_nid == NID_hmac_md5)
+        mac_nid = NID_hmacWithMD5;
+
     if (!EVP_PBE_find(EVP_PBE_TYPE_PRF, mac_nid, NULL, &hmac_md_nid, NULL) ||
-	((m = EVP_get_digestbynid(hmac_md_nid)) == NULL)) {
+            ((m = EVP_get_digestbynid(hmac_md_nid)) == NULL)) {
         error = CRMF_R_UNSUPPORTED_ALGORITHM;
         goto err;
     }
