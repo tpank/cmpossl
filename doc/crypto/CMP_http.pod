@@ -8,21 +8,25 @@
 
  #include <openssl/cmp.h>
 
- int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx, const CMP_PKIMESSAGE *msg, CMP_PKIMESSAGE **out);
+ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
+                                 const CMP_PKIMESSAGE *msg,
+                                 CMP_PKIMESSAGE **out);
 
 =head1 DESCRIPTION
 
 This is the API for creating a BIO for CMP (Certificate Management
 Protocol) over HTTP(S) with OpenSSL.
 
-CMP_PKIMESSAGE_http_perform() sends the given pkimessage msg to the CMP server
-specified in ctx, and returns the servers response in out.
+CMP_PKIMESSAGE_http_perform() sends the given PKIMessage msg to the CMP server
+specified in ctx. On success (return 1), assigns the server's response to *out.
 
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
+
+CMP_PKIMESSAGE_http_perform() returns 1 on success or 0 on error.
 
 =head1 EXAMPLE
 

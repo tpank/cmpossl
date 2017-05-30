@@ -1,4 +1,3 @@
-/* vim: set et ts=4 sts=4 sw=4: */
  /* crypto/cmp/cmp_ses.c
   * Functions to do CMP (RFC 4210) message sequences for OpenSSL
   */
@@ -313,8 +312,10 @@ static int pollForResponse(CMP_CTX *ctx, const CMP_CERTREPMESSAGE *certrep,
                 }
             }
 
-            CMP_PKIMESSAGE_free(prep);
             CMP_PKIMESSAGE_free(preq);
+            preq = NULL;
+            CMP_PKIMESSAGE_free(prep);
+            prep = NULL;
             sleep(checkAfter);
         } else {
             CMP_printf(ctx, "INFO: Got final response on polling request.");
