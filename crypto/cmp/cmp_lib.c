@@ -1,4 +1,3 @@
-/* vim: set noet ts=4 sts=4 sw=4: */
 /* crypto/cmp/cmp_lib.c
  * CMP (RFC 4210) library functions for OpenSSL
  */
@@ -121,6 +120,33 @@ int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version)
     return 0;
 }
 
+
+static int cpy_gname(GENERAL_NAME **tgt, const X509_NAME *src) {
+    GENERAL_NAME *gen = NULL;
+
+    if (!(gen = GENERAL_NAME_new()))
+        goto err;
+
+    gen->type = GEN_DIRNAME;
+
+    if (src == NULL) {
+        gen->d.directoryName = X509_NAME_new();
+    } else if (!(X509_NAME_set(&gen->d.directoryName, (X509_NAME *)src))) {
+        goto err;
+    }
+
+    if (*tgt)
+        GENERAL_NAME_free(*tgt);
+
+    *tgt = gen;
+
+    return 1;
+ err:
+    if (gen)
+        GENERAL_NAME_free(gen);
+    return 0;
+}
+
 /* ############################################################################ *
  * Set the recipient name of PKIHeader.
  * when nm is NULL, recipient is set to an empty string
@@ -128,33 +154,10 @@ int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version)
  * ############################################################################ */
 int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm)
 {
-    GENERAL_NAME *gen = NULL;
     if (!hdr)
-        goto err;
+        return 0;
 
-    gen = GENERAL_NAME_new();
-    if (!gen)
-        goto err;
-
-    gen->type = GEN_DIRNAME;
-
-    /* if nm is not set, an empty dirname is created */
-    if (nm == NULL) {
-        gen->d.directoryName = X509_NAME_new();
-    } else {
-        if (!X509_NAME_set(&gen->d.directoryName, (X509_NAME *)nm)) {
-            GENERAL_NAME_free(gen);
-            goto err;
-        }
-    }
-
-    if (hdr->recipient)
-        GENERAL_NAME_free(hdr->recipient);
-    hdr->recipient = gen;
-
-    return 1;
- err:
-    return 0;
+    return cpy_gname(&hdr->recipient, nm);
 }
 
 /* ############################################################################ *
@@ -164,32 +167,10 @@ int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm)
  * ############################################################################ */
 int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm)
 {
-    GENERAL_NAME *gen = NULL;
     if (!hdr)
-        goto err;
+        return 0;
 
-    gen = GENERAL_NAME_new();
-    if (!gen)
-        goto err;
-
-    gen->type = GEN_DIRNAME;
-
-    /* if nm is not set, an empty dirname is created */
-    if (nm == NULL) {
-        gen->d.directoryName = X509_NAME_new();
-    } else {
-        if (!X509_NAME_set(&gen->d.directoryName, (X509_NAME *)nm)) {
-            GENERAL_NAME_free(gen);
-            goto err;
-        }
-    }
-    if (hdr->sender)
-        GENERAL_NAME_free(hdr->sender);
-    hdr->sender = gen;
-
-    return 1;
- err:
-    return 0;
+    return cpy_gname(&hdr->sender, nm);
 }
 
 /* ############################################################################ *
@@ -698,7 +679,7 @@ X509_ALGOR *CMP_create_pbmac_algor(CMP_CTX *ctx)
     if (!(alg = X509_ALGOR_new()))
         goto err;
     if (!(pbm = CRMF_pbmp_new(ctx->pbm_slen, ctx->pbm_owf,
-		                      ctx->pbm_itercnt, ctx->pbm_mac)))
+                              ctx->pbm_itercnt, ctx->pbm_mac)))
         goto err;
     if (!(pbmStr = ASN1_STRING_new()))
         goto err;
