@@ -270,7 +270,6 @@ int CRMF_CERTREQMSG_set1_control_oldCertId(CRMF_CERTREQMSG *certReqMsg,
 {
     CRMF_ATTRIBUTETYPEANDVALUE *atav = NULL;
     CRMF_CERTID *certId = NULL;
-    GENERAL_NAME *gName = NULL;
 
     if (!certReqMsg)
         goto err;
@@ -278,16 +277,14 @@ int CRMF_CERTREQMSG_set1_control_oldCertId(CRMF_CERTREQMSG *certReqMsg,
         goto err;
 
     if (!(atav = CRMF_ATTRIBUTETYPEANDVALUE_new())
-        || !(certId = CRMF_CERTID_new())
-        || !(gName = GENERAL_NAME_new()))
+        || !(certId = CRMF_CERTID_new()))
         goto err;
 
-    /* X509_NAME_set does not consume the pointer so this is ok */
-    X509_NAME_set(&gName->d.directoryName, X509_get_issuer_name(oldCert));
-    gName->type = GEN_DIRNAME;
-    certId->issuer = gName;
-    if (!(certId->serialNumber =
-          ASN1_INTEGER_dup(X509_get_serialNumber(oldCert))))
+    X509_NAME_set(&certId->issuer->d.directoryName, X509_get_issuer_name(oldCert));
+    certId->issuer->type = GEN_DIRNAME;
+
+    if (!ASN1_INTEGER_set(certId->serialNumber,
+          ASN1_INTEGER_get(X509_get_serialNumber(oldCert))))
         goto err;
 
     atav->type = OBJ_nid2obj(NID_id_regCtrl_oldCertID);
@@ -300,8 +297,6 @@ int CRMF_CERTREQMSG_set1_control_oldCertId(CRMF_CERTREQMSG *certReqMsg,
  err:
     CRMFerr(CRMF_F_CRMF_CERTREQMSG_SET1_CONTROL_OLDCERTID,
             CRMF_R_ERROR_SETTING_CONTROL_OLDCERTID_ATAV);
-    if (gName)
-        GENERAL_NAME_free(gName);
     if (certId) {
         certId->issuer = NULL;
         CRMF_CERTID_free(certId);
