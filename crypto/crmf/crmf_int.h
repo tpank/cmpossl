@@ -29,6 +29,7 @@ typedef struct crmf_privatekeyinfo_st {
     ASN1_OCTET_STRING *privateKey;
     STACK_OF (X509_ATTRIBUTE) * attributes; /* [ 0 ] */
 } CRMF_PRIVATEKEYINFO;
+DECLARE_ASN1_FUNCTIONS(CRMF_PRIVATEKEYINFO)
 
 /* section 4.2.1 Private Key Info Content Type
    id-ct-encKeyWithID OBJECT IDENTIFIER ::= {id-ct 21}
@@ -48,11 +49,13 @@ typedef struct crmf_enckeywithid_identifier_st {
         GENERAL_NAME *generalName;
     } value;
 } CRMF_ENCKEYWITHID_IDENTIFIER;
+DECLARE_ASN1_FUNCTIONS(CRMF_ENCKEYWITHID_IDENTIFIER)
 
 typedef struct crmf_enckeywithid_st {
     CRMF_PRIVATEKEYINFO *privateKey;
     CRMF_ENCKEYWITHID_IDENTIFIER *identifier; /* [0] */
 } CRMF_ENCKEYWITHID;
+DECLARE_ASN1_FUNCTIONS(CRMF_ENCKEYWITHID)
 
 /*
 CertId ::= SEQUENCE {
@@ -81,6 +84,7 @@ typedef struct crmf_encryptedkey_st {
         ASN1_NULL *envelopedData;
     } value;
 } CRMF_ENCRYPTEDKEY;
+DECLARE_ASN1_FUNCTIONS(CRMF_ENCRYPTEDKEY)
 
 /*
 PKIArchiveOptions ::= CHOICE {
@@ -93,14 +97,14 @@ PKIArchiveOptions ::= CHOICE {
  -- key of a key pair that the receiver generates in response to
  -- this request; set to FALSE if no archival is desired.
 */
-typedef struct crmf_pkiarchiveoptions_st {
+struct crmf_pkiarchiveoptions_st {
     int type;
     union {
         CRMF_ENCRYPTEDKEY *encryptedPrivKey; /* 0 */
         ASN1_OCTET_STRING *keyGenParameters; /* KeyGenParameters ::= OCTET STRING *//* 1 */
         ASN1_BOOLEAN *archiveRemGenPrivKey; /* 2 */
     } value;
-} CRMF_PKIARCHIVEOPTIONS;
+} /* CRMF_PKIARCHIVEOPTIONS */;
 CRMF_PKIARCHIVEOPTIONS *CRMF_PKIARCHIVEOPTIONS_dup(CRMF_PKIARCHIVEOPTIONS
                                                    *pkiPubInfo);
 
@@ -117,6 +121,7 @@ typedef struct crmf_singlepubinfo_st {
     ASN1_INTEGER *pubMethod;
     GENERAL_NAME *pubLocation;
 } CRMF_SINGLEPUBINFO;
+DECLARE_ASN1_FUNCTIONS(CRMF_SINGLEPUBINFO)
 
 /*
 PKIPublicationInfo ::= SEQUENCE {
@@ -146,6 +151,7 @@ typedef struct crmf_pkmacvalue_st {
     X509_ALGOR *algId;
     ASN1_BIT_STRING *value;
 } CRMF_PKMACVALUE;
+DECLARE_ASN1_FUNCTIONS(CRMF_PKMACVALUE)
 
 /*
 SubsequentMessage ::= INTEGER {
@@ -221,11 +227,13 @@ typedef struct crmf_poposigningkeyinput_authinfo_st {
         CRMF_PKMACVALUE *publicKeyMAC; /* 1 */
     } value;
 } CRMF_POPOSIGNINGKEYINPUT_AUTHINFO;
+DECLARE_ASN1_FUNCTIONS(CRMF_POPOSIGNINGKEYINPUT_AUTHINFO)
 
 typedef struct crmf_poposigningkeyinput_st {
     CRMF_POPOSIGNINGKEYINPUT_AUTHINFO *authinfo;
     X509_PUBKEY *publicKey;
 } CRMF_POPOSIGNINGKEYINPUT;
+DECLARE_ASN1_FUNCTIONS(CRMF_POPOSIGNINGKEYINPUT)
 
 /*
 POPOSigningKey ::= SEQUENCE {

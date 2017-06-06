@@ -668,7 +668,7 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
  * the pbm settings in the context
  * returns pointer to X509_ALGOR on success, NULL on error
  * ############################################################################ */
-X509_ALGOR *CMP_create_pbmac_algor(CMP_CTX *ctx)
+static X509_ALGOR *CMP_create_pbmac_algor(CMP_CTX *ctx)
 {
     X509_ALGOR *alg = NULL;
     CRMF_PBMPARAMETER *pbm = NULL;
@@ -817,7 +817,6 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
         if (ctx->untrusted_store) {
             STACK_OF (X509) * chain =
                 CMP_build_cert_chain(ctx->untrusted_store, ctx->clCert);
-            int i;
             for (i = 0; i < sk_X509_num(chain); i++) {
                 X509 *cert = sk_X509_value(chain, i);
                 sk_X509_push(msg->extraCerts, cert);

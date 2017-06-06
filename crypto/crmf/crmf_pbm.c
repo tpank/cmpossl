@@ -210,9 +210,11 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
     if (!(EVP_DigestInit_ex(ctx, m, NULL)))
         goto err;
     /* first the secret */
-    EVP_DigestUpdate(ctx, secret, secretLen);
+    if (!EVP_DigestUpdate(ctx, secret, secretLen))
+        goto err;
     /* then the salt */
-    EVP_DigestUpdate(ctx, pbm->salt->data, pbm->salt->length);
+    if (!EVP_DigestUpdate(ctx, pbm->salt->data, pbm->salt->length))
+        goto err;
     if (!(EVP_DigestFinal_ex(ctx, basekey, &basekeyLen)))
         goto err;
 
@@ -221,7 +223,8 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
     while (iterations-- > 0) {
         if (!(EVP_DigestInit_ex(ctx, m, NULL)))
             goto err;
-        EVP_DigestUpdate(ctx, basekey, basekeyLen);
+        if (!EVP_DigestUpdate(ctx, basekey, basekeyLen))
+            goto err;
         if (!(EVP_DigestFinal_ex(ctx, basekey, &basekeyLen)))
             goto err;
     }

@@ -312,7 +312,7 @@ int CRMF_CERTREQMSG_set1_control_oldCertId(CRMF_CERTREQMSG *certReqMsg,
  * function so it can be declared static. *
  * TODO: check whether that should go elsewhere *
  * ############################################################################ */
-static IMPLEMENT_ASN1_DUP_FUNCTION(X509_PUBKEY);
+static IMPLEMENT_ASN1_DUP_FUNCTION(X509_PUBKEY)
 
 /* ############################################################################ *
  * sets the id-regCtrl-protocolEncrKey Control (section 6.6) from the given

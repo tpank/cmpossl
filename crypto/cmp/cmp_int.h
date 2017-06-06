@@ -132,7 +132,7 @@ struct cmp_ctx_st {
     CERTIFICATEPOLICIES *policies;
 
 } /* CMP_CTX */;
-
+DECLARE_ASN1_FUNCTIONS(CMP_CTX)
 
 /*
      RevAnnContent ::= SEQUENCE {
@@ -151,6 +151,7 @@ typedef struct cmp_revanncontent_st {
     ASN1_GENERALIZEDTIME *badSinceDate;
     X509_EXTENSIONS *crlDetails;
 } CMP_REVANNCONTENT;
+DECLARE_ASN1_FUNCTIONS(CMP_REVANNCONTENT)
 
 /*
      Challenge ::= SEQUENCE {
@@ -181,7 +182,8 @@ typedef struct cmp_challenge_st {
     ASN1_OCTET_STRING *whitness;
     ASN1_OCTET_STRING *challenge;
 } CMP_CHALLENGE;
-    
+DECLARE_ASN1_FUNCTIONS(CMP_CHALLENGE)
+
 /*
      CAKeyUpdAnnContent ::= SEQUENCE {
              oldWithNew   CMPCertificate, -- old pub signed with new priv
@@ -194,6 +196,7 @@ typedef struct cmp_cakeyupdanncontent_st {
     X509 *newWithOld;
     X509 *newWithNew;
 } CMP_CAKEYUPDANNCONTENT;
+DECLARE_ASN1_FUNCTIONS(CMP_CAKEYUPDANNCONTENT)
 
 /* declared already here as it will be used in CMP_PKIMESSAGE (nested) and infotype and * value*/
 typedef STACK_OF(CMP_PKIMESSAGE) CMP_PKIMESSAGES;
@@ -253,6 +256,7 @@ typedef struct cmp_certorenccert_st {
         CRMF_ENCRYPTEDVALUE *encryptedCert;
     } value;
 } CMP_CERTORENCCERT;
+DECLARE_ASN1_FUNCTIONS(CMP_CERTORENCCERT)
 
 /*
      CertifiedKeyPair ::= SEQUENCE {
@@ -267,6 +271,7 @@ typedef struct cmp_certifiedkeypair_st {
     CRMF_ENCRYPTEDVALUE *privateKey;
     CRMF_PKIPUBLICATIONINFO *failInfo;
 } CMP_CERTIFIEDKEYPAIR;
+DECLARE_ASN1_FUNCTIONS(CMP_CERTIFIEDKEYPAIR)
 
 /*
      PKIStatusInfo ::= SEQUENCE {
@@ -319,6 +324,7 @@ struct cmp_revrepcontent_st {
     STACK_OF (CRMF_CERTID) * certId;
     STACK_OF (X509) * crls;
 } /* CMP_REVREPCONTENT */;
+DECLARE_ASN1_FUNCTIONS(CMP_REVREPCONTENT)
 
 /*
      KeyRecRepContent ::= SEQUENCE {
@@ -334,7 +340,7 @@ typedef struct cmp_keyrecrepcontent_st {
     STACK_OF (X509) * caCerts;
     STACK_OF (CMP_CERTIFIEDKEYPAIR) * keyPairHist;
 } CMP_KEYRECREPCONTENT;
-
+DECLARE_ASN1_FUNCTIONS(CMP_KEYRECREPCONTENT)
 /*
      ErrorMsgContent ::= SEQUENCE {
              pKIStatusInfo                  PKIStatusInfo,
@@ -349,6 +355,7 @@ typedef struct cmp_errormsgcontent_st {
     ASN1_INTEGER *errorCode;
     STACK_OF (ASN1_UTF8STRING) * errorDetails;
 } CMP_ERRORMSGCONTENT;
+DECLARE_ASN1_FUNCTIONS(CMP_ERRORMSGCONTENT)
 
 /*
      CertConfirmContent ::= SEQUENCE OF CertStatus
@@ -390,6 +397,7 @@ struct cmp_certresponse_st {
     CMP_CERTIFIEDKEYPAIR *certifiedKeyPair;
     ASN1_OCTET_STRING *rspInfo;
 } /* CMP_CERTRESPONSE */;
+DECLARE_ASN1_FUNCTIONS(CMP_CERTRESPONSE)
 
 /*
      CertRepMessage ::= SEQUENCE {
@@ -402,6 +410,7 @@ struct cmp_certrepmessage_st {
     STACK_OF (X509) * caPubs;
     STACK_OF (CMP_CERTRESPONSE) * response;
 } /* CMP_CERTREPMESSAGE */;
+DECLARE_ASN1_FUNCTIONS(CMP_CERTREPMESSAGE)
 
 /* the following is from RFC 2986 - PKCS #10
 
@@ -427,6 +436,7 @@ typedef struct pkcs10_attribute_st {
     ASN1_OBJECT *id;
     STACK_OF (ASN1_TYPE) * values;
 } PKCS10_ATTRIBUTE;
+DECLARE_ASN1_FUNCTIONS(PKCS10_ATTRIBUTE)
 
 typedef struct pkcs10_certificationrequestinfo_st {
     ASN1_INTEGER *version;
@@ -434,12 +444,14 @@ typedef struct pkcs10_certificationrequestinfo_st {
     X509_PUBKEY *subjectPKInfo;
     STACK_OF (PKCS10_ATTRIBUTE) * attributes;
 } PKCS10_CERTIFICATIONREQUESTINFO;
+DECLARE_ASN1_FUNCTIONS(PKCS10_CERTIFICATIONREQUESTINFO)
 
 typedef struct pkcs10_certificationrequest_st {
     PKCS10_CERTIFICATIONREQUESTINFO *certificationRequestInfo;
     X509_ALGOR *signatureAlgorithm;
     ASN1_BIT_STRING *signature;
 } PKCS10_CERTIFICATIONREQUEST;
+DECLARE_ASN1_FUNCTIONS(PKCS10_CERTIFICATIONREQUEST)
 
 /*
      PollReqContent ::= SEQUENCE OF SEQUENCE {
@@ -520,6 +532,7 @@ struct cmp_pkiheader_st {
     STACK_OF (ASN1_UTF8STRING) * freeText; /* 7 */
     STACK_OF (CMP_INFOTYPEANDVALUE) * generalInfo; /* 8 */
 } /* CMP_PKIHEADER */;
+DECLARE_ASN1_FUNCTIONS(CMP_PKIHEADER)
 
 # define V_CMP_PKIBODY_IR        0
 # define V_CMP_PKIBODY_IP        1
@@ -650,6 +663,7 @@ typedef struct cmp_pkibody_st {
         CMP_POLLREPCONTENT *pollRep;
     } value;
 } CMP_PKIBODY;
+DECLARE_ASN1_FUNCTIONS(CMP_PKIBODY)
 
 /*
      PKIProtection ::= BIT STRING

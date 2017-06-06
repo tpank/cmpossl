@@ -115,10 +115,9 @@ static int CMP_verify_signature(CMP_PKIMESSAGE *msg, X509 *cert)
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm), &digest_NID, NULL) ||
         !(digest = (EVP_MD *)EVP_get_digestbynid(digest_NID)))
         goto notsup;
-    EVP_VerifyInit_ex(ctx, digest, NULL);
-    EVP_VerifyUpdate(ctx, protPartDer, protPartDerLen);
-    ret = EVP_VerifyFinal(ctx, msg->protection->data, msg->protection->length,
-                          pubkey);
+    ret = EVP_VerifyInit_ex(ctx, digest, NULL) &&
+	EVP_VerifyUpdate(ctx, protPartDer, protPartDerLen) &&
+	EVP_VerifyFinal(ctx, msg->protection->data, msg->protection->length, pubkey);
 
     /* cleanup */
     EVP_MD_CTX_destroy(ctx);
@@ -159,7 +158,7 @@ static int CMP_verify_MAC(CMP_PKIMESSAGE *msg,
  * Attempt to validate certificate path. returns 1 if the path was
  * validated successfully and 0 if not.
  * ############################################################################ */
-int CMP_validate_cert_path(X509_STORE *trusted_store,
+static int CMP_validate_cert_path(X509_STORE *trusted_store,
                            X509_STORE *untrusted_store, X509 *cert)
 {
     int ret = 0, valid = 0;

@@ -208,7 +208,7 @@ static int CMP_delete_http_bio(CMPBIO * cbio)
     return 1;
 }
 
-OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMESSAGE *req,
+static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMESSAGE *req,
                                int maxline)
 {
     static const char req_hdr[] =
@@ -234,7 +234,7 @@ OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMESSAGE *r
     return NULL;
 }
 
-int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
+static int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
 {
     return OCSP_REQ_CTX_nbio_d2i(rctx,
                                  (ASN1_VALUE **)presp,
@@ -243,7 +243,7 @@ int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
 
 // returns 0 on send error, else returns the received message (or NULL on result parse error) via the *out argument 
 // TODO respect ctx->HttpTimeOut
-int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **out)
+static int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **out)
 {
     OCSP_REQ_CTX *ctx;
     int rv;
