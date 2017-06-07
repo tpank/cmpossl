@@ -4454,3 +4454,4 @@ CMP_PKIHEADER_set1_recipient            4390	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_clCert                     4391	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_srvCert                    4392	1_1_1	EXIST::FUNCTION:
 CMP_CTX_error_callback                  4393	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set0_reqExtensions              4394	1_1_1	EXIST::FUNCTION:
