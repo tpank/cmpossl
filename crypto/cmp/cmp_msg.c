@@ -279,10 +279,16 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     if (!CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
 
+    /* cleanup */
+    if (extensions)
+        sk_X509_EXTENSION_pop_free(extensions, X509_EXTENSION_free);
+
     return msg;
 
  err:
-    CMPerr(CMP_F_CERTREQ_NEW, CMP_R_ERROR_CREATING_REQUEST_MESSAGE);
+    CMPerr(CMP_F_CMP_IR_NEW, CMP_R_ERROR_CREATING_IR);
+    if (extensions)
+        sk_X509_EXTENSION_pop_free(extensions, X509_EXTENSION_free);
     if (msg)
         CMP_PKIMESSAGE_free(msg);
     return NULL;
