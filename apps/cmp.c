@@ -66,7 +66,6 @@
 #define CONFIG_FILE "openssl.cnf"
 #define CMP_SECTION "cmp"
 static char *opt_section = CMP_SECTION;
-static char *opt_comment = NULL; // useful, e.g., to temporarily disable parameters
 
 #undef PROG
 #define PROG    cmp_main
@@ -148,7 +147,7 @@ static long opt_proxyPort = 0;
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
-    OPT_SECTION, OPT_COMMENT,
+    OPT_SECTION,
     OPT_SERVER, OPT_PROXY, OPT_PROXYPORT,
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
     OPT_TLSTRUSTED, OPT_TLSCRLS, OPT_TLSCDPS, OPT_TLSCRLALL,
@@ -185,7 +184,6 @@ OPTIONS cmp_options[] = {
     // OPTION_CHOICE values must be in the same order as enumerated above!!
     {"help", OPT_HELP, '-', "Display this summary"},
     {"section", OPT_SECTION, 's', "Name of section in OpenSSL config file defining cmp default options. Default 'cmp'"},
-    {"comment", OPT_COMMENT, 's', "Comment (gets ignored)"},
 
     {"server", OPT_SERVER, 's', "The 'address:port' of the CMP server (domain name or IP address)"},
     {"proxy", OPT_PROXY, 's', "Address of HTTP proxy server, if needed for accessing the CMP server"},
@@ -256,7 +254,6 @@ typedef union {
 } varref;
 static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_section},
-    {&opt_comment},
     {&opt_server}, {&opt_proxy}, { (char **)&opt_proxyPort},
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
     {&opt_tls_trusted}, {&opt_tls_crls}, { (char **)&opt_tls_cdps}, { (char **)&opt_tls_crl_all},
@@ -1442,9 +1439,6 @@ opt_err:
             opt_help(cmp_options);
             goto err;
         case OPT_SECTION: // has already been handled
-            break;
-        case OPT_COMMENT:
-            opt_comment = opt_arg();
             break;
 
         case OPT_SERVER:

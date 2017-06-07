@@ -10,7 +10,6 @@ cmp - client for the Certificate Management Protocol (RFC4210)
 B<openssl> B<cmp>
 [B<-help>]
 [B<-section name>]
-[B<-comment string>]
 
 [B<-server address:port>]
 [B<-proxy address>]
@@ -80,10 +79,6 @@ Display a summary of all options
 =item B<-section name>
 
 Name of section in OpenSSL config file defining cmp default options. Default is "cmp".
-
-=item B<-comment string>
-
-Given string is ignored.
 
 =item B<-server address:port>
 
