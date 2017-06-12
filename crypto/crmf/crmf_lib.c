@@ -704,6 +704,11 @@ CRMF_POPOSIGNINGKEY *CRMF_poposigningkey_new(CRMF_CERTREQUEST *certReq,
     /* NOTE: PoposkInput is not handled here. */
     if (!(poposig = CRMF_POPOSIGNINGKEY_new()))
         goto err;
+
+    /* OpenSSL defaults all bitstrings to be encoded as ASN.1 NamedBitList */
+    poposig->signature->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
+    poposig->signature->flags |= ASN1_STRING_FLAG_BITS_LEFT;
+
     /* get DER representation */
     certReqSize = i2d_CRMF_CERTREQUEST(certReq, &certReqDer);
 
@@ -734,10 +739,6 @@ CRMF_POPOSIGNINGKEY *CRMF_poposigningkey_new(CRMF_CERTREQUEST *certReq,
     /* set the signature value */
     if (!(ASN1_BIT_STRING_set(poposig->signature, signature, sigLen)))
         goto err;
-
-    /* Actually this should not be needed but OpenSSL defaults all bitstrings to be a NamedBitList */
-    poposig->signature->flags &= ~0x07;
-    poposig->signature->flags |= ASN1_STRING_FLAG_BITS_LEFT;
 
     /* cleanup */
     OPENSSL_free(certReqDer);
