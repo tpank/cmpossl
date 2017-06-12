@@ -213,7 +213,7 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
 {
     CMP_PKIMESSAGE *msg = NULL;
     CRMF_CERTREQMSG *certReq0 = NULL;
-    X509_EXTENSIONS *extensions = ctx->reqExtensions;
+    X509_EXTENSIONS *extensions = NULL;
     X509_NAME *subject = NULL;
     EVP_PKEY *requestKey = NULL;
 
@@ -221,6 +221,8 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
         CMPerr(CMP_F_CERTREQ_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
+
+    extensions = ctx->reqExtensions;
 
     (void)CMP_CTX_set1_transactionID(ctx, NULL); // start new transaction
     if (!(msg = CMP_PKIMESSAGE_new()))
