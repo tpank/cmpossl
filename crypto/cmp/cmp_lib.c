@@ -688,11 +688,9 @@ static X509_ALGOR *CMP_create_pbmac_algor(CMP_CTX *ctx)
 
     ASN1_STRING_set(pbmStr, pbmDer, pbmDerLen);
     OPENSSL_free(pbmDer);
-    pbmDer = NULL;              /* to avoid double free in case there would be a "goto err" inserted behind this point later in development */
 
     X509_ALGOR_set0(alg, OBJ_nid2obj(NID_id_PasswordBasedMAC),
                     V_ASN1_SEQUENCE, pbmStr);
-    pbmStr = NULL;              /* pbmStr is not freed explicityly because the pointer was consumed by X509_ALGOR_set0() */
 
     CRMF_PBMPARAMETER_free(pbm);
     return alg;
@@ -701,8 +699,6 @@ static X509_ALGOR *CMP_create_pbmac_algor(CMP_CTX *ctx)
         X509_ALGOR_free(alg);
     if (pbm)
         CRMF_PBMPARAMETER_free(pbm);
-    if (pbmDer)
-        OPENSSL_free(pbmDer);
     return NULL;
 }
 
