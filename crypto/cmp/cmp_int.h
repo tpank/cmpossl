@@ -97,7 +97,7 @@ struct cmp_ctx_st {
     int maxPollTime;
     /* PKIStatus of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
-    int lastPKIStatus;
+    long lastPKIStatus;
     /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
     unsigned long failInfoCode;

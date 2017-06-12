@@ -1529,7 +1529,7 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
                                          CMP_CERTREPMESSAGE *certrep)
 {
     X509 *newClCert = NULL;
-    int repNum = 0;
+    long repNum = 0;
 
     /* Get the certReqId of the first certresponse. Need to do it this way instead
      * of just using certReqId==0, because in error cases the server might reply with a certReqId
@@ -1584,7 +1584,7 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
     case CMP_PKISTATUS_rejection:{
             char *failInfoString = NULL;
             char *statusString = NULL;
-            int statusLen = 0;
+            size_t statusLen = 0;
             ASN1_UTF8STRING *status = NULL;
             STACK_OF (ASN1_UTF8STRING) * strstack =
                 CMP_CERTREPMESSAGE_PKIStatusString_get0(certrep, repNum);
