@@ -603,6 +603,7 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
     protPart.header = pkimessage->header;
     protPart.body = pkimessage->body;
     protPartDerLen = i2d_CMP_PROTECTEDPART(&protPart, &protPartDer);
+    /* TODO: should here be caught if protPardDer is NULL? */
 
     X509_ALGOR_get0(&algorOID, &pptype, &ppval,
                     pkimessage->header->protectionAlg);
@@ -638,10 +639,8 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
     prot->flags |= ASN1_STRING_FLAG_BITS_LEFT;
 
     /* cleanup */
-    if (evp_ctx)
-        EVP_MD_CTX_destroy(evp_ctx);
-    if (mac)
-        OPENSSL_free(mac);
+    EVP_MD_CTX_destroy(evp_ctx);
+    OPENSSL_free(mac);
     if (protPartDer)
         OPENSSL_free(protPartDer);
     return prot;
