@@ -1566,8 +1566,7 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-    if (configfile == NULL)
-        configfile = getenv("OPENSSL_CONF");
+    configfile = getenv("OPENSSL_CONF");
     if (configfile == NULL)
         configfile = getenv("SSLEAY_CONF");
     if (configfile == NULL) {
