@@ -551,8 +551,6 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage,
 
     CMPerr(CMP_F_CMP_CALC_PROTECTION_PBMAC,
            CMP_R_ERROR_CALCULATING_PROTECTION);
-    if (prot)
-        ASN1_BIT_STRING_free(prot);
     if (protPartDer)
         OPENSSL_free(protPartDer);
     return NULL;
@@ -657,8 +655,6 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
         OPENSSL_free(protPartDer);
 
     CMPerr(CMP_F_CMP_CALC_PROTECTION_SIG, CMP_R_ERROR_CALCULATING_PROTECTION);
-    if (prot)
-        ASN1_BIT_STRING_free(prot);
     return NULL;
 }
 
