@@ -298,18 +298,6 @@ CMP_CTX *CMP_CTX_create(void)
 }
 
 /* ################################################################ *
- * returns latest failInfoCode, -1 on error
- * ################################################################ */
-unsigned long CMP_CTX_get_failInfoCode(CMP_CTX *ctx)
-{
-    if (!ctx)
-        goto err;
-    return ctx->failInfoCode;
- err:
-    return -1;
-}
-
-/* ################################################################ *
  * returns the statusString from the last CertRepMessage, NULL on error
  * ################################################################ */
 STACK_OF (ASN1_UTF8STRING) * CMP_CTX_statusString_get(CMP_CTX *ctx)

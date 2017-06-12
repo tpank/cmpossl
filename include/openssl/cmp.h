@@ -291,8 +291,10 @@ int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
                                      const ASN1_OCTET_STRING
                                      *transactionID);
+int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
 int CMP_PKIHEADER_set1_recipNonce(CMP_PKIHEADER *hdr,
                                   const ASN1_OCTET_STRING *recipNonce);
+int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int CMP_PKIHEADER_set1_senderKID(CMP_PKIHEADER *hdr,
                                  const ASN1_OCTET_STRING *senderKID);
 int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr);
@@ -306,6 +308,8 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr);
 ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage,
                                            const ASN1_OCTET_STRING
                                            *secret);
+ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
+                                         EVP_PKEY *pkey);
 int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg); 
 int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus,

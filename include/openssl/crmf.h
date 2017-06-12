@@ -102,6 +102,7 @@ typedef struct crmf_certid_st CRMF_CERTID;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTID)
 typedef struct crmf_pkipublicationinfo_st CRMF_PKIPUBLICATIONINFO;
 DECLARE_ASN1_FUNCTIONS(CRMF_PKIPUBLICATIONINFO)
+typedef struct crmf_pkiarchiveoptions_st CRMF_PKIARCHIVEOPTIONS;
 typedef struct crmf_certtemplate_st CRMF_CERTTEMPLATE;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTTEMPLATE)
 typedef STACK_OF(CRMF_CERTREQMSG) CRMF_CERTREQMESSAGES;
@@ -206,8 +207,20 @@ int CRMF_CERTREQMSG_set1_control_regToken(CRMF_CERTREQMSG *msg,
                                           ASN1_UTF8STRING *tok);
 int CRMF_CERTREQMSG_set1_control_authenticator(CRMF_CERTREQMSG *msg,
                                                ASN1_UTF8STRING *auth);
+int CRMF_CERTREQMSG_set1_control_pkiPublicationInfo(CRMF_CERTREQMSG *msg,
+                                                    CRMF_PKIPUBLICATIONINFO
+                                                    *pubinfo);
+int CRMF_CERTREQMSG_set1_control_pkiArchiveOptions(CRMF_CERTREQMSG *msg,
+                                                   CRMF_PKIARCHIVEOPTIONS
+                                                   *archopts);
+int CRMF_CERTREQMSG_set1_control_protocolEncrKey(CRMF_CERTREQMSG *msg,
+                                                 X509_PUBKEY *pubkey);
 int CRMF_CERTREQMSG_push0_regInfo(CRMF_CERTREQMSG *certReqMsg,
                                   CRMF_ATTRIBUTETYPEANDVALUE *regInfo);
+int CRMF_CERTREQMSG_set1_regInfo_utf8Pairs(CRMF_CERTREQMSG *msg,
+                                           ASN1_UTF8STRING *utf8pairs);
+int CRMF_CERTREQMSG_set1_regInfo_certReq(CRMF_CERTREQMSG *msg,
+                                         CRMF_CERTREQUEST *certReq);
 int CRMF_CERTREQMSG_set1_regInfo_regToken(CRMF_CERTREQMSG *msg,
                                           ASN1_UTF8STRING *tok);
 

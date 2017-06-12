@@ -293,9 +293,9 @@ static void opt_help(const OPTIONS *unused_arg) {
  * overwritten on the command line.
  * ########################################################################## 
  */
-static int read_config(CONF *conf)
+static int read_config()
 {
-    int i = 0;
+    unsigned int i = 0;
 
     // starting with i = 1 because OPT_SECTION has already been handled
     for (i = 1; i   < sizeof(cmp_vars   )/sizeof(cmp_vars   [0]) &&
@@ -570,7 +570,7 @@ static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
 
 /* improved version of load_cert() found in apps/apps.c */
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass, const char *cert_descrip)
+static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass, const char *cert_descrip)
 {
     X509 *x = NULL;
     BIO *cert;
@@ -742,7 +742,7 @@ static int adjust_format(const char **infile, int format, int engine_ok) {
     return format;
 }
 
-char *get_passwd(const char *pass, const char *desc) {
+static char *get_passwd(const char *pass, const char *desc) {
     char *result = NULL;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
     if (!app_passwd(bio_err, (char *)pass, NULL, &result, NULL)) {
@@ -758,7 +758,7 @@ char *get_passwd(const char *pass, const char *desc) {
     return result;
 }
 
-EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, const char *desc) {
+static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
     char *pass_string = get_passwd(pass, desc);
     format = adjust_format(&infile, format, 1);
@@ -774,7 +774,7 @@ EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, con
     return pkey;
 }
 
-X509 *load_cert_autofmt(const char *infile, int *format, const char *pass, const char *desc) {
+static X509 *load_cert_autofmt(const char *infile, int *format, const char *pass, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
     char *pass_string = get_passwd(pass, desc);
     *format = adjust_format(&infile, *format, 0);
@@ -791,7 +791,7 @@ X509 *load_cert_autofmt(const char *infile, int *format, const char *pass, const
     return cert;
 }
 
-STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char *desc) {
+static STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char *desc) {
     if (format == FORMAT_PEM) {
         return load_certs(bio_err, infile, format, NULL, NULL, desc);
     } else {
@@ -808,7 +808,7 @@ STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char *desc)
     }
 }
 
-STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const char *desc) {
+static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
     format = adjust_format(&infile, format, 0);
     STACK_OF(X509) *certs = load_certs_fmt(infile, format, desc);
@@ -821,7 +821,7 @@ STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const char *d
     return certs;
 }
 
-X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
+static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
     format = adjust_format(&infile, format, 0);
     X509_CRL *crl = load_crl(infile, format);
@@ -830,7 +830,7 @@ X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
     return crl;
 }
 
-STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const char *desc) {
+static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const char *desc) {
     if (format == FORMAT_PEM) {
         // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
         return load_crls(bio_err, infile, format, NULL, NULL, desc);
@@ -848,7 +848,7 @@ STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const char *de
     }
 }
 
-STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, const char *desc) {
+static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, const char *desc) {
     format = adjust_format(&infile, format, 0);
     STACK_OF(X509_CRL) *crls = load_crls_fmt(infile, format, desc);
     if (crls == NULL && format != FORMAT_HTTP)
@@ -866,7 +866,7 @@ STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, const char
  * returns pointer to created X509_STORE on success, NULL on error
  * ########################################################################## 
  */
-X509_STORE *create_cert_store(const char *infile, const char *desc)
+static X509_STORE *create_cert_store(const char *infile, const char *desc)
 {
     X509_STORE *cert_ctx = NULL;
     X509_LOOKUP *lookup = NULL;
@@ -1016,7 +1016,7 @@ static STACK_OF(X509_CRL) *crls_local_then_http_cb(X509_STORE_CTX *ctx, X509_NAM
  * to gather more information regarding a failing cert verification,
  * and to possibly change the result of the verification (not done here).
  */
-int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
+static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 {
     if (ok == 0 && ctx != NULL) {
         int cert_error = X509_STORE_CTX_get_error(ctx);
@@ -1414,7 +1414,7 @@ int cmp_main(int argc, char **argv)
                 BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
                            errorline, configfile);
         } else {
-            if (!read_config(conf))
+            if (!read_config())
                 goto err;
         }
     }

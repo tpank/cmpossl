@@ -97,14 +97,15 @@ PKIArchiveOptions ::= CHOICE {
  -- key of a key pair that the receiver generates in response to
  -- this request; set to FALSE if no archival is desired.
 */
-typedef struct crmf_pkiarchiveoptions_st {
+struct crmf_pkiarchiveoptions_st {
     int type;
     union {
         CRMF_ENCRYPTEDKEY *encryptedPrivKey; /* 0 */
         ASN1_OCTET_STRING *keyGenParameters; /* KeyGenParameters ::= OCTET STRING *//* 1 */
         ASN1_BOOLEAN *archiveRemGenPrivKey; /* 2 */
     } value;
-} CRMF_PKIARCHIVEOPTIONS;
+} /* CRMF_PKIARCHIVEOPTIONS */;
+DECLARE_ASN1_FUNCTIONS(CRMF_PKIARCHIVEOPTIONS)
 CRMF_PKIARCHIVEOPTIONS *CRMF_PKIARCHIVEOPTIONS_dup(CRMF_PKIARCHIVEOPTIONS
                                                    *pkiPubInfo);
 
