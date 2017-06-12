@@ -1307,7 +1307,7 @@ int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO * failInfo)
     ctx->failInfoCode = 0;
     for (i = 0; i <= CMP_PKIFAILUREINFO_MAX; i++)
         if (ASN1_BIT_STRING_get_bit(failInfo, i))
-            ctx->failInfoCode |= 1 << i;
+            ctx->failInfoCode |= 1UL << i;
 
     return 1;
 }
