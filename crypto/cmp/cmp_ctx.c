@@ -940,6 +940,7 @@ int CMP_CTX_set1_newClCert(CMP_CTX *ctx, const X509 *cert)
 int CMP_CTX_set1_pkey(CMP_CTX *ctx, const EVP_PKEY *pkey)
 {
     EVP_PKEY *pkeyDup = NULL;
+
     if (!ctx)
         goto err;
     if (!pkey)
@@ -949,8 +950,6 @@ int CMP_CTX_set1_pkey(CMP_CTX *ctx, const EVP_PKEY *pkey)
     return CMP_CTX_set0_pkey(ctx, pkeyDup);
 
  err:
-    if (pkeyDup)
-        EVP_PKEY_free(pkeyDup);
     CMPerr(CMP_F_CMP_CTX_SET1_PKEY, CMP_R_NULL_ARGUMENT);
     return 0;
 }
@@ -987,6 +986,7 @@ int CMP_CTX_set0_pkey(CMP_CTX *ctx, const EVP_PKEY *pkey)
 int CMP_CTX_set1_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey)
 {
     EVP_PKEY *pkeyDup = NULL;
+
     if (!ctx)
         goto err;
     if (!pkey)
@@ -996,8 +996,6 @@ int CMP_CTX_set1_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey)
     return CMP_CTX_set0_newPkey(ctx, pkeyDup);
 
  err:
-    if (pkeyDup)
-        EVP_PKEY_free(pkeyDup);
     CMPerr(CMP_F_CMP_CTX_SET1_NEWPKEY, CMP_R_NULL_ARGUMENT);
     return 0;
 }
