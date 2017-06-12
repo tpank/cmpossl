@@ -112,7 +112,8 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, validatedSrvCert, X509),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, lastStatusString, ASN1_UTF8STRING),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, crls, X509_CRL),
-    ASN1_SEQUENCE_OF_OPT(CMP_CTX, policies, POLICYINFO),} ASN1_SEQUENCE_END(CMP_CTX)
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, policies, POLICYINFO)
+} ASN1_SEQUENCE_END(CMP_CTX)
 IMPLEMENT_ASN1_FUNCTIONS(CMP_CTX)
 
 /* ############################################################################ *
