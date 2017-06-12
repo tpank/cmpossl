@@ -4455,3 +4455,11 @@ CMP_CTX_set1_clCert                     4391	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_srvCert                    4392	1_1_1	EXIST::FUNCTION:
 CMP_CTX_error_callback                  4393	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set0_reqExtensions              4394	1_1_1	EXIST::FUNCTION:
+CRMF_CERTREQMSG_set1_regInfo_certReq    4395	1_1_1	EXIST::FUNCTION:
+CRMF_CERTREQMSG_set1_regInfo_utf8Pairs  4396	1_1_1	EXIST::FUNCTION:
+CRMF_CERTREQMSG_set1_control_pkiPublicationInfo 4397	1_1_1	EXIST::FUNCTION:
+CRMF_CERTREQMSG_set1_control_protocolEncrKey 4398	1_1_1	EXIST::FUNCTION:
+CMP_PKIHEADER_set1_sender               4399	1_1_1	EXIST::FUNCTION:
+CRMF_CERTREQMSG_set1_control_pkiArchiveOptions 4400	1_1_1	EXIST::FUNCTION:
+CMP_calc_protection_sig                 4401	1_1_1	EXIST::FUNCTION:
+CMP_PKIHEADER_new_senderNonce           4402	1_1_1	EXIST::FUNCTION:
