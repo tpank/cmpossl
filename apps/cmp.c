@@ -1624,8 +1624,8 @@ opt_err:
     }
 #endif /* OPENSSL_VERSION_NUMBER */
 
-    if (!badops)
-        badops = check_options() == 0;
+    if (!badops && !check_options())
+        goto err;
 
  bad_ops:
     if (badops) {
