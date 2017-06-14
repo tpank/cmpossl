@@ -373,31 +373,32 @@ static int read_config()
 
     // starting with 1 and OPT_HELP+1 because OPT_SECTION has already been handled
     for (i = 1, j = OPT_HELP+1; j < sizeof(cmp_options)/sizeof(cmp_options[0]) - 1; i++, j++) {
+        int verification_option = (OPT_CDPS <= j && j < OPT_CDPS + OPT_V__LAST-OPT_V__FIRST-1); /* OPT_CRLALL etc. */
+        if (verification_option)
+            i--;
         const OPTIONS *opt = &cmp_options[j];
         switch (opt->valtype) {
         case '-':
-        case 'n': /* numeric options like 'verify_depth' have am optional value defaulting to 0 */
-            if (!NCONF_get_number_e(conf, opt_section, opt->name, &num)) {
-                ERR_clear_error();
-                num = 0;
-            }
-            break;
+        case 'n':
         case 'l':
             if (!NCONF_get_number_e(conf, opt_section, opt->name, &num)) {
-                BIO_printf(bio_err, "cannot get number argument for option '%s'\n", opt->name);
-                return 0;
+                ERR_clear_error();
+                continue; /* option not provided */
             }
             break;
         case 's':
         case 'M':
             txt = NCONF_get_string(conf, opt_section, opt->name);
+            if (txt == NULL) {
+                continue; /* option not provided */
+            }
             break;
         default:
             BIO_printf(bio_err, "internal error: unsupported type '%c' for option '%s'\n", opt->valtype, opt->name);
             return 0;
             break;
         }
-        if (OPT_CDPS <= j && j < OPT_CDPS + OPT_V__LAST-OPT_V__FIRST-1) { /* OPT_CRLALL etc. */
+        if (verification_option) {
             int conf_argc = 1;
             char *conf_argv[3];
             char arg1[82];
@@ -408,10 +409,8 @@ static int read_config()
                 if (num != 0)
                     conf_argc = 2;
             } else {
-                if (txt) {
-                    conf_argc = 3;
-                    conf_argv[2] = txt;
-                }
+                conf_argc = 3;
+                conf_argv[2] = NCONF_get_string(conf, opt_section, opt->name); /* not NULL */
             }
             if (conf_argc > 1) {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -429,7 +428,6 @@ static int read_config()
                 } else
                     vpmtouched++;
             }
-            i--;
         } else {
             switch (opt->valtype) {
                 case '-':
@@ -441,10 +439,6 @@ static int read_config()
                     *cmp_vars[i].num = (int)num;
                     break;
                 case 'l':
-                    if (num < INT_MIN || INT_MAX < num) {
-                        BIO_printf(bio_err, "integer value out of rnage for option '%s'\n", opt->name);
-                        return 0;
-                    }
                     *cmp_vars[i].num_long = num;
                     break;
                 default:
@@ -1232,7 +1226,7 @@ static int setup_ctx(CMP_CTX * ctx)
             SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, print_cert_verify_cb);
         }
 
-	if (vpmtouched && !SSL_CTX_set1_param(ssl_ctx, vpm)) {
+        if (vpmtouched && !SSL_CTX_set1_param(ssl_ctx, vpm)) {
             BIO_printf(bio_err, "Error setting verify params\n");
             ERR_print_errors(bio_err);
             goto tls_err;
