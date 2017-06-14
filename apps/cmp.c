@@ -366,22 +366,23 @@ static void opt_help(const OPTIONS *unused_arg) {
  */
 static int read_config()
 {
-    unsigned int i = 0, j;
+    unsigned int i, j;
     long num = 0;
     char *txt = NULL;
 
-    for (j = OPT_HELP; j < sizeof(cmp_options)/sizeof(cmp_options[0]) - 1; j++) {
+    // starting with 1 and OPT_HELP+1 because OPT_SECTION has already been handled
+    for (i = 1, j = OPT_HELP+1; j < sizeof(cmp_options)/sizeof(cmp_options[0]) - 1; i++, j++) {
         const OPTIONS *opt = &cmp_options[j];
         switch (opt->valtype) {
         case '-':
-            if (!NCONF_get_number_e(conf, CMP_SECTION, opt->name, &num))
+            if (!NCONF_get_number_e(conf, opt_section, opt->name, &num))
                 num = 0;
             break;
         case 'n':
         case 'l':
         case 's':
         case 'M':
-            txt = NCONF_get_string(conf, CMP_SECTION, opt->name);
+            txt = NCONF_get_string(conf, opt_section, opt->name);
             break;
         default:
             BIO_printf(bio_err, "internal error: unsupported type '%c' for option '%s'\n", opt->valtype, opt->name);
@@ -415,17 +416,17 @@ static int read_config()
                 if (badops)
 #endif
                 {
-                    BIO_printf(bio_err, "error for option '%s' in config file section '%s'\n", opt->name, CMP_SECTION);
+                    BIO_printf(bio_err, "error for option '%s' in config file section '%s'\n", opt->name, opt_section);
                     return 0;
                 } else
                     vpmtouched++;
             }
+            i--;
         } else {
             if (opt->valtype == '-')
                 *cmp_vars[i].num = num;
             else
                 *cmp_vars[i].txt = txt;
-            i++;
         }
     }
 
@@ -885,10 +886,9 @@ static char *get_passwd(const char *pass, const char *desc) {
     return result;
 }
 
-<<<<<<< HEAD
 /* TODO dvo: push that separately upstream */
 /* in apps.c there is load_key which should be used for CMP upstream submission */
-EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, const char *desc) {
+static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
     char *pass_string = get_passwd(pass, desc);
     format = adjust_format(&infile, format, 1);
@@ -906,7 +906,7 @@ EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, con
 
 /* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_certs_fmt */
-X509 *load_cert_autofmt(const char *infile, int *format, const char *pass, const char *desc) {
+static X509 *load_cert_autofmt(const char *infile, int *format, const char *pass, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
     char *pass_string = get_passwd(pass, desc);
     *format = adjust_format(&infile, *format, 0);
@@ -925,7 +925,7 @@ X509 *load_cert_autofmt(const char *infile, int *format, const char *pass, const
 
 /* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_certs_autofmt */
-STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char *desc) {
+static STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char *desc) {
     if (format == FORMAT_PEM) {
         return load_certs(bio_err, infile, format, NULL, NULL, desc);
     } else {
@@ -944,7 +944,7 @@ STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char *desc)
 
 /* TODO dvo: push that separately upstream */
 /* in apps.c there is load_certs which should be used for CMP upstream submission */
-STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const char *desc) {
+static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
     format = adjust_format(&infile, format, 0);
     STACK_OF(X509) *certs = load_certs_fmt(infile, format, desc);
@@ -957,10 +957,9 @@ STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const char *d
     return certs;
 }
 
-<<<<<<< HEAD
 /* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_crls_fmt */
-X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
+static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
     format = adjust_format(&infile, format, 0);
     X509_CRL *crl = load_crl(infile, format);
@@ -971,7 +970,7 @@ X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
 
 /* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_crls_autofmt */
-STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const char *desc) {
+static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const char *desc) {
     if (format == FORMAT_PEM) {
         // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
         return load_crls(bio_err, infile, format, NULL, NULL, desc);
@@ -989,11 +988,9 @@ STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const char *de
     }
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 /* TODO dvo: push that separately upstream */
 /* in apps.c there is load_crls which should be used for CMP upstream submission */
-STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, const char *desc) {
+static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, const char *desc) {
     format = adjust_format(&infile, format, 0);
     STACK_OF(X509_CRL) *crls = load_crls_fmt(infile, format, desc);
     if (crls == NULL && format != FORMAT_HTTP)
@@ -1754,9 +1751,9 @@ opt_err:
             break;
             }
 
-        int found = 0, i = 0, j = OPT_HELP;
-        // starting with i = 1 because OPT_SECTION has already been handled
-        for (i = 0; i < sizeof(cmp_vars)/sizeof(cmp_vars[0]); i++, j++) {
+        int found = 0, i = 0, j;
+        // starting with OPT_HELP+1 and 1 because OPT_SECTION has already been handled
+        for (i = 1, j = OPT_HELP+1; i < sizeof(cmp_vars)/sizeof(cmp_vars[0]); i++, j++) {
             if (j == OPT_CDPS)
                 j += OPT_V__LAST-OPT_V__FIRST - 1;
             const OPTIONS *opt = &cmp_options[j];
