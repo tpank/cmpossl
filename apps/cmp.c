@@ -359,7 +359,7 @@ static void opt_help(const OPTIONS *unused_arg) {
 
 /*
  * ########################################################################## 
- * use the command line option table to read values from the [cmp] section 
+ * use the command line option table to read values from the CMP section
  * of openssl.cnf.  Defaults are taken from the config file, they can be
  * overwritten on the command line.
  * ########################################################################## 
@@ -1208,8 +1208,12 @@ static int setup_ctx(CMP_CTX * ctx)
             SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, print_cert_verify_cb);
         }
 
-	if (vpmtouched)
-            SSL_CTX_set1_param(ssl_ctx, vpm);
+	if (vpmtouched && !SSL_CTX_set1_param(ssl_ctx, vpm)) {
+            BIO_printf(bio_err, "Error setting verify params\n");
+            ERR_print_errors(bio_err);
+            goto tls_err;
+        }
+
         ERR_clear_error();
         if (opt_crls || opt_cdps)
             X509_VERIFY_PARAM_set_flags(SSL_CTX_get0_param(ssl_ctx), X509_V_FLAG_CRL_CHECK);
