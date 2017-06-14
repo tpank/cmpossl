@@ -92,9 +92,9 @@ typedef enum { CMP_IR,
 
 static char *opt_server = NULL;
 static char *server_address = NULL;
-static long server_port = 0;
+static int   server_port = 0;
 
-static long  opt_use_tls = 0;
+static int   opt_use_tls = 0;
 static char *opt_tls_cert = NULL;
 static char *opt_tls_key = NULL;
 static char *opt_tls_keypass = NULL;
@@ -132,20 +132,20 @@ static char *opt_extcerts = NULL;
 static char *opt_subject = NULL;
 static char *opt_issuer = NULL;
 static char *opt_recipient = NULL;
-static long  opt_popo = -1;
+static int   opt_popo = -1;
 static char *opt_reqexts = NULL;
 static long  opt_disableConfirm = 0;
 static long  opt_implicitConfirm = 0;
 static long  opt_unprotectedErrors = 0;
 static char *opt_digest = NULL;
 static char *opt_oldcert = NULL;
-static long  opt_revreason = -1;
+static int   opt_revreason = -1;
 
 static char *opt_cacertsout = NULL;
 static char *opt_extracertsout = NULL;
 
 static char *opt_proxy = NULL;
-static long opt_proxyPort = 0;
+static int   opt_proxyPort = 0;
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 typedef struct options_st {
@@ -293,7 +293,7 @@ OPTIONS cmp_options[] = {
     {"newkeypass", OPT_NEWKEYPASS, 's', "Password for the key for corresponding to the requested certificate"},
     {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template"},
-    {"popo", OPT_POPO, 'l', "Set Proof-of-Possession (POPO) method.\n"
+    {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method.\n"
                    "\t\t     0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
     {"reqexts", OPT_REQEXTS, 's', "Name of section in OpenSSL config file defining certificate request extensions"},
 
@@ -320,7 +320,8 @@ OPTIONS cmp_options[] = {
 
 typedef union {
     char **txt;
-    long *num;
+    int *num;
+    long *num_long;
 } varref;
 static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_section},
@@ -375,11 +376,18 @@ static int read_config()
         const OPTIONS *opt = &cmp_options[j];
         switch (opt->valtype) {
         case '-':
-            if (!NCONF_get_number_e(conf, opt_section, opt->name, &num))
+        case 'n': /* numeric options like 'verify_depth' have am optional value defaulting to 0 */
+            if (!NCONF_get_number_e(conf, opt_section, opt->name, &num)) {
+                ERR_clear_error();
                 num = 0;
+            }
             break;
-        case 'n':
         case 'l':
+            if (!NCONF_get_number_e(conf, opt_section, opt->name, &num)) {
+                BIO_printf(bio_err, "cannot get number argument for option '%s'\n", opt->name);
+                return 0;
+            }
+            break;
         case 's':
         case 'M':
             txt = NCONF_get_string(conf, opt_section, opt->name);
@@ -423,10 +431,26 @@ static int read_config()
             }
             i--;
         } else {
-            if (opt->valtype == '-')
-                *cmp_vars[i].num = num;
-            else
-                *cmp_vars[i].txt = txt;
+            switch (opt->valtype) {
+                case '-':
+                case 'n':
+                    if (num < INT_MIN || INT_MAX < num) {
+                        BIO_printf(bio_err, "integer value out of rnage for option '%s'\n", opt->name);
+                        return 0;
+                    }
+                    *cmp_vars[i].num = (int)num;
+                    break;
+                case 'l':
+                    if (num < INT_MIN || INT_MAX < num) {
+                        BIO_printf(bio_err, "integer value out of rnage for option '%s'\n", opt->name);
+                        return 0;
+                    }
+                    *cmp_vars[i].num_long = num;
+                    break;
+                default:
+                    *cmp_vars[i].txt = txt;
+                    break;
+            }
         }
     }
 
@@ -549,7 +573,7 @@ static int check_options(void)
     }
 
     if (opt_popo < -1 || opt_popo > 3) {
-        BIO_printf(bio_err, "error: invalid value for popo method (must be between 0 and 3): %ld\n", opt_popo);
+        BIO_printf(bio_err, "error: invalid value for popo method (must be between 0 and 3): %d\n", opt_popo);
         goto err;
     }
 
@@ -1708,7 +1732,7 @@ opt_err:
             opt_proxy = opt_arg();
             break;
         case OPT_PROXYPORT:
-            if (!opt_long(opt_arg(), &opt_proxyPort))
+            if (!opt_int(opt_arg(), &opt_proxyPort))
                 goto opt_err;
             break;
 
@@ -1722,7 +1746,7 @@ opt_err:
             opt_unprotectedErrors = 1;
             break;
         case OPT_POPO:
-            if (!opt_long(opt_arg(), &opt_popo))
+            if (!opt_int(opt_arg(), &opt_popo))
                 goto opt_err;
             break;
 
@@ -1733,7 +1757,7 @@ opt_err:
             opt_oldcert = opt_arg();
             break;
         case OPT_REVREASON:
-            if (!opt_long(opt_arg(), &opt_revreason))
+            if (!opt_int(opt_arg(), &opt_revreason))
                 goto opt_err;
             break;
         }
@@ -1772,8 +1796,11 @@ opt_err:
                     *cmp_vars[i].num = 1;
                     break;
                 case 'n':
-                case 'l':
                     *cmp_vars[i].num = atoi(*++argv);
+                    argc--;
+                    break;
+                case 'l':
+                    *cmp_vars[i].num_long = atol(*++argv);
                     argc--;
                     break;
                 case 's':
