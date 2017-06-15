@@ -78,6 +78,10 @@ char *prog = "cmp";
 static CONF *conf = NULL;       /* OpenSSL config file context structure */
 static BIO *bio_c_out = NULL;   /* OpenSSL BIO for printing to STDOUT */
 
+#ifndef OPENSSL_NO_ENGINE
+ENGINE *e = NULL;
+#endif
+
 /*
  * the type of cmp command we want to send 
  */
@@ -246,6 +250,9 @@ typedef enum OPTION_choice {
     OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
     OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
     OPT_KEYFMT, OPT_CERTFMT, OPT_GENINFOINT,
+#ifndef OPENSSL_NO_ENGINE
+    OPT_ENGINE,
+#endif
 } OPTION_CHOICE;
 
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
@@ -321,6 +328,9 @@ OPTIONS cmp_options[] = {
                              "\t\t     This also determines format to use for writing (not supported for P12)"},
     {"geninfoint", OPT_GENINFOINT, 's', "Set generalInfo in request PKIHeader with type and integer value\n"
                              "\t\t       given in the form OID:int, e.g., '1.2.3:987'"},
+#ifndef OPENSSL_NO_ENGINE
+    {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+#endif
     {NULL}
 };
 
@@ -587,7 +597,11 @@ static int check_options(void)
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     if (opt_keyfmt_s
-        && !opt_format(opt_keyfmt_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12, &opt_keyfmt)) {
+        && !opt_format(opt_keyfmt_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
+#ifndef OPENSSL_NO_ENGINE
+            | OPT_FMT_ENGINE
+#endif
+            , &opt_keyfmt)) {
         BIO_puts(bio_err, "error: unknown option given for key format\n");
         goto err;
     }
@@ -924,7 +938,11 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pa
     // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
     char *pass_string = get_passwd(pass, desc);
     format = adjust_format(&infile, format, 1);
+#ifndef OPENSSL_NO_ENGINE
+    EVP_PKEY *pkey = load_key(bio_err, infile, format, 0, pass_string, e, desc);
+#else
     EVP_PKEY *pkey = load_key(bio_err, infile, format, 0, pass_string, NULL, desc);
+#endif
     if (pkey == NULL && format != FORMAT_HTTP && format != FORMAT_ENGINE)
         pkey = load_key(bio_err, infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, 0, pass_string, NULL, desc);
     if (!pkey) {
@@ -1887,6 +1905,11 @@ opt_err:
         case OPT_GENINFOINT:
             opt_geninfoint = opt_arg();
             break;
+#ifndef OPENSSL_NO_ENGINE
+        case OPT_ENGINE:
+            e = setup_engine(opt_arg(), 0);
+            break;
+#endif
         }
     }
     argc = opt_num_rest();
