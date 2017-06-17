@@ -191,8 +191,8 @@ OPTIONS cmp_options[] = {
 
     {"use-tls", OPT_USETLS, '-', "Force using TLS (even when other TLS-related options are not set) when connecting to CMP server"},
     {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. PEM format may also include certificate chain to be provided to server"},
-    {"tls-key", OPT_TLSKEY, 's', "Key for the client's TLS certificate"},
-    {"tls-keypass", OPT_TLSKEYPASS, 's', "Password for the client's TLS key"},
+    {"tls-key", OPT_TLSKEY, 's', "Private key for the client's TLS certificate"},
+    {"tls-keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
 
     {"tls-trusted", OPT_TLSTRUSTED, 's', "Client's trusted certificates for verifying TLS certificates.\n"
                                 "\t\t     This implies host name validation"},
@@ -202,11 +202,11 @@ OPTIONS cmp_options[] = {
                           "\t\t     while verifying TLS certificates"},
     {"tls-crl-all", OPT_TLSCRLALL, '-', "Check CRLs not only for TLS server but also for TLS CA certificates"},
 
-    {"user", OPT_USER, 's', "Username for client authentication with a pre-shared key"},
-    {"pass", OPT_PASS, 's', "Password for client authentication with a pre-shared key (password-based MAC)"},
+    {"user", OPT_USER, 's', "Username for client authentication with a pre-shared key (reference value)"},
+    {"pass", OPT_PASS, 's', "Password source for client authentication with a pre-shared key (secret value)"},
     {"cert", OPT_CERT, 's', "Client's current certificate (needed unless using PSK)"},
-    {"key", OPT_KEY, 's', "Key for the client's current certificate"},
-    {"keypass", OPT_KEYPASS, 's', "Password for the client key"},
+    {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
+    {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
     {"extcerts", OPT_EXTCERTS, 's', "Certificates to include in the extraCerts field of request"},
 
     {"srvcert", OPT_SRVCERT, 's', "certificate of CMP server to be used as recipient and for verifying the protection of replies"},
@@ -219,8 +219,8 @@ OPTIONS cmp_options[] = {
     {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
     {"cmd", OPT_CMD, 's', "CMP command to execute: ir/cr/kur/rr/..."},
 
-    {"newkey", OPT_NEWKEY, 's', "Key corresponding to the requested certificate. Default is current client certificate's key if given."},
-    {"newkeypass", OPT_NEWKEYPASS, 's', "Password for the key for corresponding to the requested certificate"},
+    {"newkey", OPT_NEWKEY, 's', "New key for the requested certificate. Default is current client certificate's key if given."},
+    {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
     {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template"},
     {"popo", OPT_POPO, 'l', "Set Proof-of-Possession (POPO) method.\n"
