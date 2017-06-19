@@ -135,6 +135,7 @@ struct cmp_ctx_st {
 
     CERTIFICATEPOLICIES *policies;
 
+    STACK_OF(CMP_INFOTYPEANDVALUE) *geninfo_itavs;
 } /* CMP_CTX */;
 DECLARE_ASN1_FUNCTIONS(CMP_CTX)
 

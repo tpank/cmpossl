@@ -93,6 +93,7 @@
  int CMP_CTX_caPubs_num( CMP_CTX *ctx);
  int CMP_CTX_set1_caPubs( CMP_CTX *ctx, const STACK_OF(X509) *caPubs);
  int CMP_CTX_policyOID_push1( CMP_CTX *ctx, const char *policyOID);
+ int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, CMP_INFOTYPEANDVALUE *itav);
 
  int CMP_CTX_set1_extraCertsOut( CMP_CTX *ctx, const STACK_OF(X509) *extraCertsOut);
  int CMP_CTX_extraCertsOut_push1( CMP_CTX *ctx, const X509 *val);
@@ -280,6 +281,9 @@ CMP_CTX_caPubs_pop().
 CMP_CTX_policyOID_push1() adds the certificate policy OID given by the
 string to the X509_EXTENSIONS of the certificate template we are
 requesting.
+
+CMP_CTX_geninfo_itav_push0() adds InfoTypeAndValue item given to the GeneralInfo
+filed of the CMP PKIMessage header of the request message to be sent.
 
 CMP_CTX_set1_extraCertsOut() sets the stack of extraCerts that will be
 sent to remote.

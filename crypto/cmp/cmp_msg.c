@@ -237,10 +237,15 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     if (!CMP_PKIHEADER_init(ctx, msg->header))
         goto err;
 
+    CMP_PKIMESSAGE_set_bodytype(msg, bodytype);
+
     if (ctx->implicitConfirm)
         if (!CMP_PKIMESSAGE_set_implicitConfirm(msg))
             goto err;
-    CMP_PKIMESSAGE_set_bodytype(msg, bodytype);
+
+    if (ctx->geninfo_itavs)
+        if (!CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs))
+			goto err;
 
     X509 *oldcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
     if (ctx->subjectName)
@@ -366,6 +371,10 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
         if (!CMP_PKIHEADER_set1_recipient(msg->header, X509_get_issuer_name(ctx->oldClCert)))
             goto err;
     CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_RR);
+
+    if (ctx->geninfo_itavs)
+        if (!CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs))
+			goto err;
 
     if (!(msg->body->value.rr = sk_CMP_REVDETAILS_new_null()))
         goto err;
@@ -497,8 +506,15 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
     if (!CMP_PKIHEADER_init(ctx, msg->header))
         goto err;
     CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_GENM);
+
+    if (ctx->geninfo_itavs)
+        if (!CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs))
+			goto err;
+
     if (!(msg->body->value.genm = sk_CMP_INFOTYPEANDVALUE_new_null()))
         goto err;               /* initialize with empty stack */
+
+    /* TODO: here the body needs to be set */
 
     if (!CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;

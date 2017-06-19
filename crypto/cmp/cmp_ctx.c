@@ -111,7 +111,8 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, validatedSrvCert, X509),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, lastStatusString, ASN1_UTF8STRING),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, crls, X509_CRL),
-    ASN1_SEQUENCE_OF_OPT(CMP_CTX, policies, POLICYINFO)
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, policies, POLICYINFO),
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, geninfo_itavs, CMP_INFOTYPEANDVALUE),
 } ASN1_SEQUENCE_END(CMP_CTX)
 IMPLEMENT_ASN1_FUNCTIONS(CMP_CTX)
 
@@ -631,22 +632,39 @@ int CMP_CTX_set1_extraCertsOut(CMP_CTX *ctx,
  * ################################################################ */
 int CMP_CTX_policyOID_push1(CMP_CTX *ctx, const char *policyOID)
 {
+    POLICYINFO *pol = NULL;
+
     if (!ctx || !policyOID)
         goto err;
 
-    if (!ctx->policies)
-        ctx->policies = CERTIFICATEPOLICIES_new();
-    if (!ctx->policies)
+    if (!ctx->policies && !(ctx->policies = CERTIFICATEPOLICIES_new()))
         goto err;
 
-    POLICYINFO *pol = POLICYINFO_new();
-    if (!pol)
+    if (!(pol = POLICYINFO_new()))
         goto err;
 
     pol->policyid = OBJ_txt2obj(policyOID, 1);
     sk_POLICYINFO_push(ctx->policies, pol);
 
     return 1;
+
+ err:
+    return 0;
+}
+
+/* ################################################################ *
+ * add an itav for geninfo of the PKI message header
+ * ################################################################ */
+int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, CMP_INFOTYPEANDVALUE *itav)
+{
+    if (!ctx)
+        goto err;
+
+        if (!ctx->geninfo_itavs &&
+                !(ctx->geninfo_itavs = sk_CMP_INFOTYPEANDVALUE_new_null()))
+            goto err;
+
+    return sk_CMP_INFOTYPEANDVALUE_push(ctx->geninfo_itavs, itav);
 
  err:
     return 0;

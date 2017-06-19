@@ -930,6 +930,38 @@ int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr,
         goto err;
     return 1;
  err:
+    CMPerr(CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0,
+           CMP_R_ERROR_PUSHING_GENERALINFO_ITEM);
+    return 0;
+}
+
+/* ############################################################################ */
+/* TODO: is that the most efficient way? */
+int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg,
+                                          STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
+{
+    CMP_INFOTYPEANDVALUE *itav = NULL;
+    STACK_OF(CMP_INFOTYPEANDVALUE) *myitavs = NULL;
+
+    if (!msg)
+        goto err;
+
+    myitavs = sk_CMP_INFOTYPEANDVALUE_dup(itavs);
+
+    while ((itav = sk_CMP_INFOTYPEANDVALUE_shift(myitavs))) {
+        if (!CMP_PKIHEADER_generalInfo_item_push0(msg->header, itav)) {
+            CMP_INFOTYPEANDVALUE_free(itav);
+            goto err;
+        }
+    }
+
+    sk_CMP_INFOTYPEANDVALUE_free(myitavs);
+    return 1;
+ err:
+    CMPerr(CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1,
+           CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS);
+    if (myitavs)
+        sk_CMP_INFOTYPEANDVALUE_free(myitavs);
     return 0;
 }
 

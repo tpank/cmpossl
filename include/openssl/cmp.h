@@ -318,8 +318,9 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus,
                                 const X509 *cert);
 int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr,
-                                         const CMP_INFOTYPEANDVALUE
-                                         *itav);
+                                         const CMP_INFOTYPEANDVALUE *itav);
+int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg,
+                                          STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
 int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
                                    const CMP_INFOTYPEANDVALUE *itav);
 int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) **
@@ -404,6 +405,7 @@ X509 *CMP_CTX_caPubs_pop(CMP_CTX *ctx);
 int CMP_CTX_caPubs_num(CMP_CTX *ctx);
 int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF (X509) * caPubs);
 int CMP_CTX_policyOID_push1(CMP_CTX *ctx, const char *policyOID);
+int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, CMP_INFOTYPEANDVALUE *itav);
 
 int CMP_CTX_set1_extraCertsOut(CMP_CTX *ctx,
                                const STACK_OF (X509) * extraCertsOut);
@@ -538,6 +540,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_IR_NEW                                 154
 # define CMP_F_CMP_KUR_NEW                                155
 # define CMP_F_CMP_NEW_HTTP_BIO                           156
+# define CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0       177
+# define CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1     178
 # define CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM                157
 # define CMP_F_CMP_PKIMESSAGE_PARSE_ERROR_MSG             158
 # define CMP_F_CMP_PKIMESSAGE_PROTECT                     159
@@ -578,6 +582,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_PARSING_ERROR_MESSAGE                118
 # define CMP_R_ERROR_PARSING_PKISTATUS                    119
 # define CMP_R_ERROR_PROTECTING_MESSAGE                   120
+# define CMP_R_ERROR_PUSHING_GENERALINFO_ITEM             160
+# define CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS            161
 # define CMP_R_ERROR_REQID_NOT_FOUND                      121
 # define CMP_R_ERROR_SETTING_CERTHASH                     122
 # define CMP_R_ERROR_TRANSACTIONID_UNMATCHED              159
