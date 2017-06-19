@@ -360,7 +360,7 @@ in the ./capubs.pem file.
 
   openssl genrsa -out cl_key.pem
   openssl cmp -cmd ir -server 127.0.0.1:8080 -path pkix/ \
-    -user 1234 -pass pass:1234-5678-1234-5678 \
+    -ref 1234 -secret pass:1234-5678-1234-5678 \
     -recipient "/CN=CMPserver" \
     -newkey cl_key.pem -subject "/CN=MyName" \
     -cacertsout capubs.pem -certout cl_cert.pem
