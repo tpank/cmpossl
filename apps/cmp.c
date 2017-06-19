@@ -219,7 +219,7 @@ OPTIONS cmp_options[] = {
     {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
     {"cmd", OPT_CMD, 's', "CMP command to execute: ir/cr/kur/rr/..."},
 
-    {"newkey", OPT_NEWKEY, 's', "New key for the requested certificate. Default is current client certificate's key if given."},
+    {"newkey", OPT_NEWKEY, 's', "New private key for the requested certificate. Default is current client certificate's key if given."},
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
     {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template"},

@@ -65,7 +65,7 @@ B<openssl> B<cmp>
 
 The B<cmp> command is a client implementation for the Certificate
 Management Protocol (CMP) as defined in RFC4210. It can be used to 
-request certificates from a CA server, update their keys, 
+request certificates from a CA server, update their certificates,
 request certificates to be revoked, and perform other CMP requests.
 
 =head1 OPTIONS
@@ -102,12 +102,13 @@ Client's TLS certificate. PEM format may also include certificate chain to be pr
 
 =item B<-tls-key filename>
 
-Key for the client's TLS certificate.
+Private key for the client's TLS certificate.
 
 =item B<-tls-keypass arg>
 
-Password for client's TLS key.  If not given here, the password will be prompted
-for if needed.  For more information about the format of B<arg> see the
+Pass phrase source for client's private TLS key.
+If not given here, the password will be prompted for if needed.
+For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-tls-trusted filename>
@@ -130,13 +131,14 @@ Check CRLs not only for TLS server but also for TLS CA certificates.
 =item B<-user username>
 
 Username (reference value) to be used when messages are authenticated
-with pre-shared keys.
+with pre-shared keys (password-base method using reference value / secret).
 
 =item B<-pass arg>
 
-Password (secret value) to be used when messages are authenticated with
-pre-shared keys (reference value / secret). For more information about the
-format of B<arg> see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+Pass phrase source for secret value to be used when messages are authenticated
+with pre-shared keys (password-base method using reference value / secret).
+For more information about the format of B<arg> see the
+B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-cert filename>
 
@@ -152,9 +154,10 @@ the -cert option.
 
 =item B<-keypass arg>
 
-Password for the private key given with the -key option.  If not given here, the
-password will be prompted for if needed.  For more information about the format
-of B<arg> see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+Pass phrase source for the private key given with the -key option.
+If not given here, the password will be prompted for if needed.
+For more information about the format of B<arg> see the
+B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-extcerts filename>
 
@@ -206,14 +209,15 @@ CMP command to execute. Currently implemented commands are:
 
 =item B<-newkey filename>
 
-The file containing the key corresponding to the requested certificate in IR,
-CR or KUR.  Default is the current client key.
+The file containing the private key corresponding to the requested certificate in IR,
+CR or KUR.  Default is the current client key if given.
 
 =item B<-newkeypass arg>
 
-Password for the key given with the -newkey option.  If not given here, the
-password will be prompted for if needed. For more information about the format
-of B<arg> see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+Pass phrase source for the key given with the -newkey option.
+If not given here, the password will be prompted for if needed.
+For more information about the format of B<arg> see the
+B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-subject distinguished_name>
 
