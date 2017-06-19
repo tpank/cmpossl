@@ -1,4 +1,3 @@
-/* vim: set cino={1s noet ts=4 sts=4 sw=4: */
 /* crypto/crmf/crmf_msg.c
  * Functions for creating CRMF (RFC 4211) messages for OpenSSL
  */

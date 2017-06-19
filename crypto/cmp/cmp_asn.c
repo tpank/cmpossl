@@ -1,4 +1,3 @@
-/* vim: set noet ts=4 sts=4 sw=4: */
 /* cmp_asn.c
  * OpenSSL ASN.1 definitions for CMP (RFC 4210)
  */

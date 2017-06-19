@@ -1,4 +1,3 @@
-/* vim: set noet ts=4 sts=4 sw=4: */
 /* crypto/cmp/cmp_msg.c
  * Functions for creating CMP (RFC 4210) messages for OpenSSL
  */

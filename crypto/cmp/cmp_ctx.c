@@ -1,4 +1,3 @@
-/* vim: set noet ts=4 sts=4 sw=4: */
 /* crypto/cmp/cmp_ctx.c
  * CMP (RFC 4210) context functions for OpenSSL
  */
