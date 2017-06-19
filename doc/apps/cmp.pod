@@ -20,9 +20,6 @@ B<openssl> B<cmp>
 [B<-tls-key filename>]
 [B<-tls-keypass password>]
 [B<-tls-trusted filename>]
-[B<-tls-crls url>]
-[B<-tls-cdps>]
-[B<-tls-crl-all>]
 
 [B<-user username>]
 [B<-pass password>]
@@ -34,6 +31,37 @@ B<openssl> B<cmp>
 [B<-srvcert filename>]
 [B<-trusted filename>]
 [B<-untrusted filename>]
+[B<-crls url>]
+[B<-crl_download>]
+[B<-policy arg>]
+[B<-purpose purpose>]
+[B<-verify_name name>]
+[B<-verify_depth num>]
+[B<-auth_level level>]
+[B<-attime timestamp>]
+[B<-verify_hostname hostname>]
+[B<-verify_email email>]
+[B<-verify_ip ip>]
+[B<-ignore_critical>]
+[B<-crl_check>]
+[B<-crl_check_all>]
+[B<-policy_check>]
+[B<-explicit_policy>]
+[B<-inhibit_any>]
+[B<-inhibit_map>]
+[B<-x509_strict>]
+[B<-extended_crl>]
+[B<-use_deltas>]
+[B<-policy_print>]
+[B<-check_ss_sig>]
+[B<-trusted_first>]
+[B<-suiteB_128_only>]
+[B<-suiteB_128>]
+[B<-suiteB_192>]
+[B<-partial_chain>]
+[B<-no_alt_chains>]
+[B<-no_check_time>]
+[B<-allow_proxy_certs>]
 
 [B<-recipient name>]
 [B<-path remote_path>]
@@ -114,18 +142,6 @@ password will be prompted for if needed.
 Client's trusted certificates for verifying TLS certificates.  The file may 
 contain multiple certificates.  This implies host name validation.
 
-=item B<-tls-crls URL>
-
-Use given CRL(s) as primary source when verifying TLS certificates. URL may point to local file if prefixed by 'file:'.
-
-=item B<-tls-cdps>
-
-Retrieve CRLs from distribution points given in certificates as secondary source while verifying TLS certificates.
-
-=item B<-tls-crl-all>
-
-Check CRLs not only for TLS server but also for TLS CA certificates.
-
 =item B<-user username>
 
 Username (reference value) to be used when messages are authenticated
@@ -172,6 +188,30 @@ The file can contain multiple certificates.
 
 Untrusted certificates needed for path construction in CMP server authentication. 
 The file can contain multiple certificates.
+
+=item B<-crls URL>
+
+Use given CRL(s) as primary source of certifiate revocation information. URL may point to local file if prefixed by 'file:'.
+
+This option enables CRL checking for, e.g., the CMP/TLS server certificate as it is the
+leaf certificate of the certificate chain.  Compare B<X509_V_FLAG_CRL_CHECK>.
+
+=item B<-crl_download>
+
+Retrieve CRLs from distribution points given in certificates, as secondary source.
+
+This option enables CRL checking for, e.g., the CMP/TLS server certificate as it is the
+leaf certificate of the certificate chain.  Compare B<X509_V_FLAG_CRL_CHECK>.
+
+=item B<-policy>, B<-purpose>, B<-verify_name>, B<-verify_depth>, B<-auth_level>,
+B<-attime>, B<-verify_hostname>, B<-verify_email>, B<-verify_ip>, B<-ignore_critical>,
+B<-crl_check>, B<-crl_check_all>, B<-policy_check>,  B<-explicit_policy>, B<-inhibit_any>, 
+B<-inhibit_map>, B<-x509_strict>, B<-extended_crl>, B<-use_deltas>, B<-policy_print>,
+B<-check_ss_sig>, B<-trusted_first>, B<-suiteB_128_only>, B<-suiteB_128>, B<-suiteB_192>,
+B<-partial_chain>, B<-no_alt_chains>, B<-no_check_time>, B<-allow_proxy_certs>
+
+Set various certificate chain validation options. 
+See the L<verify(1)> manual page for details.
 
 =item B<-recipient name>
 

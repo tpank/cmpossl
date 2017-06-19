@@ -158,11 +158,11 @@ static int CMP_verify_MAC(CMP_PKIMESSAGE *msg,
  * Attempt to validate certificate path. returns 1 if the path was
  * validated successfully and 0 if not.
  * ############################################################################ */
-static int CMP_validate_cert_path(X509_STORE *trusted_store,
-                           X509_STORE *untrusted_store, X509 *cert)
+static int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store, X509 *cert)
 {
-    int ret = 0, valid = 0;
+    int valid = 0;
     X509_STORE_CTX *csc = NULL;
+    X509_STORE *untrusted_store = ctx->untrusted_store;
     STACK_OF (X509) * untrusted_stack = NULL;
 
     if (!cert)
@@ -183,31 +183,29 @@ static int CMP_validate_cert_path(X509_STORE *trusted_store,
     /* note: there doesn't seem to be a good way to get a stack of all
      * the certs in an X509_STORE, so we need to try and find the chain
      * of intermediate certs here. */
+ /* TODO: should the untrusted certificates be in a STACK_OF (X509) in the first place? */
     if (untrusted_store)
         untrusted_stack = CMP_build_cert_chain(untrusted_store, cert);
 
-    X509_STORE_set_flags(trusted_store, 0);
     if (!X509_STORE_CTX_init(csc, trusted_store, cert, untrusted_stack))
         goto end;
 
-    /* CRLs could be handled here */
-    /* if (crls) X509_STORE_CTX_set0_crls(csc, crls); */
-
+	if (ctx->crls)
+		X509_STORE_CTX_set0_crls(csc, ctx->crls);
     valid = X509_verify_cert(csc);
+    if (ctx->cert_verify_cb)
+        valid = (ctx->cert_verify_cb)(valid, csc);
 
     X509_STORE_CTX_free(csc);
-
-    ret = 0;
 
  end:
     if (untrusted_stack)
         sk_X509_pop_free(untrusted_stack, X509_free);
 
-    if (valid > 0) {
-        ret = 1;
-    }
+    if (valid > 0)
+        return 1;
 
-    return (ret);
+    return 0;
 }
 
 #if 0
@@ -311,7 +309,7 @@ static X509 *findSrvCert(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     if (srvCert)
         return srvCert;
 
-    /* not found in trusted_store, so look through extraCerts */
+    /* not found in trusted/untrusted store, so look through extraCerts */
     if (!(found_certs = sk_X509_new_null()))
         return NULL;
 
@@ -394,7 +392,7 @@ static X509_STORE *createTempTrustedStore(STACK_OF (X509) * stack)
  * Validates the protection of the given PKIMessage using either password
  * based mac or a signature algorithm. In the case of signature algorithm, the
  * certificate can be provided in ctx->srvCert or it is taken from 
- * extraCerts and validate against ctx->trusted_store utilizing 
+ * extraCerts and validated against ctx->trusted_store utilizing
  * ctx->untrusted_store and extraCerts.
  *
  * If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
@@ -452,42 +450,33 @@ int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
                 /* try to find the server certificate from 1) trusted_store 2) untrusted_store 3) extaCerts */
                 srvCert = findSrvCert(ctx, msg);
 
-                /* validate the that the found server Certificate is trusted */
+                /* validate that the found server Certificate is trusted */
                 srvCert_valid =
-                    CMP_validate_cert_path(ctx->trusted_store,
-                                           ctx->untrusted_store, srvCert);
+                    CMP_validate_cert_path(ctx, ctx->trusted_store, srvCert);
 
                 /* do an exceptional handling for 3GPP */
                 if (!srvCert_valid) {
-                    /* For IP: when the ctxOption is set, extract the Trust Anchor from
+                    /* For IP: when the ctx option is set, extract the Trust Anchor from
                      * ExtraCerts, provided that there is a self-signed certificate
                      * which can be used to validate the issued certificate - refer to 3GPP TS 33.310 */
 
                     if (ctx->permitTAInExtraCertsForIR
-                        && CMP_PKIMESSAGE_get_bodytype(msg) ==
-                        V_CMP_PKIBODY_IP) {
+                        && CMP_PKIMESSAGE_get_bodytype(msg) == V_CMP_PKIBODY_IP) {
                         X509_STORE *tempStore =
                             createTempTrustedStore(msg->extraCerts);
                         /* TODO: check that issued certificates can validate against
                          * trust anchor - and then exclusively use this CA */
                         srvCert_valid =
-                            CMP_validate_cert_path(tempStore,
-                                                   ctx->untrusted_store,
-                                                   srvCert);
+                            CMP_validate_cert_path(ctx, tempStore, srvCert);
 
                         if (srvCert_valid) {
                             /* verify that our received certificate can also be validated with the same
                              * trusted store as srvCert */
                             X509 *newClCert =
-                                CMP_CERTREPMESSAGE_get_certificate(ctx,
-                                                                   msg->
-                                                                   body->value.
-                                                                   ip);
+                                CMP_CERTREPMESSAGE_get_certificate(ctx, msg->body->value.ip);
                             if (newClCert)
                                 srvCert_valid =
-                                    CMP_validate_cert_path(tempStore,
-                                                           ctx->untrusted_store,
-                                                           newClCert);
+                                    CMP_validate_cert_path(ctx, tempStore, newClCert);
                         }
 
                         X509_STORE_free(tempStore);

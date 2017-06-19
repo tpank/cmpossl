@@ -111,6 +111,7 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, recipNonce, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, validatedSrvCert, X509),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, lastStatusString, ASN1_UTF8STRING),
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, crls, X509_CRL),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, policies, POLICYINFO),} ASN1_SEQUENCE_END(CMP_CTX)
 IMPLEMENT_ASN1_FUNCTIONS(CMP_CTX)
 
@@ -182,6 +183,21 @@ int CMP_CTX_set0_untrustedStore(CMP_CTX *ctx, X509_STORE *store)
     return 1;
 }
 
+/* ############################################################################ *
+ * Set CRLs to be used as primary source during CMP certificate verification.
+ * CRL stack will be freed by CMP_CTX_delete().
+ * returns 1 on success, 0 on error
+ * ############################################################################ */
+int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls)
+{
+    if (!crls)
+        return 0;
+    if (ctx->crls)
+        sk_X509_CRL_pop_free(ctx->crls, X509_CRL_free);
+    ctx->crls = crls;
+    return 1;
+}
+
 /* ################################################################ *
  * Allocates and initializes a CMP_CTX context structure with some 
  * default values.
@@ -232,6 +248,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
 
     ctx->trusted_store = X509_STORE_new();
     ctx->untrusted_store = X509_STORE_new();
+    ctx->cert_verify_cb = NULL;
 
     ctx->maxPollTime = 0;
 
@@ -319,6 +336,21 @@ int CMP_CTX_set_certConf_callback(CMP_CTX *ctx, cmp_certConfFn_t cb)
     if (!ctx)
         goto err;
     ctx->certConf_cb = cb;
+    return 1;
+ err:
+    return 0;
+}
+
+/* ################################################################ *
+ * Set callback function to be used during certificate verification
+ * for diagnosis and optionally modifying the result.
+ * returns 1 on success, 0 on error
+ * ################################################################ */
+int CMP_CTX_set_certVerify_callback(CMP_CTX *ctx, cert_verify_cb_t cb)
+{
+    if (!ctx)
+        goto err;
+    ctx->cert_verify_cb = cb;
     return 1;
  err:
     return 0;

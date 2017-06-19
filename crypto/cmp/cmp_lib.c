@@ -1693,7 +1693,10 @@ STACK_OF (X509) * CMP_build_cert_chain(X509_STORE *store, X509 *cert)
     if (!chainDup)
         goto err;
 
-    X509_STORE_set_flags(store, 0); /* clear all flags, e.g. do not check CRLs */
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define X509_STORE_get0_param(store) (store->param)
+#endif
+    X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(store), ~0); /* clear all flags, e.g. do not check CRLs */
     if (!X509_STORE_CTX_init(csc, store, cert, NULL))
         goto err;
 

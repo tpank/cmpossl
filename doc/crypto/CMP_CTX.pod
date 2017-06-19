@@ -37,6 +37,8 @@
  CMP_CTX_extraCertsIn_num,
  CMP_CTX_set0_trustedStore,
  CMP_CTX_set0_untrustedStore,
+ CMP_CTX_set0_crls,
+ CMP_CTX_set_certVerify_callback,
  CMP_CTX_set_error_callback,
  CMP_CTX_set_debug_callback,
  CMP_printf,
@@ -101,6 +103,8 @@
 
  int CMP_CTX_set0_trustedStore( CMP_CTX *ctx, X509_STORE *store);
  int CMP_CTX_set0_untrustedStore( CMP_CTX *ctx, X509_STORE *store);
+ int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls);
+ int CMP_CTX_set_certVerify_callback(CMP_CTX *ctx, cert_verify_cb_t cb);
 
  int CMP_CTX_set_error_callback( CMP_CTX *ctx, cmp_logfn_t cb);
  int CMP_CTX_set_debug_callback( CMP_CTX *ctx, cmp_logfn_t cb);
@@ -225,11 +229,13 @@ The following options can be set:
 
     CMP_CTX_OPT_POPMETHOD
         Select the proof of possession method to use. Possible values are:
-	    CRMF_POPO_SIGNATURE - sign a value with private key
-	    CRMF_POPO_ENCRCERT - decrypt the encrypted certificate
-				 ("indirect method")
-	    CRMF_POPO_RAVERIFIED - assert that the RA has already
-				   verified the PoPo
+            CRMF_POPO_NONE      - ProofOfPossession field omitted
+            CRMF_POPO_SIGNATURE - sign a value with private key
+            CRMF_POPO_ENCRCERT - decrypt the encrypted certificate
+                                 ("indirect method")
+            CRMF_POPO_RAVERIFIED - assert that the RA has already
+                                   verified the PoPo
+        See also CMP_CTX_set1_popoMethod() with the same effect.
 
     CMP_CTX_OPT_MAXPOLLTIME
 	Maximum amount of time, in seconds, to attempt polling for a 
@@ -292,6 +298,13 @@ CMP_CTX_set0_untrustedStore() sets the X509_STORE type certificate store
 containing intermediate certificates used for path construction 
 in CMP server authentication.
 
+CMP_CTX_set0_crls() sets CRLs to be used as primary source during CMP
+server certificate verification.
+
+CMP_CTX_set_certVerify_callback() sets callback function to be used during
+certificate verification for diagnosis, and optionally modifying the result.
+See also B<SSL_CTX_set_verify>.
+
 CMP_CTX_set_error_callback() sets a callback function for receiving
 error messages.
 
@@ -317,11 +330,13 @@ for ir, kur etc. Possible values are defined in crmf.h:
 
 =over 8
 
-=item * CRMF_POPO_NONE      - ProofOfPossession field omitted, CA/RA uses out-of-band method to verify POP (compare RFC 4211, section 4).
+=item * CRMF_POPO_NONE      - POP field omitted. According to RFC 4211, section 4, CA/RA uses out-of-band method to verify POP. Note that servers may fail in this case, resulting for instance in HTTP error code 500 (Internal error).
 
 =item * CRMF_POPO_SIGNATURE - POP according to RFC 4211, section 4.1 (only case 3 supported so far) - default after CMP_CTX_init.
 
 =item * CRMF_POPO_ENCRCERT  - POP according to RFC 4211, section 4.2 with the indirect method (subsequentMessage/enccert)
+
+=item * CRMF_POPO_RAVERIFIED - assertion according to RFC 4211, section 4, that the RA has already verified the POP
 
 =back
 
