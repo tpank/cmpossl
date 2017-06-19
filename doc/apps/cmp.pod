@@ -91,6 +91,8 @@ B<openssl> B<cmp>
 
 [B<-geninfoint OID:int>]
 
+[B<-engine id>]
+
 =head1 DESCRIPTION
 
 The B<cmp> command is a client implementation for the Certificate
@@ -372,6 +374,15 @@ Format to try first when reading and to use for writing certificate files. Defau
 
 Set generalInfo in request PKIHeader with type and Integer value given in form OID:int, e.g. '1.2.3:987'.
 
+=item B<-engine id>
+
+Specifying an engine B<id> will cause L<cmp(1)> to to obtain a functional
+reference to the specified engine, thus initialising it if needed.The engine
+will then be set as the default for all its supported algorithms.
+If you want to load certificates or CRLs that require engine support via
+the e.g. B<-trusted> or B<-untrusted> options, the B<-engine> option must be
+specified before those options.
+
 =back
 
 =head1 EXAMPLES
@@ -409,7 +420,8 @@ can send a key update request.
 
 =over 4
 
-=item * Option for selecting the OpenSSL engine to use.
+=item * Exactly specify which other options is influcenced by the B<engine>
+option.
 
 =item * Option for printing more verbose information.
 
