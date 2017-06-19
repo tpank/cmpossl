@@ -104,8 +104,8 @@ static char *opt_path = "/";
 static char *opt_cmd_s = NULL;
 static int opt_cmd = -1;
 
-static char *opt_user = NULL;
-static char *opt_pass = NULL;
+static char *opt_ref = NULL;
+static char *opt_secret = NULL;
 static char *opt_cert = NULL;
 static char *opt_key = NULL;
 static char *opt_keypass = NULL;
@@ -235,7 +235,7 @@ typedef enum OPTION_choice {
     OPT_SERVER, OPT_PROXY, OPT_PROXYPORT,
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
     OPT_TLSTRUSTED,
-    OPT_USER, OPT_PASS, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
+    OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
     OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED, 
     OPT_CRLS, OPT_CDPS, OPT_V_ENUM/* OPT_CRLALL etc. */,
     OPT_RECIPIENT, OPT_PATH, OPT_CMD,
@@ -268,8 +268,8 @@ OPTIONS cmp_options[] = {
     {"tls-trusted", OPT_TLSTRUSTED, 's', "Client's trusted certificates for verifying TLS certificates.\n"
                                 "\t\t     This implies host name validation"},
 
-    {"user", OPT_USER, 's', "Username for client authentication with a pre-shared key (reference value)"},
-    {"pass", OPT_PASS, 's', "Password source for client authentication with a pre-shared key (secret value)"},
+    {"ref", OPT_REF, 's', "Reference value for client authentication with a pre-shared key"},
+    {"secret", OPT_SECRET, 's', "Password source for client authentication with a pre-shared key (secret)"},
     {"cert", OPT_CERT, 's', "Client's current certificate (needed unless using PSK)"},
     {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
     {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
@@ -328,7 +328,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_server}, {&opt_proxy}, { (char **)&opt_proxyPort},
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
     {&opt_tls_trusted},
-    {&opt_user}, {&opt_pass}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
+    {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
     {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
     {&opt_crls}, { (char **)&opt_cdps}, /* virtually at this point: OPT_CRLALL etc. */
     {&opt_recipient}, {&opt_path}, {&opt_cmd_s},
@@ -528,7 +528,7 @@ static int check_options(void)
         goto err;
     }
 
-    if ((!opt_user) != (!opt_pass)) {
+    if ((!opt_ref) != (!opt_secret)) {
         BIO_puts(bio_err, "error: must give both -user and -pass options or neither of them\n");
         goto err;
     }
@@ -536,7 +536,7 @@ static int check_options(void)
         BIO_puts(bio_err, "error: must give both -cert and -key options or neither of them\n");
         goto err;
     }
-    if (opt_cmd != CMP_IR && !(opt_user && opt_pass) && !(opt_cert && opt_key)) {
+    if (opt_cmd != CMP_IR && !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
         BIO_puts(bio_err,
                  "error: missing user/pass or certificate/key for client authentication\n");
         goto err;
@@ -1293,11 +1293,11 @@ static int setup_ctx(CMP_CTX * ctx)
         CMP_CTX_set0_tlsBIO(ctx, sbio);
     }
 
-    if (opt_user && opt_pass) {
+    if (opt_ref && opt_secret) {
         char *pass_string = NULL;
-        if ((pass_string = get_passwd(opt_pass, "PBMAC"))) {
-        CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_user,
-                                    strlen(opt_user));
+        if ((pass_string = get_passwd(opt_secret, "PBMAC"))) {
+        CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
+                                    strlen(opt_ref));
         CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
                                  strlen(pass_string));
         OPENSSL_free(pass_string);
@@ -1648,11 +1648,11 @@ opt_err:
             opt_cmd_s = opt_arg();
             break;
 
-        case OPT_USER:
-            opt_user = opt_arg();
+        case OPT_REF:
+            opt_ref = opt_arg();
             break;
-        case OPT_PASS:
-            opt_pass = opt_arg();
+        case OPT_SECRET:
+            opt_secret = opt_arg();
             break;
         case OPT_CERT:
             opt_cert = opt_arg();

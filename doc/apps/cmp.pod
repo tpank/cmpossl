@@ -18,14 +18,14 @@ B<openssl> B<cmp>
 [B<-use-tls>]
 [B<-tls-cert filename>]
 [B<-tls-key filename>]
-[B<-tls-keypass password>]
+[B<-tls-keypass arg>]
 [B<-tls-trusted filename>]
 
-[B<-user username>]
-[B<-pass arg>]
+[B<-ref value>]
+[B<-secret arg>]
 [B<-cert filename>]
 [B<-key filename>]
-[B<-keypass password>]
+[B<-keypass arg>]
 [B<-extcerts filename>]
 
 [B<-srvcert filename>]
@@ -68,7 +68,7 @@ B<openssl> B<cmp>
 [B<-cmd ir|cr|kur|rr>]
 
 [B<-newkey filename>]
-[B<-newkeypass password>]
+[B<-newkeypass arg>]
 [B<-subject name>]
 [B<-issuer name>]
 [B<-popo number>]
@@ -144,17 +144,17 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 Client's trusted certificates for verifying TLS certificates.  The file may 
 contain multiple certificates.  This implies host name validation.
 
-=item B<-user username>
+=item B<-ref value>
 
-Username (reference value) to be used when messages are authenticated
-with pre-shared keys (password-base method using reference value / secret).
+Reference value to be used when messages are authenticated with pre-shared keys
+(password-based MAC).  Implies that the B<-secret> option is also given.
 
-=item B<-pass arg>
+=item B<-secret arg>
 
-Pass phrase source for secret value to be used when messages are authenticated
-with pre-shared keys (password-base method using reference value / secret).
-For more information about the format of B<arg> see the
-B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+Source for secret value to be used when messages are authenticated with
+pre-shared keys (password-based MAC).For more information about the format of
+B<arg> see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.  Implies that
+the B<-ref> option is also given.
 
 =item B<-cert filename>
 
