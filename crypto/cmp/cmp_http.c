@@ -356,7 +356,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
 
     OPENSSL_free(path);
 
-    BIO_reset(cbio);
+    (void) BIO_reset(cbio);
     if (ctx->tlsBIO) {
         BIO_pop(ctx->tlsBIO);
     }
