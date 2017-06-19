@@ -26,7 +26,7 @@ void add_error_data(const char *txt);
  * ASN.1 DECLARATIONS
  * ########################################################################## */
 
-/* this structure is used to store the context for CMP sessions 
+/* this structure is used to store the context for CMP sessions
  * partly using OpenSSL ASN.1 types in order to ease handling it */
 struct cmp_ctx_st {
     /* "reference and secret" for MSG_MAC_ALG */
@@ -106,7 +106,7 @@ struct cmp_ctx_st {
     /* log callback functions for error and debug messages */
     cmp_logfn_t error_cb, debug_cb;
 
-    /* callback for letting the user check the received certificate and 
+    /* callback for letting the user check the received certificate and
      * reject if necessary */
     cmp_certConfFn_t certConf_cb;
     /* callback to be used during verification of server certificate */
@@ -749,7 +749,7 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
 
 
 
-    
+
 
 # ifdef  __cplusplus
 }

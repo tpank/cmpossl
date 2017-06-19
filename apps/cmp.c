@@ -1,7 +1,4 @@
 /*
- * vim: set cinoptions={1s: 
- */
-/*
  * ====================================================================
  * Written by Miikka Viljanen, based on cmpclient by Martin Peylo 
  */

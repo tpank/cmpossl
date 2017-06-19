@@ -14,7 +14,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer. 
+ *        notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in
@@ -61,7 +61,7 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 
@@ -77,7 +77,7 @@
 
 #include "cmp_int.h"
 
-/* ############################################################################ 
+/* ############################################################################
  * Takes a stack of GENERAL_NAMEs and adds them to the given extension stack.
  * this is used to setting subject alternate names to a certTemplate
  *
@@ -124,7 +124,7 @@ static int add_altname_extensions(X509_EXTENSIONS ** extensions,
     return 0;
 }
 
-/* ############################################################################ 
+/* ############################################################################
  * Takes a CERTIFICATEPOLICIES structure and adds it to the given extension stack.
  * this is used to setting certificate policy OIDs to a certTemplate
  *

@@ -14,7 +14,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer. 
+ *        notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in
@@ -60,7 +60,7 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 
@@ -198,7 +198,7 @@ int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls)
 }
 
 /* ################################################################ *
- * Allocates and initializes a CMP_CTX context structure with some 
+ * Allocates and initializes a CMP_CTX context structure with some
  * default values.
  * OpenSSL ASN.1 types are initialized to NULL by the call to CMP_CTX_new()
  * returns 1 on success, 0 on error
@@ -384,7 +384,7 @@ int CMP_CTX_set_debug_callback(CMP_CTX *ctx, cmp_logfn_t cb)
 }
 
 /* ################################################################ *
- * Set the reference value to be used for identification (i.e. the 
+ * Set the reference value to be used for identification (i.e. the
  * username) when using PBMAC.
  * returns 1 on success, 0 on error
  * ################################################################ */
@@ -524,7 +524,7 @@ int CMP_CTX_set1_extraCertsIn(CMP_CTX *ctx,
 }
 
 /* ################################################################ *
- * Duplicate and push the given X509 certificate to the stack of 
+ * Duplicate and push the given X509 certificate to the stack of
  * outbound certificates to send in the extraCerts field.
  * returns number of pushed certificates on success, 0 on error
  * ################################################################ */
@@ -569,7 +569,7 @@ int CMP_CTX_loadUntrustedStack(CMP_CTX *ctx, STACK_OF (X509) * stack)
 }
 
 /* ################################################################ *
- * Return the number of certificates we have in the outbound 
+ * Return the number of certificates we have in the outbound
  * extraCerts stack, 0 on error
  * TODO: should that return something else on error?
  * ################################################################ */
@@ -586,7 +586,7 @@ int CMP_CTX_extraCertsOut_num(CMP_CTX *ctx)
 }
 
 /* ################################################################ *
- * Duplicate and set the given stack as the new stack of X509 
+ * Duplicate and set the given stack as the new stack of X509
  * certificates to send out in the extraCerts field.
  * returns 1 on success, 0 on error
  * ################################################################ */
@@ -691,7 +691,7 @@ int CMP_CTX_caPubs_num(CMP_CTX *ctx)
 }
 
 /* ################################################################ *
- * Duplicate and copy the given stack of certificates to the given 
+ * Duplicate and copy the given stack of certificates to the given
  * CMP_CTX structure so that they may be retrieved later.
  * returns 1 on success, 0 on error
  * ################################################################ */
@@ -788,7 +788,7 @@ err:
 }
 
 /* ################################################################ *
- * Set the subject name that will be placed in the certificate 
+ * Set the subject name that will be placed in the certificate
  * request. This will be the subject name on the received certificate.
  * returns 1 on success, 0 on error
  * ################################################################ */
@@ -824,7 +824,7 @@ int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts)
         goto err;
 
     ctx->reqExtensions = exts;
-    
+
     return 1;
  err:
     CMPerr(CMP_F_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_NULL_ARGUMENT);
@@ -1237,7 +1237,7 @@ int CMP_CTX_set1_sourceAddress(CMP_CTX *ctx, const char *ip) // unused, TODO rem
     ctx->sourceAddress = BUF_strdup(ip);
     if (!ctx->sourceAddress)
         goto err;
-    
+
     return 1;
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_SOURCEADDRESS, CMP_R_NULL_ARGUMENT);
@@ -1350,7 +1350,7 @@ CMP_printf("ERROR in FILE: %s, LINE: %d\n", __FILE__, __LINE__);
 if (utf8string) ASN1_UTF8STRING_free(utf8string); return 0;}
 #endif
 
-/* ################################################################ * 
+/* ################################################################ *
  * sets a BOOLEAN or INT option of the context to the "val" arg
  * returns 1 on success, 0 on error
  * ################################################################ */

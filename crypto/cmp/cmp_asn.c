@@ -14,7 +14,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *	  notice, this list of conditions and the following disclaimer. 
+ *	  notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *	  notice, this list of conditions and the following disclaimer in
@@ -61,7 +61,7 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 
@@ -142,7 +142,7 @@ ASN1_ADB(CMP_INFOTYPEANDVALUE) = {
 	ADB_ENTRY(NID_id_smime_aa_signingCertificate, ASN1_SET_OF(CMP_INFOTYPEANDVALUE, infoValue.signingCertificate, ESS_SIGNING_CERT))
 	/* this is how signingCertificate should probably be actually used */
 	/* ADB_ENTRY(NID_id_smime_aa_signingCertificate, ASN1_SIMPLE(CMP_INFOTYPEANDVALUE, infoValue.signingCertificate, ESS_SIGNING_CERT)) */
-#endif 
+#endif
 } ASN1_ADB_END(CMP_INFOTYPEANDVALUE, 0, infoType, 0, &infotypeandvalue_default_tt, NULL);
 
 

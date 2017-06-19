@@ -14,7 +14,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *              notice, this list of conditions and the following disclaimer. 
+ *              notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *              notice, this list of conditions and the following disclaimer in
@@ -61,7 +61,7 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 
@@ -135,7 +135,7 @@ static char *V_CMP_TABLE[] = {
         (((unsigned int) (type) < sizeof(V_CMP_TABLE)/sizeof(V_CMP_TABLE[0])) \
          ? V_CMP_TABLE[(unsigned int)(type)] : "unknown")
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * internal function
  *
  * Prints error data of the given CMP_PKIMESSAGE into a buffer specified by out
@@ -267,7 +267,7 @@ static int send_receive_check(CMP_CTX *ctx,
  * internal function
  *
  * When a 'waiting' PKIStatus has been received, this function is used to attempt
- * to poll for a response message. 
+ * to poll for a response message.
  *
  * A maxPollTime timeout can be set in the context.  The function will continue
  * to poll until the timeout is reached and then poll a last time even when that
@@ -376,7 +376,7 @@ static int sendCertConf(CMP_CTX *ctx)
  * internal function
  *
  * saves error information from PKIStatus field of a certrepmessage into the ctx
- * TODO: in case we would get multiple certreps, this function would need to be 
+ * TODO: in case we would get multiple certreps, this function would need to be
  *       extended to save the status from each one
  * ############################################################################ */
 static void save_certrep_statusInfo(CMP_CTX *ctx, CMP_CERTREPMESSAGE *certrep)
@@ -622,7 +622,7 @@ X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx)
  *
  * All options need to be set in the context.
  *
- * NB: the ctx->newPkey can be set *by the user* as the same as the current key 
+ * NB: the ctx->newPkey can be set *by the user* as the same as the current key
  * as per section 5.3.5:
  * An update is a replacement
  * certificate containing either a new subject public key or the current
