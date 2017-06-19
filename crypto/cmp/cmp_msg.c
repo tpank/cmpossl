@@ -301,8 +301,8 @@ CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *msg = NULL;
     if (!(msg = certreq_new(ctx, V_CMP_PKIBODY_IR)))
-		CMPerr(CMP_F_CMP_IR_NEW, CMP_R_ERROR_CREATING_IR);
-	return msg;
+        CMPerr(CMP_F_CMP_IR_NEW, CMP_R_ERROR_CREATING_IR);
+    return msg;
 }
 
 /* ############################################################################ *
@@ -313,8 +313,8 @@ CMP_PKIMESSAGE *CMP_cr_new(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *msg = NULL;
     if (!(msg = certreq_new(ctx, V_CMP_PKIBODY_CR)))
-		CMPerr(CMP_F_CMP_CR_NEW, CMP_R_ERROR_CREATING_CR);
-	return msg;
+        CMPerr(CMP_F_CMP_CR_NEW, CMP_R_ERROR_CREATING_CR);
+    return msg;
 }
 
 /* ############################################################################ *
@@ -325,8 +325,8 @@ CMP_PKIMESSAGE *CMP_kur_new(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *msg = NULL;
     if (!(msg = certreq_new(ctx, V_CMP_PKIBODY_KUR)))
-		CMPerr(CMP_F_CMP_KUR_NEW, CMP_R_ERROR_CREATING_KUR);
-	return msg;
+        CMPerr(CMP_F_CMP_KUR_NEW, CMP_R_ERROR_CREATING_KUR);
+    return msg;
 }
 
 /* ############################################################################ *
@@ -435,7 +435,7 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx)
     /* -- the hash of the certificate, using the same hash algorithm
      * -- as is used to create and verify the certificate signature */
     if (!CMP_CERTSTATUS_set_certHash(certStatus, ctx->newClCert))
-		goto err;
+        goto err;
 
     /* execute the callback function set in ctx which can be used to examine a
      * certificate and reject it */

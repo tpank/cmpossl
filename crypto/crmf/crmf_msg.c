@@ -84,7 +84,7 @@ CRMF_CERTREQMSG *CRMF_certreq_new(const long certReqId,
                                   const EVP_PKEY *pkey,
                                   const X509_NAME *subject,
                                   const X509_NAME *issuer,
-			          time_t notBefore, time_t notAfter,
+                                  time_t notBefore, time_t notAfter,
                                   const X509_EXTENSIONS * extensions)
 {
     CRMF_CERTREQMSG *certReqMsg;

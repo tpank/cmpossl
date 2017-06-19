@@ -421,14 +421,14 @@ static int cert_response(CMP_CTX *ctx,
     /* make sure the PKIStatus for the *first* CERTrepmessage indicates a certificate was granted */
     /* TODO handle second CERTrepmessages if two would have sent */
     if (CMP_CERTREPMESSAGE_PKIStatus_get(body, 0) == CMP_PKISTATUS_waiting) {
-		if (pollForResponse(ctx, body, resp)) {
-			body = (*resp)->body->value.ip /* same for cp and kup*/;
-		} else {
-			CMPerr(type_function, not_received);
-			ERR_add_error_data(1, "received 'waiting' pkistatus but polling failed");
-			return 0;
-		}
-	}
+        if (pollForResponse(ctx, body, resp)) {
+            body = (*resp)->body->value.ip /* same for cp and kup*/;
+        } else {
+            CMPerr(type_function, not_received);
+            ERR_add_error_data(1, "received 'waiting' pkistatus but polling failed");
+            return 0;
+        }
+    }
 
     if (!(ctx->newClCert = CMP_CERTREPMESSAGE_get_certificate(ctx, body))) {
         ERR_add_error_data(1, "cannot extract certficate from response");
