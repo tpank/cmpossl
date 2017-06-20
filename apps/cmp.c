@@ -297,10 +297,12 @@ OPTIONS cmp_options[] = {
                    "\t\t     0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
     {"reqexts", OPT_REQEXTS, 's', "Name of section in OpenSSL config file defining certificate request extensions"},
 
-    {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm enrolled certificates"},
+    {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm enrolled certificates\n"
+                       "\t\t     WARNING: This setting leads to behavior violating RFC 4210."},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of enrolled certificate"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-', "Accept unprotected error responses: regular error messages as well as\n"
-                       "\t\t     certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection"},
+                       "\t\t     certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection.\n"
+                       "\t\t     WARNING: This setting leads to behaviour allowing violation of RFC 4210."},
 
     {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and Proof-of-Possession signatures. Defaults to 'sha256'"},
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be renewed in KUR or to be revoked in RR"},

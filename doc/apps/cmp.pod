@@ -291,8 +291,28 @@ cope with broken servers not supporting implicit confirmation correctly.
 
 =item B<-unprotectederrors>
 
-Accept unprotected error responses: regular error messages as well as
-certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection.
+Accept unprotected messages by the server even if they should have been
+protected.  This applies to the following message types received from the
+server:
+=over 4
+=item * error messages
+=item * certificate responses (IP/CP/KUP) and revocation responses (RP) with
+rejection.
+=item * PKIConf
+=back
+
+B<WARNING:> This setting leads to unspecified behaviour and it is meant
+exclusively to allow interoperability with server implementations violating
+RFC 4210, e.g.:
+=over 4
+=item * section 5.1.3.1 allows exceptions from protecting only for special cases:
+"There MAY be cases in which the PKIProtection BIT STRING is deliberately not
+used to protect a message [...] because other protection, external to PKIX, will
+be applied instead."
+=item * section 5.3.21 is clear on ErrMsgContent: "The CA MUST always sign it
+with a signature key."
+=item * appendix D.4 shows PKIConf having protection
+=back
 
 =item B<-digest name>
 
