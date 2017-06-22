@@ -530,7 +530,6 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage,
         CMPerr(CMP_F_CMP_CALC_PROTECTION_PBMAC, CMP_R_WRONG_ALGORITHM_OID);
         goto err;
     }
-    OPENSSL_free(protPartDer);
 
     if (!(prot = ASN1_BIT_STRING_new()))
         goto err;
@@ -540,16 +539,18 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage,
     ASN1_BIT_STRING_set(prot, mac, macLen);
 
     /* cleanup */
-    if (mac)
-        OPENSSL_free(mac);
+    OPENSSL_free(protPartDer);
+    CRMF_PBMPARAMETER_free(pbm);
+    OPENSSL_free(mac);
     return prot;
 
  err:
-    if (mac)
-        OPENSSL_free(mac);
-
     CMPerr(CMP_F_CMP_CALC_PROTECTION_PBMAC,
            CMP_R_ERROR_CALCULATING_PROTECTION);
+    if (pbm)
+        CRMF_PBMPARAMETER_free(pbm);
+    if (mac)
+        OPENSSL_free(mac);
     if (protPartDer)
         OPENSSL_free(protPartDer);
     return NULL;
