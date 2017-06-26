@@ -1566,6 +1566,7 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
+    /* TODO dvo: the follwing would likely go to openssl.c make_config_name() */
     configfile = getenv("OPENSSL_CONF");
     if (configfile == NULL)
         configfile = getenv("SSLEAY_CONF");
@@ -1583,6 +1584,7 @@ int cmp_main(int argc, char **argv)
     /*
      * read default values for options from openssl.cnf 
      */
+    /* TODO dvo: the follwing would likely go to apps.c app_load_config_() */
     if (configfile) {
         BIO_printf(bio_c_out, "Using OpenSSL configuration file '%s'\n", configfile);
         conf = NCONF_new(NULL);
@@ -1888,6 +1890,12 @@ opt_err:
         CMP_CTX_delete(cmp_ctx);
     if (vpm)
         X509_VERIFY_PARAM_free(vpm);
+    if (conf)
+        NCONF_free(conf);
+    if (bio_c_out)
+       BIO_free(bio_c_out);
+    if (server_address)
+        OPENSSL_free(server_address);
 
     return ret;
 }
