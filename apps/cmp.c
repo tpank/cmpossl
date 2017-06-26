@@ -1599,7 +1599,6 @@ int cmp_main(int argc, char **argv)
             if (!read_config())
                 goto err;
         }
-        NCONF_free(conf);
     }
 
     if (tofree) {
@@ -1891,6 +1890,8 @@ opt_err:
         CMP_CTX_delete(cmp_ctx);
     if (vpm)
         X509_VERIFY_PARAM_free(vpm);
+    if (conf)
+        NCONF_free(conf);
     if (bio_c_out)
        BIO_free(bio_c_out);
     if (server_address)
