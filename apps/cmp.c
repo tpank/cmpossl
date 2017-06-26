@@ -1757,6 +1757,12 @@ opt_err:
             break;
         }
     }
+    argc = opt_num_rest();
+    argv = opt_rest();
+    if (argc != 0) {
+        BIO_printf(bio_err, "%s: Unknown parameter %s\n", prog, argv[0]);
+        goto opt_err;
+    }
 #else /* OPENSSL_VERSION_NUMBER */
     /* parse commandline options */
     while (--argc > 0 && ++argv) {
