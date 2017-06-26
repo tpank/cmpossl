@@ -215,6 +215,10 @@ static int send_receive_check(CMP_CTX *ctx,
                 CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
                 exception = 1;
             }
+            if (rcvd_type == V_CMP_PKIBODY_PKICONF) {
+                CMP_printf(ctx, "WARN: ignoring missing protection of PKI Confirmation message");
+                exception = 1;
+            }
             if (rcvd_type == type_rep &&
                 (rcvd_type == V_CMP_PKIBODY_IP ||
                  rcvd_type == V_CMP_PKIBODY_CP ||
