@@ -5,8 +5,8 @@
  * Originally written by Martin Peylo for the OpenSSL project.
  * <martin dot peylo at nsn dot com>
  * 2010-2013 Miikka Viljanen <mviljane@users.sourceforge.net>
- * 
- * HTTP code taken from crypto/ocsp/ocsp_ht.c, written by 
+ *
+ * HTTP code taken from crypto/ocsp/ocsp_ht.c, written by
  * Dr Stephen N Henson (steve@openssl.org)
  */
 /* ====================================================================
@@ -17,7 +17,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer. 
+ *        notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in
@@ -63,7 +63,7 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 
@@ -104,7 +104,7 @@ static void print_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 {
     char buf[200];
     if (errdetail == 0) {
-        snprintf(buf, 200, "server has disconnected%s", 
+        snprintf(buf, 200, "server has disconnected%s",
                  ctx->tlsBIO ? " violating the protocol" : ", likely because it requires the use of TLS");
         add_error_data(buf);
         snprintf(buf, 200, "connecting to '%s' port %d", ctx->serverName, ctx->serverPort);
@@ -241,7 +241,7 @@ static int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
                                  ASN1_ITEM_rptr(CMP_PKIMESSAGE));
 }
 
-// returns 0 on send error, else returns the received message (or NULL on result parse error) via the *out argument 
+// returns 0 on send error, else returns the received message (or NULL on result parse error) via the *out argument
 // TODO respect ctx->HttpTimeOut
 static int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **out)
 {
@@ -340,7 +340,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     /* Section 5.1.2 of RFC 1945 states that the absoluteURI form is only
      * allowed when using a proxy */
     if (ctx->proxyName && ctx->proxyPort)
-        pos = BIO_snprintf(path, pathlen-1, "http%s://%s:%d", 
+        pos = BIO_snprintf(path, pathlen-1, "http%s://%s:%d",
                            ctx->tlsBIO ? "s" : "", ctx->serverName, ctx->serverPort);
 
     /* make sure path includes a forward slash */
@@ -356,7 +356,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
 
     OPENSSL_free(path);
 
-    BIO_reset(cbio);
+    (void) BIO_reset(cbio);
     if (ctx->tlsBIO) {
         BIO_pop(ctx->tlsBIO);
     }

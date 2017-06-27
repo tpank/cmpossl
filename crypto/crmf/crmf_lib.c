@@ -1,4 +1,3 @@
-/* vim: set cino={1s noet ts=4 sts=4 sw=4: */
 /* crypto/crmf/crmf_lib.c
  * CRMF (RFC 4211) library functions for OpenSSL
  */
@@ -15,7 +14,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer. 
+ *        notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in
@@ -62,17 +61,17 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 /* NAMING
- * The 0 version uses the supplied structure pointer directly in the parent and 
- * it will be freed up when the parent is freed. In the above example crl would 
+ * The 0 version uses the supplied structure pointer directly in the parent and
+ * it will be freed up when the parent is freed. In the above example crl would
  * be freed but rev would not.
  *
- * The 1 function uses a copy of the supplied structure pointer (or in some 
- * cases increases its link count) in the parent and so both (x and obj above) 
- * should be freed up. 
+ * The 1 function uses a copy of the supplied structure pointer (or in some
+ * cases increases its link count) in the parent and so both (x and obj above)
+ * should be freed up.
  */
 /* ############################################################################ *
  * In this file are the functions which set the individual items inside                 *
@@ -307,7 +306,7 @@ int CRMF_CERTREQMSG_set1_control_oldCertId(CRMF_CERTREQMSG *certReqMsg,
 }
 
 /* ############################################################################ *
- * For some reason X509_PUBKEY_dup() does not appear to be implemented by 
+ * For some reason X509_PUBKEY_dup() does not appear to be implemented by
  * OpenSSL's X509 code, so we implement it here. It's only needed in the following
  * function so it can be declared static. *
  * TODO: check whether that should go elsewhere *
@@ -669,7 +668,7 @@ int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *certReqMsg,
 }
 
 /* ############################################################################ *
- * Create proof-of-posession information by signing the certrequest with our 
+ * Create proof-of-posession information by signing the certrequest with our
  * private key (section 4.1 of RFC 4211). Algorithm according to key type.
  *
  * TODO:

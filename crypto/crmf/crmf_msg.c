@@ -1,4 +1,3 @@
-/* vim: set cino={1s noet ts=4 sts=4 sw=4: */
 /* crypto/crmf/crmf_msg.c
  * Functions for creating CRMF (RFC 4211) messages for OpenSSL
  */
@@ -15,7 +14,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer. 
+ *        notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in
@@ -61,7 +60,7 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 
@@ -78,14 +77,14 @@
 #include <string.h>
 #include "crmf_int.h"
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * creates a new CRMF certificate request message
  * ############################################################################ */
 CRMF_CERTREQMSG *CRMF_certreq_new(const long certReqId,
                                   const EVP_PKEY *pkey,
                                   const X509_NAME *subject,
                                   const X509_NAME *issuer,
-			          time_t notBefore, time_t notAfter,
+                                  time_t notBefore, time_t notAfter,
                                   const X509_EXTENSIONS * extensions)
 {
     CRMF_CERTREQMSG *certReqMsg;

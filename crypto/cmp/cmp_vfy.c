@@ -1,4 +1,3 @@
-/* vim: set noet ts=4 sts=4 sw=4: */
 /* crypto/cmp/cmp_vfy.c
  * Functions to verify CMP (RFC 4210) messages for OpenSSL
  */
@@ -15,7 +14,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer. 
+ *        notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in
@@ -62,7 +61,7 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 
@@ -100,7 +99,7 @@ static int CMP_verify_signature(CMP_PKIMESSAGE *msg, X509 *cert)
         return 0;
 
     // TODO: verify that keyUsage, if present, contains digitalSignature
-    
+
     pubkey = X509_get_pubkey((X509 *)cert);
     if (!pubkey)
         return 0;
@@ -116,8 +115,9 @@ static int CMP_verify_signature(CMP_PKIMESSAGE *msg, X509 *cert)
         !(digest = (EVP_MD *)EVP_get_digestbynid(digest_NID)))
         goto notsup;
     ret = EVP_VerifyInit_ex(ctx, digest, NULL) &&
-	EVP_VerifyUpdate(ctx, protPartDer, protPartDerLen) &&
-	EVP_VerifyFinal(ctx, msg->protection->data, msg->protection->length, pubkey);
+          EVP_VerifyUpdate(ctx, protPartDer, protPartDerLen) &&
+          EVP_VerifyFinal(ctx, msg->protection->data,
+                          msg->protection->length, pubkey);
 
     /* cleanup */
     EVP_MD_CTX_destroy(ctx);
@@ -190,8 +190,8 @@ static int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store, X509 
     if (!X509_STORE_CTX_init(csc, trusted_store, cert, untrusted_stack))
         goto end;
 
-	if (ctx->crls)
-		X509_STORE_CTX_set0_crls(csc, ctx->crls);
+    if (ctx->crls)
+        X509_STORE_CTX_set0_crls(csc, ctx->crls);
     valid = X509_verify_cert(csc);
     if (ctx->cert_verify_cb)
         valid = (ctx->cert_verify_cb)(valid, csc);
@@ -212,7 +212,7 @@ static int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store, X509 
 /* ############################################################################ *
  * NOTE: This is only needed if/when we want to do additional checking on the certificates!
  *               It is not currently used.
- * 
+ *
  * This is called for every valid certificate. Here we could add additional checks,
  * for policies for example.
  * ############################################################################ */
@@ -290,7 +290,7 @@ static X509 *findSrvCert(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
         X509_STORE_CTX_free(csc);
         return NULL;
     }
-    
+
     /* first attempt lookup in trusted_store, then in untrusted_store */
     if ((X509_STORE_CTX_init(csc, ctx->trusted_store, NULL, NULL) &&
          X509_STORE_CTX_get_by_subject(csc, X509_LU_X509, msg->header->sender->d.directoryName, obj))
@@ -303,7 +303,7 @@ static X509 *findSrvCert(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
             srvCert = obj->data.x509;
 #endif
     }
-    
+
     OPENSSL_free(obj); // do not use X509_OBJECT_free(obj), as this would free the cert
     X509_STORE_CTX_free(csc);
     if (srvCert)
@@ -391,7 +391,7 @@ static X509_STORE *createTempTrustedStore(STACK_OF (X509) * stack)
 /* ############################################################################
  * Validates the protection of the given PKIMessage using either password
  * based mac or a signature algorithm. In the case of signature algorithm, the
- * certificate can be provided in ctx->srvCert or it is taken from 
+ * certificate can be provided in ctx->srvCert or it is taken from
  * extraCerts and validated against ctx->trusted_store utilizing
  * ctx->untrusted_store and extraCerts.
  *

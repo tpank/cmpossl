@@ -14,7 +14,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer. 
+ *        notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in
@@ -61,7 +61,7 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 
@@ -285,7 +285,7 @@ int CMP_PKIHEADER_set1_recipNonce(CMP_PKIHEADER *hdr,
     return 0;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * (re-)set given senderKID to given header
  *
  * senderKID: keyIdentifier of the sender's certificate, or PBMAC reference value
@@ -418,7 +418,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
             goto err;
     }
 
-    /* set recipient name either from known server certificate or 
+    /* set recipient name either from known server certificate or
        recipient or issuer name in ctx, leave empty if not set in ctx */
     if (ctx->srvCert)
         recipient = X509_get_subject_name((X509 *)ctx->srvCert);
@@ -466,7 +466,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
     return 0;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * also used for verification from cmp_vfy
  *
  * calculate PBMAC protection for given PKImessage utilizing the given secret and the
@@ -556,10 +556,10 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage,
     return NULL;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * only used internally
  *
- * calculate signature protection for given PKImessage utilizing the given secret key 
+ * calculate signature protection for given PKImessage utilizing the given secret key
  * and the algorithm parameters set inside the message header's protectionAlg
  *
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
@@ -608,7 +608,7 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
     X509_ALGOR_get0(&algorOID, &pptype, &ppval,
                     pkimessage->header->protectionAlg);
 
-    if (OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL) 
+    if (OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
         && (md = EVP_get_digestbynid(md_NID))) {
         maxMacLen = EVP_PKEY_size(pkey);
         mac = OPENSSL_malloc(maxMacLen);
@@ -716,10 +716,10 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
             goto err;
         CMP_PKIHEADER_set1_senderKID(msg->header, ctx->referenceValue);
 
-        /* add any additional certificates from ctx->extraCertsOut 
-         * while not needed to validate the signing cert, the option to do 
+        /* add any additional certificates from ctx->extraCertsOut
+         * while not needed to validate the signing cert, the option to do
          * this might be handy for certain use cases */
-        CMP_PKIMESSAGE_add_extraCerts(ctx, msg); 
+        CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
 
         if (!(msg->protection =
               CMP_calc_protection_pbmac(msg, ctx->secretValue)))
@@ -754,9 +754,9 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
                 CMP_PKIHEADER_set1_senderKID(msg->header, subjKeyIDStr);
             }
 
-            /* Add ctx->extraCertsOut, the ctx->clCert,  
+            /* Add ctx->extraCertsOut, the ctx->clCert,
              * and the chain upwards build up from ctx->untrusted_store */
-            CMP_PKIMESSAGE_add_extraCerts(ctx, msg); 
+            CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
 
             if (!(msg->protection = CMP_calc_protection_sig(msg, ctx->pkey)))
                 goto err;
@@ -776,7 +776,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 /* ############################################################################
  * Adds the certificates to the extraCerts field in the given message.  For
  * this it tries to build the certificate chain of our client cert (ctx->clCert)
- * by using certificates in ctx->untrusted_store. If no untrusted store is set, 
+ * by using certificates in ctx->untrusted_store. If no untrusted store is set,
  * it will at least place the client certificate into extraCerts.
  * Additionally all the certificates explicitly specified to be sent out
  * (i.e. ctx->extraCertsOut) are added to the stack.
@@ -824,7 +824,7 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     return 0;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * set certificate Hash in certStatus of certConf messages according to 5.3.18.
  *
  * returns 1 on success, 0 on error
@@ -915,7 +915,7 @@ int CMP_PKIMESSAGE_check_implicitConfirm(CMP_PKIMESSAGE *msg)
     return 0;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * push given itav to message header
  *
  * returns 1 on success, 0 on error
@@ -933,7 +933,7 @@ int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr,
     return 0;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * push the given InfoTypeAndValue item to the stack in a general message (GenMsg).
  *
  * returns 1 on success, 0 on error
@@ -954,7 +954,7 @@ int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
     return 0;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * push given itav to given stack, creating a new stack if not yet done.
  *
  * @itav: a pointer to the infoTypeAndValue item to push on the stack.
@@ -991,7 +991,7 @@ int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) ** itav_sk_p,
     return 0;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * returns the PKIStatus of the given PKIStatusInfo
  * returns -1 on error
  * ############################################################################ */
@@ -1004,12 +1004,12 @@ long CMP_PKISTATUSINFO_PKIstatus_get(CMP_PKISTATUSINFO *statusInfo)
     return ASN1_INTEGER_get(statusInfo->status);
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * internal function
  *
  * convert PKIstatus to human readable string
  *
- * returns pointer to character array containing a sting representing the 
+ * returns pointer to character array containing a sting representing the
  * PKIStatus of the given PKIStatusInfo
  * returns NULL on error
  * ############################################################################ */
@@ -1046,7 +1046,7 @@ static char *CMP_PKISTATUSINFO_PKIstatus_get_string(CMP_PKISTATUSINFO
     return 0;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * internal function
  *
  * convert PKIstatus to human readable string
@@ -1164,7 +1164,7 @@ long CMP_CERTREPMESSAGE_PKIStatus_get(CMP_CERTREPMESSAGE *certRep,
     return -1;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * returns pointer to PKIFailureInfo of given certRep message
  * returns NULL on error or if no matching failInfo was found
  * ############################################################################ */
@@ -1187,7 +1187,7 @@ CMP_PKIFAILUREINFO *CMP_CERTREPMESSAGE_PKIFailureInfo_get0(CMP_CERTREPMESSAGE
     return NULL;
 }
 
-/* ############################################################################ * 
+/* ############################################################################ *
  * returns pointer to PKIFailureInfoString character array of given certRep message
  * returns NULL on error or if no matching failInfo was found
  * ############################################################################ */
@@ -1374,7 +1374,7 @@ static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *certRep,
     ASN1_TYPE_get_octetstring(encCert->symmAlg->parameter, iv,
                               EVP_CIPHER_iv_length(cipher));
 
-    /* d2i_X509 changes the given pointer, so use p for decoding the message and keep the 
+    /* d2i_X509 changes the given pointer, so use p for decoding the message and keep the
      * original pointer in outbuf so that the memory can be freed later */
     if (!(p = outbuf =
           OPENSSL_malloc(encCert->encValue->length + EVP_CIPHER_block_size(cipher))))
@@ -1649,9 +1649,9 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
  *
  * Intended use of this function is to find all the certificates below the trust
  * anchor needed to verify an EE's own certificate.  Those are supposed to be
- * included in the ExtraCerts field of every first sent message of an tansaction 
+ * included in the ExtraCerts field of every first sent message of an tansaction
  * when MSG_SIG_ALG is utilized.
- * 
+ *
  * NOTE: This creates duplicates of each certificate,
  * so when the stack is no longer needed it should be freed with
  * sk_X509_pop_free()
@@ -1710,7 +1710,7 @@ STACK_OF (X509) * CMP_build_cert_chain(X509_STORE *store, X509 *cert)
     return NULL;
 }
 
-/* ############################################################################ 
+/* ############################################################################
  * this function is intended to be used only within the CMP library although it is
  * included in cmp.h
  *
