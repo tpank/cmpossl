@@ -222,7 +222,15 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
         return NULL;
     }
 
-    extensions = ctx->reqExtensions;
+    if (ctx->reqExtensions) { /* copy them to prevent double free while allowing reuse */
+        int i;
+        if (!(extensions = sk_X509_EXTENSION_new_null()))
+            goto err;
+        for (i = 0; i < sk_X509_EXTENSION_num(ctx->reqExtensions); i++)
+            if (!sk_X509_EXTENSION_push(extensions, X509_EXTENSION_dup(
+                    sk_X509_EXTENSION_value(ctx->reqExtensions, i))))
+                goto err;
+    }
 
     (void)CMP_CTX_set1_transactionID(ctx, NULL); // start new transaction
     if (!(msg = CMP_PKIMESSAGE_new()))
