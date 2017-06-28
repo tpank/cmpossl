@@ -256,7 +256,7 @@ RFC 4210.
 
     CMP_CTX_OPT_REVOCATION_REASON
         Set the reason code to be included in revocation request (RR);
-        values: 0..10 (RFC 5210, 5.3.1). None set by default
+        values: 0..10 (RFC 5210, 5.3.1) or -1 for none (which is the default)
 
 CMP_CTX_caPubs_num() can be used after an Initial Request or Key Update
 request to check the number of CA certificates that were sent from the

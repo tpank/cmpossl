@@ -136,7 +136,7 @@ static long  opt_implicitConfirm = 0;
 static long  opt_unprotectedErrors = 0;
 static char *opt_digest = NULL;
 static char *opt_oldcert = NULL;
-static int   opt_revreason = -1;
+static int   opt_revreason = CRL_REASON_NONE;
 
 static char *opt_cacertsout = NULL;
 static char *opt_extracertsout = NULL;
@@ -304,7 +304,7 @@ OPTIONS cmp_options[] = {
     {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and Proof-of-Possession signatures. Defaults to 'sha256'"},
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be renewed in KUR or to be revoked in RR"},
     {"revreason", OPT_REVREASON, 'n', "Set reason code to be included in revocation request (RR).\n"
-                       "\t\t     Values: 0..10 (see RFC5280, 5.3.1). None set by default"},
+                       "\t\t     Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
 
     {"cacertsout", OPT_CACERTSOUT, 's', "File to save received CA certificates"},
     {"certout", OPT_CERTOUT, 's', "File to save the newly enrolled certificate"},

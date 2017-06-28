@@ -327,7 +327,8 @@ The certificate to be renewed in KUR or to be revoked in RR.
 
 =item B<-revreason number>
 
-Set CRLReason to be included in revocation request (RR); values: 0..10. None set by default.
+Set CRLReason to be included in revocation request (RR); values: 0..10
+or -1 for none (which is the default).
 
 Reason numbers defined in RFC 5280 are:
    CRLReason ::= ENUMERATED {
