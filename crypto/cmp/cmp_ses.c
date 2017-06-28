@@ -284,8 +284,7 @@ static int send_receive_check(CMP_CTX *ctx,
  *
  * TODO handle multiple pollreqs for multiple certificates
  * ############################################################################ */
-static int pollForResponse(CMP_CTX *ctx, const CMP_CERTREPMESSAGE *certrep,
-                           CMP_PKIMESSAGE **msg)
+static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
 {
     int maxTimeLeft = ctx->maxPollTime;
     CMP_PKIMESSAGE *preq = NULL;
@@ -339,7 +338,7 @@ static int pollForResponse(CMP_CTX *ctx, const CMP_CERTREPMESSAGE *certrep,
         goto err;
 
     CMP_PKIMESSAGE_free(preq);
-    *msg = prep;
+    *out = prep;
 
     return 1;
  err:
@@ -426,7 +425,8 @@ static int cert_response(CMP_CTX *ctx,
     /* make sure the PKIStatus for the *first* CERTrepmessage indicates a certificate was granted */
     /* TODO handle second CERTrepmessages if two would have sent */
     if (CMP_CERTREPMESSAGE_PKIStatus_get(body, 0) == CMP_PKISTATUS_waiting) {
-        if (pollForResponse(ctx, body, resp)) {
+	CMP_PKIMESSAGE_free(*resp);
+        if (pollForResponse(ctx, resp)) {
             body = (*resp)->body->value.ip /* same for cp and kup*/;
         } else {
             CMPerr(type_function, not_received);
