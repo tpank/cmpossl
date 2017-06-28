@@ -389,17 +389,16 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
         goto err;
     X509_NAME_set(&certTpl->issuer, X509_get_issuer_name(ctx->oldClCert));
 
-    /* Fill in (optional) revocation reason code;
-       if nothing set, CA may fail and yield http status 500 */
+    /* revocation reason code is optional */
     if (ctx->revocationReason != CRL_REASON_NONE) {
         ASN1_ENUMERATED *val = ASN1_ENUMERATED_new();
-        if (!val || !ASN1_ENUMERATED_set(val, ctx->revocationReason)) // CRL_REASON_UNSPECIFIED does not work for EJBCA
+        if (!val || !ASN1_ENUMERATED_set(val, ctx->revocationReason))
             goto err;
         X509_EXTENSION *ext = X509_EXTENSION_create_by_NID(NULL, NID_crl_reason, 0, val);
         if (!ext || !X509v3_add_ext(&rd->crlEntryDetails, ext, -1))
             goto err;
-	X509_EXTENSION_free(ext);
-	ASN1_ENUMERATED_free(val);
+        X509_EXTENSION_free(ext);
+        ASN1_ENUMERATED_free(val);
     }
 
     /* TODO: the Revocation Passphrase according to section 5.3.19.9 could be set here if set in ctx */

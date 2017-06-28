@@ -422,10 +422,9 @@ static int cert_response(CMP_CTX *ctx,
     CMP_CERTREPMESSAGE *body = (*resp)->body->value.ip /* same for cp and kup*/;
     save_certrep_statusInfo(ctx, body);
 
-    /* make sure the PKIStatus for the *first* CERTrepmessage indicates a certificate was granted */
-    /* TODO handle second CERTrepmessages if two would have sent */
+    /* TODO handle second certrepmessage - if two requests would have been sent */
     if (CMP_CERTREPMESSAGE_PKIStatus_get(body, 0) == CMP_PKISTATUS_waiting) {
-	CMP_PKIMESSAGE_free(*resp);
+        CMP_PKIMESSAGE_free(*resp);
         if (pollForResponse(ctx, resp)) {
             body = (*resp)->body->value.ip /* same for cp and kup*/;
         } else {
