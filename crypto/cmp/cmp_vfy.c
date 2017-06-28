@@ -295,7 +295,8 @@ static X509 *findSrvCert(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     if ((X509_STORE_CTX_init(csc, ctx->trusted_store, NULL, NULL) &&
          X509_STORE_CTX_get_by_subject(csc, X509_LU_X509, msg->header->sender->d.directoryName, obj))
         ||
-        (X509_STORE_CTX_init(csc, ctx->untrusted_store, NULL, NULL) &&
+        (X509_STORE_CTX_cleanup(csc),
+         X509_STORE_CTX_init(csc, ctx->untrusted_store, NULL, NULL) &&
          X509_STORE_CTX_get_by_subject(csc, X509_LU_X509, msg->header->sender->d.directoryName, obj))) {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
             srvCert = X509_OBJECT_get0_X509(obj);
