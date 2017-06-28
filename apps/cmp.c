@@ -1162,12 +1162,18 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
     if (ok == 0 && ctx != NULL) {
         int cert_error = X509_STORE_CTX_get_error(ctx);
         X509 *current_cert = X509_STORE_CTX_get_current_cert(ctx);
+	char *subject_name = current_cert ? X509_NAME_oneline(X509_get_subject_name(current_cert), NULL, 0) : NULL;
+	char *issuer_name = current_cert ? X509_NAME_oneline(X509_get_issuer_name(current_cert), NULL, 0) : NULL;
         BIO_printf(bio_err, "%s error=%d (%s) at depth=%d for subject='%s' issuer='%s'\n",
                    X509_STORE_CTX_get0_parent_ctx(ctx) ? "CRL path validation" : "cert verification",
                    cert_error, X509_verify_cert_error_string(cert_error),
                    X509_STORE_CTX_get_error_depth(ctx),
-                   current_cert ? X509_NAME_oneline(X509_get_subject_name(current_cert), NULL, 0) : "(unknown)" ,
-                   current_cert ? X509_NAME_oneline(X509_get_issuer_name(current_cert), NULL, 0) : "(unknown)");
+                   subject_name ? subject_name : "(unknown)",
+                   issuer_name ? issuer_name : "(unknown)");
+	if (subject_name)
+            OPENSSL_free(subject_name);
+        if (issuer_name)
+            OPENSSL_free(issuer_name);
     }
     return (ok);
 }
