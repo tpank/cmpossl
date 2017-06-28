@@ -349,6 +349,7 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
     CMP_PKIMESSAGE *msg = NULL;
     CRMF_CERTTEMPLATE *certTpl = NULL;
     X509_NAME *subject = NULL;
+    EVP_PKEY *pubkey = NULL;
     CMP_REVDETAILS *rd = NULL;
 
     if (!ctx || !ctx->oldClCert) {
@@ -372,29 +373,33 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
         goto err;
     sk_CMP_REVDETAILS_push(msg->body->value.rr, rd);
 
-    if (!(certTpl = CRMF_CERTTEMPLATE_new()))
-        goto err;
-    rd->certDetails = certTpl;
-
     /* Fill the template from the contents of the certificate to be revoked; TODO: maybe add further fields */
+    certTpl = rd->certDetails;
     if (!(subject = X509_get_subject_name(ctx->oldClCert)))
         goto err;
     X509_NAME_set(&certTpl->subject, subject);
-    X509_PUBKEY_set(&certTpl->publicKey, X509_get_pubkey(ctx->oldClCert));
+
+    if (!(pubkey = X509_get_pubkey(ctx->oldClCert)))
+        goto err;
+    X509_PUBKEY_set(&certTpl->publicKey, pubkey);
+    EVP_PKEY_free(pubkey);
+
     if (!(certTpl->serialNumber =
           ASN1_INTEGER_dup(X509_get_serialNumber(ctx->oldClCert))))
         goto err;
     X509_NAME_set(&certTpl->issuer, X509_get_issuer_name(ctx->oldClCert));
 
-    /* Fill in (optional) revocation reason code; if nothing set, EJBCA fails miserably (NPE) and yields status 500 */
-    rd->crlEntryDetails = NULL; /* X509v3_add_ext will allocate new stack */
+    /* Fill in (optional) revocation reason code;
+       if nothing set, CA may fail and yield http status 500 */
     if (ctx->revocationReason != CRL_REASON_NONE) {
         ASN1_ENUMERATED *val = ASN1_ENUMERATED_new();
         if (!val || !ASN1_ENUMERATED_set(val, ctx->revocationReason)) // CRL_REASON_UNSPECIFIED does not work for EJBCA
             goto err;
         X509_EXTENSION *ext = X509_EXTENSION_create_by_NID(NULL, NID_crl_reason, 0, val);
         if (!ext || !X509v3_add_ext(&rd->crlEntryDetails, ext, -1))
-        goto err;
+            goto err;
+	X509_EXTENSION_free(ext);
+	ASN1_ENUMERATED_free(val);
     }
 
     /* TODO: the Revocation Passphrase according to section 5.3.19.9 could be set here if set in ctx */
