@@ -249,7 +249,10 @@ struct cmp_infotypeandvalue_st {
         ASN1_TYPE *other;
     } infoValue;
 } /* CMP_INFOTYPEANDVALUE */;
-DECLARE_ASN1_FUNCTIONS(CMP_INFOTYPEANDVALUE)
+
+int CMP_INFOTYPEANDVALUE_stack_item_push0(
+		                      STACK_OF (CMP_INFOTYPEANDVALUE) **itav_sk_p,
+                              const CMP_INFOTYPEANDVALUE *itav);
 
 typedef STACK_OF(ASN1_UTF8STRING) CMP_PKIFREETEXT;
 

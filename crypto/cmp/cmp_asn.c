@@ -152,6 +152,42 @@ ASN1_SEQUENCE(CMP_INFOTYPEANDVALUE) = {
 } ASN1_SEQUENCE_END(CMP_INFOTYPEANDVALUE)
 IMPLEMENT_ASN1_FUNCTIONS(CMP_INFOTYPEANDVALUE)
 
+void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
+                              ASN1_OBJECT *type,
+                              ASN1_TYPE *value)
+{
+    itav->infoType = type;
+    itav->infoValue.other = value;
+}
+
+int CMP_INFOTYPEANDVALUE_stack_item_push0(
+                              STACK_OF (CMP_INFOTYPEANDVALUE) **itav_sk_p,
+                              const CMP_INFOTYPEANDVALUE *itav)
+{
+    int created = 0;
+
+    if (!itav_sk_p)
+        goto err;
+
+    if (!*itav_sk_p) {
+        if (!(*itav_sk_p = sk_CMP_INFOTYPEANDVALUE_new_null()))
+            goto err;
+        created = 1;
+    }
+    if (itav) {
+        if (!sk_CMP_INFOTYPEANDVALUE_push(*itav_sk_p,
+                    (CMP_INFOTYPEANDVALUE *)itav))
+            goto err;
+    }
+    return 1;
+ err:
+    if (created) {
+        sk_CMP_INFOTYPEANDVALUE_pop_free(*itav_sk_p,
+                                         CMP_INFOTYPEANDVALUE_free);
+        *itav_sk_p = NULL;
+    }
+    return 0;
+}
 
 ASN1_CHOICE(CMP_CERTORENCCERT) = {
     /* CMP_CMPCERTIFICATE is effectively X509 so it is used directly */

@@ -260,6 +260,7 @@ typedef struct cmp_certrepmessage_st CMP_CERTREPMESSAGE;
 typedef struct cmp_certresponse_st CMP_CERTRESPONSE;
 DEFINE_STACK_OF(CMP_CERTSTATUS)
 DEFINE_STACK_OF(CMP_INFOTYPEANDVALUE)
+DECLARE_ASN1_FUNCTIONS(CMP_INFOTYPEANDVALUE)
 DEFINE_STACK_OF(CMP_PKISTATUSINFO)
 DEFINE_STACK_OF(CMP_CERTREPMESSAGE)
 DEFINE_STACK_OF(CMP_CERTRESPONSE)
@@ -372,6 +373,11 @@ X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx);
 STACK_OF(CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx,
                                                           int nid,
                                                           char *value);
+
+/* from cmp_asn.c */
+void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
+                              ASN1_OBJECT *type,
+                              ASN1_TYPE *value);
 
 /* from cmp_ctx.c */
 CMP_CTX *CMP_CTX_create(void);

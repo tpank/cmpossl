@@ -37,8 +37,7 @@
   CMP_CERTREPMESSAGE_PKIStatusString_get0,
   CMP_CERTREPMESSAGE_PKIFailureInfo_get0,
   CMP_CERTREPMESSAGE_get_certificate,
-  CMP_build_cert_chain,
-  CMP_ITAV_stack_item_push0
+  CMP_build_cert_chain
 
 =head1 SYNOPSIS
 
@@ -81,7 +80,6 @@
   CMP_PKIFAILUREINFO *CMP_CERTREPMESSAGE_PKIFailureInfo_get0(CMP_CERTREPMESSAGE *certRep, long certReqId);
   X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx, CMP_CERTREPMESSAGE *certrep);
   STACK_OF(X509) *CMP_build_cert_chain(X509_STORE *store, X509 *cert);
-  int CMP_ITAV_stack_item_push0(STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p, const CMP_INFOTYPEANDVALUE *itav);
 
 =head1 DESCRIPTION
 
@@ -199,10 +197,6 @@ CMP_build_cert_chain() builds up the certificate chain of cert as high up as pos
 using the given X509_STORE containing all possible intermediate certificates and
 optionally the (possible) trust anchor(s).
 
-CMP_ITAV_stack_item_push0() pushes the given InfoTypeAndValue to the
-given stack, creating a new stack if one does not exist yet.
-
-
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
@@ -212,14 +206,9 @@ might change every release!
 
 =head1 RETURN VALUES
 
-
-
 =head1 EXAMPLE
 
-
 =head1 TODO
-
-A lot!
 
 =head1 SEE ALSO
 

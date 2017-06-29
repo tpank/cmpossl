@@ -926,7 +926,7 @@ int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr,
     if (!hdr)
         goto err;
 
-    if (!CMP_ITAV_stack_item_push0(&hdr->generalInfo, itav))
+    if (!CMP_INFOTYPEANDVALUE_stack_item_push0(&hdr->generalInfo, itav))
         goto err;
     return 1;
  err:
@@ -979,7 +979,7 @@ int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
     if (CMP_PKIMESSAGE_get_bodytype(msg) != V_CMP_PKIBODY_GENM)
         goto err;
 
-    if (!CMP_ITAV_stack_item_push0(&msg->body->value.genm, itav))
+    if (!CMP_INFOTYPEANDVALUE_stack_item_push0(&msg->body->value.genm, itav))
         goto err;
     return 1;
  err:
@@ -1022,6 +1022,7 @@ int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) ** itav_sk_p,
     }
     return 0;
 }
+
 
 /* ############################################################################ *
  * Creates a new PKIStatusInfo structure and fills it in
