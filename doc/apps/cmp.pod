@@ -89,10 +89,12 @@ B<openssl> B<cmp>
 [B<-keyfmt DER|PEM|P12>]
 [B<-certfmt DER|PEM|P12>]
 
+[B<-geninfoint OID:int>]
+
 =head1 DESCRIPTION
 
 The B<cmp> command is a client implementation for the Certificate
-Management Protocol (CMP) as defined in RFC4210. It can be used to 
+Management Protocol (CMP) as defined in RFC4210. It can be used to
 request certificates from a CA server, update their certificates,
 request certificates to be revoked, and perform other CMP requests.
 
@@ -141,7 +143,7 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-tls-trusted filename>
 
-Client's trusted certificates for verifying TLS certificates.  The file may 
+Client's trusted certificates for verifying TLS certificates.  The file may
 contain multiple certificates.  This implies host name validation.
 
 =item B<-ref value>
@@ -160,7 +162,7 @@ the B<-ref> option is also given.
 
 The client's currently existing certificate. This will be used for
 authenticating a request message using an existing certificate
-(as defined in appendix E.7 of the RFC). For KUR this is also used 
+(as defined in appendix E.7 of the RFC). For KUR this is also used
 as certificate to be re-keyed if the -oldcert option is not given.
 
 =item B<-key filename>
@@ -194,7 +196,7 @@ The file can contain multiple certificates.
 
 =item B<-untrusted filename>
 
-Untrusted certificates needed for path construction in CMP server authentication. 
+Untrusted certificates needed for path construction in CMP server authentication.
 The file can contain multiple certificates.
 
 =item B<-crls URL>
@@ -213,12 +215,12 @@ leaf certificate of the certificate chain.  Compare B<X509_V_FLAG_CRL_CHECK>.
 
 =item B<-policy>, B<-purpose>, B<-verify_name>, B<-verify_depth>, B<-auth_level>,
 B<-attime>, B<-verify_hostname>, B<-verify_email>, B<-verify_ip>, B<-ignore_critical>,
-B<-crl_check>, B<-crl_check_all>, B<-policy_check>,  B<-explicit_policy>, B<-inhibit_any>, 
+B<-crl_check>, B<-crl_check_all>, B<-policy_check>,  B<-explicit_policy>, B<-inhibit_any>,
 B<-inhibit_map>, B<-x509_strict>, B<-extended_crl>, B<-use_deltas>, B<-policy_print>,
 B<-check_ss_sig>, B<-trusted_first>, B<-suiteB_128_only>, B<-suiteB_128>, B<-suiteB_192>,
 B<-partial_chain>, B<-no_alt_chains>, B<-no_check_time>, B<-allow_proxy_certs>
 
-Set various certificate chain validation options. 
+Set various certificate chain validation options.
 See the L<verify(1)> manual page for details.
 
 =item B<-recipient name>
@@ -226,12 +228,12 @@ See the L<verify(1)> manual page for details.
 Distinguished Name of the CMP message recipient, i.e. the CMP server (usually a CA or RA entity).
 Setting the recipient field in the CMP header is mandatory.
 
-If the CMP server certificate is given with the -srvcert option, recipient name is taken from there 
-and the -recipient option is ignored.  If the -recipient option is not given, the recipient name defaults 
-to the name given in the -issuer option.  For Revocation Request (RR), it defaults to the subject name 
+If the CMP server certificate is given with the -srvcert option, recipient name is taken from there
+and the -recipient option is ignored.  If the -recipient option is not given, the recipient name defaults
+to the name given in the -issuer option.  For Revocation Request (RR), it defaults to the subject name
 of the issuer of the certificate to be revoked.
 
-Therefore, if neither -srvcert nor -issuer options are given, nor RR is done, 
+Therefore, if neither -srvcert nor -issuer options are given, nor RR is done,
 this recipient name option is mandatory.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
@@ -269,14 +271,14 @@ characters may be escaped by \ (backslash), no spaces are skipped.
 
 =item B<-issuer distinguished_name>
 
-X509 issuer DN, i.e., the X509 distinguished name of the CA server, 
+X509 issuer DN, i.e., the X509 distinguished name of the CA server,
 to be put in the requested certificate template in IR/CR/KUR.
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \ (backslash), no spaces are skipped.
 
 =item B<-popo number>
 
-Set Proof-of-Possession (POPO) method; values: 0..3. 
+Set Proof-of-Possession (POPO) method; values: 0..3.
 0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED
 =item B<-reqexts name>
 
@@ -288,7 +290,7 @@ Request implicit confirmation of the enrolled certificate.
 
 =item B<-disableconfirm>
 
-Do not send certificate confirmation message for enrolled certificates to 
+Do not send certificate confirmation message for enrolled certificates to
 cope with broken servers not supporting implicit confirmation correctly.
 
 =item B<-unprotectederrors>
@@ -318,9 +320,9 @@ with a signature key."
 
 =item B<-digest name>
 
-Specifies name of supported digest to be used in RFC 4210's MSG_SIG_ALG. 
-If applicable, this is used for message protection and Proof-of-Possession 
-signatures.  To see the list of supported digests, use the command 
+Specifies name of supported digest to be used in RFC 4210's MSG_SIG_ALG.
+If applicable, this is used for message protection and Proof-of-Possession
+signatures.  To see the list of supported digests, use the command
 I<list --digest-commands>.  Defaults to 'sha256'.
 
 =item B<-oldcert filename>
@@ -366,13 +368,17 @@ Format to try first when reading key files. Default value is PEM.
 
 Format to try first when reading and to use for writing certificate files. Default value is PEM.
 
+=item B<-geninfoint OID:int>
+
+Set generalInfo in request PKIHeader with type and Integer value given in form OID:int, e.g. '1.2.3:987'.
+
 =back
 
 =head1 EXAMPLES
 
 =over 4
 
-Note: in these examples the '\' at line ends means 
+Note: in these examples the '\' at line ends means
 the invocation should be all on one line.
 
 Sending an initial request message to a CMP server running on the local
@@ -424,6 +430,6 @@ server.
 
 =head1 SEE ALSO
 
-L<genrsa(1)|genrsa(1)>, L<gendsa(1)|gendsa(1)>, L<x509v3_config(5)|x509(1)> 
+L<genrsa(1)|genrsa(1)>, L<gendsa(1)|gendsa(1)>, L<x509v3_config(5)|x509(1)>
 
 =cut

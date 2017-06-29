@@ -73,6 +73,7 @@ char *prog = "cmp";
 #include <openssl/crmf.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
+#include <openssl/objects.h>
 
 static CONF *conf = NULL;       /* OpenSSL config file context structure */
 static BIO *bio_c_out = NULL;   /* OpenSSL BIO for printing to STDOUT */
@@ -143,6 +144,8 @@ static char *opt_extracertsout = NULL;
 
 static char *opt_proxy = NULL;
 static int   opt_proxyPort = 0;
+
+static char *opt_geninfoint = NULL;
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 typedef struct options_st {
@@ -242,7 +245,7 @@ typedef enum OPTION_choice {
     OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
     OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
     OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
-    OPT_KEYFMT, OPT_CERTFMT,
+    OPT_KEYFMT, OPT_CERTFMT, OPT_GENINFOINT,
 } OPTION_CHOICE;
 
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
@@ -316,6 +319,8 @@ OPTIONS cmp_options[] = {
     {"keyfmt", OPT_KEYFMT, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
     {"certfmt", OPT_CERTFMT, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM.\n"
                              "\t\t     This also determines format to use for writing (not supported for P12)"},
+    {"geninfoint", OPT_GENINFOINT, 's', "Set generalInfo in request PKIHeader with type and\n"
+                             "\t\t       and Integer value given in form OID:int, e.g. '1.2.3:987'"},
     {NULL}
 };
 
@@ -339,7 +344,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     { (char **)&opt_disableConfirm}, { (char **)&opt_implicitConfirm}, { (char **)&opt_unprotectedErrors},
     {&opt_digest}, {&opt_oldcert}, { (char **)&opt_revreason},
     {&opt_cacertsout}, {&opt_certout}, {&opt_extracertsout},
-    {&opt_keyfmt_s}, {&opt_certfmt_s},
+    {&opt_keyfmt_s}, {&opt_certfmt_s}, {&opt_geninfoint},
 };
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -1539,6 +1544,25 @@ static int setup_ctx(CMP_CTX * ctx)
         }
     }
 
+    if (opt_geninfoint) {
+        char *intval = strstr(opt_geninfoint, ":");
+        intval[0] = '\0';
+        intval++;
+
+        ASN1_OBJECT *type = OBJ_txt2obj(opt_geninfoint, 1);
+
+        ASN1_INTEGER *aint = ASN1_INTEGER_new();
+        ASN1_INTEGER_set(aint, strtol(intval, NULL, 10));
+
+        ASN1_TYPE *val = ASN1_TYPE_new();
+        ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
+
+        CMP_INFOTYPEANDVALUE *itav = CMP_INFOTYPEANDVALUE_new();
+        CMP_INFOTYPEANDVALUE_set(itav, type, val);
+
+        CMP_CTX_geninfo_itav_push0(ctx, itav);
+    }
+
     CMP_CTX_set_HttpTimeOut(ctx, 5 * 60);
 
     (void)CMP_CTX_set_certConf_callback(ctx, certConf_cb);
@@ -1838,6 +1862,9 @@ opt_err:
         case OPT_REVREASON:
             if (!opt_int(opt_arg(), &opt_revreason))
                 goto opt_err;
+            break;
+        case OPT_GENINFOINT:
+            opt_geninfoint = opt_arg();
             break;
         }
     }
