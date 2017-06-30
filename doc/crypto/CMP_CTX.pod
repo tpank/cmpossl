@@ -29,7 +29,7 @@
  CMP_CTX_set1_caPubs,
  CMP_CTX_policyOID_push1,
  CMP_CTX_set1_extraCertsOut,
- CMP_CTX_extraCertsOut_push1, 
+ CMP_CTX_extraCertsOut_push1,
  CMP_CTX_extraCertsOut_num,
  CMP_CTX_extraCertsIn_get1,
  CMP_CTX_set1_extraCertsIn,
@@ -37,6 +37,7 @@
  CMP_CTX_extraCertsIn_num,
  CMP_CTX_set0_trustedStore,
  CMP_CTX_set0_untrustedStore,
+ CMP_CTX_get0_trustedStore,
  CMP_CTX_set0_crls,
  CMP_CTX_set_certVerify_callback,
  CMP_CTX_set_error_callback,
@@ -106,6 +107,8 @@
  int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls);
  int CMP_CTX_set_certVerify_callback(CMP_CTX *ctx, cert_verify_cb_t cb);
 
+ X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx);
+
  int CMP_CTX_set_error_callback( CMP_CTX *ctx, cmp_logfn_t cb);
  int CMP_CTX_set_debug_callback( CMP_CTX *ctx, cmp_logfn_t cb);
  void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
@@ -162,6 +165,8 @@ CMP_CTX_set1_caCert() sets the given CA Certificate in the given CMP_CTX
 structure.
 
 CMP_CTX_set1_srvCert() sets the server certificate to be used for verifying response messages.
+Also also sets ctx->trusted_store to contain (only) this certificate.
+The certificate argument may be NULL to clear the entry.
 
 CMP_CTX_set1_clCert() sets the given Client Certificate in the given
 CMP_CTX structure. The Client Certificate will then be used by the
@@ -299,10 +304,14 @@ received from remote.
 
 CMP_CTX_set0_trustedStore() sets the X509_STORE type certificate store
 containing trusted root CA certificates, used for CMP server authentication.
+Cannot be used together with srvCert, which is explicitly/directly trusted.
 
 CMP_CTX_set0_untrustedStore() sets the X509_STORE type certificate store
 containing intermediate certificates used for path construction 
 in CMP server authentication.
+
+CMP_CTX_get0_trustedStore(CMP_CTX *ctx) returns a pointer to the trusted
+store.
 
 CMP_CTX_set0_crls() sets CRLs to be used as primary source during CMP
 server certificate verification.
@@ -371,8 +380,8 @@ operation is allowed to take before a timeout error is returned.
 
 CMP_CTX_set_certConf_callback() sets a callback that can be used to
 check the certificate received from the server. If the certificate
-should be accepted the callback must return 1, and 0 if the certificate
-is to be rejected.
+shall be accepted the callback should return -1 (indicating success),
+else a bit number <= CMP_PKIFAILUREINFO_MAX indicating failure.
 
 CMP_CTX_subjectAltName_push1() adds the given X509 name to the list of
 alternate names on the certificate template request.  If this is done,

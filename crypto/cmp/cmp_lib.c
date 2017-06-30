@@ -992,6 +992,49 @@ int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) ** itav_sk_p,
 }
 
 /* ############################################################################ *
+ * Creates a new PKIStatusInfo structure and fills it in
+ * returns a pointer to the structure on success, NULL on error
+ * note: strongly overlaps with TS_RESP_CTX_set_status_info()
+ *       and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
+ * ############################################################################ */
+CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text)
+{
+    CMP_PKISTATUSINFO *si = NULL;
+    ASN1_UTF8STRING *utf8_text = NULL;
+
+    if ((si = CMP_PKISTATUSINFO_new()) == NULL)
+        goto err;
+    if (!ASN1_INTEGER_set(si->status, status))
+        goto err;
+
+    if (text) {
+        if ((utf8_text = ASN1_UTF8STRING_new()) == NULL ||
+            !ASN1_STRING_set(utf8_text, text, strlen(text)))
+            goto err;
+        if (si->statusString == NULL &&
+            (si->statusString = sk_ASN1_UTF8STRING_new_null()) == NULL)
+            goto err;
+        if (!sk_ASN1_UTF8STRING_push(si->statusString, utf8_text))
+            goto err;
+        utf8_text = NULL;       /* Ownership is lost. */
+    }
+
+    if (0 <= failure && failure <= CMP_PKIFAILUREINFO_MAX) {
+        if (si->failInfo == NULL &&
+            (si->failInfo = ASN1_BIT_STRING_new()) == NULL)
+            goto err;
+        if (!ASN1_BIT_STRING_set_bit(si->failInfo, failure, 1))
+            goto err;
+    }
+    return si;
+
+ err:
+    CMP_PKISTATUSINFO_free(si);
+    ASN1_UTF8STRING_free(utf8_text);
+    return NULL;
+}
+
+/* ############################################################################ *
  * returns the PKIStatus of the given PKIStatusInfo
  * returns -1 on error
  * ############################################################################ */
@@ -1050,6 +1093,7 @@ static char *CMP_PKISTATUSINFO_PKIstatus_get_string(CMP_PKISTATUSINFO
  * internal function
  *
  * convert PKIstatus to human readable string
+ * Limitation: in case more than one bit is set, only one is considered.
  *
  * returns pointer to string containing the the PKIFailureInfo
  * returns NULL on error

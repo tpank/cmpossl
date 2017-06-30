@@ -153,16 +153,14 @@ static int CMP_verify_MAC(CMP_PKIMESSAGE *msg,
 }
 
 /* ############################################################################ *
- * internal function
- *
  * Attempt to validate certificate path. returns 1 if the path was
  * validated successfully and 0 if not.
  * ############################################################################ */
-static int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store, X509 *cert)
+int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
+                           X509_STORE *untrusted_store, X509 *cert)
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
-    X509_STORE *untrusted_store = ctx->untrusted_store;
     STACK_OF (X509) * untrusted_stack = NULL;
 
     if (!cert)
@@ -391,10 +389,10 @@ static X509_STORE *createTempTrustedStore(STACK_OF (X509) * stack)
 
 /* ############################################################################
  * Validates the protection of the given PKIMessage using either password
- * based mac or a signature algorithm. In the case of signature algorithm, the
- * certificate can be provided in ctx->srvCert or it is taken from
- * extraCerts and validated against ctx->trusted_store utilizing
- * ctx->untrusted_store and extraCerts.
+ * based mac or a signature algorithm. In the case of signature algorithm,
+ * the certificate can be provided in ctx->srvCert,
+ * else it is taken from extraCerts and validated against ctx->trusted_store
+ * utilizing ctx->untrusted_store and extraCerts.
  *
  * If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
  * the extraCerts field when a self-signed certificate is found there which can
@@ -453,7 +451,7 @@ int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
                 /* validate that the found server Certificate is trusted */
                 srvCert_valid =
-                    CMP_validate_cert_path(ctx, ctx->trusted_store, srvCert);
+                    CMP_validate_cert_path(ctx, ctx->trusted_store, ctx->untrusted_store, srvCert);
 
                 /* do an exceptional handling for 3GPP */
                 if (!srvCert_valid) {
@@ -468,7 +466,7 @@ int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
                         /* TODO: check that issued certificates can validate against
                          * trust anchor - and then exclusively use this CA */
                         srvCert_valid =
-                            CMP_validate_cert_path(ctx, tempStore, srvCert);
+                            CMP_validate_cert_path(ctx, tempStore, ctx->untrusted_store, srvCert);
 
                         if (srvCert_valid) {
                             /* verify that our received certificate can also be validated with the same
@@ -477,7 +475,7 @@ int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
                                 CMP_CERTREPMESSAGE_get_certificate(ctx, msg->body->value.ip);
                             if (newClCert)
                                 srvCert_valid =
-                                    CMP_validate_cert_path(ctx, tempStore, newClCert);
+                                    CMP_validate_cert_path(ctx, tempStore, ctx->untrusted_store, newClCert);
                         }
 
                         X509_STORE_free(tempStore);
@@ -487,6 +485,7 @@ int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
             /* verification failed if no valid server cert was found */
             if (!srvCert_valid) {
+                X509_free(srvCert);
                 CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_NO_VALID_SRVCERT_FOUND);
                 return 0;
             }

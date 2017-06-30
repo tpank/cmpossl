@@ -133,7 +133,7 @@ static STACK_OF (X509) * X509_stack_dup(const STACK_OF (X509) * stack)
 
     return newsk;
  err:
-    return 0;
+    return NULL;
 }
 
 /* ############################################################################ *
@@ -156,7 +156,18 @@ static EVP_PKEY *pkey_dup(const EVP_PKEY *pkey)
 }
 
 /* ############################################################################ *
+ * Get current certificate store containing trusted root CA certs
+ * ############################################################################ */
+X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx)
+{
+    if (!ctx)
+        return NULL;
+    return ctx->trusted_store;
+}
+
+/* ############################################################################ *
  * Set certificate store containing trusted root CA certs for CMP server authentication.
+ * Cannot be used together with directly trusted srvCert set via CMP_CTX_set1_srvCert().
  * returns 1 on success, 0 on error
  * ############################################################################ */
 int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store)
@@ -457,7 +468,7 @@ STACK_OF (X509) * CMP_CTX_extraCertsIn_get1(CMP_CTX *ctx)
     if (!ctx)
         goto err;
     if (!ctx->extraCertsIn)
-        return 0;
+        return NULL;
     return X509_stack_dup(ctx->extraCertsIn);
  err:
     CMPerr(CMP_F_CMP_CTX_EXTRACERTSIN_GET1, CMP_R_NULL_ARGUMENT);
@@ -719,23 +730,31 @@ int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF (X509) * caPubs)
 
 /* ################################################################ *
  * Sets the server certificate to be used for verifying response
- * messages. Pointer is not consumed.
+ * messages. Also also sets ctx->trusted_store to contain the cert.
+ * Pointer is not consumed; it may be NULL to clear the entry.
  * returns 1 on success, 0 on error
  * ################################################################ */
 int CMP_CTX_set1_srvCert(CMP_CTX *ctx, const X509 *cert)
 {
     if (!ctx)
         goto err;
-    if (!cert)
-        goto err;
 
     if (ctx->srvCert) {
         X509_free(ctx->srvCert);
         ctx->srvCert = NULL;
+        if (ctx->trusted_store)
+            X509_STORE_free(ctx->trusted_store);
+        ctx->trusted_store = X509_STORE_new();
     }
+    if (!cert)
+        return 1; /* srvCert and trusted_store have been cleared */
 
     if (!(ctx->srvCert = X509_dup((X509 *)cert)))
         goto err;
+    if (!X509_STORE_add_cert(ctx->trusted_store, ctx->srvCert))
+        goto err;
+    X509_STORE_set_flags(ctx->trusted_store, X509_V_FLAG_PARTIAL_CHAIN);
+    /* X509_V_FLAG_CRL_CHECK_ALL is already cleared by default for new store */
     return 1;
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_SRVCERT, CMP_R_NULL_ARGUMENT);

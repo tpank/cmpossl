@@ -272,8 +272,10 @@ OPTIONS cmp_options[] = {
     {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
     {"extcerts", OPT_EXTCERTS, 's', "Certificates to include in the extraCerts field of request"},
 
-    {"srvcert", OPT_SRVCERT, 's', "certificate of CMP server to be used as recipient and for verifying the protection of replies"},
-    {"trusted", OPT_TRUSTED, 's', "Trusted certificates for CMP server authentication"},
+    {"srvcert", OPT_SRVCERT, 's', "Certificate of CMP server to be used as recipient, for verifying replies,\n"
+                             "\t\t     and for verifying the newly enrolled cert (and to warn if this fails)"},
+    {"trusted", OPT_TRUSTED, 's', "Trusted certificates used for CMP server authentication and verifying replies,\n"
+                             "\t\t     as well as for checking the newly enrolled cert, unless -srvcert is given"},
     {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
     {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates.\n"
                    "\t\t     URL may point to local file if prefixed by 'file:'"},
@@ -528,7 +530,7 @@ static int check_options(void)
     }
 
     if ((!opt_ref) != (!opt_secret)) {
-        BIO_puts(bio_err, "error: must give both -user and -pass options or neither of them\n");
+        BIO_puts(bio_err, "error: must give both -ref and -secret options or neither of them\n");
         goto err;
     }
     if ((!opt_cert) != (!opt_key)) {
@@ -537,13 +539,17 @@ static int check_options(void)
     }
     if (opt_cmd != CMP_IR && !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
         BIO_puts(bio_err,
-                 "error: missing user/pass or certificate/key for client authentication\n");
+                 "error: missing ref/secret or certificate/key for client authentication\n");
         goto err;
     }
     if (opt_cert && !(opt_srvcert || opt_trusted)) {
         BIO_puts(bio_err,
                  "error: using client certificate but no server certificate or trusted certificates set\n");
         goto err;
+    }
+    if (opt_srvcert && opt_trusted) {
+        BIO_puts(bio_err, "warning: -trusted option is ignored since -srvcert option is present\n");
+       opt_trusted = NULL;
     }
 
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
@@ -558,8 +564,12 @@ static int check_options(void)
         }
     }
 
-    if (opt_cmd == CMP_RR) {
-        if (!opt_oldcert) {
+    if (!opt_oldcert) {
+        if (opt_cmd == CMP_KUR) {
+            BIO_puts(bio_err, "error: missing certificate to be updated\n");
+            goto err;
+        }
+        if (opt_cmd == CMP_RR) {
             BIO_puts(bio_err, "error: missing certificate to be revoked\n");
             goto err;
         }
@@ -1179,6 +1189,69 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 }
 
 /*
+ * callback validating that the new certificate can be verified, using
+ * ctx->trusted_store (which may consist of ctx->srvCert) and the ctx->extraCertsIn.
+ * Returns -1 on acceptance, else a CMP_PKIFAILUREINFO bit number.
+ * Quoting from RFC 4210 section 5.1. Overall PKI Message:
+       The extraCerts field can contain certificates that may be useful to
+       the recipient.  For example, this can be used by a CA or RA to
+       present an end entity with certificates that it needs to verify its
+       own new certificate (if, for example, the CA that issued the end
+       entity's certificate is not a root CA for the end entity).  Note that
+       this field does not necessarily contain a certification path; the
+       recipient may have to sort, select from, or otherwise process the
+       extra certificates in order to use them.
+* Note: While often handy, there is no hard default requirement than an EE must
+*       be able to validate its own certificate.
+*/
+static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert)
+{
+    int ok = 1;
+
+    X509_STORE *store = X509_STORE_new(); /* TODO copy ctx->untrusted_store,
+    or add list of certs in it, which would be easier if it was a stack of certs */
+    if (!store) {
+    oom:
+        // BIO_puts(bio_err, "error: out of memory\n");
+        return CMP_PKIFAILUREINFO_systemFailure;
+    }
+
+    if (CMP_CTX_extraCertsIn_num(ctx) > 0) {
+        STACK_OF (X509) *extraCertsIn = CMP_CTX_extraCertsIn_get1(ctx);
+        if (!extraCertsIn) {
+            X509_STORE_free(store);
+            goto oom;
+        }
+
+        int i;
+        for (i = 0; i < sk_X509_num(extraCertsIn); i++)
+            if (!X509_STORE_add_cert(store, sk_X509_value(extraCertsIn, i))) {
+                sk_X509_pop_free(extraCertsIn, X509_free);
+                X509_STORE_free(store);
+                goto oom;
+            }
+        sk_X509_pop_free(extraCertsIn, X509_free);
+    }
+    X509_STORE *ts = CMP_CTX_get0_trustedStore(ctx);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define X509_STORE_get0_param(store) (store->param)
+#endif
+    /* X509_VERIFY_PARAM_set_hostflags(X509_STORE_get0_param(ts), X509_CHECK_FLAG_NEVER_CHECK_SUBJECT);
+       does not help here */
+    X509_VERIFY_PARAM_set1_host(X509_STORE_get0_param(ts), NULL, 0);
+    /* (Re-)setting the host modifies the params of ctx->trusted_store - unfortunately
+        there is no public function to copy them (which would allow to restore them later */
+    if (!CMP_validate_cert_path(ctx, ts, store, (X509 *)cert))
+        ok = 0;
+
+    X509_STORE_free(store);
+
+    if (!ok)
+        BIO_puts(bio_c_out, "warning: failed to validate newly enrolled certificate\n");
+    return -1; /* indicating "ok" here, treating validation failure as warning only */
+}
+
+/*
  * ########################################################################## 
  * * set up the CMP_CTX structure based on options from config file/CLI
  * prints reason for error to bio_err returns 1 on success, 0 on error
@@ -1215,6 +1288,12 @@ static int setup_ctx(CMP_CTX * ctx)
         SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
         SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
 
+        if (vpmtouched && !SSL_CTX_set1_param(ssl_ctx, vpm)) {
+            BIO_printf(bio_err, "Error setting verify params\n");
+            ERR_print_errors(bio_err);
+            goto tls_err;
+        }
+
         if (opt_tls_trusted) {
             X509_STORE *store;
             if (!(store=create_cert_store(opt_tls_trusted, "trusted TLS certificates"))) {
@@ -1229,12 +1308,6 @@ static int setup_ctx(CMP_CTX * ctx)
             X509_VERIFY_PARAM_set1_host(param, server_address, 0);
 #endif
             SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, print_cert_verify_cb);
-        }
-
-        if (vpmtouched && !SSL_CTX_set1_param(ssl_ctx, vpm)) {
-            BIO_printf(bio_err, "Error setting verify params\n");
-            ERR_print_errors(bio_err);
-            goto tls_err;
         }
 
         ERR_clear_error();
@@ -1338,7 +1411,7 @@ static int setup_ctx(CMP_CTX * ctx)
     certfmt = opt_certfmt;
     if (opt_srvcert) {
         X509 *srvcert = load_cert_autofmt(opt_srvcert, &certfmt, opt_keypass, "CMP server certificate");
-        if (!srvcert || !CMP_CTX_set1_srvCert(ctx, srvcert))
+        if (!srvcert || !CMP_CTX_set1_srvCert(ctx, srvcert)) /* indirectly sets also ctx->trusted */
             goto err;
         X509_free(srvcert);
     }
@@ -1349,21 +1422,25 @@ static int setup_ctx(CMP_CTX * ctx)
 
     if (opt_trusted) {
         X509_STORE *ts = create_cert_store(opt_trusted, "trusted certificates");
+        if( !CMP_CTX_set0_trustedStore(ctx, ts))
+            goto err;
+    }
 
-        if (vpmtouched)
+    if (opt_srvcert || opt_trusted) { /* */
+        X509_STORE *ts = CMP_CTX_get0_trustedStore(ctx);
+        if (vpmtouched) {
             X509_STORE_set1_param(ts, vpm);
+            if (opt_srvcert) /* in preparation for use in certConf_cb(), clear any deep CRL check for srvCert */
+                X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts), X509_V_FLAG_CRL_CHECK_ALL);
+        }
         ERR_clear_error();
         if (opt_crls || opt_cdps)
             X509_STORE_set_flags(ts, X509_V_FLAG_CRL_CHECK);
-
         if (opt_cdps) {
             X509_STORE_set_lookup_crls(ts, crls_local_then_http_cb);
             /* TODO dvo: to be replaced with "store_setup_crl_download(ts)" from apps.h,
                after extended version of crls_http_cb has been pushed upstream */
         }
-
-        if( !CMP_CTX_set0_trustedStore(ctx, ts))
-            goto err;
     }
 
     if (opt_untrusted
@@ -1463,6 +1540,8 @@ static int setup_ctx(CMP_CTX * ctx)
     }
 
     CMP_CTX_set_HttpTimeOut(ctx, 5 * 60);
+
+    (void)CMP_CTX_set_certConf_callback(ctx, certConf_cb);
 
     return 1;
 
@@ -1838,7 +1917,8 @@ opt_err:
         goto err;
     }
 
-    if (!(cmp_ctx = CMP_CTX_create()) || !setup_ctx(cmp_ctx)) {
+    cmp_ctx = CMP_CTX_create();
+    if (!cmp_ctx || !setup_ctx(cmp_ctx)) {
         BIO_puts(bio_err, "error creating new cmp context\n");
         goto err;
     }

@@ -6,6 +6,7 @@
  CMP_pollReq_new,
  CMP_cr_new,
  CMP_genm_new,
+ CMP_error_new,
  CMP_ir_new,
  CMP_rr_new,
  CMP_kur_new	
@@ -14,13 +15,15 @@
 
  #include <openssl/cmp.h>
 
- CMP_PKIMESSAGE * CMP_ir_new( CMP_CTX *ctx);
- CMP_PKIMESSAGE * CMP_cr_new( CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_ir_new(CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_cr_new(CMP_CTX *ctx);
  CMP_PKIMESSAGE * CMP_rr_new(CMP_CTX *ctx);
- CMP_PKIMESSAGE * CMP_kur_new( CMP_CTX *ctx);
- CMP_PKIMESSAGE * CMP_certConf_new( CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_kur_new(CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
  CMP_PKIMESSAGE * CMP_pollReq_new(CMP_CTX *ctx, int reqId);
- CMP_PKIMESSAGE * CMP_genm_new( CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_genm_new(CMP_CTX *ctx);
+ CMP_PKIMESSAGE * CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
+                                int errorCode, STACK_OF (ASN1_UTF8STRING) *errorDetails);
 
 =head1 DESCRIPTION
 
@@ -41,6 +44,8 @@ CMP_certConf_new() creates a Certificate Confirmation message.
 CMP_pollReq_new() creates a Polling Request message.
 
 CMP_genm_new() creates a new General Message.
+
+CMP_error_new() creates a new Error Message.
 
 =head1 NOTES
 

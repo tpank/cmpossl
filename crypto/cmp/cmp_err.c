@@ -93,6 +93,7 @@ static ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_FUNC(CMP_F_CMP_DOKEYUPDATEREQUESTSEQ), "CMP_doKeyUpdateRequestSeq"},
     {ERR_FUNC(CMP_F_CMP_DOREVOCATIONREQUESTSEQ),
      "CMP_doRevocationRequestSeq"},
+    {ERR_FUNC(CMP_F_CMP_ERROR_NEW), "CMP_error_new"},
     {ERR_FUNC(CMP_F_CMP_GENM_NEW), "CMP_genm_new"},
     {ERR_FUNC(CMP_F_CMP_IR_NEW), "CMP_ir_new"},
     {ERR_FUNC(CMP_F_CMP_KUR_NEW), "CMP_kur_new"},
@@ -111,10 +112,11 @@ static ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_FUNC(CMP_F_CMP_VALIDATE_CERT_PATH), "CMP_validate_cert_path"},
     {ERR_FUNC(CMP_F_CMP_VALIDATE_MSG), "CMP_validate_msg"},
     {ERR_FUNC(CMP_F_CMP_VERIFY_SIGNATURE), "CMP_verify_signature"},
+    {ERR_FUNC(CMP_F_EXCHANGE_CERTCONF), "exchange_certConf"},
+    {ERR_FUNC(CMP_F_EXCHANGE_ERROR), "exchange_error"},
     {ERR_FUNC(CMP_F_PARSE_HTTP_LINE1), "parse_http_line1"},
     {ERR_FUNC(CMP_F_PKEY_DUP), "PKEY_DUP"},
     {ERR_FUNC(CMP_F_POLLFORRESPONSE), "pollForResponse"},
-    {ERR_FUNC(CMP_F_SENDCERTCONF), "sendCertConf"},
     {0, NULL}
 };
 
@@ -126,6 +128,7 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
      "error calculating protection"},
     {ERR_REASON(CMP_R_ERROR_CREATING_CERTCONF), "error creating certconf"},
     {ERR_REASON(CMP_R_ERROR_CREATING_CR), "error creating cr"},
+    {ERR_REASON(CMP_R_ERROR_CREATING_ERROR), "error creating error"},
     {ERR_REASON(CMP_R_ERROR_CREATING_GENM), "error creating genm"},
     {ERR_REASON(CMP_R_ERROR_CREATING_IR), "error creating ir"},
     {ERR_REASON(CMP_R_ERROR_CREATING_KUR), "error creating kur"},
@@ -195,6 +198,7 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_REASON(CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC),
      "unsupported protection alg dhbasedmac"},
     {ERR_REASON(CMP_R_WRONG_ALGORITHM_OID), "wrong algorithm oid"},
+    {ERR_REASON(CMP_R_CERTIFICATE_NOT_ACCEPTED), "newly enrolled certificate not accepted"},
     {0, NULL}
 };
 

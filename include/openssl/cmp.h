@@ -269,7 +269,7 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
  * context DECLARATIONS
  * ########################################################################## */
 typedef void (*cmp_logfn_t) (const char *msg);
-typedef int (*cmp_certConfFn_t) (int status, const X509 *cert);
+typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, int status, const X509 *cert);
 typedef int (*cert_verify_cb_t) (int ok, X509_STORE_CTX *ctx);
 
 /* ########################################################################## *
@@ -279,9 +279,11 @@ typedef int (*cert_verify_cb_t) (int ok, X509_STORE_CTX *ctx);
 CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_cr_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx);
-CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx);
+CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
 CMP_PKIMESSAGE *CMP_kur_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx);
+CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
+                              int errorCode, STACK_OF (ASN1_UTF8STRING) *errorDetails);
 CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
 
 /* cmp_lib.c */
@@ -323,6 +325,7 @@ int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
 int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) **
                               itav_sk_p,
                               const CMP_INFOTYPEANDVALUE *itav);
+CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text);
 long CMP_PKISTATUSINFO_PKIstatus_get(CMP_PKISTATUSINFO *statusInfo);
 long CMP_CERTREPMESSAGE_PKIStatus_get(CMP_CERTREPMESSAGE *certRep,
                                       long certReqId);
@@ -352,6 +355,8 @@ STACK_OF(X509) * CMP_build_cert_chain(X509_STORE *store, X509 *cert);
 
 /* cmp_vfy.c */
 int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
+int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
+                           X509_STORE *untrusted_store, X509 *cert);
 
 /* from cmp_http.c */
 int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
@@ -370,6 +375,7 @@ STACK_OF(CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx,
 /* from cmp_ctx.c */
 CMP_CTX *CMP_CTX_create(void);
 int CMP_CTX_init(CMP_CTX *ctx);
+X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx);
 int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
 int CMP_CTX_set0_untrustedStore(CMP_CTX *ctx, X509_STORE *store);
 int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls);
@@ -527,6 +533,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_DOINITIALREQUESTSEQ                    150
 # define CMP_F_CMP_DOKEYUPDATEREQUESTSEQ                  151
 # define CMP_F_CMP_DOREVOCATIONREQUESTSEQ                 152
+# define CMP_F_CMP_ERROR_NEW                              176
 # define CMP_F_CMP_GENM_NEW                               153
 # define CMP_F_CMP_IR_NEW                                 154
 # define CMP_F_CMP_KUR_NEW                                155
@@ -541,6 +548,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_VALIDATE_CERT_PATH                     164
 # define CMP_F_CMP_VALIDATE_MSG                           165
 # define CMP_F_CMP_VERIFY_SIGNATURE                       166
+# define CMP_F_EXCHANGE_CERTCONF                          179
+# define CMP_F_EXCHANGE_ERROR                             180
 # define CMP_F_PARSE_HTTP_LINE1                           167
 # define CMP_F_PKEY_DUP                                   168
 # define CMP_F_POLLFORRESPONSE                            169
@@ -553,6 +562,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_CALCULATING_PROTECTION               104
 # define CMP_R_ERROR_CREATING_CERTCONF                    105
 # define CMP_R_ERROR_CREATING_CR                          106
+# define CMP_R_ERROR_CREATING_ERROR                       160
 # define CMP_R_ERROR_CREATING_GENM                        107
 # define CMP_R_ERROR_CREATING_IR                          108
 # define CMP_R_ERROR_CREATING_KUR                         109
@@ -607,6 +617,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_UNSUPPORTED_KEY_TYPE                       154
 # define CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC      155
 # define CMP_R_WRONG_ALGORITHM_OID                        156
+# define CMP_R_CERTIFICATE_NOT_ACCEPTED                   161
 
 # ifdef  __cplusplus
 }

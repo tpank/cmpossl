@@ -422,7 +422,7 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
  * TODO: handle both possible certificates when signing and encrypting
  * certificates have been requested/received
  * ############################################################################ */
-CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx)
+CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text)
 {
     CMP_PKIMESSAGE *msg = NULL;
     CMP_CERTSTATUS *certStatus = NULL;
@@ -450,13 +450,18 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx)
      * -- as is used to create and verify the certificate signature */
     if (!CMP_CERTSTATUS_set_certHash(certStatus, ctx->newClCert))
         goto err;
-
-    /* execute the callback function set in ctx which can be used to examine a
-     * certificate and reject it */
-    if (ctx->certConf_cb && ctx->certConf_cb(ctx->lastPKIStatus, ctx->newClCert) == 0) {
-        certStatus->statusInfo = CMP_PKISTATUSINFO_new();
-        ASN1_INTEGER_set(certStatus->statusInfo->status,
-                         CMP_PKISTATUS_rejection);
+    /*
+       For any particular CertStatus, omission of the statusInfo field
+       indicates ACCEPTANCE of the specified certificate.  Alternatively,
+       explicit status details (with respect to acceptance or rejection) MAY
+       be provided in the statusInfo field, perhaps for auditing purposes at
+       the CA/RA.
+    */
+    if (failure >= 0) {
+        CMP_PKISTATUSINFO *status_info = CMP_statusInfo_new(CMP_PKISTATUS_rejection, failure, text);
+        if (status_info == NULL)
+            goto err;
+        certStatus->statusInfo = status_info;
         CMP_printf(ctx, "INFO: rejecting certificate.");
     }
 
@@ -504,5 +509,46 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
     CMPerr(CMP_F_CMP_GENM_NEW, CMP_R_ERROR_CREATING_GENM);
     if (msg)
         CMP_PKIMESSAGE_free(msg);
+    return NULL;
+}
+
+/* ############################################################################ *
+ * Creates a new Error Message with the given contents
+ * returns a pointer to the PKIMessage on success, NULL on error
+ * ############################################################################ */
+CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
+                              int errorCode, STACK_OF (ASN1_UTF8STRING) *errorDetails)
+{
+    CMP_PKIMESSAGE *msg = NULL;
+
+    if (!ctx || !si) {
+        CMPerr(CMP_F_CMP_ERROR_NEW, CMP_R_INVALID_ARGS);
+        return NULL;
+    }
+
+    if (!(msg = CMP_PKIMESSAGE_new()))
+        goto err;
+    if (!CMP_PKIHEADER_init(ctx, msg->header))
+        goto err;
+    CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_ERROR);
+    if (!(msg->body->value.error = CMP_ERRORMSGCONTENT_new()))
+        goto err;
+
+    CMP_PKISTATUSINFO_free(msg->body->value.error->pKIStatusInfo);
+    msg->body->value.error->pKIStatusInfo = si;
+    if (errorCode >= 0) {
+        msg->body->value.error->errorCode = ASN1_INTEGER_new();
+        if (!ASN1_INTEGER_set(msg->body->value.error->errorCode, errorCode))
+            goto err;
+    }
+    msg->body->value.error->errorDetails = errorDetails;
+
+    if (!CMP_PKIMESSAGE_protect(ctx, msg))
+        goto err;
+    return msg;
+
+ err:
+    CMPerr(CMP_F_CMP_ERROR_NEW, CMP_R_ERROR_CREATING_ERROR);
+    CMP_PKIMESSAGE_free(msg);
     return NULL;
 }

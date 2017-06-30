@@ -179,6 +179,8 @@ void add_error_data(const char *txt)
  * internal function
  *
  * performs the generic aspects of sending a request and receiving a response
+ * returns 1 on success, 0 on error
+ * Regardless of success, caller is responsible for freeing *rep (unless NULL).
  * ############################################################################ */
 static int send_receive_check(CMP_CTX *ctx,
                         const CMP_PKIMESSAGE *req, const char *type_string, int type_function,
@@ -187,6 +189,7 @@ static int send_receive_check(CMP_CTX *ctx,
     CMP_printf(ctx, "INFO: Sending %s", type_string);
     if (!(CMP_PKIMESSAGE_http_perform(ctx, req, rep))) {
         ADD_HTTP_ERROR_INFO(type_function, not_received, type_string);
+        *rep = NULL;
         return 0;
     }
 
@@ -348,32 +351,60 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
 }
 
 /* ############################################################################ *
- * send certConf for IR, CR or KUR sequences
+ * internal function
+ *
+ * send certConf for IR, CR or KUR sequences and check response
  * returns 1 on success, 0 on error
  * ############################################################################ */
-static int sendCertConf(CMP_CTX *ctx)
+static int exchange_certConf(CMP_CTX *ctx, int failure, const char *text)
 {
     CMP_PKIMESSAGE *certConf = NULL;
     CMP_PKIMESSAGE *PKIconf = NULL;
+    int success = 0;
 
     /* check if all necessary options are set is done in CMP_certConf_new */
     /* create Certificate Confirmation - certConf */
-    if (!(certConf = CMP_certConf_new(ctx)))
+    if (!(certConf = CMP_certConf_new(ctx, failure, text)))
         goto err;
 
-    if (!send_receive_check(ctx, certConf, "certConf", CMP_F_SENDCERTCONF,
-                                 &PKIconf, V_CMP_PKIBODY_PKICONF, CMP_R_PKICONF_NOT_RECEIVED))
-        goto err;
+    success = send_receive_check(ctx, certConf, "certConf", CMP_F_EXCHANGE_CERTCONF,
+                                 &PKIconf, V_CMP_PKIBODY_PKICONF, CMP_R_PKICONF_NOT_RECEIVED);
 
+ err:
     CMP_PKIMESSAGE_free(certConf);
     CMP_PKIMESSAGE_free(PKIconf);
-    return 1;
+    return success;
+}
+
+/* ############################################################################ *
+ * internal function
+ *
+ * send given error and check response
+ * returns 1 on success, 0 on error
+ * ############################################################################ */
+static int exchange_error(CMP_CTX *ctx, int status, int failure, const char *text)
+{
+    CMP_PKIMESSAGE *error = NULL;
+    CMP_PKISTATUSINFO *si = NULL;
+    CMP_PKIMESSAGE *PKIconf = NULL;
+    int success = 0;
+
+    /* check if all necessary options are set is done in CMP_error_new */
+    /* create Error Message - error */
+    if (!(si = CMP_statusInfo_new(status, failure, text)))
+        goto err;
+    if (!(error = CMP_error_new(ctx, si, -1, NULL))) {
+        CMP_PKISTATUSINFO_free(si);
+        goto err;
+    }
+
+    success = send_receive_check(ctx, error, "error", CMP_F_EXCHANGE_ERROR,
+                                 &PKIconf, V_CMP_PKIBODY_PKICONF, CMP_R_PKICONF_NOT_RECEIVED);
+
  err:
-    if (certConf)
-        CMP_PKIMESSAGE_free(certConf);
-    if (PKIconf)
-        CMP_PKIMESSAGE_free(PKIconf);
-    return 0;
+    CMP_PKIMESSAGE_free(error); /* also frees si if included */
+    CMP_PKIMESSAGE_free(PKIconf);
+    return success;
 }
 
 /* ############################################################################ *
@@ -414,6 +445,8 @@ static void save_certrep_statusInfo(CMP_CTX *ctx, CMP_CERTREPMESSAGE *certrep)
  * internal function
  *
  * performs the generic handling of certificate responses for IR/CR/KUR
+ * returns 1 on success, 0 on error
+ * Regardless of success, caller is responsible for freeing *resp (unless NULL).
  * ############################################################################ */
 static int cert_response(CMP_CTX *ctx,
                          CMP_PKIMESSAGE **resp,
@@ -430,18 +463,18 @@ static int cert_response(CMP_CTX *ctx,
         } else {
             CMPerr(type_function, not_received);
             ERR_add_error_data(1, "received 'waiting' pkistatus but polling failed");
+            *resp = NULL;
             return 0;
         }
     }
 
     if (!(ctx->newClCert = CMP_CERTREPMESSAGE_get_certificate(ctx, body))) {
-        ERR_add_error_data(1, "cannot extract certficate from response");
+        ERR_add_error_data(1, "cannot extract certificate from response");
         return 0;
     }
 
     /* if the CMP server returned certificates in the caPubs field, copy them
      * to the context so that they can be retrieved if necessary */
-
     if (body->caPubs)
         CMP_CTX_set1_caPubs(ctx, body->caPubs);
 
@@ -449,11 +482,36 @@ static int cert_response(CMP_CTX *ctx,
     if ((*resp)->extraCerts)
         CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts);
 
+    int failure = -1; /* no failure */
+    const char *text = NULL;
+    /* TODO: possibly check also subject and other fields of the newly enrolled cert */
+    if (!(X509_check_private_key(ctx->newClCert, ctx->newPkey ? ctx->newPkey : ctx->pkey))) {
+        failure = CMP_PKIFAILUREINFO_incorrectData;
+        text = "public key in new certificate does not match our private key";
+        (void)exchange_error(ctx, CMP_PKISTATUS_rejection, failure, text);
+        /* cannot flag the error earlier because send_receive_check() indirectly calls ERR_clear_error() */
+        CMPerr(type_function, CMP_R_CERTIFICATE_NOT_ACCEPTED);
+        ERR_add_error_data(1, text);
+        return 0;
+    }
+    /* if present, execute the callback function set in ctx which can be used to
+     * examine whether a received certificate should be accepted */
+    if (ctx->certConf_cb &&
+             (failure = ctx->certConf_cb(ctx, ctx->lastPKIStatus, ctx->newClCert)) >= 0) {
+        text = "CMP client application did not accept newly enrolled certificate";
+    }
+
     /* check if implicit confirm is set in generalInfo and send certConf if not */
     if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(*resp))
-        if (!sendCertConf(ctx))
+        if (!exchange_certConf(ctx, failure, text))
             return 0;
 
+    if (failure >= 0) {
+        /* cannot flag the error earlier because send_receive_check() indirectly calls ERR_clear_error() */
+        CMPerr(type_function, CMP_R_CERTIFICATE_NOT_ACCEPTED);
+        ERR_add_error_data(1, "certConf callback resulted in rejection of new certificate");
+        return 0;
+    }
     return 1;
 }
 

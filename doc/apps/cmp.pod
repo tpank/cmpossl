@@ -181,13 +181,15 @@ File with certificates to include in the extraCerts field of requests.
 
 =item B<-srvcert filename>
 
-CMP server certificate to be used for verifying the protection of messages received.
-May be set if the certificate is available and should be directly trusted.
-In this case the issuer of the certificate is also used as the receiver.
+CMP server certificate to be used for verifying the protection of messages received
+and for checking the newly enrolled cert (a warning is given if it cannot be verfied).
+May be set alternatively to the -trusted option if the certificate is available and should be directly trusted.
+If set, the issuer of the certificate is also used as the receiver.
 
 =item B<-trusted filename>
 
-Trusted certificates for CMP server authentication. 
+Trusted certificates used for CMP server authentication and verifying replies,
+as well as for checking the newly enrolled cert, unless the -srvcert option is given.
 The file can contain multiple certificates.
 
 =item B<-untrusted filename>
@@ -242,7 +244,7 @@ HTTP path location to use for the CMP server (aka CMP alias).
 =item B<-cmd ir|cr|kur|rr>
 
 CMP command to execute. Currently implemented commands are:
-    ir  - Initial Request
+    ir  - Initialization Request
     cr  - Certificate Request
     kur - Key Update Request
     rr  - Revocation Request
