@@ -1006,7 +1006,7 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pa
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, infile);
     }
     if (pass_string)
-        OPENSSL_free(pass_string);
+        OPENSSL_clear_free(pass_string, strlen(pass_string));
     return pkey;
 }
 
@@ -1025,7 +1025,8 @@ static X509 *load_cert_autofmt(const char *infile, int *format, const char *pass
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc, infile);
     }
-    OPENSSL_free(pass_string);
+    if (pass_string)
+        OPENSSL_clear_free(pass_string, strlen(pass_string));
     return cert;
 }
 
@@ -1403,12 +1404,15 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
         if (opt_tls_cert && opt_tls_key) {
             certfmt = opt_certform;
+            /* TODO: does it make sense to use opt_tls_keypass also here? */
             if (!(cert=load_cert_autofmt(opt_tls_cert, &certfmt, opt_tls_keypass, "TLS client certificate"))) {
                 goto tls_err;
             }
             if (!(pkey=load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass, e, "TLS client private key"))) {
                 goto tls_err;
             }
+            if (opt_tls_keypass)
+                OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
 
             if (certfmt == FORMAT_PEM) {
                 if (SSL_CTX_use_certificate_chain_file(ssl_ctx, opt_tls_cert) <= 0) {
@@ -1455,6 +1459,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_ref && opt_secret) {
         char *pass_string = NULL;
         if ((pass_string = get_passwd(opt_secret, "PBMAC"))) {
+        OPENSSL_cleanse(opt_secret, strlen(opt_secret));
         CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
                                     strlen(opt_ref));
         CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
@@ -1465,17 +1470,22 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_key) {
         EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyform, opt_keypass, e, "private key for CMP client certificate");
+        if (opt_keypass)
+            OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
         if (!pkey || !CMP_CTX_set0_pkey(ctx, pkey))
             goto err;
     }
     if (opt_newkey) {
         EVP_PKEY *newPkey = load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e, "new private key for certificate to be enrolled");
+        if (opt_newkeypass)
+            OPENSSL_cleanse(opt_newkeypass, strlen(opt_newkeypass));
         if (!newPkey || !CMP_CTX_set0_newPkey(ctx, newPkey))
             goto err;
     }
-    
+
     certfmt = opt_certform;
     if (opt_cert) {
+        /* TODO: does it make sense to use opt_keypass also here? */
         X509 *clcert = load_cert_autofmt(opt_cert, &certfmt, opt_keypass, "CMP client certificate");
         if (!clcert || !CMP_CTX_set1_clCert(ctx, clcert))
             goto err;
@@ -1491,6 +1501,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     certfmt = opt_certform;
     if (opt_srvcert) {
+        /* TODO: does it make sense to use opt_keypass also here? */
         X509 *srvcert = load_cert_autofmt(opt_srvcert, &certfmt, opt_keypass, "CMP server certificate");
         if (!srvcert || !CMP_CTX_set1_srvCert(ctx, srvcert)) /* indirectly sets also ctx->trusted */
             goto err;
@@ -1600,6 +1611,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     certfmt = opt_certform;
     if (opt_oldcert) {
+        /* TODO: does it make sense to use opt_keypass also here? */
         X509 *oldcert = load_cert_autofmt(opt_oldcert, &certfmt, opt_keypass, "certificate to be renewed/revoked");
         if (!oldcert || !CMP_CTX_set1_oldClCert(ctx, oldcert))
             goto err;
@@ -2168,6 +2180,16 @@ opt_err:
     if (server_address)
         OPENSSL_free(server_address);
     release_engine(e);
+
+    /* if we ended up here without proper cleaning */
+    if (opt_keypass)
+        OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
+    if (opt_newkeypass)
+        OPENSSL_cleanse(opt_newkeypass, strlen(opt_newkeypass));
+    if (opt_tls_keypass)
+        OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
+    if (opt_secret)
+        OPENSSL_cleanse(opt_secret, strlen(opt_secret));
 
     return ret;
 }

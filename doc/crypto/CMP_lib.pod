@@ -34,7 +34,6 @@
   CMP_statusInfo_new,
   CMP_PKISTATUSINFO_PKIstatus_get,
   CMP_get_protectionAlg_pbmac,
-  CMP_protection_new,
   CMP_CERTREPMESSAGE_PKIFailureInfoString_get0,
   CMP_CERTREPMESSAGE_PKIStatusString_get0,
   CMP_CERTREPMESSAGE_PKIFailureInfo_get0,
@@ -79,7 +78,6 @@
   CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text);
   long CMP_PKISTATUSINFO_PKIstatus_get( CMP_PKISTATUSINFO *statusInfo);
   X509_ALGOR *CMP_get_protectionAlg_pbmac();
-  ASN1_BIT_STRING *CMP_protection_new(CMP_PKIMESSAGE *pkimessage, const EVP_PKEY *pkey, const ASN1_OCTET_STRING *secret);
   char *CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(CMP_CERTREPMESSAGE *certRep, long certReqId);
   STACK_OF(ASN1_UTF8STRING)* CMP_CERTREPMESSAGE_PKIStatusString_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
   CMP_PKIFAILUREINFO *CMP_CERTREPMESSAGE_PKIFailureInfo_get0(CMP_CERTREPMESSAGE *certRep, long certReqId);
@@ -173,7 +171,7 @@ the PKIMessage body field.
 CMP_PKIMESSAGE_set_implicitConfirm() sets implicitConfirm in the
 generalInfo field of the header.
 
-CMP_calc_protection_pbmac calculates the PBMAC protection for given PKImessage utilizing the given secret.
+CMP_calc_protection_pbmac() calculates the PBMAC protection for given B<PKImessage> utilizing the given B<secret>.
 
 CMP_PKIMESSAGE_protect() protects the given message deciding on the algorithm
 depending on the available context information:  If there is a secretValue it
@@ -191,10 +189,6 @@ CMP_PKISTATUSINFO_PKIstatus_get() returns the status value of the given PKIStatu
 CMP_get_protectionAlg_pbmac() initializes an X509_ALGOR structure for
 Password Based MAC. Creates a CRMF_PBMPARAMETER structure for the
 parameters.
-
-CMP_protection_new() calculates the value of protection field for the
-PKIMessage, either by using Password based MAC or signing it with a
-private key.
 
 CMP_CERTREPMESSAGE_PKIFailureInfoString_get0() returns PKIFailureInfoString 
 character array of given certRep message, or NULL on error

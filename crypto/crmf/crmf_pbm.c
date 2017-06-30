@@ -72,6 +72,7 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/err.h>
+#include <openssl/crypto.h>
 #include "crmf_int.h"
 
 /* ############################################################################ *
@@ -257,6 +258,7 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
     HMAC(m, basekey, basekeyLen, msg, msgLen, *mac, macLen);
 
     /* cleanup */
+    OPENSSL_cleanse(basekey, basekeyLen);
     EVP_MD_CTX_destroy(ctx);
 
     return 1;

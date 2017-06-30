@@ -72,6 +72,7 @@
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#include <openssl/crypto.h>
 #include <string.h>
 #ifndef _WIN32
 #include <dirent.h>
@@ -232,10 +233,9 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->serverName = NULL;
     /* serverPath has to be an empty sting if not set since it is not mandatory */
     /* this will be freed by CMP_CTX_delete() */
-    ctx->serverPath = OPENSSL_malloc(1);
+    ctx->serverPath = OPENSSL_zalloc(1);
     if (!ctx->serverPath)
         goto err;
-    ctx->serverPath[0] = 0;
     ctx->serverPort = 0;
     ctx->proxyName = NULL;
     ctx->proxyPort = 0;
@@ -289,6 +289,8 @@ void CMP_CTX_delete(CMP_CTX *ctx)
         EVP_PKEY_free(ctx->pkey);
     if (ctx->newPkey)
         EVP_PKEY_free(ctx->newPkey);
+    if (ctx->secretValue)
+        OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
 
     if (ctx->serverName)
         OPENSSL_free(ctx->serverName);
@@ -432,7 +434,9 @@ int CMP_CTX_set1_secretValue(CMP_CTX *ctx, const unsigned char *sec,
     if (!sec)
         goto err;
 
-    if (!ctx->secretValue)
+    if (ctx->secretValue)
+        OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
+    else
         ctx->secretValue = ASN1_OCTET_STRING_new();
 
     return (ASN1_OCTET_STRING_set(ctx->secretValue, sec, len));
@@ -1314,8 +1318,7 @@ int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path)
 
     if (!path) {
         /* clear the serverPath */
-        ctx->serverPath = OPENSSL_malloc(1);
-        ctx->serverPath[0] = 0;
+        ctx->serverPath = OPENSSL_zalloc(1);
         return 1;
     }
 
