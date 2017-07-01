@@ -1354,27 +1354,36 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
 
 /* ############################################################################ *
  * internal function
+ * ############################################################################ */
+static CMP_CERTORENCCERT *CMP_CERTRESPONSE_certOrEncCert_get0(
+                                                       CMP_CERTRESPONSE *crep) {
+    if (!crep || !crep->certifiedKeyPair)
+        return NULL;
+    return crep->certifiedKeyPair->certOrEncCert;
+}
+
+/* ############################################################################ *
+ * internal function
  *
  * returns a pointer to a copy of the Certificate with the given certReqId inside a CertRepMessage
  * returns NULL on error or if no Certificate available
  * ############################################################################ */
-static X509 *CMP_CERTREPMESSAGE_cert_get1(CMP_CERTREPMESSAGE *certRep,
-                                          long certReqId)
+static X509 *CMP_CERTREPMESSAGE_cert_get1(CMP_CERTREPMESSAGE *crepmsg, long rid)
 {
-    X509 *certCopy = NULL;
-    CMP_CERTRESPONSE *certResponse = NULL;
+    X509 *cert = NULL;
+    CMP_CERTRESPONSE *crep = NULL;
+    CMP_CERTORENCCERT *coec;
 
-    if (!certRep)
+    if (!crepmsg)
         return NULL;
 
-    if ((certResponse =
-         CMP_CERTREPMESSAGE_certResponse_get0(certRep, certReqId))) {
-        certCopy =
-            X509_dup(certResponse->certifiedKeyPair->certOrEncCert->
-                     value.certificate);
+    if ((crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid))) {
+        if (!(coec = CMP_CERTRESPONSE_certOrEncCert_get0(crep)))
+            return NULL;
+        cert = X509_dup(coec->value.certificate);
     }
 
-    return certCopy;
+    return cert;
 }
 
 /* ############################################################################# *
@@ -1386,10 +1395,10 @@ static X509 *CMP_CERTREPMESSAGE_cert_get1(CMP_CERTREPMESSAGE *certRep,
  * returns a pointer to the decrypted certificate
  * returns NULL on error or if no Certificate available
  * ############################################################################# */
-static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *certRep,
-                                             long certReqId, EVP_PKEY *pkey)
+static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *crepmsg,
+                                             long rid, EVP_PKEY *pkey)
 {
-    CRMF_ENCRYPTEDVALUE *encCert = NULL;
+    CRMF_ENCRYPTEDVALUE *ecert;
     X509 *cert = NULL; /* decrypted certificate */
     EVP_CIPHER_CTX *evp_ctx = NULL; /* context for symmetric encryption */
     unsigned char *ek = NULL; /* decrypted symmetric encryption key */
@@ -1400,23 +1409,25 @@ static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *certRep,
     int symmAlg = 0; /* NIDs for symmetric algorithm */
     int n, outlen = 0;
     EVP_PKEY_CTX *pkctx = NULL; /* private key context */
-    CMP_CERTRESPONSE *certResponse = NULL;
+    CMP_CERTRESPONSE *crep;
+    CMP_CERTORENCCERT *coec;
 
-    if (!(certResponse =
-          CMP_CERTREPMESSAGE_certResponse_get0(certRep, certReqId)))
+    if (!(crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid)))
         goto err;
-
-    if (!(encCert =
-          certResponse->certifiedKeyPair->certOrEncCert->value.encryptedCert))
+    if (!(coec = CMP_CERTRESPONSE_certOrEncCert_get0(crep)))
         goto err;
-
-    if (!(symmAlg = OBJ_obj2nid(encCert->symmAlg->algorithm)))
+    if (!(ecert = coec->value.encryptedCert))
+        goto err;
+    if (!ecert->symmAlg)
+        goto err;
+    if (!(symmAlg = OBJ_obj2nid(ecert->symmAlg->algorithm)))
         goto err;
 
     /* first the symmetric key needs to be decrypted */
-    if ((pkctx = EVP_PKEY_CTX_new(pkey, NULL))
-        && EVP_PKEY_decrypt_init(pkctx)) {
-        ASN1_BIT_STRING *encKey = encCert->encSymmKey;
+    if ((pkctx = EVP_PKEY_CTX_new(pkey, NULL)) && EVP_PKEY_decrypt_init(pkctx)) {
+        if (!ecert->encSymmKey)
+            goto err;
+        ASN1_BIT_STRING *encKey = ecert->encSymmKey;
         size_t eksize = 0;
 
         if (EVP_PKEY_decrypt
@@ -1443,21 +1454,23 @@ static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *certRep,
     }
     if (!(iv = OPENSSL_malloc(EVP_CIPHER_iv_length(cipher))))
         goto err;
-    ASN1_TYPE_get_octetstring(encCert->symmAlg->parameter, iv,
+    ASN1_TYPE_get_octetstring(ecert->symmAlg->parameter, iv,
                               EVP_CIPHER_iv_length(cipher));
 
     /* d2i_X509 changes the given pointer, so use p for decoding the message and keep the
      * original pointer in outbuf so that the memory can be freed later */
+    if (!ecert->encValue)
+        goto err;
     if (!(p = outbuf =
-          OPENSSL_malloc(encCert->encValue->length + EVP_CIPHER_block_size(cipher))))
+          OPENSSL_malloc(ecert->encValue->length + EVP_CIPHER_block_size(cipher))))
         goto err;
     evp_ctx = EVP_CIPHER_CTX_new();
     EVP_CIPHER_CTX_set_padding(evp_ctx, 0);
 
     if (!EVP_DecryptInit(evp_ctx, cipher, ek, iv)
         || !EVP_DecryptUpdate(evp_ctx, outbuf, &outlen,
-                              encCert->encValue->data,
-                              encCert->encValue->length)
+                              ecert->encValue->data,
+                              ecert->encValue->length)
         || !EVP_DecryptFinal(evp_ctx, outbuf + outlen, &n)) {
         CMPerr(CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1,
                CMP_R_ERROR_DECRYPTING_CERTIFICATE);
@@ -1495,18 +1508,19 @@ static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *certRep,
  * returns the type of the certificate contained in the certificate response
  * returns -1 on errror
  * ############################################################################ */
-int CMP_CERTREPMESSAGE_certType_get(CMP_CERTREPMESSAGE *certRep,
-                                    long certReqId)
+int CMP_CERTREPMESSAGE_certType_get(CMP_CERTREPMESSAGE *crepmsg, long rid)
 {
-    CMP_CERTRESPONSE *certResponse = NULL;
+    CMP_CERTRESPONSE *crep = NULL;
+    CMP_CERTORENCCERT *coec;
 
-    if (!certRep)
-        return -1;
-    if (!(certResponse =
-          CMP_CERTREPMESSAGE_certResponse_get0(certRep, certReqId)))
-        return -1;
+    if (!crepmsg)
+        return CMP_CERTORENCCERT_ERROR;
+    if (!(crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid)))
+        return CMP_CERTORENCCERT_ERROR;
+    if (!(coec = CMP_CERTRESPONSE_certOrEncCert_get0(crep)))
+        return CMP_CERTORENCCERT_ERROR;
 
-    return certResponse->certifiedKeyPair->certOrEncCert->type;
+    return coec->type;
 }
 
 /* ############################################################################ *
@@ -1634,6 +1648,11 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
                        CMP_R_CERTIFICATE_NOT_FOUND);
                 goto err;
             }
+            break;
+        case CMP_CERTORENCCERT_ERROR:
+            CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+                  CMP_R_FAIL_EXTRACT_CERT_FROM_CERTREP_WITH_ACCEPT_STATUS);
+                goto err;
             break;
         default:
             CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,

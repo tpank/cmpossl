@@ -46,7 +46,7 @@
   long CMP_REVREPCONTENT_PKIStatus_get( CMP_REVREPCONTENT *revRep, long reqId);
   long CMP_CERTREPMESSAGE_PKIStatus_get( CMP_CERTREPMESSAGE *certRep, long certReqId);
   CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
-  int CMP_CERTREPMESSAGE_certType_get( CMP_CERTREPMESSAGE *certRep, long certReqId);
+  int CMP_CERTREPMESSAGE_certType_get( CMP_CERTREPMESSAGE *crepmsg, long rid);
   int CMP_CERTSTATUS_set_certHash( CMP_CERTSTATUS *certStatus, const X509 *cert);
   char *CMP_ERRORMSGCONTENT_PKIStatus_get_string( CMP_ERRORMSGCONTENT *error);
   int CMP_PKIFAILUREINFO_check( ASN1_BIT_STRING *failInfo, int codeBit);
@@ -94,7 +94,8 @@ CertResponse is available or if there's an error, the function returns
 NULL.
 
 CMP_CERTREPMESSAGE_certType_get() returns the type of the certificate
-contained in the certificate response, or -1 on error.
+contained in the certificate response B<crep> corrresponding to certReqId B<id>,
+or -1 on error.
 
 CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
 using the same hash algorithm as is used to create and verify the

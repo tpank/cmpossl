@@ -118,6 +118,7 @@ static ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_FUNC(CMP_F_EXCHANGE_CERTCONF), "exchange_certConf"},
     {ERR_FUNC(CMP_F_EXCHANGE_ERROR), "exchange_error"},
     {ERR_FUNC(CMP_F_POLLFORRESPONSE), "pollForResponse"},
+    {ERR_FUNC(CMP_F_SENDCERTCONF), "SENDCERTCONF"},
     {0, NULL}
 };
 
@@ -166,6 +167,8 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_REASON(CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE),
      "failed to receive pkimessage"},
     {ERR_REASON(CMP_R_FAILED_TO_SEND_REQUEST), "failed to send request"},
+    {ERR_REASON(CMP_R_FAIL_EXTRACT_CERT_FROM_CERTREP_WITH_ACCEPT_STATUS),
+     "fail extract cert from certrep with accept status"},
     {ERR_REASON(CMP_R_GENP_NOT_RECEIVED), "genp not received"},
     {ERR_REASON(CMP_R_INVALID_ARGS), "invalid args"},
     {ERR_REASON(CMP_R_INVALID_CONTEXT), "invalid context"},
