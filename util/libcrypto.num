@@ -4467,7 +4467,7 @@ CMP_PKIMESSAGE_generalInfo_items_push1  4403	1_1_1	NOEXIST::FUNCTION:
 CMP_CTX_geninfo_itav_push0              4404	1_1_1	NOEXIST::FUNCTION:
 CMP_CTX_set0_crls                       4405	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_certVerify_callback         4406	1_1_1	EXIST::FUNCTION:
-CMP_validate_cert_path                  4407	1_1_1	NOEXIST::FUNCTION:
-CMP_error_new                           4408	1_1_1	NOEXIST::FUNCTION:
-CMP_statusInfo_new                      4409	1_1_1	NOEXIST::FUNCTION:
-CMP_CTX_get0_trustedStore               4410	1_1_1	NOEXIST::FUNCTION:
+CMP_validate_cert_path                  4407	1_1_1	EXIST::FUNCTION:
+CMP_error_new                           4408	1_1_1	EXIST::FUNCTION:
+CMP_statusInfo_new                      4409	1_1_1	EXIST::FUNCTION:
+CMP_CTX_get0_trustedStore               4410	1_1_1	EXIST::FUNCTION:
