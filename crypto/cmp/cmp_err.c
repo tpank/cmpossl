@@ -97,7 +97,8 @@ static ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_FUNC(CMP_F_CMP_GENM_NEW), "CMP_genm_new"},
     {ERR_FUNC(CMP_F_CMP_IR_NEW), "CMP_ir_new"},
     {ERR_FUNC(CMP_F_CMP_KUR_NEW), "CMP_kur_new"},
-    {ERR_FUNC(CMP_F_CMP_NEW_HTTP_BIO), "CMP_NEW_HTTP_BIO"},
+    {ERR_FUNC(CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0),
+     "CMP_PKIHEADER_generalInfo_item_push0"},
     {ERR_FUNC(CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1),
      "CMP_PKIMESSAGE_generalInfo_items_push1"},
     {ERR_FUNC(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM),
@@ -116,14 +117,14 @@ static ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_FUNC(CMP_F_CMP_VERIFY_SIGNATURE), "CMP_verify_signature"},
     {ERR_FUNC(CMP_F_EXCHANGE_CERTCONF), "exchange_certConf"},
     {ERR_FUNC(CMP_F_EXCHANGE_ERROR), "exchange_error"},
-    {ERR_FUNC(CMP_F_PARSE_HTTP_LINE1), "parse_http_line1"},
-    {ERR_FUNC(CMP_F_PKEY_DUP), "PKEY_DUP"},
     {ERR_FUNC(CMP_F_POLLFORRESPONSE), "pollForResponse"},
     {0, NULL}
 };
 
 static ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_REASON(CMP_R_ALGORITHM_NOT_SUPPORTED), "algorithm not supported"},
+    {ERR_REASON(CMP_R_CERTIFICATE_NOT_ACCEPTED),
+     "newly enrolled certificate not accepted"},
     {ERR_REASON(CMP_R_CERTIFICATE_NOT_FOUND), "certificate not found"},
     {ERR_REASON(CMP_R_CP_NOT_RECEIVED), "cp not received"},
     {ERR_REASON(CMP_R_ERROR_CALCULATING_PROTECTION),
@@ -162,14 +163,11 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
      "transaction ID missing or does not match"},
     {ERR_REASON(CMP_R_ERROR_VALIDATING_PROTECTION),
      "error validating protection"},
-    {ERR_REASON(CMP_R_FAILED_TO_DECODE_PKIMESSAGE),
-     "failed to decode pkimessage"},
     {ERR_REASON(CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE),
      "failed to receive pkimessage"},
     {ERR_REASON(CMP_R_FAILED_TO_SEND_REQUEST), "failed to send request"},
     {ERR_REASON(CMP_R_GENP_NOT_RECEIVED), "genp not received"},
     {ERR_REASON(CMP_R_INVALID_ARGS), "invalid args"},
-    {ERR_REASON(CMP_R_INVALID_CONTENT_TYPE), "invalid content type"},
     {ERR_REASON(CMP_R_INVALID_CONTEXT), "invalid context"},
     {ERR_REASON(CMP_R_INVALID_KEY), "invalid key"},
     {ERR_REASON(CMP_R_INVALID_PARAMETERS), "invalid parameters"},
@@ -190,9 +188,6 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_REASON(CMP_R_REQUEST_REJECTED_BY_CA), "request rejected by ca"},
     {ERR_REASON(CMP_R_RP_NOT_RECEIVED), "rp not received"},
     {ERR_REASON(CMP_R_SERVER_NOT_REACHABLE), "server not reachable"},
-    {ERR_REASON(CMP_R_SERVER_RESPONSE_ERROR), "server response error"},
-    {ERR_REASON(CMP_R_SERVER_RESPONSE_PARSE_ERROR),
-     "server response parse error"},
     {ERR_REASON(CMP_R_UNABLE_TO_CREATE_CONTEXT), "unable to create context"},
     {ERR_REASON(CMP_R_UNEXPECTED_PKISTATUS), "unexpected pkistatus"},
     {ERR_REASON(CMP_R_UNKNOWN_ALGORITHM_ID), "unknown algorithm id"},
@@ -204,7 +199,6 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_REASON(CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC),
      "unsupported protection alg dhbasedmac"},
     {ERR_REASON(CMP_R_WRONG_ALGORITHM_OID), "wrong algorithm oid"},
-    {ERR_REASON(CMP_R_CERTIFICATE_NOT_ACCEPTED), "newly enrolled certificate not accepted"},
     {0, NULL}
 };
 
