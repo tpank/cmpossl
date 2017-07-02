@@ -733,7 +733,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
             /* make sure that key and certificate match */
             if (!X509_check_private_key(ctx->clCert, ctx->pkey)) {
-                CMPerr(CMP_F_CMP_PKIMESSAGE_PROTECT, CMP_R_INVALID_KEY);
+                CMPerr(CMP_F_CMP_PKIMESSAGE_PROTECT, CMP_R_CERT_AND_KEY_DO_NOT_MATCH);
                 goto err;
             }
 
