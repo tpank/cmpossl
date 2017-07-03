@@ -426,7 +426,6 @@ int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio);
 BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx);
 int CMP_CTX_set_msg_transport(CMP_CTX *ctx, cmp_transportfn_t cb);
-int CMP_CTX_set1_sourceAddress(CMP_CTX *ctx, const char *ip); // unused, TODO remove
 int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
 int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
 int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO * failInfo);
@@ -512,8 +511,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_SECRETVALUE                   143
 # define CMP_F_CMP_CTX_SET1_SERVERNAME                    144
 # define CMP_F_CMP_CTX_SET1_SERVERPATH                    145
-# define CMP_F_CMP_CTX_SET_SERVERPORT                     146
-# define CMP_F_CMP_CTX_SET1_SOURCEADDRESS                 147 // unused
+# define CMP_F_CMP_CTX_SET1_SERVERPORT                    146
 # define CMP_F_CMP_CTX_SET1_SRVCERT                       148
 # define CMP_F_CMP_CTX_SET1_SUBJECTNAME                   149
 # define CMP_F_CMP_CTX_SET1_TRANSACTIONID                 150
@@ -545,6 +543,86 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_EXCHANGE_CERTCONF                          177
 # define CMP_F_EXCHANGE_ERROR                             178
 # define CMP_F_POLLFORRESPONSE                            179
+||||||| merged common ancestors
+# define CMP_F_CERTREQ_NEW                                175
+# define CMP_F_CMP_CALC_PROTECTION_PBMAC                  100
+# define CMP_F_CMP_CALC_PROTECTION_SIG                    101
+# define CMP_F_CMP_CERTCONF_NEW                           102
+# define CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1            103
+# define CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE         104
+# define CMP_F_CMP_CERTREPMESSAGE_PKIFAILUREINFOSTRING_GET0 105
+# define CMP_F_CMP_CERTREPMESSAGE_PKIFAILUREINFO_GET0     106
+# define CMP_F_CMP_CERTREPMESSAGE_PKISTATUSSTRING_GET0    107
+# define CMP_F_CMP_CERTREPMESSAGE_PKISTATUS_GET           108
+# define CMP_F_CMP_CERTSTATUS_SET_CERTHASH                109
+# define CMP_F_CMP_CR_NEW                                 110
+# define CMP_F_CMP_CTX_CAPUBS_GET1                        111
+# define CMP_F_CMP_CTX_CAPUBS_NUM                         112
+# define CMP_F_CMP_CTX_CAPUBS_POP                         113
+# define CMP_F_CMP_CTX_CREATE                             114
+# define CMP_F_CMP_CTX_EXTRACERTSIN_GET1                  115
+# define CMP_F_CMP_CTX_EXTRACERTSIN_NUM                   116
+# define CMP_F_CMP_CTX_EXTRACERTSIN_POP                   117
+# define CMP_F_CMP_CTX_EXTRACERTSOUT_NUM                  118
+# define CMP_F_CMP_CTX_EXTRACERTSOUT_PUSH1                119
+# define CMP_F_CMP_CTX_INIT                               120
+# define CMP_F_CMP_CTX_SET0_NEWPKEY                       121
+# define CMP_F_CMP_CTX_SET0_PKEY                          122
+# define CMP_F_CMP_CTX_SET0_REQEXTENSIONS                 174
+# define CMP_F_CMP_CTX_SET0_TLSBIO                        171
+# define CMP_F_CMP_CTX_SET1_CAPUBS                        123
+# define CMP_F_CMP_CTX_SET1_CLCERT                        124
+# define CMP_F_CMP_CTX_SET1_DIGEST                        172
+# define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  125
+# define CMP_F_CMP_CTX_SET1_EXTRACERTSOUT                 126
+# define CMP_F_CMP_CTX_SET1_ISSUER                        173
+# define CMP_F_CMP_CTX_SET1_NEWCLCERT                     127
+# define CMP_F_CMP_CTX_SET1_NEWPKEY                       128
+# define CMP_F_CMP_CTX_SET1_OLDCLCERT                     129
+# define CMP_F_CMP_CTX_SET1_PKEY                          130
+# define CMP_F_CMP_CTX_SET1_POPOMETHOD                    131
+# define CMP_F_CMP_CTX_SET1_PROXYNAME                     132
+# define CMP_F_CMP_CTX_SET1_PROXYPORT                     133
+# define CMP_F_CMP_CTX_SET1_RECIPIENT                     134
+# define CMP_F_CMP_CTX_SET1_RECIPNONCE                    135
+# define CMP_F_CMP_CTX_SET1_REFERENCEVALUE                136
+# define CMP_F_CMP_CTX_SET1_REGTOKEN                      137
+# define CMP_F_CMP_CTX_SET1_SECRETVALUE                   138
+# define CMP_F_CMP_CTX_SET1_SERVERNAME                    139
+# define CMP_F_CMP_CTX_SET1_SERVERPATH                    140
+# define CMP_F_CMP_CTX_SET1_SERVERPORT                    141
+# define CMP_F_CMP_CTX_SET1_SOURCEADDRESS                 142
+# define CMP_F_CMP_CTX_SET1_SRVCERT                       143
+# define CMP_F_CMP_CTX_SET1_SUBJECTNAME                   144
+# define CMP_F_CMP_CTX_SET1_TRANSACTIONID                 145
+# define CMP_F_CMP_CTX_SET_HTTPTIMEOUT                    146
+# define CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1               147
+# define CMP_F_CMP_DOCERTIFICATEREQUESTSEQ                148
+# define CMP_F_CMP_DOGENERALMESSAGESEQ                    149
+# define CMP_F_CMP_DOINITIALREQUESTSEQ                    150
+# define CMP_F_CMP_DOKEYUPDATEREQUESTSEQ                  151
+# define CMP_F_CMP_DOREVOCATIONREQUESTSEQ                 152
+# define CMP_F_CMP_ERROR_NEW                              176
+# define CMP_F_CMP_GENM_NEW                               153
+# define CMP_F_CMP_IR_NEW                                 154
+# define CMP_F_CMP_KUR_NEW                                155
+# define CMP_F_CMP_NEW_HTTP_BIO                           156
+# define CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM                157
+# define CMP_F_CMP_PKIMESSAGE_PARSE_ERROR_MSG             158
+# define CMP_F_CMP_PKIMESSAGE_PROTECT                     159
+# define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING     160
+# define CMP_F_CMP_POLLREQ_NEW                            161
+# define CMP_F_CMP_REVREPCONTENT_PKISTATUS_GET            162
+# define CMP_F_CMP_RR_NEW                                 163
+# define CMP_F_CMP_VALIDATE_CERT_PATH                     164
+# define CMP_F_CMP_VALIDATE_MSG                           165
+# define CMP_F_CMP_VERIFY_SIGNATURE                       166
+# define CMP_F_EXCHANGE_CERTCONF                          179
+# define CMP_F_EXCHANGE_ERROR                             180
+# define CMP_F_PARSE_HTTP_LINE1                           167
+# define CMP_F_PKEY_DUP                                   168
+# define CMP_F_POLLFORRESPONSE                            169
+# define CMP_F_SENDCERTCONF                               170
 
 /* Reason codes. */
 # define CMP_R_ALGORITHM_NOT_SUPPORTED                    100

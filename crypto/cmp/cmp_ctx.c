@@ -253,7 +253,6 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->revocationReason = CRL_REASON_NONE;
     ctx->msgTimeOut = 2 * 60;
     ctx->setSubjectAltNameCritical = 0;
-    ctx->lastHTTPCode = 0;
     ctx->tlsBIO = NULL;
     ctx->msg_transportfn = CMP_PKIMESSAGE_http_perform;
 
@@ -1212,7 +1211,7 @@ BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx)
 }
 
 /* ################################################################ *
- * Set callback function for sending CMP requestd and receiving response.
+ * Set callback function for sending CMP request and receiving response.
  * returns 1 on success, 0 on error
  * ################################################################ */
 int CMP_CTX_set_msg_transport(CMP_CTX *ctx, cmp_transportfn_t cb)
@@ -1225,10 +1224,6 @@ int CMP_CTX_set_msg_transport(CMP_CTX *ctx, cmp_transportfn_t cb)
     return 0;
 }
 
-/* ################################################################ *
- * sets the (HTTP) server port to be used
- * returns 1 on success, 0 on error
- * ################################################################ */
 /* ################################################################ *
  * sets the (HTTP) server port to be used
  * returns 1 on success, 0 on error
