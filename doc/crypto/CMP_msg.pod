@@ -68,4 +68,4 @@ A lot!
 
 =head1 SEE ALSO
 
-CMP_CTX, CMP_session, CMP_http
+CMP_CTX, CMP_ses, CMP_http

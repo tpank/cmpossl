@@ -197,4 +197,4 @@ might change every release!
 
 =head1 SEE ALSO
 
-CMP_CTX, CMP_session, CMP_msg, CMP_http
+CMP_CTX, CMP_ses, CMP_msg, CMP_http

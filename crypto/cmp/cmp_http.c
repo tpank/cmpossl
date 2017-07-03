@@ -257,7 +257,7 @@ static int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, 
 
 /* ################################################################ *
  * Send the PKIMessage req and on success place the response in *res.
- * returns 0 on success, else a CMP error reson code defined in cmp.h
+ * returns 0 on success, else a CMP error reason code defined in cmp.h
  * ################################################################ */
 
 int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,

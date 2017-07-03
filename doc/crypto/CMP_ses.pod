@@ -21,7 +21,7 @@
 =head1 DESCRIPTION
 
 This is the API for doing CMP (Certificate Management Protocol)  client-server
-message sequences using with OpenSSL. The conveying protocol is HTTP.
+message sequences using with OpenSSL. The default conveying protocol is HTTP.
 
 CMP_doInitialRequestSeq() does the transaction which obtains an initial certificate
 from the CA. A populated CMP_CTX structure has to be given as argument.
