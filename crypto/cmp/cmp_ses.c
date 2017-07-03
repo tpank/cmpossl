@@ -83,21 +83,6 @@
 
 #include "cmp_int.h"
 
-/* XXX this is here to fool the openssl perl script that checks errors codes strictly
- *     without func() the macro below would cause the script to complain */
-#if 0
-static void func()
-{
-}
-#endif
-/* adds connection error information to OpenSSL error queue */
-#define ADD_HTTP_ERROR_INFO(cmp_f_func, errcode, msg)\
-                if (ERR_GET_REASON(ERR_peek_last_error()) != CMP_R_NULL_ARGUMENT\
-                        && ERR_GET_REASON(ERR_peek_last_error()) != CMP_R_SERVER_NOT_REACHABLE)\
-                        CMPerr(cmp_f_func, errcode);\
-                else\
-                        { CMP_add_error_data("unable to send"); CMP_add_error_data(msg); }
-
 /* ############################################################################ *
  * table used to translate PKIMessage body type number into a printable string
  * ############################################################################ */
@@ -214,8 +199,13 @@ static int send_receive_check(CMP_CTX *ctx,
     int rcvd_type;
 
     CMP_printf(ctx, "INFO: Sending %s", type_string);
-    if (!(CMP_PKIMESSAGE_http_perform(ctx, req, rep))) {
-        ADD_HTTP_ERROR_INFO(type_function, not_received, type_string);
+    if (!((ctx->msg_transportfn)(ctx, req, rep))) {
+        if (ERR_GET_REASON(ERR_peek_last_error()) == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE)
+            CMPerr(type_function, not_received);
+        else {
+            add_error_data("unable to send");
+            add_error_data(type_string);
+        }
         *rep = NULL;
         return 0;
     }

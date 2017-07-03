@@ -132,6 +132,7 @@ struct cmp_ctx_st {
     int proxyPort;
     int lastHTTPCode;
     BIO *tlsBIO;
+    cmp_transportfn_t msg_transportfn;
     char *sourceAddress;
 
     CERTIFICATEPOLICIES *policies;

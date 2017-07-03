@@ -272,6 +272,7 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
 typedef void (*cmp_logfn_t) (const char *msg);
 typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, int status, const X509 *cert);
 typedef int (*cert_verify_cb_t) (int ok, X509_STORE_CTX *ctx);
+typedef int (*cmp_transportfn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **res);
 
 /* ########################################################################## *
  * function DECLARATIONS
@@ -424,6 +425,7 @@ int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name);
 int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio);
 BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx);
+int CMP_CTX_set_msg_transport(CMP_CTX *ctx, cmp_transportfn_t cb);
 int CMP_CTX_set1_sourceAddress(CMP_CTX *ctx, const char *ip); // unused, TODO remove
 int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
 int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
