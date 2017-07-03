@@ -137,11 +137,13 @@ static STACK_OF (X509) * X509_stack_dup(const STACK_OF (X509) * stack)
     return NULL;
 }
 
+/* TODO remove the following auxiliary declaration once
+   IMPLEMENT_ASN1_DUP_FUNCTION(EVP_PKEY) is defined, e.g., in crypto/evp/evp_pkey.c */
 /* ############################################################################ *
  * Creates a copy of the given EVP_PKEY.
  * returns ptr to duplicated EVP_PKEY on success, NULL on error
  * ############################################################################ */
-static EVP_PKEY *pkey_dup(const EVP_PKEY *pkey)
+static EVP_PKEY *EVP_PKEY_dup(const EVP_PKEY *pkey)
 {
     EVP_PKEY *pkeyDup = EVP_PKEY_new();
     if (!pkeyDup)
@@ -976,15 +978,12 @@ int CMP_CTX_set1_newClCert(CMP_CTX *ctx, const X509 *cert)
  * ################################################################ */
 int CMP_CTX_set1_pkey(CMP_CTX *ctx, const EVP_PKEY *pkey)
 {
-    EVP_PKEY *pkeyDup = NULL;
-
     if (!ctx)
         goto err;
     if (!pkey)
         goto err;
 
-    pkeyDup = pkey_dup(pkey);;
-    return CMP_CTX_set0_pkey(ctx, pkeyDup);
+    return CMP_CTX_set0_pkey(ctx, EVP_PKEY_dup(pkey));
 
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_PKEY, CMP_R_NULL_ARGUMENT);
@@ -1022,15 +1021,12 @@ int CMP_CTX_set0_pkey(CMP_CTX *ctx, const EVP_PKEY *pkey)
  * ################################################################ */
 int CMP_CTX_set1_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey)
 {
-    EVP_PKEY *pkeyDup = NULL;
-
     if (!ctx)
         goto err;
     if (!pkey)
         goto err;
 
-    pkeyDup = pkey_dup(pkey);
-    return CMP_CTX_set0_newPkey(ctx, pkeyDup);
+    return CMP_CTX_set0_newPkey(ctx, EVP_PKEY_dup(pkey));
 
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_NEWPKEY, CMP_R_NULL_ARGUMENT);
