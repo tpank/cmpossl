@@ -376,8 +376,8 @@ STACK_OF(CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx,
 
 /* from cmp_asn.c */
 void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
-                              ASN1_OBJECT *type,
-                              ASN1_TYPE *value);
+                              const ASN1_OBJECT *type,
+                              const ASN1_TYPE *value);
 
 /* from cmp_ctx.c */
 CMP_CTX *CMP_CTX_create(void);
@@ -411,7 +411,7 @@ X509 *CMP_CTX_caPubs_pop(CMP_CTX *ctx);
 int CMP_CTX_caPubs_num(CMP_CTX *ctx);
 int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF (X509) * caPubs);
 int CMP_CTX_policyOID_push1(CMP_CTX *ctx, const char *policyOID);
-int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, CMP_INFOTYPEANDVALUE *itav);
+int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, const CMP_INFOTYPEANDVALUE *itav);
 
 int CMP_CTX_set1_extraCertsOut(CMP_CTX *ctx,
                                const STACK_OF (X509) * extraCertsOut);

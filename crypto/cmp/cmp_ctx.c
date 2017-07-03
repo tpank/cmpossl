@@ -657,16 +657,12 @@ int CMP_CTX_policyOID_push1(CMP_CTX *ctx, const char *policyOID)
 /* ################################################################ *
  * add an itav for geninfo of the PKI message header
  * ################################################################ */
-int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, CMP_INFOTYPEANDVALUE *itav)
+int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, const CMP_INFOTYPEANDVALUE *itav)
 {
     if (!ctx)
         goto err;
 
-        if (!ctx->geninfo_itavs &&
-                !(ctx->geninfo_itavs = sk_CMP_INFOTYPEANDVALUE_new_null()))
-            goto err;
-
-    return sk_CMP_INFOTYPEANDVALUE_push(ctx->geninfo_itavs, itav);
+    return CMP_INFOTYPEANDVALUE_stack_item_push0(&ctx->geninfo_itavs, itav);
 
  err:
     return 0;

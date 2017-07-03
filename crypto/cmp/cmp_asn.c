@@ -151,13 +151,14 @@ ASN1_SEQUENCE(CMP_INFOTYPEANDVALUE) = {
     ASN1_ADB_OBJECT(CMP_INFOTYPEANDVALUE)
 } ASN1_SEQUENCE_END(CMP_INFOTYPEANDVALUE)
 IMPLEMENT_ASN1_FUNCTIONS(CMP_INFOTYPEANDVALUE)
+IMPLEMENT_ASN1_DUP_FUNCTION(CMP_INFOTYPEANDVALUE)
 
 void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
-                              ASN1_OBJECT *type,
-                              ASN1_TYPE *value)
+                              const ASN1_OBJECT *type,
+                              const ASN1_TYPE *value)
 {
-    itav->infoType = type;
-    itav->infoValue.other = value;
+    itav->infoType = (ASN1_OBJECT *)type;
+    itav->infoValue.other = (ASN1_TYPE *)value;
 }
 
 int CMP_INFOTYPEANDVALUE_stack_item_push0(

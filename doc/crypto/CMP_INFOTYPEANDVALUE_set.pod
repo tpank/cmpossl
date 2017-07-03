@@ -8,8 +8,9 @@
 =head1 SYNOPSIS
 
   #include <openssl/cmp.h>
-  CMP_INFOTYPEANDVALUE *CMP_INFOTYPEANDVALUE_new_generic(ASN1_OBJECT *t,
-                                                         ASN1_TYPE *v)
+  void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
+                                const ASN1_OBJECT *type,
+                                const ASN1_TYPE *value);
 
   #include "cmp_int.h"
   int CMP_INFOTYPEANDVALUE_stack_item_push0(
@@ -19,10 +20,10 @@
 =head1 DESCRIPTION
 
 CMP_INFOTYPEANDVALUE_set() sets the B<itav> with an infoType of B<type> and an
-infoValue of B<value>. This function uses the pointers B<ttype> and B<vlaue>
+infoValue of B<value>. This function uses the pointers B<type> and B<value>
 internally, so they must B<not> be freed up after the call.
 
-CMP_INFOTYPEANDVALUE_stack_item_push0() is an internal function ath pushes
+CMP_INFOTYPEANDVALUE_stack_item_push0() is an internal function that pushes
 B<itav> to the stack pointed to by B<*itav_sk_p>. It creates a new stack if
 B<*itav_sk_p> points to NULL.
 
@@ -32,9 +33,9 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-CMP_INFOTYPEANDVALUE_stack_item_push0() returns 1 on success, 0 on error.
-
 CMP_INFOTYPEANDVALUE_set() does not return a value.
+
+CMP_INFOTYPEANDVALUE_stack_item_push0() returns 1 on success, 0 on error.
 
 =head1 EXAMPLE
 

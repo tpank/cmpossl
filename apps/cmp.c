@@ -319,8 +319,8 @@ OPTIONS cmp_options[] = {
     {"keyfmt", OPT_KEYFMT, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
     {"certfmt", OPT_CERTFMT, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM.\n"
                              "\t\t     This also determines format to use for writing (not supported for P12)"},
-    {"geninfoint", OPT_GENINFOINT, 's', "Set generalInfo in request PKIHeader with type and\n"
-                             "\t\t       and Integer value given in form OID:int, e.g. '1.2.3:987'"},
+    {"geninfoint", OPT_GENINFOINT, 's', "Set generalInfo in request PKIHeader with type and integer value\n"
+                             "\t\t       given in the form OID:int, e.g., '1.2.3:987'"},
     {NULL}
 };
 
@@ -1545,22 +1545,43 @@ static int setup_ctx(CMP_CTX * ctx)
     }
 
     if (opt_geninfoint) {
-        char *intval = strstr(opt_geninfoint, ":");
-        intval[0] = '\0';
-        intval++;
+        char *valptr = strrchr(opt_geninfoint, ':');
+        if (!valptr) {
+            BIO_puts(bio_err, "error: missing ':' in -geninfoint option\n");
+            goto err;
+        }
+        valptr[0] = '\0';
+
+        valptr++;
+        char *endstr;
+        long value = strtol(valptr, &endstr, 10);
+        if (*endstr) {
+            BIO_puts(bio_err, "error: cannot parse integer in -geninfoint option\n");
+            goto err;
+        }
 
         ASN1_OBJECT *type = OBJ_txt2obj(opt_geninfoint, 1);
+        if (!type) {
+            BIO_puts(bio_err, "error: cannot parse OID in -geninfoint option\n");
+            goto err;
+        }
 
         ASN1_INTEGER *aint = ASN1_INTEGER_new();
-        ASN1_INTEGER_set(aint, strtol(intval, NULL, 10));
+        if (!aint || !ASN1_INTEGER_set(aint, value))
+            goto err;
 
         ASN1_TYPE *val = ASN1_TYPE_new();
+        if (!val)
+            goto err;
         ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
 
         CMP_INFOTYPEANDVALUE *itav = CMP_INFOTYPEANDVALUE_new();
+        if (!itav)
+            goto err;
         CMP_INFOTYPEANDVALUE_set(itav, type, val);
 
-        CMP_CTX_geninfo_itav_push0(ctx, itav);
+        if (!CMP_CTX_geninfo_itav_push0(ctx, itav))
+            goto err;
     }
 
     CMP_CTX_set_HttpTimeOut(ctx, 5 * 60);
