@@ -256,14 +256,13 @@ static int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, 
 }
 
 /* ################################################################ *
- * Send the given PKIMessage msg and place the response in *out.
- * returns 1 on success, 0 on error
- * on success, returns pointer to received PKIMessage in *out
+ * Send the PKIMessage req and on success place the response in *res.
+ * returns 0 on success, else a CMP error reson code defined in cmp.h
  * ################################################################ */
 
 int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
-                                const CMP_PKIMESSAGE *msg,
-                                CMP_PKIMESSAGE **out)
+                                const CMP_PKIMESSAGE *req,
+                                CMP_PKIMESSAGE **res)
 {
     int rv, fd;
     fd_set confds;
@@ -275,38 +274,27 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     int err = CMP_R_SERVER_NOT_REACHABLE;
     time_t max_time = ctx->msgTimeOut != 0 ? time(NULL) + ctx->msgTimeOut : 0;
 
-    if (!ctx || !msg || !out) {
-        CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
+    if (!ctx || !req || !res)
+        return CMP_R_NULL_ARGUMENT;
 
-    if (!ctx->serverName || !ctx->serverPath || !ctx->serverPort) {
-        CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
+    if (!ctx->serverName || !ctx->serverPath || !ctx->serverPort)
+        return CMP_R_NULL_ARGUMENT;
 
     CMP_new_http_bio(&hbio, ctx);
-    if (!hbio) {
-        CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
+    if (!hbio)
+        return CMP_R_NULL_ARGUMENT; /* better: out of memory */
 
     cbio = (ctx->tlsBIO) ? BIO_push(ctx->tlsBIO, hbio) : hbio;
     if (ctx->msgTimeOut != 0)
         BIO_set_nbio(cbio, 1);
 
     rv = BIO_do_connect(cbio);
-    if (rv <= 0 && (ctx->msgTimeOut == 0 || !BIO_should_retry(cbio))) {
-        /* Error connecting */
-        CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_SERVER_NOT_REACHABLE);
-        goto err;
-    }
+    if (rv <= 0 && (ctx->msgTimeOut == 0 || !BIO_should_retry(cbio)))
+        goto err; /* Error connecting */
 
-    if (BIO_get_fd(cbio, &fd) <= 0) {
-        /* XXX Can't get fd, is this the right error to return? */
-        CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_SERVER_NOT_REACHABLE);
+    if (BIO_get_fd(cbio, &fd) <= 0)
+        /* XXX Can't get fd, is CMP_R_SERVER_NOT_REACHABLE the right error to return? */
         goto err;
-    }
 
     if (ctx->msgTimeOut != 0 && rv <= 0) {
         FD_ZERO(&confds);
@@ -339,10 +327,10 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
 
     BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
 
-    if (!CMP_sendreq_bio(cbio, path, msg, out, max_time))
+    if (!CMP_sendreq_bio(cbio, path, req, res, max_time))
         err = CMP_R_FAILED_TO_SEND_REQUEST;
     else
-        err = (*out == NULL) ? CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE : 0;
+        err = (*res == NULL) ? CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE : 0;
 
     OPENSSL_free(path);
 
@@ -359,6 +347,6 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
             print_error_hint(ctx, ERR_peek_error());
     }
 
-    return (err == 0);
+    return err;
 }
 

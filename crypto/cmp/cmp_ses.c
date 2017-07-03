@@ -199,10 +199,12 @@ static int send_receive_check(CMP_CTX *ctx,
     int rcvd_type;
 
     CMP_printf(ctx, "INFO: Sending %s", type_string);
-    if (!((ctx->msg_transportfn)(ctx, req, rep))) {
-        if (ERR_GET_REASON(ERR_peek_last_error()) == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE)
+    int err = (ctx->msg_transportfn)(ctx, req, rep);
+    if (err) {
+        if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE)
             CMPerr(type_function, not_received);
         else {
+            CMPerr(type_function, err);
             add_error_data("unable to send");
             add_error_data(type_string);
         }
