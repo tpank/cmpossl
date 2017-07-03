@@ -113,6 +113,7 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, crls, X509_CRL),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, policies, POLICYINFO),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, geninfo_itavs, CMP_INFOTYPEANDVALUE),
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, genm_itavs, CMP_INFOTYPEANDVALUE),
 } ASN1_SEQUENCE_END(CMP_CTX)
 IMPLEMENT_ASN1_FUNCTIONS(CMP_CTX)
 
@@ -660,12 +661,20 @@ int CMP_CTX_policyOID_push1(CMP_CTX *ctx, const char *policyOID)
 int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, const CMP_INFOTYPEANDVALUE *itav)
 {
     if (!ctx)
-        goto err;
+        return 0;
 
     return CMP_INFOTYPEANDVALUE_stack_item_push0(&ctx->geninfo_itavs, itav);
+}
 
- err:
-    return 0;
+/* ################################################################ *
+ * add an itav for the body of outgoing generalmessages
+ * ################################################################ */
+int CMP_CTX_genm_itav_push0(CMP_CTX *ctx, const CMP_INFOTYPEANDVALUE *itav)
+{
+    if (!ctx)
+        return 0;
+
+    return CMP_INFOTYPEANDVALUE_stack_item_push0(&ctx->genm_itavs, itav);
 }
 
 /* ################################################################ *

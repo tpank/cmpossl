@@ -940,12 +940,11 @@ int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg,
                                           STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
 {
     CMP_INFOTYPEANDVALUE *itav = NULL;
-    int i;
 
     if (!msg)
         goto err;
 
-    for (i = 0; i < sk_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
+    for (int i = 0; i < sk_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
         itav = CMP_INFOTYPEANDVALUE_dup(sk_CMP_INFOTYPEANDVALUE_value(itavs, i));
         if (!CMP_PKIHEADER_generalInfo_item_push0(msg->header, itav)) {
             CMP_INFOTYPEANDVALUE_free(itav);
@@ -978,6 +977,35 @@ int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
         goto err;
     return 1;
  err:
+    CMPerr(CMP_F_CMP_PKIMESSAGE_GENM_ITEM_PUSH0,
+           CMP_R_ERROR_PUSHING_GENERALINFO_ITEM);
+    return 0;
+}
+
+/* ############################################################################ *
+ * push a copy of the given itav stack the body of a general message (GenMsg).
+ *
+ * returns 1 on success, 0 on error
+ * ############################################################################ */
+int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg,
+                                          STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
+{
+    CMP_INFOTYPEANDVALUE *itav = NULL;
+
+    if (!msg)
+        goto err;
+
+    for (int i = 0; i < sk_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
+        itav = CMP_INFOTYPEANDVALUE_dup(sk_CMP_INFOTYPEANDVALUE_value(itavs, i));
+        if (!CMP_PKIMESSAGE_genm_item_push0(msg, itav)) {
+            CMP_INFOTYPEANDVALUE_free(itav);
+            goto err;
+        }
+    }
+    return 1;
+ err:
+    CMPerr(CMP_F_CMP_PKIMESSAGE_GENM_ITEMS_PUSH1,
+           CMP_R_ERROR_PUSHING_GENM_ITEMS);
     return 0;
 }
 

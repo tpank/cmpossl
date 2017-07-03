@@ -512,9 +512,11 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
             goto err;
 
     if (!(msg->body->value.genm = sk_CMP_INFOTYPEANDVALUE_new_null()))
-        goto err;               /* initialize with empty stack */
+        goto err;
 
-    /* TODO: here the body needs to be set */
+    if (ctx->genm_itavs)
+        if (!CMP_PKIMESSAGE_genm_items_push1(msg, ctx->genm_itavs))
+            goto err;
 
     if (!CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;

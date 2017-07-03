@@ -161,6 +161,20 @@ void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
     itav->infoValue.other = (ASN1_TYPE *)value;
 }
 
+ASN1_OBJECT *CMP_INFOTYPEANDVALUE_get0_type(CMP_INFOTYPEANDVALUE *itav)
+{
+    if (!itav)
+        return NULL;
+    return itav->infoType;
+}
+
+ASN1_TYPE *CMP_INFOTYPEANDVALUE_get0_value(CMP_INFOTYPEANDVALUE *itav)
+{
+    if (!itav)
+        return NULL;
+    return itav->infoValue.other;
+}
+
 int CMP_INFOTYPEANDVALUE_stack_item_push0(
                               STACK_OF (CMP_INFOTYPEANDVALUE) **itav_sk_p,
                               const CMP_INFOTYPEANDVALUE *itav)

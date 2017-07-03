@@ -3,6 +3,8 @@
 =head1 NAME
 
   CMP_INFOTYPEANDVALUE_set,
+  CMP_INFOTYPEANDVALUE_get0_type,
+  CMP_INFOTYPEANDVALUE_get0_value,
   CMP_INFOTYPEANDVALUE_stack_item_push0 - CMP_INFOTYPEANDVALUE utility functions
 
 =head1 SYNOPSIS
@@ -11,17 +13,25 @@
   void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
                                 const ASN1_OBJECT *type,
                                 const ASN1_TYPE *value);
+  ASN1_OBJECT *CMP_INFOTYPEANDVALUE_get0_type(CMP_INFOTYPEANDVALUE *itav);
+  ASN1_TYPE *CMP_INFOTYPEANDVALUE_get0_value(CMP_INFOTYPEANDVALUE *itav);
 
   #include "cmp_int.h"
   int CMP_INFOTYPEANDVALUE_stack_item_push0(
                                 STACK_OF (CMP_INFOTYPEANDVALUE) **itav_sk_p,
-                                const CMP_INFOTYPEANDVALUE *itav)
+                                const CMP_INFOTYPEANDVALUE *itav);
 
 =head1 DESCRIPTION
 
 CMP_INFOTYPEANDVALUE_set() sets the B<itav> with an infoType of B<type> and an
 infoValue of B<value>. This function uses the pointers B<type> and B<value>
 internally, so they must B<not> be freed up after the call.
+
+CMP_INFOTYPEANDVALUE_get0_type() returns a direct pointer to the infoType in the
+B<itav>.
+
+CMP_INFOTYPEANDVALUE_get0_value() returns a direct pointer to the infoValue in
+the B<itav> as generic ASN1_TYPE*.
 
 CMP_INFOTYPEANDVALUE_stack_item_push0() is an internal function that pushes
 B<itav> to the stack pointed to by B<*itav_sk_p>. It creates a new stack if

@@ -45,11 +45,6 @@
  * originally developed by Nokia for contribution to the OpenSSL project. 
  */
 
-/*
- * ============================== TODO List ==============================
- * TODO: actually send the genm for requesting the CKUANN message 
- */
-
 #include <openssl/opensslconf.h>
 #include <openssl/pkcs12.h>
 #include <openssl/ssl.h>
@@ -142,7 +137,7 @@ typedef enum { CMP_IR,
     CMP_KUR,
     CMP_CR,
     CMP_RR,
-    CMP_CKUANN,
+    CMP_GENM,
 } cmp_cmd_t;
 
 static char *opt_server = NULL;
@@ -349,7 +344,7 @@ OPTIONS cmp_options[] = {
                            "\t\t       If both are not set, the recipient defaults to the -issuer argument.\n"
                            "\t\t       For RR, the recipient defaults to the issuer of the certificate to be revoked"},
     {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
-    {"cmd", OPT_CMD, 's', "CMP command to execute: ir/cr/kur/rr/..."},
+    {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/rr/genm"},
 
     {"newkey", OPT_NEWKEY, 's', "New private key for the requested certificate. Default is current client certificate's key if given."},
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
@@ -585,10 +580,8 @@ static int check_options(void)
             opt_cmd = CMP_CR;
         else if (!strcmp(opt_cmd_s, "rr"))
             opt_cmd = CMP_RR;
-#if 0 // TODO
-        else if (!strcmp(opt_cmd_s, "ckuann"))
-            opt_cmd = CMP_CKUANN;
-#endif
+        else if (!strcmp(opt_cmd_s, "genm"))
+            opt_cmd = CMP_GENM;
         else {
             BIO_printf(bio_err, "error: unknown cmp command '%s'\n",
                        opt_cmd_s);
@@ -1724,6 +1717,23 @@ static int save_certs(STACK_OF(X509) *certs, char *destFile, char *desc)
     return n;
 }
 
+static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs) {
+    CMP_INFOTYPEANDVALUE *itav = NULL;
+    int n;
+
+    if (!itavs)
+        return;
+
+    n = sk_CMP_INFOTYPEANDVALUE_num(itavs);
+
+    for (int i = 0; i < n; i++) {
+        char buf[128];
+        itav = sk_CMP_INFOTYPEANDVALUE_value(itavs, i);
+        OBJ_obj2txt(buf, 128, CMP_INFOTYPEANDVALUE_get0_type(itav), 0);
+        BIO_printf(bio_c_out, "GenRep contains ITAV of type: %s\n", buf);
+    }
+}
+
 /*
  * ########################################################################## 
  * *
@@ -2074,11 +2084,14 @@ opt_err:
         if (CMP_doRevocationRequestSeq(cmp_ctx) == 0)
             goto err;
         break;
-    case CMP_CKUANN:
-        /*
-         * TODO: sending the empty GENM to request the CKUANN 
-         */
+    case CMP_GENM:
+        {
+        STACK_OF(CMP_INFOTYPEANDVALUE) *itavs;
+        itavs = CMP_doGeneralMessageSeq(cmp_ctx);
+        print_itavs(itavs);
+        sk_CMP_INFOTYPEANDVALUE_pop_free(itavs, CMP_INFOTYPEANDVALUE_free);
         break;
+        }
     default:
         break;
     }

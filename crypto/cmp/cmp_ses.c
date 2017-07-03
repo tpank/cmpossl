@@ -732,41 +732,26 @@ X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx)
 
 /* ############################################################################ *
  * Sends a general message to the server to request information specified in the
- * InfoType and Value (itav) given in the nid (section 5.3.19 and E.5).
- *
- * all obtions besides the single ITAV and it's value to be sent need to be set
- * in the context.
- *
- * TODO: this could take multiple nids to have several ITAVs in the Genm
+ * InfoType and Value (itav) given in the ctx->genm_itavs, see section 5.3.19
+ * and E.5.
  *
  * returns pointer to stack of ITAVs received in the answer or NULL on error
  * ############################################################################ */
-STACK_OF (CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx,
-                                                          int nid,
-                                                          char *value)
+STACK_OF (CMP_INFOTYPEANDVALUE) *CMP_doGeneralMessageSeq(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *genm = NULL;
     CMP_PKIMESSAGE *genp = NULL;
-    CMP_INFOTYPEANDVALUE *itav = NULL;
-    STACK_OF (CMP_INFOTYPEANDVALUE) * rcvdItavs = NULL;
+    STACK_OF (CMP_INFOTYPEANDVALUE) *rcvd_itavs = NULL;
 
-    /* check if all necessary options are set is done in CMP_genm_new */
-    /* create GenMsgContent - genm */
     if (!(genm = CMP_genm_new(ctx)))
         goto err;
 
-    /* set itav - TODO: let this function take a STACK of ITAV as arguments */
-    itav = CMP_INFOTYPEANDVALUE_new();
-    itav->infoType = OBJ_nid2obj(nid);
-    itav->infoValue.ptr = value;
-    CMP_PKIMESSAGE_genm_item_push0(genm, itav);
-
     if (!send_receive_check(ctx, genm, "genm", CMP_F_CMP_DOGENERALMESSAGESEQ,
-                                &genp, V_CMP_PKIBODY_GENP, CMP_R_GENP_NOT_RECEIVED))
+                             &genp, V_CMP_PKIBODY_GENP, CMP_R_GENP_NOT_RECEIVED))
          goto err;
 
-    /* the received stack of itavs shouldn't be freed with the message */
-    rcvdItavs = genp->body->value.genp;
+    /* received stack of itavs not to be freed with the genp */
+    rcvd_itavs = genp->body->value.genp;
     genp->body->value.genp = NULL;
 
  err:
@@ -776,7 +761,8 @@ STACK_OF (CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx,
         CMP_PKIMESSAGE_free(genp);
 
     /* print out openssl and cmp errors to error_cb if it's set */
-    if (!rcvdItavs && ctx && ctx->error_cb)
+    /* TODO: verify that !recv_itavs is necessarily an error */
+    if (!rcvd_itavs && ctx && ctx->error_cb)
         ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
-    return rcvdItavs;
+    return rcvd_itavs;
 }

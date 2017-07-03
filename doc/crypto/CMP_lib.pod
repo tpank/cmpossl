@@ -9,6 +9,7 @@
   CMP_CERTSTATUS_set_certHash,
   CMP_PKIFAILUREINFO_check,
   CMP_PKIHEADER_generalInfo_item_push0,
+  CMP_PKIMESSAGE_generalInfo_items_push1,
   CMP_PKIHEADER_new_senderNonce,
   CMP_PKIHEADER_push0_freeText,
   CMP_PKIHEADER_push1_freeText,
@@ -51,6 +52,7 @@
   char *CMP_ERRORMSGCONTENT_PKIStatus_get_string( CMP_ERRORMSGCONTENT *error);
   int CMP_PKIFAILUREINFO_check( ASN1_BIT_STRING *failInfo, int codeBit);
   int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr, const CMP_INFOTYPEANDVALUE *itav);
+  int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
   int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
   int CMP_PKIHEADER_push0_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
   int CMP_PKIHEADER_push1_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
@@ -64,6 +66,7 @@
   int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
   int CMP_PKIMESSAGE_check_implicitConfirm(CMP_PKIMESSAGE *msg);
   int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg, const CMP_INFOTYPEANDVALUE *itav);
+  int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
   int CMP_PKIMESSAGE_get_bodytype( CMP_PKIMESSAGE *msg);
   char *CMP_PKIMESSAGE_parse_error_msg( CMP_PKIMESSAGE *msg, char *errormsg, int bufsize);
   int CMP_PKIMESSAGE_set_bodytype( CMP_PKIMESSAGE *msg, int type);
@@ -107,7 +110,11 @@ CMP_PKIFAILUREINFO_check() checks whether a given bit is set within a
 given PKIFailureInfo.
 
 CMP_PKIHEADER_generalInfo_item_push0() adds the given InfoTypeAndValue
-item to the hdr->generalInfo stack.
+item to the hdr->generalInfo stack. Consumes the B<itav> pointer.
+
+CMP_PKIMESSAGE_generalInfo_items_push1() adds a copy of the B<itavs> stack to
+the generalInfo field of PKIheader of the B<msg>. Does not consume the B<itavs>
+pointer.
 
 CMP_PKIHEADER_new_senderNonce() generates a random value for the
 hdr->senderNonce field, which is used to protect the PKIMessage against
@@ -146,8 +153,11 @@ CMP_PKIHEADER_set_version() sets hdr->pvno to the given integer.
 CMP_PKIMESSAGE_check_implicitConfirm() returns 1 if implicitConfirm is
 set in the given PKIMessage, 0 if not.
 
-CMP_PKIMESSAGE_genm_item_push0() pushes an InfoTypeAndValue item to the
-stack of general messages (GenMsg).
+CMP_PKIMESSAGE_genm_item_push0() pushes the B<itav> to the body of the
+of the PKIMessage B<msg> of GenMsg type. Consumes the B<itavs> pointer.
+
+CMP_PKIMESSAGE_genm_items_push1() adds a copyo of the B<itavs> stack to the body
+of the PKIMessage B<msg> of GenMsg type. Does not consume the B<itavs> pointer.
 
 CMP_PKIMESSAGE_get_bodytype() returns the body type of the given
 PKIMessage.

@@ -15,7 +15,7 @@
  X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx);
  X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx);
  X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx);
- STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_doGeneralMessageSeq(CMP_CTX *ctx, int nid, char *value);
+ STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_doGeneralMessageSeq(CMP_CTX *ctx;
  int CMP_doRevocationRequestSeq(CMP_CTX *ctx);
 
 =head1 DESCRIPTION
@@ -32,9 +32,9 @@ updated key from the CA. A populated CMP_CTX structure has to be given as argume
 CMP_doCertificateRequestSeq() requests an additional certificate for an existing
 key from the CA. A populated CMP_CTX structure has to be given as argument.
 
-CMP_doGeneralMessageSeq() sends a general message and returns the Infotype and
-value structures returned by the server.  This can e.g. be used to poll for the
-CRL or CA Key Updates.
+CMP_doGeneralMessageSeq() sends a general message with ITAVs specified in the
+B<ctx>->genm_itavs, and returns the ITAV structures returned in the GenRep.  This
+can e.g. be used to poll for the CRL or CA Key Updates.
 
 CMP_doRevocationRequestSeq() requests the revocation of the used certificate via
 an revocation request sent to the server.
