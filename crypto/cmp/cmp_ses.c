@@ -295,7 +295,7 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
     CMP_POLLREP *pollRep = NULL;
 
     CMP_printf(ctx,
-               "INFO: Received 'waiting' PKIStatus, attempting to poll server for response.");
+               "INFO: Received 'waiting' PKIStatus, starting to poll for response.");
     for (;;) {
         if (!(preq = CMP_pollReq_new(ctx, 0)))
             goto err;           /* TODO: this only handles one certificate request so far */
@@ -311,9 +311,13 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
                   sk_CMP_POLLREP_value(prep->body->value.pollRep, 0)))
                 goto err;       /* TODO: this only handles one certificate request so far */
             checkAfter = ASN1_INTEGER_get(pollRep->checkAfter);
+            if (checkAfter < 0) {
+                CMPerr(CMP_F_POLLFORRESPONSE, CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP);
+                goto err;
+            }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
             CMP_printf(ctx,
-                       "INFO: Received polling response, waiting checkAfter = %ld seconds before sending another polling request...",
+                       "INFO: Received polling response, waiting checkAfter = %ld sec before next polling request.",
                        checkAfter);
 
             if (ctx->maxPollTime != 0) { /* timout is set in context */
@@ -331,9 +335,9 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
             preq = NULL;
             CMP_PKIMESSAGE_free(prep);
             prep = NULL;
-            sleep(checkAfter);
+            sleep((unsigned int)checkAfter);
         } else {
-            CMP_printf(ctx, "INFO: Got final response on polling request.");
+            CMP_printf(ctx, "INFO: Got final response after polling.");
             break;              /* final success */
         }
     }
