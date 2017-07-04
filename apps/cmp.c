@@ -177,11 +177,11 @@ static long  opt_cdps = 0;
 static int vpmtouched = 0;
 static X509_VERIFY_PARAM *vpm = NULL;
 
-static char *opt_keyfmt_s = "PEM";
-static char *opt_certfmt_s = "PEM";
-static int opt_keyfmt = FORMAT_PEM;
-static int opt_certfmt = FORMAT_PEM;
-static int opt_crlfmt = FORMAT_PEM; // default to be tried first for file input; TODO maybe add cmd line arg
+static char *opt_keyform_s = "PEM";
+static char *opt_certform_s = "PEM";
+static int opt_keyform = FORMAT_PEM;
+static int opt_certform = FORMAT_PEM;
+static int opt_crlform = FORMAT_PEM; // default to be tried first for file input; TODO maybe add cmd line arg
 
 static char *opt_extcerts = NULL;
 static char *opt_subject = NULL;
@@ -302,7 +302,7 @@ typedef enum OPTION_choice {
     OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
     OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
     OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
-    OPT_KEYFMT, OPT_CERTFMT, OPT_GENINFOINT,
+    OPT_KEYFORM, OPT_CERTFORM, OPT_GENINFOINT,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
@@ -375,9 +375,8 @@ OPTIONS cmp_options[] = {
     {"certout", OPT_CERTOUT, 's', "File to save the newly enrolled certificate"},
     {"extracertsout", OPT_EXTRACERTSOUT, 's', "File to save received extra certificates"},
 
-    // TODO: should be aligned to "keyform" as in other OpenSSL apps
-    {"keyfmt", OPT_KEYFMT, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
-    {"certfmt", OPT_CERTFMT, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM.\n"
+    {"keyform", OPT_KEYFORM, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
+    {"certform", OPT_CERTFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM.\n"
                        "\t\t       This also determines format to use for writing (not supported for P12)"},
     {"geninfoint", OPT_GENINFOINT, 's', "Set generalInfo in request PKIHeader with type and integer value\n"
                              "\t\t       given in the form OID:int, e.g., '1.2.3:987'"},
@@ -410,7 +409,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     { (char **)&opt_disableConfirm}, { (char **)&opt_implicitConfirm}, { (char **)&opt_unprotectedErrors},
     {&opt_digest}, {&opt_oldcert}, { (char **)&opt_revreason},
     {&opt_cacertsout}, {&opt_certout}, {&opt_extracertsout},
-    {&opt_keyfmt_s}, {&opt_certfmt_s}, {&opt_geninfoint},
+    {&opt_keyform_s}, {&opt_certform_s}, {&opt_geninfoint},
 };
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -652,27 +651,27 @@ static int check_options(void)
     }
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    if (opt_keyfmt_s
-        && !opt_format(opt_keyfmt_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
+    if (opt_keyform_s
+        && !opt_format(opt_keyform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
 #ifndef OPENSSL_NO_ENGINE
             | OPT_FMT_ENGINE
 #endif
-            , &opt_keyfmt)) {
+            , &opt_keyform)) {
         BIO_puts(bio_err, "error: unknown option given for key format\n");
         goto err;
     }
 
-    if (opt_certfmt_s
-        && !opt_format(opt_certfmt_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12, &opt_certfmt)) {
+    if (opt_certform_s
+        && !opt_format(opt_certform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12, &opt_certform)) {
         BIO_puts(bio_err, "error: unknown option given for key format\n");
         goto err;
     }
 #else
-    if (opt_keyfmt_s)
-        opt_keyfmt=str2fmt(opt_keyfmt_s);
+    if (opt_keyform_s)
+        opt_keyform=str2fmt(opt_keyform_s);
 
-    if (opt_certfmt_s)
-        opt_certfmt=str2fmt(opt_certfmt_s);
+    if (opt_certform_s)
+        opt_certform=str2fmt(opt_certform_s);
 #endif
 
     return 1;
@@ -1113,8 +1112,8 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, con
 static X509_STORE *create_cert_store(const char *infile, const char *desc)
 {
     // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
-    if (opt_certfmt != FORMAT_PEM)
-        BIO_printf(bio_c_out, "warning: unsupported type '%s' for reading %s, trying PEM\n", opt_certfmt_s, desc);
+    if (opt_certform != FORMAT_PEM)
+        BIO_printf(bio_c_out, "warning: unsupported type '%s' for reading %s, trying PEM\n", opt_certform_s, desc);
 
     // TODO: extend upstream setup_verify() to allow for further file formats, in particular PKCS12
     return setup_verify(infile, NULL/* CApath */, 0/* noCAfile */, 0/* noCApath */);
@@ -1342,7 +1341,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     STACK_OF(X509_CRL) *crls = NULL;
     if (opt_crls) {
-        crls = load_crls_autofmt(opt_crls, opt_crlfmt, "CRL(s) for checking certificate revocation");
+        crls = load_crls_autofmt(opt_crls, opt_crlform, "CRL(s) for checking certificate revocation");
         if (!crls) {
             goto err;
         }
@@ -1398,11 +1397,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                after extended version of crls_http_cb has been pushed upstream */
 
         if (opt_tls_cert && opt_tls_key) {
-            certfmt = opt_certfmt;
+            certfmt = opt_certform;
             if (!(cert=load_cert_autofmt(opt_tls_cert, &certfmt, opt_tls_keypass, "TLS client certificate"))) {
                 goto tls_err;
             }
-            if (!(pkey=load_key_autofmt(opt_tls_key, opt_keyfmt, opt_tls_keypass, e, "TLS client private key"))) {
+            if (!(pkey=load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass, e, "TLS client private key"))) {
                 goto tls_err;
             }
 
@@ -1460,17 +1459,17 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_key) {
-        EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyfmt, opt_keypass, e, "private key for CMP client certificate");
+        EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyform, opt_keypass, e, "private key for CMP client certificate");
         if (!pkey || !CMP_CTX_set0_pkey(ctx, pkey))
             goto err;
     }
     if (opt_newkey) {
-        EVP_PKEY *newPkey = load_key_autofmt(opt_newkey, opt_keyfmt, opt_newkeypass, e, "new private key for certificate to be enrolled");
+        EVP_PKEY *newPkey = load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e, "new private key for certificate to be enrolled");
         if (!newPkey || !CMP_CTX_set0_newPkey(ctx, newPkey))
             goto err;
     }
     
-    certfmt = opt_certfmt;
+    certfmt = opt_certform;
     if (opt_cert) {
         X509 *clcert = load_cert_autofmt(opt_cert, &certfmt, opt_keypass, "CMP client certificate");
         if (!clcert || !CMP_CTX_set1_clCert(ctx, clcert))
@@ -1479,13 +1478,13 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_extcerts) {
-        STACK_OF(X509) *extracerts = load_certs_autofmt(opt_extcerts, opt_certfmt, "extra certificates");
+        STACK_OF(X509) *extracerts = load_certs_autofmt(opt_extcerts, opt_certform, "extra certificates");
         if (!extracerts || !CMP_CTX_set1_extraCertsOut(ctx, extracerts))
             goto err;
         sk_X509_pop_free(extracerts, X509_free);
     }
 
-    certfmt = opt_certfmt;
+    certfmt = opt_certform;
     if (opt_srvcert) {
         X509 *srvcert = load_cert_autofmt(opt_srvcert, &certfmt, opt_keypass, "CMP server certificate");
         if (!srvcert || !CMP_CTX_set1_srvCert(ctx, srvcert)) /* indirectly sets also ctx->trusted */
@@ -1594,7 +1593,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         CMP_CTX_set1_digest(ctx, digest);
     }
 
-    certfmt = opt_certfmt;
+    certfmt = opt_certform;
     if (opt_oldcert) {
         X509 *oldcert = load_cert_autofmt(opt_oldcert, &certfmt, opt_keypass, "certificate to be renewed/revoked");
         if (!oldcert || !CMP_CTX_set1_oldClCert(ctx, oldcert))
@@ -1677,11 +1676,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
  */
 static int write_cert(BIO *bio, X509 *cert)
 {
-    if ((opt_certfmt == FORMAT_PEM && PEM_write_bio_X509(bio, cert))
-        || (opt_certfmt == FORMAT_ASN1 && i2d_X509_bio(bio, cert)))
+    if ((opt_certform == FORMAT_PEM && PEM_write_bio_X509(bio, cert))
+        || (opt_certform == FORMAT_ASN1 && i2d_X509_bio(bio, cert)))
         return 1;
-    if (opt_certfmt != FORMAT_PEM && opt_certfmt != FORMAT_ASN1)
-        BIO_printf(bio_err, "error: unsupported type '%s' for writing certificates\n", opt_certfmt_s);
+    if (opt_certform != FORMAT_PEM && opt_certform != FORMAT_ASN1)
+        BIO_printf(bio_err, "error: unsupported type '%s' for writing certificates\n", opt_certform_s);
     return 0;
 }
 
@@ -1701,7 +1700,7 @@ static int save_certs(STACK_OF(X509) *certs, char *destFile, char *desc)
 
     BIO_printf(bio_c_out, "Received %d %s certificate%s, saving to file '%s'\n",
                n, desc, n == 1 ? "" : "s", destFile);
-    if (n > 1 && opt_certfmt != FORMAT_PEM)
+    if (n > 1 && opt_certform != FORMAT_PEM)
         BIO_printf(bio_c_out, "warning: saving more than one certificate in non-PEM format\n");
 
     if (!destFile || (bio = BIO_new(BIO_s_file())) == NULL ||
@@ -1900,11 +1899,11 @@ opt_err:
                 goto bad_ops;
             vpmtouched++;
             break;
-        case OPT_KEYFMT:
-            opt_keyfmt_s = opt_arg();
+        case OPT_KEYFORM:
+            opt_keyform_s = opt_arg();
             break;
-        case OPT_CERTFMT:
-            opt_certfmt_s = opt_arg();
+        case OPT_CERTFORM:
+            opt_certform_s = opt_arg();
             break;
         case OPT_EXTCERTS:
             opt_extcerts = opt_arg();

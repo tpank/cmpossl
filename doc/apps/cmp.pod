@@ -86,8 +86,8 @@ B<openssl> B<cmp>
 [B<-certout filename>]
 [B<-extracertsout filename>]
 
-[B<-keyfmt DER|PEM|P12>]
-[B<-certfmt DER|PEM|P12>]
+[B<-keyform DER|PEM|P12>]
+[B<-certform DER|PEM|P12>]
 
 [B<-geninfoint OID:int>]
 
@@ -362,11 +362,11 @@ The file where the newly enrolled certificate should be saved.
 
 The file where to save any extra certificates received in a response message.
 
-=item B<-keyfmt DER|PEM|P12>
+=item B<-keyform DER|PEM|P12>
 
 Format to try first when reading key files. Default value is PEM.
 
-=item B<-certfmt DER|PEM|P12>
+=item B<-certform DER|PEM|P12>
 
 Format to try first when reading and to use for writing certificate files. Default value is PEM.
 
@@ -382,7 +382,7 @@ The engine will then be set as the default for all its supported algorithms.
 Engines may be defined in the OpenSSL config file as usual in an engine section.
 
 Options specifying keys, like B<-key>, B<-newkey>, B<-tls-key> can prefix
-'engine:' to engine-specific identifiers for objects in security tokens held by
+'engine:' to engine-specific identifiers for security tokens objects held by
 the engine. The following example utilizes the RFC 7512 PKCS #11 URI scheme as
 supported e.g. by libp11:
 '-key engine:pkcs11:object=my-private-key;type=private;pin-value=1234'
