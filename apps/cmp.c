@@ -78,7 +78,62 @@ char *prog = "cmp";
 static CONF *conf = NULL;       /* OpenSSL config file context structure */
 static BIO *bio_c_out = NULL;   /* OpenSSL BIO for printing to STDOUT */
 
-static ENGINE *e = NULL;
+// a copy from apps.c just for visibility reasons, TODO DvO remove when setup_engine_no_default() has been integrated
+#ifndef OPENSSL_NO_ENGINE
+/* Try to load an engine in a shareable library */
+static ENGINE *try_load_engine(const char *engine)
+{
+    ENGINE *e = ENGINE_by_id("dynamic");
+    if (e) {
+        if (!ENGINE_ctrl_cmd_string(e, "SO_PATH", engine, 0)
+            || !ENGINE_ctrl_cmd_string(e, "LOAD", NULL, 0)) {
+            ENGINE_free(e);
+            e = NULL;
+        }
+    }
+    return e;
+}
+#endif
+#if !defined(OPENSSL_NO_UI) || !defined(OPENSSL_NO_ENGINE)
+static UI_METHOD *ui_method = NULL;
+#endif
+
+// an adapted copy of setup_engine() from apps.c, TODO DvO integrate there
+static ENGINE *setup_engine_no_default(const char *engine, int debug)
+{
+    ENGINE *e = NULL;
+
+#ifndef OPENSSL_NO_ENGINE
+    if (engine) {
+        if (strcmp(engine, "auto") == 0) {
+            BIO_printf(bio_err, "enabling auto ENGINE support\n");
+            ENGINE_register_all_complete();
+            return NULL;
+        }
+        if ((e = ENGINE_by_id(engine)) == NULL
+            && (e = try_load_engine(engine)) == NULL) {
+            BIO_printf(bio_err, "invalid engine \"%s\"\n", engine);
+            ERR_print_errors(bio_err);
+            return NULL;
+        }
+        if (debug) {
+            ENGINE_ctrl(e, ENGINE_CTRL_SET_LOGSTREAM, 0, bio_err, 0);
+        }
+        ENGINE_ctrl_cmd(e, "SET_USER_INTERFACE", 0, ui_method, 0, 1);
+#if 0
+        if (!ENGINE_set_default(e, ENGINE_METHOD_ALL)) {
+            BIO_printf(bio_err, "can't use that engine\n");
+            ERR_print_errors(bio_err);
+            ENGINE_free(e);
+            return NULL;
+        }
+#endif
+
+        BIO_printf(bio_err, "engine \"%s\" set.\n", ENGINE_get_id(e));
+    }
+#endif
+    return e;
+}
 
 /*
  * the type of cmp command we want to send 
@@ -271,7 +326,7 @@ OPTIONS cmp_options[] = {
     {"tls-keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
 
     {"tls-trusted", OPT_TLSTRUSTED, 's', "Client's trusted certificates for verifying TLS certificates.\n"
-                                "\t\t     This implies host name validation"},
+                              "\t\t       This implies host name validation"},
 
     {"ref", OPT_REF, 's', "Reference value for client authentication with a pre-shared key"},
     {"secret", OPT_SECRET, 's', "Password source for client authentication with a pre-shared key (secret)"},
@@ -281,18 +336,18 @@ OPTIONS cmp_options[] = {
     {"extcerts", OPT_EXTCERTS, 's', "Certificates to include in the extraCerts field of request"},
 
     {"srvcert", OPT_SRVCERT, 's', "Certificate of CMP server to be used as recipient, for verifying replies,\n"
-                             "\t\t     and for verifying the newly enrolled cert (and to warn if this fails)"},
+                       "\t\t       and for verifying the newly enrolled cert (and to warn if this fails)"},
     {"trusted", OPT_TRUSTED, 's', "Trusted certificates used for CMP server authentication and verifying replies,\n"
-                             "\t\t     as well as for checking the newly enrolled cert, unless -srvcert is given"},
+                      "\t\t       as well as for checking the newly enrolled cert, unless -srvcert is given"},
     {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
     {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates.\n"
-                   "\t\t     URL may point to local file if prefixed by 'file:'"},
+                 "\t\t       URL may point to local file if prefixed by 'file:'"},
     {"crl_download", OPT_CDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source"},
     OPT_V_OPTIONS, // subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for leaf certificate but for full certificate chain"},
 
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given.\n"
-                             "\t\t     If both are not set, the recipient defaults to the -issuer argument.\n"
-                             "\t\t     For RR, the recipient defaults to the issuer of the certificate to be revoked"},
+                           "\t\t       If both are not set, the recipient defaults to the -issuer argument.\n"
+                           "\t\t       For RR, the recipient defaults to the issuer of the certificate to be revoked"},
     {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
     {"cmd", OPT_CMD, 's', "CMP command to execute: ir/cr/kur/rr/..."},
 
@@ -301,20 +356,20 @@ OPTIONS cmp_options[] = {
     {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template"},
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method.\n"
-                   "\t\t     0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
+                 "\t\t       0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
     {"reqexts", OPT_REQEXTS, 's', "Name of section in OpenSSL config file defining certificate request extensions"},
 
     {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm enrolled certificates\n"
-                       "\t\t     WARNING: This setting leads to behavior violating RFC 4210."},
+                     "\t\t       WARNING: This setting leads to behavior violating RFC 4210."},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of enrolled certificate"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-', "Accept unprotected error responses: regular error messages as well as\n"
-                       "\t\t     certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection.\n"
-                       "\t\t     WARNING: This setting leads to behaviour allowing violation of RFC 4210."},
+                     "\t\t       certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection.\n"
+                     "\t\t       WARNING: This setting leads to behaviour allowing violation of RFC 4210."},
 
     {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and Proof-of-Possession signatures. Defaults to 'sha256'"},
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be renewed in KUR or to be revoked in RR"},
     {"revreason", OPT_REVREASON, 'n', "Set reason code to be included in revocation request (RR).\n"
-                       "\t\t     Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
+                     "\t\t       Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
 
     {"cacertsout", OPT_CACERTSOUT, 's', "File to save received CA certificates"},
     {"certout", OPT_CERTOUT, 's', "File to save the newly enrolled certificate"},
@@ -323,12 +378,14 @@ OPTIONS cmp_options[] = {
     // TODO: should be aligned to "keyform" as in other OpenSSL apps
     {"keyfmt", OPT_KEYFMT, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
     {"certfmt", OPT_CERTFMT, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM.\n"
-                             "\t\t     This also determines format to use for writing (not supported for P12)"},
+                       "\t\t       This also determines format to use for writing (not supported for P12)"},
     {"geninfoint", OPT_GENINFOINT, 's', "Set generalInfo in request PKIHeader with type and integer value\n"
                              "\t\t       given in the form OID:int, e.g., '1.2.3:987'"},
 #ifndef OPENSSL_NO_ENGINE
-    {"engine", OPT_ENGINE, 's', "Use engine with given identifier, possibly a hardware device."
-                             "\t\t       Engines may be defined in OpenSSL config file engine section."},
+    {"engine", OPT_ENGINE, 's', "Use engine with given identifier, possibly a hardware device.\n"
+                     "\t\t       Engines may be defined in OpenSSL config file engine section.\n"
+                     "\t\t       Options like -key specifying keys held in the engine can give key identifiers\n"
+                     "\t\t       prefixed by 'engine:', e.g., '-key engine:slot_1-label_myRSA1024'"},
 #endif
     {NULL}
 };
@@ -933,7 +990,7 @@ static char *get_passwd(const char *pass, const char *desc) {
 
 /* TODO dvo: push that separately upstream */
 /* in apps.c there is load_key which should be used for CMP upstream submission */
-static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, const char *desc) {
+static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, ENGINE *e, const char *desc) {
     // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
     char *pass_string = get_passwd(pass, desc);
     format = adjust_format(&infile, format, 1);
@@ -1275,7 +1332,7 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert)
  * prints reason for error to bio_err returns 1 on success, 0 on error
  * ########################################################################## 
  */
-static int setup_ctx(CMP_CTX * ctx)
+static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 {
     int certfmt;
 
@@ -1345,7 +1402,7 @@ static int setup_ctx(CMP_CTX * ctx)
             if (!(cert=load_cert_autofmt(opt_tls_cert, &certfmt, opt_tls_keypass, "TLS client certificate"))) {
                 goto tls_err;
             }
-            if (!(pkey=load_key_autofmt(opt_tls_key, opt_keyfmt, opt_tls_keypass, "TLS client private key"))) {
+            if (!(pkey=load_key_autofmt(opt_tls_key, opt_keyfmt, opt_tls_keypass, e, "TLS client private key"))) {
                 goto tls_err;
             }
 
@@ -1403,12 +1460,12 @@ static int setup_ctx(CMP_CTX * ctx)
     }
 
     if (opt_key) {
-        EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyfmt, opt_keypass, "private key for CMP client certificate");
+        EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyfmt, opt_keypass, e, "private key for CMP client certificate");
         if (!pkey || !CMP_CTX_set0_pkey(ctx, pkey))
             goto err;
     }
     if (opt_newkey) {
-        EVP_PKEY *newPkey = load_key_autofmt(opt_newkey, opt_keyfmt, opt_newkeypass, "new private key for certificate to be enrolled");
+        EVP_PKEY *newPkey = load_key_autofmt(opt_newkey, opt_keyfmt, opt_newkeypass, e, "new private key for certificate to be enrolled");
         if (!newPkey || !CMP_CTX_set0_newPkey(ctx, newPkey))
             goto err;
     }
@@ -1686,6 +1743,8 @@ int cmp_main(int argc, char **argv)
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     OPTION_CHOICE o;
 #endif
+    ENGINE *e = NULL;
+
 
     if (argc <= 1) {
         badops = 1;
@@ -1906,7 +1965,7 @@ opt_err:
             break;
 #ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
-            e = setup_engine(opt_arg(), 0);
+            e = setup_engine_no_default(opt_arg(), 0);
             break;
 #endif
         }
@@ -1988,7 +2047,7 @@ opt_err:
     }
 
     cmp_ctx = CMP_CTX_create();
-    if (!cmp_ctx || !setup_ctx(cmp_ctx)) {
+    if (!cmp_ctx || !setup_ctx(cmp_ctx, e)) {
         BIO_puts(bio_err, "error creating new cmp context\n");
         goto err;
     }
@@ -2067,6 +2126,7 @@ opt_err:
        BIO_free(bio_c_out);
     if (server_address)
         OPENSSL_free(server_address);
+    release_engine(e);
 
     return ret;
 }

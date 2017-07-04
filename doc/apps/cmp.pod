@@ -381,6 +381,9 @@ reference to the specified engine, thus initialising it if needed.
 The engine will then be set as the default for all its supported algorithms.
 Engines may be defined in the OpenSSL config file as usual in an engine section.
 
+Options like -key specifying keys held in the engine can give key identifiers
+prefixed by 'engine:', e.g., '-key engine:slot_1-label_myRSA1024'"
+
 =back
 
 =head1 EXAMPLES
