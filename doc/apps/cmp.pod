@@ -381,8 +381,11 @@ reference to the specified engine, thus initialising it if needed.
 The engine will then be set as the default for all its supported algorithms.
 Engines may be defined in the OpenSSL config file as usual in an engine section.
 
-Options like -key specifying keys held in the engine can give key identifiers
-prefixed by 'engine:', e.g., '-key engine:slot_1-label_myRSA1024'"
+Options specifying keys, like B<-key>, B<-newkey>, B<-tls-key> can prefix
+'engine:' to engine-specific identifiers for objects in security tokens held by
+the engine. The following example utilizes the RFC 7512 PKCS #11 URI scheme as
+supported e.g. by libp11:
+'-key engine:pkcs11:object=my-private-key;type=private;pin-value=1234'
 
 =back
 
