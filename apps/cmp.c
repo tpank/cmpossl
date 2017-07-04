@@ -1376,9 +1376,11 @@ static int setup_ctx(CMP_CTX * ctx)
 
         BIO *sbio = BIO_new_ssl(ssl_ctx, 1);
         SSL_CTX_free(ssl_ctx);
+        ssl_ctx = NULL;
         if (!sbio) {
             BIO_printf(bio_err, "error: cannot initialize SSL BIO");
         tls_err:
+            SSL_CTX_free(ssl_ctx);
             if (cert)
                 X509_free(cert);
             if (pkey)
@@ -1603,6 +1605,8 @@ static int setup_ctx(CMP_CTX * ctx)
     return 1;
 
  err:
+    if (crls)
+        sk_X509_CRL_pop_free(crls, X509_CRL_free);
     return 0;
 }
 
