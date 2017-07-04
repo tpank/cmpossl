@@ -327,7 +327,8 @@ OPTIONS cmp_options[] = {
     {"geninfoint", OPT_GENINFOINT, 's', "Set generalInfo in request PKIHeader with type and integer value\n"
                              "\t\t       given in the form OID:int, e.g., '1.2.3:987'"},
 #ifndef OPENSSL_NO_ENGINE
-    {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+    {"engine", OPT_ENGINE, 's', "Use engine with given identifier, possibly a hardware device."
+                             "\t\t       Engines may be defined in OpenSSL config file engine section."},
 #endif
     {NULL}
 };
