@@ -376,12 +376,10 @@ Set generalInfo in request PKIHeader with type and Integer value given in form O
 
 =item B<-engine id>
 
-Specifying an engine B<id> will cause L<cmp(1)> to to obtain a functional
-reference to the specified engine, thus initialising it if needed.The engine
-will then be set as the default for all its supported algorithms.
-If you want to load certificates or CRLs that require engine support via
-the e.g. B<-trusted> or B<-untrusted> options, the B<-engine> option must be
-specified before those options.
+Specifying an engine B<id> will cause L<cmp(1)> to obtain a functional
+reference to the specified engine, thus initialising it if needed.
+The engine will then be set as the default for all its supported algorithms.
+Engines may be defined in the OpenSSL config file as usual in an engine section.
 
 =back
 
