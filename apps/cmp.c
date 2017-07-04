@@ -78,9 +78,7 @@ char *prog = "cmp";
 static CONF *conf = NULL;       /* OpenSSL config file context structure */
 static BIO *bio_c_out = NULL;   /* OpenSSL BIO for printing to STDOUT */
 
-#ifndef OPENSSL_NO_ENGINE
-ENGINE *e = NULL;
-#endif
+static ENGINE *e = NULL;
 
 /*
  * the type of cmp command we want to send 
@@ -938,11 +936,7 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pa
     // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
     char *pass_string = get_passwd(pass, desc);
     format = adjust_format(&infile, format, 1);
-#ifndef OPENSSL_NO_ENGINE
     EVP_PKEY *pkey = load_key(bio_err, infile, format, 0, pass_string, e, desc);
-#else
-    EVP_PKEY *pkey = load_key(bio_err, infile, format, 0, pass_string, NULL, desc);
-#endif
     if (pkey == NULL && format != FORMAT_HTTP && format != FORMAT_ENGINE)
         pkey = load_key(bio_err, infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, 0, pass_string, NULL, desc);
     if (!pkey) {
