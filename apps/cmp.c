@@ -414,6 +414,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
 #endif
+    {NULL}
 };
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -448,6 +449,10 @@ static int read_config()
 
     // starting with 1 and OPT_HELP+1 because OPT_SECTION has already been handled
     for (i = 1, j = OPT_HELP+1; j < sizeof(cmp_options)/sizeof(cmp_options[0]) - 1; i++, j++) {
+        if (cmp_vars[i].txt == NULL) {
+            BIO_printf(bio_err, "internal error: cmp_vars array too short, i=%d\n", i);
+            return 0;
+        }
         int verification_option = (OPT_CDPS <= j && j < OPT_CDPS + OPT_V__LAST-OPT_V__FIRST-1); /* OPT_CRLALL etc. */
         if (verification_option)
             i--;
