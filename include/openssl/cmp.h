@@ -330,6 +330,7 @@ int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg,
 int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) **
                               itav_sk_p,
                               const CMP_INFOTYPEANDVALUE *itav);
+CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
 CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text);
 long CMP_PKISTATUSINFO_PKIstatus_get(CMP_PKISTATUSINFO *statusInfo);
 long CMP_CERTREPMESSAGE_PKIStatus_get(CMP_CERTREPMESSAGE *certRep,

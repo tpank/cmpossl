@@ -1639,10 +1639,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
         ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
 
-        CMP_INFOTYPEANDVALUE *itav = CMP_INFOTYPEANDVALUE_new();
+        CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(type, val);
         if (!itav)
             goto err;
-        CMP_INFOTYPEANDVALUE_set(itav, type, val);
 
         if (!CMP_CTX_geninfo_itav_push0(ctx, itav))
             goto err;
@@ -2086,6 +2085,18 @@ opt_err:
         break;
     case CMP_GENM:
         {
+        ASN1_OBJECT *type = OBJ_txt2obj("1.3.6.1.5.5.7.4.2", 1);
+
+        ASN1_TYPE *val = ASN1_TYPE_new();
+        if (!val)
+            goto err;
+        ASN1_TYPE_set(val, V_ASN1_UNDEF, NULL);
+
+        CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(type, val);
+        if (!itav)
+            goto err;
+        CMP_CTX_genm_itav_push0(cmp_ctx, itav);
+
         STACK_OF(CMP_INFOTYPEANDVALUE) *itavs;
         itavs = CMP_doGeneralMessageSeq(cmp_ctx);
         print_itavs(itavs);

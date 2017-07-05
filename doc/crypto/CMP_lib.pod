@@ -30,6 +30,7 @@
   CMP_calc_protection_pbmac,
   CMP_PKIMESSAGE_protect,
   CMP_PKIMESSAGE_add_extraCerts,
+  CMP_ITAV_new,
   CMP_statusInfo_new,
   CMP_PKISTATUSINFO_PKIstatus_get,
   CMP_get_protectionAlg_pbmac,
@@ -74,6 +75,7 @@
   ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage, const ASN1_OCTET_STRING *secret);
   int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg); 
+  CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
   CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text);
   long CMP_PKISTATUSINFO_PKIstatus_get( CMP_PKISTATUSINFO *statusInfo);
   X509_ALGOR *CMP_get_protectionAlg_pbmac();
@@ -180,7 +182,9 @@ sets the protection to the given pkimessage.
 
 CMP_PKIMESSAGE_add_extraCerts() fills the extraCerts field in the message.
 
-CMP_PKISTATUSINFO *CMP_statusInfo_new() creates a new PKIStatusInfo structure and fills it in.
+CMP_ITAV_new() creates a new CMP_INFOTYPEANDVALUE structure and fills it in.
+
+CMP_statusInfo_new() creates a new PKIStatusInfo structure and fills it in.
 
 CMP_PKISTATUSINFO_PKIstatus_get() returns the status value of the given PKIStatusInfo.
 

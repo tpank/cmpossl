@@ -877,10 +877,9 @@ int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg)
     if (!msg)
         goto err;
 
-    if (!(itav = CMP_INFOTYPEANDVALUE_new()))
+    if (!(itav = CMP_ITAV_new(OBJ_nid2obj(NID_id_it_implicitConfirm),
+                              (const ASN1_TYPE *)ASN1_NULL_new())))
         goto err;
-    itav->infoType = OBJ_nid2obj(NID_id_it_implicitConfirm);
-    itav->infoValue.implicitConfirm = ASN1_NULL_new();
     if (!CMP_PKIHEADER_generalInfo_item_push0(msg->header, itav))
         goto err;
     return 1;
@@ -1046,6 +1045,19 @@ int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) ** itav_sk_p,
     return 0;
 }
 
+
+/* ############################################################################ *
+ * Creates a new CMP_INFOTYPEANDVALUE structure and fills it in
+ * returns a pointer to the structure on success, NULL on error
+ * ############################################################################ */
+CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value)
+{
+    CMP_INFOTYPEANDVALUE *itav;
+    if (!type || !value || !(itav = CMP_INFOTYPEANDVALUE_new()))
+        return NULL;
+    CMP_INFOTYPEANDVALUE_set(itav, type, value);
+    return itav;
+}
 
 /* ############################################################################ *
  * Creates a new PKIStatusInfo structure and fills it in
