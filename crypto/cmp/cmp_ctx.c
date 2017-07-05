@@ -1313,7 +1313,7 @@ int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path)
     if (ctx->serverPath) {
         /* clear the old value */
         OPENSSL_free(ctx->serverPath);
-        ctx->serverPath = 0;
+        ctx->serverPath = NULL;
     }
 
     if (!path) {
@@ -1324,11 +1324,12 @@ int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path)
 
     ctx->serverPath = BUF_strdup(path);
     if (!ctx->serverPath)
-        goto err;
+        goto oom;
 
     return 1;
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_SERVERPATH, CMP_R_NULL_ARGUMENT);
+ oom:
     return 0;
 }
 
