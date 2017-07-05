@@ -89,6 +89,8 @@ B<openssl> B<cmp>
 [B<-keyform DER|PEM|P12>]
 [B<-certform DER|PEM|P12>]
 
+[B<-infotype name>]
+
 [B<-geninfoint OID:int>]
 
 [B<-engine id>]
@@ -385,6 +387,10 @@ Format to try first when reading key files. Default value is PEM.
 =item B<-certform DER|PEM|P12>
 
 Format to try first when reading and to use for writing certificate files. Default value is PEM.
+
+=item B<-infotype name>
+
+Set InfoType name to use for requesting specific info in genm, e.g., 'signKeyPairTypes'.
 
 =item B<-geninfoint OID:int>
 

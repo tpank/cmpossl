@@ -197,6 +197,8 @@ static char *opt_extracertsout = NULL;
 static char *opt_proxy = NULL;
 static int   opt_proxyPort = 0;
 
+static char *opt_infotype_s = NULL;
+static int   opt_infotype = NID_undef;
 static char *opt_geninfoint = NULL;
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -297,7 +299,7 @@ typedef enum OPTION_choice {
     OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
     OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
     OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
-    OPT_KEYFORM, OPT_CERTFORM, OPT_GENINFOINT,
+    OPT_KEYFORM, OPT_CERTFORM, OPT_INFOTYPE, OPT_GENINFOINT,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
@@ -373,6 +375,7 @@ OPTIONS cmp_options[] = {
     {"keyform", OPT_KEYFORM, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
     {"certform", OPT_CERTFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM.\n"
                        "\t\t       This also determines format to use for writing (not supported for P12)"},
+    {"infotype", OPT_INFOTYPE, 's', "InfoType name to use for requesting specific info in genm, e.g., 'signKeyPairTypes'\n"},
     {"geninfoint", OPT_GENINFOINT, 's', "Set generalInfo in request PKIHeader with type and integer value\n"
                              "\t\t       given in the form OID:int, e.g., '1.2.3:987'"},
 #ifndef OPENSSL_NO_ENGINE
@@ -404,7 +407,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     { (char **)&opt_disableConfirm}, { (char **)&opt_implicitConfirm}, { (char **)&opt_unprotectedErrors},
     {&opt_digest}, {&opt_oldcert}, { (char **)&opt_revreason},
     {&opt_cacertsout}, {&opt_certout}, {&opt_extracertsout},
-    {&opt_keyform_s}, {&opt_certform_s}, {&opt_geninfoint},
+    {&opt_keyform_s}, {&opt_certform_s}, {&opt_infotype_s}, {&opt_geninfoint},
 };
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -666,6 +669,15 @@ static int check_options(void)
     if (opt_certform_s)
         opt_certform=str2fmt(opt_certform_s);
 #endif
+
+    if (opt_infotype_s) {
+        char id_buf[87] = "id-it-";
+        strncat(id_buf, opt_infotype_s, 80);
+        if ((opt_infotype = OBJ_sn2nid(id_buf)) == NID_undef) {
+            BIO_puts(bio_err, "error: unknown OID name in -infotype option\n");
+            goto err;
+        }
+    }
 
     return 1;
 
@@ -1969,6 +1981,9 @@ opt_err:
             if (!opt_int(opt_arg(), &opt_revreason))
                 goto opt_err;
             break;
+        case OPT_INFOTYPE:
+            opt_infotype_s = opt_arg();
+            break;
         case OPT_GENINFOINT:
             opt_geninfoint = opt_arg();
             break;
@@ -2086,15 +2101,14 @@ opt_err:
         break;
     case CMP_GENM:
         {
-        ASN1_OBJECT *type = OBJ_txt2obj("1.3.6.1.5.5.7.4.2", 1);
+        if (opt_infotype != NID_undef) {
+            CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(OBJ_nid2obj(opt_infotype), NULL);
+            if (!itav)
+                goto err;
+            CMP_CTX_genm_itav_push0(cmp_ctx, itav);
+        }
 
-        CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(type, NULL);
-        if (!itav)
-            goto err;
-        CMP_CTX_genm_itav_push0(cmp_ctx, itav);
-
-        STACK_OF(CMP_INFOTYPEANDVALUE) *itavs;
-        itavs = CMP_doGeneralMessageSeq(cmp_ctx);
+        STACK_OF(CMP_INFOTYPEANDVALUE) *itavs = CMP_doGeneralMessageSeq(cmp_ctx);
         if (!itavs)
             goto err;
         print_itavs(itavs);
