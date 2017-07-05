@@ -199,7 +199,7 @@ static int   opt_proxyPort = 0;
 
 static char *opt_infotype_s = NULL;
 static int   opt_infotype = NID_undef;
-static char *opt_geninfoint = NULL;
+static char *opt_geninfo = NULL;
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 typedef struct options_st {
@@ -299,7 +299,7 @@ typedef enum OPTION_choice {
     OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
     OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
     OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
-    OPT_KEYFORM, OPT_CERTFORM, OPT_INFOTYPE, OPT_GENINFOINT,
+    OPT_KEYFORM, OPT_CERTFORM, OPT_INFOTYPE, OPT_GENINFO,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
@@ -376,8 +376,8 @@ OPTIONS cmp_options[] = {
     {"certform", OPT_CERTFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM.\n"
                        "\t\t       This also determines format to use for writing (not supported for P12)"},
     {"infotype", OPT_INFOTYPE, 's', "InfoType name to use for requesting specific info in genm, e.g., 'signKeyPairTypes'\n"},
-    {"geninfoint", OPT_GENINFOINT, 's', "Set generalInfo in request PKIHeader with type and integer value\n"
-                             "\t\t       given in the form OID:int, e.g., '1.2.3:987'"},
+    {"geninfo", OPT_GENINFO, 's', "Set generalInfo in request PKIHeader with type and integer value\n"
+                       "\t\t       given in the form <OID>:int:<n>, e.g., '1.2.3:int:987'"},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine with given identifier, possibly a hardware device.\n"
                      "\t\t       Engines may be defined in OpenSSL config file engine section.\n"
@@ -407,7 +407,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     { (char **)&opt_disableConfirm}, { (char **)&opt_implicitConfirm}, { (char **)&opt_unprotectedErrors},
     {&opt_digest}, {&opt_oldcert}, { (char **)&opt_revreason},
     {&opt_cacertsout}, {&opt_certout}, {&opt_extracertsout},
-    {&opt_keyform_s}, {&opt_certform_s}, {&opt_infotype_s}, {&opt_geninfoint},
+    {&opt_keyform_s}, {&opt_certform_s}, {&opt_infotype_s}, {&opt_geninfo},
 };
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -1620,25 +1620,31 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    if (opt_geninfoint) {
-        char *valptr = strrchr(opt_geninfoint, ':');
+    if (opt_geninfo) {
+        char *valptr = strchr(opt_geninfo, ':');
         if (!valptr) {
-            BIO_puts(bio_err, "error: missing ':' in -geninfoint option\n");
+            BIO_puts(bio_err, "error: missing ':' in -geninfo option\n");
             goto err;
         }
         valptr[0] = '\0';
-
         valptr++;
+
+        if (strncmp(valptr, "int:", 4) != 0) {
+            BIO_puts(bio_err, "error: missing 'int:' in -geninfo option\n");
+            goto err;
+        }
+        valptr += 4;
+
         char *endstr;
         long value = strtol(valptr, &endstr, 10);
-        if (*endstr) {
-            BIO_puts(bio_err, "error: cannot parse integer in -geninfoint option\n");
+        if (endstr == valptr || *endstr) {
+            BIO_puts(bio_err, "error: cannot parse integer in -geninfo option\n");
             goto err;
         }
 
-        ASN1_OBJECT *type = OBJ_txt2obj(opt_geninfoint, 1);
+        ASN1_OBJECT *type = OBJ_txt2obj(opt_geninfo, 1);
         if (!type) {
-            BIO_puts(bio_err, "error: cannot parse OID in -geninfoint option\n");
+            BIO_puts(bio_err, "error: cannot parse OID in -geninfo option\n");
             goto err;
         }
 
@@ -1984,8 +1990,8 @@ opt_err:
         case OPT_INFOTYPE:
             opt_infotype_s = opt_arg();
             break;
-        case OPT_GENINFOINT:
-            opt_geninfoint = opt_arg();
+        case OPT_GENINFO:
+            opt_geninfo = opt_arg();
             break;
 #ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:

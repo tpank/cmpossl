@@ -91,7 +91,7 @@ B<openssl> B<cmp>
 
 [B<-infotype name>]
 
-[B<-geninfoint OID:int>]
+[B<-geninfo OID:int:N>]
 
 [B<-engine id>]
 
@@ -392,9 +392,9 @@ Format to try first when reading and to use for writing certificate files. Defau
 
 Set InfoType name to use for requesting specific info in genm, e.g., 'signKeyPairTypes'.
 
-=item B<-geninfoint OID:int>
+=item B<-geninfo OID:int:N>
 
-Set generalInfo in request PKIHeader with type and Integer value given in form OID:int, e.g. '1.2.3:987'.
+Set generalInfo in request PKIHeader with type OID and integer value N, e.g. '1.2.3:int:987'.
 
 =item B<-engine id>
 
