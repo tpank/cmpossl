@@ -260,13 +260,14 @@ issuance of a first certificate.
 B<cr> requests issuance of an additional certificate for an End Entity already
 initialized to the PKI hieararchy.
 
-B<kur> requests key update for an existing, given certificate.
+B<kur> requests (key) update for an existing, given certificate.
 
 B<rr> requests revocation of an existing, given certificate.
 
-B<genm> requests "all relevant information" with an empty General Message.  Upon
-receipt of the General Response, information about all received ITAV B<infoType>s
-is printed to to stdout.
+B<genm> requests information using a General Message, where optionally
+included B<InfoTypeAndValue>s may be used to state which info is of interest.
+Upon receipt of the General Response, information about all received
+ITAV B<infoType>s is printed to stdout.
 
 =item B<-newkey filename>
 
@@ -411,8 +412,8 @@ supported e.g. by libp11:
 Note: in these examples the '\' at line ends means
 the invocation should be all on one line.
 
-Requesting "all relevant information" with an empty General Message.  This prints
-information about all received ITAV B<infoType>s to stdout.
+Requesting "all relevant information" with an empty General Message.
+This prints information about all received ITAV B<infoType>s to stdout.
   openssl cmp -cmd genm -server 127.0.0.1:8080 -path pkix/ \
     -ref 1234 -secret pass:1234-5678-1234-5678 \
     -recipient "/CN=CMPserver"

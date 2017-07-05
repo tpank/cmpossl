@@ -452,8 +452,8 @@ The following code does a Key Update Request:
 
 	updatedClCert = CMP_doKeyUpdateRequestSeq(cmp_ctx);
 
-The following code creates and sets a id-it-signKeyPairTypes OID (as example) to
-be included in the next GenMsg body.
+The following code (which omits error handling) sends a genm including, as an 
+example, the id-it-signKeyPairTypes OID and prints info on the genp contents.
 
     cmp_ctx = CMP_CTX_create();
     CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
@@ -465,8 +465,7 @@ be included in the next GenMsg body.
     ASN1_TYPE *val = ASN1_TYPE_new();
     ASN1_TYPE_set(val, V_ASN1_UNDEF, NULL);
 
-    CMP_INFOTYPEANDVALUE *itav = CMP_INFOTYPEANDVALUE_new();
-    CMP_INFOTYPEANDVALUE_set(itav, type, val);
+    CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(type, val);
     CMP_CTX_genm_itav_push0(cmp_ctx, itav);
 
     STACK_OF(CMP_INFOTYPEANDVALUE) *itavs;

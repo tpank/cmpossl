@@ -32,9 +32,9 @@ updated key from the CA. A populated CMP_CTX structure has to be given as argume
 CMP_doCertificateRequestSeq() requests an additional certificate for an existing
 key from the CA. A populated CMP_CTX structure has to be given as argument.
 
-CMP_doGeneralMessageSeq() sends a general message with ITAVs specified in the
-B<ctx>->genm_itavs, and returns the ITAV structures returned in the GenRep.  This
-can e.g. be used to poll for the CRL or CA Key Updates.
+CMP_doGeneralMessageSeq() sends a general message with any ITAVs specified in the
+B<ctx>->genm_itavs, and returns the list of B<ITAV>s received in the GenRep.
+This can be used, for instance, to poll for the CRL or CA Key Updates.
 
 CMP_doRevocationRequestSeq() requests the revocation of the used certificate via
 an revocation request sent to the server.
