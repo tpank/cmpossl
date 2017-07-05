@@ -4482,3 +4482,4 @@ CMP_INFOTYPEANDVALUE_get0_value         4417	1_1_1	EXIST::FUNCTION:
 CMP_CTX_genm_itav_push0                 4418	1_1_1	EXIST::FUNCTION:
 CMP_INFOTYPEANDVALUE_get0_type          4419	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_genm_items_push1         4420	1_1_1	EXIST::FUNCTION:
+CMP_ITAV_new                            4421	1_1_1	EXIST::FUNCTION:
