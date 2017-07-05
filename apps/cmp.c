@@ -1404,7 +1404,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
         if (opt_tls_cert && opt_tls_key) {
             certfmt = opt_certform;
-            /* TODO: does it make sense to use opt_tls_keypass also here? */
+            /* opt_tls_keypass is needed here in case opt_tls_cert is an encrypted PKCS#12 file */
             if (!(cert=load_cert_autofmt(opt_tls_cert, &certfmt, opt_tls_keypass, "TLS client certificate"))) {
                 goto tls_err;
             }
@@ -1413,6 +1413,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             }
             if (opt_tls_keypass)
                 OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
+            opt_tls_keypass = NULL;
 
             if (certfmt == FORMAT_PEM) {
                 if (SSL_CTX_use_certificate_chain_file(ssl_ctx, opt_tls_cert) <= 0) {
@@ -1460,6 +1461,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         char *pass_string = NULL;
         if ((pass_string = get_passwd(opt_secret, "PBMAC"))) {
         OPENSSL_cleanse(opt_secret, strlen(opt_secret));
+        opt_secret = NULL;
         CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
                                     strlen(opt_ref));
         CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
@@ -1470,8 +1472,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_key) {
         EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyform, opt_keypass, e, "private key for CMP client certificate");
-        if (opt_keypass)
-            OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
         if (!pkey || !CMP_CTX_set0_pkey(ctx, pkey))
             goto err;
     }
@@ -1479,13 +1479,14 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         EVP_PKEY *newPkey = load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e, "new private key for certificate to be enrolled");
         if (opt_newkeypass)
             OPENSSL_cleanse(opt_newkeypass, strlen(opt_newkeypass));
+        opt_newkeypass = NULL;
         if (!newPkey || !CMP_CTX_set0_newPkey(ctx, newPkey))
             goto err;
     }
 
     certfmt = opt_certform;
     if (opt_cert) {
-        /* TODO: does it make sense to use opt_keypass also here? */
+        /* opt_keypass is needed here in case opt_cert is an encrypted PKCS#12 file */
         X509 *clcert = load_cert_autofmt(opt_cert, &certfmt, opt_keypass, "CMP client certificate");
         if (!clcert || !CMP_CTX_set1_clCert(ctx, clcert))
             goto err;
@@ -1501,7 +1502,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     certfmt = opt_certform;
     if (opt_srvcert) {
-        /* TODO: does it make sense to use opt_keypass also here? */
+        /* opt_keypass is needed here in case opt_srvcert is an encrypted PKCS#12 file */
         X509 *srvcert = load_cert_autofmt(opt_srvcert, &certfmt, opt_keypass, "CMP server certificate");
         if (!srvcert || !CMP_CTX_set1_srvCert(ctx, srvcert)) /* indirectly sets also ctx->trusted */
             goto err;
@@ -1611,12 +1612,15 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     certfmt = opt_certform;
     if (opt_oldcert) {
-        /* TODO: does it make sense to use opt_keypass also here? */
+        /* opt_keypass is needed here in case opt_oldcert is an encrypted PKCS#12 file */
         X509 *oldcert = load_cert_autofmt(opt_oldcert, &certfmt, opt_keypass, "certificate to be renewed/revoked");
         if (!oldcert || !CMP_CTX_set1_oldClCert(ctx, oldcert))
             goto err;
         X509_free(oldcert);
     }
+    if (opt_keypass)
+        OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
+    opt_keypass = NULL;
 
     if (opt_revreason >= 0)
         CMP_CTX_set_option(ctx, CMP_CTX_OPT_REVOCATION_REASON, opt_revreason);
