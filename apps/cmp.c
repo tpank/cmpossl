@@ -1720,10 +1720,11 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs) {
     CMP_INFOTYPEANDVALUE *itav = NULL;
     int n;
 
-    if (!itavs)
+    n = sk_CMP_INFOTYPEANDVALUE_num(itavs); /* itavs == NULL leads to 0 */
+    if (n == 0) {
+        BIO_printf(bio_c_out, "GenRep contains no ITAV\n");
         return;
-
-    n = sk_CMP_INFOTYPEANDVALUE_num(itavs);
+    }
 
     for (int i = 0; i < n; i++) {
         char buf[128];
@@ -2099,6 +2100,8 @@ opt_err:
 
         STACK_OF(CMP_INFOTYPEANDVALUE) *itavs;
         itavs = CMP_doGeneralMessageSeq(cmp_ctx);
+        if (!itavs)
+            goto err;
         print_itavs(itavs);
         sk_CMP_INFOTYPEANDVALUE_pop_free(itavs, CMP_INFOTYPEANDVALUE_free);
         break;
