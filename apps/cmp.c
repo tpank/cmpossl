@@ -200,6 +200,9 @@ static int   opt_proxyPort = 0;
 static char *opt_infotype_s = NULL;
 static int   opt_infotype = NID_undef;
 static char *opt_geninfo = NULL;
+#ifndef OPENSSL_NO_ENGINE
+static char *opt_engine = NULL;
+#endif
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 typedef struct options_st {
@@ -408,6 +411,9 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_digest}, {&opt_oldcert}, { (char **)&opt_revreason},
     {&opt_cacertsout}, {&opt_certout}, {&opt_extracertsout},
     {&opt_keyform_s}, {&opt_certform_s}, {&opt_infotype_s}, {&opt_geninfo},
+#ifndef OPENSSL_NO_ENGINE
+    {&opt_engine},
+#endif
 };
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -1788,7 +1794,6 @@ int cmp_main(int argc, char **argv)
 #endif
     ENGINE *e = NULL;
 
-
     if (argc <= 1) {
         badops = 1;
         goto bad_ops;
@@ -2011,7 +2016,7 @@ opt_err:
             break;
 #ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
-            e = setup_engine_no_default(opt_arg(), 0);
+            opt_engine = opt_arg();
             break;
 #endif
         }
@@ -2093,6 +2098,8 @@ opt_err:
     }
 
     cmp_ctx = CMP_CTX_create();
+    if (opt_engine)
+        e = setup_engine_no_default(opt_engine, 0);
     if (!cmp_ctx || !setup_ctx(cmp_ctx, e)) {
         BIO_puts(bio_err, "error creating new cmp context\n");
         goto err;
