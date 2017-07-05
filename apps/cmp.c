@@ -1466,7 +1466,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                                     strlen(opt_ref));
         CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
                                  strlen(pass_string));
-        OPENSSL_free(pass_string);
+        OPENSSL_clear_free(pass_string, strlen(pass_string));
         }
     }
 
