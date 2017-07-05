@@ -1053,7 +1053,7 @@ int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) ** itav_sk_p,
 CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value)
 {
     CMP_INFOTYPEANDVALUE *itav;
-    if (!type || !value || !(itav = CMP_INFOTYPEANDVALUE_new()))
+    if (!type || !(itav = CMP_INFOTYPEANDVALUE_new()))
         return NULL;
     CMP_INFOTYPEANDVALUE_set(itav, type, value);
     return itav;

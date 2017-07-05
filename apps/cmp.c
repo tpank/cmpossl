@@ -2088,12 +2088,7 @@ opt_err:
         {
         ASN1_OBJECT *type = OBJ_txt2obj("1.3.6.1.5.5.7.4.2", 1);
 
-        ASN1_TYPE *val = ASN1_TYPE_new();
-        if (!val)
-            goto err;
-        ASN1_TYPE_set(val, V_ASN1_UNDEF, NULL);
-
-        CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(type, val);
+        CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(type, NULL);
         if (!itav)
             goto err;
         CMP_CTX_genm_itav_push0(cmp_ctx, itav);
