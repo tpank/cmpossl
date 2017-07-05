@@ -1303,19 +1303,16 @@ CMP_PKIFAILUREINFO *CMP_CERTREPMESSAGE_PKIFailureInfo_get0(CMP_CERTREPMESSAGE
  * returns pointer to PKIFailureInfoString character array of given certRep message
  * returns NULL on error or if no matching failInfo was found
  * ############################################################################ */
-char *CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(CMP_CERTREPMESSAGE
-                                                   *certRep, long certReqId)
+char *CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(CMP_CERTREPMESSAGE *crepmsg,
+                                                   long rid)
 {
-    CMP_CERTRESPONSE *certResponse = NULL;
-    if (!certRep)
+    CMP_CERTRESPONSE *crep = NULL;
+    if (!crepmsg)
         return NULL;
 
-    if ((certResponse =
-         CMP_CERTREPMESSAGE_certResponse_get0(certRep, certReqId))) {
-        if (certResponse->status)
-            return
-                CMP_PKISTATUSINFO_PKIFailureInfo_get_string
-                (certResponse->status);
+    if ((crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid))) {
+        if (crep->status)
+            return CMP_PKISTATUSINFO_PKIFailureInfo_get_string(crep->status);
     }
 
     CMPerr(CMP_F_CMP_CERTREPMESSAGE_PKIFAILUREINFOSTRING_GET0,
@@ -1635,55 +1632,80 @@ char *CMP_PKIMESSAGE_parse_error_msg(CMP_PKIMESSAGE *msg, char *errormsg,
     return errormsg;
 }
 
+static void PKIFreeText_to_err(char *pre, STACK_OF (ASN1_UTF8STRING) *str_sk) {
+    if (!str_sk)
+        return;
+    for (int i = 0; i < sk_ASN1_UTF8STRING_num(str_sk); i++) {
+        ASN1_UTF8STRING *text = sk_ASN1_UTF8STRING_value(str_sk, i);
+        size_t tlen = ASN1_STRING_length(text);
+        char *s;
+        if (!(s = OPENSSL_malloc(tlen+1)))
+            return;
+        memcpy(s, ASN1_STRING_get0_data(text), tlen);
+        s[tlen] = '\0';
+        ERR_add_error_data(4, pre, "=\"", s, "\"");
+        OPENSSL_free(s);
+    }
+}
+
+static void PKIFailureInfo_to_err(CMP_CERTREPMESSAGE *crepmsg, long rid) {
+    char *finfo = NULL;
+
+    finfo = CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(crepmsg, rid);
+    if (finfo)
+        /* initialize stat string with human readable failure info */
+        ERR_add_error_data(1, "PKIFailureInfo: ", finfo);
+    else
+        ERR_add_error_data(1, "<no failure info received>");
+}
+
 /* ############################################################################ *
  * Retrieve the returned certificate from the given certrepmessage.
- * returns NULL if not found
- * TODO: create another function handing multiple certreps when 2 certificates
- * had been requested
+ * returns NULL if not found or on error
  * ############################################################################ */
 X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
-                                         CMP_CERTREPMESSAGE *certrep)
+                                         CMP_CERTREPMESSAGE *crepmsg,
+                                         long rid)
 {
-    X509 *newClCert = NULL;
-    long repNum = 0;
+    X509 *crt = NULL;
+    CMP_CERTRESPONSE *crep;
 
-    /* Get the certReqId of the first certresponse. Need to do it this way instead
-     * of just using certReqId==0, because in error cases the server might reply with a certReqId
-     * of -1... */
-    if (sk_CMP_CERTRESPONSE_num(certrep->response) > 0)
-        repNum =
-            ASN1_INTEGER_get(sk_CMP_CERTRESPONSE_value
-                             (certrep->response, 0)->certReqId);
+    crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid);
+    if (!crep) {
+        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+               CMP_R_CERTRESPONSE_NOT_FOUND);
+        goto err;
+    }
 
+    PKIFreeText_to_err("statusString",
+                  CMP_CERTREPMESSAGE_PKIStatusString_get0(crepmsg, rid));
+    PKIFailureInfo_to_err(crepmsg, rid);
     CMP_CTX_set_failInfoCode(ctx,
-                             CMP_CERTREPMESSAGE_PKIFailureInfo_get0(certrep,
-                                                                    repNum));
+                           CMP_CERTREPMESSAGE_PKIFailureInfo_get0(crepmsg, rid));
 
-    ctx->lastPKIStatus = CMP_CERTREPMESSAGE_PKIStatus_get(certrep, repNum);
+    ctx->lastPKIStatus = CMP_CERTREPMESSAGE_PKIStatus_get(crepmsg, rid);
     switch (ctx->lastPKIStatus) {
     case CMP_PKISTATUS_waiting:
+        CMP_printf(ctx, "WARN: encountered \"waiting\" status for certReqId %d, "
+                        "when actually aiming to extract cert", rid);
+        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+               CMP_R_ENCOUNTERED_WAITING);
         goto err;
-        break;
-
     case CMP_PKISTATUS_grantedWithMods:
-        CMP_printf(ctx, "WARNING: got \"grantedWithMods\"");
-
+        CMP_printf(ctx, "WARN: got \"grantedWithMods\" for certReqId %d", rid);
     case CMP_PKISTATUS_accepted:
-        /* if we received a certificate then place it to ctx->newClCert and return,
-         * if the cert is encrypted then we first decrypt it. */
-        switch (CMP_CERTREPMESSAGE_certType_get(certrep, repNum)) {
+        switch (CMP_CERTREPMESSAGE_certType_get(crepmsg, rid)) {
         case CMP_CERTORENCCERT_CERTIFICATE:
-            if (!(newClCert = CMP_CERTREPMESSAGE_cert_get1(certrep, repNum))) {
+            if (!(crt = CMP_CERTREPMESSAGE_cert_get1(crepmsg, rid))) {
                 CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
                        CMP_R_CERTIFICATE_NOT_FOUND);
                 goto err;
             }
             break;
-            /* certificate encrypted for PoP using indirect method according to section 5.2.8.2 */
         case CMP_CERTORENCCERT_ENCRYPTEDCERT:
-            if (!(newClCert =
-                  CMP_CERTREPMESSAGE_encCert_get1(certrep, repNum,
-                                                  ctx->newPkey))) {
+        /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
+            if (!(crt =
+                  CMP_CERTREPMESSAGE_encCert_get1(crepmsg, rid, ctx->newPkey))) {
                 CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
                        CMP_R_CERTIFICATE_NOT_FOUND);
                 goto err;
@@ -1702,73 +1724,44 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
         break;
 
         /* get all information in case of a rejection before going to error */
-    case CMP_PKISTATUS_rejection:{
-            char *failInfoString = NULL;
-            char *statusString = NULL;
-            size_t statusLen = 0;
-            ASN1_UTF8STRING *status = NULL;
-            STACK_OF (ASN1_UTF8STRING) * strstack =
-                CMP_CERTREPMESSAGE_PKIStatusString_get0(certrep, repNum);
-
-            CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
-                   CMP_R_REQUEST_REJECTED_BY_CA);
-
-            failInfoString =
-                CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(certrep, repNum);
-            if (failInfoString)
-                /* initialize status string with human readable failure info */
-                statusString = OPENSSL_strdup(failInfoString);
-            else
-                statusString = OPENSSL_strdup("<no failure info received>");
-
-            statusLen = strlen(statusString) + 18;
-            statusString = OPENSSL_realloc(statusString, statusLen);
-            if (!statusString)
-                goto err;
-            strcat(statusString, ", statusString: \""); /* length = 17 */
-
-            while ((status = sk_ASN1_UTF8STRING_pop(strstack))) {
-                statusLen += strlen((char *)status->data) + 1;
-                statusString = OPENSSL_realloc(statusString, statusLen);
-                if (!statusString)
-                    goto err;
-                strcat(statusString, (char *)status->data);
-                strcat(statusString, " ");
-            }
-
-            strcat(statusString, "\"");
-            ERR_add_error_data(1, statusString);
-
-            goto err;
-            break;
-        }
+    case CMP_PKISTATUS_rejection:
+        CMP_printf(ctx, "WARN: encountered \"rejection\" status for certReqId "
+                        "%d", rid);
+        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+                CMP_R_REQUEST_REJECTED_BY_CA);
+        goto err;
 
     case CMP_PKISTATUS_revocationWarning:
-    case CMP_PKISTATUS_revocationNotification:
-    case CMP_PKISTATUS_keyUpdateWarning:
+        CMP_printf(ctx, "WARN: encountered \"revocationWarning\" status for "
+                        "certReqId %d, when actually aiming to extract cert",
+                        rid);
         CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
-               CMP_R_NO_CERTIFICATE_RECEIVED);
+               CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONWARNING);
         goto err;
-        break;
+    case CMP_PKISTATUS_revocationNotification:
+        CMP_printf(ctx, "WARN: encountered \"revocationNotification\" status "
+                        "for certReqId %d, when actually aiming to extract cert",
+                        rid);
+        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+               CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONNOTIFICATION);
+        goto err;
+    case CMP_PKISTATUS_keyUpdateWarning:
+        CMP_printf(ctx, "WARN: received \"keyUpdateWarning\" for cerReqId %d "
+                        "--> update already done for the oldCertId specified "
+                        "in CertReqMsg", rid);
+        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+               CMP_R_ENCOUNTERED_KEYUPDATEWARNING);
+        goto err;
 
-    default:{
-            STACK_OF (ASN1_UTF8STRING) * strstack =
-                CMP_CERTREPMESSAGE_PKIStatusString_get0(certrep, 0);
-            ASN1_UTF8STRING *status = NULL;
-
-            CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
-                   CMP_R_UNKNOWN_PKISTATUS);
-            while ((status = sk_ASN1_UTF8STRING_pop(strstack)))
-                ERR_add_error_data(3, "statusString=\"", status->data, "\"");
-
-            CMP_printf(ctx, "ERROR: unknown pkistatus %ld",
-                       CMP_CERTREPMESSAGE_PKIStatus_get(certrep, repNum));
-            goto err;
-            break;
-        }
+    default:
+        CMP_printf(ctx, "ERROR: encountered unsupported PKIstatus %ld for "
+                        "certReqId %d", ctx->lastPKIStatus, rid);
+        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+               CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
+        goto err;
     }
 
-    return newClCert;
+    return crt;
  err:
     return NULL;
 }

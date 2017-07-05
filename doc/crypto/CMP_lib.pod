@@ -78,10 +78,10 @@
   CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text);
   long CMP_PKISTATUSINFO_PKIstatus_get( CMP_PKISTATUSINFO *statusInfo);
   X509_ALGOR *CMP_get_protectionAlg_pbmac();
-  char *CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(CMP_CERTREPMESSAGE *certRep, long certReqId);
+  char *CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(CMP_CERTREPMESSAGE *crepmsg, long rid);
   STACK_OF(ASN1_UTF8STRING)* CMP_CERTREPMESSAGE_PKIStatusString_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
   CMP_PKIFAILUREINFO *CMP_CERTREPMESSAGE_PKIFailureInfo_get0(CMP_CERTREPMESSAGE *certRep, long certReqId);
-  X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx, CMP_CERTREPMESSAGE *certrep);
+  X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx, CMP_CERTREPMESSAGE *crepmsg, long rid);
   STACK_OF(X509) *CMP_build_cert_chain(X509_STORE *store, X509 *cert);
 
 =head1 DESCRIPTION
@@ -190,8 +190,10 @@ CMP_get_protectionAlg_pbmac() initializes an X509_ALGOR structure for
 Password Based MAC. Creates a CRMF_PBMPARAMETER structure for the
 parameters.
 
-CMP_CERTREPMESSAGE_PKIFailureInfoString_get0() returns PKIFailureInfoString 
-character array of given certRep message, or NULL on error
+CMP_CERTREPMESSAGE_PKIFailureInfoString_get0() converts the PKIFailureInfo in
+the certResponse with the certReqId B<rid> of the certResponseMessage B<crepmsg> 
+into a readable string.
+Returns a character array of given certRep message, or NULL on error.
 
 CMP_CERTREPMESSAGE_PKIStatusString_get0() gets the CertResponse with the
 given certReqId inside the given CertReqMessage, and returns the
@@ -199,8 +201,12 @@ status->statuString field contained in it.
 
 CMP_CERTREPMESSAGE_PKIFailureInfo_get0() returns PKIFailureInfo of given certRep message.
 
-CMP_CERTREPMESSAGE_get_certificate() retrieves the returned certificate 
-from the given certrepmessage, or NULL if not found.
+CMP_CERTREPMESSAGE_get_certificate() attempts to retrieve the returned
+certificate from the certResponse with the certReqId B<rid> of the
+certResponseMessage B<crepmsg>.
+Takes the newKey in case of indirect Pop from, and sets the "lastPKIStatus" in
+B<ctx>.
+Returns a pointer to a copy of the found certificate, or NULL if not found.
 
 CMP_build_cert_chain() builds up the certificate chain of cert as high up as possible 
 using the given X509_STORE containing all possible intermediate certificates and

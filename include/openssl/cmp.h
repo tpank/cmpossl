@@ -345,7 +345,8 @@ CMP_PKIFAILUREINFO
     *CMP_CERTREPMESSAGE_PKIFailureInfo_get0(CMP_CERTREPMESSAGE *certRep,
                                             long certReqId);
 X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
-                                         CMP_CERTREPMESSAGE *certrep);
+                                         CMP_CERTREPMESSAGE *crepmsg,
+                                         long rid);
 int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit);
 CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
                                                        *certRep,
@@ -571,8 +572,14 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ALGORITHM_NOT_SUPPORTED                    100
 # define CMP_R_CERTIFICATE_NOT_ACCEPTED                   101
 # define CMP_R_CERTIFICATE_NOT_FOUND                      102
+# define CMP_R_CERTRESPONSE_NOT_FOUND                     168
 # define CMP_R_CERT_AND_KEY_DO_NOT_MATCH                  103
 # define CMP_R_CP_NOT_RECEIVED                            104
+# define CMP_R_ENCOUNTERED_KEYUPDATEWARNING               163
+# define CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONNOTIFICATION 164
+# define CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONWARNING   165
+# define CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS          166
+# define CMP_R_ENCOUNTERED_WAITING                        167
 # define CMP_R_ERROR_CALCULATING_PROTECTION               105
 # define CMP_R_ERROR_CREATING_CERTCONF                    106
 # define CMP_R_ERROR_CREATING_CR                          107

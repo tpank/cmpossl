@@ -472,7 +472,7 @@ static int cert_response(CMP_CTX *ctx,
         }
     }
 
-    if (!(ctx->newClCert = CMP_CERTREPMESSAGE_get_certificate(ctx, body))) {
+    if (!(ctx->newClCert = CMP_CERTREPMESSAGE_get_certificate(ctx, body, 0))) {
         ERR_add_error_data(1, "cannot extract certificate from response");
         return 0;
     }
