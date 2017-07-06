@@ -385,7 +385,7 @@ OPTIONS cmp_options[] = {
     {"engine", OPT_ENGINE, 's', "Use engine with given identifier, possibly a hardware device.\n"
                      "\t\t       Engines may be defined in OpenSSL config file engine section.\n"
                      "\t\t       Options like -key specifying keys held in the engine can give key identifiers\n"
-                     "\t\t       prefixed by 'engine:', e.g., '-key engine:slot_1-label_myRSA1024'"},
+                     "\t\t       prefixed by 'engine:', e.g., '-key engine:pkcs11:object=mykey;pin-value=1234'"},
 #endif
     {NULL}
 };
