@@ -52,6 +52,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "apps.h"
 #include "s_apps.h"
 
@@ -151,6 +152,7 @@ static char *opt_tls_cert = NULL;
 static char *opt_tls_key = NULL;
 static char *opt_tls_keypass = NULL;
 static char *opt_tls_trusted = NULL;
+static char *opt_tls_host = NULL;
 
 static char *opt_path = "/";
 static char *opt_cmd_s = NULL;
@@ -290,7 +292,7 @@ typedef enum OPTION_choice {
     OPT_SECTION,
     OPT_SERVER, OPT_PROXY,
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
-    OPT_TLSTRUSTED,
+    OPT_TLSTRUSTED, OPT_TLSHOST,
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
     OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED, 
     OPT_CRLS, OPT_CDPS, OPT_V_ENUM/* OPT_CRLALL etc. */,
@@ -325,6 +327,7 @@ OPTIONS cmp_options[] = {
 
     {"tls-trusted", OPT_TLSTRUSTED, 's', "Client's trusted certificates for verifying TLS certificates.\n"
                               "\t\t       This implies host name validation"},
+    {"tls-host", OPT_TLSTRUSTED, 's', "Address (rather than -server address) to be checked during host name validation"},
 
     {"ref", OPT_REF, 's', "Reference value for client authentication with a pre-shared key"},
     {"secret", OPT_SECRET, 's', "Password source for client authentication with a pre-shared key (secret)"},
@@ -397,7 +400,7 @@ static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_section},
     {&opt_server}, {&opt_proxy},
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
-    {&opt_tls_trusted},
+    {&opt_tls_trusted}, {&opt_tls_host},
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
     {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
     {&opt_crls}, { (char **)&opt_cdps}, /* virtually at this point: OPT_CRLALL etc. */
@@ -967,7 +970,10 @@ static X509_STORE *create_cert_store(const char *infile, const char *desc)
         BIO_printf(bio_c_out, "warning: unsupported type '%s' for reading %s, trying PEM\n", opt_certform_s, desc);
 
     // TODO: extend upstream setup_verify() to allow for further file formats, in particular PKCS12
-    return setup_verify(infile, NULL/* CApath */, 0/* noCAfile */, 0/* noCApath */);
+    X509_STORE *store = setup_verify(infile, NULL/* CApath */, 0/* noCAfile */, 0/* noCApath */);
+    if (!store)
+        BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, infile);
+    return store;
 }
 
 /* TODO dvo: push that separately upstream
@@ -1308,7 +1314,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     int certform;
 
-    if (opt_tls_trusted) {
+    if (opt_tls_trusted || opt_tls_host) {
         opt_use_tls = 1;
     }
     if (opt_tls_cert || opt_tls_key || opt_tls_keypass) {
@@ -1351,7 +1357,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             /* enable and parameterize server hostname/IP address check */
             X509_VERIFY_PARAM *param = SSL_CTX_get0_param(ssl_ctx);
             X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT|X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-            X509_VERIFY_PARAM_set1_host(param, opt_server, 0);
+            const char *host = opt_tls_host ? opt_tls_host : opt_server;
+            if (isdigit(host[0]))
+                X509_VERIFY_PARAM_set1_ip_asc(param, host);
+            else
+                X509_VERIFY_PARAM_set1_host(param, host, 0);
 #endif
             SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, print_cert_verify_cb);
         }
@@ -1906,6 +1916,9 @@ opt_err:
             break;
         case OPT_TLSTRUSTED:
             opt_tls_trusted = opt_arg();
+            break;
+        case OPT_TLSHOST:
+            opt_tls_host = opt_arg();
             break;
 
         case OPT_PATH:
