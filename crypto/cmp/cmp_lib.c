@@ -1256,90 +1256,47 @@ long CMP_REVREPCONTENT_PKIStatus_get(CMP_REVREPCONTENT *revRep, long reqId)
 }
 
 /* ############################################################################ *
- * returns the PKIStatus of the given certReqId inside a CertRepMessage
+ * returns the PKIStatus of the given crep
  * returns -1 on error
  * ############################################################################ */
-long CMP_CERTREPMESSAGE_PKIStatus_get(CMP_CERTREPMESSAGE *certRep,
-                                      long certReqId)
+long CMP_CERTRESPONSE_PKIStatus_get(CMP_CERTRESPONSE *crep)
 {
-    CMP_CERTRESPONSE *certResponse = NULL;
-    if (!certRep)
+    if (!crep) {
+        CMPerr(CMP_F_CMP_CERTRESPONSE_PKISTATUS_GET,
+                CMP_R_ERROR_REQID_NOT_FOUND);
         return -1;
-
-    if ((certResponse =
-         CMP_CERTREPMESSAGE_certResponse_get0(certRep, certReqId))) {
-        return CMP_PKISTATUSINFO_PKIstatus_get(certResponse->status);
     }
-
-    CMPerr(CMP_F_CMP_CERTREPMESSAGE_PKISTATUS_GET,
-           CMP_R_ERROR_REQID_NOT_FOUND);
-    return -1;
+    return CMP_PKISTATUSINFO_PKIstatus_get(crep->status);
 }
 
 /* ############################################################################ *
  * returns pointer to PKIFailureInfo of given certRep message
  * returns NULL on error or if no matching failInfo was found
  * ############################################################################ */
-CMP_PKIFAILUREINFO *CMP_CERTREPMESSAGE_PKIFailureInfo_get0(CMP_CERTREPMESSAGE
-                                                           *certRep,
-                                                           long certReqId)
+CMP_PKIFAILUREINFO *CMP_CERTRESPONSE_PKIFailureInfo_get0(CMP_CERTRESPONSE *crep)
 {
-    CMP_CERTRESPONSE *certResponse = NULL;
-    if (!certRep)
+    if (!crep || !crep->status || !crep->status->failInfo) {
+        CMPerr(CMP_F_CMP_CERTRESPONSE_PKIFAILUREINFO_GET0,
+                CMP_R_ERROR_REQID_NOT_FOUND);
         return NULL;
-
-    if ((certResponse =
-         CMP_CERTREPMESSAGE_certResponse_get0(certRep, certReqId))) {
-        if (certResponse->status)
-            return certResponse->status->failInfo;
     }
 
-    CMPerr(CMP_F_CMP_CERTREPMESSAGE_PKIFAILUREINFO_GET0,
-           CMP_R_ERROR_REQID_NOT_FOUND);
-    return NULL;
+    return crep->status->failInfo;
 }
 
 /* ############################################################################ *
- * returns pointer to PKIFailureInfoString character array of given certRep message
- * returns NULL on error or if no matching failInfo was found
- * ############################################################################ */
-char *CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(CMP_CERTREPMESSAGE *crepmsg,
-                                                   long rid)
-{
-    CMP_CERTRESPONSE *crep = NULL;
-    if (!crepmsg)
-        return NULL;
-
-    if ((crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid))) {
-        if (crep->status)
-            return CMP_PKISTATUSINFO_PKIFailureInfo_get_string(crep->status);
-    }
-
-    CMPerr(CMP_F_CMP_CERTREPMESSAGE_PKIFAILUREINFOSTRING_GET0,
-           CMP_R_ERROR_REQID_NOT_FOUND);
-    return NULL;
-}
-
-/* ############################################################################ *
- * returns the status string of the given certReqId inside a CertRepMessage
+ * returns the status string of the given crep
  * returns NULL on error
  * ############################################################################ */
 STACK_OF (ASN1_UTF8STRING) *
-CMP_CERTREPMESSAGE_PKIStatusString_get0(CMP_CERTREPMESSAGE *certRep,
-                                        long certReqId)
+CMP_CERTRESPONSE_PKIStatusString_get0(CMP_CERTRESPONSE *crep)
 {
-    CMP_CERTRESPONSE *certResponse = NULL;
-    if (!certRep)
+    if (!crep || !crep->status) {
+        CMPerr(CMP_F_CMP_CERTRESPONSE_PKISTATUSSTRING_GET0, CMP_R_BAD_INPUT);
         return NULL;
-
-    if ((certResponse =
-         CMP_CERTREPMESSAGE_certResponse_get0(certRep, certReqId))) {
-        return certResponse->status->statusString;
     }
 
-    CMPerr(CMP_F_CMP_CERTREPMESSAGE_PKISTATUSSTRING_GET0,
-           CMP_R_ERROR_REQID_NOT_FOUND);
-    return NULL;
+    return crep->status->statusString;
 }
 
 /* ############################################################################ *
@@ -1364,29 +1321,29 @@ int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit)
  * returns NULL on error or if no CertResponse available
  * ############################################################################ */
 CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
-                                                       *certRep,
-                                                       long certReqId)
+                                                       *crepmsg,
+                                                       long rid)
 {
-    CMP_CERTRESPONSE *certResponse = NULL;
-    int certRespCount;
+    CMP_CERTRESPONSE *crep = NULL;
+    int crepcnt;
     int i;
 
-    if (!certRep)
+    if (!crepmsg)
         return NULL;
 
-    certRespCount = sk_CMP_CERTRESPONSE_num(certRep->response);
+    crepcnt = sk_CMP_CERTRESPONSE_num(crepmsg->response);
 
-    for (i = 0; i < certRespCount; i++) {
+    for (i = 0; i < crepcnt; i++) {
         /* is it the right certReqId */
-        if (certReqId ==
+        if (rid ==
             ASN1_INTEGER_get(sk_CMP_CERTRESPONSE_value
-                             (certRep->response, i)->certReqId)) {
-            certResponse = sk_CMP_CERTRESPONSE_value(certRep->response, i);
+                             (crepmsg->response, i)->certReqId)) {
+            crep = sk_CMP_CERTRESPONSE_value(crepmsg->response, i);
             break;
         }
     }
 
-    return certResponse;
+    return crep;
 }
 
 /* ############################################################################ *
@@ -1402,38 +1359,32 @@ static CMP_CERTORENCCERT *CMP_CERTRESPONSE_certOrEncCert_get0(
 /* ############################################################################ *
  * internal function
  *
- * returns a pointer to a copy of the Certificate with the given certReqId inside a CertRepMessage
+ * returns a pointer to a copy of the Certificate inside the crep
  * returns NULL on error or if no Certificate available
  * ############################################################################ */
-static X509 *CMP_CERTREPMESSAGE_cert_get1(CMP_CERTREPMESSAGE *crepmsg, long rid)
+static X509 *CMP_CERTRESPONSE_cert_get1(CMP_CERTRESPONSE *crep)
 {
-    X509 *cert = NULL;
-    CMP_CERTRESPONSE *crep = NULL;
     CMP_CERTORENCCERT *coec;
 
-    if (!crepmsg)
+    if (!crep)
         return NULL;
 
-    if ((crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid))) {
-        if (!(coec = CMP_CERTRESPONSE_certOrEncCert_get0(crep)))
-            return NULL;
-        cert = X509_dup(coec->value.certificate);
-    }
+    if (!(coec = CMP_CERTRESPONSE_certOrEncCert_get0(crep)))
+        return NULL;
 
-    return cert;
+    return X509_dup(coec->value.certificate);
 }
 
 /* ############################################################################# *
  * internal function
  *
- * Decrypts the certificate with the given certReqId inside a CertRepMessage and
+ * Decrypts the certificate in the given crep
  * this is needed for the indirect PoP method as in section 5.2.8.2
  *
  * returns a pointer to the decrypted certificate
  * returns NULL on error or if no Certificate available
  * ############################################################################# */
-static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *crepmsg,
-                                             long rid, EVP_PKEY *pkey)
+static X509 *CMP_CERTRESPONSE_encCert_get1(CMP_CERTRESPONSE *crep,EVP_PKEY *pkey)
 {
     CRMF_ENCRYPTEDVALUE *ecert;
     X509 *cert = NULL; /* decrypted certificate */
@@ -1446,11 +1397,8 @@ static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *crepmsg,
     int symmAlg = 0; /* NIDs for symmetric algorithm */
     int n, outlen = 0;
     EVP_PKEY_CTX *pkctx = NULL; /* private key context */
-    CMP_CERTRESPONSE *crep;
     CMP_CERTORENCCERT *coec;
 
-    if (!(crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid)))
-        goto err;
     if (!(coec = CMP_CERTRESPONSE_certOrEncCert_get0(crep)))
         goto err;
     if (!(ecert = coec->value.encryptedCert))
@@ -1472,20 +1420,20 @@ static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *crepmsg,
             || !(ek = OPENSSL_malloc(eksize))
             || EVP_PKEY_decrypt(pkctx, ek, &eksize, encKey->data,
                                 encKey->length) <= 0) {
-            CMPerr(CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1,
+            CMPerr(CMP_F_CMP_CERTRESPONSE_ENCCERT_GET1,
                    CMP_R_ERROR_DECRYPTING_SYMMETRIC_KEY);
             goto err;
         }
         EVP_PKEY_CTX_free(pkctx);
     } else {
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1,
+        CMPerr(CMP_F_CMP_CERTRESPONSE_ENCCERT_GET1,
                CMP_R_ERROR_DECRYPTING_KEY);
         goto err;
     }
 
     /* select symmetric cipher based on algorithm given in message */
     if (!(cipher = EVP_get_cipherbynid(symmAlg))) {
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1,
+        CMPerr(CMP_F_CMP_CERTRESPONSE_ENCCERT_GET1,
                CMP_R_UNSUPPORTED_CIPHER);
         goto err;
     }
@@ -1509,7 +1457,7 @@ static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *crepmsg,
                               ecert->encValue->data,
                               ecert->encValue->length)
         || !EVP_DecryptFinal(evp_ctx, outbuf + outlen, &n)) {
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1,
+        CMPerr(CMP_F_CMP_CERTRESPONSE_ENCCERT_GET1,
                CMP_R_ERROR_DECRYPTING_CERTIFICATE);
         goto err;
     }
@@ -1517,7 +1465,7 @@ static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *crepmsg,
 
     /* convert decrypted certificate from DER to internal ASN.1 structure */
     if (!(cert = d2i_X509(NULL, &p, outlen))) {
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1,
+        CMPerr(CMP_F_CMP_CERTRESPONSE_ENCCERT_GET1,
                CMP_R_ERROR_DECODING_CERTIFICATE);
         goto err;
     }
@@ -1528,7 +1476,7 @@ static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *crepmsg,
     OPENSSL_free(iv);
     return cert;
  err:
-    CMPerr(CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1,
+    CMPerr(CMP_F_CMP_CERTRESPONSE_ENCCERT_GET1,
            CMP_R_ERROR_DECRYPTING_ENCCERT);
     if (outbuf)
         OPENSSL_free(outbuf);
@@ -1545,14 +1493,11 @@ static X509 *CMP_CERTREPMESSAGE_encCert_get1(CMP_CERTREPMESSAGE *crepmsg,
  * returns the type of the certificate contained in the certificate response
  * returns -1 on errror
  * ############################################################################ */
-int CMP_CERTREPMESSAGE_certType_get(CMP_CERTREPMESSAGE *crepmsg, long rid)
+int CMP_CERTRESPONSE_certType_get(CMP_CERTRESPONSE *crep)
 {
-    CMP_CERTRESPONSE *crep = NULL;
     CMP_CERTORENCCERT *coec;
 
-    if (!crepmsg)
-        return CMP_CERTORENCCERT_ERROR;
-    if (!(crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid)))
+    if (!crep)
         return CMP_CERTORENCCERT_ERROR;
     if (!(coec = CMP_CERTRESPONSE_certOrEncCert_get0(crep)))
         return CMP_CERTORENCCERT_ERROR;
@@ -1648,10 +1593,13 @@ static void PKIFreeText_to_err(char *pre, STACK_OF (ASN1_UTF8STRING) *str_sk) {
     }
 }
 
-static void PKIFailureInfo_to_err(CMP_CERTREPMESSAGE *crepmsg, long rid) {
+static void PKIFailureInfo_to_err(CMP_CERTRESPONSE *crep) {
     char *finfo = NULL;
 
-    finfo = CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(crepmsg, rid);
+    if (!crep || !crep->status)
+        return;
+
+    finfo = CMP_PKISTATUSINFO_PKIFailureInfo_get_string(crep->status);
     if (finfo)
         /* initialize stat string with human readable failure info */
         ERR_add_error_data(1, "PKIFailureInfo: ", finfo);
@@ -1678,12 +1626,12 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
     }
 
     PKIFreeText_to_err("statusString",
-                  CMP_CERTREPMESSAGE_PKIStatusString_get0(crepmsg, rid));
-    PKIFailureInfo_to_err(crepmsg, rid);
-    CMP_CTX_set_failInfoCode(ctx,
-                           CMP_CERTREPMESSAGE_PKIFailureInfo_get0(crepmsg, rid));
+                                    CMP_CERTRESPONSE_PKIStatusString_get0(crep));
+    PKIFailureInfo_to_err(crep);
+    CMP_CTX_set_failInfoCode(ctx, CMP_CERTRESPONSE_PKIFailureInfo_get0(crep));
 
-    ctx->lastPKIStatus = CMP_CERTREPMESSAGE_PKIStatus_get(crepmsg, rid);
+    ctx->lastPKIStatus = CMP_CERTRESPONSE_PKIStatus_get(crep); /* TODO: create CTX function */
+
     switch (ctx->lastPKIStatus) {
     case CMP_PKISTATUS_waiting:
         CMP_printf(ctx, "WARN: encountered \"waiting\" status for certReqId %d, "
@@ -1694,9 +1642,9 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
     case CMP_PKISTATUS_grantedWithMods:
         CMP_printf(ctx, "WARN: got \"grantedWithMods\" for certReqId %d", rid);
     case CMP_PKISTATUS_accepted:
-        switch (CMP_CERTREPMESSAGE_certType_get(crepmsg, rid)) {
+        switch (CMP_CERTRESPONSE_certType_get(crep)) {
         case CMP_CERTORENCCERT_CERTIFICATE:
-            if (!(crt = CMP_CERTREPMESSAGE_cert_get1(crepmsg, rid))) {
+            if (!(crt = CMP_CERTRESPONSE_cert_get1(crep))) {
                 CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
                        CMP_R_CERTIFICATE_NOT_FOUND);
                 goto err;
@@ -1705,7 +1653,7 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
         case CMP_CERTORENCCERT_ENCRYPTEDCERT:
         /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
             if (!(crt =
-                  CMP_CERTREPMESSAGE_encCert_get1(crepmsg, rid, ctx->newPkey))) {
+                  CMP_CERTRESPONSE_encCert_get1(crep, ctx->newPkey))) {
                 CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
                        CMP_R_CERTIFICATE_NOT_FOUND);
                 goto err;

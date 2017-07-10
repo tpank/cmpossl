@@ -333,25 +333,13 @@ int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) **
 CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
 CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text);
 long CMP_PKISTATUSINFO_PKIstatus_get(CMP_PKISTATUSINFO *statusInfo);
-long CMP_CERTREPMESSAGE_PKIStatus_get(CMP_CERTREPMESSAGE *certRep,
-                                      long certReqId);
-char *CMP_CERTREPMESSAGE_PKIFailureInfoString_get0(CMP_CERTREPMESSAGE
-                                                   *certRep,
-                                                   long certReqId);
-STACK_OF(ASN1_UTF8STRING) *
-    CMP_CERTREPMESSAGE_PKIStatusString_get0(CMP_CERTREPMESSAGE *certRep,
-                                            long certReqId);
-CMP_PKIFAILUREINFO
-    *CMP_CERTREPMESSAGE_PKIFailureInfo_get0(CMP_CERTREPMESSAGE *certRep,
-                                            long certReqId);
+
 X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
                                          CMP_CERTREPMESSAGE *crepmsg,
                                          long rid);
 int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit);
 CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
-                                                       *certRep,
-                                                       long certReqId);
-int CMP_CERTREPMESSAGE_certType_get(CMP_CERTREPMESSAGE *crepmsg, long rid);
+                                                       *crepmsg, long rid);
 int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type);
 int CMP_PKIMESSAGE_get_bodytype(CMP_PKIMESSAGE *msg);
 char *CMP_PKIMESSAGE_parse_error_msg(CMP_PKIMESSAGE *msg, char *errormsg,
@@ -487,158 +475,6 @@ int ERR_load_CMP_strings(void);
 
 /* Error codes for the CMP functions. */
 
-/* Function codes. */
-# define CMP_F_CERTREQ_NEW                                100
-# define CMP_F_CMP_CALC_PROTECTION_PBMAC                  101
-# define CMP_F_CMP_CALC_PROTECTION_SIG                    102
-# define CMP_F_CMP_CERTCONF_NEW                           103
-# define CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1            104
-# define CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE         105
-# define CMP_F_CMP_CERTREPMESSAGE_PKIFAILUREINFOSTRING_GET0 106
-# define CMP_F_CMP_CERTREPMESSAGE_PKIFAILUREINFO_GET0     107
-# define CMP_F_CMP_CERTREPMESSAGE_PKISTATUSSTRING_GET0    108
-# define CMP_F_CMP_CERTREPMESSAGE_PKISTATUS_GET           109
-# define CMP_F_CMP_CERTSTATUS_SET_CERTHASH                110
-# define CMP_F_CMP_CR_NEW                                 111
-# define CMP_F_CMP_CTX_CAPUBS_GET1                        112
-# define CMP_F_CMP_CTX_CAPUBS_NUM                         113
-# define CMP_F_CMP_CTX_CAPUBS_POP                         114
-# define CMP_F_CMP_CTX_CREATE                             115
-# define CMP_F_CMP_CTX_EXTRACERTSIN_GET1                  116
-# define CMP_F_CMP_CTX_EXTRACERTSIN_NUM                   117
-# define CMP_F_CMP_CTX_EXTRACERTSIN_POP                   118
-# define CMP_F_CMP_CTX_EXTRACERTSOUT_NUM                  119
-# define CMP_F_CMP_CTX_EXTRACERTSOUT_PUSH1                120
-# define CMP_F_CMP_CTX_INIT                               121
-# define CMP_F_CMP_CTX_SET0_NEWPKEY                       122
-# define CMP_F_CMP_CTX_SET0_PKEY                          123
-# define CMP_F_CMP_CTX_SET0_REQEXTENSIONS                 124
-# define CMP_F_CMP_CTX_SET0_TLSBIO                        125
-# define CMP_F_CMP_CTX_SET1_CAPUBS                        126
-# define CMP_F_CMP_CTX_SET1_CLCERT                        127
-# define CMP_F_CMP_CTX_SET1_DIGEST                        128
-# define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  129
-# define CMP_F_CMP_CTX_SET1_EXTRACERTSOUT                 130
-# define CMP_F_CMP_CTX_SET1_ISSUER                        131
-# define CMP_F_CMP_CTX_SET1_NEWCLCERT                     132
-# define CMP_F_CMP_CTX_SET1_NEWPKEY                       133
-# define CMP_F_CMP_CTX_SET1_OLDCLCERT                     134
-# define CMP_F_CMP_CTX_SET1_PKEY                          135
-# define CMP_F_CMP_CTX_SET1_POPOMETHOD                    136
-# define CMP_F_CMP_CTX_SET1_PROXYNAME                     137
-# define CMP_F_CMP_CTX_SET1_PROXYPORT                     138
-# define CMP_F_CMP_CTX_SET1_RECIPIENT                     139
-# define CMP_F_CMP_CTX_SET1_RECIPNONCE                    140
-# define CMP_F_CMP_CTX_SET1_REFERENCEVALUE                141
-# define CMP_F_CMP_CTX_SET1_REGTOKEN                      142
-# define CMP_F_CMP_CTX_SET1_SECRETVALUE                   143
-# define CMP_F_CMP_CTX_SET1_SERVERNAME                    144
-# define CMP_F_CMP_CTX_SET1_SERVERPATH                    145
-# define CMP_F_CMP_CTX_SET1_SERVERPORT                    146
-# define CMP_F_CMP_CTX_SET1_SOURCEADDRESS                 147
-# define CMP_F_CMP_CTX_SET1_SRVCERT                       148
-# define CMP_F_CMP_CTX_SET1_SUBJECTNAME                   149
-# define CMP_F_CMP_CTX_SET1_TRANSACTIONID                 150
-# define CMP_F_CMP_CTX_SET_HTTPTIMEOUT                    151
-# define CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1               152
-# define CMP_F_CMP_DOCERTIFICATEREQUESTSEQ                153
-# define CMP_F_CMP_DOGENERALMESSAGESEQ                    154
-# define CMP_F_CMP_DOINITIALREQUESTSEQ                    155
-# define CMP_F_CMP_DOKEYUPDATEREQUESTSEQ                  156
-# define CMP_F_CMP_DOREVOCATIONREQUESTSEQ                 157
-# define CMP_F_CMP_ERROR_NEW                              158
-# define CMP_F_CMP_GENM_NEW                               159
-# define CMP_F_CMP_IR_NEW                                 160
-# define CMP_F_CMP_KUR_NEW                                161
-# define CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0       162
-# define CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1     163
-# define CMP_F_CMP_PKIMESSAGE_GENM_ITEMS_PUSH1            177
-# define CMP_F_CMP_PKIMESSAGE_GENM_ITEM_PUSH0             178
-# define CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM                164
-# define CMP_F_CMP_PKIMESSAGE_PARSE_ERROR_MSG             165
-# define CMP_F_CMP_PKIMESSAGE_PROTECT                     166
-# define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING     167
-# define CMP_F_CMP_POLLREQ_NEW                            168
-# define CMP_F_CMP_REVREPCONTENT_PKISTATUS_GET            169
-# define CMP_F_CMP_RR_NEW                                 170
-# define CMP_F_CMP_VALIDATE_CERT_PATH                     171
-# define CMP_F_CMP_VALIDATE_MSG                           172
-# define CMP_F_CMP_VERIFY_SIGNATURE                       173
-# define CMP_F_EXCHANGE_CERTCONF                          174
-# define CMP_F_EXCHANGE_ERROR                             175
-# define CMP_F_POLLFORRESPONSE                            176
-
-/* Reason codes. */
-# define CMP_R_ALGORITHM_NOT_SUPPORTED                    100
-# define CMP_R_CERTIFICATE_NOT_ACCEPTED                   101
-# define CMP_R_CERTIFICATE_NOT_FOUND                      102
-# define CMP_R_CERTRESPONSE_NOT_FOUND                     168
-# define CMP_R_CERT_AND_KEY_DO_NOT_MATCH                  103
-# define CMP_R_CP_NOT_RECEIVED                            104
-# define CMP_R_ENCOUNTERED_KEYUPDATEWARNING               163
-# define CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONNOTIFICATION 164
-# define CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONWARNING   165
-# define CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS          166
-# define CMP_R_ENCOUNTERED_WAITING                        167
-# define CMP_R_ERROR_CALCULATING_PROTECTION               105
-# define CMP_R_ERROR_CREATING_CERTCONF                    106
-# define CMP_R_ERROR_CREATING_CR                          107
-# define CMP_R_ERROR_CREATING_ERROR                       108
-# define CMP_R_ERROR_CREATING_GENM                        109
-# define CMP_R_ERROR_CREATING_IR                          110
-# define CMP_R_ERROR_CREATING_KUR                         111
-# define CMP_R_ERROR_CREATING_POLLREQ                     112
-# define CMP_R_ERROR_CREATING_REQUEST_MESSAGE             113
-# define CMP_R_ERROR_CREATING_RR                          114
-# define CMP_R_ERROR_DECODING_CERTIFICATE                 115
-# define CMP_R_ERROR_DECRYPTING_CERTIFICATE               116
-# define CMP_R_ERROR_DECRYPTING_ENCCERT                   117
-# define CMP_R_ERROR_DECRYPTING_KEY                       118
-# define CMP_R_ERROR_DECRYPTING_SYMMETRIC_KEY             119
-# define CMP_R_ERROR_NONCES_DO_NOT_MATCH                  120
-# define CMP_R_ERROR_PARSING_ERROR_MESSAGE                121
-# define CMP_R_ERROR_PARSING_PKISTATUS                    122
-# define CMP_R_ERROR_PROTECTING_MESSAGE                   123
-# define CMP_R_ERROR_PUSHING_GENERALINFO_ITEM             124
-# define CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS            125
-# define CMP_R_ERROR_PUSHING_GENM_ITEMS                   126
-# define CMP_R_ERROR_REQID_NOT_FOUND                      127
-# define CMP_R_ERROR_SETTING_CERTHASH                     128
-# define CMP_R_ERROR_TRANSACTIONID_UNMATCHED              129
-# define CMP_R_ERROR_VALIDATING_PROTECTION                130
-# define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               131
-# define CMP_R_FAILED_TO_SEND_REQUEST                     132
-# define CMP_R_FAIL_EXTRACT_CERT_FROM_CERTREP_WITH_ACCEPT_STATUS 133
-# define CMP_R_GENP_NOT_RECEIVED                          134
-# define CMP_R_INVALID_ARGS                               135
-# define CMP_R_INVALID_CONTEXT                            136
-# define CMP_R_INVALID_KEY                                137
-# define CMP_R_INVALID_PARAMETERS                         138
-# define CMP_R_IP_NOT_RECEIVED                            139
-# define CMP_R_KUP_NOT_RECEIVED                           140
-# define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  141
-# define CMP_R_NO_CERTIFICATE_RECEIVED                    142
-# define CMP_R_NO_SECRET_VALUE_GIVEN_FOR_PBMAC            143
-# define CMP_R_NO_TRUSTED_CERTIFICATES_SET                144
-# define CMP_R_NO_VALID_SRVCERT_FOUND                     145
-# define CMP_R_NULL_ARGUMENT                              146
-# define CMP_R_PKIBODY_ERROR                              147
-# define CMP_R_PKICONF_NOT_RECEIVED                       148
-# define CMP_R_POLLREP_NOT_RECEIVED                       149
-# define CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP    150
-# define CMP_R_REQUEST_REJECTED_BY_CA                     151
-# define CMP_R_RP_NOT_RECEIVED                            152
-# define CMP_R_SERVER_NOT_REACHABLE                       153
-# define CMP_R_UNABLE_TO_CREATE_CONTEXT                   154
-# define CMP_R_UNEXPECTED_PKISTATUS                       155
-# define CMP_R_UNKNOWN_ALGORITHM_ID                       156
-# define CMP_R_UNKNOWN_CERTTYPE                           157
-# define CMP_R_UNKNOWN_PKISTATUS                          158
-# define CMP_R_UNSUPPORTED_ALGORITHM                      159
-# define CMP_R_UNSUPPORTED_CIPHER                         160
-# define CMP_R_UNSUPPORTED_KEY_TYPE                       161
-# define CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC      162
-# define CMP_R_WRONG_ALGORITHM_OID                        163
 
 # ifdef  __cplusplus
 }

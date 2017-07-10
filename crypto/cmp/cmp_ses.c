@@ -175,6 +175,46 @@ void add_error_data(const char *txt)
     ERR_add_error_data(3, current_error, ":", txt);
 }
 
+/* evaluate whether there's an standard-violating exception configured for
+   handling unportected errors */
+static int unprotected_exception(const CMP_PKIMESSAGE *rep,
+                                 int type_rep,
+                                 int rcvd_type,
+                                 CMP_CTX *ctx)
+{
+    int exception = 0;
+
+    if (ctx->unprotectedErrors) {
+        if (rcvd_type == V_CMP_PKIBODY_ERROR) {
+            CMP_printf(ctx, "WARN: ignoring missing protection of error response");
+            exception = 1;
+        }
+        if (rcvd_type == V_CMP_PKIBODY_RP &&
+                CMP_REVREPCONTENT_PKIStatus_get(rep->body->value.rp, 0) == CMP_PKISTATUS_rejection) {
+            CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
+            exception = 1;
+        }
+        if (rcvd_type == V_CMP_PKIBODY_PKICONF) {
+            CMP_printf(ctx, "WARN: ignoring missing protection of PKI Confirmation message");
+            exception = 1;
+        }
+        if (rcvd_type == type_rep &&
+                (rcvd_type == V_CMP_PKIBODY_IP ||
+                 rcvd_type == V_CMP_PKIBODY_CP ||
+                 rcvd_type == V_CMP_PKIBODY_KUP)) {
+            CMP_CERTRESPONSE *crep =
+                CMP_CERTREPMESSAGE_certResponse_get0(rep->body->value.ip, 0);
+            if (!crep)
+                return 0;
+            if (CMP_CERTRESPONSE_PKIStatus_get(crep) == CMP_PKISTATUS_rejection) {
+                CMP_printf(ctx, "WARN: ignoring missing protection of CertRepMessage with rejection status");
+                exception = 1;
+            }
+        }
+    }
+    return exception;
+}
+
 /* ############################################################################ *
  * internal function
  *
@@ -207,31 +247,7 @@ static int send_receive_check(CMP_CTX *ctx,
     } else {
         CMP_printf(ctx, "INFO: response message is not protected");
         /* detect explicitly permitted exceptions */
-        int exception = 0;
-        if (ctx->unprotectedErrors) {
-            if (rcvd_type == V_CMP_PKIBODY_ERROR) {
-                CMP_printf(ctx, "WARN: ignoring missing protection of error response");
-                exception = 1;
-            }
-            if (rcvd_type == V_CMP_PKIBODY_RP &&
-                    CMP_REVREPCONTENT_PKIStatus_get((*rep)->body->value.rp, 0) == CMP_PKISTATUS_rejection) {
-                CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
-                exception = 1;
-            }
-            if (rcvd_type == V_CMP_PKIBODY_PKICONF) {
-                CMP_printf(ctx, "WARN: ignoring missing protection of PKI Confirmation message");
-                exception = 1;
-            }
-            if (rcvd_type == type_rep &&
-                (rcvd_type == V_CMP_PKIBODY_IP ||
-                 rcvd_type == V_CMP_PKIBODY_CP ||
-                 rcvd_type == V_CMP_PKIBODY_KUP) &&
-                    CMP_CERTREPMESSAGE_PKIStatus_get((*rep)->body->value.ip , 0) == CMP_PKISTATUS_rejection) {
-                CMP_printf(ctx, "WARN: ignoring missing protection of CertRepMessage with rejection status");
-                exception = 1;
-            }
-        }
-        if (!exception) {
+        if (!unprotected_exception(*rep, type_rep, rcvd_type, ctx)) {
             CMPerr(type_function, CMP_R_ERROR_VALIDATING_PROTECTION);
             return 0;
         }
@@ -459,8 +475,11 @@ static int cert_response(CMP_CTX *ctx,
     CMP_CERTREPMESSAGE *body = (*resp)->body->value.ip /* same for cp and kup*/;
     save_certrep_statusInfo(ctx, body);
 
-    /* TODO handle second certrepmessage - if two requests would have been sent */
-    if (CMP_CERTREPMESSAGE_PKIStatus_get(body, 0) == CMP_PKISTATUS_waiting) {
+    /* TODO handle second certrepmsg - if two requests would have been sent */
+    CMP_CERTRESPONSE *crep = CMP_CERTREPMESSAGE_certResponse_get0(body, 0);
+    if (!crep)
+        return 0;
+    if (CMP_CERTRESPONSE_PKIStatus_get(crep) == CMP_PKISTATUS_waiting) {
         CMP_PKIMESSAGE_free(*resp);
         if (pollForResponse(ctx, resp)) {
             body = (*resp)->body->value.ip /* same for cp and kup*/;
