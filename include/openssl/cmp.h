@@ -423,18 +423,17 @@ int CMP_CTX_set1_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
 int CMP_CTX_set1_transactionID(CMP_CTX *ctx, const ASN1_OCTET_STRING *id);
 int CMP_CTX_set1_recipNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
 int CMP_CTX_set1_serverName(CMP_CTX *ctx, const char *name);
-int CMP_CTX_set1_serverPort(CMP_CTX *ctx, int port);
+int CMP_CTX_set_serverPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name);
-int CMP_CTX_set1_proxyPort(CMP_CTX *ctx, int port);
+int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio);
 BIO *CMP_CTX_get_tlsBIO(CMP_CTX *ctx);
-int CMP_CTX_set1_sourceAddress(CMP_CTX *ctx, const char *ip); // unused, TODO remove
 int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
-int CMP_CTX_set1_digest(CMP_CTX *ctx, int digest);
+int CMP_CTX_set_digest(CMP_CTX *ctx, int digest);
 /* for backwards compatibility, TODO: remove asap */
 # define CMP_CTX_set1_timeOut CMP_CTX_set_HttpTimeOut
 int CMP_CTX_set_HttpTimeOut( CMP_CTX *ctx, int time);
-int CMP_CTX_set1_popoMethod(CMP_CTX *ctx, int method);
+int CMP_CTX_set_popoMethod(CMP_CTX *ctx, int method);
 int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
 int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO * failInfo);
 unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
@@ -502,7 +501,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET0_TLSBIO                        125
 # define CMP_F_CMP_CTX_SET1_CAPUBS                        126
 # define CMP_F_CMP_CTX_SET1_CLCERT                        127
-# define CMP_F_CMP_CTX_SET1_DIGEST                        128
+# define CMP_F_CMP_CTX_SET_DIGEST                         128
 # define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  129
 # define CMP_F_CMP_CTX_SET1_EXTRACERTSOUT                 130
 # define CMP_F_CMP_CTX_SET1_ISSUER                        131
@@ -510,9 +509,9 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_NEWPKEY                       133
 # define CMP_F_CMP_CTX_SET1_OLDCLCERT                     134
 # define CMP_F_CMP_CTX_SET1_PKEY                          135
-# define CMP_F_CMP_CTX_SET1_POPOMETHOD                    136
+# define CMP_F_CMP_CTX_SET_POPOMETHOD                     136
 # define CMP_F_CMP_CTX_SET1_PROXYNAME                     137
-# define CMP_F_CMP_CTX_SET1_PROXYPORT                     138
+# define CMP_F_CMP_CTX_SET_PROXYPORT                      138
 # define CMP_F_CMP_CTX_SET1_RECIPIENT                     139
 # define CMP_F_CMP_CTX_SET1_RECIPNONCE                    140
 # define CMP_F_CMP_CTX_SET1_REFERENCEVALUE                141
@@ -520,8 +519,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_SECRETVALUE                   143
 # define CMP_F_CMP_CTX_SET1_SERVERNAME                    144
 # define CMP_F_CMP_CTX_SET1_SERVERPATH                    145
-# define CMP_F_CMP_CTX_SET1_SERVERPORT                    146
-# define CMP_F_CMP_CTX_SET1_SOURCEADDRESS                 147
+# define CMP_F_CMP_CTX_SET_SERVERPORT                     146
+# define CMP_F_CMP_CTX_SET1_SOURCEADDRESS                 147 // unused
 # define CMP_F_CMP_CTX_SET1_SRVCERT                       148
 # define CMP_F_CMP_CTX_SET1_SUBJECTNAME                   149
 # define CMP_F_CMP_CTX_SET1_TRANSACTIONID                 150

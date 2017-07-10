@@ -253,7 +253,6 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->revocationReason = CRL_REASON_NONE;
     ctx->HttpTimeOut = 2 * 60;
     ctx->setSubjectAltNameCritical = 0;
-    ctx->sourceAddress = NULL;
     ctx->lastHTTPCode = 0;
     ctx->tlsBIO = NULL;
 
@@ -303,8 +302,6 @@ void CMP_CTX_delete(CMP_CTX *ctx)
     if (ctx->untrusted_store)
         X509_STORE_free(ctx->untrusted_store);
 
-    if (ctx->sourceAddress)
-        OPENSSL_free(ctx->sourceAddress);
     if (ctx->tlsBIO)
         BIO_free(ctx->tlsBIO);
     CMP_CTX_free(ctx);
@@ -1172,7 +1169,7 @@ int CMP_CTX_set1_serverName(CMP_CTX *ctx, const char *name)
  * Sets the proof of possession method to be used when creating a certTemplate
  * returns 1 on success, 0 on error
  * ################################################################ */
-int CMP_CTX_set1_popoMethod(CMP_CTX *ctx, int method)
+int CMP_CTX_set_popoMethod(CMP_CTX *ctx, int method)
 {
     if (!ctx)
         goto err;
@@ -1180,7 +1177,7 @@ int CMP_CTX_set1_popoMethod(CMP_CTX *ctx, int method)
     ctx->popoMethod = method;
     return 1;
  err:
-    CMPerr(CMP_F_CMP_CTX_SET1_POPOMETHOD, CMP_R_NULL_ARGUMENT);
+    CMPerr(CMP_F_CMP_CTX_SET_POPOMETHOD, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 
@@ -1188,7 +1185,7 @@ int CMP_CTX_set1_popoMethod(CMP_CTX *ctx, int method)
  * sets the digest algorithm NID to be used in MSG_SIG_ALG
  * returns 1 on success, 0 on error
  * ################################################################ */
-int CMP_CTX_set1_digest(CMP_CTX *ctx, int digest)
+int CMP_CTX_set_digest(CMP_CTX *ctx, int digest)
 {
     if (!ctx)
         goto err;
@@ -1196,7 +1193,7 @@ int CMP_CTX_set1_digest(CMP_CTX *ctx, int digest)
     ctx->digest = digest;
     return 1;
  err:
-    CMPerr(CMP_F_CMP_CTX_SET1_DIGEST, CMP_R_NULL_ARGUMENT);
+    CMPerr(CMP_F_CMP_CTX_SET_DIGEST, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 
@@ -1221,7 +1218,7 @@ int CMP_CTX_set_HttpTimeOut(CMP_CTX *ctx, int time)
  * sets the (HTTP) proxy port to be used
  * returns 1 on success, 0 on error
  * ################################################################ */
-int CMP_CTX_set1_proxyPort(CMP_CTX *ctx, int port)
+int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port)
 {
     if (!ctx)
         goto err;
@@ -1229,7 +1226,7 @@ int CMP_CTX_set1_proxyPort(CMP_CTX *ctx, int port)
     ctx->proxyPort = port;
     return 1;
  err:
-    CMPerr(CMP_F_CMP_CTX_SET1_PROXYPORT, CMP_R_NULL_ARGUMENT);
+    CMPerr(CMP_F_CMP_CTX_SET_PROXYPORT, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 
@@ -1263,33 +1260,11 @@ BIO *CMP_CTX_get_tlsBIO(CMP_CTX *ctx)
  * sets the (HTTP) server port to be used
  * returns 1 on success, 0 on error
  * ################################################################ */
-int CMP_CTX_set1_sourceAddress(CMP_CTX *ctx, const char *ip) // unused, TODO remove
-{
-    if (!ctx)
-        goto err;
-    if (!ip)
-        goto err;
-
-    if (ctx->sourceAddress) {
-        OPENSSL_free(ctx->sourceAddress);
-        ctx->sourceAddress = NULL;
-    }
-
-    ctx->sourceAddress = BUF_strdup(ip);
-    if (!ctx->sourceAddress)
-        goto err;
-
-    return 1;
- err:
-    CMPerr(CMP_F_CMP_CTX_SET1_SOURCEADDRESS, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
 /* ################################################################ *
  * sets the (HTTP) server port to be used
  * returns 1 on success, 0 on error
  * ################################################################ */
-int CMP_CTX_set1_serverPort(CMP_CTX *ctx, int port)
+int CMP_CTX_set_serverPort(CMP_CTX *ctx, int port)
 {
     if (!ctx)
         goto err;
@@ -1297,7 +1272,7 @@ int CMP_CTX_set1_serverPort(CMP_CTX *ctx, int port)
     ctx->serverPort = port;
     return 1;
  err:
-    CMPerr(CMP_F_CMP_CTX_SET1_SERVERPORT, CMP_R_NULL_ARGUMENT);
+    CMPerr(CMP_F_CMP_CTX_SET_SERVERPORT, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 

@@ -47,15 +47,15 @@
  CMP_CTX_statusString_get
  CMP_CTX_failInfoCode_get
  CMP_CTX_set_failInfoCode
- CMP_CTX_set1_popoMethod
+ CMP_CTX_set_popoMethod
  CMP_CTX_set1_proxyName
- CMP_CTX_set1_proxyPort
+ CMP_CTX_set_proxyPort
  CMP_CTX_set0_tlsBIO
  CMP_CTX_get_tlsBIO
  CMP_CTX_set1_recipient
  CMP_CTX_set1_serverName
  CMP_CTX_set1_serverPath
- CMP_CTX_set1_serverPort
+ CMP_CTX_set_serverPort
  CMP_CTX_set0_reqExtensions
  CMP_CTX_set_digest
  CMP_CTX_set_HttpTimeOut
@@ -87,7 +87,7 @@
  int CMP_CTX_set1_transactionID( CMP_CTX *ctx, const ASN1_OCTET_STRING *id);
  int CMP_CTX_set1_recipNonce( CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
  int CMP_CTX_set1_serverName( CMP_CTX *ctx, const char *name);
- int CMP_CTX_set1_serverPort( CMP_CTX *ctx, int port);
+ int CMP_CTX_set_serverPort( CMP_CTX *ctx, int port);
  STACK_OF(X509) *CMP_CTX_caPubs_get1(CMP_CTX *ctx);
  X509 *CMP_CTX_caPubs_pop( CMP_CTX *ctx);
  int CMP_CTX_caPubs_num( CMP_CTX *ctx);
@@ -130,9 +130,9 @@
  STACK_OF(ASN1_UTF8STRING) *CMP_CTX_statusString_get(CMP_CTX *ctx);
  unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
  int CMP_CTX_set_failInfoCode( CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo);
- int CMP_CTX_set1_popoMethod( CMP_CTX *ctx, int method);
+ int CMP_CTX_set_popoMethod( CMP_CTX *ctx, int method);
  int CMP_CTX_set1_proxyName( CMP_CTX *ctx, const char *name);
- int CMP_CTX_set1_proxyPort( CMP_CTX *ctx, int port);
+ int CMP_CTX_set_proxyPort( CMP_CTX *ctx, int port);
  int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio);
  BIO *CMP_CTX_get_tlsBIO(CMP_CTX *ctx);
  int CMP_CTX_set1_recipient( CMP_CTX *ctx, const X509_NAME *name);
@@ -213,7 +213,7 @@ CMP_CTX structure.
 CMP_CTX_set1_serverName() sets the given server Address (as IP or name)
 in the given CMP_CTX structure.
 
-CMP_CTX_set1_serverPort() sets the port of the CMP server to connect to.
+CMP_CTX_set_serverPort() sets the port of the CMP server to connect to.
 
 CMP_CTX_set_option() sets the given value for the given option
 (e.g. CMP_CTX_OPT_IMPLICITCONFIRM) in the given CMP_CTX structure.
@@ -247,7 +247,7 @@ RFC 4210.
                                  ("indirect method")
             CRMF_POPO_RAVERIFIED - assert that the RA has already
                                    verified the PoPo
-        See also CMP_CTX_set1_popoMethod() with the same effect.
+        See also CMP_CTX_set_popoMethod() with the same effect.
 
     CMP_CTX_OPT_MAXPOLLTIME
 	Maximum amount of time, in seconds, to attempt polling for a 
@@ -349,7 +349,7 @@ field. This is a bit field and the flags for it are specified in
 cmp.h. The flags start with CMP_CTX_FAILINFO, for example:
 CMP_CTX_FAILINFO_badAlg.
 
-CMP_CTX_set1_popoMethod() sets the proof-of-possession method to be used
+CMP_CTX_set_popoMethod() sets the proof-of-possession method to be used
 for ir, kur etc. Possible values are defined in crmf.h:
 
 =over 8
@@ -367,7 +367,7 @@ for ir, kur etc. Possible values are defined in crmf.h:
 CMP_CTX_set1_proxyName() sets the hostname of the HTTP proxy to be used
 for connecting to the CA server.
 
-CMP_CTX_set1_proxyPort() sets the port of the HTTP proxy.
+CMP_CTX_set_proxyPort() sets the port of the HTTP proxy.
 
 CMP_CTX_set0_tlsBIO() sets the SSL/TLS BIO to be used for HTTPS
 

@@ -1207,14 +1207,14 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
     CMP_CTX_set1_serverName(ctx, opt_server);
-    CMP_CTX_set1_serverPort(ctx, server_port);
+    CMP_CTX_set_serverPort(ctx, server_port);
     CMP_CTX_set1_serverPath(ctx, opt_path);
 
     if (opt_proxy) {
         if (!(proxy_port = parse_server_and_port(opt_proxy)))
             goto err;
         CMP_CTX_set1_proxyName(ctx, opt_proxy);
-        CMP_CTX_set1_proxyPort(ctx, proxy_port);
+        CMP_CTX_set_proxyPort(ctx, proxy_port);
     }
 
     if (opt_cmd_s) {
@@ -1243,7 +1243,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                  "error: missing ref/secret or certificate/key for client authentication\n");
         goto err;
     }
-
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
         if (!opt_newkey && !opt_key) {
             BIO_puts(bio_err, "error: missing key to be certified\n");
@@ -1255,7 +1254,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
     }
-
     if (!opt_oldcert) {
         if (opt_cmd == CMP_KUR) {
             BIO_puts(bio_err, "error: missing certificate to be updated\n");
@@ -1441,6 +1439,18 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
+    if (opt_newkey) {
+        EVP_PKEY *pkey = load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e, "new private key for certificate to be enrolled");
+        if (opt_newkeypass) {
+            OPENSSL_cleanse(opt_newkeypass, strlen(opt_newkeypass));
+            opt_newkeypass = NULL;
+        }
+        if (!pkey || !CMP_CTX_set0_newPkey(ctx, pkey)) {
+            EVP_PKEY_free(pkey);
+            goto err;
+        }
+    }
+
     if ((!opt_cert) != (!opt_key)) {
         BIO_puts(bio_err, "error: must give both -cert and -key options or neither of them\n");
         goto err;
@@ -1452,18 +1462,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
     }
-    if (opt_newkey) {
-        EVP_PKEY *newPkey = load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e, "new private key for certificate to be enrolled");
-        if (opt_newkeypass) {
-            OPENSSL_cleanse(opt_newkeypass, strlen(opt_newkeypass));
-            opt_newkeypass = NULL;
-        }
-        if (!newPkey || !CMP_CTX_set0_newPkey(ctx, newPkey)) {
-            EVP_PKEY_free(newPkey);
-            goto err;
-        }
-    }
-
     certform = opt_certform;
     if (opt_cert) {
         if (!(opt_srvcert || opt_trusted)) {
@@ -1494,6 +1492,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         if (opt_trusted) {
             BIO_puts(bio_err, "warning: -trusted option is ignored since -srvcert option is present\n");
             opt_trusted = NULL;
+        }
+        if (opt_recipient) {
+            BIO_puts(bio_err, "warning: -recipient option is ignored since -srvcert option is present\n");
+            opt_recipient = NULL;
         }
         /* opt_keypass is needed here in case opt_srvcert is an encrypted PKCS#12 file */
         X509 *srvcert = load_cert_autofmt(opt_srvcert, &certform, opt_keypass, "CMP server certificate");
@@ -1571,9 +1573,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_recipient) {
-        if (opt_srvcert)
-            BIO_puts(bio_err, "warning: -recipient option is ignored since -srvcert option is present\n");
-
         X509_NAME *n = parse_name(opt_recipient, MBSTRING_ASC, 0);
         if (n == NULL) {
             BIO_printf(bio_err,
@@ -1593,7 +1592,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
     if (opt_popo >= 0)
-        CMP_CTX_set1_popoMethod(ctx, opt_popo);
+        CMP_CTX_set_popoMethod(ctx, opt_popo);
 
     if (opt_reqexts) {
         X509V3_CTX ext_ctx;
@@ -1623,7 +1622,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             BIO_printf(bio_err, "error: digest algorithm name not recognized: '%s'\n", opt_digest);
             goto err;
         }
-        CMP_CTX_set1_digest(ctx, digest);
+        CMP_CTX_set_digest(ctx, digest);
     }
 
     certform = opt_certform;
