@@ -530,169 +530,6 @@ static int read_config()
     return 1;
 }
 
-static int parse_server_and_port(char *opt_string)
-{
-    char *port_string = strrchr(opt_string, ':');
-    if (port_string == NULL) {
-        BIO_printf(bio_err, "error: missing server port in '%s'\n", opt_string);
-        return 0;
-    }
-    *(port_string++) = '\0';
-    int port = atoi(port_string);
-    if (port <= 0) {
-        BIO_printf(bio_err, "error: invalid server port number: '%s'\n", port_string);
-        return 0;
-    }
-    return port;
-}
-
-/*
- * ########################################################################## 
- * * verify that all the necessary options have been set.
- * Prints reason for error to bio_err returns 1 on success, 0 on error
- * ########################################################################## 
- */
-static int check_options(void)
-{
-    if (!opt_server || !(server_port = parse_server_and_port(opt_server))) {
-        BIO_puts(bio_err, "error: missing server address:port\n");
-        goto err;
-    }
-
-    if (opt_proxy && !(proxy_port = parse_server_and_port(opt_proxy)))
-        goto err;
-
-    if (opt_tls_trusted) {
-        opt_use_tls = 1;
-    }
-
-    if (opt_tls_cert || opt_tls_key || opt_tls_keypass) {
-        opt_use_tls = 1;
-        if (!opt_tls_cert) {
-            BIO_printf(bio_err, "error: missing -tls-cert option\n");
-            goto err;
-        }
-        else if (!opt_tls_key) {
-            BIO_printf(bio_err, "error: missing -tls-key option\n");
-            goto err;
-        }
-    }
-
-    if (opt_recipient && opt_srvcert) {
-        BIO_puts(bio_err, "warning: -recipient option is ignored since -srvcert option is present\n");
-    }
-
-    if (opt_cmd_s) {
-        if (!strcmp(opt_cmd_s, "ir"))
-            opt_cmd = CMP_IR;
-        else if (!strcmp(opt_cmd_s, "kur"))
-            opt_cmd = CMP_KUR;
-        else if (!strcmp(opt_cmd_s, "cr"))
-            opt_cmd = CMP_CR;
-        else if (!strcmp(opt_cmd_s, "rr"))
-            opt_cmd = CMP_RR;
-        else if (!strcmp(opt_cmd_s, "genm"))
-            opt_cmd = CMP_GENM;
-        else {
-            BIO_printf(bio_err, "error: unknown cmp command '%s'\n",
-                       opt_cmd_s);
-            goto err;
-        }
-    } else {
-        BIO_puts(bio_err, "error: no cmp command to execute\n");
-        goto err;
-    }
-
-    if ((!opt_ref) != (!opt_secret)) {
-        BIO_puts(bio_err, "error: must give both -ref and -secret options or neither of them\n");
-        goto err;
-    }
-    if ((!opt_cert) != (!opt_key)) {
-        BIO_puts(bio_err, "error: must give both -cert and -key options or neither of them\n");
-        goto err;
-    }
-    if (opt_cmd != CMP_IR && !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
-        BIO_puts(bio_err,
-                 "error: missing ref/secret or certificate/key for client authentication\n");
-        goto err;
-    }
-    if (opt_cert && !(opt_srvcert || opt_trusted)) {
-        BIO_puts(bio_err,
-                 "error: using client certificate but no server certificate or trusted certificates set\n");
-        goto err;
-    }
-    if (opt_srvcert && opt_trusted) {
-        BIO_puts(bio_err, "warning: -trusted option is ignored since -srvcert option is present\n");
-       opt_trusted = NULL;
-    }
-
-    if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
-        if (!opt_newkey && !opt_key) {
-            BIO_puts(bio_err, "error: missing key to be certified\n");
-            goto err;
-        }
-        if (!opt_certout) {
-            BIO_puts(bio_err,
-                     "error: certout not given, nowhere to save certificate\n");
-            goto err;
-        }
-    }
-
-    if (!opt_oldcert) {
-        if (opt_cmd == CMP_KUR) {
-            BIO_puts(bio_err, "error: missing certificate to be updated\n");
-            goto err;
-        }
-        if (opt_cmd == CMP_RR) {
-            BIO_puts(bio_err, "error: missing certificate to be revoked\n");
-            goto err;
-        }
-    }
-
-    if (opt_popo < -1 || opt_popo > 3) {
-        BIO_printf(bio_err, "error: invalid value for popo method (must be between 0 and 3): %d\n", opt_popo);
-        goto err;
-    }
-
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    if (opt_keyform_s
-        && !opt_format(opt_keyform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
-#ifndef OPENSSL_NO_ENGINE
-            | OPT_FMT_ENGINE
-#endif
-            , &opt_keyform)) {
-        BIO_puts(bio_err, "error: unknown option given for key format\n");
-        goto err;
-    }
-
-    if (opt_certform_s
-        && !opt_format(opt_certform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12, &opt_certform)) {
-        BIO_puts(bio_err, "error: unknown option given for key format\n");
-        goto err;
-    }
-#else
-    if (opt_keyform_s)
-        opt_keyform=str2fmt(opt_keyform_s);
-
-    if (opt_certform_s)
-        opt_certform=str2fmt(opt_certform_s);
-#endif
-
-    if (opt_infotype_s) {
-        char id_buf[87] = "id-it-";
-        strncat(id_buf, opt_infotype_s, 80);
-        if ((opt_infotype = OBJ_sn2nid(id_buf)) == NID_undef) {
-            BIO_puts(bio_err, "error: unknown OID name in -infotype option\n");
-            goto err;
-        }
-    }
-
-    return 1;
-
- err:
-    return 0;
-}
-
 #if OPENSSL_VERSION_NUMBER < 0x1010001fL
 #define X509_STORE_set_lookup_crls X509_STORE_set_lookup_crls_cb
 #define ASN1_STRING_get0_data ASN1_STRING_data
@@ -1339,15 +1176,163 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert)
     return -1; /* indicating "ok" here, treating validation failure as warning only */
 }
 
+static int parse_server_and_port(char *opt_string)
+{
+    char *port_string = strrchr(opt_string, ':');
+    if (port_string == NULL) {
+        BIO_printf(bio_err, "error: missing server port in '%s'\n", opt_string);
+        return 0;
+    }
+    *(port_string++) = '\0';
+    int port = atoi(port_string);
+    if (port <= 0) {
+        BIO_printf(bio_err, "error: invalid server port number: '%s'\n", port_string);
+        return 0;
+    }
+    return port;
+}
+
 /*
  * ########################################################################## 
  * * set up the CMP_CTX structure based on options from config file/CLI
+ * after checking that all the necessary options have been set etc.
  * prints reason for error to bio_err returns 1 on success, 0 on error
  * ########################################################################## 
  */
 static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 {
-    int certfmt;
+    if (!opt_server || !(server_port = parse_server_and_port(opt_server))) {
+        BIO_puts(bio_err, "error: missing server address:port\n");
+        goto err;
+    }
+
+    if (opt_proxy && !(proxy_port = parse_server_and_port(opt_proxy)))
+        goto err;
+
+    if (opt_tls_trusted) {
+        opt_use_tls = 1;
+    }
+
+    if (opt_tls_cert || opt_tls_key || opt_tls_keypass) {
+        opt_use_tls = 1;
+        if (!opt_tls_cert) {
+            BIO_printf(bio_err, "error: missing -tls-cert option\n");
+            goto err;
+        }
+        else if (!opt_tls_key) {
+            BIO_printf(bio_err, "error: missing -tls-key option\n");
+            goto err;
+        }
+    }
+
+    if (opt_recipient && opt_srvcert) {
+        BIO_puts(bio_err, "warning: -recipient option is ignored since -srvcert option is present\n");
+    }
+
+    if (opt_cmd_s) {
+        if (!strcmp(opt_cmd_s, "ir"))
+            opt_cmd = CMP_IR;
+        else if (!strcmp(opt_cmd_s, "kur"))
+            opt_cmd = CMP_KUR;
+        else if (!strcmp(opt_cmd_s, "cr"))
+            opt_cmd = CMP_CR;
+        else if (!strcmp(opt_cmd_s, "rr"))
+            opt_cmd = CMP_RR;
+        else if (!strcmp(opt_cmd_s, "genm"))
+            opt_cmd = CMP_GENM;
+        else {
+            BIO_printf(bio_err, "error: unknown cmp command '%s'\n",
+                       opt_cmd_s);
+            goto err;
+        }
+    } else {
+        BIO_puts(bio_err, "error: no cmp command to execute\n");
+        goto err;
+    }
+
+    if ((!opt_ref) != (!opt_secret)) {
+        BIO_puts(bio_err, "error: must give both -ref and -secret options or neither of them\n");
+        goto err;
+    }
+    if ((!opt_cert) != (!opt_key)) {
+        BIO_puts(bio_err, "error: must give both -cert and -key options or neither of them\n");
+        goto err;
+    }
+    if (opt_cmd != CMP_IR && !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
+        BIO_puts(bio_err,
+                 "error: missing ref/secret or certificate/key for client authentication\n");
+        goto err;
+    }
+    if (opt_cert && !(opt_srvcert || opt_trusted)) {
+        BIO_puts(bio_err,
+                 "error: using client certificate but no server certificate or trusted certificates set\n");
+        goto err;
+    }
+    if (opt_srvcert && opt_trusted) {
+        BIO_puts(bio_err, "warning: -trusted option is ignored since -srvcert option is present\n");
+       opt_trusted = NULL;
+    }
+
+    if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
+        if (!opt_newkey && !opt_key) {
+            BIO_puts(bio_err, "error: missing key to be certified\n");
+            goto err;
+        }
+        if (!opt_certout) {
+            BIO_puts(bio_err,
+                     "error: certout not given, nowhere to save certificate\n");
+            goto err;
+        }
+    }
+
+    if (!opt_oldcert) {
+        if (opt_cmd == CMP_KUR) {
+            BIO_puts(bio_err, "error: missing certificate to be updated\n");
+            goto err;
+        }
+        if (opt_cmd == CMP_RR) {
+            BIO_puts(bio_err, "error: missing certificate to be revoked\n");
+            goto err;
+        }
+    }
+
+    if (opt_popo < -1 || opt_popo > 3) {
+        BIO_printf(bio_err, "error: invalid value for popo method (must be between 0 and 3): %d\n", opt_popo);
+        goto err;
+    }
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    if (opt_keyform_s
+        && !opt_format(opt_keyform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
+#ifndef OPENSSL_NO_ENGINE
+            | OPT_FMT_ENGINE
+#endif
+            , &opt_keyform)) {
+        BIO_puts(bio_err, "error: unknown option given for key format\n");
+        goto err;
+    }
+
+    if (opt_certform_s
+        && !opt_format(opt_certform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12, &opt_certform)) {
+        BIO_puts(bio_err, "error: unknown option given for key format\n");
+        goto err;
+    }
+#else
+    if (opt_keyform_s)
+        opt_keyform=str2fmt(opt_keyform_s);
+
+    if (opt_certform_s)
+        opt_certform=str2fmt(opt_certform_s);
+#endif
+
+    if (opt_infotype_s) {
+        char id_buf[87] = "id-it-";
+        strncat(id_buf, opt_infotype_s, 80);
+        if ((opt_infotype = OBJ_sn2nid(id_buf)) == NID_undef) {
+            BIO_puts(bio_err, "error: unknown OID name in -infotype option\n");
+            goto err;
+        }
+    }
 
     CMP_CTX_set1_serverName(ctx, opt_server);
     CMP_CTX_set1_serverPort(ctx, server_port);
@@ -1365,6 +1350,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
     }
+
+    int certform;
 
     if (opt_use_tls) {
         X509 *cert = NULL;
@@ -1416,9 +1403,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                after extended version of crls_http_cb has been pushed upstream */
 
         if (opt_tls_cert && opt_tls_key) {
-            certfmt = opt_certform;
+            certform = opt_certform;
             /* opt_tls_keypass is needed here in case opt_tls_cert is an encrypted PKCS#12 file */
-            if (!(cert=load_cert_autofmt(opt_tls_cert, &certfmt, opt_tls_keypass, "TLS client certificate"))) {
+            if (!(cert=load_cert_autofmt(opt_tls_cert, &certform, opt_tls_keypass, "TLS client certificate"))) {
                 goto tls_err;
             }
             if (!(pkey=load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass, e, "TLS client private key"))) {
@@ -1428,7 +1415,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                 OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
             opt_tls_keypass = NULL;
 
-            if (certfmt == FORMAT_PEM) {
+            if (certform == FORMAT_PEM) {
                 if (SSL_CTX_use_certificate_chain_file(ssl_ctx, opt_tls_cert) <= 0) {
                     BIO_printf(bio_err, "error: unable to load and use client TLS certificate (and possibly extra certificates) '%s'\n", opt_tls_cert);
                     goto tls_err;
@@ -1497,10 +1484,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
     }
 
-    certfmt = opt_certform;
+    certform = opt_certform;
     if (opt_cert) {
         /* opt_keypass is needed here in case opt_cert is an encrypted PKCS#12 file */
-        X509 *clcert = load_cert_autofmt(opt_cert, &certfmt, opt_keypass, "CMP client certificate");
+        X509 *clcert = load_cert_autofmt(opt_cert, &certform, opt_keypass, "CMP client certificate");
         if (!clcert || !CMP_CTX_set1_clCert(ctx, clcert))
             goto err;
         X509_free(clcert);
@@ -1513,10 +1500,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         sk_X509_pop_free(extracerts, X509_free);
     }
 
-    certfmt = opt_certform;
+    certform = opt_certform;
     if (opt_srvcert) {
         /* opt_keypass is needed here in case opt_srvcert is an encrypted PKCS#12 file */
-        X509 *srvcert = load_cert_autofmt(opt_srvcert, &certfmt, opt_keypass, "CMP server certificate");
+        X509 *srvcert = load_cert_autofmt(opt_srvcert, &certform, opt_keypass, "CMP server certificate");
         if (!srvcert || !CMP_CTX_set1_srvCert(ctx, srvcert)) /* indirectly sets also ctx->trusted */
             goto err;
         X509_free(srvcert);
@@ -1623,10 +1610,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         CMP_CTX_set1_digest(ctx, digest);
     }
 
-    certfmt = opt_certform;
+    certform = opt_certform;
     if (opt_oldcert) {
         /* opt_keypass is needed here in case opt_oldcert is an encrypted PKCS#12 file */
-        X509 *oldcert = load_cert_autofmt(opt_oldcert, &certfmt, opt_keypass, "certificate to be renewed/revoked");
+        X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform, opt_keypass, "certificate to be renewed/revoked");
         if (!oldcert || !CMP_CTX_set1_oldClCert(ctx, oldcert))
             goto err;
         X509_free(oldcert);
@@ -2079,9 +2066,6 @@ opt_err:
         }
     }
 #endif /* OPENSSL_VERSION_NUMBER */
-
-    if (!badops && !check_options())
-        goto err;
 
  bad_ops:
     if (badops) {
