@@ -12,8 +12,7 @@ B<openssl> B<cmp>
 [B<-section name>]
 
 [B<-server address:port>]
-[B<-proxy address>]
-[B<-proxyport number>]
+[B<-proxy address:port>]
 
 [B<-use-tls>]
 [B<-tls-cert filename>]
@@ -118,13 +117,9 @@ Name of section in OpenSSL config file defining cmp default options. Default is 
 
 The IP address or hostname and port of the CMP server to connect to.
 
-=item B<-proxy address>
+=item B<-proxy address:port>
 
-The address of the HTTP proxy server, if needed for accessing the CMP server.
-
-=item B<-proxyport number>
-
-The port number of the HTTP proxy server.
+The IP address or hostname and port of the proxy server, if needed for accessing the CMP server.
 
 =item B<-use-tls>
 

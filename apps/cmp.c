@@ -141,8 +141,10 @@ typedef enum { CMP_IR,
 } cmp_cmd_t;
 
 static char *opt_server = NULL;
-static char *server_address = NULL;
 static int   server_port = 0;
+
+static char *opt_proxy = NULL;
+static int   proxy_port = 0;
 
 static int   opt_use_tls = 0;
 static char *opt_tls_cert = NULL;
@@ -193,9 +195,6 @@ static int   opt_revreason = CRL_REASON_NONE;
 
 static char *opt_cacertsout = NULL;
 static char *opt_extracertsout = NULL;
-
-static char *opt_proxy = NULL;
-static int   opt_proxyPort = 0;
 
 static char *opt_infotype_s = NULL;
 static int   opt_infotype = NID_undef;
@@ -289,7 +288,7 @@ typedef struct options_st {
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_SECTION,
-    OPT_SERVER, OPT_PROXY, OPT_PROXYPORT,
+    OPT_SERVER, OPT_PROXY,
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
     OPT_TLSTRUSTED,
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
@@ -317,8 +316,7 @@ OPTIONS cmp_options[] = {
     {"section", OPT_SECTION, 's', "Name of section in OpenSSL config file defining cmp default options. Default 'cmp'"},
 
     {"server", OPT_SERVER, 's', "The 'address:port' of the CMP server (domain name or IP address)"},
-    {"proxy", OPT_PROXY, 's', "Address of HTTP proxy server, if needed for accessing the CMP server"},
-    {"proxyport", OPT_PROXYPORT, 'n', "Port of the HTTP proxy server"},
+    {"proxy", OPT_PROXY, 's', "The 'address:port' of proxy server, if needed for accessing the CMP server"},
 
     {"use-tls", OPT_USETLS, '-', "Force using TLS (even when other TLS-related options are not set) when connecting to CMP server"},
     {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. PEM format may also include certificate chain to be provided to server"},
@@ -397,7 +395,7 @@ typedef union {
 } varref;
 static varref cmp_vars[]= { // must be in the same order as enumerated above!!
     {&opt_section},
-    {&opt_server}, {&opt_proxy}, { (char **)&opt_proxyPort},
+    {&opt_server}, {&opt_proxy},
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
     {&opt_tls_trusted},
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
@@ -532,6 +530,22 @@ static int read_config()
     return 1;
 }
 
+static int parse_server_and_port(char *opt_string)
+{
+    char *port_string = strrchr(opt_string, ':');
+    if (port_string == NULL) {
+        BIO_printf(bio_err, "error: missing server port in '%s'\n", opt_string);
+        return 0;
+    }
+    *(port_string++) = '\0';
+    int port = atoi(port_string);
+    if (port <= 0) {
+        BIO_printf(bio_err, "error: invalid server port number: '%s'\n", port_string);
+        return 0;
+    }
+    return port;
+}
+
 /*
  * ########################################################################## 
  * * verify that all the necessary options have been set.
@@ -540,30 +554,13 @@ static int read_config()
  */
 static int check_options(void)
 {
-    if (opt_server) {
-        char *p = strrchr(opt_server, ':');
-        size_t addrlen = 0;
-        if (p == NULL) {
-            BIO_puts(bio_err, "error: missing server port\n");
-            goto err;
-        }
-        addrlen = (size_t)p - (size_t)opt_server;
-        server_address = OPENSSL_malloc(addrlen + 1);
-        if (server_address == NULL) {
-            BIO_puts(bio_err, "error: out of memory\n");
-            goto err;
-        }
-        strncpy(server_address, opt_server, addrlen);
-        server_address[addrlen] = 0;
-        server_port = atoi(++p);
-        if (server_port <= 0) {
-            BIO_printf(bio_err, "error: invalid server port number: %s\n", p);
-            goto err;
-        }
-    } else {
+    if (!opt_server || !(server_port = parse_server_and_port(opt_server))) {
         BIO_puts(bio_err, "error: missing server address:port\n");
         goto err;
     }
+
+    if (opt_proxy && !(proxy_port = parse_server_and_port(opt_proxy)))
+        goto err;
 
     if (opt_tls_trusted) {
         opt_use_tls = 1;
@@ -1352,9 +1349,14 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 {
     int certfmt;
 
-    CMP_CTX_set1_serverName(ctx, server_address);
-    CMP_CTX_set1_serverPath(ctx, opt_path);
+    CMP_CTX_set1_serverName(ctx, opt_server);
     CMP_CTX_set1_serverPort(ctx, server_port);
+    CMP_CTX_set1_serverPath(ctx, opt_path);
+
+    if (opt_proxy) {
+        CMP_CTX_set1_proxyName(ctx, opt_proxy);
+        CMP_CTX_set1_proxyPort(ctx, proxy_port);
+    }
 
     STACK_OF(X509_CRL) *crls = NULL;
     if (opt_crls) {
@@ -1396,7 +1398,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             /* enable and parameterize server hostname/IP address check */
             X509_VERIFY_PARAM *param = SSL_CTX_get0_param(ssl_ctx);
             X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT|X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-            X509_VERIFY_PARAM_set1_host(param, server_address, 0);
+            X509_VERIFY_PARAM_set1_host(param, opt_server, 0);
 #endif
             SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, print_cert_verify_cb);
         }
@@ -1636,17 +1638,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_revreason >= 0)
         CMP_CTX_set_option(ctx, CMP_CTX_OPT_REVOCATION_REASON, opt_revreason);
 
-    if (opt_proxy) {
-        if (opt_proxyPort != 0) {
-            CMP_CTX_set1_proxyName(ctx, opt_proxy);
-            CMP_CTX_set1_proxyPort(ctx, opt_proxyPort);
-        } else {
-            BIO_printf(bio_err, "error: no port given for proxy at '%s'\n",
-                       opt_proxy);
-            goto err;
-        }
-    }
-
     if (opt_geninfo) {
         char *valptr = strchr(opt_geninfo, ':');
         if (!valptr) {
@@ -1884,6 +1875,9 @@ opt_err:
         case OPT_SERVER:
             opt_server = opt_arg();
             break;
+        case OPT_PROXY:
+            opt_proxy = opt_arg();
+            break;
 
         case OPT_USETLS:
             opt_use_tls = 1;
@@ -1980,13 +1974,6 @@ opt_err:
             break;
         case OPT_CACERTSOUT:
             opt_cacertsout = opt_arg();
-            break;
-        case OPT_PROXY:
-            opt_proxy = opt_arg();
-            break;
-        case OPT_PROXYPORT:
-            if (!opt_int(opt_arg(), &opt_proxyPort))
-                goto opt_err;
             break;
 
         case OPT_DISABLECONFIRM:
@@ -2193,8 +2180,6 @@ opt_err:
         NCONF_free(conf);
     if (bio_c_out)
        BIO_free(bio_c_out);
-    if (server_address)
-        OPENSSL_free(server_address);
     release_engine(e);
 
     /* if we ended up here without proper cleaning */
