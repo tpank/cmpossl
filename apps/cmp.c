@@ -1325,9 +1325,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
     if (opt_use_tls) {
-        X509 *cert = NULL;
-        EVP_PKEY *pkey = NULL;
-
         /* initialize OpenSSL's SSL lib */
         OpenSSL_add_ssl_algorithms();
         SSL_load_error_strings();
@@ -1374,42 +1371,45 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                after extended version of crls_http_cb has been pushed upstream */
 
         if (opt_tls_cert && opt_tls_key) {
-            certform = opt_certform;
-            /* opt_tls_keypass is needed here in case opt_tls_cert is an encrypted PKCS#12 file */
-            if (!(cert=load_cert_autofmt(opt_tls_cert, &certform, opt_tls_keypass, "TLS client certificate"))) {
-                goto tls_err;
-            }
-            if (!(pkey=load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass, e, "TLS client private key"))) {
-                goto tls_err;
-            }
-            if (opt_tls_keypass)
-                OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
-            opt_tls_keypass = NULL;
-
+            certform = adjust_format((const char **)&opt_tls_cert, opt_certform, 0);
             if (certform == FORMAT_PEM) {
                 if (SSL_CTX_use_certificate_chain_file(ssl_ctx, opt_tls_cert) <= 0) {
                     BIO_printf(bio_err, "error: unable to load and use client TLS certificate (and possibly extra certificates) '%s'\n", opt_tls_cert);
                     goto tls_err;
                 }
             } else {
+                X509 *cert = NULL;
+                /* opt_tls_keypass is needed here in case opt_tls_cert is an encrypted PKCS#12 file */
+                if (!(cert=load_cert_autofmt(opt_tls_cert, &certform, opt_tls_keypass, "TLS client certificate"))) {
+                    goto tls_err;
+                }
                 if (SSL_CTX_use_certificate(ssl_ctx, cert) <= 0) {
                     BIO_printf(bio_err, "error: unable to use client TLS certificate '%s'\n", opt_tls_cert);
+                    X509_free(cert);
                     goto tls_err;
                 }
                 X509_free(cert); // we don't need the handle any more
-                cert = NULL;
             }
+
+            EVP_PKEY *pkey = load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass, e, "TLS client private key");
+            if (opt_tls_keypass) {
+                OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
+                opt_tls_keypass = NULL;
+            }
+            if (!pkey)
+                goto tls_err;
             if (SSL_CTX_use_PrivateKey(ssl_ctx, pkey) <= 0) { 
                 BIO_printf(bio_err, "error: unable to use TLS client private key '%s'\n", opt_tls_key);
-                pkey = NULL; // otherwise, for some reason double free!
+                EVP_PKEY_free(pkey);
                 goto tls_err;
             }
+            EVP_PKEY_free(pkey); // we don't need the handle any more
+
             // verify the key matches the cert
             if (!SSL_CTX_check_private_key(ssl_ctx)) {
                 BIO_printf(bio_err, "error: TLS private key '%s' does not match the TLS certificate '%s'\n", opt_tls_key, opt_tls_cert);
                 goto tls_err;
             }
-            EVP_PKEY_free(pkey); // we don't need the handle any more
         }
 
         BIO *sbio = BIO_new_ssl(ssl_ctx, 1);
@@ -1419,10 +1419,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             BIO_printf(bio_err, "error: cannot initialize SSL BIO");
         tls_err:
             SSL_CTX_free(ssl_ctx);
-            if (cert)
-                X509_free(cert);
-            if (pkey)
-                EVP_PKEY_free(pkey);
             goto err;
         }
         CMP_CTX_set0_tlsBIO(ctx, sbio);
@@ -1451,16 +1447,21 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
     if (opt_key) {
         EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyform, opt_keypass, e, "private key for CMP client certificate");
-        if (!pkey || !CMP_CTX_set0_pkey(ctx, pkey))
+        if (!pkey || !CMP_CTX_set0_pkey(ctx, pkey)) {
+            EVP_PKEY_free(pkey);
             goto err;
+        }
     }
     if (opt_newkey) {
         EVP_PKEY *newPkey = load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e, "new private key for certificate to be enrolled");
-        if (opt_newkeypass)
+        if (opt_newkeypass) {
             OPENSSL_cleanse(opt_newkeypass, strlen(opt_newkeypass));
-        opt_newkeypass = NULL;
-        if (!newPkey || !CMP_CTX_set0_newPkey(ctx, newPkey))
+            opt_newkeypass = NULL;
+        }
+        if (!newPkey || !CMP_CTX_set0_newPkey(ctx, newPkey)) {
+            EVP_PKEY_free(newPkey);
             goto err;
+        }
     }
 
     certform = opt_certform;
@@ -1472,15 +1473,19 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
         /* opt_keypass is needed here in case opt_cert is an encrypted PKCS#12 file */
         X509 *clcert = load_cert_autofmt(opt_cert, &certform, opt_keypass, "CMP client certificate");
-        if (!clcert || !CMP_CTX_set1_clCert(ctx, clcert))
+        if (!clcert || !CMP_CTX_set1_clCert(ctx, clcert)) {
+            X509_free(clcert);
             goto err;
+        }
         X509_free(clcert);
     }
 
     if (opt_extcerts) {
         STACK_OF(X509) *extracerts = load_certs_autofmt(opt_extcerts, opt_certform, "extra certificates");
-        if (!extracerts || !CMP_CTX_set1_extraCertsOut(ctx, extracerts))
+        if (!extracerts || !CMP_CTX_set1_extraCertsOut(ctx, extracerts)) {
+            sk_X509_pop_free(extracerts, X509_free);
             goto err;
+        }
         sk_X509_pop_free(extracerts, X509_free);
     }
 
@@ -1492,8 +1497,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
         /* opt_keypass is needed here in case opt_srvcert is an encrypted PKCS#12 file */
         X509 *srvcert = load_cert_autofmt(opt_srvcert, &certform, opt_keypass, "CMP server certificate");
-        if (!srvcert || !CMP_CTX_set1_srvCert(ctx, srvcert)) /* indirectly sets also ctx->trusted */
+        if (!srvcert || !CMP_CTX_set1_srvCert(ctx, srvcert)) { /* indirectly sets also ctx->trusted */
+            X509_free(srvcert);
             goto err;
+        }
         X509_free(srvcert);
     }
 
@@ -1503,8 +1510,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_trusted) {
         X509_STORE *ts = create_cert_store(opt_trusted, "trusted certificates");
-        if( !CMP_CTX_set0_trustedStore(ctx, ts))
+        if (!CMP_CTX_set0_trustedStore(ctx, ts)) {
+            X509_STORE_free(ts);
             goto err;
+        }
     }
 
     if (opt_srvcert || opt_trusted) { /* */
@@ -1524,9 +1533,12 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    if (opt_untrusted
-        && !CMP_CTX_set0_untrustedStore(ctx, create_cert_store(opt_untrusted, "untrusted certificates"))) {
-        goto err;
+    if (opt_untrusted) {
+        X509_STORE *us = create_cert_store(opt_untrusted, "untrusted certificates");
+        if (!us || !CMP_CTX_set0_untrustedStore(ctx, us)) {
+            X509_STORE_free(us);
+            goto err;
+        }
     }
 
     CMP_CTX_set_certVerify_callback(ctx, print_cert_verify_cb);
@@ -1538,18 +1550,23 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                        opt_subject);
             goto err;
         }
-        if (!CMP_CTX_set1_subjectName(ctx, n))
+        if (!CMP_CTX_set1_subjectName(ctx, n)) {
+            X509_NAME_free(n);
             goto err;
+        }
         X509_NAME_free(n);
     }
 
     if (opt_issuer) {
-        X509_NAME *n=parse_name(opt_issuer, MBSTRING_ASC, 0);
+        X509_NAME *n = parse_name(opt_issuer, MBSTRING_ASC, 0);
         if (n == NULL) {
             BIO_printf(bio_err, "error: unable to parse issuer name '%s'\n", opt_issuer);
             goto err;
         }
-        CMP_CTX_set1_issuer(ctx, n);
+        if (!CMP_CTX_set1_issuer(ctx, n)) {
+            X509_NAME_free(n);
+            goto err;
+        }
         X509_NAME_free(n);
     }
 
@@ -1564,8 +1581,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                        opt_recipient);
             goto err;
         }
-        if (!CMP_CTX_set1_recipient(ctx, n))
+        if (!CMP_CTX_set1_recipient(ctx, n)) {
+            X509_NAME_free(n);
             goto err;
+        }
         X509_NAME_free(n);
     }
 
@@ -1583,6 +1602,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         X509V3_set_nconf(&ext_ctx, conf);
         if (!X509V3_EXT_add_nconf_sk(conf, &ext_ctx, opt_reqexts, &exts)) {
             BIO_printf(bio_err, "error loading extension section '%s'\n", opt_reqexts);
+            sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
             goto err;
         }
         CMP_CTX_set0_reqExtensions(ctx, exts);
@@ -1610,13 +1630,16 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_oldcert) {
         /* opt_keypass is needed here in case opt_oldcert is an encrypted PKCS#12 file */
         X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform, opt_keypass, "certificate to be renewed/revoked");
-        if (!oldcert || !CMP_CTX_set1_oldClCert(ctx, oldcert))
+        if (!oldcert || !CMP_CTX_set1_oldClCert(ctx, oldcert)) {
+            X509_free(oldcert);
             goto err;
+        }
         X509_free(oldcert);
     }
-    if (opt_keypass)
+    if (opt_keypass) {
         OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
-    opt_keypass = NULL;
+        opt_keypass = NULL;
+    }
 
     if (opt_revreason >= 0)
         CMP_CTX_set_option(ctx, CMP_CTX_OPT_REVOCATION_REASON, opt_revreason);
@@ -1650,20 +1673,28 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
 
         ASN1_INTEGER *aint = ASN1_INTEGER_new();
-        if (!aint || !ASN1_INTEGER_set(aint, value))
+        if (!aint || !ASN1_INTEGER_set(aint, value)) {
+            ASN1_INTEGER_free(aint);
             goto err;
+        }
 
         ASN1_TYPE *val = ASN1_TYPE_new();
-        if (!val)
+        if (!val) {
+            ASN1_INTEGER_free(aint);
             goto err;
+        }
         ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
 
         CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(type, val);
-        if (!itav)
+        if (!itav) {
+            ASN1_TYPE_free(val);
             goto err;
+        }
 
-        if (!CMP_CTX_geninfo_itav_push0(ctx, itav))
+        if (!CMP_CTX_geninfo_itav_push0(ctx, itav)) {
+            CMP_INFOTYPEANDVALUE_free(itav);
             goto err;
+        }
     }
 
     CMP_CTX_set_HttpTimeOut(ctx, 5 * 60);
