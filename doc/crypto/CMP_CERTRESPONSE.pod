@@ -26,7 +26,7 @@ CMP_CERTRESPONSE_PKIStatus_get() returns the PKIStatus of the given B<crep>, or
 
 CMP_CERTRESPONSE_PKIFailureInfo_get0() returns PKIFailureInfo of B<crep>.
 
-CMP_CERTRESPONSE_PKIStatusString_get0() returns the status->statuString field
+CMP_CERTRESPONSE_PKIStatusString_get0() returns the status->statusString field
 contained in the B<crep>.
 
 CMP_CERTRESPONSE_certType_get() returns the type of the certificate

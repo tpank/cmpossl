@@ -1106,34 +1106,33 @@ CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text)
  * returns the PKIStatus of the given PKIStatusInfo
  * returns -1 on error
  * ############################################################################ */
-long CMP_PKISTATUSINFO_PKIstatus_get(CMP_PKISTATUSINFO *statusInfo)
+long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *statusInfo)
 {
-    if (!statusInfo)
+    if (!statusInfo || !statusInfo->status) {
+        CMPerr(CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET,
+               CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
-    if (!statusInfo->status)
-        return -1;
+    }
     return ASN1_INTEGER_get(statusInfo->status);
 }
 
 /* ############################################################################ *
  * internal function
  *
- * convert PKIstatus to human readable string
+ * convert PKIStatus to human-readable string
  *
  * returns pointer to character array containing a sting representing the
  * PKIStatus of the given PKIStatusInfo
  * returns NULL on error
  * ############################################################################ */
-static char *CMP_PKISTATUSINFO_PKIstatus_get_string(CMP_PKISTATUSINFO
+static char *CMP_PKISTATUSINFO_PKIStatus_get_string(CMP_PKISTATUSINFO
                                                     *statusInfo)
 {
-    long PKIstatus;
+    long PKIStatus;
 
-    if (!statusInfo)
-        return 0;
-
-    PKIstatus = CMP_PKISTATUSINFO_PKIstatus_get(statusInfo);
-    switch (PKIstatus) {
+    if ((PKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(statusInfo) < 0))
+        return NULL;
+    switch (PKIStatus) {
     case CMP_PKISTATUS_accepted:
         return "PKIStatus: accepted";
     case CMP_PKISTATUS_grantedWithMods:
@@ -1148,19 +1147,17 @@ static char *CMP_PKISTATUSINFO_PKIstatus_get_string(CMP_PKISTATUSINFO
         return "PKIStatus: revocation notification";
     case CMP_PKISTATUS_keyUpdateWarning:
         return "PKIStatus: key update warning";
-    case -1:
     default:
         CMPerr(CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING,
                CMP_R_ERROR_PARSING_PKISTATUS);
-        return 0;
     }
-    return 0;
+    return NULL;
 }
 
 /* ############################################################################ *
  * internal function
  *
- * convert PKIstatus to human readable string
+ * convert PKIStatus to human-readable string
  * Limitation: in case more than one bit is set, only one is considered.
  *
  * returns pointer to string containing the the PKIFailureInfo
@@ -1172,7 +1169,7 @@ static char *CMP_PKISTATUSINFO_PKIFailureInfo_get_string(CMP_PKISTATUSINFO
     int i;
 
     if (!statusInfo)
-        return 0;
+        return NULL;
     for (i = 0; i <= CMP_PKIFAILUREINFO_MAX; i++) {
         if (ASN1_BIT_STRING_get_bit(statusInfo->failInfo, i)) {
             switch (i) {
@@ -1247,11 +1244,11 @@ long CMP_REVREPCONTENT_PKIStatus_get(CMP_REVREPCONTENT *revRep, long reqId)
         return -1;
 
     if ((status = sk_CMP_PKISTATUSINFO_value(revRep->status, reqId))) {
-        return CMP_PKISTATUSINFO_PKIstatus_get(status);
+        return CMP_PKISTATUSINFO_PKIStatus_get(status);
     }
 
     CMPerr(CMP_F_CMP_REVREPCONTENT_PKISTATUS_GET,
-           CMP_R_ERROR_REQID_NOT_FOUND);
+           CMP_R_ERROR_STATUS_NOT_FOUND);
     return -1;
 }
 
@@ -1263,10 +1260,10 @@ long CMP_CERTRESPONSE_PKIStatus_get(CMP_CERTRESPONSE *crep)
 {
     if (!crep) {
         CMPerr(CMP_F_CMP_CERTRESPONSE_PKISTATUS_GET,
-                CMP_R_ERROR_REQID_NOT_FOUND);
+                CMP_R_ERROR_STATUS_NOT_FOUND);
         return -1;
     }
-    return CMP_PKISTATUSINFO_PKIstatus_get(crep->status);
+    return CMP_PKISTATUSINFO_PKIStatus_get(crep->status);
 }
 
 /* ############################################################################ *
@@ -1275,9 +1272,9 @@ long CMP_CERTRESPONSE_PKIStatus_get(CMP_CERTRESPONSE *crep)
  * ############################################################################ */
 CMP_PKIFAILUREINFO *CMP_CERTRESPONSE_PKIFailureInfo_get0(CMP_CERTRESPONSE *crep)
 {
-    if (!crep || !crep->status || !crep->status->failInfo) {
+    if (!crep || !crep->status) {
         CMPerr(CMP_F_CMP_CERTRESPONSE_PKIFAILUREINFO_GET0,
-                CMP_R_ERROR_REQID_NOT_FOUND);
+                CMP_R_ERROR_STATUS_NOT_FOUND);
         return NULL;
     }
 
@@ -1321,28 +1318,23 @@ int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit)
  * returns NULL on error or if no CertResponse available
  * ############################################################################ */
 CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
-                                                       *crepmsg,
-                                                       long rid)
+                                                       *crepmsg, long rid)
 {
     CMP_CERTRESPONSE *crep = NULL;
-    int crepcnt;
     int i;
 
     if (!crepmsg)
         return NULL;
 
-    crepcnt = sk_CMP_CERTRESPONSE_num(crepmsg->response);
-
-    for (i = 0; i < crepcnt; i++) {
+    for (i = 0; i < sk_CMP_CERTRESPONSE_num(crepmsg->response); i++) {
+        crep = sk_CMP_CERTRESPONSE_value(crepmsg->response, i);
         /* is it the right certReqId */
-        if (rid ==
-            ASN1_INTEGER_get(sk_CMP_CERTRESPONSE_value
-                             (crepmsg->response, i)->certReqId)) {
-            crep = sk_CMP_CERTRESPONSE_value(crepmsg->response, i);
-            break;
-        }
+        if (rid == ASN1_INTEGER_get(crep->certReqId))
+            return crep;
     }
 
+    CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
+           CMP_R_CERTRESPONSE_NOT_FOUND);
     return crep;
 }
 
@@ -1384,7 +1376,7 @@ static X509 *CMP_CERTRESPONSE_cert_get1(CMP_CERTRESPONSE *crep)
  * returns a pointer to the decrypted certificate
  * returns NULL on error or if no Certificate available
  * ############################################################################# */
-static X509 *CMP_CERTRESPONSE_encCert_get1(CMP_CERTRESPONSE *crep,EVP_PKEY *pkey)
+static X509 *CMP_CERTRESPONSE_encCert_get1(CMP_CERTRESPONSE *crep, EVP_PKEY *pkey)
 {
     CRMF_ENCRYPTEDVALUE *ecert;
     X509 *cert = NULL; /* decrypted certificate */
@@ -1491,7 +1483,7 @@ static X509 *CMP_CERTRESPONSE_encCert_get1(CMP_CERTRESPONSE *crep,EVP_PKEY *pkey
 
 /* ############################################################################ *
  * returns the type of the certificate contained in the certificate response
- * returns -1 on errror
+ * returns -1 on error
  * ############################################################################ */
 int CMP_CERTRESPONSE_certType_get(CMP_CERTRESPONSE *crep)
 {
@@ -1532,7 +1524,7 @@ int CMP_PKIMESSAGE_get_bodytype(CMP_PKIMESSAGE *msg)
 }
 
 /* ############################################################################ *
- * return pointer to human readable error message string created out of the
+ * return pointer to human-readable error message string created out of the
  * information extracted from given error message
  * returns NULL on error
  * ############################################################################ */
@@ -1547,7 +1539,7 @@ char *CMP_PKIMESSAGE_parse_error_msg(CMP_PKIMESSAGE *msg, char *errormsg,
         return NULL;
 
     status =
-        CMP_PKISTATUSINFO_PKIstatus_get_string(msg->body->value.
+        CMP_PKISTATUSINFO_PKIStatus_get_string(msg->body->value.
                                                error->pKIStatusInfo);
     if (!status) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_PARSE_ERROR_MSG,
@@ -1578,8 +1570,6 @@ char *CMP_PKIMESSAGE_parse_error_msg(CMP_PKIMESSAGE *msg, char *errormsg,
 }
 
 static void PKIFreeText_to_err(char *pre, STACK_OF (ASN1_UTF8STRING) *str_sk) {
-    if (!str_sk)
-        return;
     for (int i = 0; i < sk_ASN1_UTF8STRING_num(str_sk); i++) {
         ASN1_UTF8STRING *text = sk_ASN1_UTF8STRING_value(str_sk, i);
         size_t tlen = ASN1_STRING_length(text);
@@ -1593,18 +1583,8 @@ static void PKIFreeText_to_err(char *pre, STACK_OF (ASN1_UTF8STRING) *str_sk) {
     }
 }
 
-static void PKIFailureInfo_to_err(CMP_CERTRESPONSE *crep) {
-    char *finfo = NULL;
-
-    if (!crep || !crep->status)
-        return;
-
-    finfo = CMP_PKISTATUSINFO_PKIFailureInfo_get_string(crep->status);
-    if (finfo)
-        /* initialize stat string with human readable failure info */
-        ERR_add_error_data(1, "PKIFailureInfo: ", finfo);
-    else
-        ERR_add_error_data(1, "<no failure info received>");
+static void PKIFailureInfo_string_to_err(char *finfo) {
+    ERR_add_error_data(1, finfo ? finfo : "<no failure info received>");
 }
 
 /* ############################################################################ *
@@ -1618,21 +1598,14 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
     X509 *crt = NULL;
     CMP_CERTRESPONSE *crep;
 
-    crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid);
-    if (!crep) {
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
-               CMP_R_CERTRESPONSE_NOT_FOUND);
+    if (!(crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid)))
         goto err;
-    }
 
     PKIFreeText_to_err("statusString",
                                     CMP_CERTRESPONSE_PKIStatusString_get0(crep));
-    PKIFailureInfo_to_err(crep);
-    CMP_CTX_set_failInfoCode(ctx, CMP_CERTRESPONSE_PKIFailureInfo_get0(crep));
+    PKIFailureInfo_string_to_err(CMP_PKISTATUSINFO_PKIFailureInfo_get_string(crep->status));
 
-    ctx->lastPKIStatus = CMP_CERTRESPONSE_PKIStatus_get(crep); /* TODO: create CTX function */
-
-    switch (ctx->lastPKIStatus) {
+    switch (CMP_CERTRESPONSE_PKIStatus_get(crep)) {
     case CMP_PKISTATUS_waiting:
         CMP_printf(ctx, "WARN: encountered \"waiting\" status for certReqId %d, "
                         "when actually aiming to extract cert", rid);
@@ -1702,7 +1675,7 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
         goto err;
 
     default:
-        CMP_printf(ctx, "ERROR: encountered unsupported PKIstatus %ld for "
+        CMP_printf(ctx, "ERROR: encountered unsupported PKIStatus %ld for "
                         "certReqId %d", ctx->lastPKIStatus, rid);
         CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
                CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);

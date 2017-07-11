@@ -513,7 +513,7 @@ static int read_config()
                 case '-':
                 case 'n':
                     if (num < INT_MIN || INT_MAX < num) {
-                        BIO_printf(bio_err, "integer value out of rnage for option '%s'\n", opt->name);
+                        BIO_printf(bio_err, "integer value out of range for option '%s'\n", opt->name);
                         return 0;
                     }
                     *cmp_vars[i].num = (int)num;

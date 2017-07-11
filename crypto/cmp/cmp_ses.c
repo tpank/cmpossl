@@ -430,35 +430,30 @@ static int exchange_error(CMP_CTX *ctx, int status, int failure, const char *tex
 /* ############################################################################ *
  * internal function
  *
- * saves error information from PKIStatus field of a certrepmessage into the ctx
- * TODO: in case we would get multiple certreps, this function would need to be
- *       extended to save the status from each one
+ * saves error information from PKIStatusInfo field of a certresponse into the ctx
  * ############################################################################ */
-static void save_certrep_statusInfo(CMP_CTX *ctx, CMP_CERTREPMESSAGE *certrep)
+static int save_certresponse_statusInfo(CMP_CTX *ctx, CMP_CERTRESPONSE *resp)
 {
-    CMP_CERTRESPONSE *resp = NULL;
     int i = 0;
 
-    if (sk_CMP_CERTRESPONSE_num(certrep->response) > 0 &&
-        (resp = sk_CMP_CERTRESPONSE_value(certrep->response, 0)) &&
-        resp->status != NULL) {
-        CMP_CTX_set_failInfoCode(ctx, resp->status->failInfo);
-        ctx->lastPKIStatus = CMP_PKISTATUSINFO_PKIstatus_get(resp->status);
+    if (!resp)
+        return 0;
+    (void)CMP_CTX_set_failInfoCode(ctx, CMP_CERTRESPONSE_PKIFailureInfo_get0(resp));
+    if ((ctx->lastPKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(resp->status) < 0)) /* TODO: create CTX function */
+        return 0;
 
-        if (!ctx->lastStatusString)
-            ctx->lastStatusString = sk_ASN1_UTF8STRING_new_null();
+    if (!ctx->lastStatusString &&
+        !(ctx->lastStatusString = sk_ASN1_UTF8STRING_new_null()))
+        return 0;
 
-        if (ctx->lastStatusString) {
-            for (i = 0;
-                 i < sk_ASN1_UTF8STRING_num(resp->status->statusString);
-                 i++) {
-                ASN1_UTF8STRING *str =
-                    sk_ASN1_UTF8STRING_value(resp->status->statusString, i);
-                sk_ASN1_UTF8STRING_push(ctx->lastStatusString,
-                                        ASN1_STRING_dup(str));
-            }
-        }
+    STACK_OF (ASN1_UTF8STRING) *ss = CMP_CERTRESPONSE_PKIStatusString_get0(resp);
+    for (i = 0; i < sk_ASN1_UTF8STRING_num(ss); i++) {
+        ASN1_UTF8STRING *str = sk_ASN1_UTF8STRING_value(ss, i);
+        if (!sk_ASN1_UTF8STRING_push(ctx->lastStatusString,
+                                     ASN1_STRING_dup(str)))
+            return 0;
     }
+    return 1;
 }
 
 /* ############################################################################ *
@@ -472,17 +467,22 @@ static int cert_response(CMP_CTX *ctx,
                          CMP_PKIMESSAGE **resp,
                          int type_function, int not_received)
 {
-    CMP_CERTREPMESSAGE *body = (*resp)->body->value.ip /* same for cp and kup*/;
-    save_certrep_statusInfo(ctx, body);
+    CMP_CERTREPMESSAGE *body = (*resp)->body->value.ip; /* same for cp and kup */
 
-    /* TODO handle second certrepmsg - if two requests would have been sent */
+    /* TODO handle multiple CertResponses in CertRepMsg (in case multiple requests have been sent) */
     CMP_CERTRESPONSE *crep = CMP_CERTREPMESSAGE_certResponse_get0(body, 0);
     if (!crep)
         return 0;
+    if (!save_certresponse_statusInfo(ctx, crep))
+        return 0;
+
     if (CMP_CERTRESPONSE_PKIStatus_get(crep) == CMP_PKISTATUS_waiting) {
         CMP_PKIMESSAGE_free(*resp);
         if (pollForResponse(ctx, resp)) {
-            body = (*resp)->body->value.ip /* same for cp and kup*/;
+            /* viable alternative to this block would be: goto beginning of this function */
+            body = (*resp)->body->value.ip; /* same for cp and kup */
+            crep = NULL; /* for clarity, not used below */
+            /* assumption here: *resp does not again include CMP_PKISTATUS_waiting */
         } else {
             CMPerr(type_function, not_received);
             ERR_add_error_data(1, "received 'waiting' pkistatus but polling failed");

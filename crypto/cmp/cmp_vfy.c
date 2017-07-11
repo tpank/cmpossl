@@ -473,6 +473,7 @@ int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
                              * trusted store as srvCert */
                             X509 *newClCert =
                                 CMP_CERTREPMESSAGE_get_certificate(ctx, msg->body->value.ip, 0);
+                            ERR_clear_error();
                             if (newClCert)
                                 srvCert_valid =
                                     CMP_validate_cert_path(ctx, tempStore, ctx->untrusted_store, newClCert);

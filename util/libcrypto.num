@@ -4447,7 +4447,7 @@ CMP_CTX_subjectAltName_push1            4383	1_1_1	EXIST::FUNCTION:
 CMP_build_cert_chain                    4384	1_1_1	EXIST::FUNCTION:
 CMP_REVREPCONTENT_PKIStatus_get         4385	1_1_1	EXIST::FUNCTION:
 CMP_doCertificateRequestSeq             4386	1_1_1	EXIST::FUNCTION:
-CMP_PKISTATUSINFO_PKIstatus_get         4387	1_1_1	EXIST::FUNCTION:
+CMP_PKISTATUSINFO_PKIStatus_get         4387	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_set_bodytype             4388	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_http_perform             4389	1_1_1	EXIST::FUNCTION:
 CMP_PKIHEADER_set1_recipient            4390	1_1_1	EXIST::FUNCTION:
