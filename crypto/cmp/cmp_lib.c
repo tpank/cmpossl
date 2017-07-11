@@ -797,11 +797,6 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     if (!msg->extraCerts && !(msg->extraCerts = sk_X509_new_null()))
         goto err;
 
-    /* add any additional certificates from ctx->extraCertsOut */
-    for (i = 0; i < sk_X509_num(ctx->extraCertsOut); i++)
-        sk_X509_push(msg->extraCerts,
-                     X509_dup(sk_X509_value(ctx->extraCertsOut, i)));
-
     if (ctx->clCert) {
         /* if we have untrusted store, try to add all the intermediate certs and our own */
         if (ctx->untrusted_store) {
@@ -817,6 +812,11 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
             sk_X509_push(msg->extraCerts, X509_dup(ctx->clCert));
         }
     }
+
+    /* add any additional certificates from ctx->extraCertsOut */
+    for (i = 0; i < sk_X509_num(ctx->extraCertsOut); i++)
+        sk_X509_push(msg->extraCerts,
+                     X509_dup(sk_X509_value(ctx->extraCertsOut, i)));
 
     return 1;
 
