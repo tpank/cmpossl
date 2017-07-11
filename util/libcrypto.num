@@ -4391,7 +4391,7 @@ CRMF_PBMPARAMETER_new                   4331	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_set_certReqId           4332	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMESSAGES_free               4333	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_serverPort                 4334	1_1_1	EXIST::FUNCTION:
-CMP_CERTREPMESSAGE_get_certificate      4335	1_1_1	EXIST::FUNCTION:
+CMP_CERTRESPONSE_get_certificate        4335	1_1_1	EXIST::FUNCTION:
 CMP_doGeneralMessageSeq                 4336	1_1_1	EXIST::FUNCTION:
 CRMF_PBMPARAMETER_free                  4337	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_calc_and_set_popo       4338	1_1_1	EXIST::FUNCTION:

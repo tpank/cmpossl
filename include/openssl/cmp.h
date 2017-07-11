@@ -334,9 +334,7 @@ CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *val
 CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text);
 long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *statusInfo);
 
-X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
-                                         CMP_CERTREPMESSAGE *crepmsg,
-                                         long rid);
+X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
 int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit);
 CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);

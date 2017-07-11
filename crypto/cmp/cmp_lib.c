@@ -1324,7 +1324,7 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
     int i;
 
     if (!crepmsg)
-        return NULL;
+        goto err;
 
     for (i = 0; i < sk_CMP_CERTRESPONSE_num(crepmsg->response); i++) {
         crep = sk_CMP_CERTRESPONSE_value(crepmsg->response, i);
@@ -1333,6 +1333,7 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
             return crep;
     }
 
+ err:
     CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
            CMP_R_CERTRESPONSE_NOT_FOUND);
     return crep;
@@ -1588,17 +1589,14 @@ static void PKIFailureInfo_string_to_err(char *finfo) {
 }
 
 /* ############################################################################ *
- * Retrieve the returned certificate from the given certrepmessage.
+ * Retrieve the returned certificate from the given CertResponse.
  * returns NULL if not found or on error
  * ############################################################################ */
-X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
-                                         CMP_CERTREPMESSAGE *crepmsg,
-                                         long rid)
+X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
 {
     X509 *crt = NULL;
-    CMP_CERTRESPONSE *crep;
 
-    if (!(crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid)))
+    if (!crep)
         goto err;
 
     PKIFreeText_to_err("statusString",
@@ -1607,18 +1605,18 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
 
     switch (CMP_CERTRESPONSE_PKIStatus_get(crep)) {
     case CMP_PKISTATUS_waiting:
-        CMP_printf(ctx, "WARN: encountered \"waiting\" status for certReqId %d, "
-                        "when actually aiming to extract cert", rid);
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+        CMP_printf(ctx, "WARN: encountered \"waiting\" status for certificate "
+                        "when actually aiming to extract cert");
+        CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                CMP_R_ENCOUNTERED_WAITING);
         goto err;
     case CMP_PKISTATUS_grantedWithMods:
-        CMP_printf(ctx, "WARN: got \"grantedWithMods\" for certReqId %d", rid);
+        CMP_printf(ctx, "WARN: got \"grantedWithMods\" for certificate");
     case CMP_PKISTATUS_accepted:
         switch (CMP_CERTRESPONSE_certType_get(crep)) {
         case CMP_CERTORENCCERT_CERTIFICATE:
             if (!(crt = CMP_CERTRESPONSE_cert_get1(crep))) {
-                CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+                CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                        CMP_R_CERTIFICATE_NOT_FOUND);
                 goto err;
             }
@@ -1627,18 +1625,18 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
         /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
             if (!(crt =
                   CMP_CERTRESPONSE_encCert_get1(crep, ctx->newPkey))) {
-                CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+                CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                        CMP_R_CERTIFICATE_NOT_FOUND);
                 goto err;
             }
             break;
         case CMP_CERTORENCCERT_ERROR:
-            CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+            CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                   CMP_R_FAIL_EXTRACT_CERT_FROM_CERTREP_WITH_ACCEPT_STATUS);
                 goto err;
             break;
         default:
-            CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+            CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                    CMP_R_UNKNOWN_CERTTYPE);
             goto err;
         }
@@ -1646,38 +1644,35 @@ X509 *CMP_CERTREPMESSAGE_get_certificate(CMP_CTX *ctx,
 
         /* get all information in case of a rejection before going to error */
     case CMP_PKISTATUS_rejection:
-        CMP_printf(ctx, "WARN: encountered \"rejection\" status for certReqId "
-                        "%d", rid);
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+        CMP_printf(ctx, "WARN: encountered \"rejection\" status for certificate");
+        CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                 CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
 
     case CMP_PKISTATUS_revocationWarning:
         CMP_printf(ctx, "WARN: encountered \"revocationWarning\" status for "
-                        "certReqId %d, when actually aiming to extract cert",
-                        rid);
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+                        "certificate when actually aiming to extract cert");
+        CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONWARNING);
         goto err;
     case CMP_PKISTATUS_revocationNotification:
         CMP_printf(ctx, "WARN: encountered \"revocationNotification\" status "
-                        "for certReqId %d, when actually aiming to extract cert",
-                        rid);
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+                        "for certificate when actually aiming to extract cert");
+        CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONNOTIFICATION);
         goto err;
     case CMP_PKISTATUS_keyUpdateWarning:
-        CMP_printf(ctx, "WARN: received \"keyUpdateWarning\" for cerReqId %d "
+        CMP_printf(ctx, "WARN: received \"keyUpdateWarning\" for certificate "
                         "--> update already done for the oldCertId specified "
-                        "in CertReqMsg", rid);
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+                        "in CertReqMsg");
+        CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                CMP_R_ENCOUNTERED_KEYUPDATEWARNING);
         goto err;
 
     default:
         CMP_printf(ctx, "ERROR: encountered unsupported PKIStatus %ld for "
-                        "certReqId %d", ctx->lastPKIStatus, rid);
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE,
+                        "certificate", ctx->lastPKIStatus);
+        CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
         goto err;
     }

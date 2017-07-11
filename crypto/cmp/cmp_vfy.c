@@ -471,8 +471,9 @@ int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
                         if (srvCert_valid) {
                             /* verify that our received certificate can also be validated with the same
                              * trusted store as srvCert */
-                            X509 *newClCert =
-                                CMP_CERTREPMESSAGE_get_certificate(ctx, msg->body->value.ip, 0);
+                            /* TODO handle multiple CertResponses in CertRepMsg (in case multiple requests have been sent) */
+                            CMP_CERTRESPONSE *crep = CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip, 0);
+                            X509 *newClCert = CMP_CERTRESPONSE_get_certificate(ctx, crep);
                             ERR_clear_error();
                             if (newClCert)
                                 srvCert_valid =

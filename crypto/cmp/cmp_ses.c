@@ -203,7 +203,8 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
                  rcvd_type == V_CMP_PKIBODY_CP ||
                  rcvd_type == V_CMP_PKIBODY_KUP)) {
             CMP_CERTRESPONSE *crep =
-                CMP_CERTREPMESSAGE_certResponse_get0(rep->body->value.ip, 0);
+                CMP_CERTREPMESSAGE_certResponse_get0(rep->body->value.ip, 0); /* same for cp and kup */
+            /* TODO handle multiple CertResponses in CertRepMsg (in case multiple requests have been sent) */
             if (!crep)
                 return 0;
             if (CMP_CERTRESPONSE_PKIStatus_get(crep) == CMP_PKISTATUS_rejection) {
@@ -467,22 +468,18 @@ static int cert_response(CMP_CTX *ctx,
                          CMP_PKIMESSAGE **resp,
                          int type_function, int not_received)
 {
+ retry: ;
     CMP_CERTREPMESSAGE *body = (*resp)->body->value.ip; /* same for cp and kup */
 
     /* TODO handle multiple CertResponses in CertRepMsg (in case multiple requests have been sent) */
     CMP_CERTRESPONSE *crep = CMP_CERTREPMESSAGE_certResponse_get0(body, 0);
     if (!crep)
         return 0;
-    if (!save_certresponse_statusInfo(ctx, crep))
-        return 0;
 
     if (CMP_CERTRESPONSE_PKIStatus_get(crep) == CMP_PKISTATUS_waiting) {
         CMP_PKIMESSAGE_free(*resp);
         if (pollForResponse(ctx, resp)) {
-            /* viable alternative to this block would be: goto beginning of this function */
-            body = (*resp)->body->value.ip; /* same for cp and kup */
-            crep = NULL; /* for clarity, not used below */
-            /* assumption here: *resp does not again include CMP_PKISTATUS_waiting */
+            goto retry;
         } else {
             CMPerr(type_function, not_received);
             ERR_add_error_data(1, "received 'waiting' pkistatus but polling failed");
@@ -491,7 +488,9 @@ static int cert_response(CMP_CTX *ctx,
         }
     }
 
-    if (!(ctx->newClCert = CMP_CERTREPMESSAGE_get_certificate(ctx, body, 0))) {
+    if (!save_certresponse_statusInfo(ctx, crep))
+        return 0;
+    if (!(ctx->newClCert = CMP_CERTRESPONSE_get_certificate(ctx, crep))) {
         ERR_add_error_data(1, "cannot extract certificate from response");
         return 0;
     }
