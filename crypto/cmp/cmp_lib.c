@@ -565,7 +565,7 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage,
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
  * error
  * ############################################################################ */
-// TODO factor out similarities with CMP_calc_protection_pbmac
+/* TODO factor out similarities with CMP_calc_protection_pbmac */
 ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
                                          EVP_PKEY *pkey)
 {
@@ -938,12 +938,13 @@ int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr,
 int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg,
                                           STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
 {
+    int i;
     CMP_INFOTYPEANDVALUE *itav = NULL;
 
     if (!msg)
         goto err;
 
-    for (int i = 0; i < sk_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
+    for (i = 0; i < sk_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
         itav = CMP_INFOTYPEANDVALUE_dup(sk_CMP_INFOTYPEANDVALUE_value(itavs, i));
         if (!CMP_PKIHEADER_generalInfo_item_push0(msg->header, itav)) {
             CMP_INFOTYPEANDVALUE_free(itav);
@@ -989,12 +990,13 @@ int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
 int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg,
                                           STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
 {
+    int i;
     CMP_INFOTYPEANDVALUE *itav = NULL;
 
     if (!msg)
         goto err;
 
-    for (int i = 0; i < sk_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
+    for (i = 0; i < sk_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
         itav = CMP_INFOTYPEANDVALUE_dup(sk_CMP_INFOTYPEANDVALUE_value(itavs, i));
         if (!CMP_PKIMESSAGE_genm_item_push0(msg, itav)) {
             CMP_INFOTYPEANDVALUE_free(itav);
@@ -1403,10 +1405,11 @@ static X509 *CMP_CERTRESPONSE_encCert_get1(CMP_CERTRESPONSE *crep, EVP_PKEY *pke
 
     /* first the symmetric key needs to be decrypted */
     if ((pkctx = EVP_PKEY_CTX_new(pkey, NULL)) && EVP_PKEY_decrypt_init(pkctx)) {
-        if (!ecert->encSymmKey)
-            goto err;
         ASN1_BIT_STRING *encKey = ecert->encSymmKey;
         size_t eksize = 0;
+
+        if (!encKey)
+            goto err;
 
         if (EVP_PKEY_decrypt
             (pkctx, NULL, &eksize, encKey->data, encKey->length) <= 0
@@ -1533,6 +1536,8 @@ char *CMP_PKIMESSAGE_parse_error_msg(CMP_PKIMESSAGE *msg, char *errormsg,
                                      int bufsize)
 {
     char *status, *failureinfo;
+    STACK_OF (ASN1_UTF8STRING) *details;
+    ASN1_UTF8STRING *str = 0;
 
     if (!msg)
         return NULL;
@@ -1553,9 +1558,7 @@ char *CMP_PKIMESSAGE_parse_error_msg(CMP_PKIMESSAGE *msg, char *errormsg,
         CMP_PKISTATUSINFO_PKIFailureInfo_get_string(msg->body->value.
                                                     error->pKIStatusInfo);
 
-    STACK_OF (ASN1_UTF8STRING) * details =
-        msg->body->value.error->pKIStatusInfo->statusString;
-    ASN1_UTF8STRING *str = 0;
+    details = msg->body->value.error->pKIStatusInfo->statusString;
     if (details && sk_ASN1_UTF8STRING_num(details) > 0)
         str = sk_ASN1_UTF8STRING_value(details, 0);
 
@@ -1571,7 +1574,8 @@ char *CMP_PKIMESSAGE_parse_error_msg(CMP_PKIMESSAGE *msg, char *errormsg,
 }
 
 static void PKIFreeText_to_err(char *pre, STACK_OF (ASN1_UTF8STRING) *str_sk) {
-    for (int i = 0; i < sk_ASN1_UTF8STRING_num(str_sk); i++) {
+    int i;
+    for (i = 0; i < sk_ASN1_UTF8STRING_num(str_sk); i++) {
         ASN1_UTF8STRING *text = sk_ASN1_UTF8STRING_value(str_sk, i);
         size_t tlen = ASN1_STRING_length(text);
         char *s;
@@ -1771,7 +1775,6 @@ ASN1_OCTET_STRING *CMP_get_cert_subject_key_id(const X509 *cert)
         goto err;
 
     /* found a subject key ID */
-    // if (!(ex = sk_X509_EXTENSION_value(cert->cert_info->extensions, subjKeyIDLoc)))
     if (!(ex = X509_get_ext((X509 *)cert, subjKeyIDLoc)))
         goto err;
 

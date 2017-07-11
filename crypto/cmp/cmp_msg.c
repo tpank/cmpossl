@@ -89,7 +89,8 @@ static int add_altname_extensions(X509_EXTENSIONS ** extensions,
 {
     X509_EXTENSION *ext = NULL;
     unsigned char *der = NULL;
-    ASN1_OCTET_STRING *str = NULL;;
+    ASN1_OCTET_STRING *str = NULL;
+    int dlen;
 
     if (!extensions)
         goto err;
@@ -99,11 +100,11 @@ static int add_altname_extensions(X509_EXTENSIONS ** extensions,
     if (!(str = ASN1_OCTET_STRING_new()))
         goto err;
 
-    int derLen = i2d_GENERAL_NAMES(altnames, &der);
-    if (derLen == 0 || der == NULL)
+    dlen = i2d_GENERAL_NAMES(altnames, &der);
+    if (dlen == 0 || der == NULL)
         goto err;
 
-    if (!ASN1_STRING_set(str, der, derLen))
+    if (!ASN1_STRING_set(str, der, dlen))
         goto err;
     if (!X509_EXTENSION_create_by_NID
         (&ext, NID_subject_alt_name, critical, str))
@@ -215,6 +216,7 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     X509_EXTENSIONS *extensions = NULL;
     X509_NAME *subject = NULL;
     EVP_PKEY *requestKey = NULL;
+    X509 *oldcert = NULL;
 
     if (!ctx || (!ctx->pkey && !ctx->newPkey) ) {
         CMPerr(CMP_F_CERTREQ_NEW, CMP_R_INVALID_ARGS);
@@ -231,7 +233,7 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
                 goto err;
     }
 
-    (void)CMP_CTX_set1_transactionID(ctx, NULL); // start new transaction
+    (void)CMP_CTX_set1_transactionID(ctx, NULL); /* start new transaction */
     if (!(msg = CMP_PKIMESSAGE_new()))
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))
@@ -247,7 +249,7 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
         if (!CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs))
             goto err;
 
-    X509 *oldcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
+    oldcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
     if (ctx->subjectName)
         subject = ctx->subjectName;
     else if (oldcert && (bodytype == V_CMP_PKIBODY_KUR ||
@@ -269,7 +271,7 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
 
     if (!(msg->body->value.ir = sk_CRMF_CERTREQMSG_new_null()))
         goto err;
-    requestKey = ctx->newPkey ? ctx->newPkey : ctx->pkey; // default is current client key
+    requestKey = ctx->newPkey ? ctx->newPkey : ctx->pkey; /* default is current client key */
     if (!(certReq0 = CRMF_certreq_new(0L, requestKey, subject, ctx->issuer, 0, 0, extensions)))
         goto err;
     sk_CRMF_CERTREQMSG_push(msg->body->value.ir, certReq0);
@@ -362,12 +364,12 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
         return NULL;
     }
 
-    (void)CMP_CTX_set1_transactionID(ctx, NULL); // start new transaction
+    (void)CMP_CTX_set1_transactionID(ctx, NULL); /* start new transaction */
     if (!(msg = CMP_PKIMESSAGE_new()))
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))
         goto err;
-    if (!ctx->srvCert && !ctx->recipient && !ctx->issuer) // set default recipient
+    if (!ctx->srvCert && !ctx->recipient && !ctx->issuer) /* set default recipient */
         if (!CMP_PKIHEADER_set1_recipient(msg->header, X509_get_issuer_name(ctx->oldClCert)))
             goto err;
     CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_RR);
@@ -400,10 +402,12 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
 
     /* revocation reason code is optional */
     if (ctx->revocationReason != CRL_REASON_NONE) {
-        ASN1_ENUMERATED *val = ASN1_ENUMERATED_new();
+        ASN1_ENUMERATED *val;
+        X509_EXTENSION *ext;
+        val = ASN1_ENUMERATED_new();
         if (!val || !ASN1_ENUMERATED_set(val, ctx->revocationReason))
             goto err;
-        X509_EXTENSION *ext = X509_EXTENSION_create_by_NID(NULL, NID_crl_reason, 0, val);
+        ext = X509_EXTENSION_create_by_NID(NULL, NID_crl_reason, 0, val);
         if (!ext || !X509v3_add_ext(&rd->crlEntryDetails, ext, -1))
             goto err;
         X509_EXTENSION_free(ext);
@@ -500,7 +504,7 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
         return NULL;
     }
 
-    (void)CMP_CTX_set1_transactionID(ctx, NULL); // start new transaction
+    (void)CMP_CTX_set1_transactionID(ctx, NULL); /* start new transaction */
     if (!(msg = CMP_PKIMESSAGE_new()))
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))

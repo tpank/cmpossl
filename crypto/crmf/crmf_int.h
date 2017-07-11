@@ -6,6 +6,7 @@
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
+# include <openssl/crmf.h>
 
 # ifdef  __cplusplus
 extern "C" {
@@ -62,11 +63,10 @@ CertId ::= SEQUENCE {
  issuer                   GeneralName,
  serialNumber     INTEGER }
  */
-typedef struct crmf_certid_st {
+struct crmf_certid_st {
     GENERAL_NAME *issuer;
     ASN1_INTEGER *serialNumber;
-} CRMF_CERTID;
-DECLARE_ASN1_FUNCTIONS(CRMF_CERTID)
+} /* CRMF_CERTID */;
 DEFINE_STACK_OF(CRMF_CERTID)
 
 
@@ -134,10 +134,10 @@ pubInfos  SEQUENCE SIZE (1..MAX) OF SinglePubInfo OPTIONAL }
   -- (if action is "pleasePublish" and pubInfos is omitted,
   -- "dontCare" is assumed)
 */
-typedef struct crmf_pkipublicationinfo_st {
+struct crmf_pkipublicationinfo_st {
     ASN1_INTEGER *action;
     CRMF_SINGLEPUBINFO *pubinfos;
-} CRMF_PKIPUBLICATIONINFO;
+} /* CRMF_PKIPUBLICATIONINFO */;
 DECLARE_ASN1_FUNCTIONS(CRMF_PKIPUBLICATIONINFO)
 CRMF_PKIPUBLICATIONINFO *CRMF_PKIPUBLICATIONINFO_dup(CRMF_PKIPUBLICATIONINFO *pkiPubInfo);
 
@@ -200,12 +200,12 @@ PBMParameter ::= SEQUENCE {
    -- the MAC AlgId (e.g., DES-MAC, Triple-DES-MAC [PKCS11],
 }       -- or HMAC [HMAC, RFC2202])
 */
-typedef struct crmf_pbmparameter_st {
+struct crmf_pbmparameter_st {
     ASN1_OCTET_STRING *salt;
     X509_ALGOR *owf;
     ASN1_INTEGER *iterationCount;
     X509_ALGOR *mac;
-} CRMF_PBMPARAMETER;
+} /* CRMF_PBMPARAMETER */;
 DECLARE_ASN1_FUNCTIONS(CRMF_PBMPARAMETER)
 
 /*
@@ -242,11 +242,11 @@ POPOSigningKey ::= SEQUENCE {
  algorithmIdentifier   AlgorithmIdentifier,
  signature                         BIT STRING }
  */
-    typedef struct crmf_poposigningkey_st {
+struct crmf_poposigningkey_st {
     CRMF_POPOSIGNINGKEYINPUT *poposkInput;
     X509_ALGOR *algorithmIdentifier;
     ASN1_BIT_STRING *signature;
-} CRMF_POPOSIGNINGKEY;
+} /* CRMF_POPOSIGNINGKEY */;
 DECLARE_ASN1_FUNCTIONS(CRMF_POPOSIGNINGKEY)
 
 /*
@@ -278,10 +278,10 @@ OptionalValidity ::= SEQUENCE {
  notBefore      [0] Time OPTIONAL,
  notAfter       [1] Time OPTIONAL } -- at least one MUST be present
  */
-typedef struct crmf_optionalvalidity_st {
+struct crmf_optionalvalidity_st {
     ASN1_TIME *notBefore;   /* 0 */
     ASN1_TIME *notAfter;    /* 1 */
-} CRMF_OPTIONALVALIDITY;
+} /* CRMF_OPTIONALVALIDITY */;
 DECLARE_ASN1_FUNCTIONS(CRMF_OPTIONALVALIDITY)
 
 /*
@@ -290,17 +290,17 @@ CertRequest ::= SEQUENCE {
  certTemplate  CertTemplate,  -- Selected fields of cert to be issued
  controls          Controls OPTIONAL }   -- Attributes affecting issuance
  */
-typedef struct crmf_certrequest_st {
+struct crmf_certrequest_st {
     ASN1_INTEGER *certReqId;
     CRMF_CERTTEMPLATE *certTemplate;
     /* TODO: make CRMF_CONTROLS out of that - but only cosmetical */
     STACK_OF (CRMF_ATTRIBUTETYPEANDVALUE) * controls;
-} CRMF_CERTREQUEST;
+} /* CRMF_CERTREQUEST */;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTREQUEST)
 CRMF_CERTREQUEST *CRMF_CERTREQUEST_dup(CRMF_CERTREQUEST *atav);
 
 /* TODO: isn't there a better way to have this for ANY type? */
-typedef struct crmf_attributetypeandvalue_st {
+struct crmf_attributetypeandvalue_st {
     ASN1_OBJECT *type;
     union {
         /* NID_id_regCtrl_regToken */
@@ -329,30 +329,27 @@ typedef struct crmf_attributetypeandvalue_st {
 
         ASN1_TYPE *other;
     } value;
-} CRMF_ATTRIBUTETYPEANDVALUE;
+} /* CRMF_ATTRIBUTETYPEANDVALUE */;
 DECLARE_ASN1_FUNCTIONS(CRMF_ATTRIBUTETYPEANDVALUE)
 DEFINE_STACK_OF(CRMF_ATTRIBUTETYPEANDVALUE)
 CRMF_ATTRIBUTETYPEANDVALUE *CRMF_ATTRIBUTETYPEANDVALUE_dup(CRMF_ATTRIBUTETYPEANDVALUE *atav);
 
-/*
-CertReqMessages ::= SEQUENCE SIZE (1..MAX) OF CertReqMsg
+    /*
+    CertReqMessages ::= SEQUENCE SIZE (1..MAX) OF CertReqMsg
 
-CertReqMsg ::= SEQUENCE {
- certReq   CertRequest,
- popo           ProofOfPossession  OPTIONAL,
- -- content depends upon key type
- regInfo   SEQUENCE SIZE(1..MAX) OF AttributeTypeAndValue OPTIONAL }
- */
-typedef struct crmf_certreqmsg_st {
+    CertReqMsg ::= SEQUENCE {
+     certReq   CertRequest,
+     popo           ProofOfPossession  OPTIONAL,
+     -- content depends upon key type
+     regInfo   SEQUENCE SIZE(1..MAX) OF AttributeTypeAndValue OPTIONAL }
+     */
+struct crmf_certreqmsg_st {
     CRMF_CERTREQUEST *certReq;
     CRMF_PROOFOFPOSSESION *popo; /* 0 */
     STACK_OF (CRMF_ATTRIBUTETYPEANDVALUE) * regInfo; /* 1 */
-} CRMF_CERTREQMSG;
+} /* CRMF_CERTREQMSG */;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTREQMSG)
-// DEFINE_STACK_OF(CRMF_CERTREQMSG)
-
-typedef STACK_OF(CRMF_CERTREQMSG) CRMF_CERTREQMESSAGES;
-DECLARE_ASN1_FUNCTIONS(CRMF_CERTREQMESSAGES)
+/* DEFINE_STACK_OF(CRMF_CERTREQMSG) */
 
 
 # ifdef  __cplusplus

@@ -227,6 +227,8 @@ static int send_receive_check(CMP_CTX *ctx,
                         const CMP_PKIMESSAGE *req, const char *type_string, int type_function,
                               CMP_PKIMESSAGE **rep, int type_rep, int not_received)
 {
+    int rcvd_type;
+
     CMP_printf(ctx, "INFO: Sending %s", type_string);
     if (!(CMP_PKIMESSAGE_http_perform(ctx, req, rep))) {
         ADD_HTTP_ERROR_INFO(type_function, not_received, type_string);
@@ -234,7 +236,7 @@ static int send_receive_check(CMP_CTX *ctx,
         return 0;
     }
 
-    int rcvd_type = CMP_PKIMESSAGE_get_bodytype(*rep);
+    rcvd_type = CMP_PKIMESSAGE_get_bodytype(*rep);
 
     CMP_printf(ctx, "INFO: Got response");
 
@@ -435,7 +437,8 @@ static int exchange_error(CMP_CTX *ctx, int status, int failure, const char *tex
  * ############################################################################ */
 static int save_certresponse_statusInfo(CMP_CTX *ctx, CMP_CERTRESPONSE *resp)
 {
-    int i = 0;
+    int i;
+    STACK_OF (ASN1_UTF8STRING) *ss;
 
     if (!resp)
         return 0;
@@ -447,7 +450,7 @@ static int save_certresponse_statusInfo(CMP_CTX *ctx, CMP_CERTRESPONSE *resp)
         !(ctx->lastStatusString = sk_ASN1_UTF8STRING_new_null()))
         return 0;
 
-    STACK_OF (ASN1_UTF8STRING) *ss = CMP_CERTRESPONSE_PKIStatusString_get0(resp);
+    ss = CMP_CERTRESPONSE_PKIStatusString_get0(resp);
     for (i = 0; i < sk_ASN1_UTF8STRING_num(ss); i++) {
         ASN1_UTF8STRING *str = sk_ASN1_UTF8STRING_value(ss, i);
         if (!sk_ASN1_UTF8STRING_push(ctx->lastStatusString,
@@ -468,11 +471,16 @@ static int cert_response(CMP_CTX *ctx,
                          CMP_PKIMESSAGE **resp,
                          int type_function, int not_received)
 {
- retry: ;
-    CMP_CERTREPMESSAGE *body = (*resp)->body->value.ip; /* same for cp and kup */
+    int failure = -1; /* no failure */
+    const char *text = NULL;
+    CMP_CERTREPMESSAGE *body;
+    CMP_CERTRESPONSE *crep;
+
+ retry:
+    body = (*resp)->body->value.ip; /* same for cp and kup */
 
     /* TODO handle multiple CertResponses in CertRepMsg (in case multiple requests have been sent) */
-    CMP_CERTRESPONSE *crep = CMP_CERTREPMESSAGE_certResponse_get0(body, 0);
+    crep = CMP_CERTREPMESSAGE_certResponse_get0(body, 0);
     if (!crep)
         return 0;
 
@@ -504,8 +512,6 @@ static int cert_response(CMP_CTX *ctx,
     if ((*resp)->extraCerts)
         CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts);
 
-    int failure = -1; /* no failure */
-    const char *text = NULL;
     /* TODO: possibly check also subject and other fields of the newly enrolled cert */
     if (!(X509_check_private_key(ctx->newClCert, ctx->newPkey ? ctx->newPkey : ctx->pkey))) {
         failure = CMP_PKIFAILUREINFO_incorrectData;
@@ -627,7 +633,7 @@ int CMP_doRevocationRequestSeq(CMP_CTX *ctx)
         break;
     case CMP_PKISTATUS_rejection:
         CMP_printf(ctx, "INFO: revocation rejected (PKIStatus=rejection)");
-        puts("warning: certificate has already been revoked"); // TODO: add proper warning function
+        puts("warning: certificate has already been revoked"); /* TODO: add proper warning function */
         break;
     case CMP_PKISTATUS_revocationWarning:
         CMP_printf(ctx,

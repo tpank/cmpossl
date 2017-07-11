@@ -1777,7 +1777,7 @@ static int save_certs(STACK_OF(X509) *certs, char *destFile, char *desc)
 
 static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs) {
     CMP_INFOTYPEANDVALUE *itav = NULL;
-    int n;
+    int n, i;
 
     n = sk_CMP_INFOTYPEANDVALUE_num(itavs); /* itavs == NULL leads to 0 */
     if (n == 0) {
@@ -1785,7 +1785,7 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs) {
         return;
     }
 
-    for (int i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {
         char buf[128];
         itav = sk_CMP_INFOTYPEANDVALUE_value(itavs, i);
         OBJ_obj2txt(buf, 128, CMP_INFOTYPEANDVALUE_get0_type(itav), 0);

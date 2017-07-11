@@ -561,6 +561,9 @@ int CMP_CTX_extraCertsOut_push1(CMP_CTX *ctx, const X509 *val)
  * load all the intermediate certificates from the given stack into untrusted_store
  * returns 1 on success, 0 on error
  * ############################################################################ */
+/* TODO: factor out overlap with cmp_vfy.c's
+ * static X509_STORE *createTempTrustedStore(STACK_OF (X509) * stack)
+ */
 int CMP_CTX_loadUntrustedStack(CMP_CTX *ctx, STACK_OF (X509) * stack)
 {
     int i;
@@ -576,7 +579,7 @@ int CMP_CTX_loadUntrustedStack(CMP_CTX *ctx, STACK_OF (X509) * stack)
             goto err;
 
         /* don't add self-signed certs here */
-        if (X509_check_issued(cert, cert) != X509_V_OK) // use of X509_verify(cert, pubkey) was inefficient and caused misleading error logs
+        if (X509_check_issued(cert, cert) != X509_V_OK)
             X509_STORE_add_cert(ctx->untrusted_store, cert);  /* don't fail as adding existing certificate to store would cause error */
     }
 
@@ -1201,7 +1204,7 @@ int CMP_CTX_set_digest(CMP_CTX *ctx, int digest)
  * sets the timeout for the (HTTP) transport mechanism
  * returns 1 on success, 0 on error
  * ################################################################ */
-// TODO better replace by, e.g., CMP_CTX_set_option(ctx, CMP_CTX_OPT_HTTP_TIMEOUT, time)
+/* TODO better replace by, e.g., CMP_CTX_set_option(ctx, CMP_CTX_OPT_HTTP_TIMEOUT, time) */
 int CMP_CTX_set_HttpTimeOut(CMP_CTX *ctx, int time)
 {
     if (!ctx)

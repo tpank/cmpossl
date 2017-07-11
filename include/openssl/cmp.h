@@ -438,8 +438,8 @@ int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
 int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO * failInfo);
 unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
 STACK_OF(ASN1_UTF8STRING) * CMP_CTX_statusString_get(CMP_CTX *ctx);
-# define CMP_CTX_OPT_UNSET                      0 // unused
-# define CMP_CTX_OPT_SET                        1 // unused
+# define CMP_CTX_OPT_UNSET                      0 /* unused */
+# define CMP_CTX_OPT_SET                        1 /* unused */
 # define CMP_CTX_OPT_IMPLICITCONFIRM            2
 # define CMP_CTX_OPT_POPMETHOD                  3
 # define CMP_CTX_OPT_MAXPOLLTIME                4

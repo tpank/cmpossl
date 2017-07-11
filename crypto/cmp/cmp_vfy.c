@@ -98,7 +98,7 @@ static int CMP_verify_signature(CMP_PKIMESSAGE *msg, X509 *cert)
     if (!msg || !cert)
         return 0;
 
-    // TODO: verify that keyUsage, if present, contains digitalSignature
+    /* TODO: verify that keyUsage, if present, contains digitalSignature */
 
     pubkey = X509_get_pubkey((X509 *)cert);
     if (!pubkey)
@@ -303,7 +303,7 @@ static X509 *findSrvCert(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 #endif
     }
 
-    OPENSSL_free(obj); // do not use X509_OBJECT_free(obj), as this would free the cert
+    OPENSSL_free(obj); /* do not use X509_OBJECT_free(obj), as this would free the cert */
     X509_STORE_CTX_free(csc);
     if (srvCert)
         return srvCert;
@@ -366,6 +366,9 @@ static X509 *findSrvCert(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
  * Creates a new certificate store and adds all the self-signed certificates from
  * the given stack to the store.
  * ############################################################################ */
+/* TODO: factor out overlap with cmp_ctx.c's
+ * int CMP_CTX_loadUntrustedStack(CMP_CTX *ctx, STACK_OF (X509) * stack)
+ */
 static X509_STORE *createTempTrustedStore(STACK_OF (X509) * stack)
 {
     X509_STORE *store = X509_STORE_new();
@@ -377,7 +380,7 @@ static X509_STORE *createTempTrustedStore(STACK_OF (X509) * stack)
     for (i = 0; i < sk_X509_num(stack); i++) {
         X509 *cert = sk_X509_value(stack, i);
 
-        if (X509_check_issued(cert, cert) == X509_V_OK) // use of X509_verify(cert, pubkey) was inefficient and caused misleading error logs
+        if (X509_check_issued(cert, cert) == X509_V_OK)
             X509_STORE_add_cert(store, cert);
     }
 

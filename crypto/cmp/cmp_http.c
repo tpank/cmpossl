@@ -115,20 +115,20 @@ static void print_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
         add_error_data(ERR_reason_error_string(errdetail));
 
         switch(ERR_GET_REASON(errdetail)) {
-    //  case 0x1408F10B: // xSL_F_SSL3_GET_RECORD
+    /*  case 0x1408F10B: */ /* xSL_F_SSL3_GET_RECORD */
         case SSL_R_WRONG_VERSION_NUMBER:
-    //  case 0x140770FC: // xSL_F_SSL23_GET_SERVER_HELLO
+    /*  case 0x140770FC: */ /* xSL_F_SSL23_GET_SERVER_HELLO */
         case SSL_R_UNKNOWN_PROTOCOL:
             add_error_data("The server does not support (a recent version of) TLS");
             break;
-    //  case 0x1407E086: // xSL_F_SSL3_GET_SERVER_HELLO
-    //  case 0x1409F086: // xSL_F_SSL3_WRITE_PENDING
-    //  case 0x14090086: // xSL_F_SSL3_GET_SERVER_CERTIFICATE
-    //  case 0x1416F086: // xSL_F_TLS_PROCESS_SERVER_CERTIFICATE
+    /*  case 0x1407E086: */ /* xSL_F_SSL3_GET_SERVER_HELLO */
+    /*  case 0x1409F086: */ /* xSL_F_SSL3_WRITE_PENDING */
+    /*  case 0x14090086: */ /* xSL_F_SSL3_GET_SERVER_CERTIFICATE */
+    /*  case 0x1416F086: */ /* xSL_F_TLS_PROCESS_SERVER_CERTIFICATE */
         case SSL_R_CERTIFICATE_VERIFY_FAILED:
             add_error_data("Cannot authenticate the server via its TLS certificate; hint: verify the trusted TLS certs");
             break;
-    //  case 0x14094418: // xSL_F_SSL3_READ_BYTES
+    /*  case 0x14094418: */ /* xSL_F_SSL3_READ_BYTES */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
         case SSL_R_TLSV1_ALERT_UNKNOWN_CA:
 #else
@@ -142,8 +142,8 @@ static void print_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
     }
 }
 
-// one declaration and three defines copied from ocsp_ht.c; keep in sync!
-struct ocsp_req_ctx_st { // dummy declaration to get access to internal state variable
+/* one declaration and three defines copied from ocsp_ht.c; keep in sync! */
+struct ocsp_req_ctx_st { /* dummy declaration to get access to internal state variable */
     int state;                  /* Current I/O state */
     unsigned char *iobuf;       /* Line buffer */
     int iobuflen;               /* Line buffer length */
@@ -153,7 +153,7 @@ struct ocsp_req_ctx_st { // dummy declaration to get access to internal state va
 #define OHS_NOREAD              0x1000
 #define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
 
-// adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c - TODO: generalize the function there
+/* adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c - TODO: generalize the function there */
 static int OCSP_REQ_CTX_i2d_hdr(OCSP_REQ_CTX *rctx, const char *req_hdr, const ASN1_ITEM *it, ASN1_VALUE *val)
 {
     int reqlen = ASN1_item_i2d(val, NULL, it);
@@ -179,17 +179,17 @@ static int CMP_new_http_bio(CMPBIO ** bio, const CMP_CTX *ctx)
         goto err;
 
     if (!ctx->proxyName || !ctx->proxyPort) {
+        char buf[32];
         cbio = BIO_new_connect(ctx->serverName);
         if (!cbio)
             goto err;
-        char buf[32];
         snprintf(buf, sizeof(buf), "%d", ctx->serverPort);
         BIO_set_conn_port(cbio, buf);
     } else {
+        char buf[32];
         cbio = BIO_new_connect(ctx->proxyName);
         if (!cbio)
             goto err;
-        char buf[32];
         snprintf(buf, sizeof(buf), "%d", ctx->proxyPort);
         BIO_set_conn_port(cbio, buf);
     }
@@ -241,8 +241,8 @@ static int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
                                  ASN1_ITEM_rptr(CMP_PKIMESSAGE));
 }
 
-// returns 0 on send error, else returns the received message (or NULL on result parse error) via the *out argument
-// TODO respect ctx->HttpTimeOut
+/* returns 0 on send error, else returns the received message (or NULL on result parse error) via the *out argument */
+/* TODO respect ctx->HttpTimeOut */
 static int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **out)
 {
     OCSP_REQ_CTX *ctx;
@@ -282,6 +282,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     size_t pos = 0, pathlen = 0;
     CMPBIO *cbio = NULL;
     CMPBIO *hbio = NULL;
+    int err = CMP_R_SERVER_NOT_REACHABLE;
 
     if (!ctx || !msg || !out) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
@@ -303,7 +304,6 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     if (ctx->HttpTimeOut != 0)
         BIO_set_nbio(cbio, 1);
 
-    int err = CMP_R_SERVER_NOT_REACHABLE;
     rv = BIO_do_connect(cbio);
     if (rv <= 0 && (ctx->HttpTimeOut == -1 || !BIO_should_retry(cbio))) {
         /* Error connecting */
@@ -324,7 +324,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         tv.tv_sec = ctx->HttpTimeOut;
         rv = select(fd + 1, NULL, (void *)&confds, NULL, &tv);
         if (rv == 0) {
-            // Timed out
+            /* Timed out */
             CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM,
                    CMP_R_SERVER_NOT_REACHABLE);
             goto err;
@@ -334,7 +334,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     pathlen = strlen(ctx->serverName) + strlen(ctx->serverPath) + 33;
     path = (char *)OPENSSL_malloc(pathlen);
     if (!path)
-        goto err; // is CMP_R_SERVER_NOT_REACHABLE the right error to return?
+        goto err; /* is CMP_R_SERVER_NOT_REACHABLE the right error to return? */
 
 
     /* Section 5.1.2 of RFC 1945 states that the absoluteURI form is only
