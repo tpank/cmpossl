@@ -74,7 +74,7 @@ char *prog = "cmp";
 static CONF *conf = NULL;       /* OpenSSL config file context structure */
 static BIO *bio_c_out = NULL;   /* OpenSSL BIO for printing to STDOUT */
 
-// a copy from apps.c just for visibility reasons, TODO DvO remove when setup_engine_no_default() has been integrated
+/* a copy from apps.c just for visibility reasons, TODO DvO remove when setup_engine_no_default() has been integrated */
 #ifndef OPENSSL_NO_ENGINE
 /* Try to load an engine in a shareable library */
 static ENGINE *try_load_engine(const char *engine)
@@ -94,7 +94,7 @@ static ENGINE *try_load_engine(const char *engine)
 static UI_METHOD *ui_method = NULL;
 #endif
 
-// an adapted copy of setup_engine() from apps.c, TODO DvO integrate there
+/* an adapted copy of setup_engine() from apps.c, TODO DvO integrate there */
 static ENGINE *setup_engine_no_default(const char *engine, int debug)
 {
     ENGINE *e = NULL;
@@ -138,7 +138,7 @@ typedef enum { CMP_IR,
     CMP_KUR,
     CMP_CR,
     CMP_RR,
-    CMP_GENM,
+    CMP_GENM
 } cmp_cmd_t;
 
 static char *opt_server = NULL;
@@ -180,7 +180,7 @@ static char *opt_keyform_s = "PEM";
 static char *opt_certform_s = "PEM";
 static int opt_keyform = FORMAT_PEM;
 static int opt_certform = FORMAT_PEM;
-static int opt_crlform = FORMAT_PEM; // default to be tried first for file input; TODO maybe add cmd line arg
+static int opt_crlform = FORMAT_PEM; /* default to be tried first for file input; TODO maybe add cmd line arg */
 
 static char *opt_extcerts = NULL;
 static char *opt_subject = NULL;
@@ -303,9 +303,9 @@ typedef enum OPTION_choice {
     OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
     OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
     OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
-    OPT_KEYFORM, OPT_CERTFORM, OPT_INFOTYPE, OPT_GENINFO,
+    OPT_KEYFORM, OPT_CERTFORM, OPT_INFOTYPE, OPT_GENINFO
 #ifndef OPENSSL_NO_ENGINE
-    OPT_ENGINE,
+   ,OPT_ENGINE
 #endif
 } OPTION_CHOICE;
 
@@ -313,7 +313,7 @@ typedef enum OPTION_choice {
 const
 #endif
 OPTIONS cmp_options[] = {
-    // OPTION_CHOICE values must be in the same order as enumerated above!!
+    /* OPTION_CHOICE values must be in the same order as enumerated above!! */
     {"help", OPT_HELP, '-', "Display this summary"},
     {"section", OPT_SECTION, 's', "Name of section in OpenSSL config file defining cmp default options. Default 'cmp'"},
 
@@ -344,7 +344,7 @@ OPTIONS cmp_options[] = {
     {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates.\n"
                  "\t\t       URL may point to local file if prefixed by 'file:'"},
     {"crl_download", OPT_CDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source"},
-    OPT_V_OPTIONS, // subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for leaf certificate but for full certificate chain"},
+    OPT_V_OPTIONS, /* subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for leaf certificate but for full certificate chain"}, */
 
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given.\n"
                            "\t\t       If both are not set, the recipient defaults to the -issuer argument.\n"
@@ -396,7 +396,7 @@ typedef union {
     int *num;
     long *num_long;
 } varref;
-static varref cmp_vars[]= { // must be in the same order as enumerated above!!
+static varref cmp_vars[]= { /* must be in the same order as enumerated above!! */
     {&opt_section},
     {&opt_server}, {&opt_proxy},
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
@@ -447,17 +447,19 @@ static int read_config()
     unsigned int i, j;
     long num = 0;
     char *txt = NULL;
+    const OPTIONS *opt;
+    int verification_option;
 
-    // starting with 1 and OPT_HELP+1 because OPT_SECTION has already been handled
+    /* starting with 1 and OPT_HELP+1 because OPT_SECTION has already been handled */
     for (i = 1, j = OPT_HELP+1; j < sizeof(cmp_options)/sizeof(cmp_options[0]) - 1; i++, j++) {
         if (cmp_vars[i].txt == NULL) {
             BIO_printf(bio_err, "internal error: cmp_vars array too short, i=%d\n", i);
             return 0;
         }
-        int verification_option = (OPT_CDPS <= j && j < OPT_CDPS + OPT_V__LAST-OPT_V__FIRST-1); /* OPT_CRLALL etc. */
+        verification_option = (OPT_CDPS <= j && j < OPT_CDPS + OPT_V__LAST-OPT_V__FIRST-1); /* OPT_CRLALL etc. */
         if (verification_option)
             i--;
-        const OPTIONS *opt = &cmp_options[j];
+        opt = &cmp_options[j];
         switch (opt->valtype) {
         case '-':
         case 'n':
@@ -484,7 +486,7 @@ static int read_config()
             char *conf_argv[3];
             char arg1[82];
             snprintf(arg1, 81, "-%s", (char *)opt->name);
-            conf_argv[0] = ""; // dummy prog name
+            conf_argv[0] = ""; /* dummy prog name */
             conf_argv[1] = arg1;
             if (opt->valtype == '-') {
                 if (num != 0)
@@ -772,7 +774,7 @@ X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass,
 #endif
 
 /* TODO dvo: push that separately upstream with the autofmt options */
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L // compatibility declarations
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L /* compatibility declarations */
 static STACK_OF(X509) *load_certs_(const char *file, int format,
                            const char *pass, const char *desc)
 {
@@ -807,18 +809,18 @@ static int adjust_format(const char **infile, int format, int engine_ok) {
     else {
         if (strncmp(*infile, "file:", 5) == 0)
             *infile += 5;
-        // the following is a heuristic whether first to try PEM or DER or PKCS12 as the input format for files
+        /* the following is a heuristic whether first to try PEM or DER or PKCS12 as the input format for files */
         if (strlen(*infile) >= 4) {
             char *extension = (char *)(*infile + strlen(*infile) - 4);
-            if (strncmp(extension, ".pem", 4) == 0) // weak recognition of PEM format
+            if (strncmp(extension, ".pem", 4) == 0) /* weak recognition of PEM format */
                 format = FORMAT_PEM;
             else if (strncmp(extension, ".der", 4) == 0 ||
                      strncmp(extension, ".crt", 4) == 0 ||
-                     strncmp(extension, ".crl", 4) == 0) // weak recognition of DER format
+                     strncmp(extension, ".crl", 4) == 0) /* weak recognition of DER format */
                 format = FORMAT_ASN1;
-            else if (strncmp(extension, ".p12", 4) == 0) // weak recognition of PKCS#12 format
+            else if (strncmp(extension, ".p12", 4) == 0) /* weak recognition of PKCS#12 format */
                 format = FORMAT_PKCS12;
-            // else retain given format
+            /* else retain given format */
         }
     }
     return format;
@@ -843,10 +845,11 @@ static char *get_passwd(const char *pass, const char *desc) {
 /* TODO dvo: push that separately upstream */
 /* in apps.c there is load_key which should be used for CMP upstream submission */
 static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, ENGINE *e, const char *desc) {
-    // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
+    EVP_PKEY *pkey;
+    /* BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile); */
     char *pass_string = get_passwd(pass, desc);
     format = adjust_format(&infile, format, 1);
-    EVP_PKEY *pkey = load_key(bio_err, infile, format, 0, pass_string, e, desc);
+    pkey = load_key(bio_err, infile, format, 0, pass_string, e, desc);
     if (pkey == NULL && format != FORMAT_HTTP && format != FORMAT_ENGINE)
         pkey = load_key(bio_err, infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, 0, pass_string, NULL, desc);
     if (!pkey) {
@@ -861,10 +864,11 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pa
 /* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_certs_fmt */
 static X509 *load_cert_autofmt(const char *infile, int *format, const char *pass, const char *desc) {
-    // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
+    X509 *cert;
+    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
     char *pass_string = get_passwd(pass, desc);
     *format = adjust_format(&infile, *format, 0);
-    X509 *cert = load_cert_corrected_pkcs12(infile, *format, pass_string, desc);
+    cert = load_cert_corrected_pkcs12(infile, *format, pass_string, desc);
     if (cert == NULL && *format != FORMAT_HTTP) {
         *format = (*format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
         cert = load_cert_corrected_pkcs12(infile, *format, pass_string, desc);
@@ -881,13 +885,14 @@ static X509 *load_cert_autofmt(const char *infile, int *format, const char *pass
 /* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_certs_autofmt */
 static STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char *desc) {
+    X509 *cert;
     if (format == FORMAT_PEM) {
         return load_certs(bio_err, infile, format, NULL, NULL, desc);
     } else {
         STACK_OF(X509) *certs = sk_X509_new_null();
         if (!certs)
             return NULL;
-        X509 *cert = load_cert(bio_err, infile, format, NULL, NULL, desc);
+        cert = load_cert(bio_err, infile, format, NULL, NULL, desc);
         if (!cert) {
             sk_X509_free(certs);
             return NULL;
@@ -900,9 +905,10 @@ static STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char
 /* TODO dvo: push that separately upstream */
 /* in apps.c there is load_certs which should be used for CMP upstream submission */
 static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const char *desc) {
-    // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
+    STACK_OF(X509) *certs;
+    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
-    STACK_OF(X509) *certs = load_certs_fmt(infile, format, desc);
+    certs = load_certs_fmt(infile, format, desc);
     if (certs == NULL)
         certs = load_certs_fmt(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, desc);
     if (!certs) {
@@ -915,9 +921,10 @@ static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const 
 /* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_crls_fmt */
 static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
-    // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
+    X509_CRL *crl;
+    /* BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
-    X509_CRL *crl = load_crl(infile, format);
+    crl = load_crl(infile, format);
     if (crl == NULL && format != FORMAT_HTTP)
         crl = load_crl(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
     return crl;
@@ -926,14 +933,15 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *de
 /* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_crls_autofmt */
 static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const char *desc) {
+    X509_CRL *crl;
     if (format == FORMAT_PEM) {
-        // BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile);
+        /* BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile); */
         return load_crls(bio_err, infile, format, NULL, NULL, desc);
     } else {
         STACK_OF(X509_CRL) *crls = sk_X509_CRL_new_null();
         if (!crls)
             return NULL;
-        X509_CRL *crl = load_crl_autofmt(infile, format, desc);
+        crl = load_crl_autofmt(infile, format, desc);
         if (!crl) {
             sk_X509_CRL_free(crls);
             return NULL;
@@ -946,8 +954,9 @@ static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const c
 /* TODO dvo: push that separately upstream */
 /* in apps.c there is load_crls which should be used for CMP upstream submission */
 static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, const char *desc) {
+    STACK_OF(X509_CRL) *crls;
     format = adjust_format(&infile, format, 0);
-    STACK_OF(X509_CRL) *crls = load_crls_fmt(infile, format, desc);
+    crls = load_crls_fmt(infile, format, desc);
     if (crls == NULL && format != FORMAT_HTTP)
         crls = load_crls_fmt(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, desc);
     if (!crls) {
@@ -965,11 +974,11 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, con
  */
 static X509_STORE *create_cert_store(const char *infile, const char *desc)
 {
-    // BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile);
+    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
     if (opt_certform != FORMAT_PEM)
         BIO_printf(bio_c_out, "warning: unsupported type '%s' for reading %s, trying PEM\n", opt_certform_s, desc);
 
-    // TODO: extend upstream setup_verify() to allow for further file formats, in particular PKCS12
+    /* TODO: extend upstream setup_verify() to allow for further file formats, in particular PKCS12 */
     X509_STORE *store = setup_verify(infile, NULL/* CApath */, 0/* noCAfile */, 0/* noCApath */);
     if (!store)
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, infile);
@@ -1020,7 +1029,7 @@ static X509_CRL *LOCAL_load_crl_crldp(STACK_OF(DIST_POINT) *crldp)
         DIST_POINT *dp = sk_DIST_POINT_value(crldp, i);
         urlptr = LOCAL_get_dp_url(dp);
         if (urlptr) {
-            // BIO_printf(bio_c_out, "Loading CRL via CDP entry in cert from URL '%s'\n", urlptr);
+            /* BIO_printf(bio_c_out, "Loading CRL via CDP entry in cert from URL '%s'\n", urlptr); */
             return load_crl_autofmt(urlptr, FORMAT_HTTP, "CRL via CDP entry in certificate");
         }
     }
@@ -1137,13 +1146,14 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 */
 static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert)
 {
-    int ok = 1;
+    int i, ok = 1;
+    X509_STORE *ts;
 
     X509_STORE *store = X509_STORE_new(); /* TODO copy ctx->untrusted_store,
     or add list of certs in it, which would be easier if it was a stack of certs */
     if (!store) {
     oom:
-        // BIO_puts(bio_err, "error: out of memory\n");
+        /* BIO_puts(bio_err, "error: out of memory\n"); */
         return CMP_PKIFAILUREINFO_systemFailure;
     }
 
@@ -1154,7 +1164,6 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert)
             goto oom;
         }
 
-        int i;
         for (i = 0; i < sk_X509_num(extraCertsIn); i++)
             if (!X509_STORE_add_cert(store, sk_X509_value(extraCertsIn, i))) {
                 sk_X509_pop_free(extraCertsIn, X509_free);
@@ -1163,7 +1172,7 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert)
             }
         sk_X509_pop_free(extraCertsIn, X509_free);
     }
-    X509_STORE *ts = CMP_CTX_get0_trustedStore(ctx);
+    ts = CMP_CTX_get0_trustedStore(ctx);
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #define X509_STORE_get0_param(store) (store->param)
 #endif
@@ -1208,6 +1217,8 @@ static int parse_server_and_port(char *opt_string)
  */
 static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 {
+    int certform;
+    STACK_OF(X509_CRL) *crls = NULL;
     if (!opt_server || !(server_port = parse_server_and_port(opt_server))) {
         BIO_puts(bio_err, "error: missing server address:port\n");
         goto err;
@@ -1304,15 +1315,12 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    STACK_OF(X509_CRL) *crls = NULL;
     if (opt_crls) {
         crls = load_crls_autofmt(opt_crls, opt_crlform, "CRL(s) for checking certificate revocation");
         if (!crls) {
             goto err;
         }
     }
-
-    int certform;
 
     if (opt_tls_trusted || opt_tls_host) {
         opt_use_tls = 1;
@@ -1329,11 +1337,16 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
     if (opt_use_tls) {
+        X509 *cert = NULL;
+        EVP_PKEY *pkey = NULL;
+        SSL_CTX *ssl_ctx;
+        BIO *sbio;
+
         /* initialize OpenSSL's SSL lib */
         OpenSSL_add_ssl_algorithms();
         SSL_load_error_strings();
 
-        SSL_CTX *ssl_ctx = SSL_CTX_new(SSLv23_client_method());
+        ssl_ctx = SSL_CTX_new(SSLv23_client_method());
         if (ssl_ctx == NULL) {
             goto err;
         }
@@ -1347,6 +1360,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
 
         if (opt_tls_trusted) {
+            X509_VERIFY_PARAM *param;
             X509_STORE *store;
             if (!(store=create_cert_store(opt_tls_trusted, "trusted TLS certificates"))) {
                 goto tls_err;
@@ -1355,7 +1369,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
 #if OPENSSL_VERSION_NUMBER >= 0x10002000
             /* enable and parameterize server hostname/IP address check */
-            X509_VERIFY_PARAM *param = SSL_CTX_get0_param(ssl_ctx);
+            param = SSL_CTX_get0_param(ssl_ctx);
             X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT|X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
             const char *host = opt_tls_host ? opt_tls_host : opt_server;
             if (isdigit(host[0]))
@@ -1386,7 +1400,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                     goto tls_err;
                 }
             } else {
-                X509 *cert = NULL;
                 /* opt_tls_keypass is needed here in case opt_tls_cert is an encrypted PKCS#12 file */
                 if (!(cert=load_cert_autofmt(opt_tls_cert, &certform, opt_tls_keypass, "TLS client certificate"))) {
                     goto tls_err;
@@ -1396,10 +1409,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                     X509_free(cert);
                     goto tls_err;
                 }
-                X509_free(cert); // we don't need the handle any more
+                X509_free(cert); /* we don't need the handle any more */
+                cert = NULL;
             }
 
-            EVP_PKEY *pkey = load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass, e, "TLS client private key");
+            pkey = load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass, e, "TLS client private key");
             if (opt_tls_keypass) {
                 OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
                 opt_tls_keypass = NULL;
@@ -1409,18 +1423,18 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             if (SSL_CTX_use_PrivateKey(ssl_ctx, pkey) <= 0) { 
                 BIO_printf(bio_err, "error: unable to use TLS client private key '%s'\n", opt_tls_key);
                 EVP_PKEY_free(pkey);
+                pkey = NULL; /* otherwise, for some reason double free! */
                 goto tls_err;
             }
-            EVP_PKEY_free(pkey); // we don't need the handle any more
-
-            // verify the key matches the cert
+            EVP_PKEY_free(pkey); /* we don't need the handle any more */
+            /* verify the key matches the cert */
             if (!SSL_CTX_check_private_key(ssl_ctx)) {
                 BIO_printf(bio_err, "error: TLS private key '%s' does not match the TLS certificate '%s'\n", opt_tls_key, opt_tls_cert);
                 goto tls_err;
             }
         }
 
-        BIO *sbio = BIO_new_ssl(ssl_ctx, 1);
+        sbio = BIO_new_ssl(ssl_ctx, 1);
         SSL_CTX_free(ssl_ctx);
         ssl_ctx = NULL;
         if (!sbio) {
@@ -1516,7 +1530,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         X509_free(srvcert);
     }
 
-    if (crls) { // will be freed by CMP_CTX_delete()
+    if (crls) { /* will be freed by CMP_CTX_delete() */
         CMP_CTX_set0_crls(ctx, crls);
     }
 
@@ -1654,6 +1668,12 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         CMP_CTX_set_option(ctx, CMP_CTX_OPT_REVOCATION_REASON, opt_revreason);
 
     if (opt_geninfo) {
+        long value;
+        ASN1_OBJECT *type;
+        ASN1_INTEGER *aint;
+        ASN1_TYPE *val;
+        CMP_INFOTYPEANDVALUE *itav;
+        char *endstr;
         char *valptr = strchr(opt_geninfo, ':');
         if (!valptr) {
             BIO_puts(bio_err, "error: missing ':' in -geninfo option\n");
@@ -1668,33 +1688,31 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
         valptr += 4;
 
-        char *endstr;
-        long value = strtol(valptr, &endstr, 10);
+        value = strtol(valptr, &endstr, 10);
         if (endstr == valptr || *endstr) {
             BIO_puts(bio_err, "error: cannot parse integer in -geninfo option\n");
             goto err;
         }
 
-        ASN1_OBJECT *type = OBJ_txt2obj(opt_geninfo, 1);
+        type = OBJ_txt2obj(opt_geninfo, 1);
         if (!type) {
             BIO_puts(bio_err, "error: cannot parse OID in -geninfo option\n");
             goto err;
         }
 
-        ASN1_INTEGER *aint = ASN1_INTEGER_new();
+        aint = ASN1_INTEGER_new();
         if (!aint || !ASN1_INTEGER_set(aint, value)) {
-            ASN1_INTEGER_free(aint);
             goto err;
         }
 
-        ASN1_TYPE *val = ASN1_TYPE_new();
+        val = ASN1_TYPE_new();
         if (!val) {
             ASN1_INTEGER_free(aint);
             goto err;
         }
         ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
 
-        CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(type, val);
+        itav = CMP_ITAV_new(type, val);
         if (!itav) {
             ASN1_TYPE_free(val);
             goto err;
@@ -1805,7 +1823,7 @@ int cmp_main(int argc, char **argv)
     char *tofree = NULL;        /* used as getenv returns a direct pointer to 
                                  * the environment setting */
     int badops = 0;
-    int ret = 1;
+    int i, ret = 1;
     CMP_CTX *cmp_ctx = NULL;
     X509 *newcert = NULL;
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -1825,7 +1843,7 @@ int cmp_main(int argc, char **argv)
 
     bio_c_out = BIO_new_fp(stdout, BIO_NOCLOSE);
 
-    int i; // must handle OPT_SECTION upfront to take effect for all other args
+    /* must handle OPT_SECTION upfront to take effect for all other args */
     for (i = argc-2; i >= 0; i--)
         if (argv[i][0] == '-' && !strcmp(argv[i]+1, cmp_options[OPT_SECTION-OPT_HELP].name)) {
             opt_section = argv[i+1];
@@ -1886,13 +1904,13 @@ int cmp_main(int argc, char **argv)
         case OPT_EOF:
         case OPT_ERR:
 opt_err:
-            // BIO_printf(bio_err, "%s: Use -help for the following summary.\n", prog);
-            // goto err;
+         /* BIO_printf(bio_err, "%s: Use -help for the following summary.\n", prog);
+            goto err; */
         case OPT_HELP:
             ret = 0;
             opt_help(cmp_options);
             goto err;
-        case OPT_SECTION: // has already been handled
+        case OPT_SECTION: /* has already been handled */
             break;
 
         case OPT_SERVER:
@@ -2048,13 +2066,16 @@ opt_err:
 #else /* OPENSSL_VERSION_NUMBER */
     /* parse commandline options */
     while (--argc > 0 && ++argv) {
+        int found = 0, i = 0, j;
+        const OPTIONS *opt;
+        char *arg;
         if (args_verify(&argv, &argc, &badops, bio_err, &vpm)) { /* OPT_CRLALL etc. */
             if (badops)
                 goto bad_ops;
             vpmtouched++;
             continue;
         }
-        char *arg=*argv;
+        arg = *argv;
 
         if (*arg++ != '-' || *arg == 0)
             {
@@ -2062,12 +2083,11 @@ opt_err:
             break;
             }
 
-        int found = 0, i = 0, j;
-        // starting with OPT_HELP+1 and 1 because OPT_SECTION has already been handled
+        /* starting with OPT_HELP+1 and 1 because OPT_SECTION has already been handled */
         for (i = 1, j = OPT_HELP+1; i < sizeof(cmp_vars)/sizeof(cmp_vars[0]); i++, j++) {
             if (j == OPT_CDPS)
                 j += OPT_V__LAST-OPT_V__FIRST - 1;
-            const OPTIONS *opt = &cmp_options[j];
+            opt = &cmp_options[j];
             if (opt->name && !strcmp(arg, opt->name)) {
                 if (argc <= 1 && opt->valtype != '-') {
                     BIO_printf(bio_err, "missing argument for '-%s'\n", opt->name);
@@ -2145,6 +2165,7 @@ opt_err:
         break;
     case CMP_GENM:
         {
+        STACK_OF(CMP_INFOTYPEANDVALUE) *itavs;
         if (opt_infotype != NID_undef) {
             CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(OBJ_nid2obj(opt_infotype), NULL);
             if (!itav)
@@ -2152,8 +2173,7 @@ opt_err:
             CMP_CTX_genm_itav_push0(cmp_ctx, itav);
         }
 
-        STACK_OF(CMP_INFOTYPEANDVALUE) *itavs = CMP_doGeneralMessageSeq(cmp_ctx);
-        if (!itavs)
+        if (!(itavs = CMP_doGeneralMessageSeq(cmp_ctx)))
             goto err;
         print_itavs(itavs);
         sk_CMP_INFOTYPEANDVALUE_pop_free(itavs, CMP_INFOTYPEANDVALUE_free);
@@ -2163,8 +2183,8 @@ opt_err:
         break;
     }
 
-    STACK_OF(X509) *certs;
     if (opt_cacertsout && CMP_CTX_caPubs_num(cmp_ctx) > 0) {
+        STACK_OF(X509) *certs;
         if ((certs = CMP_CTX_caPubs_get1(cmp_ctx)) == NULL)
             goto err;
         if (save_certs(certs, opt_cacertsout, "CA") < 0) {
@@ -2175,6 +2195,7 @@ opt_err:
         sk_X509_pop_free(certs, X509_free);
     }
     if (opt_extracertsout && CMP_CTX_extraCertsIn_num(cmp_ctx) > 0) {
+        STACK_OF(X509) *certs;
         if ((certs = CMP_CTX_extraCertsIn_get1(cmp_ctx)) == NULL)
             goto err;
         if (save_certs(certs, opt_extracertsout, "extra") < 0)
@@ -2182,6 +2203,7 @@ opt_err:
         sk_X509_pop_free(certs, X509_free);
     }
     if (opt_certout && newcert) {
+        STACK_OF(X509) *certs;
         if ((certs = sk_X509_new_null()) == NULL)
             goto err;
         if (!sk_X509_push(certs, X509_dup(newcert)))
