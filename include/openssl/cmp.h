@@ -1,4 +1,3 @@
-/* vim: set noet ts=4 sts=4 sw=4: */
 /* cmp.h
  * CMP (RFC 4210) header file for OpenSSL
  */

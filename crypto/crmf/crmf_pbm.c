@@ -252,7 +252,10 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
 
     if (!EVP_PBE_find(EVP_PBE_TYPE_PRF, mac_nid, NULL, &hmac_md_nid, NULL) ||
             ((m = EVP_get_digestbynid(hmac_md_nid)) == NULL)) {
+        char namebuf[41];
         error = CRMF_R_UNSUPPORTED_ALGORITHM;
+        if (OBJ_obj2txt(namebuf, sizeof(namebuf), pbm->mac->algorithm, 0))
+            ERR_add_error_data(1, namebuf);
         goto err;
     }
     HMAC(m, basekey, basekeyLen, msg, msgLen, *mac, macLen);
