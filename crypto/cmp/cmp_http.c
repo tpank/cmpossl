@@ -201,13 +201,6 @@ static int CMP_new_http_bio(CMPBIO ** bio, const CMP_CTX *ctx)
     return 0;
 }
 
-static int CMP_delete_http_bio(CMPBIO * cbio)
-{
-    if (cbio)
-        BIO_free_all(cbio);
-    return 1;
-}
-
 static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMESSAGE *req,
                                int maxline)
 {
@@ -242,20 +235,17 @@ static int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
 }
 
 /* returns 0 on send error, else returns the received message (or NULL on result parse error) via the *out argument */
-/* TODO respect ctx->HttpTimeOut */
-static int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **out)
+static int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **out, time_t max_time)
 {
     OCSP_REQ_CTX *ctx;
     int rv;
 
-    ctx = CMP_sendreq_new(b, path, req, -1);
-
-    if (!ctx)
+    if (!(ctx = CMP_sendreq_new(b, path, req, -1)))
         return 0;
 
     do {
         rv = CMP_sendreq_nbio(out, ctx);
-    } while ((rv == -1) && BIO_should_retry(b));
+    } while ((rv == -1) && BIO_should_retry(b) && (max_time <= 0 || time(NULL) < max_time));
 
     if (rv == 0)
         rv = 1;
@@ -283,6 +273,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     CMPBIO *cbio = NULL;
     CMPBIO *hbio = NULL;
     int err = CMP_R_SERVER_NOT_REACHABLE;
+    time_t max_time = ctx->HttpTimeOut != 0 ? time(NULL) + ctx->HttpTimeOut : 0;
 
     if (!ctx || !msg || !out) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
@@ -305,7 +296,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         BIO_set_nbio(cbio, 1);
 
     rv = BIO_do_connect(cbio);
-    if (rv <= 0 && (ctx->HttpTimeOut == -1 || !BIO_should_retry(cbio))) {
+    if (rv <= 0 && (ctx->HttpTimeOut == 0 || !BIO_should_retry(cbio))) {
         /* Error connecting */
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_SERVER_NOT_REACHABLE);
         goto err;
@@ -317,7 +308,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         goto err;
     }
 
-    if (ctx->HttpTimeOut != -1 && rv <= 0) {
+    if (ctx->HttpTimeOut != 0 && rv <= 0) {
         FD_ZERO(&confds);
         openssl_fdset(fd, &confds);
         tv.tv_usec = 0;
@@ -325,8 +316,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         rv = select(fd + 1, NULL, (void *)&confds, NULL, &tv);
         if (rv == 0) {
             /* Timed out */
-            CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM,
-                   CMP_R_SERVER_NOT_REACHABLE);
+            err = CMP_R_SERVER_NOT_REACHABLE;
             goto err;
         }
     }
@@ -349,7 +339,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
 
     BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
 
-    if (!CMP_sendreq_bio(cbio, path, (CMP_PKIMESSAGE *)msg, out))
+    if (!CMP_sendreq_bio(cbio, path, msg, out, max_time))
         err = CMP_R_FAILED_TO_SEND_REQUEST;
     else
         err = (*out == NULL) ? CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE : 0;
@@ -360,9 +350,9 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     if (ctx->tlsBIO) {
         BIO_pop(ctx->tlsBIO);
     }
-    CMP_delete_http_bio(hbio);
 
  err:
+    BIO_free(hbio);
     if (err) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, err);
         if (err != CMP_R_SERVER_NOT_REACHABLE)
