@@ -385,8 +385,6 @@ int CMP_CTX_set1_secretValue(CMP_CTX *ctx, const unsigned char *sec,
                              const size_t len);
 int CMP_CTX_set1_regToken(CMP_CTX *ctx, const char *regtoken,
                           const size_t len);
-/* for backwards compatibility, TODO: remove asap */
-# define CMP_CTX_set1_caCert CMP_CTX_set1_srvCert
 int CMP_CTX_set1_srvCert(CMP_CTX *ctx, const X509 *cert);
 int CMP_CTX_set1_clCert(CMP_CTX *ctx, const X509 *cert);
 int CMP_CTX_set1_oldClCert(CMP_CTX *ctx, const X509 *cert);
@@ -425,27 +423,23 @@ int CMP_CTX_set_serverPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name);
 int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio);
-BIO *CMP_CTX_get_tlsBIO(CMP_CTX *ctx);
+BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx);
+int CMP_CTX_set1_sourceAddress(CMP_CTX *ctx, const char *ip); // unused, TODO remove
 int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
-int CMP_CTX_set_digest(CMP_CTX *ctx, int digest);
-/* for backwards compatibility, TODO: remove asap */
-# define CMP_CTX_set1_timeOut CMP_CTX_set_HttpTimeOut
-int CMP_CTX_set_HttpTimeOut( CMP_CTX *ctx, int time);
-int CMP_CTX_set_popoMethod(CMP_CTX *ctx, int method);
 int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
 int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO * failInfo);
 unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
 STACK_OF(ASN1_UTF8STRING) * CMP_CTX_statusString_get(CMP_CTX *ctx);
-# define CMP_CTX_OPT_UNSET                      0 /* unused */
-# define CMP_CTX_OPT_SET                        1 /* unused */
-# define CMP_CTX_OPT_IMPLICITCONFIRM            2
-# define CMP_CTX_OPT_POPMETHOD                  3
-# define CMP_CTX_OPT_MAXPOLLTIME                4
-# define CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR 5
-# define CMP_CTX_SET_SUBJECTALTNAME_CRITICAL    6
-# define CMP_CTX_OPT_DISABLECONFIRM             7
-# define CMP_CTX_OPT_UNPROTECTED_ERRORS         8
-# define CMP_CTX_OPT_REVOCATION_REASON          9
+# define CMP_CTX_OPT_MSGTIMEOUT                 0
+# define CMP_CTX_OPT_MAXPOLLTIME                1
+# define CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL    2
+# define CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR 3
+# define CMP_CTX_OPT_POPOMETHOD                 4
+# define CMP_CTX_OPT_DIGEST_ALGNID              5
+# define CMP_CTX_OPT_REVOCATION_REASON          6
+# define CMP_CTX_OPT_IMPLICITCONFIRM            7
+# define CMP_CTX_OPT_DISABLECONFIRM             8
+# define CMP_CTX_OPT_UNPROTECTED_ERRORS         9
 int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val);
 # if 0
 int CMP_CTX_push_freeText(CMP_CTX *ctx, const char *text);
@@ -507,7 +501,6 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_NEWPKEY                       133
 # define CMP_F_CMP_CTX_SET1_OLDCLCERT                     134
 # define CMP_F_CMP_CTX_SET1_PKEY                          135
-# define CMP_F_CMP_CTX_SET_POPOMETHOD                     136
 # define CMP_F_CMP_CTX_SET1_PROXYNAME                     137
 # define CMP_F_CMP_CTX_SET_PROXYPORT                      138
 # define CMP_F_CMP_CTX_SET1_RECIPIENT                     139
@@ -522,7 +515,6 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_SRVCERT                       148
 # define CMP_F_CMP_CTX_SET1_SUBJECTNAME                   149
 # define CMP_F_CMP_CTX_SET1_TRANSACTIONID                 150
-# define CMP_F_CMP_CTX_SET_HTTPTIMEOUT                    151
 # define CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1               152
 # define CMP_F_CMP_DOCERTIFICATEREQUESTSEQ                153
 # define CMP_F_CMP_DOGENERALMESSAGESEQ                    154

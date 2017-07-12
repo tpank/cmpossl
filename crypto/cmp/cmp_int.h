@@ -92,9 +92,8 @@ struct cmp_ctx_st {
     int popoMethod;
     /* Revocation reason code to be included in RR */
     int revocationReason;
-    /* maximum time in secods to wait for an http transfer to complete
-     * Note: only usable with libcurl! */
-    int HttpTimeOut;
+    /* maximum time in seconds to wait for each CMP message round trip to complete */
+    int msgTimeOut;
     /* maximum time to poll the server for a response if a 'waiting' PKIStatus is received */
     int maxPollTime;
     /* PKIStatus of last received IP/CP/KUP */

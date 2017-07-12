@@ -57,8 +57,6 @@
  CMP_CTX_set1_serverPath
  CMP_CTX_set_serverPort
  CMP_CTX_set0_reqExtensions
- CMP_CTX_set_digest
- CMP_CTX_set_HttpTimeOut
  CMP_CTX_set_certConf_callback
  CMP_CTX_subjectAltName_push1
 
@@ -115,16 +113,6 @@
  int CMP_CTX_set_debug_callback( CMP_CTX *ctx, cmp_logfn_t cb);
  void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
 
- #define CMP_CTX_OPT_UNSET                      0 // unused
- #define CMP_CTX_OPT_SET                        1 // unused
- #define CMP_CTX_OPT_IMPLICITCONFIRM            2
- #define CMP_CTX_OPT_POPMETHOD                  3
- #define CMP_CTX_OPT_MAXPOLLTIME                4
- #define CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR 5
- #define CMP_CTX_SET_SUBJECTALTNAME_CRITICAL    6
- #define CMP_CTX_OPT_DISABLECONFIRM             7
- #define CMP_CTX_OPT_UNPROTECTED_ERRORS         8
- #define CMP_CTX_OPT_REVOCATION_REASON          9
  int CMP_CTX_set_option( CMP_CTX *ctx, const int opt, const int val);
 
  STACK_OF(ASN1_UTF8STRING) *CMP_CTX_statusString_get(CMP_CTX *ctx);
@@ -138,8 +126,6 @@
  int CMP_CTX_set1_recipient( CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_serverPath( CMP_CTX *ctx, const char *path);
  int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
- int CMP_CTX_set_digest(CMP_CTX *ctx, int digest);
- int CMP_CTX_set_HttpTimeOut( CMP_CTX *ctx, int time);
  int CMP_CTX_set_certConf_callback( CMP_CTX *ctx, cmp_certConfFn_t cb);
  int CMP_CTX_subjectAltName_push1( CMP_CTX *ctx, const GENERAL_NAME *name);
 
@@ -239,7 +225,7 @@ B<WARNING:> This setting leads to unspecified behaviour and it is meant
 exclusively to allow interoperability with server implementations violating
 RFC 4210.
 
-    CMP_CTX_OPT_POPMETHOD
+    CMP_CTX_OPT_POPOMETHOD
         Select the proof of possession method to use. Possible values are:
             CRMF_POPO_NONE      - ProofOfPossession field omitted
             CRMF_POPO_SIGNATURE - sign a value with private key
@@ -247,21 +233,28 @@ RFC 4210.
                                  ("indirect method")
             CRMF_POPO_RAVERIFIED - assert that the RA has already
                                    verified the PoPo
-        See also CMP_CTX_set_popoMethod() with the same effect.
+
+    CMP_CTX_OPT_DIGEST_ALGNID
+        The digest algorithm NID to be used in RFC 4210's MSG_SIG_ALG,
+        if applicable used for message protection and Proof-of-Posession.
+
+    CMP_CTX_OPT_MSGTIMEOUT
+        Maximum amount of time, in seconds a CMP message round trip is allowed
+        to take before a timeout error is returned. Default is 120.
 
     CMP_CTX_OPT_MAXPOLLTIME
-	Maximum amount of time, in seconds, to attempt polling for a 
-	response to a message.
+        Maximum amount of time, in seconds, to attempt polling
+        for a response to a message. Default is 0 (infinite).
 
     CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR
-	Allow retrieving a trust anchor from extraCers and using that
-	to validate the certificate chain of an IP message.
+        Allow retrieving a trust anchor from extraCers and using that
+        to validate the certificate chain of an IP message.
 
-    CMP_CTX_SET_SUBJECTALTNAME_CRITICAL
-	Set the SubjectAltName field to be critical
+    CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL
+        Flag demanding that the SubjectAltName extension is critical
 
     CMP_CTX_OPT_REVOCATION_REASON
-        Set the reason code to be included in revocation request (RR);
+        The reason code to be included in revocation request (RR);
         values: 0..10 (RFC 5210, 5.3.1) or -1 for none (which is the default)
 
 CMP_CTX_caPubs_num() can be used after an Initial Request or Key Update
@@ -349,9 +342,6 @@ field. This is a bit field and the flags for it are specified in
 cmp.h. The flags start with CMP_CTX_FAILINFO, for example:
 CMP_CTX_FAILINFO_badAlg.
 
-CMP_CTX_set_popoMethod() sets the proof-of-possession method to be used
-for ir, kur etc. Possible values are defined in crmf.h:
-
 =over 8
 
 =item * CRMF_POPO_NONE      - POP field omitted. According to RFC 4211, section 4, CA/RA uses out-of-band method to verify POP. Note that servers may fail in this case, resulting for instance in HTTP error code 500 (Internal error).
@@ -369,9 +359,10 @@ for connecting to the CA server.
 
 CMP_CTX_set_proxyPort() sets the port of the HTTP proxy.
 
-CMP_CTX_set0_tlsBIO() sets the SSL/TLS BIO to be used for HTTPS
+CMP_CTX_set0_tlsBIO() sets the SSL/TLS BIO to be used for HTTPS.
+The argument value may be NULL for none, which is the default.
 
-CMP_CTX_get_tlsBIO() returns the SSL/TLS BIO to be used for HTTPS
+CMP_CTX_get0_tlsBIO() returns the SSL/TLS BIO used for HTTPS, or NULL.
 
 CMP_CTX_set1_recipient() sets the recipient name that will be used in the
 PKIHeader, i.e. the X509 name of the CA server, unless srvCert is set.
@@ -380,12 +371,6 @@ Defaults to given issuer; for RR, further defaults to issuer of certificate to b
 CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
 CMP_CTX_set0_reqExtensions() sets the X.509v3 extensions to be used in IR/CR/KUR
-
-CMP_CTX_set_digest() sets the digest algorithm NID to be used in RFC 4210's 
-MSG_SIG_ALG, if applicable used for message protection and Proof-of-Posession.
-
-CMP_CTX_set_HttpTimeOut() sets the maximum amount of time an the HTTP 
-operation is allowed to take before a timeout error is returned.
 
 CMP_CTX_set_certConf_callback() sets a callback that can be used to
 check the certificate received from the server. If the certificate
@@ -416,25 +401,25 @@ All other functions return 0 on error, 1 on success.
 
 The following code does an Initial Request:
 
-	cmp_ctx = CMP_CTX_create();
-	CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
-	CMP_CTX_set1_referenceValue( cmp_ctx, idString, idStringLen);
-	CMP_CTX_set1_secretValue( cmp_ctx, secret, secretLen);
-	CMP_CTX_set0_pkey( cmp_ctx, initialPkey);
-	CMP_CTX_set1_caCert( cmp_ctx, caCert);
+        cmp_ctx = CMP_CTX_create();
+        CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
+        CMP_CTX_set1_referenceValue( cmp_ctx, idString, idStringLen);
+        CMP_CTX_set1_secretValue( cmp_ctx, secret, secretLen);
+        CMP_CTX_set0_pkey( cmp_ctx, initialPkey);
+        CMP_CTX_set1_caCert( cmp_ctx, caCert);
 
-	initialClCert = CMP_doInitialRequestSeq(cmp_ctx);
+        initialClCert = CMP_doInitialRequestSeq(cmp_ctx);
 
 The following code does an Initial Request with, using an
 external identity certificate (RFC 4210, Appendix E.7):
 
-	cmp_ctx = CMP_CTX_create();
-	CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
-	CMP_CTX_set1_referenceValue( cmp_ctx, idString, idStringLen);
-	CMP_CTX_set0_pkey( cmp_ctx, initialPkey);
-	CMP_CTX_set1_caCert( cmp_ctx, caCert);
+        cmp_ctx = CMP_CTX_create();
+        CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
+        CMP_CTX_set1_referenceValue( cmp_ctx, idString, idStringLen);
+        CMP_CTX_set0_pkey( cmp_ctx, initialPkey);
+        CMP_CTX_set1_caCert( cmp_ctx, caCert);
 
-	initialClCert = CMP_doInitialRequestSeq(cmp_ctx);
+        initialClCert = CMP_doInitialRequestSeq(cmp_ctx);
 
 Here externalCert is an X509 certificate granted to the EE by another CA
 which is trusted by the current CA the code will connect to.
@@ -442,14 +427,14 @@ which is trusted by the current CA the code will connect to.
 
 The following code does a Key Update Request:
 
-	cmp_ctx = CMP_CTX_create();
-	CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
-	CMP_CTX_set0_pkey( cmp_ctx, initialPkey);
-	CMP_CTX_set0_newPkey( cmp_ctx, updatedPkey);
-	CMP_CTX_set1_clCert( cmp_ctx, initialClCert);
-	CMP_CTX_set1_caCert( cmp_ctx, caCert);
+        cmp_ctx = CMP_CTX_create();
+        CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
+        CMP_CTX_set0_pkey( cmp_ctx, initialPkey);
+        CMP_CTX_set0_newPkey( cmp_ctx, updatedPkey);
+        CMP_CTX_set1_clCert( cmp_ctx, initialClCert);
+        CMP_CTX_set1_caCert( cmp_ctx, caCert);
 
-	updatedClCert = CMP_doKeyUpdateRequestSeq(cmp_ctx);
+        updatedClCert = CMP_doKeyUpdateRequestSeq(cmp_ctx);
 
 The following code (which omits error handling) sends a genm including, as an 
 example, the id-it-signKeyPairTypes OID and prints info on the genp contents.

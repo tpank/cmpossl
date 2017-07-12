@@ -273,7 +273,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     CMPBIO *cbio = NULL;
     CMPBIO *hbio = NULL;
     int err = CMP_R_SERVER_NOT_REACHABLE;
-    time_t max_time = ctx->HttpTimeOut != 0 ? time(NULL) + ctx->HttpTimeOut : 0;
+    time_t max_time = ctx->msgTimeOut != 0 ? time(NULL) + ctx->msgTimeOut : 0;
 
     if (!ctx || !msg || !out) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
@@ -292,11 +292,11 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     }
 
     cbio = (ctx->tlsBIO) ? BIO_push(ctx->tlsBIO, hbio) : hbio;
-    if (ctx->HttpTimeOut != 0)
+    if (ctx->msgTimeOut != 0)
         BIO_set_nbio(cbio, 1);
 
     rv = BIO_do_connect(cbio);
-    if (rv <= 0 && (ctx->HttpTimeOut == 0 || !BIO_should_retry(cbio))) {
+    if (rv <= 0 && (ctx->msgTimeOut == 0 || !BIO_should_retry(cbio))) {
         /* Error connecting */
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_SERVER_NOT_REACHABLE);
         goto err;
@@ -308,11 +308,11 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         goto err;
     }
 
-    if (ctx->HttpTimeOut != 0 && rv <= 0) {
+    if (ctx->msgTimeOut != 0 && rv <= 0) {
         FD_ZERO(&confds);
         openssl_fdset(fd, &confds);
         tv.tv_usec = 0;
-        tv.tv_sec = ctx->HttpTimeOut;
+        tv.tv_sec = ctx->msgTimeOut;
         rv = select(fd + 1, NULL, (void *)&confds, NULL, &tv);
         if (rv == 0) {
             /* Timed out */

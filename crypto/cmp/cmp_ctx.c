@@ -251,7 +251,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->unprotectedErrors = 0;
     ctx->popoMethod = CRMF_POPO_SIGNATURE;
     ctx->revocationReason = CRL_REASON_NONE;
-    ctx->HttpTimeOut = 2 * 60;
+    ctx->msgTimeOut = 2 * 60;
     ctx->setSubjectAltNameCritical = 0;
     ctx->lastHTTPCode = 0;
     ctx->tlsBIO = NULL;
@@ -1169,55 +1169,6 @@ int CMP_CTX_set1_serverName(CMP_CTX *ctx, const char *name)
 }
 
 /* ################################################################ *
- * Sets the proof of possession method to be used when creating a certTemplate
- * returns 1 on success, 0 on error
- * ################################################################ */
-int CMP_CTX_set_popoMethod(CMP_CTX *ctx, int method)
-{
-    if (!ctx)
-        goto err;
-
-    ctx->popoMethod = method;
-    return 1;
- err:
-    CMPerr(CMP_F_CMP_CTX_SET_POPOMETHOD, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/* ################################################################ *
- * sets the digest algorithm NID to be used in MSG_SIG_ALG
- * returns 1 on success, 0 on error
- * ################################################################ */
-int CMP_CTX_set_digest(CMP_CTX *ctx, int digest)
-{
-    if (!ctx)
-        goto err;
-
-    ctx->digest = digest;
-    return 1;
- err:
-    CMPerr(CMP_F_CMP_CTX_SET_DIGEST, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/* ################################################################ *
- * sets the timeout for the (HTTP) transport mechanism
- * returns 1 on success, 0 on error
- * ################################################################ */
-/* TODO better replace by, e.g., CMP_CTX_set_option(ctx, CMP_CTX_OPT_HTTP_TIMEOUT, time) */
-int CMP_CTX_set_HttpTimeOut(CMP_CTX *ctx, int time)
-{
-    if (!ctx)
-        goto err;
-
-    ctx->HttpTimeOut = time;
-    return 1;
- err:
-    CMPerr(CMP_F_CMP_CTX_SET_HTTPTIMEOUT, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/* ################################################################ *
  * sets the (HTTP) proxy port to be used
  * returns 1 on success, 0 on error
  * ################################################################ */
@@ -1251,7 +1202,7 @@ int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio)
 /* ################################################################ *
  * returns the SSL/TLS BIO to be used for HTTPS, if any, else NULL
  * ################################################################ */
-BIO *CMP_CTX_get_tlsBIO(CMP_CTX *ctx)
+BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx)
 {
     if (ctx)
         return ctx->tlsBIO;
@@ -1385,8 +1336,14 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
     case CMP_CTX_OPT_UNPROTECTED_ERRORS:
         ctx->unprotectedErrors = val;
         break;
-    case CMP_CTX_OPT_POPMETHOD:
+    case CMP_CTX_OPT_POPOMETHOD:
         ctx->popoMethod = val;
+        break;
+    case CMP_CTX_OPT_DIGEST_ALGNID:
+        ctx->digest = val;
+        break;
+    case CMP_CTX_OPT_MSGTIMEOUT:
+        ctx->msgTimeOut = val;
         break;
     case CMP_CTX_OPT_MAXPOLLTIME:
         ctx->maxPollTime = val;
@@ -1394,7 +1351,7 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
     case CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR:
         ctx->permitTAInExtraCertsForIR = val;
         break;
-    case CMP_CTX_SET_SUBJECTALTNAME_CRITICAL:
+    case CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL:
         ctx->setSubjectAltNameCritical = val;
         break;
     case CMP_CTX_OPT_REVOCATION_REASON:

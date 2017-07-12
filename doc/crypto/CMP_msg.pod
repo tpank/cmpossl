@@ -9,7 +9,7 @@
  CMP_error_new,
  CMP_ir_new,
  CMP_rr_new,
- CMP_kur_new	
+ CMP_kur_new
 
 =head1 SYNOPSIS
 

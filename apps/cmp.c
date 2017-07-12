@@ -147,6 +147,9 @@ static int   server_port = 0;
 static char *opt_proxy = NULL;
 static int   proxy_port = 0;
 
+static int   opt_msgtimeout = -1;
+static int   opt_maxpolltime = -1;
+
 static int   opt_use_tls = 0;
 static char *opt_tls_cert = NULL;
 static char *opt_tls_key = NULL;
@@ -291,6 +294,7 @@ typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_SECTION,
     OPT_SERVER, OPT_PROXY,
+    OPT_MSGTIMEOUT, OPT_MAXPOLLTIME,
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
     OPT_TLSTRUSTED, OPT_TLSHOST,
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
@@ -318,7 +322,9 @@ OPTIONS cmp_options[] = {
     {"section", OPT_SECTION, 's', "Name of section in OpenSSL config file defining cmp default options. Default 'cmp'"},
 
     {"server", OPT_SERVER, 's', "The 'address:port' of the CMP server (domain name or IP address)"},
-    {"proxy", OPT_PROXY, 's', "The 'address:port' of proxy server, if needed for accessing the CMP server"},
+    {"proxy", OPT_PROXY, 's', "Address of HTTP proxy server, if needed for accessing the CMP server"},
+    {"msgtimeout", OPT_MSGTIMEOUT, 'n', "Timeout per CMP message round trip (or 0 for none). Default 120 seconds"},
+    {"maxpolltime", OPT_MAXPOLLTIME, 'n', "Maximum time to poll the server for a response on 'waiting' PKIStatus (default: 0 = infinite)"},
 
     {"use-tls", OPT_USETLS, '-', "Force using TLS (even when other TLS-related options are not set) when connecting to CMP server"},
     {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. PEM format may also include certificate chain to be provided to server"},
@@ -399,6 +405,7 @@ typedef union {
 static varref cmp_vars[]= { /* must be in the same order as enumerated above!! */
     {&opt_section},
     {&opt_server}, {&opt_proxy},
+    { (char **)&opt_msgtimeout}, { (char **)&opt_maxpolltime},
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
     {&opt_tls_trusted}, {&opt_tls_host},
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
@@ -1616,8 +1623,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
     if (opt_popo >= 0)
-        CMP_CTX_set_popoMethod(ctx, opt_popo);
-
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_POPOMETHOD, opt_popo);
     if (opt_reqexts) {
         X509V3_CTX ext_ctx;
         X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
@@ -1632,13 +1638,13 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_disableConfirm)
-        CMP_CTX_set_option(ctx, CMP_CTX_OPT_DISABLECONFIRM, 1);
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DISABLECONFIRM, 1);
 
     if (opt_implicitConfirm)
-        CMP_CTX_set_option(ctx, CMP_CTX_OPT_IMPLICITCONFIRM, 1);
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IMPLICITCONFIRM, 1);
 
     if (opt_unprotectedErrors)
-        CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
 
     if (opt_digest) {
         int digest = OBJ_ln2nid(opt_digest);
@@ -1646,7 +1652,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             BIO_printf(bio_err, "error: digest algorithm name not recognized: '%s'\n", opt_digest);
             goto err;
         }
-        CMP_CTX_set_digest(ctx, digest);
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DIGEST_ALGNID, digest);
     }
 
     certform = opt_certform;
@@ -1665,7 +1671,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_revreason >= 0)
-        CMP_CTX_set_option(ctx, CMP_CTX_OPT_REVOCATION_REASON, opt_revreason);
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_REVOCATION_REASON, opt_revreason);
 
     if (opt_geninfo) {
         long value;
@@ -1724,7 +1730,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    CMP_CTX_set_HttpTimeOut(ctx, 5 * 60);
+    if (opt_msgtimeout >= 0)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MSGTIMEOUT, opt_msgtimeout);
+    if (opt_maxpolltime >= 0)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MAXPOLLTIME, opt_maxpolltime);
 
     (void)CMP_CTX_set_certConf_callback(ctx, certConf_cb);
 
@@ -1918,6 +1927,14 @@ opt_err:
             break;
         case OPT_PROXY:
             opt_proxy = opt_arg();
+            break;
+        case OPT_MSGTIMEOUT:
+            if (!opt_int(opt_arg(), &opt_msgtimeout))
+                goto opt_err;
+            break;
+        case OPT_MAXPOLLTIME:
+            if (!opt_int(opt_arg(), &opt_maxpolltime))
+                goto opt_err;
             break;
 
         case OPT_USETLS:
