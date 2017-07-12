@@ -1420,7 +1420,9 @@ void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...) {
     if (!ctx || !ctx->debug_cb)
         return;
     va_start(arg_ptr, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, arg_ptr); ctx->debug_cb(buf); va_end(arg_ptr);
+    BIO_vsnprintf(buf, sizeof(buf), fmt, arg_ptr);
+    ctx->debug_cb(buf);
+    va_end(arg_ptr);
 #endif
 }
 

@@ -22,7 +22,7 @@
   CMP_PKIMESSAGE_check_implicitConfirm,
   CMP_PKIMESSAGE_genm_item_push0,
   CMP_PKIMESSAGE_get_bodytype,
-  CMP_PKIMESSAGE_parse_error_msg,
+  CMP_PKISTATUSINFO_snprint,
   CMP_PKIMESSAGE_set_bodytype,
   CMP_PKIMESSAGE_set_implicitConfirm,
   CMP_calc_protection_pbmac,
@@ -61,7 +61,7 @@
   int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg, const CMP_INFOTYPEANDVALUE *itav);
   int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
   int CMP_PKIMESSAGE_get_bodytype( CMP_PKIMESSAGE *msg);
-  char *CMP_PKIMESSAGE_parse_error_msg( CMP_PKIMESSAGE *msg, char *errormsg, int bufsize);
+  char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
   int CMP_PKIMESSAGE_set_bodytype( CMP_PKIMESSAGE *msg, int type);
   int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
   ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage, const ASN1_OCTET_STRING *secret);
@@ -145,8 +145,8 @@ of the PKIMessage B<msg> of GenMsg type. Does not consume the B<itavs> pointer.
 CMP_PKIMESSAGE_get_bodytype() returns the body type of the given
 PKIMessage.
 
-CMP_PKIMESSAGE_parse_error_msg() reads the error messages from the given
-PKIMessage, and prints out the results in the given errormsg buffer.
+CMP_PKISTATUSINFO_snprint() places human-readable error string
+created from PKIStatusInfo in given buffer.
 
 CMP_PKIMESSAGE_set_bodytype() sets the type of the message contained in
 the PKIMessage body field.

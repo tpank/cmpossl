@@ -96,7 +96,7 @@ static void func()
                         && ERR_GET_REASON(ERR_peek_last_error()) != CMP_R_SERVER_NOT_REACHABLE)\
                         CMPerr(cmp_f_func, errcode);\
                 else\
-                        { add_error_data("unable to send"); add_error_data(msg); }
+                        { CMP_add_error_data("unable to send"); CMP_add_error_data(msg); }
 
 /* ############################################################################ *
  * table used to translate PKIMessage body type number into a printable string
@@ -138,41 +138,25 @@ static char *V_CMP_TABLE[] = {
 /* ############################################################################ *
  * internal function
  *
- * Prints error data of the given CMP_PKIMESSAGE into a buffer specified by out
- * and returns pointer to the buffer.
+ * adds error data of the given CMP_PKIMESSAGE
  * ############################################################################ */
-static char *PKIError_data(CMP_PKIMESSAGE *msg, char *out, int outsize)
+static void message_add_error_data(CMP_PKIMESSAGE *msg)
 {
-    char tempbuf[1024];
+    char tempbuf[1024], *s;
     switch (CMP_PKIMESSAGE_get_bodytype(msg)) {
     case V_CMP_PKIBODY_ERROR:
-        BIO_snprintf(out, outsize, "bodytype=%d, error=\"%s\"",
-                     V_CMP_PKIBODY_ERROR,
-                     CMP_PKIMESSAGE_parse_error_msg(msg, tempbuf,
-                                                    sizeof(tempbuf)));
+        s = CMP_PKISTATUSINFO_snprint(msg->body->value.error->
+                                      pKIStatusInfo, tempbuf, sizeof(tempbuf));
+        ERR_add_error_data(2, "got error message; ", s);
         break;
     case -1:
-        BIO_snprintf(out, outsize, "received NO message");
+        ERR_add_error_data(1, "got no message");
         break;
     default:
-        BIO_snprintf(out, outsize, "received unexpected message of type '%s'",
-                     MSG_TYPE_STR(CMP_PKIMESSAGE_get_bodytype(msg)));
+        ERR_add_error_data(3, "got unexpected message type '",
+                               MSG_TYPE_STR(CMP_PKIMESSAGE_get_bodytype(msg)), "'");
         break;
     }
-    return out;
-}
-
-/* ############################################################################ *
- * TODO: rename to cmp_... and move to cmp_lib.c
- * Adds text to the extra error data field of the last error in openssl's error
- * queue. ERR_add_error_data() simply overwrites the previous contents of the error
- * data, while this function can be used to add a string to the end of it.
- * ############################################################################ */
-void add_error_data(const char *txt)
-{
-    const char *current_error = NULL;
-    ERR_peek_last_error_line_data(NULL, NULL, &current_error, NULL);
-    ERR_add_error_data(3, current_error, ":", txt);
 }
 
 /* evaluate whether there's an standard-violating exception configured for
@@ -277,9 +261,8 @@ static int send_receive_check(CMP_CTX *ctx,
         (rcvd_type == V_CMP_PKIBODY_IP ||
          rcvd_type == V_CMP_PKIBODY_CP ||
          rcvd_type == V_CMP_PKIBODY_KUP))) {
-        char errmsg[256];
         CMPerr(type_function, CMP_R_PKIBODY_ERROR);
-        ERR_add_error_data(1, PKIError_data(*rep, errmsg, sizeof(errmsg)));
+        message_add_error_data(*rep);
         return 0;
     }
 
@@ -499,7 +482,7 @@ static int cert_response(CMP_CTX *ctx,
     if (!save_certresponse_statusInfo(ctx, crep))
         return 0;
     if (!(ctx->newClCert = CMP_CERTRESPONSE_get_certificate(ctx, crep))) {
-        ERR_add_error_data(1, "cannot extract certificate from response");
+        CMP_add_error_data("cannot extract certificate from response");
         return 0;
     }
 
@@ -512,8 +495,8 @@ static int cert_response(CMP_CTX *ctx,
     if ((*resp)->extraCerts)
         CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts);
 
-    /* TODO: possibly check also subject and other fields of the newly enrolled cert */
     if (!(X509_check_private_key(ctx->newClCert, ctx->newPkey ? ctx->newPkey : ctx->pkey))) {
+        /* TODO: not entirely clear if in this case an error message or a negative certConfirm should be sent */
         failure = CMP_PKIFAILUREINFO_incorrectData;
         text = "public key in new certificate does not match our private key";
         (void)exchange_error(ctx, CMP_PKISTATUS_rejection, failure, text);
@@ -522,6 +505,7 @@ static int cert_response(CMP_CTX *ctx,
         ERR_add_error_data(1, text);
         return 0;
     }
+    /* TODO: possibly compare also subject and other fields of the newly enrolled cert with requested cert template */
     /* if present, execute the callback function set in ctx which can be used to
      * examine whether a received certificate should be accepted */
     if (ctx->certConf_cb &&
@@ -530,6 +514,7 @@ static int cert_response(CMP_CTX *ctx,
     }
 
     /* check if implicit confirm is set in generalInfo and send certConf if not */
+    /* TODO: send negative certConf also in case implicit confirmation has been granted? */
     if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(*resp))
         if (!exchange_certConf(ctx, failure, text))
             return 0;

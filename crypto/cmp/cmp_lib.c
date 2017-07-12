@@ -104,6 +104,18 @@
 #include "cmp_int.h"
 
 /* ############################################################################ *
+ * Adds text to the extra error data field of the last error in openssl's error
+ * queue. ERR_add_error_data() simply overwrites the previous contents of the error
+ * data, while this function can be used to add a string to the end of it.
+ * ############################################################################ */
+void CMP_add_error_data(const char *txt)
+{
+    const char *current_error = NULL;
+    ERR_peek_last_error_line_data(NULL, NULL, &current_error, NULL);
+    ERR_add_error_data(3, current_error, ":", txt);
+}
+
+/* ############################################################################ *
  * Sets the protocol version number in PKIHeader.
  * returns 1 on success, 0 on error
  * ############################################################################ */
@@ -594,8 +606,6 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
 
     if (!pkey) {                /* EVP_SignFinal() will check that pkey type is correct for the algorithm */
         CMPerr(CMP_F_CMP_CALC_PROTECTION_SIG, CMP_R_INVALID_KEY);
-        ERR_add_error_data(1,
-                           "pkey was NULL although it is supposed to be used for generating protection");
         goto err;
     }
 
@@ -1529,68 +1539,31 @@ int CMP_PKIMESSAGE_get_bodytype(CMP_PKIMESSAGE *msg)
 }
 
 /* ############################################################################ *
- * return pointer to human-readable error message string created out of the
- * information extracted from given error message
- * returns NULL on error
+ * place human-readable error string created from PKIStatusInfo in given buffer
+ * returns pointer to the same buffer containing the string, or NULL on error
  * ############################################################################ */
-char *CMP_PKIMESSAGE_parse_error_msg(CMP_PKIMESSAGE *msg, char *errormsg,
-                                     int bufsize)
+char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
 {
-    char *status, *failureinfo;
-    STACK_OF (ASN1_UTF8STRING) *details;
-    ASN1_UTF8STRING *str = 0;
+    const char *status, *failureinfo;
+    int i, n;
 
-    if (!msg)
-        return NULL;
-    if (CMP_PKIMESSAGE_get_bodytype(msg) != V_CMP_PKIBODY_ERROR)
+    if (!si || !(status = CMP_PKISTATUSINFO_PKIStatus_get_string(si)))
         return NULL;
 
-    status =
-        CMP_PKISTATUSINFO_PKIStatus_get_string(msg->body->value.
-                                               error->pKIStatusInfo);
-    if (!status) {
-        CMPerr(CMP_F_CMP_PKIMESSAGE_PARSE_ERROR_MSG,
-               CMP_R_ERROR_PARSING_ERROR_MESSAGE);
-        return NULL;
-    }
-
+    failureinfo = CMP_PKISTATUSINFO_PKIFailureInfo_get_string(si);
     /* PKIFailureInfo is optional */
-    failureinfo =
-        CMP_PKISTATUSINFO_PKIFailureInfo_get_string(msg->body->value.
-                                                    error->pKIStatusInfo);
+    n = sk_ASN1_UTF8STRING_num(si->statusString);
+    /* StatusString sequence is optional and may be empty */
+    BIO_snprintf(buf, bufsize, "%s; %s%s", status,
+                 failureinfo ? failureinfo : "<no failure info>",
+                 n > 0 ? "; StatusString(s): " : "");
 
-    details = msg->body->value.error->pKIStatusInfo->statusString;
-    if (details && sk_ASN1_UTF8STRING_num(details) > 0)
-        str = sk_ASN1_UTF8STRING_value(details, 0);
-
-    if (failureinfo && str && str->data) {
-        BIO_snprintf(errormsg, bufsize, "%s, %s: %s", status, failureinfo,
-                     str->data);
-    } else if (failureinfo)
-        BIO_snprintf(errormsg, bufsize, "%s, %s", status, failureinfo);
-    else
-        BIO_snprintf(errormsg, bufsize, "%s", status);
-
-    return errormsg;
-}
-
-static void PKIFreeText_to_err(char *pre, STACK_OF (ASN1_UTF8STRING) *str_sk) {
-    int i;
-    for (i = 0; i < sk_ASN1_UTF8STRING_num(str_sk); i++) {
-        ASN1_UTF8STRING *text = sk_ASN1_UTF8STRING_value(str_sk, i);
-        size_t tlen = ASN1_STRING_length(text);
-        char *s;
-        if (!(s = OPENSSL_malloc(tlen+1)))
-            return;
-        memcpy(s, ASN1_STRING_get0_data(text), tlen);
-        s[tlen] = '\0';
-        ERR_add_error_data(4, pre, "=\"", s, "\"");
-        OPENSSL_free(s);
+    for (i = 0; i < n; i++) {
+        ASN1_UTF8STRING *text = sk_ASN1_UTF8STRING_value(si->statusString, i);
+        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "\"%s\"%s",
+                     ASN1_STRING_get0_data(text), i < n-1 ? ", " : "");
     }
-}
-
-static void PKIFailureInfo_string_to_err(char *finfo) {
-    ERR_add_error_data(1, finfo ? finfo : "<no failure info received>");
+    return buf;
 }
 
 /* ############################################################################ *
@@ -1603,10 +1576,6 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
 
     if (!crep)
         goto err;
-
-    PKIFreeText_to_err("statusString",
-                                    CMP_CERTRESPONSE_PKIStatusString_get0(crep));
-    PKIFailureInfo_string_to_err(CMP_PKISTATUSINFO_PKIFailureInfo_get_string(crep->status));
 
     switch (CMP_CERTRESPONSE_PKIStatus_get(crep)) {
     case CMP_PKISTATUS_waiting:
@@ -1683,7 +1652,11 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
     }
 
     return crt;
- err:
+
+ err: ;
+    char tempbuf[1024];
+    if (CMP_PKISTATUSINFO_snprint(crep->status, tempbuf, sizeof(tempbuf)))
+        ERR_add_error_data(1, tempbuf);
     return NULL;
 }
 

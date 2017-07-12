@@ -485,7 +485,7 @@ static int read_config()
             int conf_argc = 1;
             char *conf_argv[3];
             char arg1[82];
-            snprintf(arg1, 81, "-%s", (char *)opt->name);
+            BIO_snprintf(arg1, 81, "-%s", (char *)opt->name);
             conf_argv[0] = ""; /* dummy prog name */
             conf_argv[1] = arg1;
             if (opt->valtype == '-') {

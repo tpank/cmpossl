@@ -19,6 +19,8 @@ extern "C" {
  * Helper functions
  * ########################################################################## */
 
+void CMP_add_error_data(const char *txt);
+
 /* from cmp_ses.c */
 void add_error_data(const char *txt);
 
