@@ -162,7 +162,7 @@ the B<-ref> option is also given.
 The client's currently existing certificate. This will be used for
 authenticating a request message using an existing certificate
 (as defined in appendix E.7 of the RFC). For KUR this is also used
-as certificate to be re-keyed if the -oldcert option is not given.
+as certificate to be updated if the -oldcert option is not given.
 
 =item B<-key filename>
 
@@ -342,7 +342,8 @@ I<list --digest-commands>.  Defaults to 'sha256'.
 
 =item B<-oldcert filename>
 
-The certificate to be renewed in KUR or to be revoked in RR.
+The certificate to be updated (i.e., renewed or re-keyed) in KUR
+or to be revoked in RR. This defaults to -cert in case of KUR.
 
 =item B<-revreason number>
 

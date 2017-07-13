@@ -374,7 +374,7 @@ OPTIONS cmp_options[] = {
                      "\t\t       WARNING: This setting leads to behaviour allowing violation of RFC 4210."},
 
     {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and Proof-of-Possession signatures. Defaults to 'sha256'"},
-    {"oldcert", OPT_OLDCERT, 's', "Certificate to be renewed in KUR or to be revoked in RR"},
+    {"oldcert", OPT_OLDCERT, 's', "Certificate to be updated in KUR (defaulting to -cert) or to be revoked in RR"},
     {"revreason", OPT_REVREASON, 'n', "Set reason code to be included in revocation request (RR).\n"
                      "\t\t       Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
 
@@ -1280,15 +1280,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
     }
-    if (!opt_oldcert) {
-        if (opt_cmd == CMP_KUR) {
-            BIO_puts(bio_err, "error: missing certificate to be updated\n");
-            goto err;
-        }
-        if (opt_cmd == CMP_RR) {
-            BIO_puts(bio_err, "error: missing certificate to be revoked\n");
-            goto err;
-        }
+    if (opt_cmd == CMP_RR && !opt_oldcert) {
+        BIO_puts(bio_err, "error: missing certificate to be revoked\n");
+        goto err;
     }
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -1663,7 +1657,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     certform = opt_certform;
     if (opt_oldcert) {
         /* opt_keypass is needed here in case opt_oldcert is an encrypted PKCS#12 file */
-        X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform, opt_keypass, "certificate to be renewed/revoked");
+        X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform, opt_keypass, "certificate to be updated/revoked");
         if (!oldcert || !CMP_CTX_set1_oldClCert(ctx, oldcert)) {
             X509_free(oldcert);
             goto err;
