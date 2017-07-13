@@ -254,7 +254,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->msgTimeOut = 2 * 60;
     ctx->setSubjectAltNameCritical = 0;
     ctx->tlsBIO = NULL;
-    ctx->msg_transportfn = CMP_PKIMESSAGE_http_perform;
+    ctx->msg_transfer_fn = CMP_PKIMESSAGE_http_perform;
 
     ctx->error_cb = NULL;
     ctx->debug_cb = (cmp_logfn_t) puts;
@@ -1214,11 +1214,11 @@ BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx)
  * Set callback function for sending CMP request and receiving response.
  * returns 1 on success, 0 on error
  * ################################################################ */
-int CMP_CTX_set_msg_transport(CMP_CTX *ctx, cmp_transportfn_t cb)
+int CMP_CTX_set_msg_transfer(CMP_CTX *ctx, cmp_transfer_fn_t cb)
 {
     if (!ctx)
         goto err;
-    ctx->msg_transportfn = cb;
+    ctx->msg_transfer_fn = cb;
     return 1;
  err:
     return 0;
