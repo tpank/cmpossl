@@ -205,8 +205,8 @@ static int send_receive_check(CMP_CTX *ctx,
             CMPerr(type_function, not_received);
         else {
             CMPerr(type_function, err);
-            add_error_data("unable to send");
-            add_error_data(type_string);
+            CMP_add_error_data("unable to send");
+            CMP_add_error_data(type_string);
         }
         *rep = NULL;
         return 0;
