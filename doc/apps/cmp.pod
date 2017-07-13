@@ -130,18 +130,18 @@ In any case, as usual, the [default] section and finally the unnamed section
 
 =over 4
 
-=item B<-server address:port>
+=item B<-server address[:port]>
 
-The IP address or hostname and port of the CMP server to connect to.
+The IP address or hostname and port (defaults to 8080) of the CMP server to connect to using HTTP/S transport.
 
-=item B<-proxy address:port>
+=item B<-proxy address[:port]>
 
-The IP address or hostname and port of the proxy server,
-if needed for accessing the CMP server.
+The IP address or hostname and port (defaults to 8080) of the HTTP/S proxy
+server, optionally given if needed for accessing the CMP server.
 
 =item B<-path remote_path>
 
-HTTP path location to use for the CMP server (aka CMP alias).
+HTTP path location to use for the CMP server (aka CMP alias). Defaults to "/".
 
 =item B<-msgtimeout seconds>
 
@@ -232,15 +232,17 @@ the B<-ref> option is also given.
 
 =item B<-cert filename>
 
-The client's currently existing certificate. This will be used for
-authenticating a request message using an existing certificate
-(as defined in appendix E.7 of the RFC). For KUR this is also used
-as certificate to be updated if the -oldcert option is not given.
+The client's currently existing certificate. This will be used for signing
+request messages using an certificate.  Requires for the corresponding key to
+be given with B<-key>.  For IR this can be used for authenticating a request
+message using an external entity certificate as defined in appendix E.7 of RFC
+4210. For KUR this is also used as certificate to be updated if the B<-oldcert>
+option is not given.
 
 =item B<-key filename>
 
 The corresponding private key file for the client's current certificate given in
-the -cert option.
+the B<-cert> option.
 
 =item B<-keypass arg>
 

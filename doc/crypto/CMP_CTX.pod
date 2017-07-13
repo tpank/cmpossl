@@ -179,7 +179,7 @@ the CertTemplate structure when requesting a new certificate. Note that
 if clCert is set, the name will be read from them and this will be
 ignored.
 
-CMP_CTX_set1_issuer() sets the name of the intended issuer that 
+CMP_CTX_set1_issuer() sets the name of the intended issuer that
 will be set in the PKIHeader, i.e., the X509 name of the CA server.
 
 CMP_CTX_set1_newClCert() sets the given (newly obtained) Client
@@ -210,7 +210,8 @@ CMP_CTX structure.
 CMP_CTX_set1_serverName() sets the given server Address (as IP or name)
 in the given CMP_CTX structure.
 
-CMP_CTX_set_serverPort() sets the port of the CMP server to connect to.
+CMP_CTX_set_serverPort() sets the port of the CMP server to connect to.  Port
+defaults to 8080 if not set explicitly.
 
 CMP_CTX_set_option() sets the given value for the given option
 (e.g. CMP_CTX_OPT_IMPLICITCONFIRM) in the given CMP_CTX structure.
@@ -278,7 +279,7 @@ CMP_CTX_caPubs_num() can be used after an Initial Request or Key Update
 request to check the number of CA certificates that were sent from the
 server.
 
-CMP_CTX_caPubs_get1() returns a duplicate of the stack of X509 certificates 
+CMP_CTX_caPubs_get1() returns a duplicate of the stack of X509 certificates
 that were received in the caPubs field of the last response message.
 
 CMP_CTX_caPubs_pop() pops one CA certificates of the stack of received
@@ -309,7 +310,7 @@ extraCerts stack, without consuming the pointer.
 CMP_CTX_extraCertsOut_num() returns the number of certificates in the
 outbound extraCerts stack.
 
-CMP_CTX_extraCertsIn_get1() returns a copy of the stack of certificates 
+CMP_CTX_extraCertsIn_get1() returns a copy of the stack of certificates
 received in a response message.
 
 CMP_CTX_set1_extraCertsIn() sets the stack of extraCerts that was
@@ -353,7 +354,7 @@ CertRepMessage or Revocation Response, -1 on error.
 CMP_CTX_statusString_get() returns the statusString from the last
 CertRepMessage or Revocation Response, NULL on error.
 
-CMP_CTX_set_failInfoCode() sets the failinfo error code bits in CMP_CTX 
+CMP_CTX_set_failInfoCode() sets the failinfo error code bits in CMP_CTX
 based on the given CMP_PKIFAILUREINFO structure, which is allowed to be NULL.
 
 CMP_CTX_failInfoCode_get() returns the CMP error code from the failInfo
@@ -364,7 +365,8 @@ CMP_CTX_FAILINFO_badAlg.
 CMP_CTX_set1_proxyName() sets the hostname of the HTTP proxy to be used
 for connecting to the CA server.
 
-CMP_CTX_set_proxyPort() sets the port of the HTTP proxy.
+CMP_CTX_set_proxyPort() sets the port of the HTTP proxy.  Port defaults to 8080
+if not set explicitly.
 
 CMP_CTX_set0_tlsBIO() sets the SSL/TLS BIO to be used for HTTPS.
 The argument value may be NULL for none, which is the default.
@@ -453,7 +455,7 @@ The following code does a Key Update Request:
 
         updatedClCert = CMP_doKeyUpdateRequestSeq(cmp_ctx);
 
-The following code (which omits error handling) sends a genm including, as an 
+The following code (which omits error handling) sends a genm including, as an
 example, the id-it-signKeyPairTypes OID and prints info on the genp contents.
 
     cmp_ctx = CMP_CTX_create();

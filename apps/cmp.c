@@ -147,10 +147,10 @@ typedef enum {
 } cmp_cmd_t;
 
 static char *opt_server = NULL;
-static int   server_port = 0;
+static int   server_port = 8080;
 
 static char *opt_proxy = NULL;
-static int   proxy_port = 0;
+static int   proxy_port = 8080;
 
 static int   opt_msgtimeout = -1;
 static int   opt_maxpolltime = -1;
@@ -350,9 +350,9 @@ OPTIONS cmp_options[] = {
     {"section", OPT_SECTION, 's', "Section in config file defining CMP options. \"\" means 'default'. Default 'cmp'"},
 
     {OPT_MORE_STR, 0, 0, "\nMessage transfer options:"},
-    {"server", OPT_SERVER, 's', "The 'address:port' of the CMP server (domain name or IP address)"},
-    {"proxy", OPT_PROXY, 's', "Address of HTTP proxy server, if needed for accessing the CMP server"},
-    {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
+    {"server", OPT_SERVER, 's', "'address[:port]' of CMP server. Port default 8080"},
+    {"proxy", OPT_PROXY, 's', "'address[:port]' of HTTP proxy, if needed for CMP server. Port default 8080"},
+    {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias). Default '/'"},
     {"msgtimeout", OPT_MSGTIMEOUT, 'n', "Timeout per CMP message round trip (or 0 for none). Default 120 seconds"},
     {"maxpolltime", OPT_MAXPOLLTIME, 'n', "Maximum total number of seconds to poll for certificates (default: 0 = infinite)"},
 
@@ -1489,18 +1489,20 @@ oom:
     return res;
 }
 
-static int parse_server_and_port(char *opt_string)
+static int parse_addr(char *opt_string, int port, const char* name)
 {
-    int port;
     char *port_string = strrchr(opt_string, ':');
     if (port_string == NULL) {
-        BIO_printf(bio_err, "error: missing server port in '%s'\n", opt_string);
-        return 0;
+        BIO_printf(bio_err, "info: using default %s port '%d'\n",
+                   name, port);
+        return port;
     }
     *(port_string++) = '\0';
     port = atoi(port_string);
-    if (port <= 0) {
-        BIO_printf(bio_err, "error: invalid server port number: '%s'\n", port_string);
+    if ((port <= 0) || (port > 65535)) {
+        BIO_printf(bio_err,
+                   "error: invalid %s port '%s' given, sane range 1-65535\n",
+                   name, port_string);
         return 0;
     }
     return port;
@@ -1573,8 +1575,10 @@ while(*curr_opt != '\0') { \
 static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 {
     int certform;
-    if (!opt_server || !(server_port = parse_server_and_port(opt_server))) {
-        BIO_puts(bio_err, "error: missing server address:port\n");
+    if (!opt_server) {
+        BIO_puts(bio_err, "error: missing server address[:port]\n");
+        goto err;
+    } else if (!(server_port = parse_addr(opt_server, server_port, "server"))) {
         goto err;
     }
     CMP_CTX_set1_serverName(ctx, opt_server);
@@ -1582,8 +1586,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     CMP_CTX_set1_serverPath(ctx, opt_path);
 
     if (opt_proxy) {
-        if (!(proxy_port = parse_server_and_port(opt_proxy)))
+        if (!(proxy_port = parse_addr(opt_proxy, proxy_port, "proxy"))) {
             goto err;
+        }
         CMP_CTX_set1_proxyName(ctx, opt_proxy);
         CMP_CTX_set_proxyPort(ctx, proxy_port);
     }
@@ -1618,12 +1623,12 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
         if (!opt_newkey && !opt_key) {
-            BIO_puts(bio_err, "error: missing key to be certified\n");
+            BIO_puts(bio_err, "error: missing -key or -newkey to be certified\n");
             goto err;
         }
         if (!opt_certout) {
             BIO_puts(bio_err,
-                     "error: certout not given, nowhere to save certificate\n");
+                     "error: -certout not given, nowhere to save certificate\n");
             goto err;
         }
     }
@@ -2126,7 +2131,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
         value = strtol(valptr, &endstr, 10);
         if (endstr == valptr || *endstr) {
-            BIO_puts(bio_err, "error: cannot parse integer in -geninfo option\n");
+            BIO_puts(bio_err, "error: cannot parse int in -geninfo option\n");
             goto err;
         }
 

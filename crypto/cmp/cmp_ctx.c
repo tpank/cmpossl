@@ -254,13 +254,13 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->untrusted_certs = sk_X509_new_null();
 
     ctx->serverName = NULL;
-    ctx->serverPort = 0;
+    ctx->serverPort = 8080;
     /* serverPath has to be an empty sting if not set since it is not mandatory */
     ctx->serverPath = OPENSSL_zalloc(1); /* this will be freed by CMP_CTX_delete() */
     if (!ctx->serverPath)
         goto err;
     ctx->proxyName = NULL;
-    ctx->proxyPort = 0;
+    ctx->proxyPort = 8080;
     ctx->msgTimeOut = 2 * 60;
     ctx->tlsBIO = NULL;
     ctx->msg_transfer_fn = CMP_PKIMESSAGE_http_perform;
