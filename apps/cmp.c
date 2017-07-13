@@ -981,12 +981,13 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, con
  */
 static X509_STORE *create_cert_store(const char *infile, const char *desc)
 {
+    X509_STORE *store;
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
     if (opt_certform != FORMAT_PEM)
         BIO_printf(bio_c_out, "warning: unsupported type '%s' for reading %s, trying PEM\n", opt_certform_s, desc);
 
     /* TODO: extend upstream setup_verify() to allow for further file formats, in particular PKCS12 */
-    X509_STORE *store = setup_verify(infile, NULL/* CApath */, 0/* noCAfile */, 0/* noCApath */);
+    store = setup_verify(infile, NULL/* CApath */, 0/* noCAfile */, 0/* noCApath */);
     if (!store)
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, infile);
     return store;
@@ -1200,13 +1201,14 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert)
 
 static int parse_server_and_port(char *opt_string)
 {
+    int port;
     char *port_string = strrchr(opt_string, ':');
     if (port_string == NULL) {
         BIO_printf(bio_err, "error: missing server port in '%s'\n", opt_string);
         return 0;
     }
     *(port_string++) = '\0';
-    int port = atoi(port_string);
+    port = atoi(port_string);
     if (port <= 0) {
         BIO_printf(bio_err, "error: invalid server port number: '%s'\n", port_string);
         return 0;
@@ -1369,6 +1371,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         if (opt_tls_trusted) {
             X509_VERIFY_PARAM *param;
             X509_STORE *store;
+            const char *host;
             if (!(store=create_cert_store(opt_tls_trusted, "trusted TLS certificates"))) {
                 goto tls_err;
             }
@@ -1378,7 +1381,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             /* enable and parameterize server hostname/IP address check */
             param = SSL_CTX_get0_param(ssl_ctx);
             X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT|X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-            const char *host = opt_tls_host ? opt_tls_host : opt_server;
+            host = opt_tls_host ? opt_tls_host : opt_server;
             if (isdigit(host[0]))
                 X509_VERIFY_PARAM_set1_ip_asc(param, host);
             else
@@ -1495,13 +1498,14 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
     certform = opt_certform;
     if (opt_cert) {
+        X509 *clcert;
         if (!(opt_srvcert || opt_trusted)) {
             BIO_puts(bio_err,
                      "error: using client certificate but no server certificate or trusted certificates set\n");
             goto err;
         }
         /* opt_keypass is needed here in case opt_cert is an encrypted PKCS#12 file */
-        X509 *clcert = load_cert_autofmt(opt_cert, &certform, opt_keypass, "CMP client certificate");
+        clcert = load_cert_autofmt(opt_cert, &certform, opt_keypass, "CMP client certificate");
         if (!clcert || !CMP_CTX_set1_clCert(ctx, clcert)) {
             X509_free(clcert);
             goto err;
@@ -1520,6 +1524,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     certform = opt_certform;
     if (opt_srvcert) {
+        X509 *srvcert;
         if (opt_trusted) {
             BIO_puts(bio_err, "warning: -trusted option is ignored since -srvcert option is present\n");
             opt_trusted = NULL;
@@ -1529,7 +1534,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             opt_recipient = NULL;
         }
         /* opt_keypass is needed here in case opt_srvcert is an encrypted PKCS#12 file */
-        X509 *srvcert = load_cert_autofmt(opt_srvcert, &certform, opt_keypass, "CMP server certificate");
+        srvcert = load_cert_autofmt(opt_srvcert, &certform, opt_keypass, "CMP server certificate");
         if (!srvcert || !CMP_CTX_set1_srvCert(ctx, srvcert)) { /* indirectly sets also ctx->trusted */
             X509_free(srvcert);
             goto err;

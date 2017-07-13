@@ -196,10 +196,10 @@ static int send_receive_check(CMP_CTX *ctx,
                         const CMP_PKIMESSAGE *req, const char *type_string, int type_function,
                               CMP_PKIMESSAGE **rep, int type_rep, int not_received)
 {
-    int rcvd_type;
+    int err, rcvd_type;
 
     CMP_printf(ctx, "INFO: Sending %s", type_string);
-    int err = (ctx->msg_transfer_fn)(ctx, req, rep);
+    err = (ctx->msg_transfer_fn)(ctx, req, rep);
     if (err) {
         if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE)
             CMPerr(type_function, not_received);

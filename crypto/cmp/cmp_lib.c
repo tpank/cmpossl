@@ -1572,6 +1572,7 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
  * ############################################################################ */
 X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
 {
+    char tempbuf[1024];
     X509 *crt = NULL;
 
     if (!crep)
@@ -1653,8 +1654,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
 
     return crt;
 
- err: ;
-    char tempbuf[1024];
+ err:
     if (CMP_PKISTATUSINFO_snprint(crep->status, tempbuf, sizeof(tempbuf)))
         ERR_add_error_data(1, tempbuf);
     return NULL;
