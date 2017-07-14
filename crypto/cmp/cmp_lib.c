@@ -1576,7 +1576,7 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
  * ############################################################################ */
 X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
 {
-    char tempbuf[1024];
+    char *tempbuf;
     X509 *crt = NULL;
 
     if (!crep)
@@ -1602,8 +1602,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
             break;
         case CMP_CERTORENCCERT_ENCRYPTEDCERT:
         /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
-            if (!(crt =
-                  CMP_CERTRESPONSE_encCert_get1(crep, ctx->newPkey))) {
+            if (!(crt = CMP_CERTRESPONSE_encCert_get1(crep, ctx->newPkey))) {
                 CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                        CMP_R_CERTIFICATE_NOT_FOUND);
                 goto err;
@@ -1659,8 +1658,11 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
     return crt;
 
  err:
-    if (CMP_PKISTATUSINFO_snprint(crep->status, tempbuf, sizeof(tempbuf)))
-        ERR_add_error_data(1, tempbuf);
+    if ((tempbuf = OPENSSL_malloc(1024))) {
+        if (CMP_PKISTATUSINFO_snprint(crep->status, tempbuf, 1024))
+            ERR_add_error_data(1, tempbuf);
+        OPENSSL_free(tempbuf);
+    }
     return NULL;
 }
 
