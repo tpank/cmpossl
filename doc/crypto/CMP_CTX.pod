@@ -292,7 +292,7 @@ sent to remote.
 
 CMP_CTX_extraCertsOut_push1() adds the given certificate to the outbound
 extraCerts stack, without consuming the pointer.
- 
+
 CMP_CTX_extraCertsOut_num() returns the number of certificates in the
 outbound extraCerts stack.
 

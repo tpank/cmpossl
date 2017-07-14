@@ -14,8 +14,8 @@ B<openssl> B<cmp>
 [B<-server address:port>]
 [B<-proxy address:port>]
 [B<-path remote_path>]
-[B<-msgtimeout seconds]
-[B<-maxpolltime seconds]
+[B<-msgtimeout seconds>]
+[B<-maxpolltime seconds>]
 
 [B<-use-tls>]
 [B<-tls-cert filename>]
@@ -27,7 +27,7 @@ B<openssl> B<cmp>
 [B<-recipient name>]
 [B<-srvcert filename>]
 [B<-trusted filename>]
-[B<-untrusted filename>]
+[B<-untrustedE<nbsp>filename>]
 
 [B<-ref value>]
 [B<-secret arg>]
@@ -66,10 +66,10 @@ B<openssl> B<cmp>
 [B<-crl_download>]
 [B<-policy arg>]
 [B<-purpose purpose>]
-[B<-verify_name name>]
+[B<-verify_nameE<nbsp>name>]
 [B<-verify_depth num>]
 [B<-auth_level level>]
-[B<-attime timestamp>]
+[B<-attimeE<nbsp>timestamp>]
 [B<-verify_hostname hostname>]
 [B<-verify_email email>]
 [B<-verify_ip ip>]
@@ -101,8 +101,6 @@ Management Protocol (CMP) as defined in RFC4210. It can be used to
 request certificates from a CA server, update their certificates,
 request certificates to be revoked, and perform other CMP requests.
 
-=back
-
 =head1 OPTIONS
 
 =over 4
@@ -115,8 +113,11 @@ Display a summary of all options
 
 Name of section in OpenSSL config file defining cmp default options. Default is "cmp".
 
+=back
 
 =head2 Message transfer options
+
+=over 4
 
 =item B<-server address:port>
 
@@ -144,6 +145,8 @@ certificates on 'waiting' PKIStatus. Default is 0 (infinite).
 
 
 =head2 TLS options
+
+=over 4
 
 =item B<-use-tls>
 
@@ -178,6 +181,8 @@ Address to be checked (rather than -server address) during host name validation.
 
 =head2 Recipient options
 
+=over 4
+
 =item B<-recipient name>
 
 Distinguished Name of the CMP message recipient, i.e. the CMP server (usually a CA or RA entity).
@@ -192,7 +197,7 @@ Therefore, if neither -srvcert nor -issuer options are given, nor RR is done,
 this recipient name option is mandatory.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
-characters may be escaped by \ (backslash), no spaces are skipped.
+characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
 
 =item B<-srvcert filename>
 
@@ -216,6 +221,8 @@ The file can contain multiple certificates.
 
 
 =head2 Sender options
+
+=over 4
 
 =item B<-ref value>
 
@@ -256,6 +263,8 @@ File with certificates to include in the extraCerts field of requests.
 
 
 =head2 General message options
+
+=over 4
 
 =item B<-cmd ir|cr|kur|rr|genm>
 
@@ -301,22 +310,34 @@ Send messages without CMP-level protection.
 Accept unprotected messages by the server even if they should have been
 protected.  This applies to the following message types received from the
 server:
+
 =over 4
+
 =item * error messages
+
 =item * negative certificate responses (IP/CP/KUP) and revocation responses (RP)
+
 =item * PKIConf
+
+=back
 
 B<WARNING:> This setting leads to unspecified behaviour and it is meant
 exclusively to allow interoperability with server implementations violating
 RFC 4210, e.g.:
+
 =over 4
+
 =item * section 5.1.3.1 allows exceptions from protecting only for special cases:
 "There MAY be cases in which the PKIProtection BIT STRING is deliberately not
 used to protect a message [...] because other protection, external to PKIX, will
 be applied instead."
+
 =item * section 5.3.21 is clear on ErrMsgContent: "The CA MUST always sign it
 with a signature key."
+
 =item * appendix D.4 shows PKIConf having protection
+
+=back
 
 =item B<-extracertsout filename>
 
@@ -330,6 +351,8 @@ The file where to save any received CA certificates.
 
 
 =head2 Certificate request options
+
+=over 4
 
 =item B<-newkey filename>
 
@@ -347,14 +370,14 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 X509 subject DN to be used in the requested certificate template.
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
-characters may be escaped by \ (backslash), no spaces are skipped.
+characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
 
 =item B<-issuer distinguished_name>
 
 X509 issuer DN, i.e., the X509 distinguished name of the CA server,
 to be put in the requested certificate template in IR/CR/KUR.
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
-characters may be escaped by \ (backslash), no spaces are skipped.
+characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
 
 =item B<-reqexts name>
 
@@ -382,6 +405,8 @@ The file where the newly enrolled certificate should be saved.
 
 
 =head2 Misc request options
+
+=over 4
 
 =item B<-oldcert filename>
 
@@ -416,6 +441,8 @@ Set InfoType name to use for requesting specific info in genm, e.g., 'signKeyPai
 
 =head2 Credential format options
 
+=over 4
+
 =item B<-certform DER|PEM|P12>
 
 Format to try first when reading and to use for writing certificate files. Default value is PEM.
@@ -441,6 +468,8 @@ supported e.g. by libp11:
 
 
 =head2 Certificate verification options
+
+=over 4
 
 =item B<-crls URL>
 
@@ -469,8 +498,6 @@ See the L<verify(1)> manual page for details.
 =back
 
 =head1 EXAMPLES
-
-=over 4
 
 Note: in these examples the '\' at line ends means
 the invocation should be all on one line.
@@ -503,8 +530,6 @@ can send a key update request.
     -recipient "/CN=CMPserver" \
     -trusted capubs.pem \
     -newkey cl_key_new.pem -certout cl_cert_new.pem
-
-=back
 
 =head1 TODO
 
