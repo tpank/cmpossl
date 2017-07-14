@@ -413,7 +413,7 @@ static int exchange_error(CMP_CTX *ctx, int status, int failure, const char *tex
 static int save_certresponse_statusInfo(CMP_CTX *ctx, CMP_CERTRESPONSE *resp)
 {
     int i;
-    STACK_OF (ASN1_UTF8STRING) *ss;
+    CMP_PKIFREETEXT *ss;
 
     if (!resp)
         return 0;

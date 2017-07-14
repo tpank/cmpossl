@@ -78,6 +78,10 @@
 #include <dirent.h>
 #endif
 
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+#define OPENSSL_zalloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
+#endif
+
 #include "cmp_int.h"
 
 /* NAMING
@@ -331,7 +335,7 @@ CMP_CTX *CMP_CTX_create(void)
 /* ################################################################ *
  * returns the statusString from the last CertRepMessage, NULL on error
  * ################################################################ */
-STACK_OF (ASN1_UTF8STRING) * CMP_CTX_statusString_get(CMP_CTX *ctx)
+CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx)
 {
     if (!ctx)
         goto err;

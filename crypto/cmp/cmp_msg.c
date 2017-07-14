@@ -539,7 +539,7 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
  * returns a pointer to the PKIMessage on success, NULL on error
  * ############################################################################ */
 CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
-                              int errorCode, STACK_OF (ASN1_UTF8STRING) *errorDetails)
+                              int errorCode, CMP_PKIFREETEXT *errorDetails)
 {
     CMP_PKIMESSAGE *msg = NULL;
 

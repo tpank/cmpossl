@@ -1298,8 +1298,7 @@ CMP_PKIFAILUREINFO *CMP_CERTRESPONSE_PKIFailureInfo_get0(CMP_CERTRESPONSE *crep)
  * returns the status string of the given crep
  * returns NULL on error
  * ############################################################################ */
-STACK_OF (ASN1_UTF8STRING) *
-CMP_CERTRESPONSE_PKIStatusString_get0(CMP_CERTRESPONSE *crep)
+CMP_PKIFREETEXT *CMP_CERTRESPONSE_PKIStatusString_get0(CMP_CERTRESPONSE *crep)
 {
     if (!crep || !crep->status) {
         CMPerr(CMP_F_CMP_CERTRESPONSE_PKISTATUSSTRING_GET0, CMP_R_BAD_INPUT);
@@ -1559,6 +1558,9 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
                  n > 0 ? "; StatusString(s): " : "");
 
     for (i = 0; i < n; i++) {
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+#define ASN1_STRING_get0_data(x) ((x)->data)
+#endif
         ASN1_UTF8STRING *text = sk_ASN1_UTF8STRING_value(si->statusString, i);
         BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "\"%s\"%s",
                      ASN1_STRING_get0_data(text), i < n-1 ? ", " : "");

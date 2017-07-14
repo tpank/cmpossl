@@ -283,6 +283,7 @@ int ERR_load_CRMF_strings(void);
 # define CRMF_F_CRMF_CERTREQMSG_SET_VALIDITY              104
 # define CRMF_F_CRMF_CERTREQMSG_SET_VERSION2              130
 # define CRMF_F_CRMF_CERTREQ_NEW                          105
+# define CRMF_F_CRMF_CR_NEW                               134
 # define CRMF_F_CRMF_PASSWORDBASEDMAC_NEW                 106
 # define CRMF_F_CRMF_PBMP_NEW                             133
 # define CRMF_F_CRMF_POPOSIGNINGKEY_NEW                   109

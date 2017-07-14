@@ -273,6 +273,7 @@ typedef void (*cmp_logfn_t) (const char *msg);
 typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, int status, const X509 *cert);
 typedef int (*cert_verify_cb_t) (int ok, X509_STORE_CTX *ctx);
 typedef int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **res);
+typedef STACK_OF (ASN1_UTF8STRING) CMP_PKIFREETEXT;
 
 /* ########################################################################## *
  * function DECLARATIONS
@@ -285,7 +286,7 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
 CMP_PKIMESSAGE *CMP_kur_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
-                              int errorCode, STACK_OF (ASN1_UTF8STRING) *errorDetails);
+                              int errorCode, CMP_PKIFREETEXT *errorDetails);
 CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
 
 /* cmp_lib.c */
@@ -430,7 +431,7 @@ int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
 int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
 int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO * failInfo);
 unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
-STACK_OF(ASN1_UTF8STRING) * CMP_CTX_statusString_get(CMP_CTX *ctx);
+CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx);
 # define CMP_CTX_OPT_MSGTIMEOUT                 0
 # define CMP_CTX_OPT_MAXPOLLTIME                1
 # define CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL    2
@@ -471,6 +472,12 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CALC_PROTECTION_SIG                    102
 # define CMP_F_CMP_CERTCONF_NEW                           103
 # define CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0       104
+# define CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1            175
+# define CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE         176
+# define CMP_F_CMP_CERTREPMESSAGE_PKIFAILUREINFOSTRING_GET0 177
+# define CMP_F_CMP_CERTREPMESSAGE_PKIFAILUREINFO_GET0     178
+# define CMP_F_CMP_CERTREPMESSAGE_PKISTATUSSTRING_GET0    179
+# define CMP_F_CMP_CERTREPMESSAGE_PKISTATUS_GET           180
 # define CMP_F_CMP_CERTRESPONSE_ENCCERT_GET1              105
 # define CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE           106
 # define CMP_F_CMP_CERTRESPONSE_PKIFAILUREINFO_GET0       107
@@ -494,6 +501,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET0_TLSBIO                        125
 # define CMP_F_CMP_CTX_SET1_CAPUBS                        126
 # define CMP_F_CMP_CTX_SET1_CLCERT                        127
+# define CMP_F_CMP_CTX_SET1_DIGEST                        181
 # define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  128
 # define CMP_F_CMP_CTX_SET1_EXTRACERTSOUT                 129
 # define CMP_F_CMP_CTX_SET1_ISSUER                        130
@@ -501,7 +509,9 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_NEWPKEY                       132
 # define CMP_F_CMP_CTX_SET1_OLDCLCERT                     133
 # define CMP_F_CMP_CTX_SET1_PKEY                          134
+# define CMP_F_CMP_CTX_SET1_POPOMETHOD                    182
 # define CMP_F_CMP_CTX_SET1_PROXYNAME                     135
+# define CMP_F_CMP_CTX_SET1_PROXYPORT                     183
 # define CMP_F_CMP_CTX_SET1_RECIPIENT                     136
 # define CMP_F_CMP_CTX_SET1_RECIPNONCE                    137
 # define CMP_F_CMP_CTX_SET1_REFERENCEVALUE                138
@@ -509,9 +519,12 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_SECRETVALUE                   140
 # define CMP_F_CMP_CTX_SET1_SERVERNAME                    141
 # define CMP_F_CMP_CTX_SET1_SERVERPATH                    142
+# define CMP_F_CMP_CTX_SET1_SERVERPORT                    184
+# define CMP_F_CMP_CTX_SET1_SOURCEADDRESS                 185
 # define CMP_F_CMP_CTX_SET1_SRVCERT                       143
 # define CMP_F_CMP_CTX_SET1_SUBJECTNAME                   144
 # define CMP_F_CMP_CTX_SET1_TRANSACTIONID                 145
+# define CMP_F_CMP_CTX_SET_HTTPTIMEOUT                    186
 # define CMP_F_CMP_CTX_SET_PROXYPORT                      146
 # define CMP_F_CMP_CTX_SET_SERVERPORT                     147
 # define CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1               148
@@ -524,11 +537,13 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_GENM_NEW                               155
 # define CMP_F_CMP_IR_NEW                                 156
 # define CMP_F_CMP_KUR_NEW                                157
+# define CMP_F_CMP_NEW_HTTP_BIO                           187
 # define CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0       158
 # define CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1     159
 # define CMP_F_CMP_PKIMESSAGE_GENM_ITEMS_PUSH1            160
 # define CMP_F_CMP_PKIMESSAGE_GENM_ITEM_PUSH0             161
 # define CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM                162
+# define CMP_F_CMP_PKIMESSAGE_PARSE_ERROR_MSG             188
 # define CMP_F_CMP_PKIMESSAGE_PROTECT                     163
 # define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET            164
 # define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING     165
@@ -540,7 +555,10 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_VERIFY_SIGNATURE                       171
 # define CMP_F_EXCHANGE_CERTCONF                          172
 # define CMP_F_EXCHANGE_ERROR                             173
+# define CMP_F_PARSE_HTTP_LINE1                           189
+# define CMP_F_PKEY_DUP                                   190
 # define CMP_F_POLLFORRESPONSE                            174
+# define CMP_F_SENDCERTCONF                               191
 
 /* Reason codes. */
 # define CMP_R_ALGORITHM_NOT_SUPPORTED                    100
@@ -571,26 +589,31 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_DECRYPTING_KEY                       125
 # define CMP_R_ERROR_DECRYPTING_SYMMETRIC_KEY             126
 # define CMP_R_ERROR_NONCES_DO_NOT_MATCH                  127
+# define CMP_R_ERROR_PARSING_ERROR_MESSAGE                169
 # define CMP_R_ERROR_PARSING_PKISTATUS                    128
 # define CMP_R_ERROR_PROTECTING_MESSAGE                   129
 # define CMP_R_ERROR_PUSHING_GENERALINFO_ITEM             130
 # define CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS            131
 # define CMP_R_ERROR_PUSHING_GENM_ITEMS                   132
+# define CMP_R_ERROR_REQID_NOT_FOUND                      170
 # define CMP_R_ERROR_SETTING_CERTHASH                     133
 # define CMP_R_ERROR_STATUS_NOT_FOUND                     134
 # define CMP_R_ERROR_TRANSACTIONID_UNMATCHED              135
 # define CMP_R_ERROR_VALIDATING_PROTECTION                136
+# define CMP_R_FAILED_TO_DECODE_PKIMESSAGE                171
 # define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               137
 # define CMP_R_FAILED_TO_SEND_REQUEST                     138
 # define CMP_R_FAIL_EXTRACT_CERT_FROM_CERTREP_WITH_ACCEPT_STATUS 139
 # define CMP_R_GENP_NOT_RECEIVED                          140
 # define CMP_R_INVALID_ARGS                               141
+# define CMP_R_INVALID_CONTENT_TYPE                       172
 # define CMP_R_INVALID_CONTEXT                            142
 # define CMP_R_INVALID_KEY                                143
 # define CMP_R_INVALID_PARAMETERS                         144
 # define CMP_R_IP_NOT_RECEIVED                            145
 # define CMP_R_KUP_NOT_RECEIVED                           146
 # define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  147
+# define CMP_R_NO_CERTIFICATE_RECEIVED                    173
 # define CMP_R_NO_SECRET_VALUE_GIVEN_FOR_PBMAC            148
 # define CMP_R_NO_TRUSTED_CERTIFICATES_SET                149
 # define CMP_R_NO_VALID_SRVCERT_FOUND                     150
@@ -602,6 +625,9 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_REQUEST_REJECTED_BY_CA                     156
 # define CMP_R_RP_NOT_RECEIVED                            157
 # define CMP_R_SERVER_NOT_REACHABLE                       158
+# define CMP_R_SERVER_RESPONSE_ERROR                      174
+# define CMP_R_SERVER_RESPONSE_PARSE_ERROR                175
+# define CMP_R_TLS_SETUP_FAILURE                          176
 # define CMP_R_UNABLE_TO_CREATE_CONTEXT                   159
 # define CMP_R_UNEXPECTED_PKISTATUS                       160
 # define CMP_R_UNKNOWN_ALGORITHM_ID                       161

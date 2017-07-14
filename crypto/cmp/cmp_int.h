@@ -102,7 +102,7 @@ struct cmp_ctx_st {
     /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
     unsigned long failInfoCode;
-    STACK_OF (ASN1_UTF8STRING) * lastStatusString;
+    CMP_PKIFREETEXT *lastStatusString;
 
     /* log callback functions for error and debug messages */
     cmp_logfn_t error_cb, debug_cb;
@@ -256,8 +256,6 @@ int CMP_INFOTYPEANDVALUE_stack_item_push0(
 		                      STACK_OF (CMP_INFOTYPEANDVALUE) **itav_sk_p,
                               const CMP_INFOTYPEANDVALUE *itav);
 
-typedef STACK_OF(ASN1_UTF8STRING) CMP_PKIFREETEXT;
-
 
 typedef struct cmp_certorenccert_st {
     int type;
@@ -286,7 +284,7 @@ DECLARE_ASN1_FUNCTIONS(CMP_CERTIFIEDKEYPAIR)
 /*
      PKIStatusInfo ::= SEQUENCE {
              status            PKIStatus,
-             statusString  PKIFreeText         OPTIONAL,
+             statusString      PKIFreeText     OPTIONAL,
              failInfo          PKIFailureInfo  OPTIONAL
      }
  */
@@ -363,7 +361,7 @@ DECLARE_ASN1_FUNCTIONS(CMP_KEYRECREPCONTENT)
 typedef struct cmp_errormsgcontent_st {
     CMP_PKISTATUSINFO *pKIStatusInfo;
     ASN1_INTEGER *errorCode;
-    STACK_OF (ASN1_UTF8STRING) * errorDetails;
+    CMP_PKIFREETEXT *errorDetails;
 } CMP_ERRORMSGCONTENT;
 DECLARE_ASN1_FUNCTIONS(CMP_ERRORMSGCONTENT)
 
@@ -486,7 +484,7 @@ DECLARE_ASN1_FUNCTIONS(CMP_POLLREQCONTENT)
 typedef struct cmp_pollrep_st {
     ASN1_INTEGER *certReqId;
     ASN1_INTEGER *checkAfter;
-    STACK_OF (ASN1_UTF8STRING) * reason;
+    CMP_PKIFREETEXT *reason;
 } CMP_POLLREP;
 DECLARE_ASN1_FUNCTIONS(CMP_POLLREP)
 DEFINE_STACK_OF(CMP_POLLREP)
@@ -539,7 +537,7 @@ struct cmp_pkiheader_st {
     ASN1_OCTET_STRING *transactionID; /* 4 */
     ASN1_OCTET_STRING *senderNonce; /* 5 */
     ASN1_OCTET_STRING *recipNonce; /* 6 */
-    STACK_OF (ASN1_UTF8STRING) * freeText; /* 7 */
+    CMP_PKIFREETEXT *freeText; /* 7 */
     STACK_OF (CMP_INFOTYPEANDVALUE) * generalInfo; /* 8 */
 } /* CMP_PKIHEADER */;
 DECLARE_ASN1_FUNCTIONS(CMP_PKIHEADER)
@@ -758,7 +756,7 @@ long CMP_CERTRESPONSE_PKIStatus_get(CMP_CERTRESPONSE *crep);
 /* TODO: exclusively used from cmp_lib.c - should they be made static? */
 int CMP_CERTRESPONSE_certType_get(CMP_CERTRESPONSE *crep);
 char *CMP_CERTRESPONSE_PKIFailureInfoString_get0(CMP_CERTRESPONSE *crep);
-STACK_OF(ASN1_UTF8STRING) *
+CMP_PKIFREETEXT *
     CMP_CERTRESPONSE_PKIStatusString_get0(CMP_CERTRESPONSE *crep);
 CMP_PKIFAILUREINFO
     *CMP_CERTRESPONSE_PKIFailureInfo_get0(CMP_CERTRESPONSE *crep);

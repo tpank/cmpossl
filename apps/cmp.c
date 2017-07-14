@@ -209,6 +209,7 @@ static char *opt_engine = NULL;
 #endif
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
+int cmp_main(int argc, char *argv[]);
 const char OPT_HELP_STR[] = "--";
 const char OPT_MORE_STR[] = "---";
 typedef struct options_st {
@@ -746,7 +747,7 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
     return (x);
 }
 #else
-X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass, const char *cert_descrip)
+static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass, const char *cert_descrip)
 {
     X509 *x = NULL;
     BIO *cert;
@@ -892,6 +893,25 @@ static char *get_passwd(const char *pass, const char *desc) {
     return result;
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+static void release_engine(ENGINE *e)
+{
+#ifndef OPENSSL_NO_ENGINE
+    if (e != NULL)
+        /* Free our "structural" reference. */
+        ENGINE_free(e);
+#endif
+}
+
+ static void OPENSSL_clear_free(void *str, size_t num)
+{
+    if (str == NULL)
+        return;
+    if (num)
+        OPENSSL_cleanse(str, num);
+    CRYPTO_free(str);
+}
+#endif
 /* TODO dvo: push that separately upstream */
 /* in apps.c there is load_key which should be used for CMP upstream submission */
 static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pass, ENGINE *e, const char *desc) {
@@ -1030,7 +1050,11 @@ static X509_STORE *create_cert_store(const char *infile, const char *desc)
         BIO_printf(bio_c_out, "warning: unsupported type '%s' for reading %s, trying PEM\n", opt_certform_s, desc);
 
     /* TODO: extend upstream setup_verify() to allow for further file formats, in particular PKCS12 */
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+    store = setup_verify(bio_err, (char *)infile, NULL/* CApath */);
+#else
     store = setup_verify(infile, NULL/* CApath */, 0/* noCAfile */, 0/* noCApath */);
+#endif
     if (!store)
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, infile);
     return store;
@@ -2125,7 +2149,7 @@ opt_err:
 #else /* OPENSSL_VERSION_NUMBER */
     /* parse commandline options */
     while (--argc > 0 && ++argv) {
-        int found = 0, i = 0;
+        int found = 0;
         const OPTIONS *opt;
         char *arg;
         if (args_verify(&argv, &argc, &badops, bio_err, &vpm)) { /* OPT_CRLALL etc. */
@@ -2142,8 +2166,8 @@ opt_err:
             break;
             }
 
-        /* starting with 1 and OPT_HELP+1 because OPT_SECTION has already been handled */
-        for (i = 1, opt = &cmp_options[OPT_HELP+1]; opt->name; i++, opt++) {
+        /* starting with 0 and OPT_HELP+0 although OPT_SECTION has already been handled */
+        for (i = 0, opt = &cmp_options[OPT_HELP+0]; opt->name; i++, opt++) {
             if (!strcmp(opt->name, OPT_HELP_STR) || !strcmp(opt->name, OPT_MORE_STR)) {
                 i--;
                 continue;
