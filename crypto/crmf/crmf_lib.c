@@ -282,8 +282,8 @@ int CRMF_CERTREQMSG_set1_control_oldCertId(CRMF_CERTREQMSG *certReqMsg,
     X509_NAME_set(&certId->issuer->d.directoryName, X509_get_issuer_name(oldCert));
     certId->issuer->type = GEN_DIRNAME;
 
-    if (!ASN1_INTEGER_set(certId->serialNumber,
-          ASN1_INTEGER_get(X509_get_serialNumber(oldCert))))
+    if (!(certId->serialNumber =
+                ASN1_INTEGER_dup(X509_get_serialNumber(oldCert))))
         goto err;
 
     atav->type = OBJ_nid2obj(NID_id_regCtrl_oldCertID);
