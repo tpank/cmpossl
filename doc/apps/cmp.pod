@@ -114,6 +114,9 @@ Display a summary of all options
 
 Name of section in OpenSSL config file defining cmp default options. Default is "cmp".
 
+
+=head2 Message transfer options
+
 =item B<-server address:port>
 
 The IP address or hostname and port of the CMP server to connect to.
@@ -138,6 +141,8 @@ certificates on 'waiting' PKIStatus. Default is 0 (infinite).
 
 =back
 
+
+=head2 TLS options
 
 =item B<-use-tls>
 
@@ -169,6 +174,8 @@ Address to be checked (rather than -server address) during host name validation.
 
 =back
 
+
+=head2 Recipient options
 
 =item B<-recipient name>
 
@@ -207,6 +214,8 @@ The file can contain multiple certificates.
 =back
 
 
+=head2 Sender options
+
 =item B<-ref value>
 
 Reference value to be used when messages are authenticated with pre-shared keys
@@ -244,6 +253,8 @@ File with certificates to include in the extraCerts field of requests.
 
 =back
 
+
+=head2 General message options
 
 =item B<-cmd ir|cr|kur|rr|genm>
 
@@ -287,8 +298,7 @@ protected.  This applies to the following message types received from the
 server:
 =over 4
 =item * error messages
-=item * certificate responses (IP/CP/KUP) and revocation responses (RP) with
-rejection.
+=item * negative certificate responses (IP/CP/KUP) and revocation responses (RP)
 =item * PKIConf
 
 B<WARNING:> This setting leads to unspecified behaviour and it is meant
@@ -313,6 +323,8 @@ The file where to save any received CA certificates.
 
 =back
 
+
+=head2 Certificate request options
 
 =item B<-newkey filename>
 
@@ -364,6 +376,8 @@ The file where the newly enrolled certificate should be saved.
 =back
 
 
+=head2 Misc request options
+
 =item B<-oldcert filename>
 
 The certificate to be updated (i.e., renewed or re-keyed) in KUR
@@ -395,6 +409,8 @@ Set InfoType name to use for requesting specific info in genm, e.g., 'signKeyPai
 =back
 
 
+=head2 Credential format options
+
 =item B<-certform DER|PEM|P12>
 
 Format to try first when reading and to use for writing certificate files. Default value is PEM.
@@ -418,6 +434,8 @@ supported e.g. by libp11:
 
 =back
 
+
+=head2 Certificate verification options
 
 =item B<-crls URL>
 
