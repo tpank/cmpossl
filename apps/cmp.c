@@ -175,7 +175,7 @@ static char *opt_srvcert = NULL;
 static char *opt_trusted = NULL;
 static char *opt_untrusted = NULL;
 static char *opt_crls = NULL;
-static long  opt_cdps = 0;
+static long  opt_crldownload = 0;
 static int vpmtouched = 0;
 static X509_VERIFY_PARAM *vpm = NULL;
 
@@ -293,24 +293,34 @@ typedef struct options_st {
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_SECTION,
-    OPT_SERVER, OPT_PROXY,
+
+    OPT_SERVER, OPT_PROXY, OPT_PATH,
     OPT_MSGTIMEOUT, OPT_MAXPOLLTIME,
+
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
     OPT_TLSTRUSTED, OPT_TLSHOST,
+
+    OPT_RECIPIENT, OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED,
+
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
-    OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED, 
-    OPT_CRLS, OPT_CDPS, OPT_V_ENUM/* OPT_CRLALL etc. */,
-    OPT_RECIPIENT, OPT_PATH, OPT_CMD,
-    OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, 
-    OPT_POPO,
-    OPT_REQEXTS,
-    OPT_DISABLECONFIRM, OPT_IMPLICITCONFIRM, OPT_UNPROTECTEDERRORS,
-    OPT_DIGEST, OPT_OLDCERT, OPT_REVREASON,
-    OPT_CACERTSOUT, OPT_CERTOUT, OPT_EXTRACERTSOUT,
-    OPT_KEYFORM, OPT_CERTFORM, OPT_INFOTYPE, OPT_GENINFO
+
+    OPT_CMD, OPT_GENINFO, OPT_DIGEST,
+    OPT_UNPROTECTEDERRORS,
+    OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
+
+    OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER,
+    OPT_REQEXTS, OPT_POPO,
+    OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
+    OPT_CERTOUT,
+
+    OPT_OLDCERT, OPT_REVREASON, OPT_INFOTYPE,
+
+    OPT_CERTFORM, OPT_KEYFORM,
 #ifndef OPENSSL_NO_ENGINE
-   ,OPT_ENGINE
+    OPT_ENGINE,
 #endif
+    OPT_CRLS, OPT_CRLDOWNLOAD,
+    OPT_V_ENUM/* OPT_CRLALL etc. */
 } OPTION_CHOICE;
 
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
@@ -323,17 +333,26 @@ OPTIONS cmp_options[] = {
 
     {"server", OPT_SERVER, 's', "The 'address:port' of the CMP server (domain name or IP address)"},
     {"proxy", OPT_PROXY, 's', "Address of HTTP proxy server, if needed for accessing the CMP server"},
+    {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
     {"msgtimeout", OPT_MSGTIMEOUT, 'n', "Timeout per CMP message round trip (or 0 for none). Default 120 seconds"},
-    {"maxpolltime", OPT_MAXPOLLTIME, 'n', "Maximum time to poll the server for a response on 'waiting' PKIStatus (default: 0 = infinite)"},
+    {"maxpolltime", OPT_MAXPOLLTIME, 'n', "Maximum total number of seconds to poll for certificates (default: 0 = infinite)"},
 
-    {"use-tls", OPT_USETLS, '-', "Force using TLS (even when other TLS-related options are not set) when connecting to CMP server"},
-    {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. PEM format may also include certificate chain to be provided to server"},
+    {"use-tls", OPT_USETLS, '-', "Force using TLS (even when other TLS options are not set) when connecting to CMP server"},
+    {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. PEM format may include cert chain to be provided to server"},
     {"tls-key", OPT_TLSKEY, 's', "Private key for the client's TLS certificate"},
     {"tls-keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
-
     {"tls-trusted", OPT_TLSTRUSTED, 's', "Client's trusted certificates for verifying TLS certificates.\n"
                               "\t\t       This implies host name validation"},
-    {"tls-host", OPT_TLSTRUSTED, 's', "Address (rather than -server address) to be checked during host name validation"},
+    {"tls-host", OPT_TLSTRUSTED, 's', "Address to be checked (rather than -server) during host name validation"},
+
+    {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given.\n"
+                           "\t\t       If both are not set, the recipient defaults to the -issuer argument.\n"
+                           "\t\t       For RR, the recipient defaults to the issuer of the certificate to be revoked"},
+    {"srvcert", OPT_SRVCERT, 's', "Certificate of CMP server to be used as recipient, for verifying replies,\n"
+                       "\t\t       and for verifying the newly enrolled cert (and to warn if this fails)"},
+    {"trusted", OPT_TRUSTED, 's', "Trusted certificates used for CMP server authentication and verifying replies,\n"
+                      "\t\t       as well as for checking the newly enrolled cert, unless -srvcert is given"},
+    {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
 
     {"ref", OPT_REF, 's', "Reference value for client authentication with a pre-shared key"},
     {"secret", OPT_SECRET, 's', "Password source for client authentication with a pre-shared key (secret)"},
@@ -342,58 +361,49 @@ OPTIONS cmp_options[] = {
     {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
     {"extcerts", OPT_EXTCERTS, 's', "Certificates to include in the extraCerts field of request"},
 
-    {"srvcert", OPT_SRVCERT, 's', "Certificate of CMP server to be used as recipient, for verifying replies,\n"
-                       "\t\t       and for verifying the newly enrolled cert (and to warn if this fails)"},
-    {"trusted", OPT_TRUSTED, 's', "Trusted certificates used for CMP server authentication and verifying replies,\n"
-                      "\t\t       as well as for checking the newly enrolled cert, unless -srvcert is given"},
-    {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
-    {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates.\n"
-                 "\t\t       URL may point to local file if prefixed by 'file:'"},
-    {"crl_download", OPT_CDPS, '-', "Retrieve CRLs from distribution points given in certificates as secondary source"},
-    OPT_V_OPTIONS, /* subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for leaf certificate but for full certificate chain"}, */
-
-    {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given.\n"
-                           "\t\t       If both are not set, the recipient defaults to the -issuer argument.\n"
-                           "\t\t       For RR, the recipient defaults to the issuer of the certificate to be revoked"},
-    {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
     {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/rr/genm"},
+    {"geninfo", OPT_GENINFO, 's', "Set generalInfo in request PKIHeader with type and integer value\n"
+                       "\t\t       given in the form <OID>:int:<n>, e.g., '1.2.3:int:987'"},
+    {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and POPO signatures. Defaults to 'sha256'"},
+    {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-', "Accept unprotected error responses: regular error messages as well as\n"
+                     "\t\t       certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection.\n"
+                     "\t\t       WARNING: This setting leads to behaviour allowing violation of RFC 4210."},
+    {"extracertsout", OPT_EXTRACERTSOUT, 's', "File to save received extra certificates"},
+    {"cacertsout", OPT_CACERTSOUT, 's', "File to save received CA certificates"},
 
     {"newkey", OPT_NEWKEY, 's', "New private key for the requested certificate. Default is current client certificate's key if given."},
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
     {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template"},
+    {"reqexts", OPT_REQEXTS, 's', "Name of section in OpenSSL config file defining certificate request extensions"},
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method.\n"
                  "\t\t       0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
-    {"reqexts", OPT_REQEXTS, 's', "Name of section in OpenSSL config file defining certificate request extensions"},
-
+    {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of enrolled certificate"},
     {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm enrolled certificates\n"
                      "\t\t       WARNING: This setting leads to behavior violating RFC 4210."},
-    {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of enrolled certificate"},
-    {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-', "Accept unprotected error responses: regular error messages as well as\n"
-                     "\t\t       certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection.\n"
-                     "\t\t       WARNING: This setting leads to behaviour allowing violation of RFC 4210."},
+    {"certout", OPT_CERTOUT, 's', "File to save the newly enrolled certificate"},
 
-    {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and Proof-of-Possession signatures. Defaults to 'sha256'"},
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be updated in KUR (defaulting to -cert) or to be revoked in RR"},
     {"revreason", OPT_REVREASON, 'n', "Set reason code to be included in revocation request (RR).\n"
                      "\t\t       Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
+    {"infotype", OPT_INFOTYPE, 's', "InfoType name to use for requesting specific info in genm, e.g., 'signKeyPairTypes'"},
 
-    {"cacertsout", OPT_CACERTSOUT, 's', "File to save received CA certificates"},
-    {"certout", OPT_CERTOUT, 's', "File to save the newly enrolled certificate"},
-    {"extracertsout", OPT_EXTRACERTSOUT, 's', "File to save received extra certificates"},
 
-    {"keyform", OPT_KEYFORM, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
     {"certform", OPT_CERTFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM.\n"
                        "\t\t       This also determines format to use for writing (not supported for P12)"},
-    {"infotype", OPT_INFOTYPE, 's', "InfoType name to use for requesting specific info in genm, e.g., 'signKeyPairTypes'\n"},
-    {"geninfo", OPT_GENINFO, 's', "Set generalInfo in request PKIHeader with type and integer value\n"
-                       "\t\t       given in the form <OID>:int:<n>, e.g., '1.2.3:int:987'"},
+    {"keyform", OPT_KEYFORM, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
 #ifndef OPENSSL_NO_ENGINE
-    {"engine", OPT_ENGINE, 's', "Use engine with given identifier, possibly a hardware device.\n"
+    {"engine", OPT_ENGINE, 's', "Use crypto engine with given identifier, possibly a hardware device.\n"
                      "\t\t       Engines may be defined in OpenSSL config file engine section.\n"
                      "\t\t       Options like -key specifying keys held in the engine can give key identifiers\n"
                      "\t\t       prefixed by 'engine:', e.g., '-key engine:pkcs11:object=mykey;pin-value=1234'"},
 #endif
+
+    {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates.\n"
+                 "\t\t       URL may point to local file if prefixed by 'file:'"},
+    {"crl_download", OPT_CRLDOWNLOAD, '-', "Retrieve CRLs from distribution points given in certificates as secondary source"},
+    OPT_V_OPTIONS, /* subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for leaf certificate but for full certificate chain"}, */
+
     {NULL}
 };
 
@@ -404,24 +414,33 @@ typedef union {
 } varref;
 static varref cmp_vars[]= { /* must be in the same order as enumerated above!! */
     {&opt_section},
-    {&opt_server}, {&opt_proxy},
+
+    {&opt_server}, {&opt_proxy}, {&opt_path},
     { (char **)&opt_msgtimeout}, { (char **)&opt_maxpolltime},
+
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
     {&opt_tls_trusted}, {&opt_tls_host},
+
+    {&opt_recipient}, {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
+
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
-    {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
-    {&opt_crls}, { (char **)&opt_cdps}, /* virtually at this point: OPT_CRLALL etc. */
-    {&opt_recipient}, {&opt_path}, {&opt_cmd_s},
+
+    {&opt_cmd_s}, {&opt_geninfo}, {&opt_digest},
+    { (char **)&opt_unprotectedErrors},
+    {&opt_extracertsout}, {&opt_cacertsout},
+
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
-    { (char **)&opt_popo},
-    {&opt_reqexts},
-    { (char **)&opt_disableConfirm}, { (char **)&opt_implicitConfirm}, { (char **)&opt_unprotectedErrors},
-    {&opt_digest}, {&opt_oldcert}, { (char **)&opt_revreason},
-    {&opt_cacertsout}, {&opt_certout}, {&opt_extracertsout},
-    {&opt_keyform_s}, {&opt_certform_s}, {&opt_infotype_s}, {&opt_geninfo},
+    {&opt_reqexts}, { (char **)&opt_popo},
+    { (char **)&opt_implicitConfirm}, { (char **)&opt_disableConfirm},
+    {&opt_certout},
+
+    {&opt_oldcert}, { (char **)&opt_revreason}, {&opt_infotype_s},
+
+    {&opt_keyform_s}, {&opt_certform_s},
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
 #endif
+    {&opt_crls}, { (char **)&opt_crldownload}, /* virtually at this point: OPT_CRLALL etc. */
     {NULL}
 };
 
@@ -459,13 +478,13 @@ static int read_config()
 
     /* starting with 1 and OPT_HELP+1 because OPT_SECTION has already been handled */
     for (i = 1, j = OPT_HELP+1; j < sizeof(cmp_options)/sizeof(cmp_options[0]) - 1; i++, j++) {
+        verification_option = (OPT_CRLDOWNLOAD <= j && j < OPT_CRLDOWNLOAD + OPT_V__LAST-OPT_V__FIRST-1); /* OPT_CRLALL etc. */
+        if (verification_option)
+            i--;
         if (cmp_vars[i].txt == NULL) {
             BIO_printf(bio_err, "internal error: cmp_vars array too short, i=%d\n", i);
             return 0;
         }
-        verification_option = (OPT_CDPS <= j && j < OPT_CDPS + OPT_V__LAST-OPT_V__FIRST-1); /* OPT_CRLALL etc. */
-        if (verification_option)
-            i--;
         opt = &cmp_options[j];
         switch (opt->valtype) {
         case '-':
@@ -480,6 +499,7 @@ static int read_config()
         case 'M':
             txt = NCONF_get_string(conf, opt_section, opt->name);
             if (txt == NULL) {
+                ERR_clear_error();
                 continue; /* option not provided */
             }
             break;
@@ -538,7 +558,6 @@ static int read_config()
         }
     }
 
-    ERR_clear_error();
     return 1;
 }
 
@@ -1385,13 +1404,13 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
 
         ERR_clear_error();
-        if (opt_crls || opt_cdps)
+        if (opt_crls || opt_crldownload)
             X509_VERIFY_PARAM_set_flags(SSL_CTX_get0_param(ssl_ctx), X509_V_FLAG_CRL_CHECK);
 
         if (crls) {
             ssl_ctx_add_crls(ssl_ctx, crls, 0);
         }
-        if (opt_cdps)
+        if (opt_crldownload)
             X509_STORE_set_lookup_crls(SSL_CTX_get_cert_store(ssl_ctx), crls_local_then_http_cb);
             /* TODO dvo: to be replaced with "store_setup_crl_download(ts)" from apps.h,
                after extended version of crls_http_cb has been pushed upstream */
@@ -1556,9 +1575,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                 X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts), X509_V_FLAG_CRL_CHECK_ALL);
         }
         ERR_clear_error();
-        if (opt_crls || opt_cdps)
+        if (opt_crls || opt_crldownload)
             X509_STORE_set_flags(ts, X509_V_FLAG_CRL_CHECK);
-        if (opt_cdps) {
+        if (opt_crldownload) {
             X509_STORE_set_lookup_crls(ts, crls_local_then_http_cb);
             /* TODO dvo: to be replaced with "store_setup_crl_download(ts)" from apps.h,
                after extended version of crls_http_cb has been pushed upstream */
@@ -1864,7 +1883,7 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-    /* TODO dvo: the follwing would likely go to openssl.c make_config_name() */
+    /* TODO dvo: the following would likely go to openssl.c make_config_name() */
     configfile = getenv("OPENSSL_CONF");
     if (configfile == NULL)
         configfile = getenv("SSLEAY_CONF");
@@ -1882,7 +1901,7 @@ int cmp_main(int argc, char **argv)
     /*
      * read default values for options from openssl.cnf 
      */
-    /* TODO dvo: the follwing would likely go to apps.c app_load_config_() */
+    /* TODO dvo: the following would likely go to apps.c app_load_config_() */
     if (configfile) {
         BIO_printf(bio_c_out, "Using OpenSSL configuration file '%s'\n", configfile);
         conf = NCONF_new(NULL);
@@ -1999,8 +2018,8 @@ opt_err:
         case OPT_CRLS:
             opt_crls = opt_arg();
             break;
-        case OPT_CDPS:
-            opt_cdps = 1;
+        case OPT_CRLDOWNLOAD:
+            opt_crldownload = 1;
             break;
         case OPT_V_CASES/* OPT_CRLALL etc. */:
             if (!opt_verify(o, vpm))
@@ -2101,7 +2120,7 @@ opt_err:
 
         /* starting with OPT_HELP+1 and 1 because OPT_SECTION has already been handled */
         for (i = 1, j = OPT_HELP+1; i < sizeof(cmp_vars)/sizeof(cmp_vars[0]); i++, j++) {
-            if (j == OPT_CDPS)
+            if (j == OPT_CRLDOWNLOAD)
                 j += OPT_V__LAST-OPT_V__FIRST - 1;
             opt = &cmp_options[j];
             if (opt->name && !strcmp(arg, opt->name)) {

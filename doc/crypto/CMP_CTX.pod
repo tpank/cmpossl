@@ -240,12 +240,12 @@ RFC 4210.
         if applicable used for message protection and Proof-of-Posession.
 
     CMP_CTX_OPT_MSGTIMEOUT
-        Maximum amount of time, in seconds a CMP message round trip is allowed
+        Number of seconds a CMP message round trip is allowed
         to take before a timeout error is returned. Default is 120.
 
     CMP_CTX_OPT_MAXPOLLTIME
-        Maximum amount of time, in seconds, to attempt polling
-        for a response to a message. Default is 0 (infinite).
+        Maximum total number of seconds to attempt polling for
+        certificates on 'waiting' PKIStatus. Default is 0 (infinite).
 
     CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR
         Allow retrieving a trust anchor from extraCers and using that
