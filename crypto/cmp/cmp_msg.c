@@ -286,7 +286,8 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     /* for KUR, setting OldCertId according to D.6:
        7.  regCtrl OldCertId SHOULD be used */
     if (bodytype == V_CMP_PKIBODY_KUR)
-        if (!CRMF_CERTREQMSG_set1_control_oldCertId(certReq0, oldcert))
+/* TODO: TEMPORARY - that should be done differently */
+        if (!CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(certReq0, oldcert))
             goto err;
 
     if (!CRMF_CERTREQMSG_calc_and_set_popo(certReq0, requestKey, ctx->digest, ctx->popoMethod))

@@ -68,7 +68,7 @@ struct crmf_certid_st {
     ASN1_INTEGER *serialNumber;
 } /* CRMF_CERTID */;
 DEFINE_STACK_OF(CRMF_CERTID)
-
+CRMF_CERTID *CRMF_CERTID_dup(CRMF_CERTID *cid);
 
 /*
 EncryptedKey ::= CHOICE {
@@ -316,13 +316,13 @@ struct crmf_attributetypeandvalue_st {
         CRMF_PKIARCHIVEOPTIONS *pkiArchiveOptions;
 
         /* NID_id_regCtrl_oldCertID */
-        CRMF_CERTID *oldCertId;
+        CRMF_CERTID *oldCertID;
 
         /* NID_id_regCtrl_protocolEncrKey */
         X509_PUBKEY *protocolEncrKey;
 
         /* NID_id_regInfo_utf8Pairs */
-        ASN1_UTF8STRING *utf8pairs;
+        ASN1_UTF8STRING *utf8Pairs;
 
         /* NID_id_regInfo_certReq */
         CRMF_CERTREQUEST *certReq;

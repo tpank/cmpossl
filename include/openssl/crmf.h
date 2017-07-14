@@ -200,128 +200,58 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
                               unsigned int *macLen);
 
 /* crmf_lib.c */
-int CRMF_CERTREQMSG_push0_control(CRMF_CERTREQMSG *certReqMsg,
-                                  CRMF_ATTRIBUTETYPEANDVALUE *control);
-int CRMF_CERTREQMSG_set1_control_regToken(CRMF_CERTREQMSG *msg,
+int CRMF_CERTREQMSG_set1_regCtrl_regToken(CRMF_CERTREQMSG *msg,
                                           ASN1_UTF8STRING *tok);
-int CRMF_CERTREQMSG_set1_control_authenticator(CRMF_CERTREQMSG *msg,
+int CRMF_CERTREQMSG_set1_regCtrl_authenticator(CRMF_CERTREQMSG *msg,
                                                ASN1_UTF8STRING *auth);
-int CRMF_CERTREQMSG_set1_control_pkiPublicationInfo(CRMF_CERTREQMSG *msg,
-                                                    CRMF_PKIPUBLICATIONINFO
-                                                    *pubinfo);
-int CRMF_CERTREQMSG_set1_control_pkiArchiveOptions(CRMF_CERTREQMSG *msg,
-                                                   CRMF_PKIARCHIVEOPTIONS
-                                                   *archopts);
-int CRMF_CERTREQMSG_set1_control_protocolEncrKey(CRMF_CERTREQMSG *msg,
+int CRMF_CERTREQMSG_set1_regCtrl_pkiPublicationInfo(CRMF_CERTREQMSG *msg,
+                                                    CRMF_PKIPUBLICATIONINFO *pi);
+int CRMF_CERTREQMSG_set1_regCtrl_pkiArchiveOptions(CRMF_CERTREQMSG *msg,
+                                                   CRMF_PKIARCHIVEOPTIONS *aos);
+int CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey(CRMF_CERTREQMSG *msg,
                                                  X509_PUBKEY *pubkey);
-int CRMF_CERTREQMSG_push0_regInfo(CRMF_CERTREQMSG *certReqMsg,
-                                  CRMF_ATTRIBUTETYPEANDVALUE *regInfo);
+int CRMF_CERTREQMSG_set1_regCtrl_oldCertID(CRMF_CERTREQMSG *crm,
+                                           CRMF_CERTID *cid);
+/* TODO: TEMPORARY - that should be done differently */
+int CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(CRMF_CERTREQMSG *crm,
+                                                      X509 *oldc);
+
 int CRMF_CERTREQMSG_set1_regInfo_utf8Pairs(CRMF_CERTREQMSG *msg,
                                            ASN1_UTF8STRING *utf8pairs);
 int CRMF_CERTREQMSG_set1_regInfo_certReq(CRMF_CERTREQMSG *msg,
-                                         CRMF_CERTREQUEST *certReq);
+                                         CRMF_CERTREQUEST *cr);
+/* TODO: evaluate whether that is needed --> bug#35 */
 int CRMF_CERTREQMSG_set1_regInfo_regToken(CRMF_CERTREQMSG *msg,
                                           ASN1_UTF8STRING *tok);
 
-int CRMF_CERTREQMSG_set_version2(CRMF_CERTREQMSG *certReqMsg);
-int CRMF_CERTREQMSG_set_validity(CRMF_CERTREQMSG *certReqMsg,
-                                 time_t notBefore, time_t notAfter);
-int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *certReqMsg,
-                                  const long certReqId);
-int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *certReqMsg,
-                                   const EVP_PKEY *pkey);
-int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *certReqMsg,
-                                 const X509_NAME *subject);
-int CRMF_CERTREQMSG_set1_issuer(CRMF_CERTREQMSG *certReqMsg,
-                                const X509_NAME *issuer);
-int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *certReqMsg,
+int CRMF_CERTREQMSG_set_version2(CRMF_CERTREQMSG *crm);
+int CRMF_CERTREQMSG_set_validity(CRMF_CERTREQMSG *crm, time_t from, time_t to);
+int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, const long rid);
+int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey);
+int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *crm, const X509_NAME *subj);
+int CRMF_CERTREQMSG_set1_issuer(CRMF_CERTREQMSG *crm, const X509_NAME *is);
+int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
                                     const X509_EXTENSION *ext);
 
 # define CRMF_POPO_NONE          0
 # define CRMF_POPO_SIGNATURE     1
 # define CRMF_POPO_ENCRCERT      2
 # define CRMF_POPO_RAVERIFIED    3
-int CRMF_CERTREQMSG_calc_and_set_popo(CRMF_CERTREQMSG *certReqMsg,
-                                      const EVP_PKEY *pkey,
-                                      int digest,
-                                      int popoMethod);
+int CRMF_CERTREQMSG_calc_and_set_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
+                                      int dgst, int ppmtd);
 
-CRMF_POPOSIGNINGKEY *CRMF_poposigningkey_new(CRMF_CERTREQUEST *certReq,
-                                             const EVP_PKEY *pkey,
-                                             int digest);
-
-int CRMF_CERTREQMSG_set1_control_oldCertId(CRMF_CERTREQMSG *certReqMsg,
-                                           X509 *oldCert);
+CRMF_POPOSIGNINGKEY *CRMF_poposigningkey_new(CRMF_CERTREQUEST *cr,
+                                             const EVP_PKEY *pkey, int dgst);
 
 /* BEGIN ERROR CODES */
 /*
  * The following lines are auto generated by the script mkerr.pl. Any changes
  * made after this point may be overwritten when the script is next run.
  */
+
 int ERR_load_CRMF_strings(void);
 
 /* Error codes for the CRMF functions. */
-
-/* Function codes. */
-# define CRMF_F_CRMF_CERTREQMSG_CALC_AND_SET_POPO         107
-# define CRMF_F_CRMF_CERTREQMSG_PUSH0_CONTROL             100
-# define CRMF_F_CRMF_CERTREQMSG_PUSH0_EXTENSION           101
-# define CRMF_F_CRMF_CERTREQMSG_PUSH0_REGINFO             102
-# define CRMF_F_CRMF_CERTREQMSG_SET1_CONTROL_AUTHENTICATOR 121
-# define CRMF_F_CRMF_CERTREQMSG_SET1_CONTROL_OLDCERTID    122
-# define CRMF_F_CRMF_CERTREQMSG_SET1_CONTROL_PKIARCHIVEOPTIONS 131
-# define CRMF_F_CRMF_CERTREQMSG_SET1_CONTROL_PKIPUBLICATIONINFO 123
-# define CRMF_F_CRMF_CERTREQMSG_SET1_CONTROL_PROTOCOLENCRKEY 124
-# define CRMF_F_CRMF_CERTREQMSG_SET1_CONTROL_REGTOKEN     108
-# define CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER               132
-# define CRMF_F_CRMF_CERTREQMSG_SET1_PUBLICKEY            103
-# define CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_CERTREQ      125
-# define CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_REGTOKEN     126
-# define CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_UTF8PAIRS    127
-# define CRMF_F_CRMF_CERTREQMSG_SET1_SUBJECT              128
-# define CRMF_F_CRMF_CERTREQMSG_SET_CERTREQID             129
-# define CRMF_F_CRMF_CERTREQMSG_SET_VALIDITY              104
-# define CRMF_F_CRMF_CERTREQMSG_SET_VERSION2              130
-# define CRMF_F_CRMF_CERTREQ_NEW                          105
-# define CRMF_F_CRMF_CR_NEW                               134
-# define CRMF_F_CRMF_PASSWORDBASEDMAC_NEW                 106
-# define CRMF_F_CRMF_PBMP_NEW                             133
-# define CRMF_F_CRMF_POPOSIGNINGKEY_NEW                   109
-# define CRMF_F_CRMF_SET1_CONTROL_AUTHENTICATOR           110
-# define CRMF_F_CRMF_SET1_CONTROL_OLDCERTID               111
-# define CRMF_F_CRMF_SET1_CONTROL_PKIARCHIVEOPTIONS       112
-# define CRMF_F_CRMF_SET1_CONTROL_PKIPUBLICATIONINFO      113
-# define CRMF_F_CRMF_SET1_CONTROL_PROTOCOLENCRKEY         114
-# define CRMF_F_CRMF_SET1_REGINFO_CERTREQ                 115
-# define CRMF_F_CRMF_SET1_REGINFO_UTF8PAIRS               116
-# define CRMF_F_CRMF_SET1_REGTOKEN_CERTREQ                117
-# define CRMF_F_CRMF_SET1_SUBJECT                         118
-# define CRMF_F_CRMF_SET_CERTREQID                        119
-# define CRMF_F_CRMF_SET_VERSION2                         120
-
-/* Reason codes. */
-# define CRMF_R_CRMFERROR                                 100
-# define CRMF_R_ERROR_CALCULATING_AND_SETTING_POPO        103
-# define CRMF_R_ERROR_SETTING_CONTROL_AUTHENTICATOR_ATAV  104
-# define CRMF_R_ERROR_SETTING_CONTROL_OLDCERTID_ATAV      105
-# define CRMF_R_ERROR_SETTING_CONTROL_PKIARCHIVEOPTIONS_ATAV 106
-# define CRMF_R_ERROR_SETTING_CONTROL_PKIPUBLICATIONINFO_ATAV 107
-# define CRMF_R_ERROR_SETTING_CONTROL_PROTOCOLENCRKEY_ATAV 108
-# define CRMF_R_ERROR_SETTING_POPSIGNINGKEY               109
-# define CRMF_R_ERROR_SETTING_PUBLIC_KEY                  101
-# define CRMF_R_ERROR_SETTING_REGINFO_CERTREQ_ATAV        110
-# define CRMF_R_ERROR_SETTING_REGINFO_UTF8PAIRS_ATAV      111
-# define CRMF_R_ERROR_SETTING_REGTOKEN_ATAV               112
-# define CRMF_R_ERROR_SETTING_REGTOKEN_CERTREQ_ATAV       113
-# define CRMF_R_ERROR_SETTING_VERSION_2                   114
-# define CRMF_R_ITERATIONCOUNT_BELOW_100                  117
-# define CRMF_R_MALLOC_FAILURE                            118
-# define CRMF_R_SETTING_MAC_ALRGOR_FAILURE                119
-# define CRMF_R_SETTING_OWF_ALRGOR_FAILURE                120
-# define CRMF_R_UNSUPPORTED_ALGORITHM                     102
-# define CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY         115
-# define CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO      116
-# define CRMF_R_NULL_ARGUMENT                             134
 
 # ifdef  __cplusplus
 }
