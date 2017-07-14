@@ -442,6 +442,7 @@ CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx);
 # define CMP_CTX_OPT_IMPLICITCONFIRM            7
 # define CMP_CTX_OPT_DISABLECONFIRM             8
 # define CMP_CTX_OPT_UNPROTECTED_ERRORS         9
+# define CMP_CTX_OPT_UNPROTECTED_REQUESTS      10
 int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val);
 # if 0
 int CMP_CTX_push_freeText(CMP_CTX *ctx, const char *text);

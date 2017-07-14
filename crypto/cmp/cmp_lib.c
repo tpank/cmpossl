@@ -719,6 +719,8 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
         goto err;
     if (!msg)
         goto err;
+    if (ctx->unprotectedRequests)
+        return 1;
 
     /* use PasswordBasedMac according to 5.1.3.1 if secretValue is given */
     if (ctx->secretValue) {
@@ -770,7 +772,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
             if (!(msg->protection = CMP_calc_protection_sig(msg, ctx->pkey)))
                 goto err;
-        } else if (msg->body->type != V_CMP_PKIBODY_IR) {
+        } else {
             CMPerr(CMP_F_CMP_PKIMESSAGE_PROTECT,
                    CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION);
             goto err;

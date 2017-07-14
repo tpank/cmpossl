@@ -219,6 +219,9 @@ B<WARNING:> This setting leads to unspecified behaviour and it is meant
 exclusively to allow interoperability with server implementations violating
 RFC 4210.
 
+    CMP_CTX_OPT_UNPROTECTED_REQUESTS
+        Send messages without CMP-level protection.
+
     CMP_CTX_OPT_UNPROTECTED_ERRORS
         Accept unprotected error responses: regular error messages as well as
         certificate responses (IP/CP/KUP) and revocation responses (RP) with rejection.

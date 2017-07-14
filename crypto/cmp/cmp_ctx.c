@@ -252,6 +252,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
 
     ctx->implicitConfirm = 0;
     ctx->disableConfirm = 0;
+    ctx->unprotectedRequests = 0;
     ctx->unprotectedErrors = 0;
     ctx->popoMethod = CRMF_POPO_SIGNATURE;
     ctx->revocationReason = CRL_REASON_NONE;
@@ -1346,6 +1347,9 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
         break;
     case CMP_CTX_OPT_DISABLECONFIRM: /* to cope with broken server ignoring implicit confirmation */
         ctx->disableConfirm = val;
+        break;
+    case CMP_CTX_OPT_UNPROTECTED_REQUESTS:
+        ctx->unprotectedRequests = val;
         break;
     case CMP_CTX_OPT_UNPROTECTED_ERRORS:
         ctx->unprotectedErrors = val;

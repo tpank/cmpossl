@@ -39,6 +39,7 @@ B<openssl> B<cmp>
 [B<-cmd ir|cr|kur|rr|genm>]
 [B<-geninfo OID:int:N>]
 [B<-digest name>]
+[B<-unprotectedrequests>]
 [B<-unprotectederrors>]
 [B<-extracertsout filename>]
 [B<-cacertsout filename>]
@@ -290,6 +291,10 @@ Specifies name of supported digest to be used in RFC 4210's MSG_SIG_ALG.
 If applicable, this is used for message protection and Proof-of-Possession (POPO)
 signatures.  To see the list of supported digests, use the command
 I<list --digest-commands>.  Defaults to 'sha256'.
+
+=item B<-unprotectedrequests>
+
+Send messages without CMP-level protection.
 
 =item B<-unprotectederrors>
 

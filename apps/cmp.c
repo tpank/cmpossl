@@ -193,6 +193,7 @@ static int   opt_popo = -1;
 static char *opt_reqexts = NULL;
 static long  opt_disableConfirm = 0;
 static long  opt_implicitConfirm = 0;
+static long  opt_unprotectedRequests = 0;
 static long  opt_unprotectedErrors = 0;
 static char *opt_digest = NULL;
 static char *opt_oldcert = NULL;
@@ -308,7 +309,7 @@ typedef enum OPTION_choice {
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
 
     OPT_CMD, OPT_GENINFO, OPT_DIGEST,
-    OPT_UNPROTECTEDERRORS,
+    OPT_UNPROTECTEDREQUESTS, OPT_UNPROTECTEDERRORS,
     OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
 
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER,
@@ -374,6 +375,7 @@ OPTIONS cmp_options[] = {
     {"geninfo", OPT_GENINFO, 's', "Set generalInfo in request PKIHeader with type and integer value"},
              {OPT_MORE_STR, 0, 0, "given in the form <OID>:int:<n>, e.g., '1.2.3:int:987'"},
     {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and POPO signatures. Default 'sha256'"},
+    {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-', "Send messages without CMP-level protection"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-',
                           "Accept unprotected error responses: regular error messages as well as"},
      {OPT_MORE_STR, 0, 0, "negative certificate responses (ip/cp/kup) and revocation responses (rp)."},
@@ -441,7 +443,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
 
     {&opt_cmd_s}, {&opt_geninfo}, {&opt_digest},
-    { (char **)&opt_unprotectedErrors},
+    { (char **)&opt_unprotectedRequests}, { (char **)&opt_unprotectedErrors},
     {&opt_extracertsout}, {&opt_cacertsout},
 
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
@@ -1331,7 +1333,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
 
-    if (opt_cmd != CMP_IR && !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
+    if (!opt_unprotectedRequests && !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
         BIO_puts(bio_err,
                  "error: missing ref/secret or certificate/key for client authentication\n");
         goto err;
@@ -1708,6 +1710,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_implicitConfirm)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IMPLICITCONFIRM, 1);
+
+    if (opt_unprotectedRequests)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_REQUESTS, 1);
 
     if (opt_unprotectedErrors)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
@@ -2108,6 +2113,9 @@ opt_err:
             break;
         case OPT_IMPLICITCONFIRM:
             opt_implicitConfirm = 1;
+            break;
+        case OPT_UNPROTECTEDREQUESTS:
+            opt_unprotectedRequests = 1;
             break;
         case OPT_UNPROTECTEDERRORS:
             opt_unprotectedErrors = 1;

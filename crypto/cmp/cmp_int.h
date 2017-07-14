@@ -86,6 +86,8 @@ struct cmp_ctx_st {
     int implicitConfirm;
     /* disable confirmation messages in IR/KUR/CR message exchanges to cope with broken server */
     int disableConfirm;
+    /* send unprotected requests */
+    int unprotectedRequests;
     /* accept unprotected error responses */
     int unprotectedErrors;
     /* Proof-of-posession mechanism used. Defaults to signature (POPOsignkingKey) */
