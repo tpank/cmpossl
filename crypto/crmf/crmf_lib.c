@@ -172,6 +172,8 @@ int CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(CRMF_CERTREQMSG *crm,
                 X509_get_issuer_name(oldc)))
         goto err;
     cid->issuer->type = GEN_DIRNAME;
+
+    ASN1_INTEGER_free(cid->serialNumber);
     if (!(cid->serialNumber = ASN1_INTEGER_dup(X509_get_serialNumber(oldc))))
         goto err;
 
