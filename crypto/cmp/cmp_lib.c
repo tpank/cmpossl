@@ -1145,7 +1145,7 @@ static char *CMP_PKISTATUSINFO_PKIStatus_get_string(CMP_PKISTATUSINFO
 {
     long PKIStatus;
 
-    if ((PKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(statusInfo) < 0))
+    if ((PKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(statusInfo)) < 0)
         return NULL;
     switch (PKIStatus) {
     case CMP_PKISTATUS_accepted:
