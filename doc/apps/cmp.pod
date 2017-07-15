@@ -143,41 +143,6 @@ certificates on 'waiting' PKIStatus. Default is 0 (infinite).
 =back
 
 
-=head2 TLS options
-
-=over 4
-
-=item B<-use-tls>
-
-Force using TLS (even when other TLS-related options are not set) when connecting to CMP server.
-
-=item B<-tls-cert filename>
-
-Client's TLS certificate. PEM format may also include certificate chain to be provided to server.
-
-=item B<-tls-key filename>
-
-Private key for the client's TLS certificate.
-
-=item B<-tls-keypass arg>
-
-Pass phrase source for client's private TLS key.
-If not given here, the password will be prompted for if needed.
-For more information about the format of B<arg> see the
-B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
-
-=item B<-tls-trusted filename>
-
-Client's trusted certificates for verifying TLS certificates.  The file may
-contain multiple certificates.  This implies host name validation.
-
-=item B<-tls-host name>
-
-Address to be checked (rather than -server address) during host name validation.
-
-=back
-
-
 =head2 Recipient options
 
 =over 4
@@ -462,6 +427,41 @@ Options specifying keys, like B<-key>, B<-newkey>, B<-tls-key> can prefix
 the engine. The following example utilizes the RFC 7512 PKCS #11 URI scheme as
 supported e.g. by libp11:
 '-key engine:pkcs11:object=my-private-key;type=private;pin-value=1234'
+
+=back
+
+
+=head2 TLS options
+
+=over 4
+
+=item B<-use-tls>
+
+Force using TLS (even when other TLS-related options are not set) when connecting to CMP server.
+
+=item B<-tls-cert filename>
+
+Client's TLS certificate. PEM format may also include certificate chain to be provided to server.
+
+=item B<-tls-key filename>
+
+Private key for the client's TLS certificate.
+
+=item B<-tls-keypass arg>
+
+Pass phrase source for client's private TLS key.
+If not given here, the password will be prompted for if needed.
+For more information about the format of B<arg> see the
+B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+
+=item B<-tls-trusted filename>
+
+Client's trusted certificates for verifying TLS certificates.  The file may
+contain multiple certificates.  This implies host name validation.
+
+=item B<-tls-host name>
+
+Address to be checked (rather than -server address) during host name validation.
 
 =back
 

@@ -301,9 +301,6 @@ typedef enum OPTION_choice {
     OPT_SERVER, OPT_PROXY, OPT_PATH,
     OPT_MSGTIMEOUT, OPT_MAXPOLLTIME,
 
-    OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
-    OPT_TLSTRUSTED, OPT_TLSHOST,
-
     OPT_RECIPIENT, OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED,
 
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
@@ -324,6 +321,9 @@ typedef enum OPTION_choice {
     OPT_ENGINE,
 #endif
 
+    OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
+    OPT_TLSTRUSTED, OPT_TLSHOST,
+
     OPT_CRLS, OPT_CRLDOWNLOAD,
     OPT_V_ENUM/* OPT_CRLALL etc. */
 } OPTION_CHOICE;
@@ -342,15 +342,6 @@ OPTIONS cmp_options[] = {
     {"path", OPT_PATH, 's', "HTTP path location inside the server (aka CMP alias)"},
     {"msgtimeout", OPT_MSGTIMEOUT, 'n', "Timeout per CMP message round trip (or 0 for none). Default 120 seconds"},
     {"maxpolltime", OPT_MAXPOLLTIME, 'n', "Maximum total number of seconds to poll for certificates (default: 0 = infinite)"},
-
-    {OPT_MORE_STR, 0, 0, "\nTLS options:"},
-    {"use-tls", OPT_USETLS, '-', "Force using TLS (even when other TLS options are not set) connecting to server"},
-    {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. May include cert chain to be provided to server"},
-    {"tls-key", OPT_TLSKEY, 's', "Private key for the client's TLS certificate"},
-    {"tls-keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
-    {"tls-trusted", OPT_TLSTRUSTED, 's', "Client's trusted certificates for verifying TLS certificates."},
-                    {OPT_MORE_STR, 0, 0, "This implies host name validation"},
-    {"tls-host", OPT_TLSTRUSTED, 's', "Address to be checked (rather than -server) during host name validation"},
 
     {OPT_MORE_STR, 0, 0, "\nRecipient options:"},
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given."},
@@ -403,7 +394,6 @@ OPTIONS cmp_options[] = {
                  {OPT_MORE_STR, 0, 0, "Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
     {"infotype", OPT_INFOTYPE, 's', "InfoType name for requesting specific info in genm, e.g., 'signKeyPairTypes'"},
 
-
     {OPT_MORE_STR, 0, 0, "\nCredential format options:"},
     {"certform", OPT_CERTFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM."},
                {OPT_MORE_STR, 0, 0, "This also determines format to use for writing (not supported for P12)"},
@@ -414,6 +404,15 @@ OPTIONS cmp_options[] = {
            {OPT_MORE_STR, 0, 0, "Options like -key specifying keys held in the engine can give key identifiers"},
            {OPT_MORE_STR, 0, 0, "prefixed by 'engine:', e.g., '-key engine:pkcs11:object=mykey;pin-value=1234'"},
 #endif
+
+    {OPT_MORE_STR, 0, 0, "\nTLS options:"},
+    {"use-tls", OPT_USETLS, '-', "Force using TLS (even when other TLS options are not set) connecting to server"},
+    {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. May include cert chain to be provided to server"},
+    {"tls-key", OPT_TLSKEY, 's', "Private key for the client's TLS certificate"},
+    {"tls-keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
+    {"tls-trusted", OPT_TLSTRUSTED, 's', "Client's trusted certificates for verifying TLS certificates."},
+                    {OPT_MORE_STR, 0, 0, "This implies host name validation"},
+    {"tls-host", OPT_TLSTRUSTED, 's', "Address to be checked (rather than -server) during host name validation"},
 
     {OPT_MORE_STR, 0, 0, "\nCertificate verification options:"},
     {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates."},
@@ -435,9 +434,6 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     {&opt_server}, {&opt_proxy}, {&opt_path},
     { (char **)&opt_msgtimeout}, { (char **)&opt_maxpolltime},
 
-    { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
-    {&opt_tls_trusted}, {&opt_tls_host},
-
     {&opt_recipient}, {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
 
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
@@ -457,6 +453,9 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
 #endif
+
+    { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
+    {&opt_tls_trusted}, {&opt_tls_host},
 
     {&opt_crls}, { (char **)&opt_crldownload},
     /* virtually at this point: OPT_CRLALL etc. */
