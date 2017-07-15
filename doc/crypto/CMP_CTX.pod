@@ -243,8 +243,8 @@ RFC 4210.
         if applicable used for message protection and Proof-of-Posession.
 
     CMP_CTX_OPT_MSGTIMEOUT
-        Number of seconds a CMP message round trip is allowed
-        to take before a timeout error is returned. Default is 120.
+        Number of seconds (or 0 for infinite) a CMP message round trip is
+        allowed to take before a timeout error is returned. Default is 120.
 
     CMP_CTX_OPT_MAXPOLLTIME
         Maximum total number of seconds to attempt polling for

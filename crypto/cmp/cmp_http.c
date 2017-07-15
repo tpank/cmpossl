@@ -227,6 +227,7 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMES
     return NULL;
 }
 
+/* returns 1 on success, 0 on error, -1 on BIO_should_retry */
 static int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
 {
     return OCSP_REQ_CTX_nbio_d2i(rctx,
@@ -234,21 +235,51 @@ static int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
                                  ASN1_ITEM_rptr(CMP_PKIMESSAGE));
 }
 
-/* returns 0 on send error, else returns the received message (or NULL on result parse error) via the *out argument */
-static int CMP_sendreq_bio(BIO *b, const char *path, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **out, time_t max_time)
+static int wait(BIO *bio, int for_read, int max_seconds)
+{
+    int fd;
+    fd_set confds;
+    struct timeval tv;
+
+    if (BIO_get_fd(bio, &fd) <= 0)
+        return -2;
+
+    FD_ZERO(&confds);
+    openssl_fdset(fd, &confds);
+    tv.tv_usec = 0;
+    tv.tv_sec = max_seconds;
+    return select(fd + 1, for_read ? &confds : NULL,
+                  for_read ? NULL : &confds, NULL, &tv);
+}
+
+/* returns -1 on timeout, 0 on send/receive error, else
+   provides the received message (or NULL on result parse error) via the *out argument */
+static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **out, time_t max_time)
 {
     OCSP_REQ_CTX *ctx;
-    int rv;
+    int rv, rc;
 
-    if (!(ctx = CMP_sendreq_new(b, path, req, -1)))
+    if (!(ctx = CMP_sendreq_new(bio, path, req, -1)))
         return 0;
 
-    do {
+    for (;;) {
         rv = CMP_sendreq_nbio(out, ctx);
-    } while ((rv == -1) && BIO_should_retry(b) && (max_time <= 0 || time(NULL) < max_time));
-
-    if (rv == 0)
-        rv = 1;
+        if (rv != -1)
+            break;
+        /* BIO_should_retry was true */
+        if (max_time != 0) { /* non-blocking mode */
+            int max_seconds = max_time - time(NULL);
+            if (max_seconds <= 0) /* timeout */
+                break;
+            rc = wait(bio, BIO_should_read(bio), max_seconds);
+            if (rc == 0) /* timeout */
+            break;
+            if (rc < 0) { /* select error */
+                rc = 0;
+                break;
+            }
+        }
+    }
 
     OCSP_REQ_CTX_free(ctx);
 
@@ -264,14 +295,13 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
                                 const CMP_PKIMESSAGE *req,
                                 CMP_PKIMESSAGE **res)
 {
-    int rv, fd;
-    fd_set confds;
-    struct timeval tv;
+    int rv;
     char *path = 0;
     size_t pos = 0, pathlen = 0;
     CMPBIO *cbio = NULL;
     CMPBIO *hbio = NULL;
     int err = CMP_R_SERVER_NOT_REACHABLE;
+    int blocking = ctx->msgTimeOut == 0;
     time_t max_time = ctx->msgTimeOut != 0 ? time(NULL) + ctx->msgTimeOut : 0;
 
     if (!ctx || !req || !res)
@@ -285,26 +315,18 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         return CMP_R_NULL_ARGUMENT; /* better: out of memory */
 
     cbio = (ctx->tlsBIO) ? BIO_push(ctx->tlsBIO, hbio) : hbio;
-    if (ctx->msgTimeOut != 0)
-        BIO_set_nbio(cbio, 1);
 
+    if (!blocking)
+        BIO_set_nbio(cbio, 1);
     rv = BIO_do_connect(cbio);
-    if (rv <= 0 && (ctx->msgTimeOut == 0 || !BIO_should_retry(cbio)))
+    if (rv <= 0 && (blocking || !BIO_should_retry(cbio)))
         goto err; /* Error connecting */
 
-    if (BIO_get_fd(cbio, &fd) <= 0)
-        /* XXX Can't get fd, is CMP_R_SERVER_NOT_REACHABLE the right error to return? */
-        goto err;
-
-    if (ctx->msgTimeOut != 0 && rv <= 0) {
-        FD_ZERO(&confds);
-        openssl_fdset(fd, &confds);
-        tv.tv_usec = 0;
-        tv.tv_sec = ctx->msgTimeOut;
-        rv = select(fd + 1, NULL, (void *)&confds, NULL, &tv);
-        if (rv == 0) {
-            /* Timed out */
-            err = CMP_R_SERVER_NOT_REACHABLE;
+    if (!blocking && rv <= 0) {
+        rv = wait(cbio, 0, ctx->msgTimeOut);
+        if (rv <= 0) {
+            err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT :
+                              CMP_R_SERVER_NOT_REACHABLE; /* the right error to return? */
             goto err;
         }
     }
@@ -327,7 +349,10 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
 
     BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
 
-    if (!CMP_sendreq_bio(cbio, path, req, res, max_time))
+    rv = CMP_sendreq(cbio, path, req, res, max_time);
+    if (rv == -1)
+        err = CMP_R_READ_TIMEOUT;
+    else if (rv == 0)
         err = CMP_R_FAILED_TO_SEND_REQUEST;
     else
         err = (*res == NULL) ? CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE : 0;

@@ -201,6 +201,8 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_REASON(CMP_R_REQUEST_REJECTED_BY_CA), "request rejected by ca"},
     {ERR_REASON(CMP_R_RP_NOT_RECEIVED), "rp not received"},
     {ERR_REASON(CMP_R_SERVER_NOT_REACHABLE), "server not reachable"},
+    {ERR_REASON(CMP_R_CONNECT_TIMEOUT), "connect timeout"},
+    {ERR_REASON(CMP_R_READ_TIMEOUT), "read timeout"},
     {ERR_REASON(CMP_R_UNABLE_TO_CREATE_CONTEXT), "unable to create context"},
     {ERR_REASON(CMP_R_UNEXPECTED_PKISTATUS), "unexpected pkistatus"},
     {ERR_REASON(CMP_R_UNKNOWN_ALGORITHM_ID), "unknown algorithm id"},

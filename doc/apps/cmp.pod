@@ -1,4 +1,3 @@
-
 =pod
 
 =head1 NAME
@@ -133,8 +132,8 @@ HTTP path location to use for the CMP server (aka CMP alias).
 
 =item B<-msgtimeout seconds>
 
-Number of seconds a CMP message round trip is allowed
-to take before a timeout error is returned. Default is 120.
+Number of seconds (or 0 for infinite) a CMP message round trip is
+allowed to take before a timeout error is returned. Default is 120.
 
 =item B<-maxpolltime seconds>
 

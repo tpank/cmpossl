@@ -627,6 +627,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_REQUEST_REJECTED_BY_CA                     156
 # define CMP_R_RP_NOT_RECEIVED                            157
 # define CMP_R_SERVER_NOT_REACHABLE                       158
+# define CMP_R_CONNECT_TIMEOUT                            177
+# define CMP_R_READ_TIMEOUT                               178
 # define CMP_R_SERVER_RESPONSE_ERROR                      174
 # define CMP_R_SERVER_RESPONSE_PARSE_ERROR                175
 # define CMP_R_TLS_SETUP_FAILURE                          176
