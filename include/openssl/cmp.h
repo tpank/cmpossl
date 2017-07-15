@@ -341,6 +341,7 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);
 int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type);
 int CMP_PKIMESSAGE_get_bodytype(CMP_PKIMESSAGE *msg);
+#define CMP_PKISTATUSINFO_BUFLEN 1024
 char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 ASN1_OCTET_STRING *CMP_get_cert_subject_key_id(const X509 *cert);
 STACK_OF(X509) * CMP_build_cert_chain(X509_STORE *store, X509 *cert);

@@ -1658,8 +1658,8 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
     return crt;
 
  err:
-    if ((tempbuf = OPENSSL_malloc(1024))) {
-        if (CMP_PKISTATUSINFO_snprint(crep->status, tempbuf, 1024))
+    if ((tempbuf = OPENSSL_malloc(CMP_PKISTATUSINFO_BUFLEN))) {
+        if (CMP_PKISTATUSINFO_snprint(crep->status, tempbuf, CMP_PKISTATUSINFO_BUFLEN))
             ERR_add_error_data(1, tempbuf);
         OPENSSL_free(tempbuf);
     }

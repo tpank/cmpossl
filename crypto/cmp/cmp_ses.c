@@ -127,12 +127,15 @@ static char *V_CMP_TABLE[] = {
  * ############################################################################ */
 static void message_add_error_data(CMP_PKIMESSAGE *msg)
 {
-    char tempbuf[1024], *s;
+    char *tempbuf;
     switch (CMP_PKIMESSAGE_get_bodytype(msg)) {
     case V_CMP_PKIBODY_ERROR:
-        s = CMP_PKISTATUSINFO_snprint(msg->body->value.error->
-                                      pKIStatusInfo, tempbuf, sizeof(tempbuf));
-        ERR_add_error_data(2, "got error message; ", s);
+        if ((tempbuf = OPENSSL_malloc(CMP_PKISTATUSINFO_BUFLEN))) {
+            if (CMP_PKISTATUSINFO_snprint(msg->body->value.error->
+                   pKIStatusInfo, tempbuf, CMP_PKISTATUSINFO_BUFLEN))
+                ERR_add_error_data(2, "got error message; ", tempbuf);
+            OPENSSL_free(tempbuf);
+        }
         break;
     case -1:
         ERR_add_error_data(1, "got no message");
