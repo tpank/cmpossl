@@ -361,7 +361,7 @@ OPTIONS cmp_options[] = {
     {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
     {"extcerts", OPT_EXTCERTS, 's', "Certificates to include in the extraCerts field of request"},
 
-    {OPT_MORE_STR, 0, 0, "\nGeneral message options:"},
+    {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
     {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/rr/genm"},
     {"geninfo", OPT_GENINFO, 's', "Set generalInfo in request PKIHeader with type and integer value"},
              {OPT_MORE_STR, 0, 0, "given in the form <OID>:int:<n>, e.g., '1.2.3:int:987'"},
@@ -414,7 +414,7 @@ OPTIONS cmp_options[] = {
                     {OPT_MORE_STR, 0, 0, "This implies host name validation"},
     {"tls-host", OPT_TLSTRUSTED, 's', "Address to be checked (rather than -server) during host name validation"},
 
-    {OPT_MORE_STR, 0, 0, "\nCertificate verification options:"},
+    {OPT_MORE_STR, 0, 0, "\nCertificate verification options, for both CMP and TLS:"},
     {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates."},
        {OPT_MORE_STR, 0, 0, "URL may point to local file if prefixed by 'file:'"},
     {"crl_download", OPT_CRLDOWNLOAD, '-', "Retrieve CRLs from distribution points given in certificates as secondary source"},

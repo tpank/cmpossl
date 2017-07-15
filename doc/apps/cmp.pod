@@ -226,7 +226,7 @@ File with certificates to include in the extraCerts field of requests.
 =back
 
 
-=head2 General message options
+=head2 Generic message options
 
 =over 4
 
@@ -466,7 +466,7 @@ Address to be checked (rather than -server address) during host name validation.
 =back
 
 
-=head2 Certificate verification options
+=head2 Certificate verification options, for both CMP and TLS
 
 =over 4
 
