@@ -124,8 +124,7 @@ static int CRMF_CERTREQMSG_push0_regCtrl(CRMF_CERTREQMSG *crm,
             goto err;
         new = 1;
     }
-    if (!sk_CRMF_ATTRIBUTETYPEANDVALUE_push
-        (crm->certReq->controls, ctrl))
+    if (!sk_CRMF_ATTRIBUTETYPEANDVALUE_push(crm->certReq->controls, ctrl))
         goto err;
 
     return 1;
@@ -133,8 +132,7 @@ static int CRMF_CERTREQMSG_push0_regCtrl(CRMF_CERTREQMSG *crm,
     CRMFerr(CRMF_F_CRMF_CERTREQMSG_PUSH0_REGCTRL, CRMF_R_ERROR);
 
     if (new) {
-        sk_CRMF_ATTRIBUTETYPEANDVALUE_pop_free(crm->certReq->controls,
-                                               CRMF_ATTRIBUTETYPEANDVALUE_free);
+        sk_CRMF_ATTRIBUTETYPEANDVALUE_free(crm->certReq->controls);
         crm->certReq->controls = NULL;
     }
     return 0;
@@ -191,7 +189,7 @@ int CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(CRMF_CERTREQMSG *crm,
 
 
  /* id-regCtrl-protocolEncrKey Control (section 6.6) */
- /* For some reason X509_PUBKEY_dup() does not implemented in OpenSSL X509
+ /* For some reason X509_PUBKEY_dup() is not implemented in OpenSSL X509
   * TODO: check whether that should go elsewhere */
 static IMPLEMENT_ASN1_DUP_FUNCTION(X509_PUBKEY)
 IMPLEMENT_CRMF_CTRL_FUNC(protocolEncrKey, X509_PUBKEY, regCtrl)
@@ -218,11 +216,10 @@ static int CRMF_CERTREQMSG_push0_regInfo(CRMF_CERTREQMSG *crm,
         goto err;
     return 1;
  err:
-    CRMFerr(CRMF_F_CRMF_CERTREQMSG_PUSH0_REGINFO, CRMF_R_CRMFERROR);
+    CRMFerr(CRMF_F_CRMF_CERTREQMSG_PUSH0_REGINFO, CRMF_R_ERROR);
 
     if (new) {
-        sk_CRMF_ATTRIBUTETYPEANDVALUE_pop_free(crm->regInfo,
-                                               CRMF_ATTRIBUTETYPEANDVALUE_free);
+        sk_CRMF_ATTRIBUTETYPEANDVALUE_free(crm->regInfo);
         crm->regInfo = NULL;
     }
     return 0;
@@ -422,8 +419,7 @@ int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
     CRMFerr(CRMF_F_CRMF_CERTREQMSG_PUSH0_EXTENSION, CRMF_R_ERROR);
 
     if (new) {
-        sk_X509_EXTENSION_pop_free(crm->certReq->certTemplate->extensions,
-                                   X509_EXTENSION_free);
+        sk_X509_EXTENSION_free(crm->certReq->certTemplate->extensions);
         crm->certReq->certTemplate->extensions = NULL;
     }
     return 0;
