@@ -1580,7 +1580,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
     X509 *crt = NULL;
 
     if (!crep)
-        goto err;
+        return NULL;
 
     switch (CMP_CERTRESPONSE_PKIStatus_get(crep)) {
     case CMP_PKISTATUS_waiting:
