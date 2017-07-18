@@ -143,8 +143,10 @@ static STACK_OF (X509) * X509_stack_dup(const STACK_OF (X509) * stack)
     return NULL;
 }
 
-/* For some reason X509_PUBKEY_dup() is not implemented via IMPLEMENT_ASN1_DUP_FUNCTION(EVP_PKEY) in OpenSSL X509
- * TODO: remove the following auxiliary declaration once done, e.g., in crypto/evp/evp_pkey.c */
+/* For some reason EVP_PKEY_dup() is not implemented via
+ * IMPLEMENT_ASN1_DUP_FUNCTION(EVP_PKEY) in OpenSSL X509
+ * TODO: remove the following auxiliary declaration once done, e.g., in
+ * crypto/evp/evp_pkey.c */
 /* ############################################################################ *
  * Creates a copy of the given EVP_PKEY.
  * returns ptr to duplicated EVP_PKEY on success, NULL on error
