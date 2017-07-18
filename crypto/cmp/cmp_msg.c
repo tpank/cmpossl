@@ -236,9 +236,10 @@ static X509_NAME* determine_subj(CMP_CTX *ctx, X509 *oldcert, int bodytype) {
 }
 
 /* ########################################################################## *
- * generic generation of certificate requests for IR/CR/KUR
+ * Create certificate request PKIMessage for IR/CR/KUR
+ * returns a pointer to the PKIMessage on success, NULL on error
  * ########################################################################## */
-static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
+CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
 {
     CMP_PKIMESSAGE *msg = NULL;
     CRMF_CERTREQMSG *cr0 = NULL;
@@ -248,7 +249,7 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     X509 *oldcert = NULL;
 
     if (!ctx || (!ctx->pkey && !ctx->newPkey) ) {
-        CMPerr(CMP_F_CERTREQ_NEW, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_CMP_CERTREQ_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
@@ -341,7 +342,7 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     return msg;
 
  err:
-    CMPerr(CMP_F_CERTREQ_NEW, CMP_R_ERROR_CREATING_REQUEST_MESSAGE);
+    CMPerr(CMP_F_CMP_CERTREQ_NEW, err_code);
     if (exts)
         sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
     if (cr0)
@@ -349,42 +350,6 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     if (msg)
         CMP_PKIMESSAGE_free(msg);
     return NULL;
-}
-
-/* ########################################################################## *
- * Create a new Initial Request PKIMessage based on the settings in given ctx
- * returns a pointer to the PKIMessage on success, NULL on error
- * ########################################################################## */
-CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx)
-{
-    CMP_PKIMESSAGE *msg = NULL;
-    if (!(msg = certreq_new(ctx, V_CMP_PKIBODY_IR)))
-        CMPerr(CMP_F_CMP_IR_NEW, CMP_R_ERROR_CREATING_IR);
-    return msg;
-}
-
-/* ########################################################################## *
- * Creates a new Certificate Request PKIMessage based on the settings in ctx
- * returns a pointer to the PKIMessage on success, NULL on error
- * ########################################################################## */
-CMP_PKIMESSAGE *CMP_cr_new(CMP_CTX *ctx)
-{
-    CMP_PKIMESSAGE *msg = NULL;
-    if (!(msg = certreq_new(ctx, V_CMP_PKIBODY_CR)))
-        CMPerr(CMP_F_CMP_CR_NEW, CMP_R_ERROR_CREATING_CR);
-    return msg;
-}
-
-/* ########################################################################## *
- * Creates a new Key Update Request PKIMessage based on the settings in ctx
- * returns a pointer to the PKIMessage on success, NULL on error
- * ########################################################################## */
-CMP_PKIMESSAGE *CMP_kur_new(CMP_CTX *ctx)
-{
-    CMP_PKIMESSAGE *msg = NULL;
-    if (!(msg = certreq_new(ctx, V_CMP_PKIBODY_KUR)))
-        CMPerr(CMP_F_CMP_KUR_NEW, CMP_R_ERROR_CREATING_KUR);
-    return msg;
 }
 
 /* ########################################################################## *

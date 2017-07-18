@@ -524,39 +524,38 @@ static int cert_response(CMP_CTX *ctx,
 }
 
 /* ############################################################################ *
- * do the full sequence for IR, including IR, IP, certConf, PKIconf and
- * potential polling
+ * internal function
+ *
+ * Do the full sequence CR/IR/KUR, CP/IP/KUP,
+ * certConf, PKIconf, and potential polling.
  *
  * All options need to be set in the context.
  *
  * TODO: another function to request two certificates at once should be created
  *
- * returns pointer to received certificate, NULL if none was received
+ * returns pointer to received certificate, or NULL if none was received
  * ############################################################################ */
-X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx)
+static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
+                int req_type, int req_err, int rep_type, int rep_err)
 {
-    CMP_PKIMESSAGE *ir = NULL;
-    CMP_PKIMESSAGE *ip = NULL;
+    CMP_PKIMESSAGE *req = NULL;
+    CMP_PKIMESSAGE *rep = NULL;
     X509 *result = NULL;
 
-    /* check if all necessary options are set is done in CMP_ir_new */
-    /* create Initialization Request - ir */
-    if (!(ir = CMP_ir_new(ctx)))
-            goto err;
-
-    if (!send_receive_check(ctx, ir, "ir", CMP_F_CMP_DOINITIALREQUESTSEQ,
-                                &ip, V_CMP_PKIBODY_IP, CMP_R_IP_NOT_RECEIVED))
+    /* The check if all necessary options are set is done in CMP_certreq_new */
+    if (!(req = CMP_certreq_new(ctx, req_type, req_err)))
         goto err;
 
-    if (!cert_response(ctx, &ip, CMP_F_CMP_DOINITIALREQUESTSEQ, CMP_R_IP_NOT_RECEIVED))
+    if (!send_receive_check(ctx, req, type_string, fn, &rep, rep_type, rep_err))
+        goto err;
+
+    if (!cert_response(ctx, &rep, fn, rep_err))
         goto err;
 
     result = ctx->newClCert;
  err:
-    if (ir)
-        CMP_PKIMESSAGE_free(ir);
-    if (ip)
-        CMP_PKIMESSAGE_free(ip);
+    CMP_PKIMESSAGE_free(req);
+    CMP_PKIMESSAGE_free(rep);
 
     /* print out openssl and cmp errors to error_cb if it's set */
     if (!result && ctx && ctx->error_cb)
@@ -645,93 +644,25 @@ int CMP_doRevocationRequestSeq(CMP_CTX *ctx)
     return result;
 }
 
-/* ############################################################################ *
- * do the full sequence for CR, including CR, CP, certConf, PKIconf and
- * potential polling
- *
- * All options need to be set in the context.
- *
- * TODO: another function to request two certificates at once should be created
- *
- * returns pointer to received certificate, NULL if non was received
- * ############################################################################ */
-X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx)
+X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx)
 {
-    CMP_PKIMESSAGE *cr = NULL;
-    CMP_PKIMESSAGE *cp = NULL;
-    X509 *result = NULL;
-
-    /* check if all necessary options are set is done by CMP_cr_new */
-    /* create Certificate Request - cr */
-    if (!(cr = CMP_cr_new(ctx)))
-        goto err;
-
-    if (!send_receive_check(ctx, cr, "cr", CMP_F_CMP_DOCERTIFICATEREQUESTSEQ,
-                                &cp, V_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED))
-        goto err;
-
-    if (!cert_response(ctx, &cp, CMP_F_CMP_DOCERTIFICATEREQUESTSEQ, CMP_R_CP_NOT_RECEIVED))
-        goto err;
-
-    result = ctx->newClCert;
- err:
-    if (cr)
-        CMP_PKIMESSAGE_free(cr);
-    if (cp)
-        CMP_PKIMESSAGE_free(cp);
-
-    /* print out openssl and cmp errors to error_cb if it's set */
-    if (!result && ctx && ctx->error_cb)
-        ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
-    return result;
+    return do_certreq_seq(ctx, "ir", CMP_F_CMP_DOINITIALREQUESTSEQ,
+                          V_CMP_PKIBODY_IR, CMP_R_ERROR_CREATING_IR,
+                          V_CMP_PKIBODY_IP, CMP_R_IP_NOT_RECEIVED);
 }
 
-/* ############################################################################ *
- * do the full sequence for KUR, including KUR, KUP, certConf, PKIconf and
- * potential polling
- *
- * All options need to be set in the context.
- *
- * NB: the ctx->newPkey can be set *by the user* as the same as the current key
- * as per section 5.3.5:
- * An update is a replacement
- * certificate containing either a new subject public key or the current
- * subject public key (although the latter practice may not be
- * appropriate for some environments).
- *
- * TODO: another function to request two certificates at once should be created
- *
- * returns pointer to received certificate, NULL if non was received
- * ############################################################################ */
+X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx)
+{
+    return do_certreq_seq(ctx, "cr", CMP_F_CMP_DOCERTIFICATEREQUESTSEQ,
+                          V_CMP_PKIBODY_CR, CMP_R_ERROR_CREATING_CR,
+                          V_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED);
+}
+
 X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx)
 {
-    CMP_PKIMESSAGE *kur = NULL;
-    CMP_PKIMESSAGE *kup = NULL;
-    X509 *result = NULL;
-
-    /* check if all necessary options are set is done in CMP_kur_new */
-    /* create Key Update Request - kur */
-    if (!(kur = CMP_kur_new(ctx)))
-        goto err;
-
-    if (!send_receive_check(ctx, kur, "kur", CMP_F_CMP_DOKEYUPDATEREQUESTSEQ,
-                                &kup, V_CMP_PKIBODY_KUP, CMP_R_KUP_NOT_RECEIVED))
-        goto err;
-
-    if (!cert_response(ctx, &kup, CMP_F_CMP_DOKEYUPDATEREQUESTSEQ, CMP_R_KUP_NOT_RECEIVED))
-            goto err;
-
-    result = ctx->newClCert;
- err:
-    if (kur)
-        CMP_PKIMESSAGE_free(kur);
-    if (kup)
-        CMP_PKIMESSAGE_free(kup);
-
-    /* print out openssl and cmp errors to error_cb if it's set */
-    if (!result && ctx && ctx->error_cb)
-        ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
-    return result;
+    return do_certreq_seq(ctx, "kur", CMP_F_CMP_DOKEYUPDATEREQUESTSEQ,
+                          V_CMP_PKIBODY_KUR, CMP_R_ERROR_CREATING_KUR,
+                          V_CMP_PKIBODY_KUP, CMP_R_KUP_NOT_RECEIVED);
 }
 
 /* ############################################################################ *

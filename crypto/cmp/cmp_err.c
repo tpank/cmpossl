@@ -19,7 +19,7 @@
 # define ERR_REASON(reason) ERR_PACK(ERR_LIB_CMP,0,reason)
 
 static ERR_STRING_DATA CMP_str_functs[] = {
-    {ERR_FUNC(CMP_F_CERTREQ_NEW), "certreq_new"},
+    {ERR_FUNC(CMP_F_CMP_CERTREQ_NEW), "CMP_certreq_new"},
     {ERR_FUNC(CMP_F_CMP_CALC_PROTECTION_PBMAC), "CMP_calc_protection_pbmac"},
     {ERR_FUNC(CMP_F_CMP_CALC_PROTECTION_SIG), "CMP_calc_protection_sig"},
     {ERR_FUNC(CMP_F_CMP_CERTCONF_NEW), "CMP_certConf_new"},
@@ -37,7 +37,6 @@ static ERR_STRING_DATA CMP_str_functs[] = {
      "CMP_CERTRESPONSE_PKIStatus_get"},
     {ERR_FUNC(CMP_F_CMP_CERTSTATUS_SET_CERTHASH),
      "CMP_CERTSTATUS_set_certHash"},
-    {ERR_FUNC(CMP_F_CMP_CR_NEW), "CMP_cr_new"},
     {ERR_FUNC(CMP_F_CMP_CTX_CAPUBS_GET1), "CMP_CTX_caPubs_get1"},
     {ERR_FUNC(CMP_F_CMP_CTX_CAPUBS_NUM), "CMP_CTX_caPubs_num"},
     {ERR_FUNC(CMP_F_CMP_CTX_CAPUBS_POP), "CMP_CTX_caPubs_pop"},
@@ -90,8 +89,6 @@ static ERR_STRING_DATA CMP_str_functs[] = {
      "CMP_doRevocationRequestSeq"},
     {ERR_FUNC(CMP_F_CMP_ERROR_NEW), "CMP_error_new"},
     {ERR_FUNC(CMP_F_CMP_GENM_NEW), "CMP_genm_new"},
-    {ERR_FUNC(CMP_F_CMP_IR_NEW), "CMP_ir_new"},
-    {ERR_FUNC(CMP_F_CMP_KUR_NEW), "CMP_kur_new"},
     {ERR_FUNC(CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0),
      "CMP_PKIHEADER_generalInfo_item_push0"},
     {ERR_FUNC(CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1),

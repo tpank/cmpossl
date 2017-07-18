@@ -279,11 +279,9 @@ typedef STACK_OF (ASN1_UTF8STRING) CMP_PKIFREETEXT;
  * function DECLARATIONS
  * ########################################################################## */
 /* cmp_msg.c */
-CMP_PKIMESSAGE *CMP_ir_new(CMP_CTX *ctx);
-CMP_PKIMESSAGE *CMP_cr_new(CMP_CTX *ctx);
+CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code);
 CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
-CMP_PKIMESSAGE *CMP_kur_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
                               int errorCode, CMP_PKIFREETEXT *errorDetails);
@@ -469,7 +467,7 @@ int ERR_load_CMP_strings(void);
 /* Error codes for the CMP functions. */
 
 /* Function codes. */
-# define CMP_F_CERTREQ_NEW                                100
+# define CMP_F_CMP_CERTREQ_NEW                            100
 # define CMP_F_CMP_CALC_PROTECTION_PBMAC                  101
 # define CMP_F_CMP_CALC_PROTECTION_SIG                    102
 # define CMP_F_CMP_CERTCONF_NEW                           103
@@ -486,7 +484,6 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CERTRESPONSE_PKISTATUSSTRING_GET0      108
 # define CMP_F_CMP_CERTRESPONSE_PKISTATUS_GET             109
 # define CMP_F_CMP_CERTSTATUS_SET_CERTHASH                110
-# define CMP_F_CMP_CR_NEW                                 111
 # define CMP_F_CMP_CTX_CAPUBS_GET1                        112
 # define CMP_F_CMP_CTX_CAPUBS_NUM                         113
 # define CMP_F_CMP_CTX_CAPUBS_POP                         114
@@ -537,8 +534,6 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_DOREVOCATIONREQUESTSEQ                 153
 # define CMP_F_CMP_ERROR_NEW                              154
 # define CMP_F_CMP_GENM_NEW                               155
-# define CMP_F_CMP_IR_NEW                                 156
-# define CMP_F_CMP_KUR_NEW                                157
 # define CMP_F_CMP_NEW_HTTP_BIO                           187
 # define CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0       158
 # define CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1     159
