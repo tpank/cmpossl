@@ -253,6 +253,37 @@ int ERR_load_CRMF_strings(void);
 
 /* Error codes for the CRMF functions. */
 
+/* Function codes. */
+# define CRMF_F_CRMF_CERTREQMSG_CALC_AND_SET_POPO         100
+# define CRMF_F_CRMF_CERTREQMSG_PUSH0_EXTENSION           101
+# define CRMF_F_CRMF_CERTREQMSG_PUSH0_REGCTRL             102
+# define CRMF_F_CRMF_CERTREQMSG_PUSH0_REGINFO             103
+# define CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER               104
+# define CRMF_F_CRMF_CERTREQMSG_SET1_PUBLICKEY            105
+# define CRMF_F_CRMF_CERTREQMSG_SET1_REGCTRL_OLDCERTID_FROM_CERT 106
+# define CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_REGTOKEN     107
+# define CRMF_F_CRMF_CERTREQMSG_SET1_SUBJECT              108
+# define CRMF_F_CRMF_CERTREQMSG_SET_CERTREQID             109
+# define CRMF_F_CRMF_CERTREQMSG_SET_VALIDITY              110
+# define CRMF_F_CRMF_CERTREQMSG_SET_VERSION2              111
+# define CRMF_F_CRMF_CERTREQ_NEW                          112
+# define CRMF_F_CRMF_PASSWORDBASEDMAC_NEW                 113
+# define CRMF_F_CRMF_PBMP_NEW                             114
+# define CRMF_F_CRMF_POPOSIGNINGKEY_NEW                   115
+
+/* Reason codes. */
+# define CRMF_R_CRMFERROR                                 100
+# define CRMF_R_ERROR                                     101
+# define CRMF_R_ERROR_SETTING_PUBLIC_KEY                  102
+# define CRMF_R_ITERATIONCOUNT_BELOW_100                  103
+# define CRMF_R_MALLOC_FAILURE                            104
+# define CRMF_R_NULL_ARGUMENT                             105
+# define CRMF_R_SETTING_MAC_ALRGOR_FAILURE                106
+# define CRMF_R_SETTING_OWF_ALRGOR_FAILURE                107
+# define CRMF_R_UNSUPPORTED_ALGORITHM                     108
+# define CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY         109
+# define CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO      110
+
 # ifdef  __cplusplus
 }
 # endif

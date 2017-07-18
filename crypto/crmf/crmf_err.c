@@ -19,10 +19,53 @@
 # define ERR_REASON(reason) ERR_PACK(ERR_LIB_CRMF,0,reason)
 
 static ERR_STRING_DATA CRMF_str_functs[] = {
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_CALC_AND_SET_POPO),
+     "CRMF_CERTREQMSG_calc_and_set_popo"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_PUSH0_EXTENSION),
+     "CRMF_CERTREQMSG_push0_extension"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_PUSH0_REGCTRL),
+     "CRMF_CERTREQMSG_push0_regCtrl"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_PUSH0_REGINFO),
+     "CRMF_CERTREQMSG_push0_regInfo"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER),
+     "CRMF_CERTREQMSG_set1_issuer"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET1_PUBLICKEY),
+     "CRMF_CERTREQMSG_set1_publicKey"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET1_REGCTRL_OLDCERTID_FROM_CERT),
+     "CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_REGTOKEN),
+     "CRMF_CERTREQMSG_set1_regInfo_regToken"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET1_SUBJECT),
+     "CRMF_CERTREQMSG_set1_subject"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET_CERTREQID),
+     "CRMF_CERTREQMSG_set_certReqId"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET_VALIDITY),
+     "CRMF_CERTREQMSG_set_validity"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET_VERSION2),
+     "CRMF_CERTREQMSG_set_version2"},
+    {ERR_FUNC(CRMF_F_CRMF_CERTREQ_NEW), "CRMF_certreq_new"},
+    {ERR_FUNC(CRMF_F_CRMF_PASSWORDBASEDMAC_NEW), "CRMF_passwordBasedMac_new"},
+    {ERR_FUNC(CRMF_F_CRMF_PBMP_NEW), "CRMF_pbmp_new"},
+    {ERR_FUNC(CRMF_F_CRMF_POPOSIGNINGKEY_NEW), "CRMF_poposigningkey_new"},
     {0, NULL}
 };
 
 static ERR_STRING_DATA CRMF_str_reasons[] = {
+    {ERR_REASON(CRMF_R_CRMFERROR), "crmferror"},
+    {ERR_REASON(CRMF_R_ERROR), "error"},
+    {ERR_REASON(CRMF_R_ERROR_SETTING_PUBLIC_KEY), "error setting public key"},
+    {ERR_REASON(CRMF_R_ITERATIONCOUNT_BELOW_100), "iterationcount below 100"},
+    {ERR_REASON(CRMF_R_MALLOC_FAILURE), "malloc failure"},
+    {ERR_REASON(CRMF_R_NULL_ARGUMENT), "null argument"},
+    {ERR_REASON(CRMF_R_SETTING_MAC_ALRGOR_FAILURE),
+     "setting mac alrgor failure"},
+    {ERR_REASON(CRMF_R_SETTING_OWF_ALRGOR_FAILURE),
+     "setting owf alrgor failure"},
+    {ERR_REASON(CRMF_R_UNSUPPORTED_ALGORITHM), "unsupported algorithm"},
+    {ERR_REASON(CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY),
+     "unsupported alg for popsigningkey"},
+    {ERR_REASON(CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO),
+     "unsupported method for creating popo"},
     {0, NULL}
 };
 
