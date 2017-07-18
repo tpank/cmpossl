@@ -302,11 +302,12 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     CMPBIO *hbio = NULL;
     int err = CMP_R_SERVER_NOT_REACHABLE;
     int blocking;
-    time_t max_time = ctx->msgTimeOut != 0 ? time(NULL) + ctx->msgTimeOut : 0;
+    time_t max_time;
 
     if (!ctx || !req || !res)
         return CMP_R_NULL_ARGUMENT;
 
+    max_time = ctx->msgTimeOut != 0 ? time(NULL) + ctx->msgTimeOut : 0;
     blocking = ctx->msgTimeOut == 0;
 
     if (!ctx->serverName || !ctx->serverPath || !ctx->serverPort)
