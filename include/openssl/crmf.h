@@ -14,7 +14,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer. 
+ *        notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in
@@ -60,7 +60,7 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 
@@ -106,7 +106,7 @@ typedef struct crmf_certtemplate_st CRMF_CERTTEMPLATE;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTTEMPLATE)
 typedef STACK_OF(CRMF_CERTREQMSG) CRMF_CERTREQMESSAGES;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTREQMESSAGES)
-    
+
 typedef struct crmf_optionalvalidity_st CRMF_OPTIONALVALIDITY;
 
 /*
@@ -176,7 +176,7 @@ typedef struct crmf_encrypetedvalue_st {
     ASN1_BIT_STRING *encValue;
 } CRMF_ENCRYPTEDVALUE;
 DECLARE_ASN1_FUNCTIONS(CRMF_ENCRYPTEDVALUE)
-    
+
 
 /* CertReqMessages */
 /* ########################################################################## *
@@ -230,6 +230,7 @@ int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, const long rid);
 int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey);
 int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *crm, const X509_NAME *subj);
 int CRMF_CERTREQMSG_set1_issuer(CRMF_CERTREQMSG *crm, const X509_NAME *is);
+
 int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
                                     const X509_EXTENSION *ext);
 
@@ -237,11 +238,8 @@ int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
 # define CRMF_POPO_SIGNATURE     1
 # define CRMF_POPO_ENCRCERT      2
 # define CRMF_POPO_RAVERIFIED    3
-int CRMF_CERTREQMSG_calc_and_set_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
-                                      int dgst, int ppmtd);
-
-CRMF_POPOSIGNINGKEY *CRMF_poposigningkey_new(CRMF_CERTREQUEST *cr,
-                                             const EVP_PKEY *pkey, int dgst);
+int CRMF_CERTREQMSG_set_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
+                             int dgst, int ppmtd);
 
 /* BEGIN ERROR CODES */
 /*
@@ -254,22 +252,22 @@ int ERR_load_CRMF_strings(void);
 /* Error codes for the CRMF functions. */
 
 /* Function codes. */
-# define CRMF_F_CRMF_CERTREQMSG_CALC_AND_SET_POPO         100
-# define CRMF_F_CRMF_CERTREQMSG_PUSH0_EXTENSION           101
-# define CRMF_F_CRMF_CERTREQMSG_PUSH0_REGCTRL             102
-# define CRMF_F_CRMF_CERTREQMSG_PUSH0_REGINFO             103
-# define CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER               104
-# define CRMF_F_CRMF_CERTREQMSG_SET1_PUBLICKEY            105
-# define CRMF_F_CRMF_CERTREQMSG_SET1_REGCTRL_OLDCERTID_FROM_CERT 106
-# define CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_REGTOKEN     107
-# define CRMF_F_CRMF_CERTREQMSG_SET1_SUBJECT              108
-# define CRMF_F_CRMF_CERTREQMSG_SET_CERTREQID             109
+# define CRMF_F_CRMF_CERTREQMSG_PUSH0_EXTENSION           100
+# define CRMF_F_CRMF_CERTREQMSG_PUSH0_REGCTRL             101
+# define CRMF_F_CRMF_CERTREQMSG_PUSH0_REGINFO             102
+# define CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER               103
+# define CRMF_F_CRMF_CERTREQMSG_SET1_PUBLICKEY            104
+# define CRMF_F_CRMF_CERTREQMSG_SET1_REGCTRL_OLDCERTID_FROM_CERT 105
+# define CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_REGTOKEN     106
+# define CRMF_F_CRMF_CERTREQMSG_SET1_SUBJECT              107
+# define CRMF_F_CRMF_CERTREQMSG_SET_CERTREQID             108
+# define CRMF_F_CRMF_CERTREQMSG_SET_POPO                  109
 # define CRMF_F_CRMF_CERTREQMSG_SET_VALIDITY              110
 # define CRMF_F_CRMF_CERTREQMSG_SET_VERSION2              111
 # define CRMF_F_CRMF_CERTREQ_NEW                          112
 # define CRMF_F_CRMF_PASSWORDBASEDMAC_NEW                 113
 # define CRMF_F_CRMF_PBMP_NEW                             114
-# define CRMF_F_CRMF_POPOSIGNINGKEY_NEW                   115
+# define CRMF_F_POPOSIGKEY_NEW                            115
 
 /* Reason codes. */
 # define CRMF_R_CRMFERROR                                 100

@@ -290,7 +290,8 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
         if (!CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(certReq0, oldcert))
             goto err;
 
-    if (!CRMF_CERTREQMSG_calc_and_set_popo(certReq0, requestKey, ctx->digest, ctx->popoMethod))
+    if (!CRMF_CERTREQMSG_set_popo(certReq0, requestKey,
+                                  ctx->digest, ctx->popoMethod))
         goto err;
 
     if (!CMP_PKIMESSAGE_protect(ctx, msg))

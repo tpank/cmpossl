@@ -346,18 +346,6 @@ field. This is a bit field and the flags for it are specified in
 cmp.h. The flags start with CMP_CTX_FAILINFO, for example:
 CMP_CTX_FAILINFO_badAlg.
 
-=over 8
-
-=item * CRMF_POPO_NONE      - POP field omitted. According to RFC 4211, section 4, CA/RA uses out-of-band method to verify POP. Note that servers may fail in this case, resulting for instance in HTTP error code 500 (Internal error).
-
-=item * CRMF_POPO_SIGNATURE - POP according to RFC 4211, section 4.1 (only case 3 supported so far) - default after CMP_CTX_init.
-
-=item * CRMF_POPO_ENCRCERT  - POP according to RFC 4211, section 4.2 with the indirect method (subsequentMessage/enccert)
-
-=item * CRMF_POPO_RAVERIFIED - assertion according to RFC 4211, section 4, that the RA has already verified the POP
-
-=back
-
 CMP_CTX_set1_proxyName() sets the hostname of the HTTP proxy to be used
 for connecting to the CA server.
 
