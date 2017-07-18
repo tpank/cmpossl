@@ -354,11 +354,26 @@ int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *crm, const X509_NAME *subj)
 
 int CRMF_CERTREQMSG_set1_issuer( CRMF_CERTREQMSG *crm, const X509_NAME *is)
 {
-    if (!crm || !tmpl(crm) || !is) goto err;
+    if (!crm || !tmpl(crm) || !is)
+        goto err;
 
     return X509_NAME_set(&(tmpl(crm)->issuer), (X509_NAME*) is);
 err:
     CRMFerr(CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER, CRMF_R_ERROR);
+    return 0;
+}
+
+
+int CRMF_CERTREQMSG_set0_extensions( CRMF_CERTREQMSG *crm,
+                                     X509_EXTENSIONS *exts)
+{
+    if (!crm || !tmpl(crm))
+        goto err;
+
+    tmpl(crm)->extensions = exts;
+    return 1;
+err:
+    CRMFerr(CRMF_F_CRMF_CERTREQMSG_SET0_EXTENSIONS, CRMF_R_ERROR);
     return 0;
 }
 
@@ -464,8 +479,8 @@ static CRMF_POPOSIGNINGKEY *poposigkey_new(CRMF_CERTREQUEST *cr,
 }
 
 
-int CRMF_CERTREQMSG_set_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
-                             int dgst, int ppmtd)
+int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
+                                int dgst, int ppmtd)
 {
     CRMF_PROOFOFPOSSESION *pp = NULL;
 
@@ -502,7 +517,7 @@ int CRMF_CERTREQMSG_set_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
         break;
 
     default:
-        CRMFerr(CRMF_F_CRMF_CERTREQMSG_SET_POPO,
+        CRMFerr(CRMF_F_CRMF_CERTREQMSG_CREATE_POPO,
                 CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO);
         goto err;
     }
@@ -513,7 +528,7 @@ int CRMF_CERTREQMSG_set_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
 
     return 1;
  err:
-    CRMFerr(CRMF_F_CRMF_CERTREQMSG_SET_POPO, CRMF_R_ERROR);
+    CRMFerr(CRMF_F_CRMF_CERTREQMSG_CREATE_POPO, CRMF_R_ERROR);
     if (pp)
         CRMF_PROOFOFPOSSESION_free(pp);
     return 0;

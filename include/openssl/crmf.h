@@ -182,13 +182,6 @@ DECLARE_ASN1_FUNCTIONS(CRMF_ENCRYPTEDVALUE)
 /* ########################################################################## *
  * function DECLARATIONS
  * ########################################################################## */
-/* crmf_msg.c */
-CRMF_CERTREQMSG *CRMF_certreq_new(const long certReqId,
-                                  const EVP_PKEY *pkey,
-                                  const X509_NAME *subject,
-                                  const X509_NAME *issuer,
-                                  time_t notBefore, time_t notAfter,
-                                  const X509_EXTENSIONS * extensions);
 
 /* crmf_pbm.c */
 CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
@@ -230,6 +223,8 @@ int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, const long rid);
 int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey);
 int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *crm, const X509_NAME *subj);
 int CRMF_CERTREQMSG_set1_issuer(CRMF_CERTREQMSG *crm, const X509_NAME *is);
+int CRMF_CERTREQMSG_set0_extensions( CRMF_CERTREQMSG *crm,
+                                     X509_EXTENSIONS *exts);
 
 int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
                                     const X509_EXTENSION *ext);
@@ -238,8 +233,8 @@ int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
 # define CRMF_POPO_SIGNATURE     1
 # define CRMF_POPO_ENCRCERT      2
 # define CRMF_POPO_RAVERIFIED    3
-int CRMF_CERTREQMSG_set_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
-                             int dgst, int ppmtd);
+int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
+                                int dgst, int ppmtd);
 
 /* BEGIN ERROR CODES */
 /*
@@ -252,9 +247,11 @@ int ERR_load_CRMF_strings(void);
 /* Error codes for the CRMF functions. */
 
 /* Function codes. */
+# define CRMF_F_CRMF_CERTREQMSG_CREATE_POPO               116
 # define CRMF_F_CRMF_CERTREQMSG_PUSH0_EXTENSION           100
 # define CRMF_F_CRMF_CERTREQMSG_PUSH0_REGCTRL             101
 # define CRMF_F_CRMF_CERTREQMSG_PUSH0_REGINFO             102
+# define CRMF_F_CRMF_CERTREQMSG_SET0_EXTENSIONS           117
 # define CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER               103
 # define CRMF_F_CRMF_CERTREQMSG_SET1_PUBLICKEY            104
 # define CRMF_F_CRMF_CERTREQMSG_SET1_REGCTRL_OLDCERTID_FROM_CERT 105
