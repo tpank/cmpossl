@@ -183,7 +183,8 @@ CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId)
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))
         goto err;
-    CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_POLLREQ);
+    if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_POLLREQ))
+        goto err;
 
     if (!(preq = CMP_POLLREQ_new()))
         goto err;
@@ -205,7 +206,7 @@ CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId)
     return NULL;
 }
 
-static X509_EXTENSIONS *dup_exts(X509_EXTENSIONS *extin) {
+static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin) {
     X509_EXTENSIONS *exts = NULL;
     if (extin) {
         int i;
@@ -218,6 +219,7 @@ static X509_EXTENSIONS *dup_exts(X509_EXTENSIONS *extin) {
     }
     return exts;
  err:
+    sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
     return NULL;
 }
 
@@ -270,20 +272,21 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
             goto err;
 
     /* body */
-    if (!(msg->body->value.ir = sk_CRMF_CERTREQMSG_new_null()))
+    if (!CMP_PKIMESSAGE_set_bodytype(msg, bodytype))
         goto err;
-    CMP_PKIMESSAGE_set_bodytype(msg, bodytype);
+    if (!(msg->body->value.ir = sk_CRMF_CERTREQMSG_new_null())) /* same for cr and kur */
+        goto err;
 
     if (!(cr0 = CRMF_CERTREQMSG_new()))
         goto err;
 #if 0
-    CRMF_CERTREQMSG_set_version2(cr0); /* RFC: SHOULD be omitted */
+    if (!CRMF_CERTREQMSG_set_version2(cr0)) /* RFC 4211: SHOULD be omitted */
+        goto err;
 #endif
     if (!CRMF_CERTREQMSG_set_certReqId(cr0, 0L))
         goto err;
-    if (rkey)
-        if (!CRMF_CERTREQMSG_set1_publicKey(cr0, rkey))
-            goto err;
+    if (!CRMF_CERTREQMSG_set1_publicKey(cr0, rkey)) /* rkey cannot be NULL */
+        goto err;
     if (subject)
         if (!CRMF_CERTREQMSG_set1_subject(cr0, subject))
             goto err;
@@ -297,21 +300,21 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
 #endif
 
     /* extensions */
-    exts = dup_exts(ctx->reqExtensions); /* copy to allow reuse */
+    if (ctx->reqExtensions && !(exts = exts_dup(ctx->reqExtensions))) /* copy to allow reuse */
+        goto err;
     if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0)
         /* TODO: for KUR, if <= 0, maybe copy any existing SANs from oldcert */
         /* RFC5280: subjectAltName MUST be critical if subject is null */
-        add_altname_extensions(&exts, ctx->subjectAltNames,
-                               ctx->setSubjectAltNameCritical
-                               || subject == NULL);
+        if (!add_altname_extensions(&exts, ctx->subjectAltNames,
+                                    ctx->setSubjectAltNameCritical
+                                    || subject == NULL))
+            goto err;
     if (ctx->policies)
-        add_policy_extensions(&exts, ctx->policies);
-    if (!CRMF_CERTREQMSG_set0_extensions( cr0, exts))
+        if (add_policy_extensions(&exts, ctx->policies))
+            goto err;
+    if (!CRMF_CERTREQMSG_set0_extensions(cr0, exts))
         goto err;
     exts = NULL;
-
-    sk_CRMF_CERTREQMSG_push(msg->body->value.ir, cr0);
-    /* TODO: here optional 2nd certreqmsg could be pushed to the stack */
 
     /* sets the id-regCtrl-regToken to regInfo (not described in RFC, but EJBCA
      * in CA mode might insist on that) */
@@ -327,6 +330,11 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     if (!CRMF_CERTREQMSG_create_popo(cr0, rkey, ctx->digest, ctx->popoMethod))
         goto err;
 
+    if (!sk_CRMF_CERTREQMSG_push(msg->body->value.ir, cr0)) /* same for cr and kur */
+        goto err;
+    cr0 = NULL;
+    /* TODO: here optional 2nd certreqmsg could be pushed to the stack */
+
     if (!CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
 
@@ -336,6 +344,8 @@ static CMP_PKIMESSAGE *certreq_new(CMP_CTX *ctx, int bodytype)
     CMPerr(CMP_F_CERTREQ_NEW, CMP_R_ERROR_CREATING_REQUEST_MESSAGE);
     if (exts)
         sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
+    if (cr0)
+        CRMF_CERTREQMSG_free(cr0);
     if (msg)
         CMP_PKIMESSAGE_free(msg);
     return NULL;
@@ -404,7 +414,8 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
         if (!CMP_PKIHEADER_set1_recipient(msg->header,
                                           X509_get_issuer_name(ctx->oldClCert)))
             goto err;
-    CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_RR);
+    if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_RR))
+        goto err;
 
     if (ctx->geninfo_itavs)
         if (!CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs))
@@ -483,7 +494,8 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text)
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))
         goto err;
-    CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_CERTCONF);
+    if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_CERTCONF))
+        goto err;
     if (!(msg->body->value.certConf = sk_CMP_CERTSTATUS_new_null()))
         goto err;
 
@@ -544,7 +556,8 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))
         goto err;
-    CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_GENM);
+    if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_GENM))
+        goto err;
 
     if (ctx->geninfo_itavs)
         if (!CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs))
@@ -587,7 +600,8 @@ CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))
         goto err;
-    CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_ERROR);
+    if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_ERROR))
+        goto err;
     if (!(msg->body->value.error = CMP_ERRORMSGCONTENT_new()))
         goto err;
 
