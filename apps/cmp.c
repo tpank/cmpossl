@@ -1891,19 +1891,21 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs) {
     }
 }
 
+#if OPENSSL_VERSION_NUMBER >= 0x1010001fL
 #define STORE_STR_OPT(myvar, myopt)  do { myvar = opt_str(myopt); } while(0)
 static char *opt_str(char *opt) {
     char *arg = opt_arg();
-    if (strlen(arg) == 0) {
+    if (arg[0] == '\0') {
         BIO_printf(bio_err,
-                   "Warn: parameter of option -%s is empty string, resetting option\n", opt);
+                   "Warning: argument of -%s option is empty string, resetting option\n", opt);
         arg = NULL;
     } else if (arg[0] == '-') {
         BIO_printf(bio_err,
-                   "Warn: parameter of option -%s starts with hyphen\n", opt);
+                   "Warning: argument of -%s option starts with hyphen\n", opt);
     }
     return arg;
 }
+#endif
 
 /*
  * ########################################################################## 
@@ -2216,6 +2218,16 @@ opt_err:
                     break;
                 case 's':
                     *cmp_vars[i].txt = *++argv;
+                    if (**argv == '\0') {
+                        BIO_printf(bio_err,
+                                   "Warning: argument of -%s option is empty string, resetting option\n",
+                                   opt->name);
+                        *cmp_vars[i].txt = NULL;
+                    }
+                    else if (**argv == '-') {
+                        BIO_printf(bio_err,
+                                   "Warning: argument of -%s option starts with hyphen\n", opt->name);
+                    }
                     argc--;
                     break;
                 default:
