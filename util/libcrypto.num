@@ -4327,7 +4327,7 @@ CMP_PKIHEADER_set1_senderKID            4268	1_1_1	EXIST::FUNCTION:
 CMP_PKIHEADER_set_messageTime           4269	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_newPkey                    4270	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_option                      4271	1_1_1	EXIST::FUNCTION:
-CMP_ir_new                              4272	1_1_1	EXIST::FUNCTION:
+CMP_ir_new                              4272	1_1_1	NOEXIST::FUNCTION:
 ERR_load_CMP_strings                    4273	1_1_1	EXIST::FUNCTION:
 CRMF_PBMPARAMETER_free                  4274	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_extraCertsIn               4275	1_1_1	EXIST::FUNCTION:
@@ -4409,7 +4409,7 @@ CMP_PKIHEADER_set1_sender               4347	1_1_1	EXIST::FUNCTION:
 CRMF_CERTTEMPLATE_new                   4348	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_set_validity            4349	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_newClCert                  4350	1_1_1	EXIST::FUNCTION:
-CMP_cr_new                              4351	1_1_1	EXIST::FUNCTION:
+CMP_cr_new                              4351	1_1_1	NOEXIST::FUNCTION:
 CRMF_passwordBasedMac_new               4352	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMESSAGES_new                4353	1_1_1	EXIST::FUNCTION:
 CRMF_PKIPUBLICATIONINFO_free            4354	1_1_1	EXIST::FUNCTION:
@@ -4460,7 +4460,7 @@ CMP_CTX_set_failInfoCode                4396	1_1_1	EXIST::FUNCTION:
 d2i_CRMF_PKIPUBLICATIONINFO             4397	1_1_1	EXIST::FUNCTION:
 i2d_CRMF_ENCRYPTEDVALUE                 4398	1_1_1	EXIST::FUNCTION:
 CMP_CTX_extraCertsIn_num                4399	1_1_1	EXIST::FUNCTION:
-CMP_kur_new                             4400	1_1_1	EXIST::FUNCTION:
+CMP_kur_new                             4400	1_1_1	NOEXIST::FUNCTION:
 CMP_CTX_set_msg_transfer                4401	1_1_1	EXIST::FUNCTION:
 CMP_doKeyUpdateRequestSeq               4402	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_set_implicitConfirm      4403	1_1_1	EXIST::FUNCTION:
@@ -4475,3 +4475,4 @@ CMP_CTX_set1_transactionID              4411	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMESSAGES_free               4412	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_create_popo             4413	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_set0_extensions         4414	1_1_1	EXIST::FUNCTION:
+CMP_certreq_new                         4415	1_1_1	EXIST::FUNCTION:
