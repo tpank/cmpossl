@@ -245,7 +245,7 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
     CRMF_CERTREQMSG *cr0 = NULL;
     X509_EXTENSIONS *exts = NULL;
 
-    if (!ctx || (!ctx->pkey && !ctx->newPkey) ) {
+    if (!ctx || (bodytype != V_CMP_PKIBODY_P10CR && !ctx->pkey && !ctx->newPkey) ) {
         CMPerr(CMP_F_CMP_CERTREQ_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }

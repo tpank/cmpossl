@@ -1409,6 +1409,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
     }
+    if (opt_cmd == CMP_KUR && !opt_cert && !opt_oldcert) {
+        BIO_puts(bio_err, "error: missing certificate to be updated\n");
+        goto err;
+    }
     if (opt_cmd == CMP_RR && !opt_oldcert) {
         BIO_puts(bio_err, "error: missing certificate to be revoked\n");
         goto err;
