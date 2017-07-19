@@ -1891,20 +1891,18 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs) {
     }
 }
 
-#define STORE_STR_OPT(myvar, myopt)     \
-do {                                    \
-    myvar = opt_arg();                  \
-    suspicious_opt_str(myvar, myopt);   \
-} while(0)
-
-static void suspicious_opt_str(char *s, char *opt) {
-    if (strlen(s) == 0) {
+#define STORE_STR_OPT(myvar, myopt)  do { myvar = opt_str(myopt); } while(0)
+static char *opt_str(char *opt) {
+    char *arg = opt_arg();
+    if (strlen(arg) == 0) {
         BIO_printf(bio_err,
-                   "Warn: parameter of option -%s is empty string\n", opt);
-    } else if (s[0] == '-') {
+                   "Warn: parameter of option -%s is empty string, resetting option\n", opt);
+        arg = NULL;
+    } else if (arg[0] == '-') {
         BIO_printf(bio_err,
                    "Warn: parameter of option -%s starts with hyphen\n", opt);
     }
+    return arg;
 }
 
 /*
