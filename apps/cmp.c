@@ -1607,6 +1607,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (crls) { /* will be freed by CMP_CTX_delete() */
         CMP_CTX_set0_crls(ctx, crls);
     }
+    crls = NULL;
 
     if (opt_trusted) {
         X509_STORE *ts = create_cert_store(opt_trusted, "trusted certificates");
