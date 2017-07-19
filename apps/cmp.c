@@ -1891,6 +1891,22 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs) {
     }
 }
 
+#define STORE_STR_OPT(myvar, myopt)     \
+do {                                    \
+    myvar = opt_arg();                  \
+    suspicious_opt_str(myvar, myopt);   \
+} while(0)
+
+static void suspicious_opt_str(char *s, char *opt) {
+    if (strlen(s) == 0) {
+        BIO_printf(bio_err,
+                   "Warn: parameter of option -%s is empty string\n", opt);
+    } else if (s[0] == '-') {
+        BIO_printf(bio_err,
+                   "Warn: parameter of option -%s starts with hyphen\n", opt);
+    }
+}
+
 /*
  * ########################################################################## 
  * *
@@ -1994,10 +2010,10 @@ opt_err:
             break;
 
         case OPT_SERVER:
-            opt_server = opt_arg();
+            STORE_STR_OPT(opt_server, "server");
             break;
         case OPT_PROXY:
-            opt_proxy = opt_arg();
+            STORE_STR_OPT(opt_proxy, "proxy");
             break;
         case OPT_MSGTIMEOUT:
             if (!opt_int(opt_arg(), &opt_msgtimeout))
@@ -2012,64 +2028,64 @@ opt_err:
             opt_use_tls = 1;
             break;
         case OPT_TLSCERT:
-            opt_tls_cert = opt_arg();
+            STORE_STR_OPT(opt_tls_cert, "tls-cert");
             break;
         case OPT_TLSKEY:
-            opt_tls_key = opt_arg();
+            STORE_STR_OPT(opt_tls_key, "tls-key");
             break;
         case OPT_TLSKEYPASS:
-            opt_tls_keypass = opt_arg();
+            STORE_STR_OPT(opt_tls_keypass, "tls-keypass");
             break;
         case OPT_TLSTRUSTED:
-            opt_tls_trusted = opt_arg();
+            STORE_STR_OPT(opt_tls_trusted, "tls-trusted");
             break;
         case OPT_TLSHOST:
-            opt_tls_host = opt_arg();
+            STORE_STR_OPT(opt_tls_host, "tls-host");
             break;
 
         case OPT_PATH:
-            opt_path = opt_arg();
+            STORE_STR_OPT(opt_path, "path");
             break;
         case OPT_CMD:
-            opt_cmd_s = opt_arg();
+            STORE_STR_OPT(opt_cmd_s, "cmd");
             break;
 
         case OPT_REF:
-            opt_ref = opt_arg();
+            STORE_STR_OPT(opt_ref, "ref");
             break;
         case OPT_SECRET:
-            opt_secret = opt_arg();
+            STORE_STR_OPT(opt_secret, "secret");
             break;
         case OPT_CERT:
-            opt_cert = opt_arg();
+            STORE_STR_OPT(opt_cert, "cert");
             break;
         case OPT_KEY:
-            opt_key = opt_arg();
+            STORE_STR_OPT(opt_key, "key");
             break;
         case OPT_KEYPASS:
-            opt_keypass = opt_arg();
+            STORE_STR_OPT(opt_keypass, "keypass");
             break;
 
         case OPT_CERTOUT:
-            opt_certout = opt_arg();
+            STORE_STR_OPT(opt_certout, "certout");
             break;
         case OPT_NEWKEY:
-            opt_newkey = opt_arg();
+            STORE_STR_OPT(opt_newkey, "newkey");
             break;
         case OPT_NEWKEYPASS:
-            opt_newkeypass = opt_arg();
+            STORE_STR_OPT(opt_newkeypass, "newkeypass");
             break;
         case OPT_SRVCERT:
-            opt_srvcert = opt_arg();
+            STORE_STR_OPT(opt_srvcert, "srvcert");
             break;
         case OPT_TRUSTED:
-            opt_trusted = opt_arg();
+            STORE_STR_OPT(opt_trusted, "trusted");
             break;
         case OPT_UNTRUSTED:
-            opt_untrusted = opt_arg();
+            STORE_STR_OPT(opt_untrusted, "untrusted");
             break;
         case OPT_CRLS:
-            opt_crls = opt_arg();
+            STORE_STR_OPT(opt_crls, "crls");
             break;
         case OPT_CRLDOWNLOAD:
             opt_crldownload = 1;
@@ -2080,32 +2096,32 @@ opt_err:
             vpmtouched++;
             break;
         case OPT_KEYFORM:
-            opt_keyform_s = opt_arg();
+            STORE_STR_OPT(opt_keyform_s, "keyform");
             break;
         case OPT_CERTFORM:
-            opt_certform_s = opt_arg();
+            STORE_STR_OPT(opt_certform_s, "certform");
             break;
         case OPT_EXTCERTS:
-            opt_extcerts = opt_arg();
+            STORE_STR_OPT(opt_extcerts, "extcerts");
             break;
         case OPT_SUBJECT:
-            opt_subject = opt_arg();
+            STORE_STR_OPT(opt_subject, "subject");
             break;
         case OPT_ISSUER:
-            opt_issuer = opt_arg();
+            STORE_STR_OPT(opt_issuer, "issuer");
             break;
         case OPT_RECIPIENT:
-            opt_recipient = opt_arg();
+            STORE_STR_OPT(opt_recipient, "recipient");
             break;
         case OPT_REQEXTS:
-            opt_reqexts = opt_arg();
+            STORE_STR_OPT(opt_reqexts, "reqexts");
             break;
 
         case OPT_EXTRACERTSOUT:
-            opt_extracertsout = opt_arg();
+            STORE_STR_OPT(opt_extracertsout, "extracertsout");
             break;
         case OPT_CACERTSOUT:
-            opt_cacertsout = opt_arg();
+            STORE_STR_OPT(opt_cacertsout, "cacertsout");
             break;
 
         case OPT_DISABLECONFIRM:
@@ -2126,24 +2142,24 @@ opt_err:
             break;
 
         case OPT_DIGEST:
-            opt_digest = opt_arg();
+            STORE_STR_OPT(opt_digest, "digest");
             break;
         case OPT_OLDCERT:
-            opt_oldcert = opt_arg();
+            STORE_STR_OPT(opt_oldcert, "oldcert");
             break;
         case OPT_REVREASON:
             if (!opt_int(opt_arg(), &opt_revreason))
                 goto opt_err;
             break;
         case OPT_INFOTYPE:
-            opt_infotype_s = opt_arg();
+            STORE_STR_OPT(opt_infotype_s, "infotype");
             break;
         case OPT_GENINFO:
-            opt_geninfo = opt_arg();
+            STORE_STR_OPT(opt_geninfo, "geninfo");
             break;
 #ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
-            opt_engine = opt_arg();
+            STORE_STR_OPT(opt_engine, "engine");
             break;
 #endif
         }
