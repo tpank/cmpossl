@@ -227,7 +227,7 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMES
     return NULL;
 }
 
-/* returns 1 on success, 0 on error, -1 on BIO_should_retry */
+/* Send bytes and/or read and parse response. returns 1 on success, 0 on error, -1 on BIO_should_retry */
 static int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
 {
     return OCSP_REQ_CTX_nbio_d2i(rctx,
@@ -252,20 +252,25 @@ static int wait(BIO *bio, int for_read, int max_seconds)
                   for_read ? NULL : &confds, NULL, &tv);
 }
 
-/* returns -1 on timeout, 0 on send/receive error, else
-   provides the received message (or NULL on result parse error) via the *out argument */
+/* Send out request and get response.
+   returns -1 on timeout, -2 on send error, 0 on receive error,
+   else provides the received message via the *out argument */
 static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **out, time_t max_time)
 {
     OCSP_REQ_CTX *ctx;
-    int rv, rc;
+    int rv, rc, sending = 1;
 
     if (!(ctx = CMP_sendreq_new(bio, path, req, -1)))
         return 0;
 
     for (;;) {
         rv = CMP_sendreq_nbio(out, ctx);
-        if (rv != -1)
+        if (rv != -1) {
+            if (sending)
+                rv = -2;
             break;
+        }
+        sending = 0;
         /* BIO_should_retry was true */
         if (max_time != 0) { /* non-blocking mode */
             int max_seconds = max_time - time(NULL);
@@ -355,10 +360,12 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     rv = CMP_sendreq(cbio, path, req, res, max_time);
     if (rv == -1)
         err = CMP_R_READ_TIMEOUT;
-    else if (rv == 0)
+    else if (rv == -2)
         err = CMP_R_FAILED_TO_SEND_REQUEST;
+    else if (rv == 0)
+        err = CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE;
     else
-        err = (*res == NULL) ? CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE : 0;
+        err = 0;
 
     OPENSSL_free(path);
 
