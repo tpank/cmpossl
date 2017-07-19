@@ -26,7 +26,7 @@ This is the API for creating different CMP related PKIMESSAGES. The
 functions allocate a new message and fill it with the relevant data from
 the given CMP_CTX.
 
-CMP_certreq_new() creates a certificate request PKIMessage for IR/CR/KUR.
+CMP_certreq_new() creates a certificate request PKIMessage for IR/CR/KUR/P10CR.
 
 CMP_certConf_new() creates a Certificate Confirmation message.
 

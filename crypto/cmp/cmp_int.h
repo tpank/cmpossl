@@ -40,98 +40,70 @@ struct cmp_ctx_st {
     long pbm_itercnt;
     int pbm_mac;
 
-    /* for setting itav for EJBCA in CA mode */
-    ASN1_UTF8STRING *regToken;
-    /* certificate used to identify the server */
-    X509 *srvCert;
-    /* current client certificate used to identify and sign for MSG_SIG_ALG */
+    ASN1_UTF8STRING *regToken; /* for setting itav for EJBCA in CA mode */
+    X509 *srvCert; /* certificate used to identify the server */
     X509 *clCert;
-    /* for KUR: certificate to be updated; for RR: certificate to be revoked */
-    X509 *oldClCert;
-    /* subject name to be used in the cert template. NB: could also be taken
-     * from clcert */
-    X509_NAME *subjectName;
-    /* to set in recipient in pkiheader */
-    X509_NAME *recipient;
-    /* to set in issuer in pkiheader */
-    X509_NAME *issuer;
-    /* NID of digest algorithm used in MSG_SIG_ALG, defaults to SHA256 */
-    int digest;
-    /* X.509 extensions to be added to certificate request */
-    X509_EXTENSIONS *reqExtensions;
-    /* names to be added to the cert template as the subjectAltName extension */
-    STACK_OF (GENERAL_NAME) * subjectAltNames;
-    /* whether or not the subjectAltName extension should be set critical */
+    /* current client certificate used to identify and sign for MSG_SIG_ALG */
+    X509 *oldClCert; /* for KUR: certificate to be updated;
+                        for RR: certificate to be revoked */
+    X509_REQ *p10CSR; /* for P10CR: PKCS#10 CSR to be sent */
+    X509_NAME *subjectName; /* subject name to be used in the cert template.
+                               NB: could also be taken from clcert */
+    X509_NAME *recipient; /* to set in recipient in pkiheader */
+    X509_NAME *issuer;  /* to set in issuer in pkiheader */
+    int digest; /* NID of digest used in MSG_SIG_ALG, defaults to SHA256 */
+    X509_EXTENSIONS *reqExtensions; /* to be added to certificate requests */
+    STACK_OF (GENERAL_NAME) *subjectAltNames;  /* names to be added to the
+                            cert template as the subjectAltName extension */
     int setSubjectAltNameCritical;
-    /* Stack of CA certificates sent by the CA in a IP message */
-    STACK_OF (X509) * caPubs;
-    /* stack of extraCerts to be included when sending a PKI message */
-    STACK_OF (X509) * extraCertsOut;
-    /* stack of extraCerts received from remote */
-    STACK_OF (X509) * extraCertsIn;
-    /* EVP_PKEY holding the *current* key pair
-     * Note: this is not an ASN.1 type */
-    EVP_PKEY *pkey;
-    /* *new* CLIENT certificate received from the CA
+    STACK_OF (X509) *caPubs; /* CA certs sent by the CA in a IP message */
+    STACK_OF (X509) * extraCertsOut; /* to be included in PKI messages */
+    STACK_OF (X509) * extraCertsIn; /* extraCerts received from remote */
+    EVP_PKEY *pkey; /* EVP_PKEY holding the *current* key pair
+                     * Note: so far for some reason this is not an ASN.1 type */
+    X509 *newClCert; /* *new* CLIENT certificate received from the CA
      * TODO: this should be a stack since there could be more than one */
-    X509 *newClCert;
-    /* EVP_PKEY holding the *new* key pair
-     * Note: this is not an ASN.1 type */
-    EVP_PKEY *newPkey;
-    /* the current transaction ID */
-    ASN1_OCTET_STRING *transactionID;
-    /* last nonce received */
-    ASN1_OCTET_STRING *recipNonce;
-    /* to set implicitConfirm in IR/KUR/CR messages */
-    int implicitConfirm;
-    /* disable confirmation messages in IR/KUR/CR message exchanges to cope with broken server */
-    int disableConfirm;
-    /* send unprotected requests */
-    int unprotectedRequests;
-    /* accept unprotected error responses */
-    int unprotectedErrors;
-    /* Proof-of-posession mechanism used. Defaults to signature (POPOsignkingKey) */
-    int popoMethod;
-    /* Revocation reason code to be included in RR */
-    int revocationReason;
-    /* maximum time in seconds to wait for each CMP message round trip to complete */
-    int msgTimeOut;
-    /* maximum time to poll the server for a response if a 'waiting' PKIStatus is received */
-    int maxPollTime;
-    /* PKIStatus of last received IP/CP/KUP */
+    EVP_PKEY *newPkey; /* EVP_PKEY holding the *new* key pair
+                     * Note: so far for some reason this is not an ASN.1 type */
+    ASN1_OCTET_STRING *transactionID; /* the current transaction ID */
+    ASN1_OCTET_STRING *recipNonce; /* last nonce received */
+    int implicitConfirm;  /* set implicitConfirm in IR/KUR/CR messages */
+    int disableConfirm;  /* disable confirmation messages in IR/KUR/CR
+                            message exchanges to cope with broken server */
+    int unprotectedRequests; /* send unprotected PKI messages */
+    int unprotectedErrors; /* accept unprotected error responses */
+    int popoMethod;  /* Proof-of-posession mechanism used.
+                        Defaults to signature (POPOsigningKey) */
+    int revocationReason; /* Revocation reason code to be included in RR */
+    int maxPollTime; /* maximum number of seconds to poll the server
+                        for a response if a 'waiting' PKIStatus is received */
+    long lastPKIStatus; /* PKIStatus of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
-    long lastPKIStatus;
-    /* failInfoCode of last received IP/CP/KUP */
+    unsigned long failInfoCode; /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
-    unsigned long failInfoCode;
     CMP_PKIFREETEXT *lastStatusString;
+    cmp_logfn_t error_cb, debug_cb;/* log callback fns for error/debug output */
+    cmp_certConfFn_t certConf_cb;  /* callback for letting the user check
+       the received certificate and reject if necessary */
+    cert_verify_cb_t cert_verify_cb; /* callback to be used during verification
+                                        of CMP server certificate */
+    X509_STORE *trusted_store; /* store for trusted (root) certificates */
+    X509_STORE *untrusted_store;  /* store for untrusted (intermediate) certs */
+    STACK_OF(X509_CRL) *crls; /* CRLs to be used as primary source
+                                 during CMP certificate verification */
 
-    /* log callback functions for error and debug messages */
-    cmp_logfn_t error_cb, debug_cb;
-
-    /* callback for letting the user check the received certificate and
-     * reject if necessary */
-    cmp_certConfFn_t certConf_cb;
-    /* callback to be used during verification of server certificate */
-    cert_verify_cb_t cert_verify_cb;
-
-    /* stores for trusted and untrusted (intermediate) certificates */
-    X509_STORE *trusted_store;
-    X509_STORE *untrusted_store;
-    /* CRLs to be used as primary source during CMP certificate verification */
-    STACK_OF(X509_CRL) *crls;
-
-    /* include root certs from extracerts when validating? Used for 3GPP-style E.7 */
-    int permitTAInExtraCertsForIR;
-    /* stores the server Cert as soon as it's trust chain has been validated */
-    X509 *validatedSrvCert;
-
+    int permitTAInExtraCertsForIR; /* whether to include root certs from
+                     extracerts when validating? Used for 3GPP-style E.7 */
+    X509 *validatedSrvCert; /* stores the server Cert as soon as its
+                               trust chain has been validated */
     /* HTTP transfer related settings */
     char *serverName;
     int serverPort;
     char *serverPath;
     char *proxyName;
     int proxyPort;
+    int msgTimeOut; /* maximum time in seconds to wait for
+                       each CMP message round trip to complete */
     BIO *tlsBIO;
     cmp_transfer_fn_t msg_transfer_fn;
 
@@ -617,7 +589,8 @@ typedef struct cmp_pkibody_st {
         CRMF_CERTREQMESSAGES *cr; /* 2 */
         CMP_CERTREPMESSAGE *cp; /* 3 */
         /* p10cr        [4]  CertificationRequest,       --imported from [PKCS10] */
-        PKCS10_CERTIFICATIONREQUEST *p10cr; /* 4 */
+        /* PKCS10_CERTIFICATIONREQUEST is effectively X509_REQ so it is used directly */
+        X509_REQ *p10cr; /* 4 */
         /* popdecc      [5]  POPODecKeyChallContent, --pop Challenge */
         /* POPODecKeyChallContent ::= SEQUENCE OF Challenge */
         CMP_POPODECKEYCHALLCONTENT *popdecc; /* 5 */

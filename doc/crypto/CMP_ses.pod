@@ -5,6 +5,7 @@
  CMP_doInitialRequestSeq,
  CMP_doKeyUpdateRequestSeq,
  CMP_doCertificateRequestSeq,
+ CMP_doPKCS10CertificationRequestSeq,
  CMP_doGeneralMessageSeq,
  CMP_doRevocationRequestSeq
 
@@ -15,6 +16,7 @@
  X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx);
  X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx);
  X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx);
+ X509 *CMP_doPKCS10CertificationRequestSeq(CMP_CTX *ctx);
  STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_doGeneralMessageSeq(CMP_CTX *ctx;
  int CMP_doRevocationRequestSeq(CMP_CTX *ctx);
 
@@ -26,11 +28,14 @@ message sequences using with OpenSSL. The default conveying protocol is HTTP.
 CMP_doInitialRequestSeq() does the transaction which obtains an initial certificate
 from the CA. A populated CMP_CTX structure has to be given as argument.
 
-CMP_doKeyUpdateRequestSeq() does the transaction which obtains a certificate for an
-updated key from the CA. A populated CMP_CTX structure has to be given as argument.
+CMP_doKeyUpdateRequestSeq() does the transaction which obtains an updated certificate
+from the CA. A populated CMP_CTX structure has to be given as argument.
 
-CMP_doCertificateRequestSeq() requests an additional certificate for an existing
-key from the CA. A populated CMP_CTX structure has to be given as argument.
+CMP_doCertificateRequestSeq() requests an additional certificate
+from the CA. A populated CMP_CTX structure has to be given as argument.
+
+CMP_doPKCS10CertificationRequestSeq(CMP_CTX *ctx) requests in PKCS#10 CSR form
+a certificate from the CA. A populated CMP_CTX structure has to be given as argument.
 
 CMP_doGeneralMessageSeq() sends a general message with any ITAVs specified in the
 B<ctx>->genm_itavs, and returns the list of B<ITAV>s received in the GenRep.
@@ -45,9 +50,9 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-CMP_doInitialRequestSeq(), CMP_doCertificateRequestSeq() and
-CMP_doKeyUpdateRequestSeq() return a pointer the newly obtained X509 certificate
-on success, NULL on error.
+CMP_doInitialRequestSeq(), CMP_doCertificateRequestSeq(),
+CMP_doPKCS10CertificationRequestSeq(), and CMP_doKeyUpdateRequestSeq()
+return a pointer the newly obtained X509 certificate on success, NULL on error.
 
 =head1 EXAMPLE
 
@@ -62,8 +67,8 @@ certificates.
 The function for sending GENM does not yet directly support sending multiple
 ITAV structures.
 
-The reason for an IP/KUP/CP returning waiting status as optional sent in a
-PKIFreetext structure could be printed/returned to the user.
+The reason for an IP/KUP/CP returning waiting status, as optionally sent in a
+PKIFreetext structure, could be printed/returned to the user.
 
 The function to request revocation of certificates only can revoke the current
 certificate which is also used for signing the messages.  It should be changed

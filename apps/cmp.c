@@ -134,9 +134,11 @@ static ENGINE *setup_engine_no_default(const char *engine, int debug)
 /*
  * the type of cmp command we want to send 
  */
-typedef enum { CMP_IR,
+typedef enum {
+    CMP_IR,
     CMP_KUR,
     CMP_CR,
+    CMP_P10CR,
     CMP_RR,
     CMP_GENM
 } cmp_cmd_t;
@@ -197,6 +199,7 @@ static long  opt_unprotectedRequests = 0;
 static long  opt_unprotectedErrors = 0;
 static char *opt_digest = NULL;
 static char *opt_oldcert = NULL;
+static char *opt_csr = NULL;
 static int   opt_revreason = CRL_REASON_NONE;
 
 static char *opt_cacertsout = NULL;
@@ -314,7 +317,7 @@ typedef enum OPTION_choice {
     OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
     OPT_CERTOUT,
 
-    OPT_OLDCERT, OPT_REVREASON, OPT_INFOTYPE,
+    OPT_OLDCERT, OPT_CSR, OPT_REVREASON, OPT_INFOTYPE,
 
     OPT_CERTFORM, OPT_KEYFORM,
 #ifndef OPENSSL_NO_ENGINE
@@ -362,7 +365,7 @@ OPTIONS cmp_options[] = {
     {"extcerts", OPT_EXTCERTS, 's', "Certificates to include in the extraCerts field of request"},
 
     {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
-    {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/rr/genm"},
+    {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
     {"geninfo", OPT_GENINFO, 's', "Set generalInfo in request PKIHeader with type and integer value"},
              {OPT_MORE_STR, 0, 0, "given in the form <OID>:int:<n>, e.g., '1.2.3:int:987'"},
     {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and POPO signatures. Default 'sha256'"},
@@ -390,6 +393,7 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0, "\nMisc request options:"},
 
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be updated in kur (defaulting to -cert) or to be revoked in rr"},
+    {"csr", OPT_CSR, 's', "PKCS#10 CSR to be used in p10cr"},
     {"revreason", OPT_REVREASON, 'n', "Set reason code to be included in revocation request (rr)."},
                  {OPT_MORE_STR, 0, 0, "Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
     {"infotype", OPT_INFOTYPE, 's', "InfoType name for requesting specific info in genm, e.g., 'signKeyPairTypes'"},
@@ -447,7 +451,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     { (char **)&opt_implicitConfirm}, { (char **)&opt_disableConfirm},
     {&opt_certout},
 
-    {&opt_oldcert}, { (char **)&opt_revreason}, {&opt_infotype_s},
+    {&opt_oldcert}, {&opt_csr}, { (char **)&opt_revreason}, {&opt_infotype_s},
 
     {&opt_keyform_s}, {&opt_certform_s},
 #ifndef OPENSSL_NO_ENGINE
@@ -825,6 +829,44 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
 }
 #endif
 
+/* TODO dvo: push that separately upstream */
+static X509_REQ *load_csr(const char *file, int format, const char *desc)
+{
+    X509_REQ *req = NULL;
+    BIO *in;
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    in = bio_open_default(file, 'r', format);
+    if (in == NULL)
+        goto end;
+#else
+    in = BIO_new(BIO_s_file());
+    if (in == NULL)
+        goto end;
+    if (file == NULL)
+        BIO_set_fp(in, stdin, BIO_NOCLOSE);
+    else {
+        if (BIO_read_filename(in, file) <= 0) {
+            perror(file);
+            goto end;
+        }
+    }
+#endif
+
+    if (format == FORMAT_ASN1)
+        req = d2i_X509_REQ_bio(in, NULL);
+    else if (format == FORMAT_PEM)
+        req = PEM_read_bio_X509_REQ(in, NULL, NULL, NULL);
+    else if (desc)
+        BIO_printf(bio_err, "unsupported format for CSR loading\n");
+
+ end:
+    if (req == NULL && desc)
+        BIO_printf(bio_err, "unable to load X509 request\n");
+    BIO_free(in);
+    return req;
+}
+
 /* TODO dvo: push that separately upstream with the autofmt options */
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L /* compatibility declarations */
 static STACK_OF(X509) *load_certs_(const char *file, int format,
@@ -951,6 +993,23 @@ static X509 *load_cert_autofmt(const char *infile, int *format, const char *pass
     if (pass_string)
         OPENSSL_clear_free(pass_string, strlen(pass_string));
     return cert;
+}
+
+/* TODO dvo: push that separately upstream */
+static X509_REQ *load_csr_autofmt(const char *infile, int *format, const char *desc) {
+    X509_REQ *csr;
+    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
+    *format = adjust_format(&infile, *format, 0);
+    csr = load_csr(infile, *format, desc);
+    if (csr == NULL && (*format == FORMAT_PEM || *format == FORMAT_ASN1)) {
+        *format = (*format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
+        csr = load_csr(infile, *format, desc);
+    }
+    if (!csr) {
+        ERR_print_errors(bio_err);
+        BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc, infile);
+    }
+    return csr;
 }
 
 /* TODO dvo: push that separately upstream */
@@ -1318,6 +1377,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             opt_cmd = CMP_KUR;
         else if (!strcmp(opt_cmd_s, "cr"))
             opt_cmd = CMP_CR;
+        else if (!strcmp(opt_cmd_s, "p10cr"))
+            opt_cmd = CMP_P10CR;
         else if (!strcmp(opt_cmd_s, "rr"))
             opt_cmd = CMP_RR;
         else if (!strcmp(opt_cmd_s, "genm"))
@@ -1350,6 +1411,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
     if (opt_cmd == CMP_RR && !opt_oldcert) {
         BIO_puts(bio_err, "error: missing certificate to be revoked\n");
+        goto err;
+    }
+    if (opt_cmd == CMP_P10CR && !opt_csr) {
+        BIO_puts(bio_err, "error: missing PKCS#10 CSR for p10cr\n");
         goto err;
     }
 
@@ -1739,6 +1804,19 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_keypass) {
         OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
         opt_keypass = NULL;
+    }
+
+    if (opt_csr) {
+        if (opt_cmd != CMP_P10CR)
+            BIO_puts(bio_err, "warning: -csr option is ignored for command other than p10cr\n");
+        else {
+            X509_REQ *csr = load_csr_autofmt(opt_csr, &certform, "PKCS#10 CSR for p10cr");
+            if (!csr ||!CMP_CTX_set1_p10CSR(ctx, csr)) {
+                X509_REQ_free(csr);
+                goto err;
+            }
+            X509_REQ_free(csr);
+        }
     }
 
     if (opt_revreason >= 0)
@@ -2146,6 +2224,9 @@ opt_err:
         case OPT_OLDCERT:
             opt_oldcert = opt_str("oldcert");
             break;
+        case OPT_CSR:
+            opt_csr = opt_arg();
+            break;
         case OPT_REVREASON:
             if (!opt_int(opt_arg(), &opt_revreason))
                 goto opt_err;
@@ -2275,6 +2356,11 @@ opt_err:
         break;
     case CMP_CR:
         newcert = CMP_doCertificateRequestSeq(cmp_ctx);
+        if (!newcert)
+            goto err;
+        break;
+    case CMP_P10CR:
+        newcert = CMP_doPKCS10CertificationRequestSeq(cmp_ctx);
         if (!newcert)
             goto err;
         break;

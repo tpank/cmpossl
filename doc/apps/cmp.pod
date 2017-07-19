@@ -35,7 +35,7 @@ B<openssl> B<cmp>
 [B<-keypass arg>]
 [B<-extcerts filename>]
 
-[B<-cmd ir|cr|kur|rr|genm>]
+[B<-cmd ir|cr|kur|p10cr|rr|genm>]
 [B<-geninfo OID:int:N>]
 [B<-digest name>]
 [B<-unprotectedrequests>]
@@ -230,12 +230,13 @@ File with certificates to include in the extraCerts field of requests.
 
 =over 4
 
-=item B<-cmd ir|cr|kur|rr|genm>
+=item B<-cmd ir|cr|kur|p10cr|rr||genm>
 
 CMP command to execute. Currently implemented commands are:
     ir   - Initialization Request
     cr   - Certificate Request
     kur  - Key Update Request
+    p10cr - PKCS#10 Certification Request
     rr   - Revocation Request
     genm - General Message
 
@@ -244,6 +245,9 @@ issuance of a first certificate.
 
 B<cr> requests issuance of an additional certificate for an End Entity already
 initialized to the PKI hieararchy.
+
+B<p10cr> requests issuance of an additional certificate similarly to B<cr>
+but uses PKCS#10 CSR format.
 
 B<kur> requests (key) update for an existing, given certificate.
 
@@ -542,7 +546,7 @@ option.
 =item * Multiple certificate/revocation requests in one session (functionality not yet
 available in the library).
 
-=item * Message sequences other than those needed for IR/CR/KUR/RR/GENM
+=item * Message sequences other than those needed for IR/CR/KUR/P10CR/RR/GENM
 (functionality not yet available in the library).
 
 =item * Many optionally available settings from the RFC which are not yet

@@ -12,6 +12,7 @@
  CMP_CTX_set1_srvCert,
  CMP_CTX_set1_clCert,
  CMP_CTX_set1_oldClCert,
+ CMP_CTX_set1_p10CSR,
  CMP_CTX_set1_subjectName,
  CMP_CTX_set1_issuer,
  CMP_CTX_set1_newClCert,
@@ -75,6 +76,7 @@
  int CMP_CTX_set1_srvCert(CMP_CTX *ctx, const X509 *cert);
  int CMP_CTX_set1_clCert( CMP_CTX *ctx, const X509 *cert);
  int CMP_CTX_set1_oldClCert( CMP_CTX *ctx, const X509 *cert);
+ int CMP_CTX_set1_p10CSR( CMP_CTX *ctx, const X509_REQ *csr);
  int CMP_CTX_set1_subjectName( CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_issuer( CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_newClCert( CMP_CTX *ctx, const X509 *cert);
@@ -165,6 +167,8 @@ create the protection in case of MSG_SIG_ALG.
 CMP_CTX_set1_oldClCert() sets the old certificate that we are updating
 in KUR. If this is not set, clCert will be the one being updated.
 This is also used to specify the certificate to be revoked in RR.
+
+CMP_CTX_set1_p10CSR() sets the PKCS#10 CSR to be used in P10CR.
 
 CMP_CTX_set1_subjectName() sets the subject name that will be used in
 the CertTemplate structure when requesting a new certificate. Note that

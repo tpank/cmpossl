@@ -441,7 +441,7 @@ static int save_certresponse_statusInfo(CMP_CTX *ctx, CMP_CERTRESPONSE *resp)
 /* ############################################################################ *
  * internal function
  *
- * performs the generic handling of certificate responses for IR/CR/KUR
+ * performs the generic handling of certificate responses for IR/CR/KUR/P10CR
  * returns 1 on success, 0 on error
  * Regardless of success, caller is responsible for freeing *resp (unless NULL).
  * ############################################################################ */
@@ -526,7 +526,7 @@ static int cert_response(CMP_CTX *ctx,
 /* ############################################################################ *
  * internal function
  *
- * Do the full sequence CR/IR/KUR, CP/IP/KUP,
+ * Do the full sequence CR/IR/KUR/P10CR, CP/IP/KUP/CP,
  * certConf, PKIconf, and potential polling.
  *
  * All options need to be set in the context.
@@ -663,6 +663,13 @@ X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx)
     return do_certreq_seq(ctx, "kur", CMP_F_CMP_DOKEYUPDATEREQUESTSEQ,
                           V_CMP_PKIBODY_KUR, CMP_R_ERROR_CREATING_KUR,
                           V_CMP_PKIBODY_KUP, CMP_R_KUP_NOT_RECEIVED);
+}
+
+X509 *CMP_doPKCS10CertificationRequestSeq(CMP_CTX *ctx)
+{
+    return do_certreq_seq(ctx, "p10cr", CMP_F_CMP_DOPKCS10CERTIFICATIONREQUESTSEQ,
+                          V_CMP_PKIBODY_P10CR, CMP_R_ERROR_CREATING_P10CR,
+                          V_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED);
 }
 
 /* ############################################################################ *

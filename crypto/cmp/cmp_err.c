@@ -139,6 +139,7 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
      "error calculating protection"},
     {ERR_REASON(CMP_R_ERROR_CREATING_CERTCONF), "error creating certconf"},
     {ERR_REASON(CMP_R_ERROR_CREATING_CR), "error creating cr"},
+    {ERR_REASON(CMP_R_ERROR_CREATING_P10CR), "error creating p10cr"},
     {ERR_REASON(CMP_R_ERROR_CREATING_ERROR), "error creating error"},
     {ERR_REASON(CMP_R_ERROR_CREATING_GENM), "error creating genm"},
     {ERR_REASON(CMP_R_ERROR_CREATING_IR), "error creating ir"},

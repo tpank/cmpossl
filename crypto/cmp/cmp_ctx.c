@@ -102,6 +102,7 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, srvCert, X509),
     ASN1_OPT(CMP_CTX, clCert, X509),
     ASN1_OPT(CMP_CTX, oldClCert, X509),
+    ASN1_OPT(CMP_CTX, p10CSR, X509_REQ),
     ASN1_OPT(CMP_CTX, subjectName, X509_NAME),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, reqExtensions, X509_EXTENSION),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, subjectAltNames, GENERAL_NAME),
@@ -959,6 +960,30 @@ int CMP_CTX_set1_oldClCert(CMP_CTX *ctx, const X509 *cert)
     return 1;
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_OLDCLCERT, CMP_R_NULL_ARGUMENT);
+    return 0;
+}
+
+/* ################################################################ *
+ * Set the PKCS#10 CSR to be sent in P10CR
+ * returns 1 on success, 0 on error
+ * ################################################################ */
+int CMP_CTX_set1_p10CSR(CMP_CTX *ctx, const X509_REQ *csr)
+{
+    if (!ctx)
+        goto err;
+    if (!csr)
+        goto err;
+
+    if (ctx->p10CSR) {
+        X509_REQ_free(ctx->p10CSR);
+        ctx->p10CSR = NULL;
+    }
+
+    if (!(ctx->p10CSR = X509_REQ_dup((X509_REQ *)csr)))
+        goto err;
+    return 1;
+ err:
+    CMPerr(CMP_F_CMP_CTX_SET1_P10CSR, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 

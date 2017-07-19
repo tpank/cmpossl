@@ -357,8 +357,9 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
 /* from cmp_ses.c */
 X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx);
 X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx);
-int CMP_doRevocationRequestSeq(CMP_CTX *ctx);
 X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx);
+X509 *CMP_doPKCS10CertificationRequestSeq(CMP_CTX *ctx);
+int CMP_doRevocationRequestSeq(CMP_CTX *ctx);
 STACK_OF(CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx);
 
 /* from cmp_asn.c */
@@ -389,6 +390,7 @@ int CMP_CTX_set1_regToken(CMP_CTX *ctx, const char *regtoken,
 int CMP_CTX_set1_srvCert(CMP_CTX *ctx, const X509 *cert);
 int CMP_CTX_set1_clCert(CMP_CTX *ctx, const X509 *cert);
 int CMP_CTX_set1_oldClCert(CMP_CTX *ctx, const X509 *cert);
+int CMP_CTX_set1_p10CSR(CMP_CTX *ctx, const X509_REQ *csr);
 int CMP_CTX_set1_issuer(CMP_CTX *ctx, const X509_NAME *name);
 int CMP_CTX_set1_subjectName(CMP_CTX *ctx, const X509_NAME *name);
 int CMP_CTX_set1_recipient(CMP_CTX *ctx, const X509_NAME *name);
@@ -507,6 +509,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_NEWCLCERT                     131
 # define CMP_F_CMP_CTX_SET1_NEWPKEY                       132
 # define CMP_F_CMP_CTX_SET1_OLDCLCERT                     133
+# define CMP_F_CMP_CTX_SET1_P10CSR                        193
 # define CMP_F_CMP_CTX_SET1_PKEY                          134
 # define CMP_F_CMP_CTX_SET1_POPOMETHOD                    182
 # define CMP_F_CMP_CTX_SET1_PROXYNAME                     135
@@ -528,6 +531,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET_SERVERPORT                     147
 # define CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1               148
 # define CMP_F_CMP_DOCERTIFICATEREQUESTSEQ                149
+# define CMP_F_CMP_DOPKCS10CERTIFICATIONREQUESTSEQ        192
 # define CMP_F_CMP_DOGENERALMESSAGESEQ                    150
 # define CMP_F_CMP_DOINITIALREQUESTSEQ                    151
 # define CMP_F_CMP_DOKEYUPDATEREQUESTSEQ                  152
@@ -573,6 +577,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_CALCULATING_PROTECTION               112
 # define CMP_R_ERROR_CREATING_CERTCONF                    113
 # define CMP_R_ERROR_CREATING_CR                          114
+# define CMP_R_ERROR_CREATING_P10CR                       179
 # define CMP_R_ERROR_CREATING_ERROR                       115
 # define CMP_R_ERROR_CREATING_GENM                        116
 # define CMP_R_ERROR_CREATING_IR                          117
