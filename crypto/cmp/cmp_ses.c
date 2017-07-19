@@ -204,11 +204,12 @@ static int send_receive_check(CMP_CTX *ctx,
     CMP_printf(ctx, "INFO: Sending %s", type_string);
     err = (ctx->msg_transfer_fn)(ctx, req, rep);
     if (err) {
-        if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE)
+        if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
+            err == CMP_R_READ_TIMEOUT ||
+            err == CMP_R_ERROR_DECODING_MESSAGE)
             CMPerr(type_function, not_received);
         else {
-            CMPerr(type_function, err);
-            CMP_add_error_data("unable to send");
+            CMPerr(type_function, CMP_R_ERROR_SENDING_REQUEST);
             CMP_add_error_data(type_string);
         }
         *rep = NULL;

@@ -254,8 +254,8 @@ static int wait(BIO *bio, int for_read, int max_seconds)
 }
 
 /* Send out request and get response.
-   returns -2 on send error, -1 on timeout, 0 on receive error, 1 on success
-   On success provides the received message via the *out argument */
+   returns -3: send error, -2: receive error, -1: timeout, 0: parse error,
+   1: success and then provides the received message via the *out argument */
 static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
                        CMP_PKIMESSAGE **out, time_t max_time)
 {
@@ -265,11 +265,16 @@ static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
     if (!(ctx = CMP_sendreq_new(bio, path, req, -1)))
         return 0;
 
+    *out = (CMP_PKIMESSAGE *)1; /* used for detecting parse errors */
     for (;;) {
         rv = CMP_sendreq_nbio(out, ctx);
+        if (rv == 1)
+            break;
         if (rv != -1) {
             if (sending && max_time != 0)
-                rv = -2;
+                rv = -3;
+            else
+                rv = (*out == NULL) ? 0 : -2;
             break;
         }
         sending = 0;
@@ -360,12 +365,14 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
 
     rv = CMP_sendreq(cbio, path, req, res, max_time);
-    if (rv == -1)
-        err = CMP_R_READ_TIMEOUT;
-    else if (rv == -2)
+    if (rv == -3)
         err = CMP_R_FAILED_TO_SEND_REQUEST;
-    else if (rv == 0)
+    else if (rv == -2)
         err = CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE;
+    else if (rv == -1)
+        err = CMP_R_READ_TIMEOUT;
+    else if (rv == 0)
+        err = CMP_R_ERROR_DECODING_MESSAGE;
     else
         err = 0;
 
@@ -380,7 +387,8 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     BIO_free(hbio);
     if (err) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, err);
-        if (err != CMP_R_SERVER_NOT_REACHABLE)
+        if (err == CMP_R_FAILED_TO_SEND_REQUEST ||
+            err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE)
             print_error_hint(ctx, ERR_peek_error());
     }
 
