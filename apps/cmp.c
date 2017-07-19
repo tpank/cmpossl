@@ -1892,7 +1892,6 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs) {
 }
 
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
-#define STORE_STR_OPT(myvar, myopt)  do { myvar = opt_str(myopt); } while(0)
 static char *opt_str(char *opt) {
     char *arg = opt_arg();
     if (arg[0] == '\0') {
@@ -2010,10 +2009,10 @@ opt_err:
             break;
 
         case OPT_SERVER:
-            STORE_STR_OPT(opt_server, "server");
+            opt_server = opt_str("server");
             break;
         case OPT_PROXY:
-            STORE_STR_OPT(opt_proxy, "proxy");
+            opt_proxy = opt_str("proxy");
             break;
         case OPT_MSGTIMEOUT:
             if (!opt_int(opt_arg(), &opt_msgtimeout))
@@ -2028,64 +2027,64 @@ opt_err:
             opt_use_tls = 1;
             break;
         case OPT_TLSCERT:
-            STORE_STR_OPT(opt_tls_cert, "tls-cert");
+            opt_tls_cert = opt_str("tls-cert");
             break;
         case OPT_TLSKEY:
-            STORE_STR_OPT(opt_tls_key, "tls-key");
+            opt_tls_key = opt_str("tls-key");
             break;
         case OPT_TLSKEYPASS:
-            STORE_STR_OPT(opt_tls_keypass, "tls-keypass");
+            opt_tls_keypass = opt_str("tls-keypass");
             break;
         case OPT_TLSTRUSTED:
-            STORE_STR_OPT(opt_tls_trusted, "tls-trusted");
+            opt_tls_trusted = opt_str("tls-trusted");
             break;
         case OPT_TLSHOST:
-            STORE_STR_OPT(opt_tls_host, "tls-host");
+            opt_tls_host = opt_str("tls-host");
             break;
 
         case OPT_PATH:
-            STORE_STR_OPT(opt_path, "path");
+            opt_path = opt_str("path");
             break;
         case OPT_CMD:
-            STORE_STR_OPT(opt_cmd_s, "cmd");
+            opt_cmd_s = opt_str("cmd");
             break;
 
         case OPT_REF:
-            STORE_STR_OPT(opt_ref, "ref");
+            opt_ref = opt_str("ref");
             break;
         case OPT_SECRET:
-            STORE_STR_OPT(opt_secret, "secret");
+            opt_secret = opt_str("secret");
             break;
         case OPT_CERT:
-            STORE_STR_OPT(opt_cert, "cert");
+            opt_cert = opt_str("cert");
             break;
         case OPT_KEY:
-            STORE_STR_OPT(opt_key, "key");
+            opt_key = opt_str("key");
             break;
         case OPT_KEYPASS:
-            STORE_STR_OPT(opt_keypass, "keypass");
+            opt_keypass = opt_str("keypass");
             break;
 
         case OPT_CERTOUT:
-            STORE_STR_OPT(opt_certout, "certout");
+            opt_certout = opt_str("certout");
             break;
         case OPT_NEWKEY:
-            STORE_STR_OPT(opt_newkey, "newkey");
+            opt_newkey = opt_str("newkey");
             break;
         case OPT_NEWKEYPASS:
-            STORE_STR_OPT(opt_newkeypass, "newkeypass");
+            opt_newkeypass = opt_str("newkeypass");
             break;
         case OPT_SRVCERT:
-            STORE_STR_OPT(opt_srvcert, "srvcert");
+            opt_srvcert = opt_str("srvcert");
             break;
         case OPT_TRUSTED:
-            STORE_STR_OPT(opt_trusted, "trusted");
+            opt_trusted = opt_str("trusted");
             break;
         case OPT_UNTRUSTED:
-            STORE_STR_OPT(opt_untrusted, "untrusted");
+            opt_untrusted = opt_str("untrusted");
             break;
         case OPT_CRLS:
-            STORE_STR_OPT(opt_crls, "crls");
+            opt_crls = opt_str("crls");
             break;
         case OPT_CRLDOWNLOAD:
             opt_crldownload = 1;
@@ -2096,32 +2095,32 @@ opt_err:
             vpmtouched++;
             break;
         case OPT_KEYFORM:
-            STORE_STR_OPT(opt_keyform_s, "keyform");
+            opt_keyform_s = opt_str("keyform");
             break;
         case OPT_CERTFORM:
-            STORE_STR_OPT(opt_certform_s, "certform");
+            opt_certform_s = opt_str("certform");
             break;
         case OPT_EXTCERTS:
-            STORE_STR_OPT(opt_extcerts, "extcerts");
+            opt_extcerts = opt_str("extcerts");
             break;
         case OPT_SUBJECT:
-            STORE_STR_OPT(opt_subject, "subject");
+            opt_subject = opt_str("subject");
             break;
         case OPT_ISSUER:
-            STORE_STR_OPT(opt_issuer, "issuer");
+            opt_issuer = opt_str("issuer");
             break;
         case OPT_RECIPIENT:
-            STORE_STR_OPT(opt_recipient, "recipient");
+            opt_recipient = opt_str("recipient");
             break;
         case OPT_REQEXTS:
-            STORE_STR_OPT(opt_reqexts, "reqexts");
+            opt_reqexts = opt_str("reqexts");
             break;
 
         case OPT_EXTRACERTSOUT:
-            STORE_STR_OPT(opt_extracertsout, "extracertsout");
+            opt_extracertsout = opt_str("extracertsout");
             break;
         case OPT_CACERTSOUT:
-            STORE_STR_OPT(opt_cacertsout, "cacertsout");
+            opt_cacertsout = opt_str("cacertsout");
             break;
 
         case OPT_DISABLECONFIRM:
@@ -2142,24 +2141,24 @@ opt_err:
             break;
 
         case OPT_DIGEST:
-            STORE_STR_OPT(opt_digest, "digest");
+            opt_digest = opt_str("digest");
             break;
         case OPT_OLDCERT:
-            STORE_STR_OPT(opt_oldcert, "oldcert");
+            opt_oldcert = opt_str("oldcert");
             break;
         case OPT_REVREASON:
             if (!opt_int(opt_arg(), &opt_revreason))
                 goto opt_err;
             break;
         case OPT_INFOTYPE:
-            STORE_STR_OPT(opt_infotype_s, "infotype");
+            opt_infotype_s = opt_str("infotype");
             break;
         case OPT_GENINFO:
-            STORE_STR_OPT(opt_geninfo, "geninfo");
+            opt_geninfo = opt_str("geninfo");
             break;
 #ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
-            STORE_STR_OPT(opt_engine, "engine");
+            opt_engine = opt_str("engine");
             break;
 #endif
         }
