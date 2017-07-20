@@ -59,24 +59,6 @@ return a pointer the newly obtained X509 certificate on success, NULL on error.
 See CMP_CTX for examples on how to prepare the context for these
 functions.
 
-=head1 TODO
-
-The functions for IR, CR, and KUR do not yet support requesting multiple
-certificates.
-
-The function for sending GENM does not yet directly support sending multiple
-ITAV structures.
-
-The reason for an IP/KUP/CP returning waiting status, as optionally sent in a
-PKIFreetext structure, could be printed/returned to the user.
-
-The function to request revocation of certificates only can revoke the current
-certificate which is also used for signing the messages.  It should be changed
-so that the certificate to revoke is explicitly given.  So far only one
-certificate can be revoked although that could be several.
-
-The message sequences for other CMP operations are missing so far.
-
 =head1 SEE ALSO
 
 CMP_CTX, CMP_http

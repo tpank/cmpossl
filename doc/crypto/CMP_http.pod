@@ -31,8 +31,6 @@ It uses ctx->tlsBIO if set and respects ctx->msgTimeOut.
 
 =head1 EXAMPLE
 
-=head1 TODO
-
 =head1 SEE ALSO
 
 CMP_CTX, CMP_ses

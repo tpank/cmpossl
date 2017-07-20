@@ -193,8 +193,6 @@ might change every release!
 
 =head1 EXAMPLE
 
-=head1 TODO
-
 =head1 SEE ALSO
 
 CMP_CTX, CMP_ses, CMP_msg, CMP_http

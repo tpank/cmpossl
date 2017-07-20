@@ -456,10 +456,6 @@ example, the id-it-signKeyPairTypes OID and prints info on the genp contents.
     print_itavs(itavs);
     sk_CMP_INFOTYPEANDVALUE_pop_free(itavs, CMP_INFOTYPEANDVALUE_free);
 
-=head1 TODO
-
-Create functions to tune the PBM parameters pbm_* which are pre-set.
-
 =head1 SEE ALSO
 
 CMP_ses, CMP_http

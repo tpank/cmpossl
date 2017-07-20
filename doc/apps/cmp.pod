@@ -230,7 +230,7 @@ File with certificates to include in the extraCerts field of requests.
 
 =over 4
 
-=item B<-cmd ir|cr|kur|p10cr|rr||genm>
+=item B<-cmd ir|cr|kur|p10cr|rr|genm>
 
 CMP command to execute. Currently implemented commands are:
     ir   - Initialization Request
@@ -533,27 +533,6 @@ can send a key update request.
     -recipient "/CN=CMPserver" \
     -trusted capubs.pem \
     -newkey cl_key_new.pem -certout cl_cert_new.pem
-
-=head1 TODO
-
-=over 4
-
-=item * Exactly specify which other options is influcenced by the B<engine>
-option.
-
-=item * Option for printing more verbose information.
-
-=item * Multiple certificate/revocation requests in one session (functionality not yet
-available in the library).
-
-=item * Message sequences other than those needed for IR/CR/KUR/P10CR/RR/GENM
-(functionality not yet available in the library).
-
-=item * Many optionally available settings from the RFC which are not yet
-available in the library and are probably not supported by any available CMP
-server.
-
-=back
 
 =head1 SEE ALSO
 

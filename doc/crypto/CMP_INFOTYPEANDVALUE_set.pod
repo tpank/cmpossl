@@ -71,8 +71,8 @@ in the requests' PKIHeader's genInfo field.
 
 =head1 TODO
 
-Evaluate whether CMP_INFOTYPEANDVALUE_stack_item_push0() should be listed in this
-documentation - as it is an internal function.
+Evaluate whether CMP_INFOTYPEANDVALUE_stack_item_push0() should be listed in
+this documentation - as it is an internal function.
 
 =head1 SEE ALSO
 

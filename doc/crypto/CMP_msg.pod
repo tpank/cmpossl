@@ -50,11 +50,6 @@ the generated message.
 
 =head1 EXAMPLE
 
-
-=head1 TODO
-
-A lot!
-
 =head1 SEE ALSO
 
 CMP_CTX, CMP_ses, CMP_http
