@@ -4476,3 +4476,5 @@ CRMF_CERTREQMESSAGES_free               4412	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_create_popo             4413	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_set0_extensions         4414	1_1_1	EXIST::FUNCTION:
 CMP_certreq_new                         4415	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set1_p10CSR                     4416	1_1_1	EXIST::FUNCTION:
+CMP_doPKCS10CertificationRequestSeq     4417	1_1_1	EXIST::FUNCTION:
