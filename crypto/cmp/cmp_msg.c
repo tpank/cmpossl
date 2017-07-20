@@ -302,11 +302,13 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
         if (ctx->issuer)
             if (!CRMF_CERTREQMSG_set1_issuer(cr0, ctx->issuer))
                 goto err;
-#if 0 /* TODO: support e2e */
-        if (ctx->notBefore || ctx->notAfter)
-            if (CRMF_CERTREQMSG_set_validity(cr0, ctx->notBefore,ctx->notAfter))
+        if (ctx->days) {
+            time_t notBefore, notAfter;
+            notBefore = time(NULL);
+            notAfter = notBefore + 60 * 60 * 24 * ctx->days;
+            if (!CRMF_CERTREQMSG_set_validity(cr0, notBefore, notAfter))
                 goto err;
-#endif
+        }
 
         /* extensions */ /* exts are copied from ctx to allow reuse */
         if (ctx->reqExtensions && !(exts = exts_dup(ctx->reqExtensions)))

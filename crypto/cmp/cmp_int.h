@@ -51,6 +51,7 @@ struct cmp_ctx_st {
                                NB: could also be taken from clcert */
     X509_NAME *recipient; /* to set in recipient in pkiheader */
     X509_NAME *issuer;  /* to set in issuer in pkiheader */
+    int days; /* Number of days new certificates are asked to be valid for */
     int digest; /* NID of digest used in MSG_SIG_ALG, defaults to SHA256 */
     X509_EXTENSIONS *reqExtensions; /* to be added to certificate requests */
     STACK_OF (GENERAL_NAME) *subjectAltNames;  /* names to be added to the

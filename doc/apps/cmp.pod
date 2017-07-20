@@ -47,6 +47,7 @@ B<openssl> B<cmp>
 [B<-newkeypass arg>]
 [B<-subject name>]
 [B<-issuer name>]
+[B<-days number>]
 [B<-reqexts name>]
 [B<-popo number>]
 [B<-implicitconfirm>]
@@ -346,6 +347,10 @@ X509 issuer DN, i.e., the X509 distinguished name of the CA server,
 to be put in the requested certificate template in IR/CR/KUR.
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
+
+=item B<-days number>
+
+Number of days the new certificate is asked to be valid for.
 
 =item B<-reqexts name>
 

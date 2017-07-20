@@ -1381,6 +1381,9 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
     case CMP_CTX_OPT_UNPROTECTED_ERRORS:
         ctx->unprotectedErrors = val;
         break;
+    case CMP_CTX_OPT_VALIDITYDAYS:
+        ctx->days = val;
+        break;
     case CMP_CTX_OPT_POPOMETHOD:
         ctx->popoMethod = val;
         break;

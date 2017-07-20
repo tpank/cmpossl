@@ -190,6 +190,7 @@ static int opt_crlform = FORMAT_PEM; /* default to be tried first for file input
 static char *opt_extcerts = NULL;
 static char *opt_subject = NULL;
 static char *opt_issuer = NULL;
+static int   opt_days = 0;
 static char *opt_recipient = NULL;
 static int   opt_popo = -1;
 static char *opt_reqexts = NULL;
@@ -313,7 +314,7 @@ typedef enum OPTION_choice {
     OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
 
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER,
-    OPT_REQEXTS, OPT_POPO,
+    OPT_DAYS, OPT_REQEXTS, OPT_POPO,
     OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
     OPT_CERTOUT,
 
@@ -382,6 +383,7 @@ OPTIONS cmp_options[] = {
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
     {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template"},
+    {"days", OPT_DAYS, 'n', "Number of days the new certificate is asked to be valid for"},
     {"reqexts", OPT_REQEXTS, 's', "Name of section in OpenSSL config file defining certificate request extensions"},
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method."},
        {OPT_MORE_STR, 0, 0, "0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
@@ -447,7 +449,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     {&opt_extracertsout}, {&opt_cacertsout},
 
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
-    {&opt_reqexts}, { (char **)&opt_popo},
+    { (char **)&opt_days}, {&opt_reqexts}, { (char **)&opt_popo},
     { (char **)&opt_implicitConfirm}, { (char **)&opt_disableConfirm},
     {&opt_certout},
 
@@ -1755,6 +1757,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         X509_NAME_free(n);
     }
 
+    if (opt_days > 0)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_VALIDITYDAYS, opt_days);
+
     if (opt_popo < -1 || opt_popo > 3) {
         BIO_printf(bio_err, "error: invalid value '%d' for popo method (must be between 0 and 3)\n", opt_popo);
         goto err;
@@ -2216,6 +2221,10 @@ opt_err:
             break;
         case OPT_UNPROTECTEDERRORS:
             opt_unprotectedErrors = 1;
+            break;
+        case OPT_DAYS:
+            if (!opt_int(opt_arg(), &opt_days))
+                goto opt_err;
             break;
         case OPT_POPO:
             if (!opt_int(opt_arg(), &opt_popo))
