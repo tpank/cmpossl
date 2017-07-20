@@ -1,12 +1,12 @@
 /*
  * ====================================================================
- * Written by Miikka Viljanen, based on cmpclient by Martin Peylo 
+ * Written by Miikka Viljanen, based on cmpclient by Martin Peylo
  */
 /*
  * ====================================================================
  * Copyright (c) 2007-2010 The OpenSSL Project.  All rights reserved.
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  * 1. Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
@@ -26,23 +26,23 @@
  * OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/)"
  * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY EXPRESSED
  * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO 
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO
  * EVENT SHALL THE OpenSSL PROJECT OR ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * ==================================================================== 
+ * ====================================================================
  * This product includes cryptographic software written by Eric Young
  * (eay@cryptsoft.com).  This product includes software written by Tim Hudson
- * (tjh@cryptsoft.com). 
+ * (tjh@cryptsoft.com).
  */
 /*
  * ====================================================================
  * Copyright 2012-2014 Nokia Oy. ALL RIGHTS RESERVED. CMP support in OpenSSL
- * originally developed by Nokia for contribution to the OpenSSL project. 
+ * originally developed by Nokia for contribution to the OpenSSL project.
  */
 
 #include <openssl/opensslconf.h>
@@ -132,7 +132,7 @@ static ENGINE *setup_engine_no_default(const char *engine, int debug)
 }
 
 /*
- * the type of cmp command we want to send 
+ * the type of cmp command we want to send
  */
 typedef enum {
     CMP_IR,
@@ -489,11 +489,11 @@ static void opt_help(const OPTIONS *unused_arg) {
 #endif
 
 /*
- * ########################################################################## 
+ * ##########################################################################
  * use the command line option table to read values from the CMP section
  * of openssl.cnf.  Defaults are taken from the config file, they can be
  * overwritten on the command line.
- * ########################################################################## 
+ * ##########################################################################
  */
 static int read_config()
 {
@@ -1097,10 +1097,10 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, con
 }
 
 /*
- * ########################################################################## 
+ * ##########################################################################
  * * create cert store structure with certificates read from given file
  * returns pointer to created X509_STORE on success, NULL on error
- * ########################################################################## 
+ * ##########################################################################
  */
 static X509_STORE *create_cert_store(const char *infile, const char *desc)
 {
@@ -1344,12 +1344,12 @@ static int parse_server_and_port(char *opt_string)
 }
 
 /*
- * ########################################################################## 
+ * ##########################################################################
  * * set up the CMP_CTX structure based on options from config file/CLI
  * while parsing options and checking their consistency.
  * Prints reason for error to bio_err.
  * Returns 1 on success, 0 on error
- * ########################################################################## 
+ * ##########################################################################
  */
 static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 {
@@ -1561,7 +1561,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             }
             if (!pkey)
                 goto tls_err;
-            if (SSL_CTX_use_PrivateKey(ssl_ctx, pkey) <= 0) { 
+            if (SSL_CTX_use_PrivateKey(ssl_ctx, pkey) <= 0) {
                 BIO_printf(bio_err, "error: unable to use TLS client private key '%s'\n", opt_tls_key);
                 EVP_PKEY_free(pkey);
                 pkey = NULL; /* otherwise, for some reason double free! */
@@ -1899,11 +1899,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 }
 
 /*
- * ########################################################################## 
+ * ##########################################################################
  * * write out the given certificate to the output specified by bio.
  * Depending on options use either PEM or DER format.
  * Returns 1 on success, 0 on error
- * ########################################################################## 
+ * ##########################################################################
  */
 static int write_cert(BIO *bio, X509 *cert)
 {
@@ -1916,12 +1916,12 @@ static int write_cert(BIO *bio, X509 *cert)
 }
 
 /*
- * ########################################################################## 
+ * ##########################################################################
  * * writes out a stack of certs to the given file.
  * Depending on options use either PEM or DER format,
  * where DER does not make much sense for writing more than one cert!
  * Returns number of written certificates on success, 0 on error.
- * ########################################################################## 
+ * ##########################################################################
  */
 static int save_certs(STACK_OF(X509) *certs, char *destFile, char *desc)
 {
@@ -1989,15 +1989,15 @@ static char *opt_str(char *opt) {
 #endif
 
 /*
- * ########################################################################## 
+ * ##########################################################################
  * *
- * ########################################################################## 
+ * ##########################################################################
  */
 int cmp_main(int argc, char **argv)
 {
     char *configfile = NULL;
     long errorline = -1;
-    char *tofree = NULL;        /* used as getenv returns a direct pointer to 
+    char *tofree = NULL;        /* used as getenv returns a direct pointer to
                                  * the environment setting */
     int badops = 0;
     int i, ret = 1;
@@ -2049,7 +2049,7 @@ int cmp_main(int argc, char **argv)
     }
 
     /*
-     * read default values for options from openssl.cnf 
+     * read default values for options from openssl.cnf
      */
     /* TODO dvo: the following would likely go to apps.c app_load_config_() */
     if (configfile) {
@@ -2075,7 +2075,7 @@ int cmp_main(int argc, char **argv)
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     prog = opt_init(argc, argv, cmp_options);
-    
+
     while ((o = opt_next()) != OPT_EOF) {
         switch (o) {
         case OPT_EOF:
@@ -2345,31 +2345,31 @@ opt_err:
     }
 
     /*
-     * everything is ready, now connect and perform the command! 
+     * everything is ready, now connect and perform the command!
      */
     switch (opt_cmd) {
     case CMP_IR:
-        newcert = CMP_doInitialRequestSeq(cmp_ctx);
+        newcert = CMP_exec_IR_ses(cmp_ctx);
         if (!newcert)
             goto err;
         break;
     case CMP_KUR:
-        newcert = CMP_doKeyUpdateRequestSeq(cmp_ctx);
+        newcert = CMP_exec_KUR_ses(cmp_ctx);
         if (!newcert)
             goto err;
         break;
     case CMP_CR:
-        newcert = CMP_doCertificateRequestSeq(cmp_ctx);
+        newcert = CMP_exec_CR_ses(cmp_ctx);
         if (!newcert)
             goto err;
         break;
     case CMP_P10CR:
-        newcert = CMP_doPKCS10CertificationRequestSeq(cmp_ctx);
+        newcert = CMP_exec_P10CR_ses(cmp_ctx);
         if (!newcert)
             goto err;
         break;
     case CMP_RR:
-        if (CMP_doRevocationRequestSeq(cmp_ctx) == 0)
+        if (CMP_exec_RR_ses(cmp_ctx) == 0)
             goto err;
         break;
     case CMP_GENM:
@@ -2382,7 +2382,7 @@ opt_err:
             CMP_CTX_genm_itav_push0(cmp_ctx, itav);
         }
 
-        if (!(itavs = CMP_doGeneralMessageSeq(cmp_ctx)))
+        if (!(itavs = CMP_exec_GENM_ses(cmp_ctx)))
             goto err;
         print_itavs(itavs);
         sk_CMP_INFOTYPEANDVALUE_pop_free(itavs, CMP_INFOTYPEANDVALUE_free);

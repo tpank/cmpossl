@@ -83,9 +83,9 @@
 
 #include "cmp_int.h"
 
-/* ############################################################################ *
+/* ########################################################################## *
  * table used to translate PKIMessage body type number into a printable string
- * ############################################################################ */
+ * ########################################################################## */
 static char *V_CMP_TABLE[] = {
     "IR",
     "IP",
@@ -120,11 +120,11 @@ static char *V_CMP_TABLE[] = {
         (((unsigned int) (type) < sizeof(V_CMP_TABLE)/sizeof(V_CMP_TABLE[0])) \
          ? V_CMP_TABLE[(unsigned int)(type)] : "unknown")
 
-/* ############################################################################ *
+/* ########################################################################## *
  * internal function
  *
  * adds error data of the given CMP_PKIMESSAGE
- * ############################################################################ */
+ * ########################################################################## */
 static void message_add_error_data(CMP_PKIMESSAGE *msg)
 {
     char *tempbuf;
@@ -142,7 +142,7 @@ static void message_add_error_data(CMP_PKIMESSAGE *msg)
         break;
     default:
         ERR_add_error_data(3, "got unexpected message type '",
-                               MSG_TYPE_STR(CMP_PKIMESSAGE_get_bodytype(msg)), "'");
+                           MSG_TYPE_STR(CMP_PKIMESSAGE_get_bodytype(msg)), "'");
         break;
     }
 }
@@ -158,16 +158,20 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
 
     if (ctx->unprotectedErrors) {
         if (rcvd_type == V_CMP_PKIBODY_ERROR) {
-            CMP_printf(ctx, "WARN: ignoring missing protection of error response");
+            CMP_printf(ctx,
+                         "WARN: ignoring missing protection of error response");
             exception = 1;
         }
-        if (rcvd_type == V_CMP_PKIBODY_RP &&
-                CMP_REVREPCONTENT_PKIStatus_get(rep->body->value.rp, 0) == CMP_PKISTATUS_rejection) {
-            CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
+        if ((rcvd_type == V_CMP_PKIBODY_RP)
+                && CMP_REVREPCONTENT_PKIStatus_get(rep->body->value.rp, 0)
+                   == CMP_PKISTATUS_rejection) {
+            CMP_printf(ctx, "WARN: ignoring missing protection of revocation "
+                            "response message with rejection status");
             exception = 1;
         }
         if (rcvd_type == V_CMP_PKIBODY_PKICONF) {
-            CMP_printf(ctx, "WARN: ignoring missing protection of PKI Confirmation message");
+            CMP_printf(ctx, "WARN: ignoring missing protection of PKI "
+                            "Confirmation message");
             exception = 1;
         }
         if (rcvd_type == type_rep &&
@@ -175,12 +179,14 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
                  rcvd_type == V_CMP_PKIBODY_CP ||
                  rcvd_type == V_CMP_PKIBODY_KUP)) {
             CMP_CERTRESPONSE *crep =
-                CMP_CERTREPMESSAGE_certResponse_get0(rep->body->value.ip, 0); /* same for cp and kup */
-            /* TODO handle multiple CertResponses in CertRepMsg (in case multiple requests have been sent) */
+                CMP_CERTREPMESSAGE_certResponse_get0(rep->body->value.ip, 0);
+            /* TODO: handle multiple CertResponses in CertRepMsg, in case
+             *       multiple requests have been sent --> Feature Request #13*/
             if (!crep)
                 return 0;
             if (CMP_CERTRESPONSE_PKIStatus_get(crep) == CMP_PKISTATUS_rejection) {
-                CMP_printf(ctx, "WARN: ignoring missing protection of CertRepMessage with rejection status");
+                CMP_printf(ctx, "WARN: ignoring missing protection of "
+                                "CertRepMessage with rejection status");
                 exception = 1;
             }
         }
@@ -188,16 +194,17 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
     return exception;
 }
 
-/* ############################################################################ *
+/* ########################################################################## *
  * internal function
  *
  * performs the generic aspects of sending a request and receiving a response
  * returns 1 on success, 0 on error
  * Regardless of success, caller is responsible for freeing *rep (unless NULL).
- * ############################################################################ */
-static int send_receive_check(CMP_CTX *ctx,
-                        const CMP_PKIMESSAGE *req, const char *type_string, int type_function,
-                              CMP_PKIMESSAGE **rep, int type_rep, int not_received)
+ * ########################################################################## */
+static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
+                              const char *type_string, int type_function,
+                              CMP_PKIMESSAGE **rep, int type_rep,
+                              int not_received)
 {
     int err, rcvd_type;
 
@@ -238,7 +245,8 @@ static int send_receive_check(CMP_CTX *ctx,
 
     /* compare received nonce with the one sent in request */
     if (req->header->senderNonce && (!(*rep)->header->recipNonce ||
-        ASN1_OCTET_STRING_cmp(req->header->senderNonce, (*rep)->header->recipNonce))) {
+        ASN1_OCTET_STRING_cmp(req->header->senderNonce,
+                              (*rep)->header->recipNonce))) {
         /* senderNonce != recipNonce (sic although there is no "!" in the if) */
         CMPerr(type_function, CMP_R_ERROR_NONCES_DO_NOT_MATCH);
         return 0;
@@ -246,34 +254,37 @@ static int send_receive_check(CMP_CTX *ctx,
 
     /* compare received transactionID with our current one */
     if (ctx->transactionID && (!(*rep)->header->transactionID ||
-        ASN1_OCTET_STRING_cmp(ctx->transactionID, (*rep)->header->transactionID))) {
+        ASN1_OCTET_STRING_cmp(ctx->transactionID,
+                              (*rep)->header->transactionID))) {
         CMPerr(type_function, CMP_R_ERROR_TRANSACTIONID_UNMATCHED);
         return 0;
     }
 
-    /* catch if the received message type is not one of the expected ones (e.g. error) */
+    /* catch if received message type isn't one of expected ones (e.g. error) */
     if (rcvd_type != type_rep &&
-        !(type_rep == V_CMP_PKIBODY_POLLREP && /* instead of pollrep there could be IP/CP/KUP */
+        /* for the final answer to polling, there could be IP/CP/KUP */
+        !(type_rep == V_CMP_PKIBODY_POLLREP &&
         (rcvd_type == V_CMP_PKIBODY_IP ||
          rcvd_type == V_CMP_PKIBODY_CP ||
          rcvd_type == V_CMP_PKIBODY_KUP))) {
-        CMPerr(type_function, CMP_R_PKIBODY_ERROR);
+        CMPerr(type_function, CMP_R_UNEXPECTED_PKIBODY);
         message_add_error_data(*rep);
         return 0;
     }
 
     /* RFC 4210 section 5.1.1 states: the recipNonce is copied from
-       the senderNonce of the previous message in the transaction. */
-    CMP_CTX_set1_recipNonce(ctx, (*rep)->header->senderNonce); /* store for setting in the next msg */
+     * the senderNonce of the previous message in the transaction.
+     * --> Store for setting in next message */
+    CMP_CTX_set1_recipNonce(ctx, (*rep)->header->senderNonce);
 
     return 1;
 }
 
-/* ############################################################################ *
+/* ########################################################################## *
  * internal function
  *
- * When a 'waiting' PKIStatus has been received, this function is used to attempt
- * to poll for a response message.
+ * When a 'waiting' PKIStatus has been received, this function is used to
+ * attempt to poll for a response message.
  *
  * A maxPollTime timeout can be set in the context.  The function will continue
  * to poll until the timeout is reached and then poll a last time even when that
@@ -283,8 +294,8 @@ static int send_receive_check(CMP_CTX *ctx,
  * returns 1 on success, returns received PKIMESSAGE in *msg argument
  * returns 0 on error or when timeout is reached without a received messsage
  *
- * TODO handle multiple pollreqs for multiple certificates
- * ############################################################################ */
+ * TODO: handle multiple pollreqs for multiple certificates --> FR #13
+ * ########################################################################## */
 static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
 {
     int maxTimeLeft = ctx->maxPollTime;
@@ -292,14 +303,15 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
     CMP_PKIMESSAGE *prep = NULL;
     CMP_POLLREP *pollRep = NULL;
 
-    CMP_printf(ctx,
-               "INFO: Received 'waiting' PKIStatus, starting to poll for response.");
+    CMP_printf(ctx, "INFO: Received 'waiting' PKIStatus, starting to poll for "
+                    "response.");
     for (;;) {
         if (!(preq = CMP_pollReq_new(ctx, 0)))
-            goto err;           /* TODO: this only handles one certificate request so far */
+            goto err;
 
         if (!send_receive_check(ctx, preq, "pollReq", CMP_F_POLLFORRESPONSE,
-                                    &prep, V_CMP_PKIBODY_POLLREP, CMP_R_POLLREP_NOT_RECEIVED))
+                                &prep, V_CMP_PKIBODY_POLLREP,
+                                CMP_R_POLLREP_NOT_RECEIVED))
              goto err;
 
         /* handle potential pollRep */
@@ -307,16 +319,17 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
             int checkAfter;
             if (!(pollRep =
                   sk_CMP_POLLREP_value(prep->body->value.pollRep, 0)))
-                goto err;       /* TODO: this only handles one certificate request so far */
+                goto err;
             checkAfter = ASN1_INTEGER_get(pollRep->checkAfter);
             if (checkAfter < 0) {
-                CMPerr(CMP_F_POLLFORRESPONSE, CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP);
+                CMPerr(CMP_F_POLLFORRESPONSE,
+                       CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP);
                 goto err;
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
             CMP_printf(ctx,
-                       "INFO: Received polling response, waiting checkAfter = %ld sec before next polling request.",
-                       checkAfter);
+                       "INFO: Received polling response, waiting checkAfter = "
+                       " %ld sec before next polling request.", checkAfter);
 
             if (ctx->maxPollTime != 0) { /* timout is set in context */
                 if (maxTimeLeft == 0)
@@ -324,7 +337,8 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
                 if (maxTimeLeft > checkAfter) {
                     maxTimeLeft -= checkAfter;
                 } else {
-                    checkAfter = maxTimeLeft; /* poll a last time just when the set timeout will be reached */
+                    checkAfter = maxTimeLeft;
+                    /* poll one last time just when timeout was reached */
                     maxTimeLeft = 0;
                 }
             }
@@ -336,7 +350,7 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
             sleep((unsigned int)checkAfter);
         } else {
             CMP_printf(ctx, "INFO: Got final response after polling.");
-            break;              /* final success */
+            break;
         }
     }
     if (!prep)
@@ -352,13 +366,13 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
     return 0;
 }
 
-/* ############################################################################ *
+/* ########################################################################## *
  * internal function
  *
  * send certConf for IR, CR or KUR sequences and check response
  * returns 1 on success, 0 on error
- * ############################################################################ */
-static int exchange_certConf(CMP_CTX *ctx, int failure, const char *text)
+ * ########################################################################## */
+static int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
 {
     CMP_PKIMESSAGE *certConf = NULL;
     CMP_PKIMESSAGE *PKIconf = NULL;
@@ -366,11 +380,13 @@ static int exchange_certConf(CMP_CTX *ctx, int failure, const char *text)
 
     /* check if all necessary options are set is done in CMP_certConf_new */
     /* create Certificate Confirmation - certConf */
-    if (!(certConf = CMP_certConf_new(ctx, failure, text)))
+    if (!(certConf = CMP_certConf_new(ctx, failure, txt)))
         goto err;
 
-    success = send_receive_check(ctx, certConf, "certConf", CMP_F_EXCHANGE_CERTCONF,
-                                 &PKIconf, V_CMP_PKIBODY_PKICONF, CMP_R_PKICONF_NOT_RECEIVED);
+    success = send_receive_check(ctx, certConf, "certConf",
+                                 CMP_F_EXCHANGE_CERTCONF, &PKIconf,
+                                 V_CMP_PKIBODY_PKICONF,
+                                 CMP_R_PKICONF_NOT_RECEIVED);
 
  err:
     CMP_PKIMESSAGE_free(certConf);
@@ -378,13 +394,13 @@ static int exchange_certConf(CMP_CTX *ctx, int failure, const char *text)
     return success;
 }
 
-/* ############################################################################ *
+/* ########################################################################### *
  * internal function
  *
  * send given error and check response
  * returns 1 on success, 0 on error
- * ############################################################################ */
-static int exchange_error(CMP_CTX *ctx, int status, int failure, const char *text)
+ * ########################################################################## */
+static int exchange_error(CMP_CTX *ctx, int status, int failure, const char *txt)
 {
     CMP_PKIMESSAGE *error = NULL;
     CMP_PKISTATUSINFO *si = NULL;
@@ -393,7 +409,7 @@ static int exchange_error(CMP_CTX *ctx, int status, int failure, const char *tex
 
     /* check if all necessary options are set is done in CMP_error_new */
     /* create Error Message - error */
-    if (!(si = CMP_statusInfo_new(status, failure, text)))
+    if (!(si = CMP_statusInfo_new(status, failure, txt)))
         goto err;
     if (!(error = CMP_error_new(ctx, si, -1, NULL))) {
         CMP_PKISTATUSINFO_free(si);
@@ -401,7 +417,8 @@ static int exchange_error(CMP_CTX *ctx, int status, int failure, const char *tex
     }
 
     success = send_receive_check(ctx, error, "error", CMP_F_EXCHANGE_ERROR,
-                                 &PKIconf, V_CMP_PKIBODY_PKICONF, CMP_R_PKICONF_NOT_RECEIVED);
+                                 &PKIconf, V_CMP_PKIBODY_PKICONF,
+                                 CMP_R_PKICONF_NOT_RECEIVED);
 
  err:
     CMP_PKIMESSAGE_free(error); /* also frees si if included */
@@ -409,11 +426,11 @@ static int exchange_error(CMP_CTX *ctx, int status, int failure, const char *tex
     return success;
 }
 
-/* ############################################################################ *
+/* ########################################################################## *
  * internal function
  *
- * saves error information from PKIStatusInfo field of a certresponse into the ctx
- * ############################################################################ */
+ * saves error information from PKIStatusInfo field of a certresponse into ctx
+ * ########################################################################## */
 static int save_certresponse_statusInfo(CMP_CTX *ctx, CMP_CERTRESPONSE *resp)
 {
     int i;
@@ -421,8 +438,10 @@ static int save_certresponse_statusInfo(CMP_CTX *ctx, CMP_CERTRESPONSE *resp)
 
     if (!resp)
         return 0;
-    (void)CMP_CTX_set_failInfoCode(ctx, CMP_CERTRESPONSE_PKIFailureInfo_get0(resp));
-    if ((ctx->lastPKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(resp->status) < 0)) /* TODO: create CTX function */
+    (void)CMP_CTX_set_failInfoCode(ctx,
+                                    CMP_CERTRESPONSE_PKIFailureInfo_get0(resp));
+    /* TODO: create CTX function */
+    if ((ctx->lastPKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(resp->status) < 0))
         return 0;
 
     if (!ctx->lastStatusString &&
@@ -439,26 +458,26 @@ static int save_certresponse_statusInfo(CMP_CTX *ctx, CMP_CERTRESPONSE *resp)
     return 1;
 }
 
-/* ############################################################################ *
+/* ########################################################################## *
  * internal function
  *
  * performs the generic handling of certificate responses for IR/CR/KUR/P10CR
  * returns 1 on success, 0 on error
  * Regardless of success, caller is responsible for freeing *resp (unless NULL).
- * ############################################################################ */
-static int cert_response(CMP_CTX *ctx,
-                         CMP_PKIMESSAGE **resp,
+ * ########################################################################## */
+static int cert_response(CMP_CTX *ctx, CMP_PKIMESSAGE **resp,
                          int type_function, int not_received)
 {
     int failure = -1; /* no failure */
-    const char *text = NULL;
+    const char *txt = NULL;
     CMP_CERTREPMESSAGE *body;
     CMP_CERTRESPONSE *crep;
 
  retry:
     body = (*resp)->body->value.ip; /* same for cp and kup */
 
-    /* TODO handle multiple CertResponses in CertRepMsg (in case multiple requests have been sent) */
+    /* TODO handle multiple CertResponses in CertRepMsg (in case multiple
+     * requests have been sent) --> Feature Request #13 */
     crep = CMP_CERTREPMESSAGE_certResponse_get0(body, 0);
     if (!crep)
         return 0;
@@ -469,7 +488,8 @@ static int cert_response(CMP_CTX *ctx,
             goto retry;
         } else {
             CMPerr(type_function, not_received);
-            ERR_add_error_data(1, "received 'waiting' pkistatus but polling failed");
+            ERR_add_error_data(1, "received 'waiting' pkistatus but polling "
+                                  "failed");
             *resp = NULL;
             return 0;
         }
@@ -487,44 +507,46 @@ static int cert_response(CMP_CTX *ctx,
     if (body->caPubs)
         CMP_CTX_set1_caPubs(ctx, body->caPubs);
 
-    /* copy any received extraCerts to ctx->extraCertsIn so they can be retrieved */
+    /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
     if ((*resp)->extraCerts)
         CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts);
 
-    if (!(X509_check_private_key(ctx->newClCert, ctx->newPkey ? ctx->newPkey : ctx->pkey))) {
-        /* TODO: not entirely clear if in this case an error message or a negative certConfirm should be sent */
+    if (!(X509_check_private_key(ctx->newClCert,
+                                 ctx->newPkey ? ctx->newPkey : ctx->pkey))) {
         failure = CMP_PKIFAILUREINFO_incorrectData;
-        text = "public key in new certificate does not match our private key";
-        (void)exchange_error(ctx, CMP_PKISTATUS_rejection, failure, text);
-        /* cannot flag the error earlier because send_receive_check() indirectly calls ERR_clear_error() */
+        txt = "public key in new certificate does not match our private key";
+        (void)exchange_error(ctx, CMP_PKISTATUS_rejection, failure, txt);
+        /* cannot flag error earlier send_receive_check() indirectly calls
+         * ERR_clear_error() */
         CMPerr(type_function, CMP_R_CERTIFICATE_NOT_ACCEPTED);
-        ERR_add_error_data(1, text);
+        ERR_add_error_data(1, txt);
         return 0;
     }
-    /* TODO: possibly compare also subject and other fields of the newly enrolled cert with requested cert template */
-    /* if present, execute the callback function set in ctx which can be used to
-     * examine whether a received certificate should be accepted */
-    if (ctx->certConf_cb &&
-             (failure = ctx->certConf_cb(ctx, ctx->lastPKIStatus, ctx->newClCert)) >= 0) {
-        text = "CMP client application did not accept newly enrolled certificate";
+    /* TODO: possibly compare also subject and other fields of the newly
+     * enrolled cert with requested cert template if present, execute the
+     * callback function set in ctx which can be used to examine whether a
+     * received certificate should be accepted */
+    if (ctx->certConf_cb && (failure = ctx->certConf_cb(ctx,
+                                    ctx->lastPKIStatus, ctx->newClCert)) >= 0) {
+        txt = "CMP client application did not accept enrolled certificate";
     }
 
-    /* check if implicit confirm is set in generalInfo and send certConf if not */
-    /* TODO: send negative certConf also in case implicit confirmation has been granted? */
     if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(*resp))
-        if (!exchange_certConf(ctx, failure, text))
+        if (!exchange_certConf(ctx, failure, txt))
             return 0;
 
     if (failure >= 0) {
-        /* cannot flag the error earlier because send_receive_check() indirectly calls ERR_clear_error() */
+        /* cannot flag error earlier as send_receive_check() indirectly calls
+         * ERR_clear_error() */
         CMPerr(type_function, CMP_R_CERTIFICATE_NOT_ACCEPTED);
-        ERR_add_error_data(1, "certConf callback resulted in rejection of new certificate");
+        ERR_add_error_data(1, "certConf callback resulted in rejection of new "
+                              "certificate");
         return 0;
     }
     return 1;
 }
 
-/* ############################################################################ *
+/* ########################################################################## *
  * internal function
  *
  * Do the full sequence CR/IR/KUR/P10CR, CP/IP/KUP/CP,
@@ -535,7 +557,7 @@ static int cert_response(CMP_CTX *ctx,
  * TODO: another function to request two certificates at once should be created
  *
  * returns pointer to received certificate, or NULL if none was received
- * ############################################################################ */
+ * ########################################################################## */
 static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
                 int req_type, int req_err, int rep_type, int rep_err)
 {
@@ -564,7 +586,7 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
     return result;
 }
 
-/* ############################################################################ *
+/* ########################################################################## *
  * do the full sequence for RR, including RR, RP and potential polling
  *
  * All options need to be set in the context.
@@ -584,8 +606,8 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
  *          rejection              (3) (this is not an error!)
  *          revocationWarning      (5)
  *          revocationNotification (6)
- * ############################################################################ */
-int CMP_doRevocationRequestSeq(CMP_CTX *ctx)
+ * ########################################################################## */
+int CMP_exec_RR_ses(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *rr = NULL;
     CMP_PKIMESSAGE *rp = NULL;
@@ -597,8 +619,8 @@ int CMP_doRevocationRequestSeq(CMP_CTX *ctx)
     if (!(rr = CMP_rr_new(ctx)))
         goto err;
 
-    if (!send_receive_check(ctx, rr, "rr", CMP_F_CMP_DOREVOCATIONREQUESTSEQ,
-                                &rp, V_CMP_PKIBODY_RP, CMP_R_RP_NOT_RECEIVED))
+    if (!send_receive_check(ctx, rr, "rr", CMP_F_CMP_EXEC_RR_SES,
+                            &rp, V_CMP_PKIBODY_RP, CMP_R_RP_NOT_RECEIVED))
         goto err;
 
     /* evaluate PKIStatus field */
@@ -608,27 +630,28 @@ int CMP_doRevocationRequestSeq(CMP_CTX *ctx)
         CMP_printf(ctx, "INFO: revocation accepted (PKIStatus=accepted)");
         break;
     case CMP_PKISTATUS_grantedWithMods:
-        CMP_printf(ctx,
-                   "INFO: revocation accepted (PKIStatus=grantedWithMods)");
+        CMP_printf(ctx, "INFO: revocation accepted "
+                        "(PKIStatus=grantedWithMods)");
         break;
     case CMP_PKISTATUS_rejection:
         CMP_printf(ctx, "INFO: revocation rejected (PKIStatus=rejection)");
-        puts("warning: certificate has already been revoked"); /* TODO: add proper warning function */
+        /* TODO: add proper warning function */
+        puts("warning: certificate has already been revoked");
         break;
     case CMP_PKISTATUS_revocationWarning:
-        CMP_printf(ctx,
-                   "INFO: revocation accepted (PKIStatus=revocationWarning)");
+        CMP_printf(ctx, "INFO: revocation accepted "
+                        "(PKIStatus=revocationWarning)");
         break;
     case CMP_PKISTATUS_revocationNotification:
-        CMP_printf(ctx,
-                   "INFO: revocation accepted (PKIStatus=revocationNotification)");
+        CMP_printf(ctx, "INFO: revocation accepted "
+                        "(PKIStatus=revocationNotification)");
         break;
     case CMP_PKISTATUS_waiting:
     case CMP_PKISTATUS_keyUpdateWarning:
-        CMPerr(CMP_F_CMP_DOREVOCATIONREQUESTSEQ, CMP_R_UNEXPECTED_PKISTATUS);
+        CMPerr(CMP_F_CMP_EXEC_RR_SES, CMP_R_UNEXPECTED_PKISTATUS);
         goto err;
     default:
-        CMPerr(CMP_F_CMP_DOREVOCATIONREQUESTSEQ, CMP_R_UNKNOWN_PKISTATUS);
+        CMPerr(CMP_F_CMP_EXEC_RR_SES, CMP_R_UNKNOWN_PKISTATUS);
         goto err;
     }
 
@@ -645,42 +668,42 @@ int CMP_doRevocationRequestSeq(CMP_CTX *ctx)
     return result;
 }
 
-X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx)
+X509 *CMP_exec_IR_ses(CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "ir", CMP_F_CMP_DOINITIALREQUESTSEQ,
+    return do_certreq_seq(ctx, "ir", CMP_F_CMP_EXEC_IR_SES,
                           V_CMP_PKIBODY_IR, CMP_R_ERROR_CREATING_IR,
                           V_CMP_PKIBODY_IP, CMP_R_IP_NOT_RECEIVED);
 }
 
-X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx)
+X509 *CMP_exec_CR_ses(CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "cr", CMP_F_CMP_DOCERTIFICATEREQUESTSEQ,
+    return do_certreq_seq(ctx, "cr", CMP_F_CMP_EXEC_CR_SES,
                           V_CMP_PKIBODY_CR, CMP_R_ERROR_CREATING_CR,
                           V_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED);
 }
 
-X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx)
+X509 *CMP_exec_KUR_ses(CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "kur", CMP_F_CMP_DOKEYUPDATEREQUESTSEQ,
+    return do_certreq_seq(ctx, "kur", CMP_F_CMP_EXEC_KUR_SES,
                           V_CMP_PKIBODY_KUR, CMP_R_ERROR_CREATING_KUR,
                           V_CMP_PKIBODY_KUP, CMP_R_KUP_NOT_RECEIVED);
 }
 
-X509 *CMP_doPKCS10CertificationRequestSeq(CMP_CTX *ctx)
+X509 *CMP_exec_P10CR_ses(CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "p10cr", CMP_F_CMP_DOPKCS10CERTIFICATIONREQUESTSEQ,
+    return do_certreq_seq(ctx, "p10cr", CMP_F_CMP_EXEC_P10CR_SES,
                           V_CMP_PKIBODY_P10CR, CMP_R_ERROR_CREATING_P10CR,
                           V_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED);
 }
 
-/* ############################################################################ *
+/* ########################################################################## *
  * Sends a general message to the server to request information specified in the
  * InfoType and Value (itav) given in the ctx->genm_itavs, see section 5.3.19
  * and E.5.
  *
  * returns pointer to stack of ITAVs received in the answer or NULL on error
- * ############################################################################ */
-STACK_OF (CMP_INFOTYPEANDVALUE) *CMP_doGeneralMessageSeq(CMP_CTX *ctx)
+ * ########################################################################## */
+STACK_OF (CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *genm = NULL;
     CMP_PKIMESSAGE *genp = NULL;
@@ -689,8 +712,8 @@ STACK_OF (CMP_INFOTYPEANDVALUE) *CMP_doGeneralMessageSeq(CMP_CTX *ctx)
     if (!(genm = CMP_genm_new(ctx)))
         goto err;
 
-    if (!send_receive_check(ctx, genm, "genm", CMP_F_CMP_DOGENERALMESSAGESEQ,
-                             &genp, V_CMP_PKIBODY_GENP, CMP_R_GENP_NOT_RECEIVED))
+    if (!send_receive_check(ctx, genm, "genm", CMP_F_CMP_EXEC_GENM_SES, &genp,
+                            V_CMP_PKIBODY_GENP, CMP_R_GENP_NOT_RECEIVED))
          goto err;
 
     /* received stack of itavs not to be freed with the genp */

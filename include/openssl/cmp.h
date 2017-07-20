@@ -14,7 +14,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer. 
+ *        notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in
@@ -60,7 +60,7 @@
  */
 /* ====================================================================
  * Copyright 2007-2014 Nokia Oy. ALL RIGHTS RESERVED.
- * CMP support in OpenSSL originally developed by 
+ * CMP support in OpenSSL originally developed by
  * Nokia for contribution to the OpenSSL project.
  */
 
@@ -264,7 +264,7 @@ DECLARE_ASN1_FUNCTIONS(CMP_INFOTYPEANDVALUE)
 DEFINE_STACK_OF(CMP_PKISTATUSINFO)
 DEFINE_STACK_OF(CMP_CERTREPMESSAGE)
 DEFINE_STACK_OF(CMP_CERTRESPONSE)
-    
+
 
 /* ########################################################################## *
  * context DECLARATIONS
@@ -272,7 +272,8 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
 typedef void (*cmp_logfn_t) (const char *msg);
 typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, int status, const X509 *cert);
 typedef int (*cert_verify_cb_t) (int ok, X509_STORE_CTX *ctx);
-typedef int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **res);
+typedef int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
+                                  CMP_PKIMESSAGE **res);
 typedef STACK_OF (ASN1_UTF8STRING) CMP_PKIFREETEXT;
 
 /* ########################################################################## *
@@ -315,22 +316,24 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage,
 ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
                                          EVP_PKEY *pkey);
 int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
-int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg); 
+int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus,
                                 const X509 *cert);
 int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr,
                                          const CMP_INFOTYPEANDVALUE *itav);
 int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg,
-                                          STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
+                                         STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
 int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
                                    const CMP_INFOTYPEANDVALUE *itav);
 int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg,
-                                          STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
+                                         STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
 int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) **
                               itav_sk_p,
                               const CMP_INFOTYPEANDVALUE *itav);
-CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
-CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text);
+CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type,
+                                   const ASN1_TYPE *value);
+CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure,
+                                      const char *text);
 long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *statusInfo);
 
 X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
@@ -355,12 +358,12 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
                                 CMP_PKIMESSAGE **out);
 
 /* from cmp_ses.c */
-X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx);
-X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx);
-X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx);
-X509 *CMP_doPKCS10CertificationRequestSeq(CMP_CTX *ctx);
-int CMP_doRevocationRequestSeq(CMP_CTX *ctx);
-STACK_OF(CMP_INFOTYPEANDVALUE) * CMP_doGeneralMessageSeq(CMP_CTX *ctx);
+X509 *CMP_exec_IR_ses(CMP_CTX *ctx);
+X509 *CMP_exec_CR_ses(CMP_CTX *ctx);
+X509 *CMP_exec_KUR_ses(CMP_CTX *ctx);
+X509 *CMP_exec_P10CR_ses(CMP_CTX *ctx);
+int CMP_exec_RR_ses(CMP_CTX *ctx);
+STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx);
 
 /* from cmp_asn.c */
 void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
@@ -453,10 +456,16 @@ int CMP_CTX_error_callback(const char *str, size_t len, void *u);
 void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
 
 /* BIO definitions */
-# define d2i_CMP_PKIMESSAGE_bio(bp,p) ASN1_d2i_bio_of(CMP_PKIMESSAGE,CMP_PKIMESSAGE_new,d2i_CMP_PKIMESSAGE,bp,p)
-# define i2d_CMP_PKIMESSAGE_bio(bp,o) ASN1_i2d_bio_of(CMP_PKIMESSAGE,i2d_CMP_PKIMESSAGE,bp,o)
-# define d2i_CMP_PROTECTEDPART_bio(bp,p) ASN1_d2i_bio_of(CMP_PROTECTEDPART,CMP_PROTECTEDPART_new,d2i_CMP_PROTECTEDPART,bp,p)
-# define i2d_CMP_PROTECTEDPART_bio(bp,o) ASN1_i2d_bio_of(CMP_PROTECTEDPART,i2d_CMP_PROTECTEDPART,bp,o)
+# define d2i_CMP_PKIMESSAGE_bio(bp, p) \
+         ASN1_d2i_bio_of(CMP_PKIMESSAGE, CMP_PKIMESSAGE_new,\
+                         d2i_CMP_PKIMESSAGE, bp, p)
+# define i2d_CMP_PKIMESSAGE_bio(bp, o) \
+         ASN1_i2d_bio_of(CMP_PKIMESSAGE, i2d_CMP_PKIMESSAGE, bp, o)
+# define d2i_CMP_PROTECTEDPART_bio(bp, p) \
+         ASN1_d2i_bio_of(CMP_PROTECTEDPART, CMP_PROTECTEDPART_new, \
+                         d2i_CMP_PROTECTEDPART, bp, p)
+# define i2d_CMP_PROTECTEDPART_bio(bp, o) \
+         ASN1_i2d_bio_of(CMP_PROTECTEDPART, i2d_CMP_PROTECTEDPART, bp, o)
 
 /* BEGIN ERROR CODES */
 /*
@@ -469,7 +478,6 @@ int ERR_load_CMP_strings(void);
 /* Error codes for the CMP functions. */
 
 /* Function codes. */
-# define CMP_F_CMP_CERTREQ_NEW                            100
 # define CMP_F_CMP_CALC_PROTECTION_PBMAC                  101
 # define CMP_F_CMP_CALC_PROTECTION_SIG                    102
 # define CMP_F_CMP_CERTCONF_NEW                           103
@@ -480,6 +488,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CERTREPMESSAGE_PKIFAILUREINFO_GET0     178
 # define CMP_F_CMP_CERTREPMESSAGE_PKISTATUSSTRING_GET0    179
 # define CMP_F_CMP_CERTREPMESSAGE_PKISTATUS_GET           180
+# define CMP_F_CMP_CERTREQ_NEW                            100
 # define CMP_F_CMP_CERTRESPONSE_ENCCERT_GET1              105
 # define CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE           106
 # define CMP_F_CMP_CERTRESPONSE_PKIFAILUREINFO_GET0       107
@@ -525,14 +534,20 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET_SERVERPORT                     147
 # define CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1               148
 # define CMP_F_CMP_DOCERTIFICATEREQUESTSEQ                149
-# define CMP_F_CMP_DOPKCS10CERTIFICATIONREQUESTSEQ        156
 # define CMP_F_CMP_DOGENERALMESSAGESEQ                    150
 # define CMP_F_CMP_DOINITIALREQUESTSEQ                    151
 # define CMP_F_CMP_DOKEYUPDATEREQUESTSEQ                  152
+# define CMP_F_CMP_DOPKCS10CERTIFICATIONREQUESTSEQ        156
 # define CMP_F_CMP_DOREVOCATIONREQUESTSEQ                 153
 # define CMP_F_CMP_ERROR_NEW                              154
+# define CMP_F_CMP_EXEC_CR_SES                            111
+# define CMP_F_CMP_EXEC_GENM_SES                          174
+# define CMP_F_CMP_EXEC_IR_SES                            181
+# define CMP_F_CMP_EXEC_KUR_SES                           182
+# define CMP_F_CMP_EXEC_P10CR_SES                         185
+# define CMP_F_CMP_EXEC_P10_CR_SES                        183
+# define CMP_F_CMP_EXEC_RR_SES                            184
 # define CMP_F_CMP_GENM_NEW                               155
-# define CMP_F_POLLFORRESPONSE                            157
 # define CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0       158
 # define CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1     159
 # define CMP_F_CMP_PKIMESSAGE_GENM_ITEMS_PUSH1            160
@@ -549,6 +564,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_VERIFY_SIGNATURE                       171
 # define CMP_F_EXCHANGE_CERTCONF                          172
 # define CMP_F_EXCHANGE_ERROR                             173
+# define CMP_F_POLLFORRESPONSE                            157
 
 /* Reason codes. */
 # define CMP_R_ALGORITHM_NOT_SUPPORTED                    100
@@ -557,6 +573,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_CERTIFICATE_NOT_FOUND                      103
 # define CMP_R_CERTRESPONSE_NOT_FOUND                     104
 # define CMP_R_CERT_AND_KEY_DO_NOT_MATCH                  105
+# define CMP_R_CONNECT_TIMEOUT                            177
 # define CMP_R_CP_NOT_RECEIVED                            106
 # define CMP_R_ENCOUNTERED_KEYUPDATEWARNING               107
 # define CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONNOTIFICATION 108
@@ -566,17 +583,16 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_CALCULATING_PROTECTION               112
 # define CMP_R_ERROR_CREATING_CERTCONF                    113
 # define CMP_R_ERROR_CREATING_CR                          114
-# define CMP_R_ERROR_CREATING_P10CR                       179
 # define CMP_R_ERROR_CREATING_ERROR                       115
 # define CMP_R_ERROR_CREATING_GENM                        116
 # define CMP_R_ERROR_CREATING_IR                          117
 # define CMP_R_ERROR_CREATING_KUR                         118
+# define CMP_R_ERROR_CREATING_P10CR                       179
 # define CMP_R_ERROR_CREATING_POLLREQ                     119
 # define CMP_R_ERROR_CREATING_REQUEST_MESSAGE             120
 # define CMP_R_ERROR_CREATING_RR                          121
-# define CMP_R_ERROR_SENDING_REQUEST                      174
-# define CMP_R_ERROR_DECODING_MESSAGE                     175
 # define CMP_R_ERROR_DECODING_CERTIFICATE                 122
+# define CMP_R_ERROR_DECODING_MESSAGE                     175
 # define CMP_R_ERROR_DECRYPTING_CERTIFICATE               123
 # define CMP_R_ERROR_DECRYPTING_ENCCERT                   124
 # define CMP_R_ERROR_DECRYPTING_KEY                       125
@@ -589,6 +605,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS            131
 # define CMP_R_ERROR_PUSHING_GENM_ITEMS                   132
 # define CMP_R_ERROR_REQID_NOT_FOUND                      170
+# define CMP_R_ERROR_SENDING_REQUEST                      174
 # define CMP_R_ERROR_SETTING_CERTHASH                     133
 # define CMP_R_ERROR_STATUS_NOT_FOUND                     134
 # define CMP_R_ERROR_TRANSACTIONID_UNMATCHED              135
@@ -614,14 +631,14 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_PKIBODY_ERROR                              152
 # define CMP_R_PKICONF_NOT_RECEIVED                       153
 # define CMP_R_POLLREP_NOT_RECEIVED                       154
+# define CMP_R_READ_TIMEOUT                               178
 # define CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP    155
 # define CMP_R_REQUEST_REJECTED_BY_CA                     156
 # define CMP_R_RP_NOT_RECEIVED                            157
 # define CMP_R_SERVER_NOT_REACHABLE                       158
-# define CMP_R_CONNECT_TIMEOUT                            177
-# define CMP_R_READ_TIMEOUT                               178
 # define CMP_R_TLS_SETUP_FAILURE                          176
 # define CMP_R_UNABLE_TO_CREATE_CONTEXT                   159
+# define CMP_R_UNEXPECTED_PKIBODY                         180
 # define CMP_R_UNEXPECTED_PKISTATUS                       160
 # define CMP_R_UNKNOWN_ALGORITHM_ID                       161
 # define CMP_R_UNKNOWN_CERTTYPE                           162

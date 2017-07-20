@@ -2,22 +2,22 @@
 
 =head1 NAME
 
- CMP_doInitialRequestSeq,
- CMP_doKeyUpdateRequestSeq,
- CMP_doCertificateRequestSeq,
+ CMP_exec_IR_ses,
+ CMP_exec_KUR_ses,
+ CMP_exec_CR_ses,
  CMP_doPKCS10CertificationRequestSeq,
- CMP_doGeneralMessageSeq,
+ CMP_exec_GENM_ses,
  CMP_doRevocationRequestSeq
 
 =head1 SYNOPSIS
 
  #include <openssl/cmp.h>
 
- X509 *CMP_doInitialRequestSeq(CMP_CTX *ctx);
- X509 *CMP_doKeyUpdateRequestSeq(CMP_CTX *ctx);
- X509 *CMP_doCertificateRequestSeq(CMP_CTX *ctx);
+ X509 *CMP_exec_IR_ses(CMP_CTX *ctx);
+ X509 *CMP_exec_KUR_ses(CMP_CTX *ctx);
+ X509 *CMP_exec_CR_ses(CMP_CTX *ctx);
  X509 *CMP_doPKCS10CertificationRequestSeq(CMP_CTX *ctx);
- STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_doGeneralMessageSeq(CMP_CTX *ctx;
+ STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx;
  int CMP_doRevocationRequestSeq(CMP_CTX *ctx);
 
 =head1 DESCRIPTION
@@ -25,23 +25,23 @@
 This is the API for doing CMP (Certificate Management Protocol)  client-server
 message sequences using with OpenSSL. The default conveying protocol is HTTP.
 
-CMP_doInitialRequestSeq() does the transaction which obtains an initial certificate
+CMP_exec_IR_ses() does the transaction which obtains an initial certificate
 from the CA. A populated CMP_CTX structure has to be given as argument.
 
-CMP_doKeyUpdateRequestSeq() does the transaction which obtains an updated certificate
+CMP_exec_KUR_ses() does the transaction which obtains an updated certificate
 from the CA. A populated CMP_CTX structure has to be given as argument.
 
-CMP_doCertificateRequestSeq() requests an additional certificate
+CMP_exec_CR_ses() requests an additional certificate
 from the CA. A populated CMP_CTX structure has to be given as argument.
 
-CMP_doPKCS10CertificationRequestSeq(CMP_CTX *ctx) requests in PKCS#10 CSR form
+CMP_exec_P10CR_ses(CMP_CTX *ctx) requests in PKCS#10 CSR form
 a certificate from the CA. A populated CMP_CTX structure has to be given as argument.
 
-CMP_doGeneralMessageSeq() sends a general message with any ITAVs specified in the
+CMP_exec_GENM_ses() sends a general message with any ITAVs specified in the
 B<ctx>->genm_itavs, and returns the list of B<ITAV>s received in the GenRep.
 This can be used, for instance, to poll for the CRL or CA Key Updates.
 
-CMP_doRevocationRequestSeq() requests the revocation of the used certificate via
+CMP_exec_RR_ses() requests the revocation of the used certificate via
 an revocation request sent to the server.
 
 =head1 NOTES
@@ -50,8 +50,8 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-CMP_doInitialRequestSeq(), CMP_doCertificateRequestSeq(),
-CMP_doPKCS10CertificationRequestSeq(), and CMP_doKeyUpdateRequestSeq()
+CMP_exec_IR_ses(), CMP_exec_CR_ses(),
+CMP_doPKCS10CertificationRequestSeq(), and CMP_exec_KUR_ses()
 return a pointer the newly obtained X509 certificate on success, NULL on error.
 
 =head1 EXAMPLE
