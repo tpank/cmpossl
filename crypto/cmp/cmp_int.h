@@ -394,47 +394,6 @@ struct cmp_certrepmessage_st {
 } /* CMP_CERTREPMESSAGE */;
 DECLARE_ASN1_FUNCTIONS(CMP_CERTREPMESSAGE)
 
-/* the following is from RFC 2986 - PKCS #10
-
-Attribute { ATTRIBUTE:IOSet } ::= SEQUENCE {
-    type    ATTRIBUTE.&id({IOSet}),
-    values  SET SIZE(1..MAX) OF ATTRIBUTE.&Type({IOSet}{@type})
-}
-
-CertificationRequestInfo ::= SEQUENCE {
-    version           INTEGER { v1(0) } (v1,...),
-    subject           Name,
-    subjectPKInfo SubjectPublicKeyInfo{{ PKInfoAlgorithms }},
-    attributes        [0] Attributes{{ CRIAttributes }}
-}
-
-CertificationRequest ::= SEQUENCE {
-    certificationRequestInfo CertificationRequestInfo,
-    signatureAlgorithm               AlgorithmIdentifier{{ SignatureAlgorithms }},
-    signature                                BIT STRING
-}
-*/
-typedef struct pkcs10_attribute_st {
-    ASN1_OBJECT *id;
-    STACK_OF (ASN1_TYPE) * values;
-} PKCS10_ATTRIBUTE;
-DECLARE_ASN1_FUNCTIONS(PKCS10_ATTRIBUTE)
-
-typedef struct pkcs10_certificationrequestinfo_st {
-    ASN1_INTEGER *version;
-    X509_NAME *subject;
-    X509_PUBKEY *subjectPKInfo;
-    STACK_OF (PKCS10_ATTRIBUTE) * attributes;
-} PKCS10_CERTIFICATIONREQUESTINFO;
-DECLARE_ASN1_FUNCTIONS(PKCS10_CERTIFICATIONREQUESTINFO)
-
-typedef struct pkcs10_certificationrequest_st {
-    PKCS10_CERTIFICATIONREQUESTINFO *certificationRequestInfo;
-    X509_ALGOR *signatureAlgorithm;
-    ASN1_BIT_STRING *signature;
-} PKCS10_CERTIFICATIONREQUEST;
-DECLARE_ASN1_FUNCTIONS(PKCS10_CERTIFICATIONREQUEST)
-
 /*
      PollReqContent ::= SEQUENCE OF SEQUENCE {
              certReqId                              INTEGER
