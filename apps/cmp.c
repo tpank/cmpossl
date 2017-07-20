@@ -348,8 +348,8 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nRecipient options:"},
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given."},
-                 {OPT_MORE_STR, 0, 0, "If both are not set, the recipient defaults to the -issuer argument."},
-                 {OPT_MORE_STR, 0, 0, "For rr, the recipient defaults to the issuer of the certificate to be revoked"},
+                 {OPT_MORE_STR, 0, 0, "If both are not set, the recipient defaults to the -issuer argument if"},
+                 {OPT_MORE_STR, 0, 0, "present, otherwise to the issuer of the certificate given as -oldcert."},
     {"srvcert", OPT_SRVCERT, 's', "Certificate of CMP server to be used as recipient, for verifying replies,"},
              {OPT_MORE_STR, 0, 0, "and for verifying the newly enrolled cert (and to warn if this fails)"},
     {"trusted", OPT_TRUSTED, 's', "Trusted certificates used for CMP server authentication and verifying replies,"},
@@ -1393,11 +1393,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
 
-    if (!opt_unprotectedRequests && !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
-        BIO_puts(bio_err,
-                 "error: missing ref/secret or certificate/key for client authentication\n");
-        goto err;
-    }
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
         if (!opt_newkey && !opt_key) {
             BIO_puts(bio_err, "error: missing key to be certified\n");
@@ -1419,6 +1414,17 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
     if (opt_cmd == CMP_P10CR && !opt_csr) {
         BIO_puts(bio_err, "error: missing PKCS#10 CSR for p10cr\n");
+        goto err;
+    }
+
+    if (!opt_unprotectedRequests && !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
+        BIO_puts(bio_err,
+                 "error: missing -ref/-secret or -cert/-key for client authentication\n");
+        goto err;
+    }
+    if (!opt_recipient && !opt_srvcert && !opt_issuer && !opt_oldcert) {
+        BIO_puts(bio_err,
+                 "error: missing -recipient, -srvcert, -issuer, or -oldcert\n");
         goto err;
     }
 

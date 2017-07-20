@@ -152,10 +152,11 @@ certificates on 'waiting' PKIStatus. Default is 0 (infinite).
 Distinguished Name of the CMP message recipient, i.e. the CMP server (usually a CA or RA entity).
 Setting the recipient field in the CMP header is mandatory.
 
-If the CMP server certificate is given with the -srvcert option, recipient name is taken from there
-and the -recipient option is ignored.  If the -recipient option is not given, the recipient name defaults
-to the name given in the -issuer option.  For Revocation Request (RR), it defaults to the subject name
-of the issuer of the certificate to be revoked.
+If the CMP server certificate is given with the -srvcert option,
+recipient name is taken from there and the -recipient option is ignored.
+If the -recipient option is not given, the recipient name defaults to the
+name given in the -issuer option.  As last resort the subject name of the
+issuer of the certificate given with the -oldcert option, if any, is used.
 
 Therefore, if neither -srvcert nor -issuer options are given, nor RR is done,
 this recipient name option is mandatory.
