@@ -242,7 +242,6 @@ typedef ASN1_BIT_STRING CMP_PKIFAILUREINFO;
 
 typedef ASN1_INTEGER CMP_PKISTATUS;
 
-# define CMP_CERTORENCCERT_ERROR        -1
 # define CMP_CERTORENCCERT_CERTIFICATE   0
 # define CMP_CERTORENCCERT_ENCRYPTEDCERT 1
 
@@ -288,7 +287,8 @@ CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
 CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
 
 /* cmp_lib.c */
-long CMP_REVREPCONTENT_PKIStatus_get(CMP_REVREPCONTENT *rrep, long rsid);
+CMP_PKISTATUSINFO *CMP_REVREPCONTENT_status_get(CMP_REVREPCONTENT *rrep,
+                                                long reqId);
 int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
 int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
@@ -481,6 +481,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CALC_PROTECTION_PBMAC                  101
 # define CMP_F_CMP_CALC_PROTECTION_SIG                    102
 # define CMP_F_CMP_CERTCONF_NEW                           103
+# define CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1             105
 # define CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0       104
 # define CMP_F_CMP_CERTREPMESSAGE_ENCCERT_GET1            175
 # define CMP_F_CMP_CERTREPMESSAGE_GET_CERTIFICATE         176
@@ -489,7 +490,6 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CERTREPMESSAGE_PKISTATUSSTRING_GET0    179
 # define CMP_F_CMP_CERTREPMESSAGE_PKISTATUS_GET           180
 # define CMP_F_CMP_CERTREQ_NEW                            100
-# define CMP_F_CMP_CERTRESPONSE_ENCCERT_GET1              105
 # define CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE           106
 # define CMP_F_CMP_CERTRESPONSE_PKIFAILUREINFO_GET0       107
 # define CMP_F_CMP_CERTRESPONSE_PKISTATUSSTRING_GET0      108
@@ -558,13 +558,14 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET            164
 # define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING     165
 # define CMP_F_CMP_POLLREQ_NEW                            166
-# define CMP_F_CMP_REVREPCONTENT_PKISTATUS_GET            167
+# define CMP_F_CMP_REVREPCONTENT_STATUS_GET               167
 # define CMP_F_CMP_RR_NEW                                 168
 # define CMP_F_CMP_VALIDATE_CERT_PATH                     169
 # define CMP_F_CMP_VALIDATE_MSG                           170
 # define CMP_F_CMP_VERIFY_SIGNATURE                       171
 # define CMP_F_EXCHANGE_CERTCONF                          172
 # define CMP_F_EXCHANGE_ERROR                             173
+# define CMP_F_GET_CERT_STATUS                            174
 # define CMP_F_POLLFORRESPONSE                            157
 
 /* Reason codes. */
@@ -577,8 +578,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_CONNECT_TIMEOUT                            177
 # define CMP_R_CP_NOT_RECEIVED                            106
 # define CMP_R_ENCOUNTERED_KEYUPDATEWARNING               107
-# define CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONNOTIFICATION 108
-# define CMP_R_ENCOUNTERED_UNEXPECTED_REVOCATIONWARNING   109
+# define CMP_R_ENCOUNTERED_REVOCATIONNOTIFICATION         108
+# define CMP_R_ENCOUNTERED_REVOCATIONWARNING              109
 # define CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS          110
 # define CMP_R_ENCOUNTERED_WAITING                        111
 # define CMP_R_ERROR_CALCULATING_PROTECTION               112
@@ -611,10 +612,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_STATUS_NOT_FOUND                     134
 # define CMP_R_ERROR_TRANSACTIONID_UNMATCHED              135
 # define CMP_R_ERROR_VALIDATING_PROTECTION                136
-# define CMP_R_FAILED_TO_DECODE_PKIMESSAGE                171
 # define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               137
 # define CMP_R_FAILED_TO_SEND_REQUEST                     138
-# define CMP_R_FAIL_EXTRACT_CERT_FROM_CERTREP_WITH_ACCEPT_STATUS 139
 # define CMP_R_GENP_NOT_RECEIVED                          140
 # define CMP_R_INVALID_ARGS                               141
 # define CMP_R_INVALID_CONTENT_TYPE                       172
@@ -632,12 +631,12 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_PKIBODY_ERROR                              152
 # define CMP_R_PKICONF_NOT_RECEIVED                       153
 # define CMP_R_POLLREP_NOT_RECEIVED                       154
-# define CMP_R_READ_TIMEOUT                               178
+# define CMP_R_READ_TIMEOUT                               139
 # define CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP    155
 # define CMP_R_REQUEST_REJECTED_BY_CA                     156
 # define CMP_R_RP_NOT_RECEIVED                            157
 # define CMP_R_SERVER_NOT_REACHABLE                       158
-# define CMP_R_TLS_SETUP_FAILURE                          176
+# define CMP_R_TLS_SETUP_FAILURE                          171
 # define CMP_R_UNABLE_TO_CREATE_CONTEXT                   159
 # define CMP_R_UNEXPECTED_PKIBODY                         180
 # define CMP_R_UNEXPECTED_PKISTATUS                       160

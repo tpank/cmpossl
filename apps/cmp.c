@@ -2383,7 +2383,7 @@ opt_err:
             goto err;
         break;
     case CMP_RR:
-        if (CMP_exec_RR_ses(cmp_ctx) == 0)
+        if (!CMP_exec_RR_ses(cmp_ctx))
             goto err;
         break;
     case CMP_GENM:

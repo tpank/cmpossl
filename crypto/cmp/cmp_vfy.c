@@ -500,10 +500,11 @@ int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
                             /* TODO handle multiple CertResponses in CertRepMsg (in case multiple requests have been sent) */
                             CMP_CERTRESPONSE *crep = CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip, 0);
                             X509 *newClCert = CMP_CERTRESPONSE_get_certificate(ctx, crep);
-                            ERR_clear_error();
-                            if (newClCert)
+                            if (newClCert) {
                                 srvCert_valid =
                                     CMP_validate_cert_path(ctx, tempStore, ctx->untrusted_store, newClCert);
+                                X509_free(newClCert);
+                            }
                         }
 
                         X509_STORE_free(tempStore);

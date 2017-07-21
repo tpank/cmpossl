@@ -41,8 +41,7 @@ CMP_exec_GENM_ses() sends a general message with any ITAVs specified in the
 B<ctx>->genm_itavs, and returns the list of B<ITAV>s received in the GenRep.
 This can be used, for instance, to poll for the CRL or CA Key Updates.
 
-CMP_exec_RR_ses() requests the revocation of the used certificate via
-an revocation request sent to the server.
+CMP_exec_RR_ses() requests the revocation of a certificate at the CA.
 
 =head1 NOTES
 
