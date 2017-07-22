@@ -29,60 +29,74 @@ void add_error_data(const char *txt);
  * ########################################################################## */
 
 /* this structure is used to store the context for CMP sessions
- * partly using OpenSSL ASN.1 types in order to ease handling it */
+ * partly using OpenSSL ASN.1 types in order to ease handling it - such
+   ASN.1 entries must be given first, in same order as ASN1_SEQUENCE(CMP_CTX) */
 struct cmp_ctx_st {
     /* "reference and secret" for MSG_MAC_ALG */
     ASN1_OCTET_STRING *referenceValue;
     ASN1_OCTET_STRING *secretValue;
+    X509 *srvCert; /* certificate used to identify the server */
+    X509 *validatedSrvCert; /* stores the server Cert as soon as its
+                               trust chain has been validated */
+    STACK_OF(X509_CRL) *crls; /* CRLs to be used as primary source
+                                 during CMP certificate verification */
+    X509 *clCert;
+    /* current client certificate used to identify and sign for MSG_SIG_ALG */
+    X509 *oldClCert; /* for KUR: certificate to be updated;
+                        for RR: certificate to be revoked */
+    X509_REQ *p10CSR; /* for P10CR: PKCS#10 CSR to be sent */
+    X509_NAME *issuer;  /* issuer name to used in cert template */
+    X509_NAME *subjectName; /* subject name to be used in the cert template.
+                               NB: could also be taken from clcert */
+    STACK_OF (GENERAL_NAME) *subjectAltNames;  /* names to be added to the
+                            cert template as the subjectAltName extension */
+    CERTIFICATEPOLICIES *policies; /* policies to be included in extensions */
+    X509_EXTENSIONS *reqExtensions; /* exts to be added to cert template */
+    ASN1_UTF8STRING *regToken; /* for setting itav for EJBCA in CA mode */
+    STACK_OF (X509) *extraCertsOut; /* to be included in PKI messages */
+    STACK_OF (X509) *extraCertsIn; /* extraCerts received from server */
+    STACK_OF (X509) *caPubs; /* CA certs received from server (in IP message) */
+    CMP_PKIFREETEXT *lastStatusString;
+    X509 *newClCert; /* *new* CLIENT certificate received from the CA
+     * TODO: this should be a stack since there could be more than one */
+    X509_NAME *recipient; /* to set in recipient in pkiheader */
+    ASN1_OCTET_STRING *transactionID; /* the current transaction ID */
+    ASN1_OCTET_STRING *recipNonce; /* last nonce received */
+    STACK_OF(CMP_INFOTYPEANDVALUE) *geninfo_itavs;
+    STACK_OF(CMP_INFOTYPEANDVALUE) *genm_itavs;
+
+    /* non-OpenSSL ASN.1 members starting here */
+    EVP_PKEY *pkey; /* EVP_PKEY holding the *current* key pair
+                     * Note: so far for some reason this is not an ASN.1 type */
+    EVP_PKEY *newPkey; /* EVP_PKEY holding the *new* key pair
+                        * Note: so far for some reason this is not an ASN.1 type */
+
     /* PBMParameters */
     size_t pbm_slen;
     int pbm_owf;
     long pbm_itercnt;
     int pbm_mac;
 
-    ASN1_UTF8STRING *regToken; /* for setting itav for EJBCA in CA mode */
-    X509 *srvCert; /* certificate used to identify the server */
-    X509 *clCert;
-    /* current client certificate used to identify and sign for MSG_SIG_ALG */
-    X509 *oldClCert; /* for KUR: certificate to be updated;
-                        for RR: certificate to be revoked */
-    X509_REQ *p10CSR; /* for P10CR: PKCS#10 CSR to be sent */
-    X509_NAME *subjectName; /* subject name to be used in the cert template.
-                               NB: could also be taken from clcert */
-    X509_NAME *recipient; /* to set in recipient in pkiheader */
-    X509_NAME *issuer;  /* to set in issuer in pkiheader */
     int days; /* Number of days new certificates are asked to be valid for */
     int digest; /* NID of digest used in MSG_SIG_ALG, defaults to SHA256 */
-    X509_EXTENSIONS *reqExtensions; /* to be added to certificate requests */
-    STACK_OF (GENERAL_NAME) *subjectAltNames;  /* names to be added to the
-                            cert template as the subjectAltName extension */
+    int popoMethod;  /* Proof-of-posession mechanism used.
+                        Defaults to signature (POPOsigningKey) */
+    int revocationReason; /* Revocation reason code to be included in RR */
     int setSubjectAltNameCritical;
-    STACK_OF (X509) *caPubs; /* CA certs sent by the CA in a IP message */
-    STACK_OF (X509) * extraCertsOut; /* to be included in PKI messages */
-    STACK_OF (X509) * extraCertsIn; /* extraCerts received from remote */
-    EVP_PKEY *pkey; /* EVP_PKEY holding the *current* key pair
-                     * Note: so far for some reason this is not an ASN.1 type */
-    X509 *newClCert; /* *new* CLIENT certificate received from the CA
-     * TODO: this should be a stack since there could be more than one */
-    EVP_PKEY *newPkey; /* EVP_PKEY holding the *new* key pair
-                     * Note: so far for some reason this is not an ASN.1 type */
-    ASN1_OCTET_STRING *transactionID; /* the current transaction ID */
-    ASN1_OCTET_STRING *recipNonce; /* last nonce received */
+    int permitTAInExtraCertsForIR; /* whether to include root certs from
+                     extracerts when validating? Used for 3GPP-style E.7 */
+
     int implicitConfirm;  /* set implicitConfirm in IR/KUR/CR messages */
     int disableConfirm;  /* disable confirmation messages in IR/KUR/CR
                             message exchanges to cope with broken server */
     int unprotectedRequests; /* send unprotected PKI messages */
     int unprotectedErrors; /* accept unprotected error responses */
-    int popoMethod;  /* Proof-of-posession mechanism used.
-                        Defaults to signature (POPOsigningKey) */
-    int revocationReason; /* Revocation reason code to be included in RR */
     int maxPollTime; /* maximum number of seconds to poll the server
                         for a response if a 'waiting' PKIStatus is received */
     long lastPKIStatus; /* PKIStatus of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
     unsigned long failInfoCode; /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
-    CMP_PKIFREETEXT *lastStatusString;
     cmp_logfn_t error_cb, debug_cb;/* log callback fns for error/debug output */
     cmp_certConfFn_t certConf_cb;  /* callback for letting the user check
        the received certificate and reject if necessary */
@@ -90,13 +104,7 @@ struct cmp_ctx_st {
                                         of CMP server certificate */
     X509_STORE *trusted_store; /* store for trusted (root) certificates */
     X509_STORE *untrusted_store;  /* store for untrusted (intermediate) certs */
-    STACK_OF(X509_CRL) *crls; /* CRLs to be used as primary source
-                                 during CMP certificate verification */
 
-    int permitTAInExtraCertsForIR; /* whether to include root certs from
-                     extracerts when validating? Used for 3GPP-style E.7 */
-    X509 *validatedSrvCert; /* stores the server Cert as soon as its
-                               trust chain has been validated */
     /* HTTP transfer related settings */
     char *serverName;
     int serverPort;
@@ -107,11 +115,6 @@ struct cmp_ctx_st {
                        each CMP message round trip to complete */
     BIO *tlsBIO;
     cmp_transfer_fn_t msg_transfer_fn;
-
-    CERTIFICATEPOLICIES *policies;
-
-    STACK_OF(CMP_INFOTYPEANDVALUE) *geninfo_itavs;
-    STACK_OF(CMP_INFOTYPEANDVALUE) *genm_itavs;
 } /* CMP_CTX */;
 DECLARE_ASN1_FUNCTIONS(CMP_CTX)
 

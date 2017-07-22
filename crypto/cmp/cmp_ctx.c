@@ -98,26 +98,26 @@
 ASN1_SEQUENCE(CMP_CTX) = {
 ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, secretValue, ASN1_OCTET_STRING),
-    ASN1_OPT(CMP_CTX, regToken, ASN1_UTF8STRING),
     ASN1_OPT(CMP_CTX, srvCert, X509),
+    ASN1_OPT(CMP_CTX, validatedSrvCert, X509),
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, crls, X509_CRL),
     ASN1_OPT(CMP_CTX, clCert, X509),
     ASN1_OPT(CMP_CTX, oldClCert, X509),
     ASN1_OPT(CMP_CTX, p10CSR, X509_REQ),
-    ASN1_OPT(CMP_CTX, subjectName, X509_NAME),
-    ASN1_SEQUENCE_OF_OPT(CMP_CTX, reqExtensions, X509_EXTENSION),
-    ASN1_SEQUENCE_OF_OPT(CMP_CTX, subjectAltNames, GENERAL_NAME),
     ASN1_OPT(CMP_CTX, issuer, X509_NAME),
-    ASN1_OPT(CMP_CTX, recipient, X509_NAME),
-    ASN1_SEQUENCE_OF_OPT(CMP_CTX, caPubs, X509),
+    ASN1_OPT(CMP_CTX, subjectName, X509_NAME),
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, subjectAltNames, GENERAL_NAME),
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, policies, POLICYINFO),
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, reqExtensions, X509_EXTENSION),
+    ASN1_OPT(CMP_CTX, regToken, ASN1_UTF8STRING),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, extraCertsOut, X509),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, extraCertsIn, X509),
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, caPubs, X509),
+    ASN1_SEQUENCE_OF_OPT(CMP_CTX, lastStatusString, ASN1_UTF8STRING),
     ASN1_OPT(CMP_CTX, newClCert, X509),
+    ASN1_OPT(CMP_CTX, recipient, X509_NAME),
     ASN1_OPT(CMP_CTX, transactionID, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, recipNonce, ASN1_OCTET_STRING),
-    ASN1_OPT(CMP_CTX, validatedSrvCert, X509),
-    ASN1_SEQUENCE_OF_OPT(CMP_CTX, lastStatusString, ASN1_UTF8STRING),
-    ASN1_SEQUENCE_OF_OPT(CMP_CTX, crls, X509_CRL),
-    ASN1_SEQUENCE_OF_OPT(CMP_CTX, policies, POLICYINFO),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, geninfo_itavs, CMP_INFOTYPEANDVALUE),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, genm_itavs, CMP_INFOTYPEANDVALUE),
 } ASN1_SEQUENCE_END(CMP_CTX)
@@ -237,48 +237,45 @@ int CMP_CTX_init(CMP_CTX *ctx)
     /* all other elements are initialized through ASN1 macros */
     ctx->pkey = NULL;
     ctx->newPkey = NULL;
-    ctx->serverName = NULL;
-    /* serverPath has to be an empty sting if not set since it is not mandatory */
-    /* this will be freed by CMP_CTX_delete() */
-    ctx->serverPath = OPENSSL_zalloc(1);
-    if (!ctx->serverPath)
-        goto err;
-    ctx->serverPort = 0;
-    ctx->proxyName = NULL;
-    ctx->proxyPort = 0;
-    ctx->digest = NID_sha256;
 
     ctx->pbm_slen = 16;
     ctx->pbm_owf = NID_sha256;
     ctx->pbm_itercnt = 500;
     ctx->pbm_mac = NID_hmac_sha1;
 
+    ctx->days = 0;
+    ctx->digest = NID_sha256;
+    ctx->popoMethod = CRMF_POPO_SIGNATURE;
+    ctx->revocationReason = CRL_REASON_NONE;
+    ctx->setSubjectAltNameCritical = 0;
+    ctx->permitTAInExtraCertsForIR = 0;
     ctx->implicitConfirm = 0;
     ctx->disableConfirm = 0;
     ctx->unprotectedRequests = 0;
     ctx->unprotectedErrors = 0;
-    ctx->popoMethod = CRMF_POPO_SIGNATURE;
-    ctx->revocationReason = CRL_REASON_NONE;
-    ctx->msgTimeOut = 2 * 60;
-    ctx->setSubjectAltNameCritical = 0;
-    ctx->tlsBIO = NULL;
-    ctx->msg_transfer_fn = CMP_PKIMESSAGE_http_perform;
-
-    ctx->error_cb = NULL;
-    ctx->debug_cb = (cmp_logfn_t) puts;
-    ctx->certConf_cb = NULL;
-
-    ctx->trusted_store = X509_STORE_new();
-    ctx->untrusted_store = X509_STORE_new();
-    ctx->cert_verify_cb = NULL;
-
     ctx->maxPollTime = 0;
 
     ctx->lastPKIStatus = 0;
     ctx->failInfoCode = 0;
 
-    ctx->permitTAInExtraCertsForIR = 0;
+    ctx->error_cb = NULL;
+    ctx->debug_cb = (cmp_logfn_t) puts;
+    ctx->certConf_cb = NULL;
+    ctx->cert_verify_cb = NULL;
+    ctx->trusted_store = X509_STORE_new();
+    ctx->untrusted_store = X509_STORE_new();
 
+    ctx->serverName = NULL;
+    ctx->serverPort = 0;
+    /* serverPath has to be an empty sting if not set since it is not mandatory */
+    ctx->serverPath = OPENSSL_zalloc(1); /* this will be freed by CMP_CTX_delete() */
+    if (!ctx->serverPath)
+        goto err;
+    ctx->proxyName = NULL;
+    ctx->proxyPort = 0;
+    ctx->msgTimeOut = 2 * 60;
+    ctx->tlsBIO = NULL;
+    ctx->msg_transfer_fn = CMP_PKIMESSAGE_http_perform;
     return 1;
 
  err:
