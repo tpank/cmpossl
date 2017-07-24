@@ -1312,9 +1312,7 @@ CMP_PKIFREETEXT *CMP_CERTRESPONSE_PKIStatusString_get0(CMP_CERTRESPONSE *crep)
 
 /* ############################################################################ *
  * checks bits in given PKIFailureInfo
- * returns 1 if a given bit is set in a PKIFailureInfo
- *                              0 if                    not set
- *                         -1 on error
+ * returns 1 if a given bit is set in a PKIFailureInfo, 0 if not set, -1 on error
  * PKIFailureInfo ::= ASN1_BIT_STRING
  * ############################################################################ */
 int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit)
@@ -1328,7 +1326,35 @@ int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit)
 }
 
 /* ############################################################################ *
- * returns a pointer to the CertResponse with the given certReqId inside a CertRepMessage
+ * returns a pointer to the PollResponse with the given CertReqId
+ * (or the first one in case -1) inside a pollRep PKIMessage
+ * returns NULL on error or if no PollResponse available
+ * ############################################################################ */
+CMP_POLLREP *CMP_PKIMESSAGE_pollResponse_get0(CMP_PKIMESSAGE *prep, long rid)
+{
+    CMP_POLLREP *pollRep = NULL;
+    int i;
+
+    if (!prep || prep->body->type != V_CMP_PKIBODY_POLLREP ||
+        !prep->body->value.pollRep)
+        goto err;
+
+    for (i = 0; i < sk_CMP_POLLREP_num(prep->body->value.pollRep); i++) {
+        pollRep = sk_CMP_POLLREP_value(prep->body->value.pollRep, i);
+        /* is it the right CertReqId? */
+        if (rid == -1 || rid == ASN1_INTEGER_get(pollRep->certReqId))
+            return pollRep;
+    }
+
+ err:
+    CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
+           CMP_R_CERTRESPONSE_NOT_FOUND);
+    return NULL;
+}
+
+/* ############################################################################ *
+ * returns a pointer to the CertResponse with the given CertReqId
+ * (or the first one in case -1) inside a CertRepMessage
  * returns NULL on error or if no CertResponse available
  * ############################################################################ */
 CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
@@ -1342,15 +1368,15 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
 
     for (i = 0; i < sk_CMP_CERTRESPONSE_num(crepmsg->response); i++) {
         crep = sk_CMP_CERTRESPONSE_value(crepmsg->response, i);
-        /* is it the right certReqId */
-        if (rid == ASN1_INTEGER_get(crep->certReqId))
+        /* is it the right CertReqId? */
+        if (rid == -1 || rid == ASN1_INTEGER_get(crep->certReqId))
             return crep;
     }
 
  err:
     CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
            CMP_R_CERTRESPONSE_NOT_FOUND);
-    return crep;
+    return NULL;
 }
 
 /* ############################################################################ *
@@ -1514,8 +1540,7 @@ int CMP_CERTRESPONSE_certType_get(CMP_CERTRESPONSE *crep)
 }
 
 /* ############################################################################ *
- * returns 1 on success
- * returns 0 on error
+ * returns 1 on success, 0 on error
  * ############################################################################ */
 int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type)
 {

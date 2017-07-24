@@ -162,9 +162,9 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
                          "WARN: ignoring missing protection of error response");
             exception = 1;
         }
-        if ((rcvd_type == V_CMP_PKIBODY_RP)
-                && CMP_REVREPCONTENT_PKIStatus_get(rep->body->value.rp, 0)
-                   == CMP_PKISTATUS_rejection) {
+        if (rcvd_type == V_CMP_PKIBODY_RP &&
+            CMP_REVREPCONTENT_PKIStatus_get(rep->body->value.rp, REVREQID) ==
+            CMP_PKISTATUS_rejection) {
             CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
             exception = 1;
         }
@@ -177,7 +177,7 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
                  rcvd_type == V_CMP_PKIBODY_CP ||
                  rcvd_type == V_CMP_PKIBODY_KUP)) {
             CMP_CERTRESPONSE *crep =
-                CMP_CERTREPMESSAGE_certResponse_get0(rep->body->value.ip, 0);
+                CMP_CERTREPMESSAGE_certResponse_get0(rep->body->value.ip, -1);
             /* TODO: handle multiple CertResponses in CertRepMsg, in case
              *       multiple requests have been sent --> Feature Request #13*/
             if (!crep)
@@ -293,7 +293,7 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
  *
  * TODO: handle multiple pollreqs for multiple certificates --> FR #13
  * ########################################################################## */
-static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
+static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
 {
     int maxTimeLeft = ctx->maxPollTime;
     CMP_PKIMESSAGE *preq = NULL;
@@ -302,7 +302,7 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
 
     CMP_printf(ctx, "INFO: Received 'waiting' PKIStatus, starting to poll for response.");
     for (;;) {
-        if (!(preq = CMP_pollReq_new(ctx, 0)))
+        if (!(preq = CMP_pollReq_new(ctx, rid)))
             goto err;
 
         if (!send_receive_check(ctx, preq, "pollReq", CMP_F_POLLFORRESPONSE,
@@ -313,8 +313,7 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
         /* handle potential pollRep */
         if (CMP_PKIMESSAGE_get_bodytype(prep) == V_CMP_PKIBODY_POLLREP) {
             int checkAfter;
-            if (!(pollRep =
-                  sk_CMP_POLLREP_value(prep->body->value.pollRep, 0)))
+            if (!(pollRep = CMP_PKIMESSAGE_pollResponse_get0(prep, rid)))
                 goto err;
             checkAfter = ASN1_INTEGER_get(pollRep->checkAfter);
             if (checkAfter < 0) {
@@ -460,7 +459,7 @@ static int save_certresponse_statusInfo(CMP_CTX *ctx, CMP_CERTRESPONSE *resp)
  * returns 1 on success, 0 on error
  * Regardless of success, caller is responsible for freeing *resp (unless NULL).
  * ########################################################################## */
-static int cert_response(CMP_CTX *ctx, CMP_PKIMESSAGE **resp,
+static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
                          int type_function, int not_received)
 {
     int failure = -1; /* no failure */
@@ -473,13 +472,15 @@ static int cert_response(CMP_CTX *ctx, CMP_PKIMESSAGE **resp,
 
     /* TODO handle multiple CertResponses in CertRepMsg (in case multiple
      * requests have been sent) --> Feature Request #13 */
-    crep = CMP_CERTREPMESSAGE_certResponse_get0(body, 0);
+    crep = CMP_CERTREPMESSAGE_certResponse_get0(body, rid);
     if (!crep)
         return 0;
+    if (rid == -1) /* for V_CMP_PKIBODY_P10CR, learn CertReqId from response */
+        rid = ASN1_INTEGER_get(crep->certReqId);
 
     if (CMP_CERTRESPONSE_PKIStatus_get(crep) == CMP_PKISTATUS_waiting) {
         CMP_PKIMESSAGE_free(*resp);
-        if (pollForResponse(ctx, resp)) {
+        if (pollForResponse(ctx, rid, resp)) {
             goto retry;
         } else {
             CMPerr(type_function, not_received);
@@ -556,6 +557,7 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
 {
     CMP_PKIMESSAGE *req = NULL;
     CMP_PKIMESSAGE *rep = NULL;
+    long rid = (req_type == V_CMP_PKIBODY_P10CR) ? -1 : CERTREQID;
     X509 *result = NULL;
 
     /* The check if all necessary options are set is done in CMP_certreq_new */
@@ -565,7 +567,7 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
     if (!send_receive_check(ctx, req, type_string, fn, &rep, rep_type, rep_err))
         goto err;
 
-    if (!cert_response(ctx, &rep, fn, rep_err))
+    if (!cert_response(ctx, rid, &rep, fn, rep_err))
         goto err;
 
     result = ctx->newClCert;
@@ -618,7 +620,7 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
 
     /* evaluate PKIStatus field */
     switch (pkiStatus =
-            CMP_REVREPCONTENT_PKIStatus_get(rp->body->value.rp, 0)) {
+            CMP_REVREPCONTENT_PKIStatus_get(rp->body->value.rp, REVREQID)) {
     case CMP_PKISTATUS_accepted:
         CMP_printf(ctx, "INFO: revocation accepted (PKIStatus=accepted)");
         break;

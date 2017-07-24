@@ -3,6 +3,7 @@
 =head1 NAME
 
   CMP_REVREPCONTENT_PKIStatus_get,
+  CMP_PKIMESSAGE_pollResponse_get0,
   CMP_CERTREPMESSAGE_certResponse_get0,
   CMP_CERTSTATUS_set_certHash,
   CMP_PKIFAILUREINFO_check,
@@ -40,6 +41,7 @@
   #include <openssl/cmp.h>
 
   long CMP_REVREPCONTENT_PKIStatus_get( CMP_REVREPCONTENT *revRep, long reqId);
+  CMP_POLLREP *CMP_PKIMESSAGE_pollResponse_get0(CMP_PKIMESSAGE *prep, long rid);
   CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
   int CMP_CERTSTATUS_set_certHash( CMP_CERTSTATUS *certStatus, const X509 *cert);
   char *CMP_ERRORMSGCONTENT_PKIStatus_get_string( CMP_ERRORMSGCONTENT *error);
@@ -78,10 +80,13 @@
 
 CMP_REVREPCONTENT_PKIStatus_get() returns the PKIStatus of the given Rev, or -1 on error.
 
-CMP_CERTREPMESSAGE_certResponse_get0() returns a pointer to the
-CertResponse with the given certReqId inside a CertRepMessage. If no
-CertResponse is available or if there's an error, the function returns
-NULL.
+CMP_PKIMESSAGE_pollResponse_get0() returns a pointer to the PollResponse
+with the given certReqId (or the first one in case -1) inside a pollRep PKIMessage.
+If no PollResponse is available or if there is an error, it returns NULL.
+
+CMP_CERTREPMESSAGE_certResponse_get0() returns a pointer to the CertResponse
+with the given certReqId (or the first one in case -1 inside a CertRepMessage.
+If no CertResponse is available or if there is an error, it returns NULL.
 
 CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
 using the same hash algorithm as is used to create and verify the

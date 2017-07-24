@@ -219,7 +219,7 @@ int CRMF_CERTREQMSG_set1_regInfo_regToken(CRMF_CERTREQMSG *msg,
 
 int CRMF_CERTREQMSG_set_version2(CRMF_CERTREQMSG *crm);
 int CRMF_CERTREQMSG_set_validity(CRMF_CERTREQMSG *crm, time_t from, time_t to);
-int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, const long rid);
+int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, long rid);
 int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey);
 int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *crm, const X509_NAME *subj);
 int CRMF_CERTREQMSG_set1_issuer(CRMF_CERTREQMSG *crm, const X509_NAME *is);

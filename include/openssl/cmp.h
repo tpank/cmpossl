@@ -246,6 +246,8 @@ typedef ASN1_INTEGER CMP_PKISTATUS;
 # define CMP_CERTORENCCERT_CERTIFICATE   0
 # define CMP_CERTORENCCERT_ENCRYPTEDCERT 1
 
+#define CERTREQID 0L
+#define REVREQID 0L
 
 
 /* Forward declarations */
@@ -257,6 +259,7 @@ typedef struct cmp_infotypeandvalue_st CMP_INFOTYPEANDVALUE;
 typedef struct cmp_revrepcontent_st CMP_REVREPCONTENT;
 typedef struct cmp_pkistatusinfo_st CMP_PKISTATUSINFO;
 typedef struct cmp_certrepmessage_st CMP_CERTREPMESSAGE;
+typedef struct cmp_pollrep_st CMP_POLLREP;
 typedef struct cmp_certresponse_st CMP_CERTRESPONSE;
 DEFINE_STACK_OF(CMP_CERTSTATUS)
 DEFINE_STACK_OF(CMP_INFOTYPEANDVALUE)
@@ -338,6 +341,7 @@ long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *statusInfo);
 
 X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
 int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit);
+CMP_POLLREP *CMP_PKIMESSAGE_pollResponse_get0(CMP_PKIMESSAGE *prep, long rid);
 CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);
 int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type);

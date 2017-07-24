@@ -414,11 +414,11 @@ DECLARE_ASN1_FUNCTIONS(CMP_POLLREQCONTENT)
              reason                                 PKIFreeText OPTIONAL
      }
  */
-typedef struct cmp_pollrep_st {
+struct cmp_pollrep_st {
     ASN1_INTEGER *certReqId;
     ASN1_INTEGER *checkAfter;
     CMP_PKIFREETEXT *reason;
-} CMP_POLLREP;
+} /* CMP_POLLREP */;
 DECLARE_ASN1_FUNCTIONS(CMP_POLLREP)
 DEFINE_STACK_OF(CMP_POLLREP)
 typedef STACK_OF(CMP_POLLREP) CMP_POLLREPCONTENT;

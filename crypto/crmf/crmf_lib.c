@@ -316,7 +316,7 @@ int CRMF_CERTREQMSG_set_validity(CRMF_CERTREQMSG *crm, time_t from, time_t to)
 }
 
 
-int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, const long rid)
+int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, long rid)
 {
     if (!crm || !crm->certReq)
         goto err;

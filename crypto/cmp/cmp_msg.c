@@ -290,7 +290,7 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
         if (!CRMF_CERTREQMSG_set_version2(cr0)) /* RFC4211: SHOULD be omitted */
             goto err;
 #endif
-        if (!CRMF_CERTREQMSG_set_certReqId(cr0, 0L))
+        if (!CRMF_CERTREQMSG_set_certReqId(cr0, CERTREQID))
             goto err;
         /* rekey cannot be NULL so far - but it can be when centralized key
            creation is supported --> Feature Request #14 */
@@ -480,7 +480,7 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text)
     if (!sk_CMP_CERTSTATUS_push(msg->body->value.certConf, certStatus))
         goto err;
     /* set the # of the certReq */
-    ASN1_INTEGER_set(certStatus->certReqId, 0L);
+    ASN1_INTEGER_set(certStatus->certReqId, CERTREQID);
     /* -- the hash of the certificate, using the same hash algorithm
      * -- as is used to create and verify the certificate signature */
     if (!CMP_CERTSTATUS_set_certHash(certStatus, ctx->newClCert))
