@@ -16,6 +16,7 @@
  CMP_CTX_set1_subjectName,
  CMP_CTX_set1_issuer,
  CMP_CTX_set1_newClCert,
+ CMP_CTX_get0_newClCert,
  CMP_CTX_set0_pkey,
  CMP_CTX_set0_newPkey,
  CMP_CTX_set1_pkey,
@@ -38,6 +39,7 @@
  CMP_CTX_set0_trustedStore,
  CMP_CTX_set0_untrustedStore,
  CMP_CTX_get0_trustedStore,
+ CMP_CTX_get0_untrustedStore,
  CMP_CTX_set0_crls,
  CMP_CTX_set_certVerify_callback,
  CMP_CTX_set_error_callback,
@@ -81,6 +83,7 @@
  int CMP_CTX_set1_subjectName( CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_issuer( CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_newClCert( CMP_CTX *ctx, const X509 *cert);
+ X509 *CMP_CTX_get0_newClCert( CMP_CTX *ctx);
  int CMP_CTX_set0_pkey( CMP_CTX *ctx, const EVP_PKEY *pkey);
  int CMP_CTX_set0_newPkey( CMP_CTX *ctx, const EVP_PKEY *pkey);
  int CMP_CTX_set1_pkey( CMP_CTX *ctx, const EVP_PKEY *pkey);
@@ -111,6 +114,7 @@
  int CMP_CTX_set_certVerify_callback(CMP_CTX *ctx, cert_verify_cb_t cb);
 
  X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx);
+ X509_STORE *CMP_CTX_get0_untrustedStore(CMP_CTX *ctx);
 
  int CMP_CTX_set_error_callback( CMP_CTX *ctx, cmp_logfn_t cb);
  int CMP_CTX_set_debug_callback( CMP_CTX *ctx, cmp_logfn_t cb);
@@ -182,6 +186,8 @@ will be set in the PKIHeader, i.e., the X509 name of the CA server.
 
 CMP_CTX_set1_newClCert() sets the given (newly obtained) Client
 Certificate in the given CMP_CTX structure.
+
+CMP_CTX_get0_newClCert() returns a pointer to the last enrolled certificate.
 
 CMP_CTX_set0_pkey() sets the given EVP_PKEY structure, holding the
 private and public keys, belonging to the Client Certificate, in the
@@ -328,6 +334,9 @@ in CMP server authentication.
 CMP_CTX_get0_trustedStore(CMP_CTX *ctx) returns a pointer to the trusted
 store.
 
+CMP_CTX_get0_untrustedStore(CMP_CTX *ctx) returns a pointer to the untrusted
+store.
+
 CMP_CTX_set0_crls() sets CRLs to be used as primary source during CMP
 server certificate verification.
 
@@ -385,8 +394,9 @@ On success it must return 0, else a CMP error reason code defined in cmp.h.
 
 CMP_CTX_set_certConf_callback() sets a callback that can be used to
 check the certificate received from the server. If the certificate
-shall be accepted the callback should return -1 (indicating success),
-else a bit number <= CMP_PKIFAILUREINFO_MAX indicating failure.
+shall be accepted the callback must return -1 (indicating success).
+Else a bit number <= CMP_PKIFAILUREINFO_MAX indicates failure, and the text
+output parameter may be set to point to a constant string with more detail.
 
 CMP_CTX_subjectAltName_push1() adds the given X509 name to the list of
 alternate names on the certificate template request.  If this is done,

@@ -193,6 +193,16 @@ int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store)
 }
 
 /* ############################################################################ *
+ * Get current certificate store containing trusted root CA certs
+ * ############################################################################ */
+X509_STORE *CMP_CTX_get0_untrustedStore(CMP_CTX *ctx)
+{
+    if (!ctx)
+        return NULL;
+    return ctx->untrusted_store;
+}
+
+/* ############################################################################ *
  * Set untrusted certificates for path construction in CMP server authentication.
  * returns 1 on success, 0 on error
  * ############################################################################ */
@@ -1013,6 +1023,17 @@ int CMP_CTX_set1_newClCert(CMP_CTX *ctx, const X509 *cert)
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_NEWCLCERT, CMP_R_NULL_ARGUMENT);
     return 0;
+}
+
+/* ################################################################ *
+ * Get the (newly received in IP/KUP/CP) client certificate from the context
+ * TODO: this only permits for one client cert to be received...
+ * ################################################################ */
+X509 *CMP_CTX_get0_newClCert(CMP_CTX *ctx)
+{
+    if (!ctx)
+        return NULL;
+    return ctx->newClCert;
 }
 
 /* ################################################################ *

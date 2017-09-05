@@ -584,6 +584,8 @@ static int read_config()
                     *cmp_vars[i].num_long = num;
                     break;
                 default:
+                    if (txt != NULL && txt[0] == '\0')
+                        txt = NULL; /* reset option on empty string input */
                     *cmp_vars[i].txt = txt;
                     break;
             }
@@ -896,7 +898,7 @@ static STACK_OF(X509_CRL) *load_crls_(const char *file, int format,
 
 /* TODO dvo: push that separately upstream with the autofmt options */
 static int adjust_format(const char **infile, int format, int engine_ok) {
-    if (strncmp(*infile, "http://", 7) == 0)
+    if (!strncmp(*infile, "http://", 7) || !strncmp(*infile, "https://", 8))
         format = FORMAT_HTTP;
     else if (engine_ok && strncmp(*infile, "engine:", 7) == 0) {
         *infile += 7;
@@ -1238,31 +1240,95 @@ static STACK_OF(X509_CRL) *crls_local_then_http_cb(X509_STORE_CTX *ctx, X509_NAM
  * ##########################################################################
  */
 
+static void print_cert(BIO *bio, const X509 *cert) {
+    if (cert) {
+        unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
+            XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
+        BIO_printf(bio, "  subject: ");
+        X509_NAME_print_ex(bio, X509_get_subject_name(cert), 0, flags);
+        if (X509_check_issued((X509 *)cert, (X509 *)cert) == X509_V_OK) {
+            BIO_printf(bio, " (self-signed)");
+        } else {
+            BIO_printf(bio, "\n  issuer: ");
+            X509_NAME_print_ex(bio, X509_get_issuer_name(cert), 0, flags);
+        }
+        BIO_printf(bio, "\n");
+    } else {
+        BIO_printf(bio, "(no certificate)\n");
+    }
+}
+
+static void print_certs(BIO *bio, const STACK_OF(X509) *certs) {
+    if (certs && sk_X509_num(certs) > 0) {
+        int i;
+        for (i = 0; i < sk_X509_num(certs); i++) {
+            X509 *cert = sk_X509_value(certs, i);
+            if (cert) {
+                print_cert(bio, cert);
+            }
+        }
+    } else {
+        BIO_printf(bio, "  (no certificates)\n");
+    }
+}
+
+static void print_store_certs(BIO *bio, X509_STORE *store) {
+    if (store) {
+        STACK_OF(X509) *certs = X509_STORE_get1_certs(store);
+        print_certs(bio, certs);
+        sk_X509_pop_free(certs, X509_free);
+    } else {
+        BIO_printf(bio, "  (no certificate store)\n");
+    }
+}
+
 /*
  * This function is a callback used by OpenSSL's verify_cert function.
  * It's called at the end of a cert verification to allow an opportunity
  * to gather more information regarding a failing cert verification,
  * and to possibly change the result of the verification (not done here).
+ * This callback is also activated when constructing our own TLS chain:
+ * tls_construct_client_certificate() -> ssl3_output_cert_chain() ->
+ * ssl_add_cert_chain() -> X509_verify_cert() where errors are ignored,
+ * such that unfortunately this may lead to spurious error printing.
  */
+
 static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 {
     if (ok == 0 && ctx != NULL) {
         int cert_error = X509_STORE_CTX_get_error(ctx);
-        X509 *current_cert = X509_STORE_CTX_get_current_cert(ctx);
-        char *subject_name = current_cert ? X509_NAME_oneline(X509_get_subject_name(current_cert), NULL, 0) : NULL;
-        char *issuer_name = current_cert ? X509_NAME_oneline(X509_get_issuer_name(current_cert), NULL, 0) : NULL;
-        BIO_printf(bio_err, "%s error=%d (%s) at depth=%d for subject='%s' issuer='%s'\n",
-                   X509_STORE_CTX_get0_parent_ctx(ctx) ? "CRL path validation" : "cert verification",
-                   cert_error, X509_verify_cert_error_string(cert_error),
-                   X509_STORE_CTX_get_error_depth(ctx),
-                   subject_name ? subject_name : "(unknown)",
-                   issuer_name ? issuer_name : "(unknown)");
-        if (subject_name)
-            OPENSSL_free(subject_name);
-        if (issuer_name)
-            OPENSSL_free(issuer_name);
+        int depth = X509_STORE_CTX_get_error_depth(ctx);
+        X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
+        BIO_printf(bio_err, "%s error=%d (%s) at depth=%d %s",
+                   X509_STORE_CTX_get0_parent_ctx(ctx) ?
+                   "CRL path validation" : "certificate verification",
+                   cert_error, X509_verify_cert_error_string(cert_error), depth,
+                   cert ? "for\n" : "");
+        print_cert(bio_err, cert);
+        if (cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT ||
+            cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
+            cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER ||
+            cert_error == X509_V_ERR_STORE_LOOKUP) {
+            BIO_printf(bio_err, "untrusted certificates:\n");
+            print_certs(bio_err, X509_STORE_CTX_get0_untrusted(ctx));
+            BIO_printf(bio_err, "trusted certificates:\n");
+            print_store_certs(bio_err, X509_STORE_CTX_get0_store(ctx));
+        }
     }
     return (ok);
+}
+
+static int add0_untrusted(X509_STORE *store, STACK_OF (X509) *untrusted) {
+    int i;
+    if (!untrusted)
+        return 1;
+    for (i = 0; i < sk_X509_num(untrusted); i++)
+        if (!X509_STORE_add_cert(store, sk_X509_value(untrusted, i))) {
+            sk_X509_pop_free(untrusted, X509_free);
+            return 0;
+        }
+    sk_X509_pop_free(untrusted, X509_free);
+    return 1;
 }
 
 /*
@@ -1281,34 +1347,27 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 * Note: While often handy, there is no hard default requirement than an EE must
 *       be able to validate its own certificate.
 */
-static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert)
+static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert, const char **text)
 {
-    int i, ok = 1;
+    int ok = 1;
     X509_STORE *ts;
 
-    X509_STORE *store = X509_STORE_new(); /* TODO copy ctx->untrusted_store,
-    or add list of certs in it, which would be easier if it was a stack of certs */
-    if (!store) {
+    X509_STORE *untrusted = X509_STORE_new();
+    if (!untrusted) {
     oom:
+        X509_STORE_free(untrusted);
         /* BIO_puts(bio_err, "error: out of memory\n"); */
         return CMP_PKIFAILUREINFO_systemFailure;
     }
 
-    if (CMP_CTX_extraCertsIn_num(ctx) > 0) {
-        STACK_OF (X509) *extraCertsIn = CMP_CTX_extraCertsIn_get1(ctx);
-        if (!extraCertsIn) {
-            X509_STORE_free(store);
-            goto oom;
-        }
+    if (!add0_untrusted(untrusted,
+           X509_STORE_get1_certs(CMP_CTX_get0_untrustedStore(ctx))))
+        goto oom;
+    if (!add0_untrusted(untrusted, CMP_CTX_extraCertsIn_get1(ctx)))
+        goto oom;
+    if (!add0_untrusted(untrusted, CMP_CTX_caPubs_get1(ctx)))
+        goto oom;
 
-        for (i = 0; i < sk_X509_num(extraCertsIn); i++)
-            if (!X509_STORE_add_cert(store, sk_X509_value(extraCertsIn, i))) {
-                sk_X509_pop_free(extraCertsIn, X509_free);
-                X509_STORE_free(store);
-                goto oom;
-            }
-        sk_X509_pop_free(extraCertsIn, X509_free);
-    }
     ts = CMP_CTX_get0_trustedStore(ctx);
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #define X509_STORE_get0_param(store) (store->param)
@@ -1318,10 +1377,10 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert)
     X509_VERIFY_PARAM_set1_host(X509_STORE_get0_param(ts), NULL, 0);
     /* (Re-)setting the host modifies the params of ctx->trusted_store - unfortunately
         there is no public function to copy them (which would allow to restore them later */
-    if (!CMP_validate_cert_path(ctx, ts, store, (X509 *)cert))
+    if (!CMP_validate_cert_path(ctx, ts, untrusted, cert))
         ok = 0;
 
-    X509_STORE_free(store);
+    X509_STORE_free(untrusted);
 
     if (!ok)
         BIO_puts(bio_c_out, "warning: failed to validate newly enrolled certificate\n");
@@ -1395,6 +1454,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
 
+    if (!opt_unprotectedRequests &&
+        !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
+        BIO_puts(bio_err, "error: missing -unprotectedrequests or -ref and -secret or -cert and -key for client authentication\n");
+        goto err;
+    }
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
         if (!opt_newkey && !opt_key) {
             BIO_puts(bio_err, "error: missing key to be certified\n");
@@ -1501,7 +1565,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
 
         if (vpmtouched && !SSL_CTX_set1_param(ssl_ctx, vpm)) {
-            BIO_printf(bio_err, "Error setting verify params\n");
+            BIO_printf(bio_err, "Error setting SSL CTX verification parameters\n");
             ERR_print_errors(bio_err);
             goto tls_err;
         }
@@ -1549,6 +1613,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                 }
             } else {
                 /* opt_tls_keypass is needed here in case opt_tls_cert is an encrypted PKCS#12 file */
+                /* TODO: add any extra certs, e.g., from P12 file, using SSL_CTX_add_extra_chain_cert() */
                 if (!(cert=load_cert_autofmt(opt_tls_cert, &certform, opt_tls_keypass, "TLS client certificate"))) {
                     goto tls_err;
                 }
@@ -1634,14 +1699,14 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
     }
+    if ((opt_cert || opt_unprotectedRequests) && !(opt_srvcert || opt_trusted)) {
+        BIO_puts(bio_err,
+                 "error: no server certificate or trusted certificates set\n");
+        goto err;
+    }
     certform = opt_certform;
     if (opt_cert) {
         X509 *clcert;
-        if (!(opt_srvcert || opt_trusted)) {
-            BIO_puts(bio_err,
-                     "error: using client certificate but no server certificate or trusted certificates set\n");
-            goto err;
-        }
         /* opt_keypass is needed here in case opt_cert is an encrypted PKCS#12 file */
         clcert = load_cert_autofmt(opt_cert, &certform, opt_keypass, "CMP client certificate");
         if (!clcert || !CMP_CTX_set1_clCert(ctx, clcert)) {
@@ -1664,11 +1729,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_srvcert) {
         X509 *srvcert;
         if (opt_trusted) {
-            BIO_puts(bio_err, "warning: -trusted option is ignored since -srvcert option is present\n");
+            BIO_puts(bio_c_out, "warning: -trusted option is ignored since -srvcert option is present\n");
             opt_trusted = NULL;
         }
         if (opt_recipient) {
-            BIO_puts(bio_err, "warning: -recipient option is ignored since -srvcert option is present\n");
+            BIO_puts(bio_c_out, "warning: -recipient option is ignored since -srvcert option is present\n");
             opt_recipient = NULL;
         }
         /* opt_keypass is needed here in case opt_srvcert is an encrypted PKCS#12 file */
@@ -1693,12 +1758,20 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    if (opt_srvcert || opt_trusted) { /* */
+    if (opt_srvcert || opt_trusted) {
         X509_STORE *ts = CMP_CTX_get0_trustedStore(ctx);
         if (vpmtouched) {
-            X509_STORE_set1_param(ts, vpm);
-            if (opt_srvcert) /* in preparation for use in certConf_cb(), clear any deep CRL check for srvCert */
-                X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts), X509_V_FLAG_CRL_CHECK_ALL);
+            X509_VERIFY_PARAM *cmp_vpm;
+            X509_STORE_set1_param(ts, vpm); /* copy verification params to CMP */
+            /* in preparation for use in certConf_cb(): */
+            cmp_vpm = X509_STORE_get0_param(ts);
+            /* Clear any host or IP entries; the following does not help here:
+               X509_VERIFY_PARAM_set_hostflags(cmp_vpm,
+                                         X509_CHECK_FLAG_NEVER_CHECK_SUBJECT); */
+            X509_VERIFY_PARAM_set1_host(cmp_vpm, NULL, 0);
+            X509_VERIFY_PARAM_set1_ip(cmp_vpm, NULL, 0);
+            if (opt_srvcert) /* clear any deep CRL check for srvCert */
+                X509_VERIFY_PARAM_clear_flags(cmp_vpm, X509_V_FLAG_CRL_CHECK_ALL);
         }
         ERR_clear_error();
         if (opt_crls || opt_crldownload)
@@ -1807,13 +1880,19 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     certform = opt_certform;
     if (opt_oldcert) {
-        /* opt_keypass is needed here in case opt_oldcert is an encrypted PKCS#12 file */
-        X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform, opt_keypass, "certificate to be updated/revoked");
-        if (!oldcert || !CMP_CTX_set1_oldClCert(ctx, oldcert)) {
+        if (opt_cmd == CMP_KUR || opt_cmd == CMP_RR) {
+            /* opt_keypass is needed here in case opt_oldcert is an encrypted PKCS#12 file */
+            X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform, opt_keypass, "certificate to be updated/revoked");
+            if (!oldcert)
+                goto err;
+            if (!CMP_CTX_set1_oldClCert(ctx, oldcert)) {
+                X509_free(oldcert);
+                goto err;
+            }
             X509_free(oldcert);
-            goto err;
+        } else {
+            BIO_printf(bio_c_out, "warning: -oldcert option is ignored for commands other than KUR and RR\n");
         }
-        X509_free(oldcert);
     }
     if (opt_keypass) {
         OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
@@ -1822,7 +1901,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_csr) {
         if (opt_cmd != CMP_P10CR)
-            BIO_puts(bio_err, "warning: -csr option is ignored for command other than p10cr\n");
+            BIO_puts(bio_c_out, "warning: -csr option is ignored for command other than p10cr\n");
         else {
             X509_REQ *csr = load_csr_autofmt(opt_csr, &certform, "PKCS#10 CSR for p10cr");
             if (!csr ||!CMP_CTX_set1_p10CSR(ctx, csr)) {
@@ -1946,14 +2025,14 @@ static int save_certs(STACK_OF(X509) *certs, char *destFile, char *desc)
 
     if (!destFile || (bio = BIO_new(BIO_s_file())) == NULL ||
         !BIO_write_filename(bio, (char *)destFile)) {
-        BIO_printf(bio_err, "ERROR: could not open file '%s' for writing\n", destFile);
+        BIO_printf(bio_err, "error: could not open file '%s' for writing\n", destFile);
         n = -1;
         goto err;
     }
 
     for (i = 0; i < n; i++) {
         if (!write_cert(bio, sk_X509_value(certs, i))) {
-            BIO_printf(bio_err, "ERROR writing certificate to file '%s'\n", destFile);
+            BIO_printf(bio_err, "error writing certificate to file '%s'\n", destFile);
             n = -1;
             goto err;
         }
@@ -1987,14 +2066,23 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs) {
 static char *opt_str(char *opt) {
     char *arg = opt_arg();
     if (arg[0] == '\0') {
-        BIO_printf(bio_err,
+        BIO_printf(bio_c_out,
                    "Warning: argument of -%s option is empty string, resetting option\n", opt);
         arg = NULL;
     } else if (arg[0] == '-') {
-        BIO_printf(bio_err,
+        BIO_printf(bio_c_out,
                    "Warning: argument of -%s option starts with hyphen\n", opt);
     }
     return arg;
+}
+
+static int opt_nat() {
+    int result;
+    if (!opt_int(opt_arg(), &result))
+        result = -1;
+    else if (result < 0)
+        BIO_printf(bio_err, "error: argument '%s' must be positive\n", opt_arg());
+    return result;
 }
 #endif
 
@@ -2010,7 +2098,7 @@ int cmp_main(int argc, char **argv)
     char *tofree = NULL;        /* used as getenv returns a direct pointer to
                                  * the environment setting */
     int badops = 0;
-    int i, ret = 1;
+    int i, ret = EXIT_FAILURE;
     CMP_CTX *cmp_ctx = NULL;
     X509 *newcert = NULL;
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -2094,7 +2182,7 @@ opt_err:
          /* BIO_printf(bio_err, "%s: Use -help for the following summary.\n", prog);
             goto err; */
         case OPT_HELP:
-            ret = 0;
+            ret = EXIT_SUCCESS;
             opt_help(cmp_options);
             goto err;
         case OPT_SECTION: /* has already been handled */
@@ -2107,11 +2195,11 @@ opt_err:
             opt_proxy = opt_str("proxy");
             break;
         case OPT_MSGTIMEOUT:
-            if (!opt_int(opt_arg(), &opt_msgtimeout))
+            if ((opt_msgtimeout = opt_nat()) < 0)
                 goto opt_err;
             break;
         case OPT_MAXPOLLTIME:
-            if (!opt_int(opt_arg(), &opt_maxpolltime))
+            if ((opt_maxpolltime = opt_nat()) < 0)
                 goto opt_err;
             break;
 
@@ -2232,7 +2320,7 @@ opt_err:
                 goto opt_err;
             break;
         case OPT_POPO:
-            if (!opt_int(opt_arg(), &opt_popo))
+            if ((opt_popo = opt_nat()) < 0)
                 goto opt_err;
             break;
 
@@ -2317,13 +2405,13 @@ opt_err:
                 case 's':
                     *cmp_vars[i].txt = *++argv;
                     if (**argv == '\0') {
-                        BIO_printf(bio_err,
+                        BIO_printf(bio_c_out,
                                    "Warning: argument of -%s option is empty string, resetting option\n",
                                    opt->name);
                         *cmp_vars[i].txt = NULL;
                     }
                     else if (**argv == '-') {
-                        BIO_printf(bio_err,
+                        BIO_printf(bio_c_out,
                                    "Warning: argument of -%s option starts with hyphen\n", opt->name);
                     }
                     argc--;
@@ -2436,18 +2524,13 @@ opt_err:
         sk_X509_pop_free(certs, X509_free);
     }
 
-    ret = 0;
+    ret = EXIT_SUCCESS;
  err:
-    if (ret != 0)
+    if (ret != EXIT_SUCCESS)
         ERR_print_errors_fp(stderr);
-    if (cmp_ctx)
-        CMP_CTX_delete(cmp_ctx);
-    if (vpm)
-        X509_VERIFY_PARAM_free(vpm);
-    if (conf)
-        NCONF_free(conf);
-    if (bio_c_out)
-       BIO_free(bio_c_out);
+    CMP_CTX_delete(cmp_ctx);
+    X509_VERIFY_PARAM_free(vpm);
+    BIO_free(bio_c_out);
     release_engine(e);
 
     /* if we ended up here without proper cleaning */
@@ -2459,6 +2542,7 @@ opt_err:
         OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
     if (opt_secret)
         OPENSSL_cleanse(opt_secret, strlen(opt_secret));
+    NCONF_free(conf); /* must not do as long as opt_... variables are used */
 
     return ret;
 }

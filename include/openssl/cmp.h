@@ -268,7 +268,7 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
  * context DECLARATIONS
  * ########################################################################## */
 typedef void (*cmp_logfn_t) (const char *msg);
-typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, int status, const X509 *cert);
+typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, int status, const X509 *cert, const char **text);
 typedef int (*cert_verify_cb_t) (int ok, X509_STORE_CTX *ctx);
 typedef int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                                   CMP_PKIMESSAGE **res);
@@ -308,7 +308,7 @@ int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr,
 int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
 int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr);
-ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage,
+ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
                                            const ASN1_OCTET_STRING
                                            *secret);
 ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
@@ -340,16 +340,17 @@ CMP_POLLREP *CMP_PKIMESSAGE_pollResponse_get0(CMP_PKIMESSAGE *prep, long rid);
 CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);
 int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type);
-int CMP_PKIMESSAGE_get_bodytype(CMP_PKIMESSAGE *msg);
+int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
 #define CMP_PKISTATUSINFO_BUFLEN 1024
 char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 ASN1_OCTET_STRING *CMP_get_cert_subject_key_id(const X509 *cert);
-STACK_OF(X509) * CMP_build_cert_chain(X509_STORE *store, X509 *cert);
+STACK_OF(X509) *CMP_build_cert_chain(X509_STORE *store, const X509 *cert);
+STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store);
 
 /* cmp_vfy.c */
-int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
+int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg);
 int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
-                           X509_STORE *untrusted_store, X509 *cert);
+                           X509_STORE *untrusted_store, const X509 *cert);
 
 /* from cmp_http.c */
 int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
@@ -375,6 +376,7 @@ ASN1_TYPE *CMP_INFOTYPEANDVALUE_get0_value(CMP_INFOTYPEANDVALUE *itav);
 CMP_CTX *CMP_CTX_create(void);
 int CMP_CTX_init(CMP_CTX *ctx);
 X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx);
+X509_STORE *CMP_CTX_get0_untrustedStore(CMP_CTX *ctx);
 int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
 int CMP_CTX_set0_untrustedStore(CMP_CTX *ctx, X509_STORE *store);
 int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls);
@@ -417,6 +419,7 @@ int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx);
 int CMP_CTX_loadUntrustedStack(CMP_CTX *ctx, STACK_OF (X509) * stack);
 
 int CMP_CTX_set1_newClCert(CMP_CTX *ctx, const X509 *cert);
+X509 *CMP_CTX_get0_newClCert(CMP_CTX *ctx);
 int CMP_CTX_set0_pkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
 int CMP_CTX_set1_pkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
 int CMP_CTX_set0_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey);

@@ -83,7 +83,7 @@
  * (sha1+RSA/DSA or any other algorithm supported by OpenSSL)
  * returns 0 on error
  * ########################################################################## */
-static int CMP_verify_signature(CMP_PKIMESSAGE *msg, X509 *cert)
+static int CMP_verify_signature(const CMP_PKIMESSAGE *msg, const X509 *cert)
 {
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART protPart;
@@ -136,7 +136,7 @@ static int CMP_verify_signature(CMP_PKIMESSAGE *msg, X509 *cert)
  *
  * Validates a message protected with PBMAC
  * ########################################################################## */
-static int CMP_verify_MAC(CMP_PKIMESSAGE *msg,
+static int CMP_verify_MAC(const CMP_PKIMESSAGE *msg,
                           const ASN1_OCTET_STRING *secret)
 {
     ASN1_BIT_STRING *protection = NULL;
@@ -159,7 +159,7 @@ static int CMP_verify_MAC(CMP_PKIMESSAGE *msg,
  * validated successfully and 0 if not.
  * ########################################################################## */
 int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
-                           X509_STORE *untrusted_store, X509 *cert)
+                           X509_STORE *untrusted_store, const X509 *cert)
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
@@ -181,22 +181,15 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
     if (!(csc = X509_STORE_CTX_new()))
         goto end;
 
-    /* note: there doesn't seem to be a good way to get a stack of all
-     * the certs in an X509_STORE, so we need to try and find the chain
-     * of intermediate certs here. */
-    /* TODO: should the untrusted certificates be in a STACK_OF (X509) in the
-     *       first place? --> bug #40 */
     if (untrusted_store)
-        untrusted_stack = CMP_build_cert_chain(untrusted_store, cert);
+        untrusted_stack = X509_STORE_get1_certs(untrusted_store);
 
-    if (!X509_STORE_CTX_init(csc, trusted_store, cert, untrusted_stack))
+    if (!X509_STORE_CTX_init(csc, trusted_store, (X509 *)cert, untrusted_stack))
         goto end;
 
     if (ctx->crls)
         X509_STORE_CTX_set0_crls(csc, ctx->crls);
     valid = X509_verify_cert(csc);
-    if (ctx->cert_verify_cb)
-        valid = (ctx->cert_verify_cb)(valid, csc);
 
     X509_STORE_CTX_free(csc);
 
@@ -275,15 +268,16 @@ int CMP_cert_callback(int ok, X509_STORE_CTX *ctx)
  * returns pointer to found server Certificate on success
  * returns NULL on error or when no certificate could be found
  * ########################################################################## */
-static X509 *findSrvCert(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
+static X509 *findSrvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
     X509 *srvCert = NULL;
     X509_STORE_CTX *csc = NULL;
     X509_OBJECT *obj = NULL;
     STACK_OF (X509) * found_certs = NULL;
     int n;
+    X509_NAME *sender_name = msg->header->sender->d.directoryName;
 
-    if (!(csc = X509_STORE_CTX_new()))
+    if (!sender_name || !(csc = X509_STORE_CTX_new()))
         return NULL;
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -302,15 +296,13 @@ static X509 *findSrvCert(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     /* first attempt lookup in trusted_store, then in untrusted_store */
     if (X509_STORE_CTX_init(csc, ctx->trusted_store, NULL, NULL)
             && X509_STORE_CTX_get_by_subject(csc, X509_LU_X509,
-                                           msg->header->sender->d.directoryName,
-                                           obj)) {
+                                           sender_name, obj)) {
         srvCert = X509_OBJECT_get0_X509(obj);
     } else {
         X509_STORE_CTX_cleanup(csc);
         if (X509_STORE_CTX_init(csc, ctx->untrusted_store, NULL, NULL)
                 && X509_STORE_CTX_get_by_subject(csc, X509_LU_X509,
-                                           msg->header->sender->d.directoryName,
-                                           obj)) {
+                                           sender_name, obj)) {
             srvCert = X509_OBJECT_get0_X509(obj);
         }
     }
@@ -374,6 +366,7 @@ static X509 *findSrvCert(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
     sk_X509_free(found_certs);
 
+    X509_up_ref(srvCert); /* consistent with X509_STORE_CTX_get_by_subject() */
     return srvCert;
 }
 
@@ -408,7 +401,7 @@ static X509_STORE *createTempTrustedStore(STACK_OF (X509) * stack)
 }
 
 /* ##########################################################################
- * Validates the protection of the given PKIMessage using either password
+ * Validates the protection of the given PKIMessage using either password-
  * based mac or a signature algorithm. In the case of signature algorithm,
  * the certificate can be provided in ctx->srvCert,
  * else it is taken from extraCerts and validated against ctx->trusted_store
@@ -421,7 +414,7 @@ static X509_STORE *createTempTrustedStore(STACK_OF (X509) * stack)
  *
  * returns 1 on success, 0 on error or validation failed
  * ########################################################################## */
-int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
+int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
     X509 *srvCert = ctx->srvCert;
     int srvCert_valid = 0;

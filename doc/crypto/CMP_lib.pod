@@ -62,11 +62,12 @@
   int CMP_PKIMESSAGE_check_implicitConfirm(CMP_PKIMESSAGE *msg);
   int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg, const CMP_INFOTYPEANDVALUE *itav);
   int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
-  int CMP_PKIMESSAGE_get_bodytype( CMP_PKIMESSAGE *msg);
+  int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
   char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
   int CMP_PKIMESSAGE_set_bodytype( CMP_PKIMESSAGE *msg, int type);
   int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
-  ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage, const ASN1_OCTET_STRING *secret);
+  ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
+                                             const ASN1_OCTET_STRING *secret);
   int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
@@ -74,7 +75,7 @@
   long CMP_PKISTATUSINFO_PKIStatus_get( CMP_PKISTATUSINFO *statusInfo);
   X509_ALGOR *CMP_get_protectionAlg_pbmac();
   X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
-  STACK_OF(X509) *CMP_build_cert_chain(X509_STORE *store, X509 *cert);
+  STACK_OF(X509) *CMP_build_cert_chain(X509_STORE *store, const X509 *cert);
 
 =head1 DESCRIPTION
 

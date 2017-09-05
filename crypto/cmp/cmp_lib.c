@@ -491,7 +491,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
  * error
  * ########################################################################## */
-ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage,
+ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
                                            const ASN1_OCTET_STRING *secret)
 {
     ASN1_BIT_STRING *prot = NULL;
@@ -833,7 +833,8 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
             sk_X509_free(chain); /* only frees the stack, not the content */
         } else {
             /* Make sure that at least our own cert gets sent */
-            sk_X509_push(msg->extraCerts, X509_dup(ctx->clCert));
+            X509_up_ref(ctx->clCert);
+            sk_X509_push(msg->extraCerts, ctx->clCert);
         }
     }
 
@@ -1484,7 +1485,7 @@ int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type)
  * returns the body type of the given CMP message
  * returns -1 on error
  * ########################################################################## */
-int CMP_PKIMESSAGE_get_bodytype(CMP_PKIMESSAGE *msg)
+int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg)
 {
     if (!msg || !msg->body)
         return -1;
@@ -1567,29 +1568,27 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
 /* ########################################################################## *
  * Builds up the certificate chain of cert as high up as possible using
  * the given X509_STORE containing all possible intermediate certificates and
- * optionally the (possible) trust anchor(s).
+ * optionally the (possible) trust anchor(s). See also ssl_add_cert_chain().
  *
- * Intended use of this function is to find all the certificates below the trust
+ * Intended use of this function is to find all the certificates above the trust
  * anchor needed to verify an EE's own certificate.  Those are supposed to be
- * included in the ExtraCerts field of every first sent message of an tansaction
+ * included in the ExtraCerts field of every first sent message of a transaction
  * when MSG_SIG_ALG is utilized.
  *
- * NOTE: This creates duplicates of each certificate,
- * so when the stack is no longer needed it should be freed with
- * sk_X509_pop_free()
- * NOTE: in case there are more than one possibilities for certificates up the
- * chain, OpenSSL seems to take the first one, check X509_verify_cert() for
- * details.
+ * NOTE: This allocates a stack and increments the reference count of each cert,
+ * so when not needed any more the stack and all its elements should be freed.
+ * NOTE: in case there is more than one possibility for the chain,
+ * OpenSSL seems to take the first one, check X509_verify_cert() for details.
  *
  * returns a pointer to a stack of (duplicated) X509 certificates containing:
  *      - the EE certificate given in the function arguments (cert)
  *      - all intermediate certificates up the chain towards the trust anchor
- *      - the trust anchor if it was included in the store
+ *      - the (self-signed) trust anchor is not included
  *      returns NULL on error
  * ########################################################################## */
-STACK_OF (X509) * CMP_build_cert_chain(X509_STORE *store, X509 *cert)
+STACK_OF (X509) *CMP_build_cert_chain(X509_STORE *store, const X509 *cert)
 {
-    STACK_OF (X509) * chain = NULL, *chainDup = NULL;
+    STACK_OF (X509) * chain = NULL, *chain_dup = NULL;
     X509_STORE_CTX *csc = NULL;
     int i = 0;
 
@@ -1600,42 +1599,70 @@ STACK_OF (X509) * CMP_build_cert_chain(X509_STORE *store, X509 *cert)
     if (!csc)
         goto err;
 
-    /* chainDup to store the duplicated certificates */
-    chainDup = sk_X509_new_null();
-    if (!chainDup)
+    /* chain_dup to store the duplicated certificates */
+    chain_dup = sk_X509_new_null();
+    if (!chain_dup)
         goto err;
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #define X509_STORE_get0_param(store) (store->param)
 #endif
-    /* clear all flags, i.e., do not check CRLs */
+    /* clear all flags, thus do not check CRLs */
     X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(store), ~0);
-    if (!X509_STORE_CTX_init(csc, store, cert, NULL))
+    if (!X509_STORE_CTX_init(csc, store, (X509 *)cert, NULL))
         goto err;
 
     (void)X509_verify_cert(csc); /* ignore return value as it would fail
                                     without trust anchor given in store */
+    ERR_clear_error();           /* don't leave any errors in the queue */
+
     chain = X509_STORE_CTX_get0_chain(csc);
     for (i = 0; i < sk_X509_num(chain); i++) {
-        X509 *certDup = X509_dup(sk_X509_value(chain, i));
-        sk_X509_push(chainDup, certDup);
+        X509 *cert_dup = sk_X509_value(chain, i);
+        if (X509_check_issued(cert_dup, cert_dup) != X509_V_OK) {
+            X509_up_ref(cert_dup);
+            sk_X509_push(chain_dup, cert_dup);
+        }
     }
 
     X509_STORE_CTX_free(csc);
 
-    return chainDup;
+    return chain_dup;
 
  err:
-    if (csc)
-        X509_STORE_CTX_free(csc);
-    if (chainDup)
-        sk_X509_free(chainDup);
+    X509_STORE_CTX_free(csc);
+    sk_X509_free(chain_dup);
     return NULL;
 }
 
-/* ########################################################################## *
+STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store) {
+    int i;
+    STACK_OF(X509) *sk;
+    STACK_OF(X509_OBJECT) *objs;
+
+    if (!store)
+        return NULL;
+    if (!(sk = sk_X509_new_null()))
+        return NULL;
+    objs = X509_STORE_get0_objects((X509_STORE *)store);
+    for (i = 0; i < sk_X509_OBJECT_num(objs); i++) {
+        X509 *cert = X509_OBJECT_get0_X509(sk_X509_OBJECT_value(objs, i));
+        if (cert) {
+            X509_up_ref(cert);
+            if (!sk_X509_push(sk, cert)) {
+                X509_free(cert);
+                sk_X509_pop_free(sk, X509_free);
+                return NULL;
+            }
+        }
+    }
+    return sk;
+}
+
+/* ############################################################################
  * this function is intended to be used only within the CMP library although it
  * is included in cmp.h
+>>>>>>> cert verification diagnostics now prints untrusted and trusted store
  *
  * Returns the subject key identifier of the given certificate
  * returns NULL on error, respecively when none was found.
