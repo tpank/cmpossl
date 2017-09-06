@@ -67,6 +67,8 @@
  * Nokia for contribution to the OpenSSL project.
  */
 
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -232,71 +234,110 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMES
 
 /* Send bytes and/or read and parse response.
    returns 1 on success, 0 on error, -1 on BIO_should_retry */
-static int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
+static int CMP_sendreq_nbio(OCSP_REQ_CTX *rctx, CMP_PKIMESSAGE **presp)
 {
     return OCSP_REQ_CTX_nbio_d2i(rctx,
                                  (ASN1_VALUE **)presp,
                                  ASN1_ITEM_rptr(CMP_PKIMESSAGE));
 }
 
-static int wait(BIO *bio, int for_read, int max_seconds)
+/* TODO dvo: push that upstream with extended load_cert_crl_http(),
+   simplifying also other uses of select(), e.g., in query_responder() in apps/ocsp.c */
+/* returns < 0 on error, 0 on timeout, > 0 on success */
+int socket_wait(int fd, int for_read, int timeout)
 {
-    int fd;
     fd_set confds;
     struct timeval tv;
 
-    if (BIO_get_fd(bio, &fd) <= 0)
-        return -2;
+    if (timeout <= 0)
+        return 0;
 
     FD_ZERO(&confds);
     openssl_fdset(fd, &confds);
     tv.tv_usec = 0;
-    tv.tv_sec = max_seconds;
+    tv.tv_sec = timeout;
     return select(fd + 1, for_read ? &confds : NULL,
                   for_read ? NULL : &confds, NULL, &tv);
 }
 
+/* TODO dvo: push that upstream with extended load_cert_crl_http(),
+   simplifying also other uses of connect(), e.g., in query_responder() in apps/ocsp.c */
+/* returns -1 on error, 0 on timeout, 1 on success */
+int bio_connect(BIO *bio, int timeout) {
+    int blocking;
+    time_t max_time;
+    int rv;
+
+    blocking = timeout == 0;
+    max_time = timeout != 0 ? time(NULL) + timeout : 0;
+
+    if (!blocking)
+        BIO_set_nbio(bio, 1);
+ retry:
+    rv = BIO_do_connect(bio);
+    if (rv <= 0 && (errno == ETIMEDOUT /* in blocking case,
+          despite blocking BIO, BIO_do_connect() timed out */ ||
+          ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT/* when non-blocking,
+          BIO_do_connect() timed out early with rv == -1 and errno == 0 */)) {
+        ERR_clear_error();
+        (void)BIO_reset(bio); /* otherwise, blocking next connect() may crash
+                             and non-blocking next BIO_do_connect() will fail */
+        goto retry;
+    }
+    if (!blocking && rv <= 0 && BIO_should_retry(bio)) {
+        int fd;
+        if (BIO_get_fd(bio, &fd) <= 0)
+            return -1;
+        rv = socket_wait(fd, 0/* not for read here*/, max_time - time(NULL));
+#if 0
+        if (rv > 0)
+            /* for some reason, select() may wrongly have returned success */
+            goto retry;
+#endif
+    }
+    return rv;
+}
+
 /* Send out request and get response.
-   returns -3: send error, -2: receive error, -1: timeout, 0: parse error,
+   returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
    1: success and then provides the received message via the *out argument */
 static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
                        CMP_PKIMESSAGE **out, time_t max_time)
 {
-    OCSP_REQ_CTX *ctx;
+    OCSP_REQ_CTX *rctx;
     int rv, rc, sending = 1;
+    int fd;
 
-    if (!(ctx = CMP_sendreq_new(bio, path, req, -1)))
-        return 0;
+    if (!(rctx = CMP_sendreq_new(bio, path, req, -1)))
+        return -4;
+    if (BIO_get_fd(bio, &fd) <= 0)
+        return -4;
 
     *out = (CMP_PKIMESSAGE *)1; /* used for detecting parse errors */
-    for (;;) {
-        rv = CMP_sendreq_nbio(out, ctx);
-        if (rv == 1)
-            break;
-        if (rv != -1) {
-            if (sending && max_time != 0)
-                rv = -3;
-            else
-                rv = (*out == NULL) ? 0 : -2;
-            break;
-        }
-        sending = 0;
-        /* BIO_should_retry was true */
-        if (max_time != 0) { /* non-blocking mode */
-            int max_seconds = max_time - time(NULL);
-            if (max_seconds <= 0) /* timeout */
-                break;
-            rc = wait(bio, BIO_should_read(bio), max_seconds);
-            if (rc == 0) /* timeout */
-            break;
-            if (rc < 0) { /* select error */
-                rc = 0;
-                break;
+    do {
+        rv = CMP_sendreq_nbio(rctx, out);
+        if (rv == -1) {
+            sending = 0;
+            /* BIO_should_retry was true */
+            if (max_time != 0) { /* non-blocking mode */
+                rc = socket_wait(fd, BIO_should_read(bio), max_time - time(NULL));
+                if (rc <= 0) { /* error or timeout */
+                    rv = rc;
+                    break;
+                }
             }
+        } else {
+            if (rv != 1) {
+                if (sending && max_time != 0)
+                    rv = -3;
+                else
+                    rv = (*out == NULL) ? -1 : -2;
+            }
+            break;
         }
-    }
+    } while (rv == -1);
 
-    OCSP_REQ_CTX_free(ctx);
+    OCSP_REQ_CTX_free(rctx);
 
     return rv;
 }
@@ -316,14 +357,12 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     CMPBIO *cbio = NULL;
     CMPBIO *hbio = NULL;
     int err = CMP_R_SERVER_NOT_REACHABLE;
-    int blocking;
     time_t max_time;
 
     if (!ctx || !req || !res)
         return CMP_R_NULL_ARGUMENT;
 
     max_time = ctx->msgTimeOut != 0 ? time(NULL) + ctx->msgTimeOut : 0;
-    blocking = ctx->msgTimeOut == 0;
 
     if (!ctx->serverName || !ctx->serverPath || !ctx->serverPort)
         return CMP_R_NULL_ARGUMENT;
@@ -334,26 +373,18 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
 
     cbio = (ctx->tlsBIO) ? BIO_push(ctx->tlsBIO, hbio) : hbio;
 
-    if (!blocking)
-        BIO_set_nbio(cbio, 1);
-    rv = BIO_do_connect(cbio);
-    if (rv <= 0 && (blocking || !BIO_should_retry(cbio)))
-        goto err; /* Error connecting */
-
-    if (!blocking && rv <= 0) {
-        rv = wait(cbio, 0, ctx->msgTimeOut);
-        if (rv <= 0) {
-            err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT :
-                              CMP_R_SERVER_NOT_REACHABLE; /* the right error to return? */
-            goto err;
-        }
+    rv = bio_connect(cbio, ctx->msgTimeOut);
+    /* BIO_do_connect modifies hbio->prev_bio, which was ctx->tlsBIO - TODO why? */
+    if (rv <= 0) {
+        err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT :
+            CMP_R_SERVER_NOT_REACHABLE; /* the right error to return? */
+        goto err;
     }
 
     pathlen = strlen(ctx->serverName) + strlen(ctx->serverPath) + 33;
     path = (char *)OPENSSL_malloc(pathlen);
     if (!path)
         goto err; /* is CMP_R_SERVER_NOT_REACHABLE the right error to return? */
-
 
     /* Section 5.1.2 of RFC 1945 states that the absoluteURI form is only
      * allowed when using a proxy */
@@ -368,18 +399,20 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
 
     rv = CMP_sendreq(cbio, path, req, res, max_time);
+    OPENSSL_free(path);
     if (rv == -3)
         err = CMP_R_FAILED_TO_SEND_REQUEST;
     else if (rv == -2)
         err = CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE;
     else if (rv == -1)
-        err = CMP_R_READ_TIMEOUT;
-    else if (rv == 0)
         err = CMP_R_ERROR_DECODING_MESSAGE;
-    else
+    else if (rv == 0) {
+        /* closing BIO after read timeout */
+        /* TODO send alert to server */
+        /* TODO ssl/ssl_lib.c ssl_free_wbio_buffer() sometimes fails on ossl_assert(s->wbio != NULL) */
+        err = CMP_R_READ_TIMEOUT;
+    } else
         err = 0;
-
-    OPENSSL_free(path);
 
  err:
     if (err) {
@@ -400,3 +433,4 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     return err;
 }
 
+#endif /* !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK) */

@@ -266,7 +266,12 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->proxyPort = 8080;
     ctx->msgTimeOut = 2 * 60;
     ctx->tlsBIO = NULL;
-    ctx->msg_transfer_fn = CMP_PKIMESSAGE_http_perform;
+    ctx->msg_transfer_fn =
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+        CMP_PKIMESSAGE_http_perform;
+#else
+        NULL;
+#endif
     return 1;
 
  err:

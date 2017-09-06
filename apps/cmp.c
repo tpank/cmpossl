@@ -182,8 +182,9 @@ static char *opt_trusted = NULL;
 static char *opt_untrusted = NULL;
 static int opt_ignore_keyusage = 0;
 
-static char *opt_crls = NULL;
 static int opt_crl_download = 0;
+static char *opt_crls = NULL;
+static int opt_crl_timeout = 10;
 static X509_VERIFY_PARAM *vpm = NULL;
 static STACK_OF(X509_CRL) *local_crls = NULL;
 
@@ -353,7 +354,7 @@ typedef enum OPTION_choice {
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
     OPT_TLSTRUSTED, OPT_TLSHOST,
 
-    OPT_CRL_DOWNLOAD, OPT_CRLS,
+    OPT_CRL_DOWNLOAD, OPT_CRLS, OPT_CRL_TIMEOUT,
 #ifndef OPENSSL_NO_OCSP
     OPT_OCSP_CHECK_ALL,
     OPT_OCSP_USE_AIA,
@@ -463,6 +464,7 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0, "Note: -crl_download, -crls, and -crl_check require certificate status checking"},
     {OPT_MORE_STR, 0, 0, "for at least the leaf certificate using CRLs unless OCSP is enabled and succeeds."},
     {OPT_MORE_STR, 0, 0, "-crl_check_all requires revocation checks using CRLs for full certificate chain."},
+    {"crl_timeout", OPT_CRL_TIMEOUT, 'n', "Request timeout for online CRL retrieval (or 0 for none). Default 10 seconds"},
 #ifndef OPENSSL_NO_OCSP
     {"ocsp_check_all", OPT_OCSP_CHECK_ALL, '-', "Require revocation checks (via OCSP) for full certificate chain"},
     {"ocsp_use_aia", OPT_OCSP_USE_AIA, '-', "Use OCSP with AIA entries in certificates as primary URL of OCSP responder"},
@@ -514,7 +516,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
     {&opt_tls_trusted}, {&opt_tls_host},
 
-    { (char **)&opt_crl_download}, {&opt_crls},
+    { (char **)&opt_crl_download}, {&opt_crls}, { (char **)&opt_crl_timeout},
 #ifndef OPENSSL_NO_OCSP
     { (char **)&opt_ocsp_check_all}, { (char **)&opt_ocsp_use_aia}, {&opt_ocsp_url},
     { (char **)&opt_ocsp_timeout},
@@ -707,15 +709,16 @@ static int load_pkcs12(BIO *in, const char *desc,
 }
 
 /* TODO dvo: push that separately upstream with the autofmt options */
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-/* declaration copied from apps/apps.c just for visibility reasons */
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
+/* adapted from apps/apps.c to include connection timeout */
+static int load_cert_crl_http(const char *url, int req_timeout, X509 **pcert, X509_CRL **pcrl)
 {
     char *host = NULL, *port = NULL, *path = NULL;
     BIO *bio = NULL;
     OCSP_REQ_CTX *rctx = NULL;
     int use_ssl, rv = 0;
+    int fd;
+
     if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl))
         goto err;
     if (use_ssl) {
@@ -725,6 +728,10 @@ static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
     bio = BIO_new_connect(host);
     if (!bio || !BIO_set_conn_port(bio, port))
         goto err;
+
+    if (bio_connect(bio, req_timeout) <= 0)
+        goto err;
+
     rctx = OCSP_REQ_CTX_new(bio, 1024);
     if (rctx == NULL)
         goto err;
@@ -732,15 +739,22 @@ static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
         goto err;
     if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
-    if (pcert) {
-        do {
+    if (BIO_get_fd(bio, &fd) <= 0)
+        goto err;
+
+    do {
+        if (pcert)
             rv = X509_http_nbio(rctx, pcert);
-        } while (rv == -1);
-    } else {
-        do {
+        else
             rv = X509_CRL_http_nbio(rctx, pcrl);
-        } while (rv == -1);
-    }
+        if (rv == -1) {
+            if (req_timeout != -1) {
+                rv = socket_wait(fd, 0, req_timeout);
+                if (rv <= 0)
+                    goto err;
+            }
+        }
+    } while (rv == -1);
 
  err:
     OPENSSL_free(host);
@@ -756,9 +770,6 @@ static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
     }
     return rv;
 }
-#endif
-#else
-#define load_cert_crl_http(url, pcert, pcrl) load_cert_crl_http(url, bio_err, pcert, pcrl)
 #endif
 
 /* TODO dvo: push that separately upstream with the autofmt options */
@@ -776,7 +787,7 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
 
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        load_cert_crl_http(file, &x, NULL);
+        load_cert_crl_http(file, opt_crl_timeout, &x, NULL);
 #endif
         return x;
     }
@@ -825,7 +836,7 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
     cb_data.prompt_info = file;
 
     if (format == FORMAT_HTTP) {
-        load_cert_crl_http(file, &x, NULL);
+        load_cert_crl_http(file, opt_crl_timeout, &x, NULL);
         return x;
     }
 
@@ -1129,13 +1140,19 @@ static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const 
 /* TODO dvo: push that separately upstream */
 /* this is exclusively used by load_crls_fmt */
 static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
-    X509_CRL *crl;
+    X509_CRL *crl = NULL;
     BIO *bio_bak = bio_err;
     bio_err = NULL;
     /* BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
+    if (format == FORMAT_HTTP) {
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+        load_cert_crl_http(infile, opt_crl_timeout, NULL, &crl);
+#endif
+        return crl;
+    }
     crl = load_crl(infile, format);
-    if (crl == NULL && format != FORMAT_HTTP) {
+    if (crl == NULL) {
         ERR_clear_error();
         crl = load_crl(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
     }
@@ -2190,6 +2207,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             BIO_printf(bio_c_out,
 "warning: -crl_check_all has no effect without -crls, -crl_download, or -crl_check\n");
     }
+    if (opt_crl_timeout == 0)
+        opt_crl_timeout = -1;
     if (opt_crls) {
         X509_CRL *crl;
         STACK_OF(X509_CRL) *crls;
@@ -2233,6 +2252,16 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             sk_X509_pop_free(untrusted, X509_free);
             /* BIO_puts(bio_err, "error: out of memory\n"); */
             goto err;
+        }
+    } else if (!opt_crl_download) {
+        if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK_ALL) {
+            BIO_printf(bio_c_out, "warning: -crl_check_all is ignored without -crl_download or -crls\n");
+            X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK_ALL |
+                                               X509_V_FLAG_CRL_CHECK);
+        }
+        else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
+            BIO_printf(bio_c_out, "warning: -crl_check is ignored without -crl_download or -crls\n");
+            X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK);
         }
     }
 
@@ -3002,12 +3031,15 @@ opt_err:
         case OPT_IGNORE_KEYUSAGE:
             opt_ignore_keyusage = 1;
             break;
-        case OPT_CRLS:
-            opt_crls = opt_str("crls");
-            break;
         case OPT_CRL_DOWNLOAD:
             opt_crl_download = 1;
             break;
+        case OPT_CRLS:
+            opt_crls = opt_str("crls");
+            break;
+        case OPT_CRL_TIMEOUT:
+            if (!opt_int(opt_arg(), &opt_crl_timeout)) /* TODO replace by: if ((opt_crl_timeout = opt_nat()) < 0) */
+                goto opt_err;
 #ifndef OPENSSL_NO_OCSP
         case OPT_OCSP_CHECK_ALL:
             opt_ocsp_check_all = 1;

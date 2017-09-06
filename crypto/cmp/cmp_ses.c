@@ -208,7 +208,10 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     int err, rcvd_type;
 
     CMP_printf(ctx, "INFO: Sending %s", type_string);
-    err = (ctx->msg_transfer_fn)(ctx, req, rep);
+    if (ctx->msg_transfer_fn)
+        err = (ctx->msg_transfer_fn)(ctx, req, rep);
+    else
+        err = CMP_R_ERROR_SENDING_REQUEST;
     if (err) {
         if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
             err == CMP_R_READ_TIMEOUT ||

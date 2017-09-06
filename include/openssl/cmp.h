@@ -386,9 +386,13 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
                       const STACK_OF (X509) *untrusted_certs, const X509 *cert);
 
 /* from cmp_http.c */
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+int socket_wait(int fd, int for_read, int timeout);
+int bio_connect(BIO *bio, int timeout);
 int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
                                 const CMP_PKIMESSAGE *msg,
                                 CMP_PKIMESSAGE **out);
+#endif
 
 /* from cmp_ses.c */
 X509 *CMP_exec_IR_ses(CMP_CTX *ctx);
