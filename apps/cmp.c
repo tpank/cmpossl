@@ -2255,13 +2255,21 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     } else if (!opt_crl_download) {
         if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK_ALL) {
-            BIO_printf(bio_c_out, "warning: -crl_check_all is ignored without -crl_download or -crls\n");
+            BIO_printf(bio_c_out, "error: must use -crl_download or -crls when -crl_check_all is given\n");
+#if 0
             X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK_ALL |
                                                X509_V_FLAG_CRL_CHECK);
+#else
+            goto err;
+#endif
         }
         else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
-            BIO_printf(bio_c_out, "warning: -crl_check is ignored without -crl_download or -crls\n");
+            BIO_printf(bio_c_out, "must use -crl_download or -crls when -crl_check is given\n");
+#if 0
             X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK);
+#else
+            goto err;
+#endif
         }
     }
 
