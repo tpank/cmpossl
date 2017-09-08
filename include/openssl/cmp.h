@@ -388,6 +388,7 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
 /* from cmp_http.c */
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 int socket_wait(int fd, int for_read, int timeout);
+int bio_wait(BIO *bio, int timeout);
 int bio_connect(BIO *bio, int timeout);
 int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
                                 const CMP_PKIMESSAGE *msg,
@@ -667,6 +668,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC      170
 # define CMP_R_WRONG_ALGORITHM_OID                        171
 # define CMP_R_WRONG_KEY_USAGE                            172
+# define CMP_R_TLS_ERROR                                  173
 
 # ifdef  __cplusplus
 }

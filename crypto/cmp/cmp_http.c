@@ -102,7 +102,7 @@ typedef BIO CMPBIO;
 #  endif
 # endif
 
-static void print_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
+static void add_TLS_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 {
     char buf[200];
     if (errdetail == 0) {
@@ -112,10 +112,11 @@ static void print_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
         snprintf(buf, 200, "connecting to '%s' port %d", ctx->serverName, ctx->serverPort);
         CMP_add_error_data(buf);
     } else {
+#if 0
         CMP_add_error_data(ERR_lib_error_string(errdetail));
         CMP_add_error_data(ERR_func_error_string(errdetail));
         CMP_add_error_data(ERR_reason_error_string(errdetail));
-
+#endif
         switch(ERR_GET_REASON(errdetail)) {
     /*  case 0x1408F10B: */ /* xSL_F_SSL3_GET_RECORD */
         case SSL_R_WRONG_VERSION_NUMBER:
@@ -128,7 +129,7 @@ static void print_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
     /*  case 0x14090086: */ /* xSL_F_SSL3_GET_SERVER_CERTIFICATE */
     /*  case 0x1416F086: */ /* xSL_F_TLS_PROCESS_SERVER_CERTIFICATE */
         case SSL_R_CERTIFICATE_VERIFY_FAILED:
-            CMP_add_error_data("Cannot authenticate the server via its TLS certificate; hint: verify the trusted TLS certs");
+            CMP_add_error_data("Cannot authenticate the server via its TLS certificate; hint: verify the trusted root certs and cert revocation status if CRLs or OCSP is used");
             break;
     /*  case 0x14094418: */ /* xSL_F_SSL3_READ_BYTES */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -232,9 +233,9 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMES
     return NULL;
 }
 
-/* Send bytes and/or read and parse response.
+/* Send bytes, and/or read and parse response on (non-)blocking BIO
    returns 1 on success, 0 on error, -1 on BIO_should_retry */
-static int CMP_sendreq_nbio(OCSP_REQ_CTX *rctx, CMP_PKIMESSAGE **presp)
+static int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
 {
     return OCSP_REQ_CTX_nbio_d2i(rctx,
                                  (ASN1_VALUE **)presp,
@@ -260,6 +261,16 @@ int socket_wait(int fd, int for_read, int timeout)
                   for_read ? NULL : &confds, NULL, &tv);
 }
 
+/* TODO dvo: push that upstream with extended load_cert_crl_http(), 
+   simplifying also other uses of select(), e.g., in query_responder() in apps/ocsp.c */
+/* returns < 0 on error, 0 on timeout, > 0 on success */
+int bio_wait(BIO *bio, int timeout) {
+    int fd;
+    if (BIO_get_fd(bio, &fd) <= 0)
+        return -1;
+    return socket_wait(fd, BIO_should_read(bio), timeout);
+}
+
 /* TODO dvo: push that upstream with extended load_cert_crl_http(),
    simplifying also other uses of connect(), e.g., in query_responder() in apps/ocsp.c */
 /* returns -1 on error, 0 on timeout, 1 on success */
@@ -271,9 +282,10 @@ int bio_connect(BIO *bio, int timeout) {
     blocking = timeout == 0;
     max_time = timeout != 0 ? time(NULL) + timeout : 0;
 
+/* https://www.openssl.org/docs/man1.1.0/crypto/BIO_should_io_special.html */
     if (!blocking)
         BIO_set_nbio(bio, 1);
- retry:
+ retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
     rv = BIO_do_connect(bio);
     if (rv <= 0 && (errno == ETIMEDOUT /* in blocking case,
           despite blocking BIO, BIO_do_connect() timed out */ ||
@@ -284,16 +296,9 @@ int bio_connect(BIO *bio, int timeout) {
                              and non-blocking next BIO_do_connect() will fail */
         goto retry;
     }
-    if (!blocking && rv <= 0 && BIO_should_retry(bio)) {
-        int fd;
-        if (BIO_get_fd(bio, &fd) <= 0)
-            return -1;
-        rv = socket_wait(fd, 0/* not for read here*/, max_time - time(NULL));
-#if 0
-        if (rv > 0)
-            /* for some reason, select() may wrongly have returned success */
+    if (rv <= 0 && BIO_should_retry(bio)) {
+        if (blocking || (rv = bio_wait(bio, max_time - time(NULL))) > 0)
             goto retry;
-#endif
     }
     return rv;
 }
@@ -306,36 +311,33 @@ static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
 {
     OCSP_REQ_CTX *rctx;
     int rv, rc, sending = 1;
-    int fd;
+    int blocking = max_time == 0;
 
     if (!(rctx = CMP_sendreq_new(bio, path, req, -1)))
-        return -4;
-    if (BIO_get_fd(bio, &fd) <= 0)
         return -4;
 
     *out = (CMP_PKIMESSAGE *)1; /* used for detecting parse errors */
     do {
-        rv = CMP_sendreq_nbio(rctx, out);
-        if (rv == -1) {
+        rv = CMP_sendreq_nbio(out, rctx);
+        if (rv == -1) { /* BIO_should_retry was true */
             sending = 0;
-            /* BIO_should_retry was true */
-            if (max_time != 0) { /* non-blocking mode */
-                rc = socket_wait(fd, BIO_should_read(bio), max_time - time(NULL));
+            if (!blocking) {
+                rc = bio_wait(bio, max_time - time(NULL));
                 if (rc <= 0) { /* error or timeout */
                     rv = rc;
                     break;
                 }
             }
         } else {
-            if (rv != 1) {
-                if (sending && max_time != 0)
+            if (rv != 1) { /* an error occurred */
+                if (sending && !blocking)
                     rv = -3;
                 else
                     rv = (*out == NULL) ? -1 : -2;
             }
             break;
         }
-    } while (rv == -1);
+    } while (rv == -1); /* BIO_should_retry was true */
 
     OCSP_REQ_CTX_free(rctx);
 
@@ -346,7 +348,6 @@ static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
  * Send the PKIMessage req and on success place the response in *res.
  * returns 0 on success, else a CMP error reason code defined in cmp.h
  * ################################################################ */
-
 int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
                                 const CMP_PKIMESSAGE *req,
                                 CMP_PKIMESSAGE **res)
@@ -369,22 +370,24 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
 
     CMP_new_http_bio(&hbio, ctx);
     if (!hbio)
-        return CMP_R_NULL_ARGUMENT; /* better: out of memory */
-
+        return CMP_R_OUT_OF_MEMORY;
     cbio = (ctx->tlsBIO) ? BIO_push(ctx->tlsBIO, hbio) : hbio;
 
     rv = bio_connect(cbio, ctx->msgTimeOut);
-    /* BIO_do_connect modifies hbio->prev_bio, which was ctx->tlsBIO - TODO why? */
+    /* BIO_do_connect modifies hbio->prev_bio, which was ctx->tlsBIO - why?? */
     if (rv <= 0) {
-        err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT :
-            CMP_R_SERVER_NOT_REACHABLE; /* the right error to return? */
+        if (rv == 0)
+            err = CMP_R_CONNECT_TIMEOUT;
+        /* else CMP_R_SERVER_NOT_REACHABLE */
         goto err;
     }
 
     pathlen = strlen(ctx->serverName) + strlen(ctx->serverPath) + 33;
     path = (char *)OPENSSL_malloc(pathlen);
-    if (!path)
-        goto err; /* is CMP_R_SERVER_NOT_REACHABLE the right error to return? */
+    if (!path) {
+        err = CMP_R_OUT_OF_MEMORY;
+        goto err;
+    }
 
     /* Section 5.1.2 of RFC 1945 states that the absoluteURI form is only
      * allowed when using a proxy */
@@ -406,20 +409,21 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         err = CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE;
     else if (rv == -1)
         err = CMP_R_ERROR_DECODING_MESSAGE;
-    else if (rv == 0) {
-        /* closing BIO after read timeout */
-        /* TODO send alert to server */
-        /* TODO ssl/ssl_lib.c ssl_free_wbio_buffer() sometimes fails on ossl_assert(s->wbio != NULL) */
+    else if (rv == 0) { /* timeout */
+        /* We should notify/alert the peer when we abort; TODO: does the below BIO_reset suffice?
+           We cannot do one of the following because ssl is not available here: SSL_shutdown(ssl);
+           or more directly sth like ssl3_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_CLOSE_NOTIFY); */
         err = CMP_R_READ_TIMEOUT;
     } else
         err = 0;
 
  err:
     if (err) {
+        if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
+            err = CMP_R_TLS_ERROR;
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, err);
-        if (err == CMP_R_FAILED_TO_SEND_REQUEST ||
-            err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE)
-            print_error_hint(ctx, ERR_peek_error());
+        if (err == CMP_R_TLS_ERROR || CMP_R_SERVER_NOT_REACHABLE)
+            add_TLS_error_hint(ctx, ERR_peek_error());
     }
 
     (void)BIO_reset(cbio); /* notify/alert peer, init for potential next use */

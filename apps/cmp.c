@@ -717,7 +717,6 @@ static int load_cert_crl_http(const char *url, int req_timeout, X509 **pcert, X5
     BIO *bio = NULL;
     OCSP_REQ_CTX *rctx = NULL;
     int use_ssl, rv = 0;
-    int fd;
 
     if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl))
         goto err;
@@ -739,8 +738,6 @@ static int load_cert_crl_http(const char *url, int req_timeout, X509 **pcert, X5
         goto err;
     if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
-    if (BIO_get_fd(bio, &fd) <= 0)
-        goto err;
 
     do {
         if (pcert)
@@ -749,7 +746,7 @@ static int load_cert_crl_http(const char *url, int req_timeout, X509 **pcert, X5
             rv = X509_CRL_http_nbio(rctx, pcrl);
         if (rv == -1) {
             if (req_timeout != -1) {
-                rv = socket_wait(fd, 0, req_timeout);
+                rv = bio_wait(bio, req_timeout);
                 if (rv <= 0)
                     goto err;
             }

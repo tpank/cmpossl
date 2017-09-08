@@ -197,6 +197,7 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
      "sender name not supported"},
     {ERR_REASON(CMP_R_SERVER_NOT_REACHABLE), "server not reachable"},
     {ERR_REASON(CMP_R_UNEXPECTED_PKIBODY), "unexpected pkibody"},
+    {ERR_REASON(CMP_R_TLS_ERROR), "SSL/TLS error"},
     {ERR_REASON(CMP_R_UNEXPECTED_PKISTATUS), "unexpected pkistatus"},
     {ERR_REASON(CMP_R_UNEXPECTED_SENDER), "unexpected sender"},
     {ERR_REASON(CMP_R_UNKNOWN_ALGORITHM_ID), "unknown algorithm id"},
