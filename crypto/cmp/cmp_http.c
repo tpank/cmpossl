@@ -233,13 +233,11 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMES
     return NULL;
 }
 
-/* Send bytes, and/or read and parse response on (non-)blocking BIO
+/* Exchange CMP request/response via HTTP on (non-)blocking BIO
    returns 1 on success, 0 on error, -1 on BIO_should_retry */
-static int CMP_sendreq_nbio(CMP_PKIMESSAGE **presp, OCSP_REQ_CTX *rctx)
+static int CMP_http_nbio(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp)
 {
-    return OCSP_REQ_CTX_nbio_d2i(rctx,
-                                 (ASN1_VALUE **)presp,
-                                 ASN1_ITEM_rptr(CMP_PKIMESSAGE));
+    return OCSP_REQ_CTX_nbio_d2i(rctx, resp, ASN1_ITEM_rptr(CMP_PKIMESSAGE));
 }
 
 /* TODO dvo: push that upstream with extended load_cert_crl_http(),
@@ -279,8 +277,8 @@ int bio_connect(BIO *bio, int timeout) {
     time_t max_time;
     int rv;
 
-    blocking = timeout == 0;
-    max_time = timeout != 0 ? time(NULL) + timeout : 0;
+    blocking = timeout <= 0;
+    max_time = timeout > 0 ? time(NULL) + timeout : 0;
 
 /* https://www.openssl.org/docs/man1.1.0/crypto/BIO_should_io_special.html */
     if (!blocking)
@@ -303,41 +301,66 @@ int bio_connect(BIO *bio, int timeout) {
     return rv;
 }
 
-/* Send out request and get response.
+/* TODO dvo: push that upstream with extended load_cert_crl_http(),
+   simplifying also other uses of XXX_sendreq_nbio, e.g., in query_responder() in apps/ocsp.c */
+/* Even better would be to extend OCSP_REQ_CTX_nbio() and
+   thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior */
+/* Exchange ASN.1 request and response via HTTP on any BIO
    returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
-   1: success and then provides the received message via the *out argument */
-static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
-                       CMP_PKIMESSAGE **out, time_t max_time)
+   1: success and then provides the received message via the *resp argument */
+int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
+             OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time)
 {
-    OCSP_REQ_CTX *rctx;
     int rv, rc, sending = 1;
     int blocking = max_time == 0;
+    ASN1_VALUE *const pattern = (ASN1_VALUE *)-1;
 
-    if (!(rctx = CMP_sendreq_new(bio, path, req, -1)))
-        return -4;
-
-    *out = (CMP_PKIMESSAGE *)1; /* used for detecting parse errors */
+    *resp = pattern; /* used for detecting parse errors */
     do {
-        rv = CMP_sendreq_nbio(out, rctx);
-        if (rv != -1) {
-            if (rv == 0) { /* an error occurred */
+        rc = fn(rctx, resp);
+        if (rc != -1) {
+            if (rc == 0) { /* an error occurred */
                 if (sending && !blocking)
-                    rv = -3;
-                else
-                    rv = (*out == NULL) ? -1 : -2;
+                    rv = -3; /* send error */
+                else {
+                    if (*resp == pattern)
+                        rv = -2;/* receive error */
+                    else
+                        rv = -1; /* parse error */
+                }
+                *resp = NULL;
             }
             break;
         }
         /* else BIO_should_retry was true */
         sending = 0;
         if (!blocking) {
-            rc = bio_wait(bio, max_time - time(NULL));
-            if (rc <= 0) { /* error or timeout */
-                rv = rc;
+            rv = bio_wait(bio, max_time - time(NULL));
+            if (rv <= 0) { /* error or timeout */
+                if (rv < 0) /* error */
+                    rv = -4;
+                *resp = NULL;
                 break;
             }
         }
-    } while (rv == -1); /* BIO_should_retry was true */
+    } while (rc == -1); /* BIO_should_retry was true */
+
+    return rv;
+}
+
+/* Send out CNP request and get response on blocking or non-blocking BIO
+   returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
+   1: success and then provides the received message via the *resp argument */
+static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
+                       CMP_PKIMESSAGE **resp, time_t max_time)
+{
+    OCSP_REQ_CTX *rctx;
+    int rv;
+
+    if (!(rctx = CMP_sendreq_new(bio, path, req, -1)))
+        return -4;
+
+    rv = bio_http(bio, rctx, CMP_http_nbio, (ASN1_VALUE **)resp, max_time);
 
     OCSP_REQ_CTX_free(rctx);
 
@@ -363,7 +386,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
     if (!ctx || !req || !res)
         return CMP_R_NULL_ARGUMENT;
 
-    max_time = ctx->msgTimeOut != 0 ? time(NULL) + ctx->msgTimeOut : 0;
+    max_time = ctx->msgTimeOut > 0 ? time(NULL) + ctx->msgTimeOut : 0;
 
     if (!ctx->serverName || !ctx->serverPath || !ctx->serverPort)
         return CMP_R_NULL_ARGUMENT;

@@ -717,6 +717,7 @@ static int load_cert_crl_http(const char *url, int req_timeout, X509 **pcert, X5
     BIO *bio = NULL;
     OCSP_REQ_CTX *rctx = NULL;
     int use_ssl, rv = 0;
+    time_t max_time = req_timeout > 0 ? time(NULL) + req_timeout : 0;
 
     if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl))
         goto err;
@@ -739,19 +740,8 @@ static int load_cert_crl_http(const char *url, int req_timeout, X509 **pcert, X5
     if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
 
-    do {
-        if (pcert)
-            rv = X509_http_nbio(rctx, pcert);
-        else
-            rv = X509_CRL_http_nbio(rctx, pcrl);
-        if (rv == -1) {
-            if (req_timeout != -1) {
-                rv = bio_wait(bio, req_timeout);
-                if (rv <= 0)
-                    goto err;
-            }
-        }
-    } while (rv == -1);
+    rv = bio_http(bio, rctx, pcert ? (http_fn)X509_http_nbio : (http_fn)X509_CRL_http_nbio,
+                             pcert ? (ASN1_VALUE **)pcert : (ASN1_VALUE **)pcrl, max_time);
 
  err:
     OPENSSL_free(host);
@@ -761,7 +751,8 @@ static int load_cert_crl_http(const char *url, int req_timeout, X509 **pcert, X5
         BIO_free_all(bio);
     OCSP_REQ_CTX_free(rctx);
     if (rv != 1) {
-        BIO_printf(bio_err, "Error loading %s from '%s'\n",
+        BIO_printf(bio_err, "%s loading %s from '%s'\n",
+                   rv == 0 ? "Timeout" : rv == -1 ? "Parse Error" : "Transfer error",
                    pcert ? "certificate" : "CRL", url);
         ERR_print_errors(bio_err);
     }
