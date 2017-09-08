@@ -261,7 +261,7 @@ int socket_wait(int fd, int for_read, int timeout)
                   for_read ? NULL : &confds, NULL, &tv);
 }
 
-/* TODO dvo: push that upstream with extended load_cert_crl_http(), 
+/* TODO dvo: push that upstream with extended load_cert_crl_http(),
    simplifying also other uses of select(), e.g., in query_responder() in apps/ocsp.c */
 /* returns < 0 on error, 0 on timeout, > 0 on success */
 int bio_wait(BIO *bio, int timeout) {
@@ -319,23 +319,23 @@ static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
     *out = (CMP_PKIMESSAGE *)1; /* used for detecting parse errors */
     do {
         rv = CMP_sendreq_nbio(out, rctx);
-        if (rv == -1) { /* BIO_should_retry was true */
-            sending = 0;
-            if (!blocking) {
-                rc = bio_wait(bio, max_time - time(NULL));
-                if (rc <= 0) { /* error or timeout */
-                    rv = rc;
-                    break;
-                }
-            }
-        } else {
-            if (rv != 1) { /* an error occurred */
+        if (rv != -1) {
+            if (rv == 0) { /* an error occurred */
                 if (sending && !blocking)
                     rv = -3;
                 else
                     rv = (*out == NULL) ? -1 : -2;
             }
             break;
+        }
+        /* else BIO_should_retry was true */
+        sending = 0;
+        if (!blocking) {
+            rc = bio_wait(bio, max_time - time(NULL));
+            if (rc <= 0) { /* error or timeout */
+                rv = rc;
+                break;
+            }
         }
     } while (rv == -1); /* BIO_should_retry was true */
 
