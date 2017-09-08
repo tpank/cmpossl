@@ -67,8 +67,6 @@
  * Nokia for contribution to the OpenSSL project.
  */
 
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -91,8 +89,6 @@
 
 #include "cmp_int.h"
 
-typedef BIO CMPBIO;
-
 /* from apps.h */
 # ifndef openssl_fdset
 #  ifdef OPENSSL_SYSNAME_WIN32
@@ -101,6 +97,144 @@ typedef BIO CMPBIO;
 #   define openssl_fdset(a,b) FD_SET(a, b)
 #  endif
 # endif
+
+/* TODO dvo: push that upstream with extended load_cert_crl_http(),
+   simplifying also other uses of select(), e.g., in query_responder() in apps/ocsp.c */
+/* returns < 0 on error, 0 on timeout, > 0 on success */
+int socket_wait(int fd, int for_read, int timeout)
+{
+    fd_set confds;
+    struct timeval tv;
+
+    if (timeout <= 0)
+        return 0;
+
+    FD_ZERO(&confds);
+    openssl_fdset(fd, &confds);
+    tv.tv_usec = 0;
+    tv.tv_sec = timeout;
+    return select(fd + 1, for_read ? &confds : NULL,
+                  for_read ? NULL : &confds, NULL, &tv);
+}
+
+/* TODO dvo: push that upstream with extended load_cert_crl_http(),
+   simplifying also other uses of select(), e.g., in query_responder() in apps/ocsp.c */
+/* returns < 0 on error, 0 on timeout, > 0 on success */
+int bio_wait(BIO *bio, int timeout) {
+    int fd;
+    if (BIO_get_fd(bio, &fd) <= 0)
+        return -1;
+    return socket_wait(fd, BIO_should_read(bio), timeout);
+}
+
+/* TODO dvo: push that upstream with extended load_cert_crl_http(),
+   simplifying also other uses of connect(), e.g., in query_responder() in apps/ocsp.c */
+/* returns -1 on error, 0 on timeout, 1 on success */
+int bio_connect(BIO *bio, int timeout) {
+    int blocking;
+    time_t max_time;
+    int rv;
+
+    blocking = timeout <= 0;
+    max_time = timeout > 0 ? time(NULL) + timeout : 0;
+
+/* https://www.openssl.org/docs/man1.1.0/crypto/BIO_should_io_special.html */
+    if (!blocking)
+        BIO_set_nbio(bio, 1);
+ retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
+    rv = BIO_do_connect(bio);
+    if (rv <= 0 && (errno == ETIMEDOUT /* in blocking case,
+          despite blocking BIO, BIO_do_connect() timed out */ ||
+          ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT/* when non-blocking,
+          BIO_do_connect() timed out early with rv == -1 and errno == 0 */)) {
+        ERR_clear_error();
+        (void)BIO_reset(bio); /* otherwise, blocking next connect() may crash
+                             and non-blocking next BIO_do_connect() will fail */
+        goto retry;
+    }
+    if (rv <= 0 && BIO_should_retry(bio)) {
+        if (blocking || (rv = bio_wait(bio, max_time - time(NULL))) > 0)
+            goto retry;
+    }
+    return rv;
+}
+
+
+/* ########################################################################## */
+
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+
+/* TODO dvo: push that upstream with extended load_cert_crl_http(),
+   simplifying also other uses of XXX_sendreq_nbio, e.g., in query_responder() in apps/ocsp.c */
+/* Even better would be to extend OCSP_REQ_CTX_nbio() and
+   thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior */
+/* Exchange ASN.1 request and response via HTTP on any BIO
+   returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
+   1: success and then provides the received message via the *resp argument */
+int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
+             OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time)
+{
+    int rv, rc, sending = 1;
+    int blocking = max_time == 0;
+    ASN1_VALUE *const pattern = (ASN1_VALUE *)-1;
+
+    *resp = pattern; /* used for detecting parse errors */
+    do {
+        rc = fn(rctx, resp);
+        if (rc != -1) {
+            if (rc == 0) { /* an error occurred */
+                if (sending && !blocking)
+                    rv = -3; /* send error */
+                else {
+                    if (*resp == pattern)
+                        rv = -2;/* receive error */
+                    else
+                        rv = -1; /* parse error */
+                }
+                *resp = NULL;
+            }
+            break;
+        }
+        /* else BIO_should_retry was true */
+        sending = 0;
+        if (!blocking) {
+            rv = bio_wait(bio, max_time - time(NULL));
+            if (rv <= 0) { /* error or timeout */
+                if (rv < 0) /* error */
+                    rv = -4;
+                *resp = NULL;
+                break;
+            }
+        }
+    } while (rc == -1); /* BIO_should_retry was true */
+
+    return rv;
+}
+
+/* one declaration and three defines copied from ocsp_ht.c; keep in sync! */
+struct ocsp_req_ctx_st { /* dummy declaration to get access to internal state variable */
+    int state;                  /* Current I/O state */
+    unsigned char *iobuf;       /* Line buffer */
+    int iobuflen;               /* Line buffer length */
+    BIO *io;                    /* BIO to perform I/O with */
+    BIO *mem;                   /* Memory BIO response is built into */
+};
+#define OHS_NOREAD              0x1000
+#define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
+
+/* adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c - TODO: generalize the function there */
+static int OCSP_REQ_CTX_i2d_hdr(OCSP_REQ_CTX *rctx, const char *req_hdr, const ASN1_ITEM *it, ASN1_VALUE *val)
+{
+    int reqlen = ASN1_item_i2d(val, NULL, it);
+    if (BIO_printf(rctx->mem, req_hdr, reqlen) <= 0)
+        return 0;
+    if (ASN1_item_i2d_bio(it, rctx->mem, val) <= 0)
+        return 0;
+    rctx->state = OHS_ASN1_WRITE_INIT;
+    return 1;
+}
+
+/* ########################################################################## */
 
 static void add_TLS_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 {
@@ -148,28 +282,7 @@ static void add_TLS_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
     }
 }
 
-/* one declaration and three defines copied from ocsp_ht.c; keep in sync! */
-struct ocsp_req_ctx_st { /* dummy declaration to get access to internal state variable */
-    int state;                  /* Current I/O state */
-    unsigned char *iobuf;       /* Line buffer */
-    int iobuflen;               /* Line buffer length */
-    BIO *io;                    /* BIO to perform I/O with */
-    BIO *mem;                   /* Memory BIO response is built into */
-};
-#define OHS_NOREAD              0x1000
-#define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
-
-/* adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c - TODO: generalize the function there */
-static int OCSP_REQ_CTX_i2d_hdr(OCSP_REQ_CTX *rctx, const char *req_hdr, const ASN1_ITEM *it, ASN1_VALUE *val)
-{
-    int reqlen = ASN1_item_i2d(val, NULL, it);
-    if (BIO_printf(rctx->mem, req_hdr, reqlen) <= 0)
-        return 0;
-    if (ASN1_item_i2d_bio(it, rctx->mem, val) <= 0)
-        return 0;
-    rctx->state = OHS_ASN1_WRITE_INIT;
-    return 1;
-}
+typedef BIO CMPBIO;
 
 /* ########################################################################## *
  * internal function
@@ -238,114 +351,6 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMES
 static int CMP_http_nbio(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp)
 {
     return OCSP_REQ_CTX_nbio_d2i(rctx, resp, ASN1_ITEM_rptr(CMP_PKIMESSAGE));
-}
-
-/* TODO dvo: push that upstream with extended load_cert_crl_http(),
-   simplifying also other uses of select(), e.g., in query_responder() in apps/ocsp.c */
-/* returns < 0 on error, 0 on timeout, > 0 on success */
-int socket_wait(int fd, int for_read, int timeout)
-{
-    fd_set confds;
-    struct timeval tv;
-
-    if (timeout <= 0)
-        return 0;
-
-    FD_ZERO(&confds);
-    openssl_fdset(fd, &confds);
-    tv.tv_usec = 0;
-    tv.tv_sec = timeout;
-    return select(fd + 1, for_read ? &confds : NULL,
-                  for_read ? NULL : &confds, NULL, &tv);
-}
-
-/* TODO dvo: push that upstream with extended load_cert_crl_http(),
-   simplifying also other uses of select(), e.g., in query_responder() in apps/ocsp.c */
-/* returns < 0 on error, 0 on timeout, > 0 on success */
-int bio_wait(BIO *bio, int timeout) {
-    int fd;
-    if (BIO_get_fd(bio, &fd) <= 0)
-        return -1;
-    return socket_wait(fd, BIO_should_read(bio), timeout);
-}
-
-/* TODO dvo: push that upstream with extended load_cert_crl_http(),
-   simplifying also other uses of connect(), e.g., in query_responder() in apps/ocsp.c */
-/* returns -1 on error, 0 on timeout, 1 on success */
-int bio_connect(BIO *bio, int timeout) {
-    int blocking;
-    time_t max_time;
-    int rv;
-
-    blocking = timeout <= 0;
-    max_time = timeout > 0 ? time(NULL) + timeout : 0;
-
-/* https://www.openssl.org/docs/man1.1.0/crypto/BIO_should_io_special.html */
-    if (!blocking)
-        BIO_set_nbio(bio, 1);
- retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
-    rv = BIO_do_connect(bio);
-    if (rv <= 0 && (errno == ETIMEDOUT /* in blocking case,
-          despite blocking BIO, BIO_do_connect() timed out */ ||
-          ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT/* when non-blocking,
-          BIO_do_connect() timed out early with rv == -1 and errno == 0 */)) {
-        ERR_clear_error();
-        (void)BIO_reset(bio); /* otherwise, blocking next connect() may crash
-                             and non-blocking next BIO_do_connect() will fail */
-        goto retry;
-    }
-    if (rv <= 0 && BIO_should_retry(bio)) {
-        if (blocking || (rv = bio_wait(bio, max_time - time(NULL))) > 0)
-            goto retry;
-    }
-    return rv;
-}
-
-/* TODO dvo: push that upstream with extended load_cert_crl_http(),
-   simplifying also other uses of XXX_sendreq_nbio, e.g., in query_responder() in apps/ocsp.c */
-/* Even better would be to extend OCSP_REQ_CTX_nbio() and
-   thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior */
-/* Exchange ASN.1 request and response via HTTP on any BIO
-   returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
-   1: success and then provides the received message via the *resp argument */
-int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
-             OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time)
-{
-    int rv, rc, sending = 1;
-    int blocking = max_time == 0;
-    ASN1_VALUE *const pattern = (ASN1_VALUE *)-1;
-
-    *resp = pattern; /* used for detecting parse errors */
-    do {
-        rc = fn(rctx, resp);
-        if (rc != -1) {
-            if (rc == 0) { /* an error occurred */
-                if (sending && !blocking)
-                    rv = -3; /* send error */
-                else {
-                    if (*resp == pattern)
-                        rv = -2;/* receive error */
-                    else
-                        rv = -1; /* parse error */
-                }
-                *resp = NULL;
-            }
-            break;
-        }
-        /* else BIO_should_retry was true */
-        sending = 0;
-        if (!blocking) {
-            rv = bio_wait(bio, max_time - time(NULL));
-            if (rv <= 0) { /* error or timeout */
-                if (rv < 0) /* error */
-                    rv = -4;
-                *resp = NULL;
-                break;
-            }
-        }
-    } while (rc == -1); /* BIO_should_retry was true */
-
-    return rv;
 }
 
 /* Send out CNP request and get response on blocking or non-blocking BIO
