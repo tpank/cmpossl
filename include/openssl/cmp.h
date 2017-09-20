@@ -246,10 +246,6 @@ typedef ASN1_INTEGER CMP_PKISTATUS;
 # define CMP_CERTORENCCERT_CERTIFICATE   0
 # define CMP_CERTORENCCERT_ENCRYPTEDCERT 1
 
-#define CERTREQID 0L
-#define REVREQID 0L
-
-
 /* Forward declarations */
 typedef struct cmp_ctx_st CMP_CTX;
 typedef struct cmp_pkiheader_st CMP_PKIHEADER;
@@ -292,8 +288,7 @@ CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
 CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
 
 /* cmp_lib.c */
-long CMP_REVREPCONTENT_PKIStatus_get(CMP_REVREPCONTENT *revRep,
-                                     long reqId);
+long CMP_REVREPCONTENT_PKIStatus_get(CMP_REVREPCONTENT *rrep, long rsid);
 int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
 int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
@@ -557,6 +552,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_PKIMESSAGE_GENM_ITEMS_PUSH1            160
 # define CMP_F_CMP_PKIMESSAGE_GENM_ITEM_PUSH0             161
 # define CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM                162
+# define CMP_F_CMP_PKIMESSAGE_POLLRESPONSE_GET0           186
 # define CMP_F_CMP_PKIMESSAGE_PROTECT                     163
 # define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET            164
 # define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING     165

@@ -40,7 +40,7 @@
 
   #include <openssl/cmp.h>
 
-  long CMP_REVREPCONTENT_PKIStatus_get( CMP_REVREPCONTENT *revRep, long reqId);
+  long CMP_REVREPCONTENT_PKIStatus_get(CMP_REVREPCONTENT *rrep, long rsid);
   CMP_POLLREP *CMP_PKIMESSAGE_pollResponse_get0(CMP_PKIMESSAGE *prep, long rid);
   CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
   int CMP_CERTSTATUS_set_certHash( CMP_CERTSTATUS *certStatus, const X509 *cert);
@@ -68,7 +68,7 @@
   int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
   ASN1_BIT_STRING *CMP_calc_protection_pbmac(CMP_PKIMESSAGE *pkimessage, const ASN1_OCTET_STRING *secret);
   int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
-  int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg); 
+  int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
   CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text);
   long CMP_PKISTATUSINFO_PKIStatus_get( CMP_PKISTATUSINFO *statusInfo);
@@ -78,7 +78,9 @@
 
 =head1 DESCRIPTION
 
-CMP_REVREPCONTENT_PKIStatus_get() returns the PKIStatus of the given Rev, or -1 on error.
+CMP_REVREPCONTENT_PKIStatus_get() returns the PKIStatus of the status appearing
+at the given id in the sequence (matching the sequence id as sent in the
+RevReqContent), or -1 on error.
 
 CMP_PKIMESSAGE_pollResponse_get0() returns a pointer to the PollResponse
 with the given certReqId (or the first one in case -1) inside a pollRep PKIMessage.
@@ -127,7 +129,7 @@ CMP_PKIHEADER_set1_sender() sets the sender field in the given PKIHeader
 to the given X509 Name value, without consuming the pointer.
 
 CMP_PKIHEADER_set1_senderKID() Sets hdr->senderKID to the given
-string. In IR this is the reference number issued by the CA. In KUR 
+string. In IR this is the reference number issued by the CA. In KUR
 this is set to the public key ID from the previously issued certificate.
 
 CMP_PKIHEADER_set1_transactionID() copies the given transactionID to
@@ -183,7 +185,7 @@ certificate from the given certResponse B<crep>.
 Takes the newKey in case of indirect POP from B<ctx>.
 Returns a pointer to a copy of the found certificate, or NULL if not found.
 
-CMP_build_cert_chain() builds up the certificate chain of cert as high up as possible 
+CMP_build_cert_chain() builds up the certificate chain of cert as high up as possible
 using the given X509_STORE containing all possible intermediate certificates and
 optionally the (possible) trust anchor(s).
 

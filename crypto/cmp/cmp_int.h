@@ -696,6 +696,16 @@ CMP_PKIFAILUREINFO
     *CMP_CERTRESPONSE_PKIFailureInfo_get0(CMP_CERTRESPONSE *crep);
 
 
+/* ########################################################################## *
+ * constants
+ * ########################################################################## */
+
+/* certReqId for the first - and so far only - certificate request */
+# define CERTREQID 0L
+/* sequence id for the first - and so far only - revocation request */
+# define REVREQSID 0L
+
+
 # ifdef  __cplusplus
 }
 # endif

@@ -1248,17 +1248,20 @@ static char *CMP_PKISTATUSINFO_PKIFailureInfo_get_string(CMP_PKISTATUSINFO
     return 0;
 }
 
-/* ############################################################################ *
- * returns the PKIStatus of the given certReqId inside a Rev
+/* ########################################################################## *
+ * returns the PKIStatus of status with the given request/sequence id inside a
+ * revocation reply.
+ * RevRepContent has the revocation statuses in same order as they were sent in
+ * RevReqContent.
  * returns -1 on error
- * ############################################################################ */
-long CMP_REVREPCONTENT_PKIStatus_get(CMP_REVREPCONTENT *revRep, long reqId)
+ * ########################################################################## */
+long CMP_REVREPCONTENT_PKIStatus_get(CMP_REVREPCONTENT *rrep, long rsid)
 {
     CMP_PKISTATUSINFO *status = NULL;
-    if (!revRep)
+    if (!rrep)
         return -1;
 
-    if ((status = sk_CMP_PKISTATUSINFO_value(revRep->status, reqId))) {
+    if ((status = sk_CMP_PKISTATUSINFO_value(rrep->status, rsid))) {
         return CMP_PKISTATUSINFO_PKIStatus_get(status);
     }
 
