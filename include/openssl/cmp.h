@@ -434,6 +434,7 @@ int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
 int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
 int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO * failInfo);
 unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
+long CMP_CTX_status_get(CMP_CTX *ctx);
 CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx);
 # define CMP_CTX_OPT_MSGTIMEOUT                 0
 # define CMP_CTX_OPT_MAXPOLLTIME                1

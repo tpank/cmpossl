@@ -638,6 +638,9 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
     long rid = (req_type == V_CMP_PKIBODY_P10CR) ? -1 : CERTREQID;
     X509 *result = NULL;
 
+    if (ctx)
+        ctx->lastPKIStatus = -1;
+
     /* The check if all necessary options are set is done in CMP_certreq_new */
     if (!(req = CMP_certreq_new(ctx, req_type, req_err)))
         goto err;
@@ -683,6 +686,9 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
     CMP_PKISTATUSINFO *si = NULL;
     int result = 0;
 
+    if (ctx)
+        ctx->lastPKIStatus = -1;
+
     /* check if all necessary options are set is done in CMP_rr_new */
     /* create Revocation Request - ir */
     if (!(rr = CMP_rr_new(ctx)))
@@ -694,7 +700,7 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
 
     /* evaluate PKIStatus field */
     si = CMP_REVREPCONTENT_status_get(rp->body->value.rp, REVREQSID);
-    switch (CMP_PKISTATUSINFO_PKIStatus_get(si)) {
+    switch (ctx->lastPKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(si)) {
     case CMP_PKISTATUS_accepted:
         CMP_printf(ctx, "INFO: revocation accepted (PKIStatus=accepted)");
         result = 1;

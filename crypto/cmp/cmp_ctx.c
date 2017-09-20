@@ -334,15 +334,21 @@ CMP_CTX *CMP_CTX_create(void)
 }
 
 /* ################################################################ *
- * returns the statusString from the last CertRepMessage, NULL on error
+ * returns the PKIStatus from the last CertRepMessage
+ * or Revocation Response, -1 on error
+ * ################################################################ */
+long CMP_CTX_status_get(CMP_CTX *ctx)
+{
+    return ctx != NULL ? ctx->lastPKIStatus : -1;
+}
+
+/* ################################################################ *
+ * returns the statusString from the last CertRepMessage
+ * or Revocation Response, NULL on error
  * ################################################################ */
 CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx)
 {
-    if (!ctx)
-        goto err;
-    return ctx->lastStatusString;
- err:
-    return NULL;
+    return ctx != NULL ? ctx->lastStatusString : NULL;
 }
 
 /* ################################################################ *

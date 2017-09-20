@@ -44,6 +44,7 @@
  CMP_CTX_set_debug_callback,
  CMP_printf,
 
+ CMP_CTX_status_get
  CMP_CTX_statusString_get
  CMP_CTX_failInfoCode_get
  CMP_CTX_set_failInfoCode
@@ -117,7 +118,8 @@
 
  int CMP_CTX_set_option( CMP_CTX *ctx, const int opt, const int val);
 
- STACK_OF(ASN1_UTF8STRING) *CMP_CTX_statusString_get(CMP_CTX *ctx);
+ long CMP_CTX_status_get(CMP_CTX *ctx);
+ CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx);
  unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
  int CMP_CTX_set_failInfoCode( CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo);
  int CMP_CTX_set_popoMethod( CMP_CTX *ctx, int method);
@@ -342,8 +344,11 @@ debug messages.
 CMP_printf() is used for printing debug messages if debug_cb is set
 (CMP_CTX_INIT defaults to puts()).
 
-CMP_CTX_statusString_get() returns the statusString from the last 
-CertRepMessage, NULL on error.
+CMP_CTX_status_get() returns the PKIstatus from the last
+CertRepMessage or Revocation Response, -1 on error.
+
+CMP_CTX_statusString_get() returns the statusString from the last
+CertRepMessage or Revocation Response, NULL on error.
 
 CMP_CTX_set_failInfoCode() sets the failinfo error code bits in CMP_CTX 
 based on the given CMP_PKIFAILUREINFO structure.

@@ -93,7 +93,7 @@ struct cmp_ctx_st {
     int unprotectedErrors; /* accept unprotected error responses */
     int maxPollTime; /* maximum number of seconds to poll the server
                         for a response if a 'waiting' PKIStatus is received */
-    long lastPKIStatus; /* PKIStatus of last received IP/CP/KUP */
+    long lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP, or -1 */
     /* TODO: this should be a stack since there could be more than one */
     unsigned long failInfoCode; /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
