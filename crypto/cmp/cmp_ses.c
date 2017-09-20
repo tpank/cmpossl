@@ -165,13 +165,11 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
         if ((rcvd_type == V_CMP_PKIBODY_RP)
                 && CMP_REVREPCONTENT_PKIStatus_get(rep->body->value.rp, 0)
                    == CMP_PKISTATUS_rejection) {
-            CMP_printf(ctx, "WARN: ignoring missing protection of revocation "
-                            "response message with rejection status");
+            CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
             exception = 1;
         }
         if (rcvd_type == V_CMP_PKIBODY_PKICONF) {
-            CMP_printf(ctx, "WARN: ignoring missing protection of PKI "
-                            "Confirmation message");
+            CMP_printf(ctx, "WARN: ignoring missing protection of PKI Confirmation message");
             exception = 1;
         }
         if (rcvd_type == type_rep &&
@@ -185,8 +183,7 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
             if (!crep)
                 return 0;
             if (CMP_CERTRESPONSE_PKIStatus_get(crep) == CMP_PKISTATUS_rejection) {
-                CMP_printf(ctx, "WARN: ignoring missing protection of "
-                                "CertRepMessage with rejection status");
+                CMP_printf(ctx, "WARN: ignoring missing protection of CertRepMessage with rejection status");
                 exception = 1;
             }
         }
@@ -303,8 +300,7 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
     CMP_PKIMESSAGE *prep = NULL;
     CMP_POLLREP *pollRep = NULL;
 
-    CMP_printf(ctx, "INFO: Received 'waiting' PKIStatus, starting to poll for "
-                    "response.");
+    CMP_printf(ctx, "INFO: Received 'waiting' PKIStatus, starting to poll for response.");
     for (;;) {
         if (!(preq = CMP_pollReq_new(ctx, 0)))
             goto err;
@@ -328,8 +324,7 @@ static int pollForResponse(CMP_CTX *ctx, CMP_PKIMESSAGE **out)
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
             CMP_printf(ctx,
-                       "INFO: Received polling response, waiting checkAfter = "
-                       " %ld sec before next polling request.", checkAfter);
+                       "INFO: Received polling response, waiting checkAfter =  %ld sec before next polling request.", checkAfter);
 
             if (ctx->maxPollTime != 0) { /* timout is set in context */
                 if (maxTimeLeft == 0)
@@ -488,8 +483,7 @@ static int cert_response(CMP_CTX *ctx, CMP_PKIMESSAGE **resp,
             goto retry;
         } else {
             CMPerr(type_function, not_received);
-            ERR_add_error_data(1, "received 'waiting' pkistatus but polling "
-                                  "failed");
+            ERR_add_error_data(1, "received 'waiting' pkistatus but polling failed");
             *resp = NULL;
             return 0;
         }
@@ -539,8 +533,7 @@ static int cert_response(CMP_CTX *ctx, CMP_PKIMESSAGE **resp,
         /* cannot flag error earlier as send_receive_check() indirectly calls
          * ERR_clear_error() */
         CMPerr(type_function, CMP_R_CERTIFICATE_NOT_ACCEPTED);
-        ERR_add_error_data(1, "certConf callback resulted in rejection of new "
-                              "certificate");
+        ERR_add_error_data(1, "certConf callback resulted in rejection of new certificate");
         return 0;
     }
     return 1;
@@ -630,8 +623,7 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
         CMP_printf(ctx, "INFO: revocation accepted (PKIStatus=accepted)");
         break;
     case CMP_PKISTATUS_grantedWithMods:
-        CMP_printf(ctx, "INFO: revocation accepted "
-                        "(PKIStatus=grantedWithMods)");
+        CMP_printf(ctx, "INFO: revocation accepted (PKIStatus=grantedWithMods)");
         break;
     case CMP_PKISTATUS_rejection:
         CMP_printf(ctx, "INFO: revocation rejected (PKIStatus=rejection)");
@@ -639,12 +631,10 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
         puts("warning: certificate has already been revoked");
         break;
     case CMP_PKISTATUS_revocationWarning:
-        CMP_printf(ctx, "INFO: revocation accepted "
-                        "(PKIStatus=revocationWarning)");
+        CMP_printf(ctx, "INFO: revocation accepted (PKIStatus=revocationWarning)");
         break;
     case CMP_PKISTATUS_revocationNotification:
-        CMP_printf(ctx, "INFO: revocation accepted "
-                        "(PKIStatus=revocationNotification)");
+        CMP_printf(ctx, "INFO: revocation accepted (PKIStatus=revocationNotification)");
         break;
     case CMP_PKISTATUS_waiting:
     case CMP_PKISTATUS_keyUpdateWarning:
