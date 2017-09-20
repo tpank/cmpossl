@@ -246,7 +246,7 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
     X509_EXTENSIONS *exts = NULL;
 
     if (!ctx ||
-            (bodytype != V_CMP_PKIBODY_P10CR && !ctx->pkey && !ctx->newPkey) ) {
+        (bodytype != V_CMP_PKIBODY_P10CR && !ctx->pkey && !ctx->newPkey)) {
         CMPerr(CMP_F_CMP_CERTREQ_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
@@ -277,6 +277,7 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
         EVP_PKEY *rkey = NULL;
         X509 *oldcert = NULL;
 
+        /* for KUR, oldcert defaults to current client cert */
         oldcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
         subject = determine_subj(ctx, oldcert, bodytype);
         rkey = ctx->newPkey ? ctx->newPkey : ctx->pkey; /* dflt curr clnt key */
@@ -388,10 +389,6 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
         goto err;
     if (!CMP_PKIHEADER_init(ctx, msg->header))
         goto err;
-    if (!ctx->srvCert && !ctx->recipient && !ctx->issuer) /* dflt recipient */
-        if (!CMP_PKIHEADER_set1_recipient(msg->header,
-                                          X509_get_issuer_name(ctx->oldClCert)))
-            goto err;
     if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_RR))
         goto err;
 

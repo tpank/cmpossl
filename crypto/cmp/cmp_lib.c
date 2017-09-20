@@ -412,9 +412,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
 {
     X509_NAME *recipient = NULL;
 
-    if (!hdr)
-        goto err;
-    if (!ctx)
+    if (!ctx || !hdr)
         goto err;
 
     /* set the CMP version */
@@ -431,14 +429,18 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
             goto err;
     }
 
-    /* set recipient name either from known server certificate or
-       recipient or issuer name in ctx, leave empty if not set in ctx */
+    /* set recipient name either from known server certificate or recipient
+       or ctx->issuer or issuer of ctx->oldClCert or issuer of ctx->clCert */
     if (ctx->srvCert)
-        recipient = X509_get_subject_name((X509 *)ctx->srvCert);
+        recipient = X509_get_subject_name(ctx->srvCert);
     else if (ctx->recipient)
         recipient = ctx->recipient;
     else if (ctx->issuer)
         recipient = ctx->issuer;
+    else if (ctx->oldClCert)
+        recipient = X509_get_issuer_name(ctx->oldClCert);
+    else if (ctx->clCert)
+        recipient = X509_get_issuer_name(ctx->clCert);
     if (!CMP_PKIHEADER_set1_recipient(hdr, recipient))
         goto err;
 
@@ -457,7 +459,8 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         /* create new transaction ID */
         if (!CMP_PKIHEADER_set1_transactionID(hdr, NULL))
             goto err;
-        CMP_CTX_set1_transactionID(ctx, hdr->transactionID);
+        if (!CMP_CTX_set1_transactionID(ctx, hdr->transactionID))
+            goto err;
     }
 
     if (!CMP_PKIHEADER_new_senderNonce(hdr))
