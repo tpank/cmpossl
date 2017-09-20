@@ -429,8 +429,8 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
             goto err;
     }
 
-    /* set recipient name either from known server certificate or
-       recipient or issuer name in ctx or issuer of ctx->oldClCert */
+    /* set recipient name either from known server certificate or recipient
+       or ctx->issuer or issuer of ctx->oldClCert or issuer of ctx->clCert */
     if (ctx->srvCert)
         recipient = X509_get_subject_name(ctx->srvCert);
     else if (ctx->recipient)
@@ -439,6 +439,8 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         recipient = ctx->issuer;
     else if (ctx->oldClCert)
         recipient = X509_get_issuer_name(ctx->oldClCert);
+    else if (ctx->clCert)
+        recipient = X509_get_issuer_name(ctx->clCert);
     if (!CMP_PKIHEADER_set1_recipient(hdr, recipient))
         goto err;
 

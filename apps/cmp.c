@@ -380,7 +380,7 @@ OPTIONS cmp_options[] = {
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
     {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template."},
-                 {OPT_MORE_STR, 0, 0, "Also used as recipient if neither -recipient nor -srvcert are given"},
+           {OPT_MORE_STR, 0, 0, "Also used as recipient if neither -recipient nor -srvcert are given."},
     {"reqexts", OPT_REQEXTS, 's', "Name of section in OpenSSL config file defining certificate request extensions"},
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method."},
        {OPT_MORE_STR, 0, 0, "0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
@@ -392,7 +392,7 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0, "\nMisc request options:"},
 
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be updated in kur (defaulting to -cert) or to be revoked in rr."},
-                 {OPT_MORE_STR, 0, 0, "Oldcert issuer used as recipient if neither of -srvcert, -recipient, -issuer given."},
+             {OPT_MORE_STR, 0, 0, "Its issuer is used as recipient if neither of -srvcert, -recipient, -issuer given."},
     {"csr", OPT_CSR, 's', "PKCS#10 CSR to be used in p10cr"},
     {"revreason", OPT_REVREASON, 'n', "Set reason code to be included in revocation request (rr)."},
                  {OPT_MORE_STR, 0, 0, "Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
@@ -1422,9 +1422,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                  "error: missing -ref/-secret or -cert/-key for client authentication\n");
         goto err;
     }
-    if (!opt_recipient && !opt_srvcert && !opt_issuer && !opt_oldcert) {
+    if (!opt_recipient && !opt_srvcert && !opt_issuer && !opt_oldcert && !opt_cert) {
         BIO_puts(bio_err,
-                 "warn: missing -recipient, -srvcert, -issuer, or -oldcert - recipient will be set to \"NULL-DN\"\n");
+                 "warning: missing -recipient, -srvcert, -issuer, -oldcert or -cert; recipient will be set to \"NULL-DN\"\n");
     }
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L

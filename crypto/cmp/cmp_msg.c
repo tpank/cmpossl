@@ -277,6 +277,7 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
         EVP_PKEY *rkey = NULL;
         X509 *oldcert = NULL;
 
+        /* for KUR, oldcert defaults to current client cert */
         oldcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
         subject = determine_subj(ctx, oldcert, bodytype);
         rkey = ctx->newPkey ? ctx->newPkey : ctx->pkey; /* dflt curr clnt key */
