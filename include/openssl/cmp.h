@@ -548,7 +548,6 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_EXEC_RR_SES                            184
 # define CMP_F_CMP_GENM_NEW                               155
 # define CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0       158
-# define CMP_F_CMP_PKIHEADER_SET1_RECIPIENT               111
 # define CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1     159
 # define CMP_F_CMP_PKIMESSAGE_GENM_ITEMS_PUSH1            160
 # define CMP_F_CMP_PKIMESSAGE_GENM_ITEM_PUSH0             161

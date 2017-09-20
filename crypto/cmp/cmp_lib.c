@@ -166,10 +166,8 @@ static int cpy_gname(GENERAL_NAME **tgt, const X509_NAME *src) {
  * ########################################################################## */
 int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm)
 {
-    if (!hdr || !nm) {
-        CMPerr(CMP_F_CMP_PKIHEADER_SET1_RECIPIENT, CMP_R_INVALID_ARGS);
+    if (!hdr)
         return 0;
-    }
 
     return cpy_gname(&hdr->recipient, nm);
 }

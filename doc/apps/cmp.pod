@@ -158,8 +158,9 @@ If the -recipient option is not given, the recipient name defaults to the
 name given in the -issuer option.  As last resort the subject name of the
 issuer of the certificate given with the -oldcert option, if any, is used.
 
-Therefore, if neither -srvcert nor -issuer options are given, nor RR is done,
-this recipient name option is mandatory.
+If none of the options allowing to derive the recipient name is given, no
+suitable value for the recipient in the PKIHeader is available and it is set to
+NULL-DN.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
@@ -169,7 +170,9 @@ characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
 CMP server certificate to be used for verifying the protection of messages received
 and for checking the newly enrolled cert (a warning is given if it cannot be verfied).
 May be set alternatively to the -trusted option if the certificate is available and should be directly trusted.
-If set, the issuer of the certificate is also used as the receiver.
+
+If set, the issuer of the certificate is also used as the recipient of the CMP
+message, overriding any potential -recipient option.
 
 =item B<-trusted filename>
 
@@ -348,6 +351,9 @@ to be put in the requested certificate template in IR/CR/KUR.
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
 
+If neither -srvcert nor -recipient is available, the name given in this option
+is also set as the recipient of the CMP message.
+
 =item B<-reqexts name>
 
 Name of section in OpenSSL config file defining certificate request extensions.
@@ -381,6 +387,9 @@ The file where the newly enrolled certificate should be saved.
 
 The certificate to be updated (i.e., renewed or re-keyed) in KUR
 or to be revoked in RR. This defaults to -cert in case of KUR.
+
+If neither -srvcert, -recipient, nor -issur is available, the name given in this
+issuer of oldcert is also set as the recipient of the CMP message.
 
 =item B<-revreason number>
 
