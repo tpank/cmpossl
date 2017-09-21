@@ -182,7 +182,8 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
              *       multiple requests have been sent --> Feature Request #13*/
             if (!crep)
                 return 0;
-            if (CMP_CERTRESPONSE_PKIStatus_get(crep)==CMP_PKISTATUS_rejection) {
+            if (CMP_PKISTATUSINFO_PKIStatus_get(crep->status) ==
+                CMP_PKISTATUS_rejection) {
                 CMP_printf(ctx, "WARN: ignoring missing protection of CertRepMessage with rejection status");
                 exception = 1;
             }
@@ -429,24 +430,28 @@ static int exchange_error(CMP_CTX *ctx, int status, int failure,const char *txt)
  *
  * saves error information from PKIStatusInfo field of a certresponse into ctx
  * ########################################################################## */
-static int save_certresponse_statusInfo(CMP_CTX *ctx, CMP_CERTRESPONSE *resp)
+static int save_statusInfo(CMP_CTX *ctx, CMP_PKISTATUSINFO *si)
 {
     int i;
     CMP_PKIFREETEXT *ss;
 
-    if (!resp)
-        return 0;
-    (void)CMP_CTX_set_failInfoCode(ctx,
-                                    CMP_CERTRESPONSE_PKIFailureInfo_get0(resp));
-    /* TODO: create CTX function */
-    if ((ctx->lastPKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(resp->status) <0))
+    if (!si)
         return 0;
 
+    if ((ctx->lastPKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(si) < 0))
+        return 0;
+
+    if (!CMP_CTX_set_failInfoCode(ctx, si->failInfo))
+        return 0;
+
+    if (ctx->lastStatusString) {
+        sk_ASN1_UTF8STRING_pop_free(ctx->lastStatusString,ASN1_UTF8STRING_free);
+        ctx->lastStatusString = NULL;
+    }
     if (!ctx->lastStatusString &&
         !(ctx->lastStatusString = sk_ASN1_UTF8STRING_new_null()))
         return 0;
-
-    ss = CMP_CERTRESPONSE_PKIStatusString_get0(resp);
+    ss = si->statusString;
     for (i = 0; i < sk_ASN1_UTF8STRING_num(ss); i++) {
         ASN1_UTF8STRING *str = sk_ASN1_UTF8STRING_value(ss, i);
         if (!sk_ASN1_UTF8STRING_push(ctx->lastStatusString,
@@ -468,7 +473,7 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
     if (!ctx || !crep)
         return NULL;
 
-    switch (CMP_CERTRESPONSE_PKIStatus_get(crep)) {
+    switch (CMP_PKISTATUSINFO_PKIStatus_get(crep->status)) {
     case CMP_PKISTATUS_waiting:
         CMP_printf(ctx, "WARN: encountered \"waiting\" status for certificate when actually aiming to extract cert");
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_WAITING);
@@ -548,13 +553,12 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
     /* TODO handle multiple CertResponses in CertRepMsg (in case multiple
      * requests have been sent) --> Feature Request #13 */
     crep = CMP_CERTREPMESSAGE_certResponse_get0(body, rid);
-    crep = CMP_CERTREPMESSAGE_certResponse_get0(body, rid);
     if (!crep)
         return 0;
     if (rid == -1) /* for V_CMP_PKIBODY_P10CR, learn CertReqId from response */
         rid = ASN1_INTEGER_get(crep->certReqId);
 
-    if (CMP_CERTRESPONSE_PKIStatus_get(crep) == CMP_PKISTATUS_waiting) {
+    if (CMP_PKISTATUSINFO_PKIStatus_get(crep->status) == CMP_PKISTATUS_waiting){
         CMP_PKIMESSAGE_free(*resp);
         if (pollForResponse(ctx, rid, resp)) {
             goto retry;
@@ -567,7 +571,7 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
         }
     }
 
-    if (!save_certresponse_statusInfo(ctx, crep))
+    if (!save_statusInfo(ctx, crep->status))
         return 0;
     if (!(ctx->newClCert = get_cert_status(ctx, (*resp)->body->type, crep))) {
         CMP_add_error_data("cannot extract certificate from response");
@@ -700,7 +704,9 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
 
     /* evaluate PKIStatus field */
     si = CMP_REVREPCONTENT_status_get(rp->body->value.rp, REVREQSID);
-    switch (ctx->lastPKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(si)) {
+    if (!save_statusInfo(ctx, si))
+        goto err;
+    switch (CMP_PKISTATUSINFO_PKIStatus_get(si)) {
     case CMP_PKISTATUS_accepted:
         CMP_printf(ctx, "INFO: revocation accepted (PKIStatus=accepted)");
         result = 1;

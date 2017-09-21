@@ -1134,14 +1134,14 @@ CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text)
  * returns the PKIStatus of the given PKIStatusInfo
  * returns -1 on error
  * ########################################################################## */
-long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *statusInfo)
+long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *si)
 {
-    if (!statusInfo || !statusInfo->status) {
+    if (!si || !si->status) {
         CMPerr(CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET,
                CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
     }
-    return ASN1_INTEGER_get(statusInfo->status);
+    return ASN1_INTEGER_get(si->status);
 }
 
 /* ########################################################################## *
@@ -1153,12 +1153,11 @@ long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *statusInfo)
  * PKIStatus of the given PKIStatusInfo
  * returns NULL on error
  * ########################################################################## */
-static char *CMP_PKISTATUSINFO_PKIStatus_get_string(CMP_PKISTATUSINFO
-                                                    *statusInfo)
+static char *CMP_PKISTATUSINFO_PKIStatus_get_string(CMP_PKISTATUSINFO *si)
 {
     long PKIStatus;
 
-    if ((PKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(statusInfo)) < 0)
+    if ((PKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(si)) < 0)
         return NULL;
     switch (PKIStatus) {
     case CMP_PKISTATUS_accepted:
@@ -1191,15 +1190,14 @@ static char *CMP_PKISTATUSINFO_PKIStatus_get_string(CMP_PKISTATUSINFO
  * returns pointer to string containing the the PKIFailureInfo
  * returns NULL on error
  * ########################################################################## */
-static char *CMP_PKISTATUSINFO_PKIFailureInfo_get_string(CMP_PKISTATUSINFO
-                                                         *statusInfo)
+static char *CMP_PKISTATUSINFO_PKIFailureInfo_get_string(CMP_PKISTATUSINFO *si)
 {
     int i;
 
-    if (!statusInfo)
+    if (!si)
         return NULL;
     for (i = 0; i <= CMP_PKIFAILUREINFO_MAX; i++) {
-        if (ASN1_BIT_STRING_get_bit(statusInfo->failInfo, i)) {
+        if (ASN1_BIT_STRING_get_bit(si->failInfo, i)) {
             switch (i) {
             case CMP_PKIFAILUREINFO_badAlg:
                 return "PKIFailureInfo: badAlg";
@@ -1282,49 +1280,6 @@ CMP_PKISTATUSINFO *CMP_REVREPCONTENT_status_get(CMP_REVREPCONTENT *rrep,
     CMPerr(CMP_F_CMP_REVREPCONTENT_STATUS_GET,
            CMP_R_ERROR_STATUS_NOT_FOUND);
     return NULL;
-}
-
-/* ########################################################################## *
- * returns the PKIStatus of the given certificate response
- * returns -1 on error
- * ########################################################################## */
-long CMP_CERTRESPONSE_PKIStatus_get(CMP_CERTRESPONSE *crep)
-{
-    if (!crep) {
-        CMPerr(CMP_F_CMP_CERTRESPONSE_PKISTATUS_GET,
-                CMP_R_ERROR_STATUS_NOT_FOUND);
-        return -1;
-    }
-    return CMP_PKISTATUSINFO_PKIStatus_get(crep->status);
-}
-
-/* ########################################################################## *
- * returns pointer to PKIFailureInfo of given certRep message
- * returns NULL on error or if no matching failInfo was found
- * ########################################################################## */
-CMP_PKIFAILUREINFO *CMP_CERTRESPONSE_PKIFailureInfo_get0(CMP_CERTRESPONSE *crep)
-{
-    if (!crep || !crep->status) {
-        CMPerr(CMP_F_CMP_CERTRESPONSE_PKIFAILUREINFO_GET0,
-                CMP_R_ERROR_STATUS_NOT_FOUND);
-        return NULL;
-    }
-
-    return crep->status->failInfo;
-}
-
-/* ########################################################################## *
- * returns the status string of the given crep
- * returns NULL on error
- * ########################################################################## */
-CMP_PKIFREETEXT *CMP_CERTRESPONSE_PKIStatusString_get0(CMP_CERTRESPONSE *crep)
-{
-    if (!crep || !crep->status) {
-        CMPerr(CMP_F_CMP_CERTRESPONSE_PKISTATUSSTRING_GET0, CMP_R_BAD_INPUT);
-        return NULL;
-    }
-
-    return crep->status->statusString;
 }
 
 /* ########################################################################## *
@@ -1517,7 +1472,7 @@ static X509 *CMP_CERTORENCCERT_encCert_get1(CMP_CERTORENCCERT *coec,
  * ########################################################################## */
 int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type)
 {
-    if (!msg)
+    if (!msg || !msg->body)
         return 0;
 
     msg->body->type = type;

@@ -688,17 +688,6 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
      }
  */
 
-
-long CMP_CERTRESPONSE_PKIStatus_get(CMP_CERTRESPONSE *crep);
-
-/* TODO: exclusively used from cmp_lib.c - should they be made static? */
-char *CMP_CERTRESPONSE_PKIFailureInfoString_get0(CMP_CERTRESPONSE *crep);
-CMP_PKIFREETEXT *
-    CMP_CERTRESPONSE_PKIStatusString_get0(CMP_CERTRESPONSE *crep);
-CMP_PKIFAILUREINFO
-    *CMP_CERTRESPONSE_PKIFailureInfo_get0(CMP_CERTRESPONSE *crep);
-
-
 /* ########################################################################## *
  * constants
  * ########################################################################## */

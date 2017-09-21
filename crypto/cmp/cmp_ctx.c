@@ -1308,16 +1308,18 @@ int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path)
 }
 
 /* ################################################################ *
- * Set the failinfo error code bits in CMP_CTX based on the given
- * CMP_PKIFAILUREINFO structure
+ * Set the failInfo error code bits in CMP_CTX based on the given
+ * CMP_PKIFAILUREINFO structure, which is allowed to be NULL
  * returns 1 on success, 0 on error
  * ################################################################ */
-int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO * failInfo)
+int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo)
 {
     int i;
 
-    if (!ctx || !failInfo)
+    if (!ctx)
         return 0;
+    if (!failInfo)
+        return 1;
 
     ctx->failInfoCode = 0;
     for (i = 0; i <= CMP_PKIFAILUREINFO_MAX; i++)
