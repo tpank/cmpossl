@@ -328,7 +328,7 @@ containing trusted root CA certificates, used for CMP server authentication.
 Cannot be used together with srvCert, which is explicitly/directly trusted.
 
 CMP_CTX_set0_untrustedStore() sets the X509_STORE type certificate store
-containing intermediate certificates used for path construction 
+containing non-trusted intermediate certificates used for path construction
 in CMP server authentication.
 
 CMP_CTX_get0_trustedStore(CMP_CTX *ctx) returns a pointer to the trusted

@@ -193,7 +193,7 @@ int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store)
 }
 
 /* ############################################################################ *
- * Get current certificate store containing trusted root CA certs
+ * Get current certificate store containing non-trusted intermediate certs
  * ############################################################################ */
 X509_STORE *CMP_CTX_get0_untrustedStore(CMP_CTX *ctx)
 {
