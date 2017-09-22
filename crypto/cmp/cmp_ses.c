@@ -677,9 +677,10 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
  *
  * The RFC is vague in which PKIStatus should be returned by the server, so we
  * take "accepted, "grantedWithMods", and "revocationWarning" as success,
- * "revocationNotification" as an error stating that the certifcate was already
- * revoked, "rejection" as indication that the revocation was rejected, and
- * do not expect "waiting" and "keyUpdateWarning" (which are handled as error).
+ * "revocationNotification" is used by some CAs as an indication that the
+ * certifcate was already revoked, "rejection" as indication that the
+ * revocation was rejected, and do not expect "waiting" or "keyUpdateWarning"
+ * (which are handled as error).
  *
  * returns 1 on success, 0 on error
  * ########################################################################## */
@@ -716,32 +717,21 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
         result = 1;
         break;
     case CMP_PKISTATUS_rejection:
-        CMP_printf(ctx, "INFO: revocation rejected (PKIStatus=rejection)");
-#if 0 /* TODO: interpretation as warning or error depends on CA */
-        /* TODO: add proper warning function */
-        puts("warning: certificate has already been revoked");
-        result = 1;
-        break;
-#else
-        CMPerr(CMP_F_CMP_DOREVOCATIONREQUESTSEQ, CMP_R_REQUEST_REJECTED_BY_CA);
+        /* interpretation as warning or error depends on CA */
+        CMP_printf(ctx, "WARN: revocation rejected (PKIStatus=rejection)");
+        CMPerr(CMP_F_CMP_EXEC_RR_SES, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
-#endif
     case CMP_PKISTATUS_revocationWarning:
         CMP_printf(ctx,
                    "INFO: revocation accepted (PKIStatus=revocationWarning)");
         result = 1;
         break;
     case CMP_PKISTATUS_revocationNotification:
+        /* interpretation as warning or error depends on CA */
         CMP_printf(ctx,
                 "INFO: revocation accepted (PKIStatus=revocationNotification)");
-#if 0 /* TODO: interpretation as warning or error depends on CA */
         result = 1;
         break;
-#else
-        CMPerr(CMP_F_CMP_DOREVOCATIONREQUESTSEQ,
-               CMP_R_ENCOUNTERED_REVOCATIONNOTIFICATION);
-        goto err;
-#endif
     case CMP_PKISTATUS_waiting:
     case CMP_PKISTATUS_keyUpdateWarning:
         CMPerr(CMP_F_CMP_EXEC_RR_SES, CMP_R_UNEXPECTED_PKISTATUS);

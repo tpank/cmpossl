@@ -4420,7 +4420,7 @@ CMP_PKIHEADER_new_senderNonce           4358	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_referenceValue             4359	1_1_1	EXIST::FUNCTION:
 CMP_validate_cert_path                  4360	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_certVerify_callback         4361	1_1_1	EXIST::FUNCTION:
-CMP_REVREPCONTENT_PKIStatus_get         4362	1_1_1	EXIST::FUNCTION:
+CMP_REVREPCONTENT_PKIStatus_get         4362	1_1_1	NOEXIST::FUNCTION:
 CMP_pollReq_new                         4363	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_recipNonce                 4364	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_extraCertsOut              4365	1_1_1	EXIST::FUNCTION:
@@ -4485,3 +4485,5 @@ CMP_exec_IR_ses                         4421	1_1_1	EXIST::FUNCTION:
 CMP_exec_P10CR_ses                      4422	1_1_1	EXIST::FUNCTION:
 CMP_exec_RR_ses                         4423	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_pollResponse_get0        4424	1_1_1	EXIST::FUNCTION:
+CMP_CTX_status_get                      4425	1_1_1	EXIST::FUNCTION:
+CMP_REVREPCONTENT_status_get            4426	1_1_1	EXIST::FUNCTION:
