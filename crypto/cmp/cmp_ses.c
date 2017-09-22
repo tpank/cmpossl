@@ -599,10 +599,10 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
         ERR_add_error_data(1, txt);
         return 0;
     }
-    /* TODO: possibly compare also subject and other fields of
-     * the newly enrolled cert with requested cert template if present,
-     * execute the callback function set in ctx which can be used to examine
-     * whether a received certificate should be accepted */
+    /* TODO: possibly compare also subject and other fields of the newly
+     * enrolled cert with requested cert template if present, execute the
+     * callback function set in ctx which can be used to examine whether a
+     * received certificate should be accepted */
     if (ctx->certConf_cb && (failure = ctx->certConf_cb(ctx, ctx->lastPKIStatus,
                                                   ctx->newClCert, &txt)) >= 0) {
         if (txt == NULL)

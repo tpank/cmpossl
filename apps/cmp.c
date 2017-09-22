@@ -1455,8 +1455,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     if (!opt_unprotectedRequests &&
-        !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
-        BIO_puts(bio_err, "error: missing -unprotectedrequests or -ref and -secret or -cert and -key for client authentication\n");
+            !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
+        BIO_puts(bio_err, "error: missing -unprotectedrequests, or -ref and -secret, or -cert and -key, for client authentication\n");
         goto err;
     }
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {

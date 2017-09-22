@@ -1662,7 +1662,6 @@ STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store) {
 /* ############################################################################
  * this function is intended to be used only within the CMP library although it
  * is included in cmp.h
->>>>>>> cert verification diagnostics now prints untrusted and trusted store
  *
  * Returns the subject key identifier of the given certificate
  * returns NULL on error, respecively when none was found.
