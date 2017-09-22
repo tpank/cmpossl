@@ -162,8 +162,9 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
                          "WARN: ignoring missing protection of error response");
             exception = 1;
         }
-        if (rcvd_type == V_CMP_PKIBODY_RP && CMP_PKISTATUSINFO_PKIStatus_get(
-                CMP_REVREPCONTENT_status_get(rep->body->value.rp, REVREQSID))
+        if (rcvd_type == V_CMP_PKIBODY_RP &&
+            CMP_PKISTATUSINFO_PKIStatus_get(
+            CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp, REVREQSID))
                 == CMP_PKISTATUS_rejection) {
             CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
             exception = 1;
@@ -705,7 +706,7 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
         goto err;
 
     /* evaluate PKIStatus field */
-    si = CMP_REVREPCONTENT_status_get(rp->body->value.rp, REVREQSID);
+    si = CMP_REVREPCONTENT_PKIStatusInfo_get(rp->body->value.rp, REVREQSID);
     if (!save_statusInfo(ctx, si))
         goto err;
     switch (CMP_PKISTATUSINFO_PKIStatus_get(si)) {

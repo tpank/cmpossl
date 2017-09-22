@@ -1267,7 +1267,7 @@ static char *CMP_PKISTATUSINFO_PKIFailureInfo_get_string(CMP_PKISTATUSINFO *si)
  * RevReqContent.
  * returns NULL on error
  * ########################################################################## */
-CMP_PKISTATUSINFO *CMP_REVREPCONTENT_status_get(CMP_REVREPCONTENT *rrep,
+CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
                                                 long rsid)
 {
     CMP_PKISTATUSINFO *status = NULL;
@@ -1278,7 +1278,7 @@ CMP_PKISTATUSINFO *CMP_REVREPCONTENT_status_get(CMP_REVREPCONTENT *rrep,
         return status;
     }
 
-    CMPerr(CMP_F_CMP_REVREPCONTENT_STATUS_GET,
+    CMPerr(CMP_F_CMP_REVREPCONTENT_PKISTATUSINFO_GET,
            CMP_R_ERROR_STATUS_NOT_FOUND);
     return NULL;
 }

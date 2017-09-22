@@ -287,7 +287,7 @@ CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
 CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
 
 /* cmp_lib.c */
-CMP_PKISTATUSINFO *CMP_REVREPCONTENT_status_get(CMP_REVREPCONTENT *rrep,
+CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
                                                 long reqId);
 int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
 int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
@@ -546,7 +546,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET            161
 # define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING     162
 # define CMP_F_CMP_POLLREQ_NEW                            163
-# define CMP_F_CMP_REVREPCONTENT_STATUS_GET               164
+# define CMP_F_CMP_REVREPCONTENT_PKISTATUSINFO_GET        164
 # define CMP_F_CMP_RR_NEW                                 165
 # define CMP_F_CMP_VALIDATE_CERT_PATH                     166
 # define CMP_F_CMP_VALIDATE_MSG                           167

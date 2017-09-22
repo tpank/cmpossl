@@ -40,7 +40,7 @@
 
   #include <openssl/cmp.h>
 
-  CMP_PKISTATUSINFO *CMP_REVREPCONTENT_status_get(CMP_REVREPCONTENT *rrep, long rsid);
+  CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep, long rsid);
   CMP_POLLREP *CMP_PKIMESSAGE_pollResponse_get0(CMP_PKIMESSAGE *prep, long rid);
   CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
   int CMP_CERTSTATUS_set_certHash( CMP_CERTSTATUS *certStatus, const X509 *cert);
@@ -79,8 +79,8 @@
 
 =head1 DESCRIPTION
 
-CMP_REVREPCONTENT_status_get() returns the status field of the RevRepContent
-with the given request/sequence id inside a revocation response
+CMP_REVREPCONTENT_PKIStatusInfo_get() returns the status field of the
+RevRepContent with the given request/sequence id inside a revocation response
 (matching the sequence id as sent in the RevReqContent), or NULL on error.
 
 CMP_PKIMESSAGE_pollResponse_get0() returns a pointer to the PollResponse

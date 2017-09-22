@@ -4486,4 +4486,4 @@ CMP_exec_P10CR_ses                      4422	1_1_1	EXIST::FUNCTION:
 CMP_exec_RR_ses                         4423	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_pollResponse_get0        4424	1_1_1	EXIST::FUNCTION:
 CMP_CTX_status_get                      4425	1_1_1	EXIST::FUNCTION:
-CMP_REVREPCONTENT_status_get            4426	1_1_1	EXIST::FUNCTION:
+CMP_REVREPCONTENT_PKIStatusInfo_get     4426	1_1_1	EXIST::FUNCTION:
