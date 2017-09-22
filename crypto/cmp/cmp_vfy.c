@@ -190,6 +190,8 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
     if (ctx->crls)
         X509_STORE_CTX_set0_crls(csc, ctx->crls);
     valid = X509_verify_cert(csc);
+    if (ctx->cert_verify_cb)
+        valid = (ctx->cert_verify_cb)(valid, csc);
 
     X509_STORE_CTX_free(csc);
 
