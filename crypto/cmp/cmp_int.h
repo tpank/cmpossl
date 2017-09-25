@@ -103,7 +103,7 @@ struct cmp_ctx_st {
     cert_verify_cb_t cert_verify_cb; /* callback to be used during verification
                                         of CMP server certificate */
     X509_STORE *trusted_store; /* store for trusted (root) certificates */
-    X509_STORE *untrusted_store;  /* store for untrusted (intermediate) certs */
+    STACK_OF (X509) *untrusted_certs;  /* untrusted (intermediate) certs */
 
     /* HTTP transfer related settings */
     char *serverName;

@@ -34,7 +34,10 @@
   CMP_PKISTATUSINFO_PKIStatus_get,
   CMP_get_protectionAlg_pbmac,
   CMP_CERTRESPONSE_get_certificate,
-  CMP_build_cert_chain
+  CMP_build_cert_chain,
+  sk_X509_add_certs,
+  X509_STORE_add_certs,
+  X509_STORE_get1_certs
 
 =head1 SYNOPSIS
 
@@ -76,6 +79,11 @@
   X509_ALGOR *CMP_get_protectionAlg_pbmac();
   X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
   STACK_OF(X509) *CMP_build_cert_chain(X509_STORE *store, const X509 *cert);
+  int sk_X509_add_certs(STACK_OF (X509) *stack, const STACK_OF (X509) *certs,
+                        int no_self_signed);
+  int X509_STORE_add_certs(X509_STORE *store, const STACK_OF (X509) *certs,
+                           int only_self_signed);
+  STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store);
 
 =head1 DESCRIPTION
 
@@ -189,6 +197,13 @@ Returns a pointer to a copy of the found certificate, or NULL if not found.
 CMP_build_cert_chain() builds up the certificate chain of cert as high up as possible
 using the given X509_STORE containing all possible intermediate certificates and
 optionally the (possible) trust anchor(s).
+
+sk_X509_add_certs() adds all or not self-signed certificates to given stack.
+
+X509_STORE_add_certs() adds all or self-signed certificates to given store.
+
+X509_STORE_get1_certs() retrieves a copy of all certificates in the given store.
+
 
 =head1 NOTES
 

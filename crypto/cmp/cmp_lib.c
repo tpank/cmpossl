@@ -777,7 +777,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
             }
 
             /* Add ctx->extraCertsOut, the ctx->clCert,
-             * and the chain upwards build up from ctx->untrusted_store */
+             * and the chain upwards build up from ctx->untrusted_certs */
             CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
 
             if (!(msg->protection = CMP_calc_protection_sig(msg, ctx->pkey)))
@@ -798,20 +798,17 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 /* ##########################################################################
  * Adds the certificates to the extraCerts field in the given message.  For
  * this it tries to build the certificate chain of our client cert (ctx->clCert)
- * by using certificates in ctx->untrusted_store. If no untrusted store is set,
+ * by using certificates in ctx->untrusted_certs. If no untrusted certs are set,
  * it will at least place the client certificate into extraCerts.
- * Additionally all the certificates explicitly specified to be sent out
- * (i.e. ctx->extraCertsOut) are added to the stack.
+ * In any case all the certificates explicitly specified to be sent out
+ * (i.e., ctx->extraCertsOut) are added.
  *
- * Note: it will NOT put the trust anchor in the extraCerts - unless it would be
- * in the untrusted store.
+ * Note: it will NOT add the trust anchor (unless its part of extraCertsOut).
  *
  * returns 1 on success, 0 on error
  * ########################################################################## */
 int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 {
-    int i;
-
     if (!ctx)
         goto err;
     if (!msg)
@@ -822,15 +819,12 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     if (ctx->clCert) {
         /* if we have untrusted store, try to add all the intermediate certs and
          * our own */
-        if (ctx->untrusted_store) {
+        if (ctx->untrusted_certs) {
             STACK_OF (X509) * chain =
-                CMP_build_cert_chain(ctx->untrusted_store, ctx->clCert);
+                CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
             /* Our own cert will be sent first */
-            for (i = 0; i < sk_X509_num(chain); i++) {
-                X509 *cert = sk_X509_value(chain, i);
-                sk_X509_push(msg->extraCerts, cert);
-            }
-            sk_X509_free(chain); /* only frees the stack, not the content */
+            sk_X509_add_certs(msg->extraCerts, chain, 1/* no self-signed */);
+            sk_X509_pop_free(chain, X509_free);
         } else {
             /* Make sure that at least our own cert gets sent */
             X509_up_ref(ctx->clCert);
@@ -839,9 +833,7 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     }
 
     /* add any additional certificates from ctx->extraCertsOut */
-    for (i = 0; i < sk_X509_num(ctx->extraCertsOut); i++)
-        sk_X509_push(msg->extraCerts,
-                     X509_dup(sk_X509_value(ctx->extraCertsOut, i)));
+    sk_X509_add_certs(msg->extraCerts, ctx->extraCertsOut, 0);
 
     return 1;
 
@@ -1566,8 +1558,8 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
 }
 
 /* ########################################################################## *
- * Builds up the certificate chain of cert as high up as possible using
- * the given X509_STORE containing all possible intermediate certificates and
+ * Builds up the certificate chain of certs as high up as possible using
+ * the given list of certs containing all possible intermediate certificates and
  * optionally the (possible) trust anchor(s). See also ssl_add_cert_chain().
  *
  * Intended use of this function is to find all the certificates above the trust
@@ -1586,29 +1578,21 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
  *      - the (self-signed) trust anchor is not included
  *      returns NULL on error
  * ########################################################################## */
-STACK_OF (X509) *CMP_build_cert_chain(X509_STORE *store, const X509 *cert)
+STACK_OF (X509) *CMP_build_cert_chain(const STACK_OF (X509) *certs,
+                                      const X509 *cert)
 {
-    STACK_OF (X509) * chain = NULL, *chain_dup = NULL;
+    STACK_OF (X509) * chain = NULL, *result = NULL;
+    X509_STORE *store = X509_STORE_new();
     X509_STORE_CTX *csc = NULL;
-    int i = 0;
 
-    if (!store || !cert)
+    if (!certs || !cert || !store)
         goto err;
 
     csc = X509_STORE_CTX_new();
     if (!csc)
         goto err;
 
-    /* chain_dup to store the duplicated certificates */
-    chain_dup = sk_X509_new_null();
-    if (!chain_dup)
-        goto err;
-
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define X509_STORE_get0_param(store) (store->param)
-#endif
-    /* clear all flags, thus do not check CRLs */
-    X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(store), ~0);
+    X509_STORE_add_certs(store, certs, 0);
     if (!X509_STORE_CTX_init(csc, store, (X509 *)cert, NULL))
         goto err;
 
@@ -1617,25 +1601,74 @@ STACK_OF (X509) *CMP_build_cert_chain(X509_STORE *store, const X509 *cert)
     ERR_clear_error();           /* don't leave any errors in the queue */
 
     chain = X509_STORE_CTX_get0_chain(csc);
-    for (i = 0; i < sk_X509_num(chain); i++) {
-        X509 *cert_dup = sk_X509_value(chain, i);
-        if (X509_check_issued(cert_dup, cert_dup) != X509_V_OK) {
-            X509_up_ref(cert_dup);
-            sk_X509_push(chain_dup, cert_dup);
-        }
-    }
 
-    X509_STORE_CTX_free(csc);
-
-    return chain_dup;
+    /* result list to store the duplicated not self-signed certificates */
+    if (!(result = sk_X509_new_null()))
+        goto err;
+    sk_X509_add_certs(result, chain, 1/* no self-signed */);
 
  err:
+    X509_STORE_free(store);
     X509_STORE_CTX_free(csc);
-    sk_X509_free(chain_dup);
-    return NULL;
+    return result;
 }
 
-STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store) {
+/* ########################################################################## *
+ * Add all or not self-signed certificates from 'certs' to given stack 'stack'.
+ * certs parameter may be NULL.
+ * returns 1 on success, 0 on error
+ * ########################################################################## */
+int sk_X509_add_certs(STACK_OF (X509) *stack, const STACK_OF (X509) *certs,
+                      int no_self_signed)
+{
+    int i;
+
+    if (!stack)
+        return 0;
+
+    if (!certs)
+        return 1;
+    for (i = 0; i < sk_X509_num(certs); i++) {
+        X509 *cert = sk_X509_value(certs, i);
+        if (!no_self_signed || X509_check_issued(cert, cert) != X509_V_OK) {
+            if (!sk_X509_push(stack, cert))
+                return 0;
+            X509_up_ref(cert);
+        }
+    }
+    return 1;
+}
+
+/* ########################################################################## *
+ * Add all or self-signed certificates from the given stack to given store.
+ * certs parameter may be NULL.
+ * returns 1 on success, 0 on error
+ * ########################################################################## */
+int X509_STORE_add_certs(X509_STORE *store, const STACK_OF (X509) *certs,
+                         int only_self_signed)
+{
+    int i;
+
+    if (!store)
+        return 0;
+
+    if (!certs)
+        return 1;
+    for (i = 0; i < sk_X509_num(certs); i++) {
+        X509 *cert = sk_X509_value(certs, i);
+        if (!only_self_signed || X509_check_issued(cert, cert) == X509_V_OK)
+      /* don't fail as adding existing certificate to store would cause error */
+            X509_STORE_add_cert(store, cert); /* ups the cert ref counter */
+    }
+    return 1;
+}
+
+/* ########################################################################## *
+ * Retrieves a copy of all certificates in the given store.
+ * returns NULL on error
+ * ########################################################################## */
+STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store)
+{
     int i;
     STACK_OF(X509) *sk;
     STACK_OF(X509_OBJECT) *objs;
@@ -1648,12 +1681,11 @@ STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store) {
     for (i = 0; i < sk_X509_OBJECT_num(objs); i++) {
         X509 *cert = X509_OBJECT_get0_X509(sk_X509_OBJECT_value(objs, i));
         if (cert) {
-            X509_up_ref(cert);
             if (!sk_X509_push(sk, cert)) {
-                X509_free(cert);
                 sk_X509_pop_free(sk, X509_free);
                 return NULL;
             }
+            X509_up_ref(cert);
         }
     }
     return sk;

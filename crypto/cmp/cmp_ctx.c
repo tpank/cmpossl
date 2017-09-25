@@ -193,26 +193,24 @@ int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store)
 }
 
 /* ############################################################################ *
- * Get current certificate store containing non-trusted intermediate certs
+ * Get current list of non-trusted intermediate certs
  * ############################################################################ */
-X509_STORE *CMP_CTX_get0_untrustedStore(CMP_CTX *ctx)
+STACK_OF (X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx)
 {
     if (!ctx)
         return NULL;
-    return ctx->untrusted_store;
+    return ctx->untrusted_certs;
 }
 
 /* ############################################################################ *
  * Set untrusted certificates for path construction in CMP server authentication.
  * returns 1 on success, 0 on error
  * ############################################################################ */
-int CMP_CTX_set0_untrustedStore(CMP_CTX *ctx, X509_STORE *store)
+int CMP_CTX_set0_untrusted_certs(CMP_CTX *ctx, STACK_OF (X509) *certs)
 {
-    if (!store)
-        return 0;
-    if (ctx->untrusted_store)
-        X509_STORE_free(ctx->untrusted_store);
-    ctx->untrusted_store = store;
+    if (ctx->untrusted_certs)
+        sk_X509_pop_free(ctx->untrusted_certs, X509_free);
+    ctx->untrusted_certs = certs;
     return 1;
 }
 
@@ -273,7 +271,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->certConf_cb = NULL;
     ctx->cert_verify_cb = NULL;
     ctx->trusted_store = X509_STORE_new();
-    ctx->untrusted_store = X509_STORE_new();
+    ctx->untrusted_certs = sk_X509_new_null();
 
     ctx->serverName = NULL;
     ctx->serverPort = 0;
@@ -314,8 +312,8 @@ void CMP_CTX_delete(CMP_CTX *ctx)
         OPENSSL_free(ctx->proxyName);
     if (ctx->trusted_store)
         X509_STORE_free(ctx->trusted_store);
-    if (ctx->untrusted_store)
-        X509_STORE_free(ctx->untrusted_store);
+    if (ctx->untrusted_certs)
+        sk_X509_pop_free(ctx->untrusted_certs, X509_free);
 
     if (ctx->tlsBIO)
         BIO_free(ctx->tlsBIO);
@@ -575,37 +573,6 @@ int CMP_CTX_extraCertsOut_push1(CMP_CTX *ctx, const X509 *val)
     return sk_X509_push(ctx->extraCertsOut, X509_dup((X509 *)val));
  err:
     CMPerr(CMP_F_CMP_CTX_EXTRACERTSOUT_PUSH1, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/* ############################################################################ *
- * load all the intermediate certificates from the given stack into untrusted_store
- * returns 1 on success, 0 on error
- * ############################################################################ */
-/* TODO: factor out overlap with cmp_vfy.c's
- * static X509_STORE *createTempTrustedStore(STACK_OF (X509) * stack)
- */
-int CMP_CTX_loadUntrustedStack(CMP_CTX *ctx, STACK_OF (X509) * stack)
-{
-    int i;
-    X509 *cert;
-
-    if (!stack)
-        goto err;
-    if (!ctx->untrusted_store && !(ctx->untrusted_store = X509_STORE_new()))
-        goto err;
-
-    for (i = 0; i < sk_X509_num(stack); i++) {
-        if (!(cert = sk_X509_value(stack, i)))
-            goto err;
-
-        /* don't add self-signed certs here */
-        if (X509_check_issued(cert, cert) != X509_V_OK)
-            X509_STORE_add_cert(ctx->untrusted_store, cert);  /* don't fail as adding existing certificate to store would cause error */
-    }
-
-    return 1;
- err:
     return 0;
 }
 

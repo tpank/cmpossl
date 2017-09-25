@@ -1324,17 +1324,10 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
     return (ok);
 }
 
-static int add0_untrusted(X509_STORE *store, STACK_OF (X509) *untrusted) {
-    int i;
-    if (!untrusted)
-        return 1;
-    for (i = 0; i < sk_X509_num(untrusted); i++)
-        if (!X509_STORE_add_cert(store, sk_X509_value(untrusted, i))) {
-            sk_X509_pop_free(untrusted, X509_free);
-            return 0;
-        }
-    sk_X509_pop_free(untrusted, X509_free);
-    return 1;
+static int add0_certs(STACK_OF (X509) *stack, STACK_OF (X509) *certs) {
+    int result = sk_X509_add_certs(stack, certs, 0);
+    sk_X509_pop_free(certs, X509_free);
+    return result;
 }
 
 /*
@@ -1358,20 +1351,19 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert, const char **
     int ok = 1;
     X509_STORE *ts;
 
-    X509_STORE *untrusted = X509_STORE_new();
+    STACK_OF (X509) *untrusted = sk_X509_new_null();
     if (!untrusted) {
     oom:
-        X509_STORE_free(untrusted);
+        sk_X509_pop_free(untrusted, X509_free);
         /* BIO_puts(bio_err, "error: out of memory\n"); */
         return CMP_PKIFAILUREINFO_systemFailure;
     }
 
-    if (!add0_untrusted(untrusted,
-           X509_STORE_get1_certs(CMP_CTX_get0_untrustedStore(ctx))))
+    if (!sk_X509_add_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx), 0))
         goto oom;
-    if (!add0_untrusted(untrusted, CMP_CTX_extraCertsIn_get1(ctx)))
+    if (!add0_certs(untrusted, CMP_CTX_extraCertsIn_get1(ctx)))
         goto oom;
-    if (!add0_untrusted(untrusted, CMP_CTX_caPubs_get1(ctx)))
+    if (!add0_certs(untrusted, CMP_CTX_caPubs_get1(ctx)))
         goto oom;
 
     ts = CMP_CTX_get0_trustedStore(ctx);
@@ -1386,7 +1378,7 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert, const char **
     if (!CMP_validate_cert_path(ctx, ts, untrusted, cert))
         ok = 0;
 
-    X509_STORE_free(untrusted);
+    sk_X509_pop_free(untrusted, X509_free);
 
     if (!ok)
         BIO_puts(bio_c_out, "warning: failed to validate newly enrolled certificate\n");
@@ -1789,9 +1781,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_untrusted) {
-        X509_STORE *us = create_cert_store(opt_untrusted, "untrusted certificates");
-        if (!us || !CMP_CTX_set0_untrustedStore(ctx, us)) {
-            X509_STORE_free(us);
+        STACK_OF (X509) *certs = load_certs_autofmt(opt_untrusted,
+                                        opt_certform, "untrusted certificates");
+        if (!certs || !CMP_CTX_set0_untrusted_certs(ctx, certs)) {
+            sk_X509_pop_free(certs, X509_free);
             goto err;
         }
     }

@@ -344,13 +344,18 @@ int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
 #define CMP_PKISTATUSINFO_BUFLEN 1024
 char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 ASN1_OCTET_STRING *CMP_get_cert_subject_key_id(const X509 *cert);
-STACK_OF(X509) *CMP_build_cert_chain(X509_STORE *store, const X509 *cert);
+STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF (X509) *certs,
+                                     const X509 *cert);
+int sk_X509_add_certs(STACK_OF (X509) *stack, const STACK_OF (X509) *certs,
+                      int no_self_signed);
+int X509_STORE_add_certs(X509_STORE *store, const STACK_OF (X509) *certs,
+                         int only_self_signed);
 STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store);
 
 /* cmp_vfy.c */
 int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg);
 int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
-                           X509_STORE *untrusted_store, const X509 *cert);
+                      const STACK_OF (X509) *untrusted_certs, const X509 *cert);
 
 /* from cmp_http.c */
 int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
@@ -376,9 +381,9 @@ ASN1_TYPE *CMP_INFOTYPEANDVALUE_get0_value(CMP_INFOTYPEANDVALUE *itav);
 CMP_CTX *CMP_CTX_create(void);
 int CMP_CTX_init(CMP_CTX *ctx);
 X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx);
-X509_STORE *CMP_CTX_get0_untrustedStore(CMP_CTX *ctx);
+STACK_OF (X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
 int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
-int CMP_CTX_set0_untrustedStore(CMP_CTX *ctx, X509_STORE *store);
+int CMP_CTX_set0_untrusted_certs(CMP_CTX *ctx, STACK_OF (X509) *certs);
 int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls);
 void CMP_CTX_delete(CMP_CTX *ctx);
 int CMP_CTX_set_error_callback(CMP_CTX *ctx, cmp_logfn_t cb);
@@ -416,7 +421,6 @@ int CMP_CTX_set1_extraCertsIn(CMP_CTX *ctx,
                               const STACK_OF (X509) * extraCertsIn);
 X509 *CMP_CTX_extraCertsIn_pop(CMP_CTX *ctx);
 int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx);
-int CMP_CTX_loadUntrustedStack(CMP_CTX *ctx, STACK_OF (X509) * stack);
 
 int CMP_CTX_set1_newClCert(CMP_CTX *ctx, const X509 *cert);
 X509 *CMP_CTX_get0_newClCert(CMP_CTX *ctx);
