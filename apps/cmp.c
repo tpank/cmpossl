@@ -1538,13 +1538,12 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
     if (opt_tls_cert || opt_tls_key || opt_tls_keypass) {
         opt_use_tls = 1;
-        if (!opt_tls_cert) {
-            BIO_printf(bio_err, "error: missing -tls-cert option\n");
-            goto err;
-        }
-        else if (!opt_tls_key) {
+        if (!opt_tls_key) {
             BIO_printf(bio_err, "error: missing -tls-key option\n");
             goto err;
+         }
+        else if (!opt_tls_cert) {
+            BIO_printf(bio_err, "error: missing -tls-cert option\n");
         }
     }
     if (opt_use_tls) {
