@@ -253,112 +253,100 @@ int CMP_cert_callback(int ok, X509_STORE_CTX *ctx)
 /* ########################################################################## *
  * internal function
  *
- * Find server certificate by:
- * - first see if we can find it in trusted store
- * - then try to find it in untrusted store
- * - then search for certs with matching name in extraCerts
- *       - if only one match found, return that
- *       - if more than one, try to find a cert with the matching senderKID if
- *          available
- *       - if keyID is not available, return first cert found
- * returns pointer to found server Certificate on success
- * returns NULL on error or when no certificate could be found
+ * Find in the given list of certificates one or more certs
+ * that have the given subject name and are not yet expired.
+ * - if only one match found, return that
+ * - else if only one match has the subject key ID given, return that
+ * - else return the list of all matches, which may be empty
+ * returns NULL on (out of memory) error
  * ########################################################################## */
-static X509 *findSrvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
+static STACK_OF (X509) *find_cert(STACK_OF (X509) *certs, X509_NAME *subject,
+                               ASN1_OCTET_STRING *keyid, X509_VERIFY_PARAM *vpm)
 {
-    X509 *srvCert = NULL;
-    X509_STORE_CTX *csc = NULL;
-    X509_OBJECT *obj = NULL;
-    STACK_OF (X509) * found_certs = NULL;
-    int n;
-    X509_NAME *sender_name = msg->header->sender->d.directoryName;
+    int i, keyid_matches = 0;
+    STACK_OF (X509) *found_certs = sk_X509_new_null();
 
-    if (!sender_name || !(csc = X509_STORE_CTX_new()))
+    if (!found_certs)
         return NULL;
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    obj = X509_OBJECT_new();
-#else
-    obj = OPENSSL_malloc(sizeof(*obj));
-#endif
-    if (!obj) {
-        X509_STORE_CTX_free(csc);
-        return NULL;
+    for (i = 0; i < sk_X509_num(certs); i++) {
+        X509 *cert = sk_X509_value(certs, i);
+        ASN1_OCTET_STRING *cert_keyid = CMP_get_cert_subject_key_id(cert);
+        X509_NAME *name = X509_get_subject_name(cert);
+        time_t check_time, *ptime = NULL;
+        int expired = 0;
+        if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_USE_CHECK_TIME) {
+            check_time = X509_VERIFY_PARAM_get_time(vpm);
+            ptime = &check_time;
+        }
+        if (!(X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_NO_CHECK_TIME))
+            expired = X509_cmp_time(X509_get0_notAfter(cert), ptime) < 0;
+        if (!expired && name && X509_NAME_cmp(name, subject) == 0) {
+            if (!sk_X509_push(found_certs, cert)) {
+                sk_X509_pop_free(found_certs, X509_free);
+                return NULL;
+            }
+            X509_up_ref(cert);
+            if (keyid && cert_keyid &&
+                ASN1_OCTET_STRING_cmp(keyid, cert_keyid) == 0)
+                keyid_matches++;
+        }
     }
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define X509_OBJECT_get0_X509(obj) (obj)->data.x509
-#endif
-    /* first attempt lookup in trusted_store, then in untrusted_certs */
-    if (X509_STORE_CTX_init(csc, ctx->trusted_store, NULL, NULL)
-            && X509_STORE_CTX_get_by_subject(csc, X509_LU_X509,
-                                           sender_name, obj)) {
-        srvCert = X509_OBJECT_get0_X509(obj);
-    } else {
-        srvCert = X509_find_by_subject(ctx->untrusted_certs, sender_name);
-    }
-
-    OPENSSL_free(obj); /* X509_OBJECT_free(obj) would free the cert */
-    X509_STORE_CTX_free(csc);
-    if (srvCert)
-        return srvCert;
-
-    /* not found in trusted/untrusted store, so look through extraCerts */
-    if (!(found_certs = sk_X509_new_null()))
-        return NULL;
-
-    for (n = 0; n < sk_X509_num(msg->extraCerts); n++) {
-        X509 *cert = sk_X509_value(msg->extraCerts, n);
-        X509_NAME *name = NULL;
-        if (!cert)
-            continue;
-        name = X509_get_subject_name(cert);
-
-        if (name
-            && !X509_NAME_cmp(name, msg->header->sender->d.directoryName))
-            sk_X509_push(found_certs, cert);
-    }
-
-    /* if found exactly one cert, we'll use that */
-    if (sk_X509_num(found_certs) == 1)
-        srvCert = sk_X509_pop(found_certs);
-
-    /* found more than one with a matching name, so try to search
-       through the found certs by key ID if we have it.  If not,
-       just return first one, which could be the wrong one
-       if we have 2 certs with same subjectKeyId but one is expired
-       --> bug #24
-     */
-    else if (sk_X509_num(found_certs) > 1) {
-        if (msg->header->senderKID) {
-            for (n = 0; n < sk_X509_num(found_certs); n++) {
-                X509 *cert = sk_X509_value(found_certs, n);
-                ASN1_OCTET_STRING *cert_keyid = NULL;
-
-                if (!(cert_keyid = CMP_get_cert_subject_key_id(cert)))
-                    return NULL;
-
-                if (!ASN1_OCTET_STRING_cmp
-                    (cert_keyid, msg->header->senderKID)) {
-                    srvCert = cert;
-                    break;
-                }
+    /* At this point found_certs contains non-expired certs with matching
+       subject name, with (key_matches) of them having a matching keyID */
+    if (keyid_matches >= 1) { /* at least one of them has a matching keyID;
+                                 remove all other entries. keyid is not NULL. */
+        for (i = 0; i < sk_X509_num(found_certs); i++) {
+            X509 *cert = sk_X509_value(found_certs, i);
+            ASN1_OCTET_STRING *cert_keyid = CMP_get_cert_subject_key_id(cert);
+            if (!cert_keyid || ASN1_OCTET_STRING_cmp(cert_keyid, keyid) != 0) {
+                sk_X509_delete(found_certs, i--);
+                X509_free(cert);
             }
         }
-
-        if (!srvCert) {
-            /* key id not available or we didn't find cert with matching keyID.
-             * -> return the first one with matching name
-             * --> bug #23
-             */
-            srvCert = sk_X509_pop(found_certs);
-        }
     }
+    return found_certs;
+}
 
-    sk_X509_free(found_certs);
+/* ########################################################################## *
+ * internal function
+ *
+ * Find one or more server certificates by using the find_cert() function
+ * looking for a non-expired cert with subject matching the msg sender name
+ * and (as far as available) a matching sender keyID.
+ * Return exactly one if there is a single clear hit, else several candidates.
+ * - first try with the trusted store in the context
+ * - if no match, then try the untrusted certs in the context
+ * - if no match either, then try the extra certs in the message
+ * returns NULL on (out of memory) error, else the list of matches
+ * ########################################################################## */
+static STACK_OF(X509) *find_server_cert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
+{
+    X509_VERIFY_PARAM *vpm;
+    X509_NAME *name;
+    ASN1_OCTET_STRING *keyid;
+    STACK_OF (X509) *candidates, *found_certs;
 
-    X509_up_ref(srvCert); /* consistent with X509_STORE_CTX_get_by_subject() */
-    return srvCert;
+    if (!ctx || !msg)
+        return NULL;
+    vpm = X509_STORE_get0_param(ctx->trusted_store);
+    name = msg->header->sender->d.directoryName;
+    keyid = msg->header->senderKID;
+    if (!ctx || !name) /* keyid is allowed to be NULL */
+        return NULL;
+
+    candidates = X509_STORE_get1_certs(ctx->trusted_store);
+    found_certs = find_cert(candidates, name, keyid, vpm);
+    sk_X509_pop_free(candidates, X509_free);
+    if (!found_certs || sk_X509_num(found_certs) > 0)
+        return found_certs;
+
+    found_certs = find_cert(ctx->untrusted_certs, name, keyid, vpm);
+    if (!found_certs || sk_X509_num(found_certs) > 0)
+        return found_certs;
+
+    return find_cert(msg->extraCerts, name, keyid, vpm);
 }
 
 /* ##########################################################################
@@ -366,7 +354,7 @@ static X509 *findSrvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
  * based mac or a signature algorithm. In the case of signature algorithm,
  * the certificate can be provided in ctx->srvCert,
  * else it is taken from extraCerts and validated against ctx->trusted_store
- * utilizing ctx->untrusted_store and extraCerts.
+ * utilizing ctx->untrusted_certs and extraCerts.
  *
  * If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
  * the extraCerts field when a self-signed certificate is found there which can
@@ -424,14 +412,19 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                     sk_X509_add_certs(untrusted, ctx->untrusted_certs, 0) &&
                 /* load provided extraCerts to help with cert path validation */
                     sk_X509_add_certs(untrusted, msg->extraCerts, 0)) {
+                    int i;
 
-                    /* try to find server certificate from
-                     * 1) trusted_store 2) untrusted_store 3) extaCerts */
-                    srvCert = findSrvCert(ctx, msg);
+                    /* try to find server certificate(s) from
+                     * 1) trusted_store 2) untrusted_certs 3) extaCerts */
+                    STACK_OF (X509) *found_certs = find_server_cert(ctx, msg);
 
-                    /* validate that the found server Certificate is trusted */
-                    srvCert_valid = CMP_validate_cert_path(ctx,
+                    /* select first server certificate that can be validated */
+                    for (i = 0;
+                         !srvCert_valid && i < sk_X509_num(found_certs); i++) {
+                        srvCert = sk_X509_value(found_certs, i);
+                        srvCert_valid = CMP_validate_cert_path(ctx,
                                         ctx->trusted_store, untrusted, srvCert);
+                    }
                 }
 
                 if (!srvCert_valid) {
