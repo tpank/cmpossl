@@ -204,6 +204,7 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_REASON(CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC),
      "unsupported protection alg dhbasedmac"},
     {ERR_REASON(CMP_R_WRONG_ALGORITHM_OID), "wrong algorithm oid"},
+    {ERR_REASON(CMP_R_WRONG_KEY_USAGE), "wrong key usage"},
     {0, NULL}
 };
 
