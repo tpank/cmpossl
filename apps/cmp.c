@@ -977,10 +977,15 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pa
     EVP_PKEY *pkey;
     /* BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile); */
     char *pass_string = get_passwd(pass, desc);
+    BIO *bio_bak = bio_err;
+    bio_err = NULL;
     format = adjust_format(&infile, format, 1);
     pkey = load_key(bio_err, infile, format, 0, pass_string, e, desc);
-    if (pkey == NULL && format != FORMAT_HTTP && format != FORMAT_ENGINE)
+    if (pkey == NULL && format != FORMAT_HTTP && format != FORMAT_ENGINE) {
+        ERR_clear_error();
         pkey = load_key(bio_err, infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, 0, pass_string, NULL, desc);
+    }
+    bio_err = bio_bak;
     if (!pkey) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, infile);
@@ -996,12 +1001,16 @@ static X509 *load_cert_autofmt(const char *infile, int *format, const char *pass
     X509 *cert;
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
     char *pass_string = get_passwd(pass, desc);
+    BIO *bio_bak = bio_err;
+    bio_err = NULL;
     *format = adjust_format(&infile, *format, 0);
     cert = load_cert_corrected_pkcs12(infile, *format, pass_string, desc);
     if (cert == NULL && *format != FORMAT_HTTP) {
+        ERR_clear_error();
         *format = (*format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
         cert = load_cert_corrected_pkcs12(infile, *format, pass_string, desc);
     }
+    bio_err = bio_bak;
     if (!cert) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc, infile);
@@ -1015,12 +1024,16 @@ static X509 *load_cert_autofmt(const char *infile, int *format, const char *pass
 static X509_REQ *load_csr_autofmt(const char *infile, int *format, const char *desc) {
     X509_REQ *csr;
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
+    BIO *bio_bak = bio_err;
+    bio_err = NULL;
     *format = adjust_format(&infile, *format, 0);
     csr = load_csr(infile, *format, desc);
     if (csr == NULL && (*format == FORMAT_PEM || *format == FORMAT_ASN1)) {
+        ERR_clear_error();
         *format = (*format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
         csr = load_csr(infile, *format, desc);
     }
+    bio_err = bio_bak;
     if (!csr) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc, infile);
@@ -1052,11 +1065,16 @@ static STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char
 /* in apps.c there is load_certs which should be used for CMP upstream submission */
 static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const char *desc) {
     STACK_OF(X509) *certs;
+    BIO *bio_bak = bio_err;
+    bio_err = NULL;
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
     certs = load_certs_fmt(infile, format, desc);
-    if (certs == NULL)
+    if (certs == NULL) {
+        ERR_clear_error();
         certs = load_certs_fmt(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, desc);
+    }
+    bio_err = bio_bak;
     if (!certs) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc, infile);
@@ -1068,11 +1086,20 @@ static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const 
 /* this is exclusively used by load_crls_fmt */
 static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
     X509_CRL *crl;
+    BIO *bio_bak = bio_err;
+    bio_err = NULL;
     /* BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
     crl = load_crl(infile, format);
-    if (crl == NULL && format != FORMAT_HTTP)
+    if (crl == NULL && format != FORMAT_HTTP) {
+        ERR_clear_error();
         crl = load_crl(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
+    }
+    bio_err = bio_bak;
+    if (!crl) {
+        ERR_print_errors(bio_err);
+        BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc, infile);
+    }
     return crl;
 }
 
@@ -1101,10 +1128,15 @@ static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const c
 /* in apps.c there is load_crls which should be used for CMP upstream submission */
 static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, const char *desc) {
     STACK_OF(X509_CRL) *crls;
+    BIO *bio_bak = bio_err;
+    bio_err = NULL;
     format = adjust_format(&infile, format, 0);
     crls = load_crls_fmt(infile, format, desc);
-    if (crls == NULL && format != FORMAT_HTTP)
+    if (crls == NULL && format != FORMAT_HTTP) {
+        ERR_clear_error();
         crls = load_crls_fmt(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, desc);
+    }
+    bio_err = bio_bak;
     if (!crls) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, infile);
