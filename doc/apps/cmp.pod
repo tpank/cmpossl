@@ -8,6 +8,7 @@ cmp - client for the Certificate Management Protocol (RFC4210)
 
 B<openssl> B<cmp>
 [B<-help>]
+[B<-config filename>]
 [B<-section name>]
 
 [B<-server address:port>]
@@ -109,10 +110,15 @@ request certificates to be revoked, and perform other CMP requests.
 
 Display a summary of all options
 
+=item B<-config filename>
+
+Configuration file to use.
+Default file name is taken from the environment variable 'OPENSSL_CONF'.
+
 =item B<-section name>
 
-Name of section in OpenSSL config file defining cmp default options.
-Default is "cmp".
+Section to use within config file defining default CMP options,
+which may be overridden at the command line. Default is 'cmp'.
 
 =back
 

@@ -56,6 +56,7 @@
 #include "apps.h"
 #include "s_apps.h"
 
+static char *opt_config = NULL;
 #define CONFIG_FILE "openssl.cnf"
 #define CMP_SECTION "cmp"
 static char *opt_section = CMP_SECTION;
@@ -300,7 +301,7 @@ typedef struct options_st {
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
-    OPT_SECTION,
+    OPT_CONFIG, OPT_SECTION,
 
     OPT_SERVER, OPT_PROXY, OPT_PATH,
     OPT_MSGTIMEOUT, OPT_MAXPOLLTIME,
@@ -338,7 +339,8 @@ const
 OPTIONS cmp_options[] = {
     /* OPTION_CHOICE values must be in the same order as enumerated above!! */
     {"help", OPT_HELP, '-', "Display this summary"},
-    {"section", OPT_SECTION, 's', "Name of section in OpenSSL config file defining cmp default options. Default 'cmp'"},
+    {"config", OPT_CONFIG, 's', "Configuration file. Default is taken from env variable 'OPENSSL_CONF'"},
+    {"section", OPT_SECTION, 's', "Section to use within config file defining (default) CMP options. Default 'cmp'"},
 
     {OPT_MORE_STR, 0, 0, "\nMessage transfer options:"},
     {"server", OPT_SERVER, 's', "The 'address:port' of the CMP server (domain name or IP address)"},
@@ -435,7 +437,7 @@ typedef union {
     long *num_long;
 } varref;
 static varref cmp_vars[]= { /* must be in the same order as enumerated above!! */
-    {&opt_section},
+    {&opt_config}, {&opt_section},
 
     {&opt_server}, {&opt_proxy}, {&opt_path},
     { (char **)&opt_msgtimeout}, { (char **)&opt_maxpolltime},
@@ -505,8 +507,10 @@ static int read_config()
     const OPTIONS *opt;
     int verification_option;
 
-    /* starting with 1 and OPT_HELP+1 because OPT_SECTION has already been handled */
-    for (i = 1, opt = &cmp_options[OPT_HELP+1]; opt->name; i++, opt++) {
+    /* starting with offset OPT_SECTION because OPT_CONFIG and OPT_SECTION would
+       not make sense within the config file. They have already been handled. */
+    for (i = OPT_SECTION-OPT_HELP, opt = &cmp_options[OPT_SECTION];
+         opt->name; i++, opt++) {
         if (!strcmp(opt->name, OPT_HELP_STR) || !strcmp(opt->name, OPT_MORE_STR)) {
             i--;
             continue;
@@ -527,6 +531,8 @@ static int read_config()
                 continue; /* option not provided */
             }
             break;
+        case '<': /* do not use '<' in cmp_options. Incorrect treatment
+                     somewhere in args_verify() can wrongly set badops = 1 */
         case 's':
         case 'M':
             txt = NCONF_get_string(conf, opt_section, opt->name);
@@ -2117,12 +2123,14 @@ int cmp_main(int argc, char **argv)
 
     bio_c_out = BIO_new_fp(stdout, BIO_NOCLOSE);
 
-    /* must handle OPT_SECTION upfront to take effect for all other args */
+    /* handle OPT_CONFIG and OPT_SECTION upfront to take effect for other opts*/
     for (i = argc-2; i >= 0; i--)
-        if (argv[i][0] == '-' && !strcmp(argv[i]+1, cmp_options[OPT_SECTION-OPT_HELP].name)) {
-            opt_section = argv[i+1];
-            break;
-         }
+        if (*argv[i] == '-') {
+            if (!strcmp(argv[i]+1, cmp_options[OPT_CONFIG-OPT_HELP].name))
+                opt_config = argv[i+1];
+            else if (!strcmp(argv[i]+1, cmp_options[OPT_SECTION-OPT_HELP].name))
+                opt_section = argv[i+1];
+        }
 
     vpm = X509_VERIFY_PARAM_new();
     if (vpm == NULL) {
@@ -2130,8 +2138,11 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
+    if (opt_config)
+        configfile = strdup(opt_config);
+    else
     /* TODO dvo: the following would likely go to openssl.c make_config_name() */
-    configfile = getenv("OPENSSL_CONF");
+        configfile = getenv("OPENSSL_CONF");
     if (configfile == NULL)
         configfile = getenv("SSLEAY_CONF");
     if (configfile == NULL) {
@@ -2189,6 +2200,8 @@ opt_err:
             ret = EXIT_SUCCESS;
             opt_help(cmp_options);
             goto err;
+        case OPT_CONFIG: /* has already been handled */
+            break;
         case OPT_SECTION: /* has already been handled */
             break;
 
@@ -2380,7 +2393,8 @@ opt_err:
             break;
             }
 
-        /* starting with 0 and OPT_HELP+0 although OPT_SECTION has already been handled */
+        /* starting with 0 and OPT_HELP+0 although
+           OPT_CONFIG and OPT_SECTION have already been handled */
         for (i = 0, opt = &cmp_options[OPT_HELP+0]; opt->name; i++, opt++) {
             if (!strcmp(opt->name, OPT_HELP_STR) || !strcmp(opt->name, OPT_MORE_STR)) {
                 i--;
