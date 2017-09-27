@@ -113,13 +113,15 @@ Display a summary of all options
 
 =item B<-config filename>
 
-Configuration file to use.
+Configuration file to use. An empty string "" means none.
 Default file name is taken from the environment variable 'OPENSSL_CONF'.
 
 =item B<-section name>
 
-Section to use within config file defining default CMP options,
-which may be overridden at the command line. Default is 'cmp'.
+Section to use within config file defining CMP options,
+which may be overridden at the command line.
+An empty string "" selects the section named 'default'.
+Default is 'cmp'.
 
 =back
 

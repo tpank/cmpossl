@@ -59,6 +59,7 @@
 static char *opt_config = NULL;
 #define CONFIG_FILE "openssl.cnf"
 #define CMP_SECTION "cmp"
+#define DEFAULT_SECTION "default"
 static char *opt_section = CMP_SECTION;
 
 #undef PROG
@@ -340,8 +341,8 @@ const
 OPTIONS cmp_options[] = {
     /* OPTION_CHOICE values must be in the same order as enumerated above!! */
     {"help", OPT_HELP, '-', "Display this summary"},
-    {"config", OPT_CONFIG, 's', "Configuration file. Default is taken from env variable 'OPENSSL_CONF'"},
-    {"section", OPT_SECTION, 's', "Section to use within config file defining (default) CMP options. Default 'cmp'"},
+    {"config", OPT_CONFIG, 's', "Configuration file to use; \"\" means none. Default from env variable 'OPENSSL_CONF'"},
+    {"section", OPT_SECTION, 's', "Section in config file defining CMP options. \"\" means 'default'. Default 'cmp'"},
 
     {OPT_MORE_STR, 0, 0, "\nMessage transfer options:"},
     {"server", OPT_SERVER, 's', "The 'address:port' of the CMP server (domain name or IP address)"},
@@ -2107,13 +2108,15 @@ int cmp_main(int argc, char **argv)
     bio_c_out = BIO_new_fp(stdout, BIO_NOCLOSE);
 
     /* handle OPT_CONFIG and OPT_SECTION upfront to take effect for other opts*/
-    for (i = argc-2; i >= 0; i--)
+    for (i = 1; i < argc-1; i++)
         if (*argv[i] == '-') {
             if (!strcmp(argv[i]+1, cmp_options[OPT_CONFIG-OPT_HELP].name))
                 opt_config = argv[i+1];
             else if (!strcmp(argv[i]+1, cmp_options[OPT_SECTION-OPT_HELP].name))
                 opt_section = argv[i+1];
         }
+    if (opt_section[0] == '\0') /* empty string */
+        opt_section = DEFAULT_SECTION;
 
     vpm = X509_VERIFY_PARAM_new();
     if (vpm == NULL) {
@@ -2143,7 +2146,7 @@ int cmp_main(int argc, char **argv)
      * read default values for options from openssl.cnf
      */
     /* TODO dvo: the following would likely go to apps.c app_load_config_() */
-    if (configfile) {
+    if (configfile && configfile[0] != '\0') { /* non-empty string */
         BIO_printf(bio_c_out, "Using OpenSSL configuration file '%s'\n", configfile);
         conf = NCONF_new(NULL);
         if (NCONF_load(conf, configfile, &errorline) <= 0) {
