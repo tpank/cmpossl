@@ -54,6 +54,7 @@ B<openssl> B<cmp>
 [B<-implicitconfirm>]
 [B<-disableconfirm>]
 [B<-certout filename>]
+[B<-verify_out filename>]
 
 [B<-oldcert filename>]
 [B<-revreason number>]
@@ -178,9 +179,7 @@ As last resort it is set to NULL-DN.
 
 =item B<-srvcert filename>
 
-CMP server certificate to be used for verifying the protection of messages
-received and for checking the newly enrolled cert
-(a warning is given if it cannot be verfied).
+CMP server certificate to use for verifying the protection of response messages.
 May be set alternatively to the -trusted option if the certificate is available
 and should be directly trusted.
 
@@ -189,14 +188,14 @@ message, overriding any potential -recipient option.
 
 =item B<-trusted filename>
 
-Trusted certificates used for CMP server authentication and verifying replies,
-as well as for checking the newly enrolled cert, unless the -srvcert option
-is given. The file can contain multiple certificates.
+Trusted certificate(s) to use for CMP server authentication
+when verifying responses, unless the -srvcert option is given.
 
 =item B<-untrusted filename>
 
-Intermediate certificates that may be useful for path construction in
-CMP server authentication. The file can contain multiple certificates.
+Intermediate certificate(s) that may be useful for constructing cert chain
+for CMP server or issuing CA certificates (when verifying signature-based
+message protection or verifying the newly issued certificate, respectively).
 
 =back
 
@@ -207,12 +206,12 @@ CMP server authentication. The file can contain multiple certificates.
 
 =item B<-ref value>
 
-Reference value to be used when messages are authenticated with pre-shared keys
+Reference value to use when messages are authenticated with pre-shared keys
 (password-based MAC).  Implies that the B<-secret> option is also given.
 
 =item B<-secret arg>
 
-Source for secret value to be used when messages are authenticated with
+Source for secret value to use when messages are authenticated with
 pre-shared keys (password-based MAC).For more information about the format of
 B<arg> see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.  Implies that
 the B<-ref> option is also given.
@@ -282,7 +281,7 @@ e.g., '1.2.3:int:987'.
 
 =item B<-digest name>
 
-Specifies name of supported digest to be used in RFC 4210's MSG_SIG_ALG.
+Specifies name of supported digest to use in RFC 4210's MSG_SIG_ALG.
 If applicable, this is used for message protection and
 Proof-of-Possession (POPO) signatures.
 To see the list of supported digests, use the command
@@ -356,7 +355,7 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-subject distinguished_name>
 
-X509 subject DN to be used in the requested certificate template.
+X509 subject DN to use in the requested certificate template.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
@@ -387,16 +386,20 @@ Set Proof-of-Possession (POPO) method; values: 0..3.
 
 =item B<-implicitconfirm>
 
-Request implicit confirmation of the enrolled certificate.
+Request implicit confirmation of the newly issued certificate.
 
 =item B<-disableconfirm>
 
-Do not send certificate confirmation message for enrolled certificates to
+Do not send certificate confirmation message for newly issued certificate to
 cope with broken servers not supporting implicit confirmation correctly.
 
 =item B<-certout filename>
 
-The file where the newly enrolled certificate should be saved.
+The file where the newly issued certificate should be saved.
+
+=item B<-verify_out filename>
+
+Trusted certificate(s) to use for verifying the newly issued certificate.
 
 =back
 
@@ -496,8 +499,8 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-tls-trusted filename>
 
-Client's trusted certificates for verifying TLS certificates.  The file may
-contain multiple certificates.  This implies host name validation.
+Trusted certificate(s) to use for verifying the TLS server certificate.
+This implies host name validation.
 
 =item B<-tls-host name>
 

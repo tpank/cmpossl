@@ -169,17 +169,17 @@ static char *opt_secret = NULL;
 static char *opt_cert = NULL;
 static char *opt_key = NULL;
 static char *opt_keypass = NULL;
+static char *opt_extcerts = NULL;
 
 static char *opt_certout = NULL;
-static char *opt_newkey = NULL;
-static char *opt_newkeypass = NULL;
+static char *opt_verify_out = NULL;
+static X509_STORE *verify_out_ts = NULL;
 
 static char *opt_srvcert = NULL;
 static char *opt_trusted = NULL;
 static char *opt_untrusted = NULL;
 static char *opt_crls = NULL;
 static int opt_crldownload = 0;
-static int vpmtouched = 0;
 static X509_VERIFY_PARAM *vpm = NULL;
 
 static char *opt_keyform_s = "PEM";
@@ -188,7 +188,8 @@ static int opt_keyform = FORMAT_PEM;
 static int opt_certform = FORMAT_PEM;
 static int opt_crlform = FORMAT_PEM; /* default to be tried first for file input; TODO maybe add cmd line arg */
 
-static char *opt_extcerts = NULL;
+static char *opt_newkey = NULL;
+static char *opt_newkeypass = NULL;
 static char *opt_subject = NULL;
 static char *opt_issuer = NULL;
 static int   opt_days = 0;
@@ -317,7 +318,7 @@ typedef enum OPTION_choice {
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER,
     OPT_DAYS, OPT_REQEXTS, OPT_POPO,
     OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
-    OPT_CERTOUT,
+    OPT_CERTOUT, OPT_VERIFY_OUT,
 
     OPT_OLDCERT, OPT_CSR, OPT_REVREASON, OPT_INFOTYPE,
 
@@ -351,11 +352,10 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nRecipient options:"},
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given."},
-    {"srvcert", OPT_SRVCERT, 's', "Certificate of CMP server to be used as recipient, for verifying replies,"},
-             {OPT_MORE_STR, 0, 0, "and for verifying the newly enrolled cert (and to warn if this fails)"},
-    {"trusted", OPT_TRUSTED, 's', "Trusted certificates used for CMP server authentication and verifying replies,"},
-             {OPT_MORE_STR, 0, 0, "as well as for checking the newly enrolled cert, unless -srvcert is given"},
-    {"untrusted", OPT_UNTRUSTED, 's', "Untrusted certificates for path construction in CMP server authentication"},
+    {"srvcert", OPT_SRVCERT, 's', "Certificate of CMP server to use and trust directly when verifying responses"},
+    {"trusted", OPT_TRUSTED, 's', "Trusted certificates to use for CMP server authentication when verifying responses,"},
+             {OPT_MORE_STR, 0, 0, "unless -srvcert is given"},
+    {"untrusted", OPT_UNTRUSTED, 's', "Intermediate certificates for constructing chain for CMP server and issuing CA certs"},
 
     {OPT_MORE_STR, 0, 0, "\nSender options:"},
     {"ref", OPT_REF, 's', "Reference value for client authentication with a pre-shared key"},
@@ -369,7 +369,7 @@ OPTIONS cmp_options[] = {
     {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
     {"geninfo", OPT_GENINFO, 's', "Set generalInfo in request PKIHeader with type and integer value"},
              {OPT_MORE_STR, 0, 0, "given in the form <OID>:int:<n>, e.g., '1.2.3:int:987'"},
-    {"digest", OPT_DIGEST, 's', "Digest to be used in message protection and POPO signatures. Default 'sha256'"},
+    {"digest", OPT_DIGEST, 's', "Digest to use in message protection and POPO signatures. Default 'sha256'"},
     {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-', "Send messages without CMP-level protection"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-',
                           "Accept unprotected error responses: regular error messages as well as"},
@@ -381,23 +381,24 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0, "\nCertificate request options:"},
     {"newkey", OPT_NEWKEY, 's', "Private key for the requested certificate, defaulting to current client's key."},
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
-    {"subject", OPT_SUBJECT, 's', "X509 subject name to be used in the requested certificate template"},
+    {"subject", OPT_SUBJECT, 's', "X509 subject name to use in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's', "Distinguished Name of the issuer, to be put in the requested certificate template."},
            {OPT_MORE_STR, 0, 0, "Also used as recipient if neither -recipient nor -srvcert are given."},
     {"days", OPT_DAYS, 'n', "Number of days the new certificate is asked to be valid for"},
     {"reqexts", OPT_REQEXTS, 's', "Name of section in OpenSSL config file defining certificate request extensions"},
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method."},
        {OPT_MORE_STR, 0, 0, "0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
-    {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of enrolled certificate"},
-    {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm enrolled certificates"},
+    {"implicitconfirm", OPT_IMPLICITCONFIRM, '-', "Request implicit confirmation of newly issued certificate"},
+    {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm newly issued certificate"},
                            {OPT_MORE_STR, 0, 0, "WARNING: This setting leads to behavior violating RFC 4210."},
-    {"certout", OPT_CERTOUT, 's', "File to save the newly enrolled certificate"},
+    {"certout", OPT_CERTOUT, 's', "File to save the newly issued certificate"},
+    {"verify_out", OPT_VERIFY_OUT, 's', "Trusted certificates to use for verifying the newly issued certificate"},
 
     {OPT_MORE_STR, 0, 0, "\nMisc request options:"},
 
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be updated in kur (defaulting to -cert) or to be revoked in rr."},
              {OPT_MORE_STR, 0, 0, "Its issuer is used as recipient if neither of -srvcert, -recipient, -issuer given."},
-    {"csr", OPT_CSR, 's', "PKCS#10 CSR to be used in p10cr"},
+    {"csr", OPT_CSR, 's', "PKCS#10 CSR to use in p10cr"},
     {"revreason", OPT_REVREASON, 'n', "Set reason code to be included in revocation request (rr)."},
                  {OPT_MORE_STR, 0, 0, "Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
     {"infotype", OPT_INFOTYPE, 's', "InfoType name for requesting specific info in genm, e.g., 'signKeyPairTypes'"},
@@ -418,7 +419,7 @@ OPTIONS cmp_options[] = {
     {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. May include cert chain to be provided to server"},
     {"tls-key", OPT_TLSKEY, 's', "Private key for the client's TLS certificate"},
     {"tls-keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
-    {"tls-trusted", OPT_TLSTRUSTED, 's', "Client's trusted certificates for verifying TLS certificates."},
+    {"tls-trusted", OPT_TLSTRUSTED, 's', "Trusted certificates to use for verifying the TLS server certificate."},
                     {OPT_MORE_STR, 0, 0, "This implies host name validation"},
     {"tls-host", OPT_TLSTRUSTED, 's', "Address to be checked (rather than -server) during host name validation"},
 
@@ -453,7 +454,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
     { (char **)&opt_days}, {&opt_reqexts}, { (char **)&opt_popo},
     { (char **)&opt_implicitConfirm}, { (char **)&opt_disableConfirm},
-    {&opt_certout},
+    {&opt_certout}, {&opt_verify_out},
 
     {&opt_oldcert}, {&opt_csr}, { (char **)&opt_revreason}, {&opt_infotype_s},
 
@@ -573,8 +574,7 @@ static int read_config()
                 {
                     BIO_printf(bio_err, "error for option '%s' in config file section '%s'\n", opt->name, opt_section);
                     return 0;
-                } else
-                    vpmtouched++;
+                }
             }
         } else {
             switch (opt->valtype) {
@@ -1348,8 +1348,7 @@ static int add0_certs(STACK_OF (X509) *stack, STACK_OF (X509) *certs) {
 */
 static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert, const char **text)
 {
-    int ok = 1;
-    X509_STORE *ts;
+    int res = -1; /* indicating "ok" here */
 
     STACK_OF (X509) *untrusted = sk_X509_new_null();
     if (!untrusted) {
@@ -1366,23 +1365,14 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert, const char **
     if (!add0_certs(untrusted, CMP_CTX_caPubs_get1(ctx)))
         goto oom;
 
-    ts = CMP_CTX_get0_trustedStore(ctx);
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define X509_STORE_get0_param(store) (store->param)
-#endif
-    /* X509_VERIFY_PARAM_set_hostflags(X509_STORE_get0_param(ts), X509_CHECK_FLAG_NEVER_CHECK_SUBJECT);
-       does not help here */
-    X509_VERIFY_PARAM_set1_host(X509_STORE_get0_param(ts), NULL, 0);
-    /* (Re-)setting the host modifies the params of ctx->trusted_store - unfortunately
-        there is no public function to copy them (which would allow to restore them later */
-    if (!CMP_validate_cert_path(ctx, ts, untrusted, cert))
-        ok = 0;
+    if (!CMP_validate_cert_path(ctx, verify_out_ts, untrusted, cert))
+        res = CMP_PKIFAILUREINFO_incorrectData;
 
     sk_X509_pop_free(untrusted, X509_free);
 
-    if (!ok)
-        BIO_puts(bio_c_out, "warning: failed to validate newly enrolled certificate\n");
-    return -1; /* indicating "ok" here, treating validation failure as warning only */
+    if (res >= 0)
+        BIO_puts(bio_c_out, "error: failed to validate newly issued certificate\n");
+    return res;
 }
 
 static int parse_server_and_port(char *opt_string)
@@ -1561,7 +1551,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
         SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
 
-        if (vpmtouched && !SSL_CTX_set1_param(ssl_ctx, vpm)) {
+        if (!SSL_CTX_set1_param(ssl_ctx, vpm)) {
             BIO_printf(bio_err, "Error setting SSL CTX verification parameters\n");
             ERR_print_errors(bio_err);
             goto tls_err;
@@ -1674,7 +1664,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_newkey) {
-        EVP_PKEY *pkey = load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e, "new private key for certificate to be enrolled");
+        EVP_PKEY *pkey = load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e, "new private key for certificate to be issued");
         if (opt_newkeypass) {
             OPENSSL_cleanse(opt_newkeypass, strlen(opt_newkeypass));
             opt_newkeypass = NULL;
@@ -1757,20 +1747,12 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_srvcert || opt_trusted) {
         X509_STORE *ts = CMP_CTX_get0_trustedStore(ctx);
-        if (vpmtouched) {
-            X509_VERIFY_PARAM *cmp_vpm;
-            X509_STORE_set1_param(ts, vpm); /* copy verification params to CMP */
-            /* in preparation for use in certConf_cb(): */
-            cmp_vpm = X509_STORE_get0_param(ts);
-            /* Clear any host or IP entries; the following does not help here:
-               X509_VERIFY_PARAM_set_hostflags(cmp_vpm,
-                                         X509_CHECK_FLAG_NEVER_CHECK_SUBJECT); */
-            X509_VERIFY_PARAM_set1_host(cmp_vpm, NULL, 0);
-            X509_VERIFY_PARAM_set1_ip(cmp_vpm, NULL, 0);
-            if (opt_srvcert) /* clear any deep CRL check for srvCert */
-                X509_VERIFY_PARAM_clear_flags(cmp_vpm, X509_V_FLAG_CRL_CHECK_ALL);
-        }
+        X509_STORE_set1_param(ts, vpm);  /* copy verification params to CMP */
+        if (opt_srvcert)            /* clear any deep CRL check for srvCert */
+            X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts),
+                                          X509_V_FLAG_CRL_CHECK_ALL);
         ERR_clear_error();
+        X509_STORE_set_verify_cb(ts, print_cert_verify_cb);
         if (opt_crls || opt_crldownload)
             X509_STORE_set_flags(ts, X509_V_FLAG_CRL_CHECK);
         if (opt_crldownload) {
@@ -1789,7 +1771,14 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    CMP_CTX_set_certVerify_callback(ctx, print_cert_verify_cb);
+    if (opt_verify_out) { /* in preparation for use in certConf_cb() */
+        verify_out_ts = create_cert_store(opt_verify_out,
+                               "trusted certs for verifying newly issued cert");
+        if (!verify_out_ts)
+            goto err;
+        X509_STORE_set1_param(verify_out_ts, vpm); /* copy verif params */
+        X509_STORE_set_verify_cb(verify_out_ts, print_cert_verify_cb);
+    }
 
     if (opt_subject) {
         X509_NAME *n = parse_name(opt_subject, MBSTRING_ASC, 0);
@@ -1975,7 +1964,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_maxpolltime >= 0)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MAXPOLLTIME, opt_maxpolltime);
 
-    (void)CMP_CTX_set_certConf_callback(ctx, certConf_cb);
+    if (opt_verify_out)
+        (void)CMP_CTX_set_certConf_callback(ctx, certConf_cb);
 
     return 1;
 
@@ -2258,6 +2248,9 @@ opt_err:
         case OPT_CERTOUT:
             opt_certout = opt_str("certout");
             break;
+        case OPT_VERIFY_OUT:
+            opt_verify_out = opt_str("verify_out");
+            break;
         case OPT_NEWKEY:
             opt_newkey = opt_str("newkey");
             break;
@@ -2282,7 +2275,6 @@ opt_err:
         case OPT_V_CASES/* OPT_CRLALL etc. */:
             if (!opt_verify(o, vpm))
                 goto bad_ops;
-            vpmtouched++;
             break;
         case OPT_KEYFORM:
             opt_keyform_s = opt_str("keyform");
@@ -2375,7 +2367,6 @@ opt_err:
         if (args_verify(&argv, &argc, &badops, bio_err, &vpm)) { /* OPT_CRLALL etc. */
             if (badops)
                 goto bad_ops;
-            vpmtouched++;
             continue;
         }
         arg = *argv;
@@ -2516,6 +2507,7 @@ opt_err:
         }
         sk_X509_pop_free(certs, X509_free);
     }
+
     if (opt_extracertsout && CMP_CTX_extraCertsIn_num(cmp_ctx) > 0) {
         STACK_OF(X509) *certs;
         if ((certs = CMP_CTX_extraCertsIn_get1(cmp_ctx)) == NULL)
@@ -2524,13 +2516,14 @@ opt_err:
             goto save_certs_err;
         sk_X509_pop_free(certs, X509_free);
     }
+
     if (opt_certout && newcert) {
         STACK_OF(X509) *certs;
         if ((certs = sk_X509_new_null()) == NULL)
             goto err;
         if (!sk_X509_push(certs, X509_dup(newcert)))
             goto err;
-        if (save_certs(certs, opt_certout, "enrolled") < 0)
+        if (save_certs(certs, opt_certout, "issued") < 0)
             goto save_certs_err;
         sk_X509_pop_free(certs, X509_free);
     }
@@ -2539,8 +2532,10 @@ opt_err:
  err:
     if (ret != EXIT_SUCCESS)
         ERR_print_errors_fp(stderr);
+
     CMP_CTX_delete(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);
+    X509_STORE_free(verify_out_ts);
     BIO_free(bio_c_out);
     release_engine(e);
 

@@ -172,6 +172,7 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
                        const STACK_OF (X509) *untrusted_certs, const X509 *cert)
 {
     int valid = 0;
+    X509_VERIFY_PARAM *vpm;
     X509_STORE_CTX *csc = NULL;
 
     if (!cert)
@@ -183,9 +184,12 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
         goto end;
     }
 
-    /* A cert callback could be used to do additional checking, policies for
-     * example. */
-    /* X509_STORE_set_verify_cb(trusted_store, CMP_cert_callback); */
+    vpm = X509_STORE_get0_param(trusted_store);
+    /* Clear any host or IP entries; the following does not help here:
+       X509_VERIFY_PARAM_set_hostflags(vpm,
+       X509_CHECK_FLAG_NEVER_CHECK_SUBJECT); */
+    X509_VERIFY_PARAM_set1_host(vpm, NULL, 0);
+    X509_VERIFY_PARAM_set1_ip(vpm, NULL, 0);
 
     if (!(csc = X509_STORE_CTX_new()))
         goto end;
