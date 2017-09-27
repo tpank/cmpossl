@@ -91,6 +91,7 @@ struct cmp_ctx_st {
                             message exchanges to cope with broken server */
     int unprotectedRequests; /* send unprotected PKI messages */
     int unprotectedErrors; /* accept unprotected error responses */
+    int ignore_keyusage; /* ignore key usage entry in certs */
     int maxPollTime; /* maximum number of seconds to poll the server
                         for a response if a 'waiting' PKIStatus is received */
     long lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP, or -1 */

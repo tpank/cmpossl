@@ -83,7 +83,8 @@
  * (sha1+RSA/DSA or any other algorithm supported by OpenSSL)
  * returns 0 on error
  * ########################################################################## */
-static int CMP_verify_signature(const CMP_PKIMESSAGE *msg, const X509 *cert)
+static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
+                                const CMP_PKIMESSAGE *msg, const X509 *cert)
 {
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART protPart;
@@ -99,16 +100,10 @@ static int CMP_verify_signature(const CMP_PKIMESSAGE *msg, const X509 *cert)
         return 0;
 
     /* verify that keyUsage, if present, contains digitalSignature */
-    if (!(X509_get_key_usage((X509 *)cert) & X509v3_KU_DIGITAL_SIGNATURE)) {
-        if (X509_get_key_usage((X509 *)cert) & X509v3_KU_KEY_CERT_SIGN) {
-            /* workaround for Insta CA having Certificate Sign and CRL Sign */
-            puts("warning: server certificate does not allow key usage 'digitalSignature' but 'keyCertSign'");
-        /* TODO: add proper warning function */
-        }
-        else {
+    if (!cmp_ctx->ignore_keyusage &&
+        !(X509_get_key_usage((X509 *)cert) & X509v3_KU_DIGITAL_SIGNATURE)) {
             CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_WRONG_KEY_USAGE);
             return 0;
-        }
     }
 
     pubkey = X509_get_pubkey((X509 *)cert);
@@ -488,7 +483,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             /* store trusted srv cert for future messages in this transaction */
             ctx->validatedSrvCert = srvCert;
         }
-        return CMP_verify_signature(msg, srvCert);
+        return CMP_verify_signature(ctx, msg, srvCert);
     }
     return 0;
 }

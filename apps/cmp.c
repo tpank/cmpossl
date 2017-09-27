@@ -179,6 +179,8 @@ static X509_STORE *verify_out_ts = NULL;
 static char *opt_srvcert = NULL;
 static char *opt_trusted = NULL;
 static char *opt_untrusted = NULL;
+static int opt_ignore_keyusage = 0;
+
 static char *opt_crls = NULL;
 static int opt_crldownload = 0;
 static X509_VERIFY_PARAM *vpm = NULL;
@@ -309,6 +311,7 @@ typedef enum OPTION_choice {
     OPT_MSGTIMEOUT, OPT_MAXPOLLTIME,
 
     OPT_RECIPIENT, OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED,
+    OPT_IGNORE_KEYUSAGE,
 
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
 
@@ -357,6 +360,7 @@ OPTIONS cmp_options[] = {
     {"trusted", OPT_TRUSTED, 's', "Trusted certificates to use for CMP server authentication when verifying responses,"},
              {OPT_MORE_STR, 0, 0, "unless -srvcert is given"},
     {"untrusted", OPT_UNTRUSTED, 's', "Intermediate certificates for constructing chain for CMP server and issuing CA certs"},
+    {"ignore_keyusage", OPT_IGNORE_KEYUSAGE, '-', "Ignore CMP-level cert key usage, else 'digitalSignature' needed for signatures"},
 
     {OPT_MORE_STR, 0, 0, "\nSender options:"},
     {"ref", OPT_REF, 's', "Reference value for client authentication with a pre-shared key"},
@@ -445,6 +449,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     { (char **)&opt_msgtimeout}, { (char **)&opt_maxpolltime},
 
     {&opt_recipient}, {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
+    { (char **)&opt_ignore_keyusage},
 
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
 
@@ -1857,6 +1862,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_unprotectedErrors)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
 
+    if (opt_ignore_keyusage)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IGNORE_KEYUSAGE, 1);
+
     if (opt_digest) {
         int digest = OBJ_ln2nid(opt_digest);
         if (digest == NID_undef) {
@@ -2268,6 +2276,9 @@ opt_err:
             break;
         case OPT_UNTRUSTED:
             opt_untrusted = opt_str("untrusted");
+            break;
+        case OPT_IGNORE_KEYUSAGE:
+            opt_ignore_keyusage = 1;
             break;
         case OPT_CRLS:
             opt_crls = opt_str("crls");

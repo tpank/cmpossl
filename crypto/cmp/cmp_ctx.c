@@ -261,6 +261,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->disableConfirm = 0;
     ctx->unprotectedRequests = 0;
     ctx->unprotectedErrors = 0;
+    ctx->ignore_keyusage = 0;
     ctx->maxPollTime = 0;
 
     ctx->lastPKIStatus = 0;
@@ -1376,6 +1377,9 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
         break;
     case CMP_CTX_OPT_VALIDITYDAYS:
         ctx->days = val;
+        break;
+    case CMP_CTX_OPT_IGNORE_KEYUSAGE:
+        ctx->ignore_keyusage = val;
         break;
     case CMP_CTX_OPT_POPOMETHOD:
         ctx->popoMethod = val;

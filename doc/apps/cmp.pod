@@ -28,6 +28,7 @@ B<openssl> B<cmp>
 [B<-srvcert filename>]
 [B<-trusted filename>]
 [B<-untrustedE<nbsp>filename>]
+[B<-ignore_keyusage>]
 
 [B<-ref value>]
 [B<-secret arg>]
@@ -198,6 +199,11 @@ when verifying responses, unless the -srvcert option is given.
 Intermediate certificate(s) that may be useful for constructing cert chain
 for CMP server or issuing CA certificates (when verifying signature-based
 message protection or verifying the newly issued certificate, respectively).
+
+=item B<-ignore_keyusage>]
+
+Ignore key usage restrictions in certificates at CMP level,
+else 'digitalSignature' must be allowed for signature use.
 
 =back
 
