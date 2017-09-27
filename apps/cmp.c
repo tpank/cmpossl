@@ -1114,7 +1114,7 @@ static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const c
         STACK_OF(X509_CRL) *crls = sk_X509_CRL_new_null();
         if (!crls)
             return NULL;
-        crl = load_crl_autofmt(infile, format, desc);
+        crl = load_crl(infile, format);
         if (!crl) {
             sk_X509_CRL_free(crls);
             return NULL;

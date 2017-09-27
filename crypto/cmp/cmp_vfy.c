@@ -430,6 +430,8 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                     /* select first server certificate that can be validated */
                     for (i = 0;
                          !srvCert_valid && i < sk_X509_num(found_certs); i++) {
+                        ERR_clear_error(); /* TODO: still the cert verification
+                                 callback function may print extra errors */
                         srvCert = sk_X509_value(found_certs, i);
                         srvCert_valid = CMP_validate_cert_path(ctx,
                                         ctx->trusted_store, untrusted, srvCert);
