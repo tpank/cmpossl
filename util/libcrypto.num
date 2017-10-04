@@ -4431,7 +4431,7 @@ CRMF_ENCRYPTEDVALUE_it                  4369	1_1_1	EXIST:!EXPORT_VAR_AS_FUNCTION
 CRMF_ENCRYPTEDVALUE_it                  4369	1_1_1	EXIST:EXPORT_VAR_AS_FUNCTION:FUNCTION:
 CRMF_CERTREQMSG_set1_regCtrl_authenticator 4370	1_1_1	EXIST::FUNCTION:
 CRMF_ENCRYPTEDVALUE_new                 4371	1_1_1	EXIST::FUNCTION:
-CMP_CTX_loadUntrustedStack              4372	1_1_1	EXIST::FUNCTION:
+CMP_CTX_loadUntrustedStack              4372	1_1_1	NOEXIST::FUNCTION:
 CMP_genm_new                            4373	1_1_1	EXIST::FUNCTION:
 CMP_rr_new                              4374	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_proxyPort                   4375	1_1_1	EXIST::FUNCTION:
@@ -4446,7 +4446,7 @@ CRMF_CERTREQMSG_set1_issuer             4383	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_check_implicitConfirm    4384	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_genm_items_push1         4385	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_set1_regCtrl_regToken   4386	1_1_1	EXIST::FUNCTION:
-CMP_CTX_set0_untrustedStore             4387	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set0_untrustedStore             4387	1_1_1	NOEXIST::FUNCTION:
 CMP_CTX_policyOID_push1                 4388	1_1_1	EXIST::FUNCTION:
 d2i_CRMF_CERTREQMESSAGES                4389	1_1_1	EXIST::FUNCTION:
 CMP_doGeneralMessageSeq                 4390	1_1_1	NOEXIST::FUNCTION:
@@ -4488,5 +4488,9 @@ CMP_PKIMESSAGE_pollResponse_get0        4424	1_1_1	EXIST::FUNCTION:
 CMP_CTX_status_get                      4425	1_1_1	EXIST::FUNCTION:
 CMP_REVREPCONTENT_PKIStatusInfo_get     4426	1_1_1	EXIST::FUNCTION:
 CMP_CTX_get0_newClCert                  4427	1_1_1	EXIST::FUNCTION:
-CMP_CTX_get0_untrustedStore             4428	1_1_1	EXIST::FUNCTION:
+CMP_CTX_get0_untrustedStore             4428	1_1_1	NOEXIST::FUNCTION:
 X509_STORE_get1_certs                   4429	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set0_untrusted_certs            4430	1_1_1	EXIST::FUNCTION:
+X509_STORE_add_certs                    4431	1_1_1	EXIST::FUNCTION:
+sk_X509_add_certs                       4432	1_1_1	EXIST::FUNCTION:
+STACK_OF                                4433	1_1_1	EXIST::FUNCTION:
