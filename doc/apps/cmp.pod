@@ -56,6 +56,9 @@ B<openssl> B<cmp>
 [B<-disableconfirm>]
 [B<-certout filename>]
 [B<-verify_out filename>]
+[B<-verify_hostname cn>]
+[B<-verify_ip ip>]
+[B<-verify_email email>]
 
 [B<-oldcert filename>]
 [B<-revreason number>]
@@ -73,9 +76,6 @@ B<openssl> B<cmp>
 [B<-verify_depth num>]
 [B<-auth_level level>]
 [B<-attimeE<nbsp>timestamp>]
-[B<-verify_hostname hostname>]
-[B<-verify_email email>]
-[B<-verify_ip ip>]
 [B<-ignore_critical>]
 [B<-crl_check>]
 [B<-crl_check_all>]
@@ -409,6 +409,12 @@ The file where the newly issued certificate should be saved.
 
 Trusted certificate(s) to use for verifying the newly issued certificate.
 
+=item B<-verify_hostname cn>, B<-verify_ip ip>, B<-verify_email email>
+
+When verification of the newly issued certificate is enabled (with the
+-verify_out option), check if its Subject DN or any Subject Alternative Name
+matches the given Common Name, IP address, or email address, respectively.
+
 =back
 
 
@@ -541,7 +547,7 @@ Compare B<X509_V_FLAG_CRL_CHECK>.
 
 =item
 B<-policy>, B<-purpose>, B<-verify_name>, B<-verify_depth>, B<-auth_level>,
-B<-attime>, B<-verify_hostname>, B<-verify_email>, B<-verify_ip>,
+B<-attime>,
 B<-ignore_critical>, B<-crl_check>, B<-crl_check_all>, B<-policy_check>,
 B<-explicit_policy>, B<-inhibit_any>, B<-inhibit_map>, B<-x509_strict>,
 B<-extended_crl>, B<-use_deltas>, B<-policy_print>, B<-check_ss_sig>,
