@@ -1370,7 +1370,8 @@ static int add0_certs(STACK_OF (X509) *stack, STACK_OF (X509) *certs) {
 
 /*
  * callback validating that the new certificate can be verified, using
- * ctx->trusted_store (which may consist of ctx->srvCert) and the ctx->extraCertsIn.
+ * ctx->trusted_store (which may consist of ctx->srvCert) and the
+ * ctx->extraCertsIn in addition to existing untrusted certs.
  * Returns -1 on acceptance, else a CMP_PKIFAILUREINFO bit number.
  * Quoting from RFC 4210 section 5.1. Overall PKI Message:
        The extraCerts field can contain certificates that may be useful to
@@ -1384,7 +1385,8 @@ static int add0_certs(STACK_OF (X509) *stack, STACK_OF (X509) *certs) {
 * Note: While often handy, there is no hard default requirement than an EE must
 *       be able to validate its own certificate.
 */
-static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert, const char **text)
+static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert,
+                       const char **text)
 {
     int res = -1; /* indicating "ok" here */
 
@@ -1400,8 +1402,9 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert, const char **
         goto oom;
     if (!add0_certs(untrusted, CMP_CTX_extraCertsIn_get1(ctx)))
         goto oom;
-    if (!add0_certs(untrusted, CMP_CTX_caPubs_get1(ctx)))
-        goto oom;
+
+    /* TODO: load caPubs [CMP_CTX_caPubs_get1(ctx)] as additional trusted certs
+       during IR and if MSG_SIG_ALG is used, cf. RFC 4210, 5.3.2 */
 
     if (!CMP_validate_cert_path(ctx, verify_out_ts, untrusted, cert))
         res = CMP_PKIFAILUREINFO_incorrectData;
@@ -1409,7 +1412,8 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert, const char **
     sk_X509_pop_free(untrusted, X509_free);
 
     if (res >= 0)
-        BIO_puts(bio_c_out, "error: failed to validate newly issued certificate\n");
+        BIO_puts(bio_c_out,
+                 "error: failed to validate newly issued certificate\n");
     return res;
 }
 
