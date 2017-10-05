@@ -295,7 +295,7 @@ static int find_certs(const STACK_OF (X509) *certs,
         if (!(X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_NO_CHECK_TIME))
             if (X509_cmp_time(X509_get0_notAfter(cert), ptime) < 0)
                 continue; /* expired */
-        if (sk_X509_find(sk, cert))
+        if (sk_X509_find(sk, cert) >= 0)
             continue; /* no duplicates */
         if (!sk_X509_push(sk, cert)) {
             return 0;
