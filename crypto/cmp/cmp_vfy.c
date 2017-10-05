@@ -306,6 +306,11 @@ static int find_certs(const STACK_OF (X509) *certs,
     return 1;
 }
 
+static int X509_cmp_(const struct x509_st * const *a,
+                     const struct x509_st * const *b)
+{
+    return X509_cmp(*a, *b);
+}
 /* ########################################################################## *
  * internal function
  *
@@ -338,9 +343,7 @@ static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
         return NULL;
 
     /* sk_TYPE_find to use compfunc X509_cmp, not ptr comparison */
-    if (!(found_certs = sk_X509_new( /* "evil cast" forecasted in x509_cmp.c */
-                        (int (*)(const struct x509_st * const*,
-                                 const struct x509_st * const*)) &X509_cmp)))
+    if (!(found_certs = sk_X509_new(&X509_cmp_)))
         goto oom;
 
     trusted = X509_STORE_get1_certs(ts);
