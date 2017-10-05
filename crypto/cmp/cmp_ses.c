@@ -449,8 +449,7 @@ static int save_statusInfo(CMP_CTX *ctx, CMP_PKISTATUSINFO *si)
         sk_ASN1_UTF8STRING_pop_free(ctx->lastStatusString,ASN1_UTF8STRING_free);
         ctx->lastStatusString = NULL;
     }
-    if (!ctx->lastStatusString &&
-        !(ctx->lastStatusString = sk_ASN1_UTF8STRING_new_null()))
+    if (!(ctx->lastStatusString = sk_ASN1_UTF8STRING_new_null()))
         return 0;
     ss = si->statusString;
     for (i = 0; i < sk_ASN1_UTF8STRING_num(ss); i++) {
@@ -644,8 +643,10 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
     long rid = (req_type == V_CMP_PKIBODY_P10CR) ? -1 : CERTREQID;
     X509 *result = NULL;
 
-    if (ctx)
-        ctx->lastPKIStatus = -1;
+    if (!ctx)
+        return NULL;
+
+    ctx->lastPKIStatus = -1;
 
     /* The check if all necessary options are set is done in CMP_certreq_new */
     if (!(req = CMP_certreq_new(ctx, req_type, req_err)))
@@ -663,7 +664,7 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
     CMP_PKIMESSAGE_free(rep);
 
     /* print out openssl and cmp errors to error_cb if it's set */
-    if (!result && ctx && ctx->error_cb)
+    if (!result && ctx->error_cb)
         ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
     return result;
 }
@@ -693,8 +694,10 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
     CMP_PKISTATUSINFO *si = NULL;
     int result = 0;
 
-    if (ctx)
-        ctx->lastPKIStatus = -1;
+    if (!ctx)
+        return 0;
+
+    ctx->lastPKIStatus = -1;
 
     /* check if all necessary options are set is done in CMP_rr_new */
     /* create Revocation Request - ir */

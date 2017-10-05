@@ -335,7 +335,7 @@ static STACK_OF(X509) *find_server_cert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     vpm = X509_STORE_get0_param(ctx->trusted_store);
     name = msg->header->sender->d.directoryName;
     kid = msg->header->senderKID;
-    if (!ctx || !name) /* keyid is allowed to be NULL */
+    if (!name) /* keyid is allowed to be NULL */
         return NULL;
 
     /* sk_TYPE_find to use compfunc X509_cmp, not ptr comparison */
