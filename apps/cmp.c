@@ -1363,7 +1363,7 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 }
 
 static int add0_certs(STACK_OF (X509) *stack, STACK_OF (X509) *certs) {
-    int result = sk_X509_add_certs(stack, certs, 0);
+    int result = sk_X509_add1_certs(stack, certs, 0, 1/* no dups */);
     sk_X509_pop_free(certs, X509_free);
     return result;
 }
@@ -1398,7 +1398,8 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert,
         return CMP_PKIFAILUREINFO_systemFailure;
     }
 
-    if (!sk_X509_add_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx), 0))
+    if (!sk_X509_add1_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx),
+                            0, 1/* no dups */))
         goto oom;
     if (!add0_certs(untrusted, CMP_CTX_extraCertsIn_get1(ctx)))
         goto oom;

@@ -346,9 +346,10 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 ASN1_OCTET_STRING *CMP_get_cert_subject_key_id(const X509 *cert);
 STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF (X509) *certs,
                                      const X509 *cert);
-int sk_X509_add_certs(STACK_OF (X509) *stack, const STACK_OF (X509) *certs,
-                      int no_self_signed);
-int X509_STORE_add_certs(X509_STORE *store, const STACK_OF (X509) *certs,
+int sk_X509_add1_cert (STACK_OF (X509) *sk, X509 *cert, int not_duplicate);
+int sk_X509_add1_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
+                      int no_self_signed, int no_duplicates);
+int X509_STORE_add1_certs(X509_STORE *store, STACK_OF (X509) *certs,
                          int only_self_signed);
 STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store);
 

@@ -268,7 +268,7 @@ int CMP_cert_callback(int ok, X509_STORE_CTX *ctx)
  * Add them to sk (if not a duplicate to an existing one).
  * returns 0 on error else 1
  * ########################################################################## */
-static int find_certs(const STACK_OF (X509) *certs,
+static int find_certs(STACK_OF (X509) *certs,
                       X509_NAME *subject, ASN1_OCTET_STRING *kid,
                       X509_VERIFY_PARAM *vpm, STACK_OF (X509) *sk)
 {
@@ -295,22 +295,13 @@ static int find_certs(const STACK_OF (X509) *certs,
         if (!(X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_NO_CHECK_TIME))
             if (X509_cmp_time(X509_get0_notAfter(cert), ptime) < 0)
                 continue; /* expired */
-        if (sk_X509_find(sk, cert) >= 0)
-            continue; /* no duplicates */
-        if (!sk_X509_push(sk, cert)) {
+        if (!sk_X509_add1_cert(sk, cert, 1/* no duplicates */))
             return 0;
-        }
-        X509_up_ref(cert);
     }
 
     return 1;
 }
 
-static int X509_cmp_(const struct x509_st * const *a,
-                     const struct x509_st * const *b)
-{
-    return X509_cmp(*a, *b);
-}
 /* ########################################################################## *
  * internal function
  *
@@ -325,7 +316,7 @@ static int X509_cmp_(const struct x509_st * const *a,
  * returns NULL on (out of memory) error
  * ########################################################################## */
 static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
-                    const STACK_OF (X509) *untrusted, const CMP_PKIMESSAGE *msg)
+                    STACK_OF (X509) *untrusted, const CMP_PKIMESSAGE *msg)
 {
     int ret;
     X509_VERIFY_PARAM *vpm;
@@ -343,7 +334,7 @@ static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
         return NULL;
 
     /* sk_TYPE_find to use compfunc X509_cmp, not ptr comparison */
-    if (!(found_certs = sk_X509_new(&X509_cmp_)))
+    if (!(found_certs = sk_X509_new_null()))
         goto oom;
 
     trusted = X509_STORE_get1_certs(ts);
@@ -421,12 +412,12 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             } else {
                 STACK_OF (X509) *untrusted = sk_X509_new_null();
                 if (untrusted &&
-                    sk_X509_add_certs(untrusted, ctx->untrusted_certs, 0) &&
+                    sk_X509_add1_certs(untrusted, ctx->untrusted_certs, 0, 1) &&
                 /* Load provided extraCerts to help with cert path validation.
                    Note that the extraCerts are not protected and may be bad
                    (and even if they were in the protected part
                     the protection is not yet verified). */
-                    sk_X509_add_certs(untrusted, msg->extraCerts, 0)) {
+                    sk_X509_add1_certs(untrusted, msg->extraCerts, 0, 1)) {
                     int i;
 
                     /* try to find server certificate(s) from
@@ -455,7 +446,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                             CMP_PKIMESSAGE_get_bodytype(msg) == V_CMP_PKIBODY_IP) {
                         X509_STORE *tempStore = X509_STORE_new();
                         if (tempStore &&
-                            X509_STORE_add_certs(tempStore, msg->extraCerts,
+                            X509_STORE_add1_certs(tempStore, msg->extraCerts,
                                                  1 /* only self_signed */)) {
                             srvCert_valid = CMP_validate_cert_path(ctx, tempStore,
                                                                    ctx->untrusted_certs,
