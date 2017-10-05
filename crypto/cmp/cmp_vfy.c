@@ -264,20 +264,20 @@ int CMP_cert_callback(int ok, X509_STORE_CTX *ctx)
  * internal function
  *
  * Find in the given list of certificates one or more certs that have the given
- * subject name and are not yet expired.  Add them to sk if not a duplicate to
- * an existing one.
+ * subject name, match the subject key ID (if given), and are not yet expired.
+ * Add them to sk (if not a duplicate to an existing one).
  * returns 0 on error else 1
  * ########################################################################## */
-static int find_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
+static int find_certs(const STACK_OF (X509) *certs,
                       X509_NAME *subject, ASN1_OCTET_STRING *kid,
-                      X509_VERIFY_PARAM *vpm)
+                      X509_VERIFY_PARAM *vpm, STACK_OF (X509) *sk)
 {
     int i;
 
     if (!sk)
         return 0;
 
-    for (i = 0; i < sk_X509_num(certs); i++) {
+    for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
         X509_NAME *name = X509_get_subject_name(cert);
         time_t check_time, *ptime = NULL;
@@ -313,15 +313,14 @@ static int find_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
  * looking for a non-expired cert with subject matching the msg sender name
  * and (if set in msg) a matching sender keyID = subject key ID.
  *
- * Considers:
- * - trusted store in context
- * - untrusted certs in context
- * - extra certs from received message
+ * Considers given trusted store and any given untrusted certs, which should
+ * include any extra certs from the received message msg.
  *
  * Returns exactly one if there is a single clear hit, else several candidates.
  * returns NULL on (out of memory) error
  * ########################################################################## */
-static STACK_OF(X509) *find_server_cert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
+static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
+                    const STACK_OF (X509) *untrusted, const CMP_PKIMESSAGE *msg)
 {
     int ret;
     X509_VERIFY_PARAM *vpm;
@@ -329,10 +328,10 @@ static STACK_OF(X509) *find_server_cert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     ASN1_OCTET_STRING *kid;
     STACK_OF (X509) *trusted, *found_certs;
 
-    if (!ctx || !msg)
+    if (!ts || !msg) /* untrusted may be NULL */
         return NULL;
 
-    vpm = X509_STORE_get0_param(ctx->trusted_store);
+    vpm = X509_STORE_get0_param((X509_STORE *)ts);
     name = msg->header->sender->d.directoryName;
     kid = msg->header->senderKID;
     if (!name) /* keyid is allowed to be NULL */
@@ -344,24 +343,18 @@ static STACK_OF(X509) *find_server_cert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                                  const struct x509_st * const*)) &X509_cmp)))
         goto oom;
 
-    trusted = X509_STORE_get1_certs(ctx->trusted_store);
-    ret = find_certs(found_certs, trusted, name, kid, vpm);
+    trusted = X509_STORE_get1_certs(ts);
+    ret = find_certs(trusted, name, kid, vpm, found_certs);
     sk_X509_pop_free(trusted, X509_free);
     if (!ret)
         goto oom;
 
-    ret = find_certs(found_certs, msg->extraCerts, name, kid, vpm);
-    if (!ret)
-        goto oom;
-
-    ret = find_certs(found_certs, ctx->untrusted_certs, name, kid, vpm);
-    if (!ret)
+    if (!find_certs(untrusted, name, kid, vpm, found_certs))
         goto oom;
 
     return found_certs;
 oom:
-    if(found_certs)
-        sk_X509_pop_free(found_certs, X509_free);
+    sk_X509_pop_free(found_certs, X509_free);
     return NULL;
 }
 
@@ -426,13 +419,17 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                 STACK_OF (X509) *untrusted = sk_X509_new_null();
                 if (untrusted &&
                     sk_X509_add_certs(untrusted, ctx->untrusted_certs, 0) &&
-                /* load provided extraCerts to help with cert path validation */
+                /* Load provided extraCerts to help with cert path validation.
+                   Note that the extraCerts are not protected and may be bad
+                   (and even if they were in the protected part
+                    the protection is not yet verified). */
                     sk_X509_add_certs(untrusted, msg->extraCerts, 0)) {
                     int i;
 
                     /* try to find server certificate(s) from
-                     * 1) trusted_store 2) untrusted_certs 3) extaCerts */
-                    STACK_OF (X509) *found_certs = find_server_cert(ctx, msg);
+                     * trusted_store, untrusted_certs, or extaCerts */
+                    STACK_OF (X509) *found_certs =
+                        find_server_cert(ctx->trusted_store, untrusted, msg);
 
                     /* select first server certificate that can be validated */
                     for (i = 0;
