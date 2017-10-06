@@ -1362,12 +1362,6 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
     return (ok);
 }
 
-static int add0_certs(STACK_OF (X509) *stack, STACK_OF (X509) *certs) {
-    int result = sk_X509_add1_certs(stack, certs, 0, 1/* no dups */);
-    sk_X509_pop_free(certs, X509_free);
-    return result;
-}
-
 /*
  * callback validating that the new certificate can be verified, using
  * ctx->trusted_store (which may consist of ctx->srvCert) and the
@@ -1401,8 +1395,8 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert,
     if (!sk_X509_add1_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx),
                             0, 1/* no dups */))
         goto oom;
-    if (!add0_certs(untrusted, CMP_CTX_extraCertsIn_get1(ctx)))
-        goto oom;
+    /* add0_certs(untrusted, CMP_CTX_extraCertsIn_get1(ctx)) not needed any more,
+       because extraCerts have already been merged into untrusted certs */
 
     /* TODO: load caPubs [CMP_CTX_caPubs_get1(ctx)] as additional trusted certs
        during IR and if MSG_SIG_ALG is used, cf. RFC 4210, 5.3.2 */
@@ -1808,7 +1802,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_untrusted) {
         STACK_OF (X509) *certs = load_certs_autofmt(opt_untrusted,
                                         opt_certform, "untrusted certificates");
-        if (!certs || !CMP_CTX_set0_untrusted_certs(ctx, certs)) {
+        if (!certs || !CMP_CTX_set1_untrusted_certs(ctx, certs)) {
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }

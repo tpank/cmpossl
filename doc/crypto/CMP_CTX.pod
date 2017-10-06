@@ -37,7 +37,7 @@
  CMP_CTX_extraCertsIn_pop,
  CMP_CTX_extraCertsIn_num,
  CMP_CTX_set0_trustedStore,
- CMP_CTX_set0_untrusted_certs,
+ CMP_CTX_set1_untrusted_certs,
  CMP_CTX_get0_trustedStore,
  CMP_CTX_get0_untrusted_certs,
  CMP_CTX_set0_crls,
@@ -109,7 +109,7 @@
  int CMP_CTX_extraCertsIn_num( CMP_CTX *ctx);
 
  int CMP_CTX_set0_trustedStore( CMP_CTX *ctx, X509_STORE *store);
- int CMP_CTX_set0_untrusted_certs( CMP_CTX *ctx, STACK_OF (X509) *store);
+ int CMP_CTX_set1_untrusted_certs( CMP_CTX *ctx, STACK_OF (X509) *store);
  int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls);
  int CMP_CTX_set_certVerify_callback(CMP_CTX *ctx, cert_verify_cb_t cb);
 
@@ -327,7 +327,7 @@ CMP_CTX_set0_trustedStore() sets the X509_STORE type certificate store
 containing trusted root CA certificates, used for CMP server authentication.
 Cannot be used together with srvCert, which is explicitly/directly trusted.
 
-CMP_CTX_set0_untrusted_certs() sets the list of certificates
+CMP_CTX_set1_untrusted_certs() takes over a list of certificates
 containing non-trusted intermediate certificates used for path construction
 in CMP server authentication.
 

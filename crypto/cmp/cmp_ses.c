@@ -546,6 +546,7 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
     const char *txt = NULL;
     CMP_CERTREPMESSAGE *body;
     CMP_CERTRESPONSE *crep;
+    STACK_OF(X509) *extracerts;
 
  retry:
     body = (*resp)->body->value.ip; /* same for cp and kup */
@@ -584,8 +585,12 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
         CMP_CTX_set1_caPubs(ctx, body->caPubs);
 
     /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
-    if ((*resp)->extraCerts)
-        CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts);
+    if ((extracerts = (*resp)->extraCerts)) {
+        CMP_CTX_set1_extraCertsIn(ctx, extracerts);
+        /* merge them also into the untrusted certs, such that the peer does
+           not need to send them again (in this and any further transaction) */
+        sk_X509_add1_certs(ctx->untrusted_certs, extracerts, 0, 1/* no dups */);
+    }
 
     if (!(X509_check_private_key(ctx->newClCert,
                                  ctx->newPkey ? ctx->newPkey : ctx->pkey))) {
