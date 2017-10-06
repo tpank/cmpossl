@@ -586,10 +586,11 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
 
     /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
     if ((extracerts = (*resp)->extraCerts)) {
-        CMP_CTX_set1_extraCertsIn(ctx, extracerts);
+        if (!CMP_CTX_set1_extraCertsIn(ctx, extracerts) ||
         /* merge them also into the untrusted certs, such that the peer does
            not need to send them again (in this and any further transaction) */
-        sk_X509_add1_certs(ctx->untrusted_certs, extracerts, 0, 1/* no dups */);
+         !sk_X509_add1_certs(ctx->untrusted_certs, extracerts, 0, 1/* no dups */))
+            return 0;
     }
 
     if (!(X509_check_private_key(ctx->newClCert,

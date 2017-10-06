@@ -263,38 +263,67 @@ int CMP_cert_callback(int ok, X509_STORE_CTX *ctx)
 /* ########################################################################## *
  * internal function
  *
- * Find in the given list of certificates one or more certs that have the given
- * subject name, match the subject key ID (if given), and are not yet expired.
+ * Check if the given cert is acceptable as sender cert of the given message.
+ * The subject DN must match, the subject key ID as well if present in the msg,
+ * and the cert must not be expired (for checking this, the ts must be given).
+ * returns 0 on error or not acceptable, else 1
+ * ########################################################################## */
+static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
+                           const X509_STORE *ts) {
+    X509_NAME *name = NULL;
+    X509_NAME *sender_name = NULL;
+    ASN1_OCTET_STRING *kid = NULL;
+    X509_VERIFY_PARAM *vpm = NULL;
+    time_t check_time, *ptime = NULL;
+
+    if (!cert || !msg || !ts)
+        return 0; /* maybe better flag and handle this as fatal error */
+
+    vpm = X509_STORE_get0_param((X509_STORE *)ts);
+    sender_name = msg->header->sender->d.directoryName;
+    kid = msg->header->senderKID;
+    if (!sender_name || !vpm) /* keyid is allowed to be NULL */
+        return 0; /* maybe better flag and handle this as fatal error */
+
+    if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_USE_CHECK_TIME) {
+        check_time = X509_VERIFY_PARAM_get_time(vpm);
+        ptime = &check_time;
+    }
+    if (!(X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_NO_CHECK_TIME))
+        if (X509_cmp_time(X509_get0_notAfter(cert), ptime) < 0)
+            return 0; /* expired */
+
+    name = X509_get_subject_name(cert);
+    if (!name || X509_NAME_cmp(name, sender_name) != 0)
+        return 0; /* missing or wrong subject */
+    if (kid) {/* enforce that the right subject key id is there */
+        ASN1_OCTET_STRING *ckid = CMP_get_cert_subject_key_id(cert);
+        if (!ckid || ASN1_OCTET_STRING_cmp(ckid, kid) != 0)
+            return 0; /* missing or wrong kid */
+        }
+    return 1;
+}
+
+/* ########################################################################## *
+ * internal function
+ *
+ * Find in the list of certificates all acceptable certs (see cert_acceptable()).
  * Add them to sk (if not a duplicate to an existing one).
  * returns 0 on error else 1
  * ########################################################################## */
-static int find_certs(STACK_OF (X509) *certs,
-                      X509_NAME *subject, ASN1_OCTET_STRING *kid,
-                      X509_VERIFY_PARAM *vpm, STACK_OF (X509) *sk)
+static int find_acceptable_certs(STACK_OF (X509) *certs,
+    const CMP_PKIMESSAGE *msg, const X509_STORE *ts, STACK_OF (X509) *sk)
 {
     int i;
 
     if (!sk)
-        return 0;
+        return 0; /* maybe better flag and handle this as fatal error */
 
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
-        X509_NAME *name = X509_get_subject_name(cert);
-        time_t check_time, *ptime = NULL;
-        if (!name || X509_NAME_cmp(name, subject) != 0)
-            continue; /* wrong subject */
-        if (kid) {/* enforce that the right subject key id is there */
-            ASN1_OCTET_STRING *ckid = CMP_get_cert_subject_key_id(cert);
-            if (ASN1_OCTET_STRING_cmp(ckid, kid) != 0)
-                continue; /* wrong kid */
-        }
-        if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_USE_CHECK_TIME) {
-            check_time = X509_VERIFY_PARAM_get_time(vpm);
-            ptime = &check_time;
-        }
-        if (!(X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_NO_CHECK_TIME))
-            if (X509_cmp_time(X509_get0_notAfter(cert), ptime) < 0)
-                continue; /* expired */
+
+        if (!cert_acceptable(cert, msg, ts))
+            continue;
         if (!sk_X509_add1_cert(sk, cert, 1/* no duplicates */))
             return 0;
     }
@@ -305,7 +334,7 @@ static int find_certs(STACK_OF (X509) *certs,
 /* ########################################################################## *
  * internal function
  *
- * Find one or more server certificates by using the find_certs() function
+ * Find one or more server certificates by using find_acceptable_certs()
  * looking for a non-expired cert with subject matching the msg sender name
  * and (if set in msg) a matching sender keyID = subject key ID.
  *
@@ -319,31 +348,22 @@ static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
                     STACK_OF (X509) *untrusted, const CMP_PKIMESSAGE *msg)
 {
     int ret;
-    X509_VERIFY_PARAM *vpm;
-    X509_NAME *name;
-    ASN1_OCTET_STRING *kid;
     STACK_OF (X509) *trusted, *found_certs;
 
     if (!ts || !msg) /* untrusted may be NULL */
-        return NULL;
-
-    vpm = X509_STORE_get0_param((X509_STORE *)ts);
-    name = msg->header->sender->d.directoryName;
-    kid = msg->header->senderKID;
-    if (!name) /* keyid is allowed to be NULL */
-        return NULL;
+        return NULL; /* maybe better flag and handle this as fatal error */
 
     /* sk_TYPE_find to use compfunc X509_cmp, not ptr comparison */
     if (!(found_certs = sk_X509_new_null()))
         goto oom;
 
     trusted = X509_STORE_get1_certs(ts);
-    ret = find_certs(trusted, name, kid, vpm, found_certs);
+    ret = find_acceptable_certs(trusted, msg, ts, found_certs);
     sk_X509_pop_free(trusted, X509_free);
     if (!ret)
         goto oom;
 
-    if (!find_certs(untrusted, name, kid, vpm, found_certs))
+    if (!find_acceptable_certs(untrusted, msg, ts, found_certs))
         goto oom;
 
     return found_certs;
@@ -405,8 +425,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
              * PKIconf where the server certificate and others could be missing
              * from the extraCerts */
             if (ctx->validatedSrvCert &&
-                !X509_NAME_cmp(X509_get_subject_name(ctx->validatedSrvCert),
-                               msg->header->sender->d.directoryName)) {
+                cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted_store)) {
                 srvCert = ctx->validatedSrvCert;
                 srvCert_valid = 1;
             } else {
