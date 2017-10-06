@@ -408,6 +408,8 @@ The file where the newly issued certificate should be saved.
 =item B<-verify_out filename>
 
 Trusted certificate(s) to use for verifying the newly issued certificate.
+Possibly further acceptance criteria may be checked by the callback function
+that can be set using CMP_CTX_set_certConf_callback().
 
 =item B<-verify_hostname cn>, B<-verify_ip ip>, B<-verify_email email>
 

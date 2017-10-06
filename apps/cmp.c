@@ -1401,7 +1401,8 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert,
     /* TODO: load caPubs [CMP_CTX_caPubs_get1(ctx)] as additional trusted certs
        during IR and if MSG_SIG_ALG is used, cf. RFC 4210, 5.3.2 */
 
-    if (!CMP_validate_cert_path(ctx, verify_out_ts, untrusted, cert))
+    if (verify_out_ts &&
+        !CMP_validate_cert_path(ctx, verify_out_ts, untrusted, cert))
         res = CMP_PKIFAILUREINFO_incorrectData;
 
     sk_X509_pop_free(untrusted, X509_free);
