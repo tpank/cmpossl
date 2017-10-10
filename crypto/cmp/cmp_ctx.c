@@ -78,10 +78,6 @@
 #include <dirent.h>
 #endif
 
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
-#define OPENSSL_zalloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
-#endif
-
 #include "cmp_int.h"
 
 /* NAMING
@@ -211,7 +207,7 @@ int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, STACK_OF (X509) *certs)
     if (ctx->untrusted_certs)
         sk_X509_pop_free(ctx->untrusted_certs, X509_free);
     ctx->untrusted_certs = sk_X509_new_null();
-    return sk_X509_add1_certs(ctx->untrusted_certs, certs, 0, 1/* no dups */);
+    return CMP_sk_X509_add1_certs(ctx->untrusted_certs, certs, 0, 1/*no dups*/);
 }
 
 /* ############################################################################ *

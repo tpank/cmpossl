@@ -607,11 +607,6 @@ static int read_config()
     return 1;
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
-#define X509_STORE_set_lookup_crls X509_STORE_set_lookup_crls_cb
-#define ASN1_STRING_get0_data ASN1_STRING_data
-#endif
-
 /*
  * ##########################################################################
  * * code for loading certs, keys, and CRLs
@@ -1289,12 +1284,12 @@ static void print_cert(BIO *bio, const X509 *cert) {
         unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
             XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
         BIO_printf(bio, "  subject: ");
-        X509_NAME_print_ex(bio, X509_get_subject_name(cert), 0, flags);
+        X509_NAME_print_ex(bio, X509_get_subject_name((X509 *)cert), 0, flags);
         if (X509_check_issued((X509 *)cert, (X509 *)cert) == X509_V_OK) {
             BIO_printf(bio, " (self-signed)");
         } else {
             BIO_printf(bio, "\n  issuer: ");
-            X509_NAME_print_ex(bio, X509_get_issuer_name(cert), 0, flags);
+            X509_NAME_print_ex(bio, X509_get_issuer_name((X509 *)cert),0,flags);
         }
         BIO_printf(bio, "\n");
     } else {
@@ -1318,7 +1313,7 @@ static void print_certs(BIO *bio, const STACK_OF(X509) *certs) {
 
 static void print_store_certs(BIO *bio, X509_STORE *store) {
     if (store) {
-        STACK_OF(X509) *certs = X509_STORE_get1_certs(store);
+        STACK_OF(X509) *certs = CMP_X509_STORE_get1_certs(store);
         print_certs(bio, certs);
         sk_X509_pop_free(certs, X509_free);
     } else {
@@ -1392,8 +1387,8 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert,
         return CMP_PKIFAILUREINFO_systemFailure;
     }
 
-    if (!sk_X509_add1_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx),
-                            0, 1/* no dups */))
+    if (!CMP_sk_X509_add1_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx),
+                                0, 1/* no dups */))
         goto oom;
     /* add0_certs(untrusted, CMP_CTX_extraCertsIn_get1(ctx)) not needed any more,
        because extraCerts have already been merged into untrusted certs */

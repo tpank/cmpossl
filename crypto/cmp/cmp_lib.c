@@ -94,9 +94,6 @@
 #include <openssl/rand.h>
 /* for bio_err */
 #include <openssl/err.h>
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define X509_STORE_CTX_get0_chain X509_STORE_CTX_get_chain
-#endif
 
 #include <time.h>
 #include <string.h>
@@ -823,7 +820,8 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
             STACK_OF (X509) * chain =
                 CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
             /* Our own cert will be sent first */
-            sk_X509_add1_certs(msg->extraCerts, chain, 1/* no self-signed */, 1);
+            CMP_sk_X509_add1_certs(msg->extraCerts, chain,
+                                   1/* no self-signed */, 1);
             sk_X509_pop_free(chain, X509_free);
         } else {
             /* Make sure that at least our own cert gets sent */
@@ -833,7 +831,7 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     }
 
     /* add any additional certificates from ctx->extraCertsOut */
-    sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0, 1/* no dups */);
+    CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,1/*no dups*/);
 
     return 1;
 
@@ -1506,9 +1504,6 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
                  n > 0 ? "; StatusString(s): " : "");
 
     for (i = 0; i < n; i++) {
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
-#define ASN1_STRING_get0_data(x) ((x)->data)
-#endif
         ASN1_UTF8STRING *text = sk_ASN1_UTF8STRING_value(si->statusString, i);
         BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "\"%s\"%s",
                      ASN1_STRING_get0_data(text), i < n-1 ? ", " : "");
@@ -1592,7 +1587,7 @@ STACK_OF (X509) *CMP_build_cert_chain(const STACK_OF (X509) *certs,
     if (!csc)
         goto err;
 
-    X509_STORE_add1_certs(store, (STACK_OF (X509) *)certs, 0);
+    CMP_X509_STORE_add1_certs(store, (STACK_OF (X509) *)certs, 0);
     if (!X509_STORE_CTX_init(csc, store, (X509 *)cert, NULL))
         goto err;
 
@@ -1605,7 +1600,7 @@ STACK_OF (X509) *CMP_build_cert_chain(const STACK_OF (X509) *certs,
     /* result list to store the up_ref'ed not self-signed certificates */
     if (!(result = sk_X509_new_null()))
         goto err;
-    sk_X509_add1_certs(result, chain, 1/* no self-signed */, 1/* no dups */);
+    CMP_sk_X509_add1_certs(result, chain, 1/* no self-signed */,1/* no dups */);
 
  err:
     X509_STORE_free(store);
@@ -1622,7 +1617,7 @@ static int X509_cmp_from_ptrs(const struct x509_st * const *a,
 {
     return X509_cmp(*a, *b);
 }
-int sk_X509_add1_cert(STACK_OF (X509) *sk, X509 *cert, int not_duplicate)
+int CMP_sk_X509_add1_cert(STACK_OF (X509) *sk, X509 *cert, int not_duplicate)
 {
     if (not_duplicate) {
         sk_X509_set_cmp_func(sk, &X509_cmp_from_ptrs);
@@ -1640,7 +1635,7 @@ int sk_X509_add1_cert(STACK_OF (X509) *sk, X509 *cert, int not_duplicate)
  * certs parameter may be NULL.
  * returns 1 on success, 0 on error
  * ########################################################################## */
-int sk_X509_add1_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
+int CMP_sk_X509_add1_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
                       int no_self_signed, int no_duplicates)
 {
     int i;
@@ -1653,7 +1648,7 @@ int sk_X509_add1_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
     for (i = 0; i < sk_X509_num(certs); i++) {
         X509 *cert = sk_X509_value(certs, i);
         if (!no_self_signed || X509_check_issued(cert, cert) != X509_V_OK) {
-            if (!sk_X509_add1_cert(sk, cert, no_duplicates))
+            if (!CMP_sk_X509_add1_cert(sk, cert, no_duplicates))
                 return 0;
         }
     }
@@ -1665,7 +1660,7 @@ int sk_X509_add1_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
  * certs parameter may be NULL.
  * returns 1 on success, 0 on error
  * ########################################################################## */
-int X509_STORE_add1_certs(X509_STORE *store, STACK_OF (X509) *certs,
+int CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF (X509) *certs,
                          int only_self_signed)
 {
     int i;
@@ -1688,7 +1683,7 @@ int X509_STORE_add1_certs(X509_STORE *store, STACK_OF (X509) *certs,
  * Retrieves a copy of all certificates in the given store.
  * returns NULL on error
  * ########################################################################## */
-STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store)
+STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store)
 {
     int i;
     STACK_OF(X509) *sk;

@@ -76,6 +76,24 @@
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
 #endif
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+#define OPENSSL_zalloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
+#define X509_up_ref(x)((x)->references++)
+#define ASN1_STRING_get0_data ASN1_STRING_data
+#define X509_OBJECT_get0_X509(obj) ((obj)->data.x509)
+#define X509_STORE_get0_objects(store) ((store)->objs)
+#define X509_STORE_CTX_get0_untrusted(ctx) ((ctx)->untrusted)
+#define X509_STORE_CTX_get0_chain X509_STORE_CTX_get_chain
+#define X509_STORE_CTX_get_by_subject X509_STORE_get_by_subject
+#define X509_STORE_get0_param(ctx) ((ctx)->param)
+#define X509_V_ERR_STORE_LOOKUP 70
+#define X509_STORE_set_lookup_crls X509_STORE_set_lookup_crls_cb
+#define X509_VERIFY_PARAM_get_time(param) ((param)->check_time)
+#define X509_V_FLAG_NO_CHECK_TIME 0x200000
+#define X509_get0_notAfter X509_get_notAfter
+#define X509_get_key_usage(x) ((X509_check_purpose((x), -1, -1), \
+          (x)->ex_flags & EXFLAG_KUSAGE) ? (x)->ex_kusage : (unsigned long) ~0)
+#endif
 
 # include <openssl/crmf.h>
 
@@ -346,12 +364,12 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 ASN1_OCTET_STRING *CMP_get_cert_subject_key_id(const X509 *cert);
 STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF (X509) *certs,
                                      const X509 *cert);
-int sk_X509_add1_cert (STACK_OF (X509) *sk, X509 *cert, int not_duplicate);
-int sk_X509_add1_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
+int CMP_sk_X509_add1_cert (STACK_OF (X509) *sk, X509 *cert, int not_duplicate);
+int CMP_sk_X509_add1_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
                       int no_self_signed, int no_duplicates);
-int X509_STORE_add1_certs(X509_STORE *store, STACK_OF (X509) *certs,
+int CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF (X509) *certs,
                          int only_self_signed);
-STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store);
+STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store);
 
 /* cmp_vfy.c */
 int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg);

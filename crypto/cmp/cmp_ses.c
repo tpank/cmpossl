@@ -589,7 +589,8 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
         if (!CMP_CTX_set1_extraCertsIn(ctx, extracerts) ||
         /* merge them also into the untrusted certs, such that the peer does
            not need to send them again (in this and any further transaction) */
-         !sk_X509_add1_certs(ctx->untrusted_certs, extracerts, 0, 1/* no dups */))
+            !CMP_sk_X509_add1_certs(ctx->untrusted_certs, extracerts,
+                                    0, 1/* no dups */))
             return 0;
     }
 

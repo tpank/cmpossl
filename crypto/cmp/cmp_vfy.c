@@ -71,9 +71,6 @@
 #include <openssl/cmp.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define X509_STORE_CTX_get_by_subject X509_STORE_get_by_subject
-#endif
 
 #include "cmp_int.h"
 
@@ -324,7 +321,7 @@ static int find_acceptable_certs(STACK_OF (X509) *certs,
 
         if (!cert_acceptable(cert, msg, ts))
             continue;
-        if (!sk_X509_add1_cert(sk, cert, 1/* no duplicates */))
+        if (!CMP_sk_X509_add1_cert(sk, cert, 1/* no duplicates */))
             return 0;
     }
 
@@ -357,7 +354,7 @@ static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
     if (!(found_certs = sk_X509_new_null()))
         goto oom;
 
-    trusted = X509_STORE_get1_certs(ts);
+    trusted = CMP_X509_STORE_get1_certs(ts);
     ret = find_acceptable_certs(trusted, msg, ts, found_certs);
     sk_X509_pop_free(trusted, X509_free);
     if (!ret)
@@ -431,12 +428,12 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             } else {
                 STACK_OF (X509) *untrusted = sk_X509_new_null();
                 if (untrusted &&
-                    sk_X509_add1_certs(untrusted, ctx->untrusted_certs, 0, 1) &&
+                    CMP_sk_X509_add1_certs(untrusted,ctx->untrusted_certs,0,1)&&
                 /* Load provided extraCerts to help with cert path validation.
                    Note that the extraCerts are not protected and may be bad
                    (and even if they were in the protected part
                     the protection is not yet verified). */
-                    sk_X509_add1_certs(untrusted, msg->extraCerts, 0, 1)) {
+                    CMP_sk_X509_add1_certs(untrusted, msg->extraCerts, 0, 1)) {
                     int i;
 
                     /* try to find server certificate(s) from
@@ -465,7 +462,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                             CMP_PKIMESSAGE_get_bodytype(msg) == V_CMP_PKIBODY_IP) {
                         X509_STORE *tempStore = X509_STORE_new();
                         if (tempStore &&
-                            X509_STORE_add1_certs(tempStore, msg->extraCerts,
+                            CMP_X509_STORE_add1_certs(tempStore,msg->extraCerts,
                                                  1 /* only self_signed */)) {
                             srvCert_valid = CMP_validate_cert_path(ctx, tempStore,
                                                                    ctx->untrusted_certs,
