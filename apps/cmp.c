@@ -2193,13 +2193,14 @@ int cmp_main(int argc, char **argv)
                 BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
                            errorline, configfile);
         } else {
-            if (!NCONF_get_section(conf, opt_section)) {
-                BIO_printf(bio_err, "Cannot find [%.40s] section in config file '%s'\n",
+            if (NCONF_get_section(conf, opt_section)) {
+                if (!read_config())
+                    goto err;
+            } else {
+                BIO_printf(bio_err,
+                           "Cannot find [%.40s] section in config file '%s'\n",
                            opt_section, configfile);
-                goto err;
             }
-            if (!read_config())
-                goto err;
         }
     }
 
