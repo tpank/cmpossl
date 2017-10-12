@@ -1343,9 +1343,12 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
                    X509_STORE_CTX_get0_parent_ctx(ctx) ?
                    "CRL path validation" : "certificate verification",
                    cert_error, X509_verify_cert_error_string(cert_error), depth,
-                   cert ? "for\n" : "");
+                   "\nfailure for certificate:\n");
         print_cert(bio_err, cert);
-        if (cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT ||
+        if (cert_error == X509_V_ERR_CERT_UNTRUSTED ||
+            cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
+            cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN ||
+            cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT ||
             cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
             cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER ||
             cert_error == X509_V_ERR_STORE_LOOKUP) {
@@ -1810,8 +1813,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                                "trusted certs for verifying newly issued cert");
         if (!verify_out_ts)
             goto err;
+    /* TODO replace by if (!set_store_parameters_crls(verify_out_ts, vpm)) : */
         X509_STORE_set1_param(verify_out_ts, vpm); /* copy verif params */
         X509_STORE_set_verify_cb(verify_out_ts, print_cert_verify_cb);
+        /* any -verify_hostname, -verify_ip, and -verify_email apply here */
     }
 
     if (opt_subject) {
