@@ -400,7 +400,12 @@ ASN1_TYPE *CMP_INFOTYPEANDVALUE_get0_value(CMP_INFOTYPEANDVALUE *itav);
 CMP_CTX *CMP_CTX_create(void);
 int CMP_CTX_init(CMP_CTX *ctx);
 X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx);
-STACK_OF (X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
+
+/* There must *not* be a space between STACK_OF and (X509), otherwise mkdef.pl
+ * does not recognize it correctly which leads to the file not being global in
+ * the shared object when building with GNU. */
+STACK_OF(X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
+
 int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
 int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, STACK_OF (X509) *certs);
 int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls);

@@ -72,6 +72,7 @@ char *prog = "cmp";
 #include <openssl/pem.h>
 #include <openssl/err.h>
 #include <openssl/objects.h>
+#include <openssl/x509.h>
 
 static CONF *conf = NULL;       /* OpenSSL config file context structure */
 static BIO *bio_c_out = NULL;   /* OpenSSL BIO for printing to STDOUT */
@@ -1381,7 +1382,7 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert,
 
     STACK_OF (X509) *untrusted = sk_X509_new_null();
     if (!untrusted) {
-    oom:
+oom:
         sk_X509_pop_free(untrusted, X509_free);
         /* BIO_puts(bio_err, "error: out of memory\n"); */
         return CMP_PKIFAILUREINFO_systemFailure;
