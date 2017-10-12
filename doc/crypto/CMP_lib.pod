@@ -139,7 +139,7 @@ to the given X509 Name value, without consuming the pointer.
 
 CMP_PKIHEADER_set1_senderKID() Sets hdr->senderKID to the given
 string. In IR this is the reference number issued by the CA. In KUR
-this is set to the public key ID from the previously issued certificate.
+this is set to the public key ID from the previously enrolled certificate.
 
 CMP_PKIHEADER_set1_transactionID() copies the given transactionID to
 hdr->transactionID. If the transactionID parameter is NULL, a new random

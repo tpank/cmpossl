@@ -68,6 +68,8 @@ B<openssl> B<cmp>
 [B<-keyform DER|PEM|P12>]
 [B<-engine id>]
 
+[B<-crl_check>]
+[B<-crl_check_all>]
 [B<-crls url>]
 [B<-crl_download>]
 [B<-policy arg>]
@@ -77,8 +79,6 @@ B<openssl> B<cmp>
 [B<-auth_level level>]
 [B<-attimeE<nbsp>timestamp>]
 [B<-ignore_critical>]
-[B<-crl_check>]
-[B<-crl_check_all>]
 [B<-policy_check>]
 [B<-explicit_policy>]
 [B<-inhibit_any>]
@@ -198,7 +198,7 @@ when verifying responses, unless the -srvcert option is given.
 
 Intermediate certificate(s) that may be useful for constructing cert chain
 for CMP server or issuing CA certificates (when verifying signature-based
-message protection or verifying the newly issued certificate, respectively).
+message protection or verifying the newly enrolled certificate, respectively).
 
 =item B<-ignore_keyusage>]
 
@@ -394,26 +394,26 @@ Set Proof-of-Possession (POPO) method; values: 0..3.
 
 =item B<-implicitconfirm>
 
-Request implicit confirmation of the newly issued certificate.
+Request implicit confirmation of the newly enrolled certificate.
 
 =item B<-disableconfirm>
 
-Do not send certificate confirmation message for newly issued certificate to
+Do not send certificate confirmation message for newly enrolled certificate to
 cope with broken servers not supporting implicit confirmation correctly.
 
 =item B<-certout filename>
 
-The file where the newly issued certificate should be saved.
+The file where the newly enrolled certificate should be saved.
 
 =item B<-verify_out filename>
 
-Trusted certificate(s) to use for verifying the newly issued certificate.
+Trusted certificate(s) to use for verifying the newly enrolled certificate.
 Possibly further acceptance criteria may be checked by the callback function
 that can be set using CMP_CTX_set_certConf_callback().
 
 =item B<-verify_hostname cn>, B<-verify_ip ip>, B<-verify_email email>
 
-When verification of the newly issued certificate is enabled (with the
+When verification of the newly enrolled certificate is enabled (with the
 -verify_out option), check if its Subject DN or any Subject Alternative Name
 matches the given Common Name, IP address, or email address, respectively.
 
@@ -529,6 +529,15 @@ Address to be checked (rather than -server address) during host name validation.
 
 =over 4
 
+=item B<-crl_check>
+
+-crl_check, -crl_download and, -crls require certificate status checking for
+at least the leaf certificate using CRLs unless OCSP is enabled and succeeds.
+
+=item B<-crl_check_all>
+
+Extend revocation status checking (using CRLs) to full certificate chain.
+
 =item B<-crls URL>
 
 Use given CRL(s) as primary source of certifiate revocation information.
@@ -549,8 +558,7 @@ Compare B<X509_V_FLAG_CRL_CHECK>.
 
 =item
 B<-policy>, B<-purpose>, B<-verify_name>, B<-verify_depth>, B<-auth_level>,
-B<-attime>,
-B<-ignore_critical>, B<-crl_check>, B<-crl_check_all>, B<-policy_check>,
+B<-attime>, B<-ignore_critical>, B<-policy_check>,
 B<-explicit_policy>, B<-inhibit_any>, B<-inhibit_map>, B<-x509_strict>,
 B<-extended_crl>, B<-use_deltas>, B<-policy_print>, B<-check_ss_sig>,
 B<-trusted_first>, B<-suiteB_128_only>, B<-suiteB_128>, B<-suiteB_192>,

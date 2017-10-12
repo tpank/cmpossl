@@ -165,7 +165,6 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
                        const STACK_OF (X509) *untrusted_certs, const X509 *cert)
 {
     int valid = 0;
-    X509_VERIFY_PARAM *vpm;
     X509_STORE_CTX *csc = NULL;
 
     if (!cert)
@@ -177,13 +176,6 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
         goto end;
     }
 
-    vpm = X509_STORE_get0_param(trusted_store);
-    /* Clear any host or IP entries; the following does not help here:
-       X509_VERIFY_PARAM_set_hostflags(vpm,
-       X509_CHECK_FLAG_NEVER_CHECK_SUBJECT); */
-    X509_VERIFY_PARAM_set1_host(vpm, NULL, 0);
-    X509_VERIFY_PARAM_set1_ip(vpm, NULL, 0);
-
     if (!(csc = X509_STORE_CTX_new()))
         goto end;
 
@@ -191,11 +183,7 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
                              (STACK_OF (X509) *)untrusted_certs))
         goto end;
 
-    if (ctx->crls)
-        X509_STORE_CTX_set0_crls(csc, ctx->crls);
     valid = X509_verify_cert(csc);
-    if (ctx->cert_verify_cb)
-        valid = (ctx->cert_verify_cb)(valid, csc);
 
     X509_STORE_CTX_free(csc);
 
@@ -378,7 +366,7 @@ oom:
  *
  * If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
  * the extraCerts field when a self-signed certificate is found there which can
- * be used to validate the issued certificate returned in IP.  This is according
+ * be used to validate the enrolled certificate returned in IP.  This is according
  * to the need given in 3GPP TS 33.310.
  *
  * returns 1 on success, 0 on error or validation failed
@@ -457,11 +445,11 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                      * when the ctx option is explicitly set, extract the Trust
                      * Anchor from ExtraCerts, provided that there is a
                      * self-signed certificate which can be used to validate
-                     * the issued certificate - refer to 3GPP TS 33.310 */
+                     * the enrolled certificate - refer to 3GPP TS 33.310 */
                     if (ctx->permitTAInExtraCertsForIR &&
                             CMP_PKIMESSAGE_get_bodytype(msg) == V_CMP_PKIBODY_IP) {
                         X509_STORE *tempStore = X509_STORE_new();
-                        if (tempStore &&
+                        if (tempStore && /* tempStore does not include CRLs */
                             CMP_X509_STORE_add1_certs(tempStore,msg->extraCerts,
                                                  1 /* only self_signed */)) {
                             srvCert_valid = CMP_validate_cert_path(ctx, tempStore,

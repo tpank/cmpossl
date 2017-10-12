@@ -287,7 +287,6 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
  * ########################################################################## */
 typedef void (*cmp_logfn_t) (const char *msg);
 typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, int status, const X509 *cert, const char **text);
-typedef int (*cert_verify_cb_t) (int ok, X509_STORE_CTX *ctx);
 typedef int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                                   CMP_PKIMESSAGE **res);
 typedef STACK_OF (ASN1_UTF8STRING) CMP_PKIFREETEXT;
@@ -400,20 +399,16 @@ ASN1_TYPE *CMP_INFOTYPEANDVALUE_get0_value(CMP_INFOTYPEANDVALUE *itav);
 CMP_CTX *CMP_CTX_create(void);
 int CMP_CTX_init(CMP_CTX *ctx);
 X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx);
-
+int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
 /* There must *not* be a space between STACK_OF and (X509), otherwise mkdef.pl
  * does not recognize it correctly which leads to the file not being global in
  * the shared object when building with GNU. */
 STACK_OF(X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
-
-int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
 int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, STACK_OF (X509) *certs);
-int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls);
 void CMP_CTX_delete(CMP_CTX *ctx);
 int CMP_CTX_set_error_callback(CMP_CTX *ctx, cmp_logfn_t cb);
 int CMP_CTX_set_debug_callback(CMP_CTX *ctx, cmp_logfn_t cb);
 int CMP_CTX_set_certConf_callback(CMP_CTX *ctx, cmp_certConfFn_t cb);
-int CMP_CTX_set_certVerify_callback(CMP_CTX *ctx, cert_verify_cb_t cb);
 int CMP_CTX_set1_referenceValue(CMP_CTX *ctx, const unsigned char *ref,
                                 size_t len);
 int CMP_CTX_set1_secretValue(CMP_CTX *ctx, const unsigned char *sec,

@@ -96,7 +96,6 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, secretValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, srvCert, X509),
     ASN1_OPT(CMP_CTX, validatedSrvCert, X509),
-    ASN1_SEQUENCE_OF_OPT(CMP_CTX, crls, X509_CRL),
     ASN1_OPT(CMP_CTX, clCert, X509),
     ASN1_OPT(CMP_CTX, oldClCert, X509),
     ASN1_OPT(CMP_CTX, p10CSR, X509_REQ),
@@ -174,8 +173,8 @@ X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx)
 }
 
 /* ############################################################################ *
- * Set certificate store containing trusted root CA certs for CMP server authentication.
- * Cannot be used together with directly trusted srvCert set via CMP_CTX_set1_srvCert().
+ * Set certificate store containing trusted (root) CA certs and possibly CRLs
+ * and a cert verification callback function used for CMP server authentication.
  * returns 1 on success, 0 on error
  * ############################################################################ */
 int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store)
@@ -208,21 +207,6 @@ int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, STACK_OF (X509) *certs)
         sk_X509_pop_free(ctx->untrusted_certs, X509_free);
     ctx->untrusted_certs = sk_X509_new_null();
     return CMP_sk_X509_add1_certs(ctx->untrusted_certs, certs, 0, 1/*no dups*/);
-}
-
-/* ############################################################################ *
- * Set CRLs to be used as primary source during CMP certificate verification.
- * CRL stack will be freed by CMP_CTX_delete().
- * returns 1 on success, 0 on error
- * ############################################################################ */
-int CMP_CTX_set0_crls(CMP_CTX *ctx, STACK_OF(X509_CRL) *crls)
-{
-    if (!crls)
-        return 0;
-    if (ctx->crls)
-        sk_X509_CRL_pop_free(ctx->crls, X509_CRL_free);
-    ctx->crls = crls;
-    return 1;
 }
 
 /* ################################################################ *
@@ -266,7 +250,6 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->error_cb = NULL;
     ctx->debug_cb = (cmp_logfn_t) puts;
     ctx->certConf_cb = NULL;
-    ctx->cert_verify_cb = NULL;
     ctx->trusted_store = X509_STORE_new();
     ctx->untrusted_certs = sk_X509_new_null();
 
@@ -366,21 +349,6 @@ int CMP_CTX_set_certConf_callback(CMP_CTX *ctx, cmp_certConfFn_t cb)
     if (!ctx)
         goto err;
     ctx->certConf_cb = cb;
-    return 1;
- err:
-    return 0;
-}
-
-/* ################################################################ *
- * Set callback function to be used during certificate verification
- * for diagnosis and optionally modifying the result.
- * returns 1 on success, 0 on error
- * ################################################################ */
-int CMP_CTX_set_certVerify_callback(CMP_CTX *ctx, cert_verify_cb_t cb)
-{
-    if (!ctx)
-        goto err;
-    ctx->cert_verify_cb = cb;
     return 1;
  err:
     return 0;
@@ -756,19 +724,12 @@ int CMP_CTX_set1_srvCert(CMP_CTX *ctx, const X509 *cert)
     if (ctx->srvCert) {
         X509_free(ctx->srvCert);
         ctx->srvCert = NULL;
-        if (ctx->trusted_store)
-            X509_STORE_free(ctx->trusted_store);
-        ctx->trusted_store = X509_STORE_new();
     }
     if (!cert)
-        return 1; /* srvCert and trusted_store have been cleared */
+        return 1; /* srvCert has been cleared */
 
     if (!(ctx->srvCert = X509_dup((X509 *)cert)))
         goto err;
-    if (!X509_STORE_add_cert(ctx->trusted_store, ctx->srvCert))
-        goto err;
-    X509_STORE_set_flags(ctx->trusted_store, X509_V_FLAG_PARTIAL_CHAIN);
-    /* X509_V_FLAG_CRL_CHECK_ALL is already cleared by default for new store */
     return 1;
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_SRVCERT, CMP_R_NULL_ARGUMENT);

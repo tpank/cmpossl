@@ -38,8 +38,6 @@ struct cmp_ctx_st {
     X509 *srvCert; /* certificate used to identify the server */
     X509 *validatedSrvCert; /* stores the server Cert as soon as its
                                trust chain has been validated */
-    STACK_OF(X509_CRL) *crls; /* CRLs to be used as primary source
-                                 during CMP certificate verification */
     X509 *clCert;
     /* current client certificate used to identify and sign for MSG_SIG_ALG */
     X509 *oldClCert; /* for KUR: certificate to be updated;
@@ -101,9 +99,8 @@ struct cmp_ctx_st {
     cmp_logfn_t error_cb, debug_cb;/* log callback fns for error/debug output */
     cmp_certConfFn_t certConf_cb;  /* callback for letting the user check
        the received certificate and reject if necessary */
-    cert_verify_cb_t cert_verify_cb; /* callback to be used during verification
-                                        of CMP server certificate */
-    X509_STORE *trusted_store; /* store for trusted (root) certificates */
+    X509_STORE *trusted_store;    /* store for trusted (root) certificates and
+                                     possibly CRLs and cert verify callback */
     STACK_OF (X509) *untrusted_certs;  /* untrusted (intermediate) certs */
 
     /* HTTP transfer related settings */
