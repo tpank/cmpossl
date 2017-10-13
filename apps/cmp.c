@@ -1685,12 +1685,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
         SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
 
-        if (!SSL_CTX_set1_param(ssl_ctx, vpm)) {
-            BIO_printf(bio_err, "Error setting SSL CTX verification parameters\n");
-            ERR_print_errors(bio_err);
-            goto tls_err;
-        }
-
         if (opt_tls_trusted) {
             if (!(store=create_cert_store(opt_tls_trusted, "trusted TLS certificates"))) {
                 goto tls_err;
