@@ -160,7 +160,9 @@ static char *opt_tls_cert = NULL;
 static char *opt_tls_key = NULL;
 static char *opt_tls_keypass = NULL;
 static char *opt_tls_trusted = NULL;
+static char *opt_tls_untrusted = NULL;
 static char *opt_tls_host = NULL;
+static STACK_OF(X509) *tls_untrusted_certs = NULL;
 
 static char *opt_path = "/";
 static char *opt_cmd_s = NULL;
@@ -334,7 +336,7 @@ typedef enum OPTION_choice {
 #endif
 
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
-    OPT_TLSTRUSTED, OPT_TLSHOST,
+    OPT_TLSTRUSTED, OPT_TLSUNTRUSTED, OPT_TLSHOST,
 
     OPT_CRLS, OPT_CRL_DOWNLOAD,
     OPT_V_ENUM/* OPT_CRLALL etc. */
@@ -428,6 +430,7 @@ OPTIONS cmp_options[] = {
     {"tls-keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
     {"tls-trusted", OPT_TLSTRUSTED, 's', "Trusted certificates to use for verifying the TLS server certificate."},
                     {OPT_MORE_STR, 0, 0, "This implies host name validation"},
+    {"tls-untrusted", OPT_TLSUNTRUSTED, 's', "Additional untrusted certificates for verifying TLS certificates."},
     {"tls-host", OPT_TLSHOST, 's', "Address to be checked (rather than -server) during TLS host name validation"},
 
     {OPT_MORE_STR, 0, 0, "\nCertificate verification options, for both CMP and TLS:"},
@@ -472,7 +475,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
 #endif
 
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
-    {&opt_tls_trusted}, {&opt_tls_host},
+    {&opt_tls_trusted}, {&opt_tls_untrusted}, {&opt_tls_host},
 
     {&opt_crls}, { (char **)&opt_crl_download},
     /* virtually at this point: OPT_CRLALL etc. */
@@ -1195,6 +1198,22 @@ static X509_STORE *create_cert_store(const char *infile, const char *desc)
     return store;
 }
 
+static X509_STORE *sk_X509_to_store(const STACK_OF(X509) *certs/* may be NULL*/)
+{
+    X509_STORE *store = X509_STORE_new();
+    int i;
+
+    if (!store)
+        return NULL;
+    for (i = 0; i < sk_X509_num(certs); i++) {
+        if (!X509_STORE_add_cert(store, sk_X509_value(certs, i))) {
+            X509_STORE_free(store);
+            return NULL;
+        }
+    }
+    return store;
+}
+
 /* TODO dvo: push that separately upstream
  * ##########################################################################
  * * code for loading CRL via HTTP or from file, slightly adapted from apps/apps.c
@@ -1654,7 +1673,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                                 "CRL(s) for checking certificate revocation")))
         goto err;
 
-    if (opt_tls_trusted || opt_tls_host) {
+    if (opt_tls_trusted || opt_tls_untrusted || opt_tls_host) {
         opt_use_tls = 1;
     }
     if (opt_tls_cert || opt_tls_key || opt_tls_keypass) {
@@ -1689,6 +1708,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             if (!(store=create_cert_store(opt_tls_trusted, "trusted TLS certificates"))) {
                 goto tls_err;
             }
+            /* do immediately for automatic cleanup in case of errors: */
             SSL_CTX_set_cert_store(ssl_ctx, store);
             if (!set_store_parameters_crls(store))
                 goto tls_err;
@@ -1701,6 +1721,18 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 #endif
 
             SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, print_cert_verify_cb);
+        }
+
+        if (opt_tls_untrusted) {
+            X509_STORE *untrusted;
+            tls_untrusted_certs = load_certs_autofmt(opt_tls_untrusted,
+                                     opt_certform, "untrusted TLS cerificates");
+            untrusted = sk_X509_to_store(tls_untrusted_certs);
+            /* do immediately for automatic cleanup in case of errors: */
+            SSL_CTX_set0_chain_cert_store(ssl_ctx, untrusted/* may be NULL */);
+            if (!tls_untrusted_certs || !untrusted) {
+                    goto tls_err;
+            }
         }
 
         if (opt_tls_cert && opt_tls_key) {
@@ -2329,6 +2361,9 @@ opt_err:
         case OPT_TLSTRUSTED:
             opt_tls_trusted = opt_str("tls-trusted");
             break;
+        case OPT_TLSUNTRUSTED:
+            opt_tls_untrusted = opt_str("tls-untrusted");
+            break;
         case OPT_TLSHOST:
             opt_tls_host = opt_str("tls-host");
             break;
@@ -2649,6 +2684,7 @@ opt_err:
 
     CMP_CTX_delete(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);
+    sk_X509_pop_free(tls_untrusted_certs, X509_free);
     X509_STORE_free(verify_out_ts);
     BIO_free(bio_c_out);
     release_engine(e);

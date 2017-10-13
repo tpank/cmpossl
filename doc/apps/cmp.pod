@@ -22,6 +22,7 @@ B<openssl> B<cmp>
 [B<-tls-key filename>]
 [B<-tls-keypass arg>]
 [B<-tls-trusted filename>]
+[B<-tls-untrusted filename>]
 [B<-tls-host name>]
 
 [B<-recipient name>]
@@ -518,9 +519,15 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 Trusted certificate(s) to use for verifying the TLS server certificate.
 This implies host name validation.
 
+=item B<-tls-untrusted filename>
+
+Additional untrusted certificates for chain building verifying TLS certificates.
+The file may contain multiple certificates.
+
 =item B<-tls-host name>
 
 Address to be checked (rather than -server address) during host name validation.
+This may be a Common Name, a DNS name, or an IP address.
 
 =back
 
