@@ -105,8 +105,10 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     }
 
     pubkey = X509_get_pubkey((X509 *)cert);
-    if (!pubkey)
+    if (!pubkey) {
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_INVALID_KEY);
         return 0;
+    }
 
     /* create the DER representation of protected part */
     protPart.header = msg->header;
@@ -128,6 +130,8 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     EVP_MD_CTX_destroy(ctx);
     OPENSSL_free(protPartDer);
     EVP_PKEY_free(pubkey);
+    if (!ret)
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ERROR_VALIDATING_PROTECTION);
     return ret;
  notsup:
     CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ALGORITHM_NOT_SUPPORTED);

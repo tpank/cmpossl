@@ -86,6 +86,10 @@
 #define X509_STORE_CTX_get0_chain X509_STORE_CTX_get_chain
 #define X509_STORE_CTX_get_by_subject X509_STORE_get_by_subject
 #define X509_STORE_get0_param(ctx) ((ctx)->param)
+#define X509_STORE_set_ex_data(ctx, idx, data) \
+    CRYPTO_set_ex_data(&(ctx)->ex_data, (idx), (data))
+#define X509_STORE_get_ex_data(ctx, idx) \
+    CRYPTO_get_ex_data(&(ctx)->ex_data, (idx))
 #define X509_V_ERR_STORE_LOOKUP 70
 #define X509_STORE_set_lookup_crls X509_STORE_set_lookup_crls_cb
 #define X509_VERIFY_PARAM_get_time(param) ((param)->check_time)

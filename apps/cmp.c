@@ -428,7 +428,7 @@ OPTIONS cmp_options[] = {
     {"tls-keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
     {"tls-trusted", OPT_TLSTRUSTED, 's', "Trusted certificates to use for verifying the TLS server certificate."},
                     {OPT_MORE_STR, 0, 0, "This implies host name validation"},
-    {"tls-host", OPT_TLSTRUSTED, 's', "Address to be checked (rather than -server) during host name validation"},
+    {"tls-host", OPT_TLSHOST, 's', "Address to be checked (rather than -server) during TLS host name validation"},
 
     {OPT_MORE_STR, 0, 0, "\nCertificate verification options, for both CMP and TLS:"},
     {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates."},
@@ -1148,6 +1148,8 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, con
  * returns 1 on success, 0 on error.
  * ##########################################################################
  */
+#define X509_STORE_EX_DATA_HOST 0
+#define X509_STORE_EX_DATA_SBIO 1
 static int truststore_set_host(X509_STORE *ts, const char *host) {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
     /* first clear any host names and IP addresses */
@@ -1161,6 +1163,8 @@ static int truststore_set_host(X509_STORE *ts, const char *host) {
     /* Unfortunately there is no OpenSSL API function for retrieving the hosts/
        ip entries in X509_VERIFY_PARAM. So we store the host value in ex_data
        for use in print_cert_verify_cb() and backup/restore functions below. */
+    if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)host))
+        return 0;
     if (host && isdigit(host[0]))
         return X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host);
     else
@@ -1356,8 +1360,7 @@ static void print_store_certs(BIO *bio, X509_STORE *store) {
  * and to possibly change the result of the verification (not done here).
  * This callback is also activated when constructing our own TLS chain:
  * tls_construct_client_certificate() -> ssl3_output_cert_chain() ->
- * ssl_add_cert_chain() -> X509_verify_cert() where errors are ignored,
- * such that unfortunately this may lead to spurious error printing.
+ * ssl_add_cert_chain() -> X509_verify_cert() where errors are ignored.
  */
 
 static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
@@ -1366,11 +1369,37 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
         int cert_error = X509_STORE_CTX_get_error(ctx);
         int depth = X509_STORE_CTX_get_error_depth(ctx);
         X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
-        BIO_printf(bio_err, "%s error=%d (%s) at depth=%d %s",
+        SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
+                    SSL_get_ex_data_X509_STORE_CTX_idx());
+        X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
+        BIO *sbio = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_SBIO);
+        const char *expected = NULL;
+
+        if (sbio && BIO_next(sbio) /* CMP_PKIMESSAGE_http_perform() is active */
+            && !ssl) /* ssl_add_cert_chain() is active */
+            return ok; /* avoid printing spurious errors */
+
+        BIO_printf(bio_err, "%s at depth=%d error=%d (",
                    X509_STORE_CTX_get0_parent_ctx(ctx) ?
                    "CRL path validation" : "certificate verification",
-                   cert_error, X509_verify_cert_error_string(cert_error), depth,
-                   "\nfailure for certificate:\n");
+                   depth, cert_error);
+        switch(cert_error) {
+        case X509_V_ERR_HOSTNAME_MISMATCH:
+        case X509_V_ERR_IP_ADDRESS_MISMATCH:
+            /* Unfortunately there is no OpenSSL API function for retrieving the
+               hosts/ip entries in X509_VERIFY_PARAM. So we use ts->ex_data.
+               This works for names we set ourselves but not verify_hostname. */
+            expected = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
+            break;
+        default:
+            break;
+        }
+        BIO_printf(bio_err, "%s%s%s)\n",
+                   X509_verify_cert_error_string(cert_error),
+                   expected ? "; expected: " : "",
+                   expected ? expected : "");
+
+        BIO_printf(bio_err, "failure for certificate:\n");
         print_cert(bio_err, cert);
         if (cert_error == X509_V_ERR_CERT_UNTRUSTED ||
             cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
@@ -1385,7 +1414,7 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
             print_store_certs(bio_err, X509_STORE_CTX_get0_store(ctx));
         }
     }
-    return (ok);
+    return ok;
 }
 
 /*
@@ -1641,6 +1670,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_use_tls) {
         X509 *cert = NULL;
         EVP_PKEY *pkey = NULL;
+        X509_STORE *store = NULL;
         SSL_CTX *ssl_ctx;
         BIO *sbio;
 
@@ -1662,7 +1692,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
 
         if (opt_tls_trusted) {
-            X509_STORE *store;
             if (!(store=create_cert_store(opt_tls_trusted, "trusted TLS certificates"))) {
                 goto tls_err;
             }
@@ -1726,7 +1755,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         sbio = BIO_new_ssl(ssl_ctx, 1);
         SSL_CTX_free(ssl_ctx);
         ssl_ctx = NULL;
-        if (!sbio) {
+        if (!sbio || (store &&
+            !X509_STORE_set_ex_data(store, X509_STORE_EX_DATA_SBIO, sbio))) {
             BIO_printf(bio_err, "error: cannot initialize SSL BIO");
         tls_err:
             SSL_CTX_free(ssl_ctx);
