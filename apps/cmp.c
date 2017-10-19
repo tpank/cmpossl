@@ -2527,7 +2527,8 @@ opt_err:
     }
 #else /* OPENSSL_VERSION_NUMBER */
     /* parse commandline options */
-    while (--argc > 0 && ++argv) {
+    ++argv;
+    while (--argc > 0) {
         int found = 0;
         const OPTIONS *opt;
         char *arg;
@@ -2538,21 +2539,21 @@ opt_err:
         }
         arg = *argv;
 
-        if (*arg++ != '-' || *arg == 0)
+        if (*arg == 0 || *arg++ != '-')
             {
             badops=1;
             break;
             }
 
-        /* starting with 0 and OPT_HELP+0 although
-           OPT_CONFIG and OPT_SECTION have already been handled */
-        for (i = 0, opt = &cmp_options[OPT_HELP+0]; opt->name; i++, opt++) {
+        /* starting with index 0 to consume also OPT_CONFIG and OPT_SECTION,
+           which have already been handled */
+        for (i = 0, opt = &cmp_options[0+OPT_HELP]; opt->name; i++, opt++) {
             if (!strcmp(opt->name, OPT_HELP_STR) || !strcmp(opt->name, OPT_MORE_STR)) {
                 i--;
                 continue;
             }
-            if (OPT_V__FIRST <= opt->retval && opt->retval < OPT_V__LAST)
-                opt += OPT_V__LAST-OPT_V__FIRST - 1;
+            if (OPT_V__FIRST < opt->retval && opt->retval < OPT_V__LAST)
+                opt += (OPT_V__LAST-1) - (OPT_V__FIRST+1);
             if (opt->name && !strcmp(arg, opt->name)) {
                 if (argc <= 1 && opt->valtype != '-') {
                     BIO_printf(bio_err, "missing argument for '-%s'\n", opt->name);
