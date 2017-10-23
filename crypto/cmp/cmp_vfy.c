@@ -425,6 +425,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
          * -> check all possible options from OpenSSL, should there be macro? */
     default:
         if (!srvCert) {
+            STACK_OF (X509) *found_certs = NULL;
             /* if we've already found and validated a server cert, and it
              * matches the sender name, we will use that, this is used for
              * PKIconf where the server certificate and others could be missing
@@ -446,7 +447,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 
                     /* try to find server certificate(s) from
                      * trusted_store, untrusted_certs, or extaCerts */
-                    STACK_OF (X509) *found_certs =
+                    found_certs =
                         find_server_cert(ctx->trusted_store, untrusted, msg);
 
                     /* select first server certificate that can be validated */
@@ -493,6 +494,11 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                 }
             }
 
+            if (srvCert_valid) {
+                X509_up_ref(srvCert);
+            }
+            sk_X509_pop_free(found_certs, X509_free);
+
             /* verification failed if no valid server cert was found */
             if (!srvCert_valid) {
                 X509_free(srvCert);
@@ -501,6 +507,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             }
 
             /* store trusted srv cert for future messages in this transaction */
+            X509_free(ctx->validatedSrvCert);
             ctx->validatedSrvCert = srvCert;
         }
         return CMP_verify_signature(ctx, msg, srvCert);
