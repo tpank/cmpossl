@@ -127,7 +127,7 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     ret = EVP_VerifyInit_ex(ctx, digest, NULL) &&
           EVP_VerifyUpdate(ctx, protPartDer, protPartDerLen) &&
           EVP_VerifyFinal(ctx, msg->protection->data,
-                          msg->protection->length, pubkey);
+                          msg->protection->length, pubkey) == 1;
 
     /* cleanup */
     EVP_MD_CTX_destroy(ctx);
