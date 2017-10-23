@@ -17,7 +17,7 @@ B<openssl> B<cmp>
 [B<-msgtimeout seconds>]
 [B<-maxpolltime seconds>]
 
-[B<-use-tls>]
+[B<-tls-used>]
 [B<-tls-cert filename>]
 [B<-tls-key filename>]
 [B<-tls-keypass arg>]
@@ -493,7 +493,7 @@ supported e.g. by libp11:
 
 =over 4
 
-=item B<-use-tls>
+=item B<-tls-used>
 
 Force using TLS (even when other TLS-related options are not set)
 when connecting to CMP server.

@@ -424,7 +424,7 @@ OPTIONS cmp_options[] = {
 #endif
 
     {OPT_MORE_STR, 0, 0, "\nTLS options:"},
-    {"use-tls", OPT_USETLS, '-', "Force using TLS (even when other TLS options are not set) connecting to server"},
+    {"tls-used", OPT_USETLS, '-', "Force using TLS (even when other TLS options are not set) connecting to server"},
     {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. May include certificate chain to be provided to server"},
     {"tls-key", OPT_TLSKEY, 's', "Private key for the client's TLS certificate"},
     {"tls-keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
