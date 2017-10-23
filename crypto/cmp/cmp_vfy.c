@@ -95,17 +95,18 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     unsigned char *protPartDer = NULL;
 
     if (!msg || !cert)
-        return 0;
+        goto param_err;
 
     /* verify that keyUsage, if present, contains digitalSignature */
     if (!cmp_ctx->ignore_keyusage &&
         !(X509_get_key_usage((X509 *)cert) & X509v3_KU_DIGITAL_SIGNATURE)) {
-            CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_WRONG_KEY_USAGE);
-            return 0;
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_WRONG_KEY_USAGE);
+            goto cert_err;
     }
 
     pubkey = X509_get_pubkey((X509 *)cert);
     if (!pubkey) {
+    param_err:
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_INVALID_KEY);
         return 0;
     }
@@ -119,8 +120,10 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     ctx = EVP_MD_CTX_create();
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),
                                          &digest_NID, NULL) ||
-        !(digest = (EVP_MD *)EVP_get_digestbynid(digest_NID)))
-        goto notsup;
+        !(digest = (EVP_MD *)EVP_get_digestbynid(digest_NID))) {
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ALGORITHM_NOT_SUPPORTED);
+        return 0;
+    }
     ret = EVP_VerifyInit_ex(ctx, digest, NULL) &&
           EVP_VerifyUpdate(ctx, protPartDer, protPartDerLen) &&
           EVP_VerifyFinal(ctx, msg->protection->data,
@@ -130,12 +133,25 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     EVP_MD_CTX_destroy(ctx);
     OPENSSL_free(protPartDer);
     EVP_PKEY_free(pubkey);
-    if (!ret)
+
+    if (!ret) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ERROR_VALIDATING_PROTECTION);
+    }
+ cert_err:
+    if (!ret) {
+        X509_STORE_CTX *csc = X509_STORE_CTX_new();
+        X509_STORE_CTX_verify_cb verify_cb =
+            X509_STORE_get_verify_cb(cmp_ctx->trusted_store);
+        if (csc && verify_cb &&
+            X509_STORE_CTX_init(csc, cmp_ctx->trusted_store, NULL, NULL)) {
+            X509_STORE_CTX_set_current_cert(csc, (X509 *)cert);
+            X509_STORE_CTX_set_error_depth(csc, -1);
+            X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
+            (void)(*verify_cb)(0, csc); /* just print diagnostics on cert */
+        }
+        X509_STORE_CTX_free(csc);
+    }
     return ret;
- notsup:
-    CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ALGORITHM_NOT_SUPPORTED);
-    return 0;
 }
 
 /* ########################################################################## *

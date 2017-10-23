@@ -1330,21 +1330,29 @@ static STACK_OF(X509_CRL) *crls_local_then_http_cb(X509_STORE_CTX *ctx, X509_NAM
  * ##########################################################################
  */
 
-static void print_cert(BIO *bio, const X509 *cert) {
+static void print_cert(BIO *bio, const X509 *cert, unsigned long neg_cflags) {
     if (cert) {
         unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
             XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
-        BIO_printf(bio, "  subject: ");
-        X509_NAME_print_ex(bio, X509_get_subject_name((X509 *)cert), 0, flags);
+        BIO_printf(bio, "    certificate\n");
+        X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_SUBJECT);
         if (X509_check_issued((X509 *)cert, (X509 *)cert) == X509_V_OK) {
-            BIO_printf(bio, " (self-signed)");
+            BIO_printf(bio, "        self-signed\n");
         } else {
-            BIO_printf(bio, "\n  issuer: ");
-            X509_NAME_print_ex(bio, X509_get_issuer_name((X509 *)cert),0,flags);
+            BIO_printf(bio, " ");
+            X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_ISSUER);
         }
-        BIO_printf(bio, "\n");
+        X509_print_ex(bio, (X509 *)cert, flags,
+                           ~(X509_FLAG_NO_SERIAL | X509_FLAG_NO_VALIDITY));
+        if (X509_cmp_current_time(X509_get0_notBefore(cert)) > 0) {
+            BIO_printf(bio, "        not yet valid\n");
+        }
+        if (X509_cmp_current_time(X509_get0_notAfter(cert)) < 0) {
+            BIO_printf(bio, "        no more valid\n");
+        }
+        X509_print_ex(bio, (X509 *)cert, flags, ~(neg_cflags));
     } else {
-        BIO_printf(bio, "(no certificate)\n");
+        BIO_printf(bio, "    (no certificate)\n");
     }
 }
 
@@ -1354,11 +1362,11 @@ static void print_certs(BIO *bio, const STACK_OF(X509) *certs) {
         for (i = 0; i < sk_X509_num(certs); i++) {
             X509 *cert = sk_X509_value(certs, i);
             if (cert) {
-                print_cert(bio, cert);
+                print_cert(bio, cert, 0);
             }
         }
     } else {
-        BIO_printf(bio, "  (no certificates)\n");
+        BIO_printf(bio, "    (no certificates)\n");
     }
 }
 
@@ -1368,7 +1376,7 @@ static void print_store_certs(BIO *bio, X509_STORE *store) {
         print_certs(bio, certs);
         sk_X509_pop_free(certs, X509_free);
     } else {
-        BIO_printf(bio, "  (no certificate store)\n");
+        BIO_printf(bio, "    (no certificate store)\n");
     }
 }
 
@@ -1399,6 +1407,7 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
             return ok; /* avoid printing spurious errors */
 
         BIO_printf(bio_err, "%s at depth=%d error=%d (",
+                   depth < 0 ? "signature verification" :
                    X509_STORE_CTX_get0_parent_ctx(ctx) ?
                    "CRL path validation" : "certificate verification",
                    depth, cert_error);
@@ -1418,8 +1427,8 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
                    expected ? "; expected: " : "",
                    expected ? expected : "");
 
-        BIO_printf(bio_err, "failure for certificate:\n");
-        print_cert(bio_err, cert);
+        BIO_printf(bio_err, "failure for:\n");
+        print_cert(bio_err, cert, X509_FLAG_NO_EXTENSIONS);
         if (cert_error == X509_V_ERR_CERT_UNTRUSTED ||
             cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
             cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN ||
@@ -1427,9 +1436,9 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
             cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
             cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER ||
             cert_error == X509_V_ERR_STORE_LOOKUP) {
-            BIO_printf(bio_err, "untrusted certificates:\n");
+            BIO_printf(bio_err, "chain store:\n");
             print_certs(bio_err, X509_STORE_CTX_get0_untrusted(ctx));
-            BIO_printf(bio_err, "trusted certificates:\n");
+            BIO_printf(bio_err, "trust store:\n");
             print_store_certs(bio_err, X509_STORE_CTX_get0_store(ctx));
         }
     }
@@ -1764,6 +1773,18 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             }
             if (!pkey)
                 goto tls_err;
+            /* verify the key matches the cert,
+               not using SSL_CTX_check_private_key(ssl_ctx)
+               because it gives poor and sometimes misleading diagnostics */
+            if (!X509_check_private_key(SSL_CTX_get0_certificate(ssl_ctx),
+                                        pkey)) {
+                BIO_printf(bio_err,
+       "error: TLS private key '%s' does not match the TLS certificate '%s'\n",
+                           opt_tls_key, opt_tls_cert);
+                EVP_PKEY_free(pkey);
+                pkey = NULL; /* otherwise, for some reason double free! */
+                goto tls_err;
+            }
             if (SSL_CTX_use_PrivateKey(ssl_ctx, pkey) <= 0) {
                 BIO_printf(bio_err, "error: unable to use TLS client private key '%s'\n", opt_tls_key);
                 EVP_PKEY_free(pkey);
@@ -1771,11 +1792,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                 goto tls_err;
             }
             EVP_PKEY_free(pkey); /* we don't need the handle any more */
-            /* verify the key matches the cert */
-            if (!SSL_CTX_check_private_key(ssl_ctx)) {
-                BIO_printf(bio_err, "error: TLS private key '%s' does not match the TLS certificate '%s'\n", opt_tls_key, opt_tls_cert);
-                goto tls_err;
-            }
         }
 
         sbio = BIO_new_ssl(ssl_ctx, 1);
@@ -1873,7 +1889,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                 opt_recipient = NULL;
             }
             /* opt_keypass is needed here in case opt_srvcert is an encrypted PKCS#12 file */
-            srvcert = load_cert_autofmt(opt_srvcert, &certform, opt_keypass,
+            srvcert = load_cert_autofmt(opt_srvcert, &certform, NULL,
                                         "trusted CMP server certificate");
             if (!srvcert || !CMP_CTX_set1_srvCert(ctx, srvcert)) {
                 X509_free(srvcert);
@@ -2020,7 +2036,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             }
             X509_free(oldcert);
         } else {
+#if 0
             BIO_printf(bio_c_out, "warning: -oldcert option is ignored for commands other than KUR and RR\n");
+#endif
         }
     }
     if (opt_keypass) {
@@ -2646,10 +2664,8 @@ opt_err:
     }
 
     if (opt_cacertsout && CMP_CTX_caPubs_num(cmp_ctx) > 0) {
-        STACK_OF(X509) *certs;
-        if ((certs = CMP_CTX_caPubs_get1(cmp_ctx)) == NULL)
-            goto err;
-        if (save_certs(certs, opt_cacertsout, "CA") < 0) {
+        STACK_OF(X509) *certs = CMP_CTX_caPubs_get1(cmp_ctx);
+        if (certs == NULL || save_certs(certs, opt_cacertsout, "CA") < 0) {
         save_certs_err:
             sk_X509_pop_free(certs, X509_free);
             goto err;
@@ -2658,21 +2674,16 @@ opt_err:
     }
 
     if (opt_extracertsout && CMP_CTX_extraCertsIn_num(cmp_ctx) > 0) {
-        STACK_OF(X509) *certs;
-        if ((certs = CMP_CTX_extraCertsIn_get1(cmp_ctx)) == NULL)
-            goto err;
-        if (save_certs(certs, opt_extracertsout, "extra") < 0)
+        STACK_OF(X509) *certs = CMP_CTX_extraCertsIn_get1(cmp_ctx);
+        if (certs == NULL || save_certs(certs, opt_extracertsout, "extra") < 0)
             goto save_certs_err;
         sk_X509_pop_free(certs, X509_free);
     }
 
     if (opt_certout && newcert) {
-        STACK_OF(X509) *certs;
-        if ((certs = sk_X509_new_null()) == NULL)
-            goto err;
-        if (!sk_X509_push(certs, X509_dup(newcert)))
-            goto err;
-        if (save_certs(certs, opt_certout, "enrolled") < 0)
+        STACK_OF(X509) *certs = sk_X509_new_null();
+        if (certs == NULL || !sk_X509_push(certs, X509_dup(newcert)) ||
+            save_certs(certs, opt_certout, "enrolled") < 0)
             goto save_certs_err;
         sk_X509_pop_free(certs, X509_free);
     }
