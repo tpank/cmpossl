@@ -378,19 +378,21 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
 
     OPENSSL_free(path);
 
-    (void) BIO_reset(cbio);
-    if (ctx->tlsBIO) {
-        BIO_pop(ctx->tlsBIO);
-    }
-
  err:
-    BIO_free(hbio);
     if (err) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, err);
         if (err == CMP_R_FAILED_TO_SEND_REQUEST ||
             err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE)
             print_error_hint(ctx, ERR_peek_error());
     }
+
+    (void)BIO_reset(cbio); /* notify/alert peer, init for potential next use */
+    if (ctx->tlsBIO) {
+        /* BIO_set_next(cbio, NULL); workaround for altered forward pointer */
+        /* Must not pop ctx->tlsBIO or hbio nor do this before reset,
+           else ssl_free_wbio_buffer() fails on ossl_assert(s->wbio != NULL) */
+    }
+    BIO_free(hbio);
 
     return err;
 }
