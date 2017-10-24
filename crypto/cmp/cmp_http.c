@@ -136,6 +136,9 @@ static void print_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 #endif
             CMP_add_error_data("Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor, or missing/invalid CRL");
             break;
+        case SSL_AD_REASON_OFFSET+40:
+            CMP_add_error_data("Server requires our TLS certificate but did not receive one");
+            break;
         default:
             break;
         }
