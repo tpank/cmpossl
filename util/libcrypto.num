@@ -4383,7 +4383,7 @@ CMP_PKIHEADER_set1_recipient            4321	1_1_1	EXIST::FUNCTION:
 CMP_statusInfo_new                      4322	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set0_pkey                       4323	1_1_1	EXIST::FUNCTION:
 CMP_CTX_create                          4324	1_1_1	EXIST::FUNCTION:
-CMP_CTX_set0_crls                       4325	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set0_crls                       4325	1_1_1	NOEXIST::FUNCTION:
 CMP_CTX_extraCertsOut_num               4326	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_secretValue                4327	1_1_1	EXIST::FUNCTION:
 CMP_CTX_subjectAltName_push1            4328	1_1_1	EXIST::FUNCTION:
@@ -4419,7 +4419,7 @@ CRMF_PBMPARAMETER_new                   4357	1_1_1	EXIST::FUNCTION:
 CMP_PKIHEADER_new_senderNonce           4358	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_referenceValue             4359	1_1_1	EXIST::FUNCTION:
 CMP_validate_cert_path                  4360	1_1_1	EXIST::FUNCTION:
-CMP_CTX_set_certVerify_callback         4361	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set_certVerify_callback         4361	1_1_1	NOEXIST::FUNCTION:
 CMP_REVREPCONTENT_PKIStatus_get         4362	1_1_1	NOEXIST::FUNCTION:
 CMP_pollReq_new                         4363	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_recipNonce                 4364	1_1_1	EXIST::FUNCTION:
