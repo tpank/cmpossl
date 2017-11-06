@@ -376,6 +376,9 @@ X509 subject DN to use in the requested certificate template.
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
 
+In case B<-cert> is not set, i.e. when using MSG_MAC_ALG, the subject DN is also
+used as sender of the PKI message.
+
 =item B<-issuer distinguished_name>
 
 X509 issuer DN, i.e., the X509 distinguished name of the CA server,

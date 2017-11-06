@@ -415,11 +415,14 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
     /* set the CMP version */
     CMP_PKIHEADER_set_version(hdr, CMP_VERSION);
 
-    /* in case there is no OLD client cert the sender name is not set
-     * (e.g. for IR) */
+    /* if neither client cert nor subject name given, sender name is not known
+       to the client and in that case set to NULL-DN */
     if (ctx->clCert) {
-        if (!CMP_PKIHEADER_set1_sender
-            (hdr, X509_get_subject_name((X509 *)ctx->clCert)))
+        if (!CMP_PKIHEADER_set1_sender(hdr,
+                                    X509_get_subject_name((X509 *)ctx->clCert)))
+            goto err;
+    } else if (ctx->subjectName) {
+        if (!CMP_PKIHEADER_set1_sender(hdr, ctx->subjectName))
             goto err;
     } else {
         if (!CMP_PKIHEADER_set1_sender(hdr, NULL))
