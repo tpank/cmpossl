@@ -549,6 +549,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_PROXYNAME                     132
 # define CMP_F_CMP_CTX_SET1_RECIPIENT                     133
 # define CMP_F_CMP_CTX_SET1_RECIPNONCE                    134
+# define CMP_F_CMP_CTX_SET1_RECIP_USED                    173
 # define CMP_F_CMP_CTX_SET1_REFERENCEVALUE                135
 # define CMP_F_CMP_CTX_SET1_REGTOKEN                      136
 # define CMP_F_CMP_CTX_SET1_SECRETVALUE                   137
@@ -600,6 +601,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ENCOUNTERED_KEYUPDATEWARNING               107
 # define CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS          108
 # define CMP_R_ENCOUNTERED_WAITING                        109
+# define CMP_R_ERROR                                      171
 # define CMP_R_ERROR_CALCULATING_PROTECTION               110
 # define CMP_R_ERROR_CREATING_CERTCONF                    111
 # define CMP_R_ERROR_CREATING_CR                          112
@@ -622,10 +624,12 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_PUSHING_GENERALINFO_ITEM             129
 # define CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS            130
 # define CMP_R_ERROR_PUSHING_GENM_ITEMS                   131
+# define CMP_R_ERROR_SENDER_GNAME_TYPE_NOT_SUPPORTED      173
 # define CMP_R_ERROR_SENDING_REQUEST                      132
 # define CMP_R_ERROR_SETTING_CERTHASH                     133
 # define CMP_R_ERROR_STATUS_NOT_FOUND                     134
 # define CMP_R_ERROR_TRANSACTIONID_UNMATCHED              135
+# define CMP_R_ERROR_UNEXPECTED_SENDER                    172
 # define CMP_R_ERROR_VALIDATING_PROTECTION                136
 # define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               137
 # define CMP_R_FAILED_TO_SEND_REQUEST                     138
@@ -648,10 +652,12 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP    155
 # define CMP_R_REQUEST_REJECTED_BY_CA                     156
 # define CMP_R_RP_NOT_RECEIVED                            157
+# define CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED      174
 # define CMP_R_SERVER_NOT_REACHABLE                       158
 # define CMP_R_UNABLE_TO_CREATE_CONTEXT                   159
 # define CMP_R_UNEXPECTED_PKIBODY                         160
 # define CMP_R_UNEXPECTED_PKISTATUS                       161
+# define CMP_R_UNEXPECTED_SENDER                          175
 # define CMP_R_UNKNOWN_ALGORITHM_ID                       162
 # define CMP_R_UNKNOWN_CERTTYPE                           163
 # define CMP_R_UNKNOWN_PKISTATUS                          164

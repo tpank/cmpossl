@@ -407,7 +407,7 @@ int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
  * ########################################################################## */
 int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
 {
-    X509_NAME *recipient = NULL;
+    X509_NAME *rcp = NULL;
 
     if (!ctx || !hdr)
         goto err;
@@ -421,19 +421,22 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
                          X509_get_subject_name(ctx->clCert) : ctx->subjectName))
         goto err;
 
-    /* set recipient name either from known server certificate or recipient
-       or ctx->issuer or issuer of ctx->oldClCert or issuer of ctx->clCert */
-    if (ctx->srvCert)
-        recipient = X509_get_subject_name(ctx->srvCert);
-    else if (ctx->recipient)
-        recipient = ctx->recipient;
-    else if (ctx->issuer)
-        recipient = ctx->issuer;
-    else if (ctx->oldClCert)
-        recipient = X509_get_issuer_name(ctx->oldClCert);
-    else if (ctx->clCert)
-        recipient = X509_get_issuer_name(ctx->clCert);
-    if (!CMP_PKIHEADER_set1_recipient(hdr, recipient))
+    /* determined recipient stored for checking sender of rcvd message */
+    if (!(rcp = ctx->recip_used)) {
+        if (ctx->srvCert)
+            rcp = X509_get_subject_name(ctx->srvCert);
+        else if (ctx->recipient)
+            rcp = ctx->recipient;
+        else if (ctx->issuer)
+            rcp = ctx->issuer;
+        else if (ctx->oldClCert)
+            rcp = X509_get_issuer_name(ctx->oldClCert);
+        else if (ctx->clCert)
+            rcp = X509_get_issuer_name(ctx->clCert);
+
+        CMP_CTX_set1_recip_used(ctx, rcp);
+    }
+    if (!CMP_PKIHEADER_set1_recipient(hdr, rcp))
         goto err;
 
     /* set current time as message time */
