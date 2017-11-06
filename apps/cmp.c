@@ -2036,9 +2036,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             }
             X509_free(oldcert);
         } else {
-#if 0
             BIO_printf(bio_c_out, "warning: -oldcert option is ignored for commands other than KUR and RR\n");
-#endif
         }
     }
     if (opt_keypass) {
