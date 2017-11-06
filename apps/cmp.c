@@ -176,8 +176,8 @@ static char *opt_keypass = NULL;
 static char *opt_extcerts = NULL;
 
 static char *opt_certout = NULL;
-static char *opt_verify_out = NULL;
-static X509_STORE *verify_out_ts = NULL;
+static char *opt_out_trusted = NULL;
+static X509_STORE *out_trusted = NULL;
 
 static char *opt_srvcert = NULL;
 static char *opt_trusted = NULL;
@@ -326,7 +326,7 @@ typedef enum OPTION_choice {
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER,
     OPT_DAYS, OPT_REQEXTS, OPT_POPO,
     OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
-    OPT_CERTOUT, OPT_VERIFY_OUT,
+    OPT_CERTOUT, OPT_OUT_TRUSTED,
 
     OPT_OLDCERT, OPT_CSR, OPT_REVREASON, OPT_INFOTYPE,
 
@@ -401,7 +401,7 @@ OPTIONS cmp_options[] = {
     {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm newly enrolled certificate"},
                            {OPT_MORE_STR, 0, 0, "WARNING: This setting leads to behavior violating RFC 4210."},
     {"certout", OPT_CERTOUT, 's', "File to save the newly enrolled certificate"},
-    {"verify_out", OPT_VERIFY_OUT, 's', "Trusted certificates to use for verifying the newly enrolled certificate"},
+    {"out-trusted", OPT_OUT_TRUSTED, 's', "Trusted certificates to use for verifying the newly enrolled certificate"},
 
     {OPT_MORE_STR, 0, 0, "\nMisc request options:"},
 
@@ -465,7 +465,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
     { (char **)&opt_days}, {&opt_reqexts}, { (char **)&opt_popo},
     { (char **)&opt_implicitConfirm}, { (char **)&opt_disableConfirm},
-    {&opt_certout}, {&opt_verify_out},
+    {&opt_certout}, {&opt_out_trusted},
 
     {&opt_oldcert}, {&opt_csr}, { (char **)&opt_revreason}, {&opt_infotype_s},
 
@@ -1481,8 +1481,7 @@ oom:
     /* TODO: load caPubs [CMP_CTX_caPubs_get1(ctx)] as additional trusted certs
        during IR and if MSG_SIG_ALG is used, cf. RFC 4210, 5.3.2 */
 
-    if (verify_out_ts &&
-        !CMP_validate_cert_path(ctx, verify_out_ts, untrusted, cert))
+    if (out_trusted && !CMP_validate_cert_path(ctx, out_trusted,untrusted,cert))
         res = CMP_PKIFAILUREINFO_incorrectData;
 
     sk_X509_pop_free(untrusted, X509_free);
@@ -1926,11 +1925,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    if (opt_verify_out) { /* in preparation for use in certConf_cb() */
-        verify_out_ts = create_cert_store(opt_verify_out,
-                               "trusted certs for verifying newly enrolled cert");
-        if (!verify_out_ts ||
-            !set_store_parameters_crls(verify_out_ts))
+    if (opt_out_trusted) { /* in preparation for use in certConf_cb() */
+        out_trusted = create_cert_store(opt_out_trusted,
+                             "trusted certs for verifying newly enrolled cert");
+        if (!out_trusted || !set_store_parameters_crls(out_trusted))
             goto err;
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
     }
@@ -2122,7 +2120,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_maxpolltime >= 0)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MAXPOLLTIME, opt_maxpolltime);
 
-    if (opt_verify_out)
+    if (opt_out_trusted)
         (void)CMP_CTX_set_certConf_callback(ctx, certConf_cb);
 
     return 1;
@@ -2410,8 +2408,8 @@ opt_err:
         case OPT_CERTOUT:
             opt_certout = opt_str("certout");
             break;
-        case OPT_VERIFY_OUT:
-            opt_verify_out = opt_str("verify_out");
+        case OPT_OUT_TRUSTED:
+            opt_out_trusted = opt_str("out_trusted");
             break;
         case OPT_NEWKEY:
             opt_newkey = opt_str("newkey");
@@ -2695,7 +2693,7 @@ opt_err:
     CMP_CTX_delete(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);
     sk_X509_pop_free(tls_untrusted_certs, X509_free);
-    X509_STORE_free(verify_out_ts);
+    X509_STORE_free(out_trusted);
     BIO_free(bio_c_out);
     release_engine(e);
 

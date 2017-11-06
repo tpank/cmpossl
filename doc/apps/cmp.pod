@@ -56,7 +56,7 @@ B<openssl> B<cmp>
 [B<-implicitconfirm>]
 [B<-disableconfirm>]
 [B<-certout filename>]
-[B<-verify_out filename>]
+[B<-out-trusted filename>]
 [B<-verify_hostname cn>]
 [B<-verify_ip ip>]
 [B<-verify_email email>]
@@ -406,16 +406,14 @@ cope with broken servers not supporting implicit confirmation correctly.
 
 The file where the newly enrolled certificate should be saved.
 
-=item B<-verify_out filename>
+=item B<-out-trusted filename>
 
 Trusted certificate(s) to use for verifying the newly enrolled certificate.
-Possibly further acceptance criteria may be checked by the callback function
-that can be set using CMP_CTX_set_certConf_callback().
 
 =item B<-verify_hostname cn>, B<-verify_ip ip>, B<-verify_email email>
 
 When verification of the newly enrolled certificate is enabled (with the
--verify_out option), check if its Subject DN or any Subject Alternative Name
+-out-trusted option), check if its Subject DN or any Subject Alternative Name
 matches the given Common Name, IP address, or email address, respectively.
 
 =back
