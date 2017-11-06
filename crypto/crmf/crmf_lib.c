@@ -232,35 +232,6 @@ IMPLEMENT_CRMF_CTRL_FUNC(utf8Pairs, ASN1_UTF8STRING, regInfo)
  /* id-regInfo-certReq to regInfo (section 7.2) */
 IMPLEMENT_CRMF_CTRL_FUNC(certReq, CRMF_CERTREQUEST, regInfo)
 
- /* id-regCtrl-regToken to regInfo (not described in RFC, only by EJBCA) */
- /* TODO: evaluate whether that is needed --> bug#35 */
-int CRMF_CERTREQMSG_set1_regInfo_regToken(CRMF_CERTREQMSG *msg,
-                                          ASN1_UTF8STRING *tok)
-{
-    CRMF_ATTRIBUTETYPEANDVALUE *atav = NULL;
-
-    if (!msg || !tok)
-        goto err;
-
-    if (!(atav = CRMF_ATTRIBUTETYPEANDVALUE_new()))
-        goto err;
-
-    if (!(atav->type = OBJ_nid2obj(NID_id_regCtrl_regToken)))
-        goto err;
-    if (!(atav->value.regToken = ASN1_STRING_dup(tok)))
-        goto err;
-
-    if (!CRMF_CERTREQMSG_push0_regInfo(msg, atav))
-        goto err;
-
-    return 1;
- err:
-    CRMFerr(CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_REGTOKEN, CRMF_R_ERROR);
-    if (atav)
-        CRMF_ATTRIBUTETYPEANDVALUE_free(atav);
-    return 0;
-}
-
 
 static CRMF_CERTTEMPLATE *tmpl(CRMF_CERTREQMSG *crm) {
     if (!crm->certReq)

@@ -7,7 +7,6 @@
  CMP_CTX_delete,
  CMP_CTX_set1_referenceValue,
  CMP_CTX_set1_secretValue,
- CMP_CTX_set1_regToken,
  CMP_CTX_set1_caCert,
  CMP_CTX_set1_srvCert,
  CMP_CTX_set1_clCert,
@@ -73,7 +72,6 @@
 
  int CMP_CTX_set1_referenceValue( CMP_CTX *ctx, const unsigned char *ref, size_t len);
  int CMP_CTX_set1_secretValue( CMP_CTX *ctx, const unsigned char *sec, const size_t len);
- int CMP_CTX_set1_regToken(CMP_CTX *ctx, const char *regtoken, const size_t len);
  int CMP_CTX_set1_caCert( CMP_CTX *ctx, const X509 *cert);
  int CMP_CTX_set1_srvCert(CMP_CTX *ctx, const X509 *cert);
  int CMP_CTX_set1_clCert( CMP_CTX *ctx, const X509 *cert);
@@ -151,8 +149,6 @@ CMP_CTX_set1_referenceValue() sets the given referenceValue in the given
 CMP_CTX structure.
 
 CMP_CTX_set1_secretValue() sets the B<secret> with the length B<len> in the B<ctx>.
-
-CMP_CTX_set1_regToken() set the registration token value.
 
 CMP_CTX_set1_caCert() sets the given CA Certificate in the given CMP_CTX
 structure.

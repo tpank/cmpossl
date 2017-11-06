@@ -329,12 +329,6 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
             goto err;
         exts = NULL;
 
-        /* sets the id-regCtrl-regToken to regInfo (not described in RFC, but
-           EJBCA in CA mode might insist on that) */
-        if (bodytype == V_CMP_PKIBODY_IR && ctx->regToken)
-            if (!CRMF_CERTREQMSG_set1_regInfo_regToken(cr0, ctx->regToken))
-                goto err;
-
         /* for KUR, setting OldCertId according to D.6 */
         if (bodytype == V_CMP_PKIBODY_KUR)
             if (!CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(cr0, oldcert))

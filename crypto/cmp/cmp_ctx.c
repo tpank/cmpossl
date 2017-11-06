@@ -104,7 +104,6 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, subjectAltNames, GENERAL_NAME),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, policies, POLICYINFO),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, reqExtensions, X509_EXTENSION),
-    ASN1_OPT(CMP_CTX, regToken, ASN1_UTF8STRING),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, extraCertsOut, X509),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, extraCertsIn, X509),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, caPubs, X509),
@@ -423,27 +422,6 @@ int CMP_CTX_set1_secretValue(CMP_CTX *ctx, const unsigned char *sec,
     return (ASN1_OCTET_STRING_set(ctx->secretValue, sec, len));
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_SECRETVALUE, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/* ################################################################ *
- * Set the registration token value (the password for EJBCA for example)
- * returns 1 on success, 0 on error
- * ################################################################ */
-int CMP_CTX_set1_regToken(CMP_CTX *ctx, const char *regtoken,
-                          const size_t len)
-{
-    if (!ctx)
-        goto err;
-    if (!regtoken)
-        goto err;
-
-    if (!ctx->regToken)
-        ctx->regToken = ASN1_UTF8STRING_new();
-
-    return (ASN1_STRING_set(ctx->regToken, regtoken, len));
- err:
-    CMPerr(CMP_F_CMP_CTX_SET1_REGTOKEN, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 

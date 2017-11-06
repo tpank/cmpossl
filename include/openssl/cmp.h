@@ -417,8 +417,6 @@ int CMP_CTX_set1_referenceValue(CMP_CTX *ctx, const unsigned char *ref,
                                 size_t len);
 int CMP_CTX_set1_secretValue(CMP_CTX *ctx, const unsigned char *sec,
                              const size_t len);
-int CMP_CTX_set1_regToken(CMP_CTX *ctx, const char *regtoken,
-                          const size_t len);
 int CMP_CTX_set1_srvCert(CMP_CTX *ctx, const X509 *cert);
 int CMP_CTX_set1_clCert(CMP_CTX *ctx, const X509 *cert);
 int CMP_CTX_set1_oldClCert(CMP_CTX *ctx, const X509 *cert);

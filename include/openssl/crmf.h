@@ -213,9 +213,6 @@ int CRMF_CERTREQMSG_set1_regInfo_utf8Pairs(CRMF_CERTREQMSG *msg,
                                            ASN1_UTF8STRING *utf8pairs);
 int CRMF_CERTREQMSG_set1_regInfo_certReq(CRMF_CERTREQMSG *msg,
                                          CRMF_CERTREQUEST *cr);
-/* TODO: evaluate whether that is needed --> bug#35 */
-int CRMF_CERTREQMSG_set1_regInfo_regToken(CRMF_CERTREQMSG *msg,
-                                          ASN1_UTF8STRING *tok);
 
 int CRMF_CERTREQMSG_set_version2(CRMF_CERTREQMSG *crm);
 int CRMF_CERTREQMSG_set_validity(CRMF_CERTREQMSG *crm, time_t from, time_t to);
