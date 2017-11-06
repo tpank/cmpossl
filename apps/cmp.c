@@ -2329,10 +2329,12 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-    if (opt_config)
+    if (opt_config) {
         configfile = strdup(opt_config);
-    else
+        tofree = configfile;
+    }
     /* TODO dvo: the following would likely go to openssl.c make_config_name() */
+    if (configfile == NULL)
         configfile = getenv("OPENSSL_CONF");
     if (configfile == NULL)
         configfile = getenv("SSLEAY_CONF");
@@ -2369,11 +2371,6 @@ int cmp_main(int argc, char **argv)
             if (!read_config())
                 goto err;
         }
-    }
-
-    if (tofree) {
-        OPENSSL_free(tofree);
-        tofree = NULL;
     }
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -2753,6 +2750,9 @@ opt_err:
     if (opt_secret)
         OPENSSL_cleanse(opt_secret, strlen(opt_secret));
     NCONF_free(conf); /* must not do as long as opt_... variables are used */
+
+    if (tofree)
+        OPENSSL_free(tofree);
 
     return ret;
 }
