@@ -2707,7 +2707,6 @@ opt_err:
     if (opt_cacertsout && CMP_CTX_caPubs_num(cmp_ctx) > 0) {
         STACK_OF(X509) *certs = CMP_CTX_caPubs_get1(cmp_ctx);
         if (certs == NULL || save_certs(certs, opt_cacertsout, "CA") < 0) {
-        save_certs_err:
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }
@@ -2716,16 +2715,20 @@ opt_err:
 
     if (opt_extracertsout && CMP_CTX_extraCertsIn_num(cmp_ctx) > 0) {
         STACK_OF(X509) *certs = CMP_CTX_extraCertsIn_get1(cmp_ctx);
-        if (certs == NULL || save_certs(certs, opt_extracertsout, "extra") < 0)
-            goto save_certs_err;
+        if (certs == NULL || save_certs(certs, opt_extracertsout, "extra") < 0) {
+            sk_X509_pop_free(certs, X509_free);
+            goto err;
+        }
         sk_X509_pop_free(certs, X509_free);
     }
 
     if (opt_certout && newcert) {
         STACK_OF(X509) *certs = sk_X509_new_null();
         if (certs == NULL || !sk_X509_push(certs, X509_dup(newcert)) ||
-            save_certs(certs, opt_certout, "enrolled") < 0)
-            goto save_certs_err;
+                save_certs(certs, opt_certout, "enrolled") < 0) {
+            sk_X509_pop_free(certs, X509_free);
+            goto err;
+        }
         sk_X509_pop_free(certs, X509_free);
     }
 
