@@ -17,18 +17,10 @@ B<openssl> B<cmp>
 [B<-msgtimeout seconds>]
 [B<-maxpolltime seconds>]
 
-[B<-tls-used>]
-[B<-tls-cert filename>]
-[B<-tls-key filename>]
-[B<-tls-keypass arg>]
-[B<-tls-trusted filename>]
-[B<-tls-untrusted filename>]
-[B<-tls-host name>]
-
 [B<-recipient name>]
 [B<-srvcert filename>]
 [B<-trusted filename>]
-[B<-untrustedE<nbsp>filename>]
+[B<-untrustedE<nbsp>filenames>]
 [B<-ignore_keyusage>]
 
 [B<-ref value>]
@@ -68,6 +60,13 @@ B<openssl> B<cmp>
 [B<-certform DER|PEM|P12>]
 [B<-keyform DER|PEM|P12>]
 [B<-engine id>]
+
+[B<-tls-used>]
+[B<-tls-cert filename>]
+[B<-tls-key filename>]
+[B<-tls-keypass arg>]
+[B<-tls-trusted filename>]
+[B<-tls-host name>]
 
 [B<-crl_check>]
 [B<-crl_check_all>]
@@ -195,11 +194,17 @@ message, overriding any potential -recipient option.
 Trusted certificate(s) to use for CMP server authentication
 when verifying responses, unless the -srvcert option is given.
 
-=item B<-untrusted filename>
+=item B<-untrusted filenames>
 
-Intermediate certificate(s) that may be useful for constructing cert chain
-for CMP server or issuing CA certificates (when verifying signature-based
-message protection or verifying the newly enrolled certificate, respectively).
+Non-trusted intermediate certificate(s) that may be useful for constructing
+certificate chains for
+the CMP server (when verifying signature-based message protection),
+the TLS server (when establishing TLS connections),
+and/or the newly enrolled certificate (when verifying a certificate response).
+
+Multiple file names may be given, separated by commas.
+Each file may contain multiple certificates.
+
 
 =item B<-ignore_keyusage>]
 
@@ -516,11 +521,6 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 Trusted certificate(s) to use for verifying the TLS server certificate.
 This implies host name validation.
-
-=item B<-tls-untrusted filename>
-
-Additional untrusted certificates for chain building verifying TLS certificates.
-The file may contain multiple certificates.
 
 =item B<-tls-host name>
 
