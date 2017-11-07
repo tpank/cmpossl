@@ -1060,6 +1060,9 @@ int CMP_CTX_set1_transactionID(CMP_CTX *ctx, const ASN1_OCTET_STRING *id)
         ASN1_OCTET_STRING_free(ctx->transactionID);
         ctx->transactionID = NULL;
     }
+    /* reset ctx->validatedSrvCert */
+    X509_free(ctx->validatedSrvCert);
+    ctx->validatedSrvCert = NULL;
     if (!id)
         return 1;
 
