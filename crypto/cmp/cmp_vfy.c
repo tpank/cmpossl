@@ -285,11 +285,6 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
         return 0; /* maybe better flag and handle this as fatal error */
 
     vpm = X509_STORE_get0_param((X509_STORE *)ts);
-    if (msg->header->sender->type != GEN_DIRNAME) {
-        CMPerr(CMP_F_CERT_ACCEPTABLE,
-               CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
-        return 0; /* FR#42: support for more than X509_NAME */
-    }
     sender_name = msg->header->sender->d.directoryName;
     kid = msg->header->senderKID;
     if (!sender_name || !vpm) /* keyid is allowed to be NULL */
@@ -431,6 +426,11 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     default:
         if (!srvCert) {
             STACK_OF (X509) *found_certs = NULL;
+            if (msg->header->sender->type != GEN_DIRNAME) {
+                CMPerr(CMP_F_CMP_VALIDATE_MSG,
+                       CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
+                break; /* FR#42: support for more than X509_NAME */
+            }
             /* if we've already found and validated a server cert, and it
              * matches the sender name, we will use that, this is used for
              * PKIconf where the server certificate and others could be missing
@@ -506,13 +506,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 
             /* verification failed if no valid server cert was found */
             if (!srvCert_valid) {
-                char *sender_name;
-                if (msg->header->sender->type != GEN_DIRNAME) {
-                    CMPerr(CMP_F_CMP_VALIDATE_MSG,
-                            CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
-                    return 0; /* FR#42: support for more than X509_NAME */
-                }
-                sender_name = X509_NAME_oneline(
+                char *sender_name = X509_NAME_oneline(
                                  msg->header->sender->d.directoryName, NULL, 0);
                 CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_NO_VALID_SRVCERT_FOUND);
                 ERR_add_error_data(2, "sender name = ", sender_name);
