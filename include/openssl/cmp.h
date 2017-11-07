@@ -583,6 +583,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_EXCHANGE_ERROR                             170
 # define CMP_F_GET_CERT_STATUS                            171
 # define CMP_F_POLLFORRESPONSE                            172
+# define CMP_F_SET_SRVCERT                                173
 
 /* Reason codes. */
 # define CMP_R_ALGORITHM_NOT_SUPPORTED                    100

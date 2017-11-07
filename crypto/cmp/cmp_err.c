@@ -111,6 +111,7 @@ static ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_FUNC(CMP_F_EXCHANGE_ERROR), "exchange_error"},
     {ERR_FUNC(CMP_F_GET_CERT_STATUS), "get_cert_status"},
     {ERR_FUNC(CMP_F_POLLFORRESPONSE), "pollForResponse"},
+    {ERR_FUNC(CMP_F_SET_SRVCERT), "set_srvCert"},
     {0, NULL}
 };
 
