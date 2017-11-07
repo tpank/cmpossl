@@ -202,7 +202,7 @@ the CMP server (when verifying signature-based message protection),
 the TLS server (when establishing TLS connections),
 and/or the newly enrolled certificate (when verifying a certificate response).
 
-Multiple file names may be given, separated by commas.
+Multiple file names may be given, separated by commas or whitespace.
 Each file may contain multiple certificates.
 
 
@@ -545,8 +545,8 @@ Extend revocation status checking (using CRLs) to full certificate chain.
 
 =item B<-crls URLs>
 
-Use given CRL(s) as primary source of certifiate revocation information.
-The URLs argument may be a single element or a comma-separated list, 
+Use given CRL(s) as primary source of certifiate revocation information. The 
+URLs argument may be a single element or a comma- or whitespace-separated list, 
 each element starting with 'http:' or 'file:' or being simply a local file name.
 
 This option enables CRL checking for, e.g., the CMP/TLS server certificate

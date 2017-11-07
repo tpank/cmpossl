@@ -1546,15 +1546,18 @@ static int set_store_parameters_crls(X509_STORE *ts) {
 
 #define OPT_ITERATE(curr_opt, CMD) \
 while(*curr_opt != '\0') { \
-    char *next_opt = strchr(curr_opt, ','); \
-    if (next_opt) { \
-        *next_opt++ = '\0'; \
-        while(isspace(*next_opt)) {\
-            next_opt++; \
-        } \
-    } else { \
-        next_opt = curr_opt + strlen(curr_opt); \
-    } \
+    char *next_opt = curr_opt;                                            \
+    while(*next_opt != ',' && !isspace(*next_opt) && *next_opt != '\0') { \
+        if(*next_opt++ ==  '\\' && *next_opt != '\0') {                   \
+            next_opt++;                                                   \
+        }                                                                 \
+    }                                                                     \
+    if (*next_opt != '\0') {                                              \
+        *next_opt++ = '\0';                                               \
+        while(isspace(*next_opt)) {                                       \
+            next_opt++;                                                   \
+        }                                                                 \
+    }                                                                     \
     CMD \
     curr_opt = next_opt; \
 }
