@@ -70,7 +70,7 @@ B<openssl> B<cmp>
 
 [B<-crl_check>]
 [B<-crl_check_all>]
-[B<-crls url>]
+[B<-crls URLs>]
 [B<-crl_download>]
 [B<-policy arg>]
 [B<-purpose purpose>]
@@ -543,10 +543,11 @@ at least the leaf certificate using CRLs unless OCSP is enabled and succeeds.
 
 Extend revocation status checking (using CRLs) to full certificate chain.
 
-=item B<-crls URL>
+=item B<-crls URLs>
 
 Use given CRL(s) as primary source of certifiate revocation information.
-URL may point to local file if prefixed by 'file:'.
+The URLs argument may be a single element or a comma-separated list, 
+each element starting with 'http:' or 'file:' or being simply a local file name.
 
 This option enables CRL checking for, e.g., the CMP/TLS server certificate
 as it is the leaf certificate of the certificate chain.

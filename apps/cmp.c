@@ -1556,7 +1556,7 @@ while(*curr_opt != '\0') { \
         next_opt = curr_opt + strlen(curr_opt); \
     } \
     CMD \
-    opt_untrusted = next_opt; \
+    curr_opt = next_opt; \
 }
 
 /*
@@ -1689,16 +1689,34 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             BIO_printf(bio_c_out,
 "warning: -crl_check_all has no effect without -crls, -crl_download, or -crl_check\n");
     }
-    if (opt_crls && !(local_crls = load_crls_autofmt(opt_crls, opt_crlform,
-                                "CRL(s) for checking certificate revocation")))
-        goto err;
+    if (opt_crls) {
+        X509_CRL *crl;
+        STACK_OF(X509_CRL) *crls;
+        local_crls = sk_X509_CRL_new_null();
+        if (!local_crls) {
+            goto err;
+        }
+        OPT_ITERATE(opt_crls,
+            if (!(crls = load_crls_autofmt(opt_crls, opt_crlform,
+                               "CRL(s) for checking certificate revocation"))) {
+                goto err;
+            }
+            while((crl = sk_X509_CRL_shift(crls))) {
+                if (!sk_X509_CRL_push(local_crls, crl)) {
+                    sk_X509_CRL_pop_free(crls, X509_CRL_free);
+                    goto err;
+                }
+            }
+            sk_X509_CRL_free(crls);
+        )
+    }
 
     if (opt_untrusted) {
         STACK_OF(X509) *certs, *untrusted = sk_X509_new_null();
         if (!untrusted) {
             goto oom;
         }
-        OPT_ITERATE(opt_untrusted, 
+        OPT_ITERATE(opt_untrusted,
             if (!(certs = load_certs_autofmt(opt_untrusted,
                                      opt_certform, "untrusted certificates")) ||
                 !CMP_sk_X509_add1_certs(untrusted, certs, 0, 1/*no dups*/)) {
