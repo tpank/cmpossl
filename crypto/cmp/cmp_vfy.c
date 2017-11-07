@@ -503,7 +503,6 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             if (!srvCert_valid) {
                 char *sender_name = X509_NAME_oneline(
                                  msg->header->sender->d.directoryName, NULL, 0);
-                X509_free(srvCert);
                 CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_NO_VALID_SRVCERT_FOUND);
                 ERR_add_error_data(2, "sender name = ", sender_name);
                 free(sender_name);
