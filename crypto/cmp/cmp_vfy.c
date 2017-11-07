@@ -383,6 +383,8 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     int srvCert_valid = 0;
     STACK_OF(X509) *found_certs = NULL;
 
+    if (!msg->header->sender || !msg->body)
+        return 0; /* other NULL cases already have been checked */
     if (msg->header->sender->type != GEN_DIRNAME) {
         CMPerr(CMP_F_SET_SRVCERT,
                CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
@@ -432,7 +434,7 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                 CMP_PKIMESSAGE_get_bodytype(msg) == V_CMP_PKIBODY_IP) {
                 X509_STORE *tempStore = X509_STORE_new();
                 if (tempStore && /* tempStore does not include CRLs */
-                    CMP_X509_STORE_add1_certs(tempStore,msg->extraCerts,
+                    CMP_X509_STORE_add1_certs(tempStore, msg->extraCerts,
                                               1/* only self_signed */)) {
                     srvCert_valid = CMP_validate_cert_path(ctx, tempStore,
                                                  ctx->untrusted_certs, srvCert);
@@ -497,8 +499,8 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 #endif
     ASN1_OBJECT *algorOID = NULL;
 
-    if (!msg->header->protectionAlg)
-        /* unprotected message */
+    if (!ctx || !msg || !msg->header ||
+        !msg->header->protectionAlg) /* unprotected message */
         return 0;
 
     /* determine the nid for the used protection algorithm */
