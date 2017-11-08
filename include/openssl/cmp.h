@@ -601,7 +601,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ENCOUNTERED_KEYUPDATEWARNING               107
 # define CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS          108
 # define CMP_R_ENCOUNTERED_WAITING                        109
-# define CMP_R_ERROR                                      171
+# define CMP_R_OUT_OF_MEMORY                              171
 # define CMP_R_ERROR_CALCULATING_PROTECTION               110
 # define CMP_R_ERROR_CREATING_CERTCONF                    111
 # define CMP_R_ERROR_CREATING_CR                          112
@@ -654,7 +654,6 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_RP_NOT_RECEIVED                            157
 # define CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED      174
 # define CMP_R_SERVER_NOT_REACHABLE                       158
-# define CMP_R_UNABLE_TO_CREATE_CONTEXT                   159
 # define CMP_R_UNEXPECTED_PKIBODY                         160
 # define CMP_R_UNEXPECTED_PKISTATUS                       161
 # define CMP_R_UNEXPECTED_SENDER                          175
