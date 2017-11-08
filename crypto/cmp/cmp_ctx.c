@@ -510,7 +510,7 @@ int CMP_CTX_set1_extraCertsIn(CMP_CTX *ctx,
 /* ################################################################ *
  * Duplicate and push the given X509 certificate to the stack of
  * outbound certificates to send in the extraCerts field.
- * returns number of pushed certificates on success, 0 on error
+ * returns 1 on success, 0 on error
  * ################################################################ */
 int CMP_CTX_extraCertsOut_push1(CMP_CTX *ctx, const X509 *val)
 {
@@ -640,7 +640,7 @@ STACK_OF (X509) * CMP_CTX_caPubs_get1(CMP_CTX *ctx)
 
 /* ################################################################ *
  * Pop one certificate out of the list of certificates received in
- * the caPubs field, returns NULL on errror or when the stack is empty
+ * the caPubs field, returns NULL on error or when the stack is empty
  * ################################################################ */
 X509 *CMP_CTX_caPubs_pop(CMP_CTX *ctx)
 {

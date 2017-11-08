@@ -174,7 +174,7 @@ If clCert is not set set (e.g. in case of IR with MSG_MAC_ALG), the subject name
 is also used as sender of the PKI message.
 
 CMP_CTX_set1_issuer() sets the name of the intended issuer that
-will be set in the PKIHeader, i.e., the X509 name of the CA server.
+will be set in the CertTemplate, i.e., the X509 name of the CA server.
 
 CMP_CTX_set1_newClCert() sets the given (newly obtained) Client
 Certificate in the given CMP_CTX structure.
@@ -274,8 +274,9 @@ CMP_CTX_caPubs_num() can be used after an Initial Request or Key Update
 request to check the number of CA certificates that were sent from the
 server.
 
-CMP_CTX_caPubs_get1() returns a duplicate of the stack of X509 certificates
-that were received in the caPubs field of the last response message.
+CMP_CTX_caPubs_get1() returns a pointer to a duplicate of the stack of X.509
+certificates received in the caPubs field of last received certificate response
+message IP/CP/KUP which had caPubs set.
 
 CMP_CTX_caPubs_pop() pops one CA certificates of the stack of received
 CA certs and returns it
@@ -305,8 +306,9 @@ extraCerts stack, without consuming the pointer.
 CMP_CTX_extraCertsOut_num() returns the number of certificates in the
 outbound extraCerts stack.
 
-CMP_CTX_extraCertsIn_get1() returns a copy of the stack of certificates
-received in a response message.
+CMP_CTX_extraCertsIn_get1() returns a pointer to a duplicate of the stack of
+X.509 certificates received in the extraCerts field of last received
+certificate response message IP/CP/KUP which had extraCerts set.
 
 CMP_CTX_set1_extraCertsIn() sets the stack of extraCerts that was
 received from remote.
@@ -321,8 +323,8 @@ CMP_CTX_set0_trustedStore() sets the X509_STORE type certificate store
 containing trusted (root) CA certificates and possibly CRLs and a certificate
 verification callback function used for CMP server authentication.
 
-CMP_CTX_get0_trustedStore(CMP_CTX *ctx) returns a pointer to the trusted
-store.
+CMP_CTX_get0_trustedStore() returns a pointer to the certificate store
+containing trusted root CA certificates. NULL on error.
 
 CMP_CTX_set1_untrusted_certs() takes over a list of certificates
 containing non-trusted intermediate certificates used for path construction
@@ -410,10 +412,48 @@ might change every release!
 
 CMP_CTX_create() returns a pointer to an initialized CMP_CTX structure.
 
+CMP_CTX_delete(), CMP_printf() do not return anything.
+
 CMP_CTX_extraCertsIn_num(), CMP_CTX_extraCertsOut_num(), CMP_CTX_caPubs_num(),
 return the number of relevant certificates, or -1 on error.
 
-All other functions return 0 on error, 1 on success.
+CMP_CTX_extraCertsIn_pop(), CMP_CTX_caPubs_pop() return the respective pop-ed
+certificate, or NULL if stack is empty as well as on error.
+
+CMP_CTX_extraCertsIn_get1() returns a pointer to a duplicate of the stack of
+X.509 certificates received in the extraCerts field of last received
+certificate response message IP/CP/KUP which had extraCerts set.  Returns NULL
+if there were no caPubs as well as on error.
+
+CMP_CTX_caPubs_get1() returns a pointer to a duplicate of the stack of X.509
+certificates received in the caPubs field of last received certificate response
+message IP/CP/KUP which had caPubs set.  Returns NULL if there were no caPubs
+as well as on error.
+
+CMP_CTX_get0_trustedStore() returns a pointer to the certificate store
+containing trusted root CA certificates. NULL on error.
+
+CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx) returns a pointer to the stack of
+untrusted certificates. NULL on error.
+
+CMP_CTX_status_get() returns the PKIStatus from the last CertRepMessage or
+Revocation Response, -1 on error.
+
+CMP_CTX_statusString_get() returns the statusString from the last
+CertRepMessage or Revocation Response, NULL on error.
+
+CMP_CTX_get0_newClCert() returns the received (in IP/KUP/CP) client certificate
+from the context. NULL if there was none as well as on error.
+
+CMP_CTX_get0_tlsBIO() returns the SSL/TLS BIO to be used for HTTPS, NULL if
+none as well as on error.
+
+CMP_CTX_failInfoCode_get() returns the failinfo error code bits in context as
+returns bitstring in ulong on success, -1 on error.
+
+CMP_CTX_error_callback() always returns 1.
+
+All other functions return 1 on success, 0 on error.
 
 =head1 EXAMPLE
 
