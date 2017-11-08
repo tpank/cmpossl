@@ -167,37 +167,39 @@ certificates on 'waiting' PKIStatus. Default is 0 (infinite).
 
 =item B<-recipient name>
 
-Distinguished Name of the CMP message recipient,
+Distinguished Name (DN) of the CMP message recipient,
 i.e. the CMP server (usually a CA or RA entity).
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
 
-If a CMP server certificate is given with the -srvcert option, its subject
-name is taken as the recipient name and the -recipient option is ignored.
-If the -recipient option is not given, the recipient name defaults to the
-name given in the -issuer option. If this is not given either, the name of
-the issuer of the certificate given with the -oldcert option (if present,
-else the certificate given with the -cert option, if present) is used.
+If a CMP server certificate is given with the B<-srvcert> option, its subject
+name is taken as the recipient name and the B<-recipient> option is ignored.
+If neither of the two are given, the recipient of the PKI message is
+determined in the following order: from the B<-issuer> option if present,
+the issuer of old cert given with the B<-oldcert> option if present,
+the issuer of the client certificate (B<-cert> option) if present.
 
 Setting the recipient field in the CMP header is mandatory.
-If none of the options allowing to derive the recipient name is given, no
-suitable value for the recipient in the PKIHeader is available.
+If none of the above options allowing to derive the recipient name is given,
+no suitable value for the recipient in the PKIHeader is available.
 As last resort it is set to NULL-DN.
+
+When a response is received, its sender must match the recipient of the request.
 
 =item B<-srvcert filename>
 
 CMP server certificate to use for verifying the protection of response messages.
-May be set alternatively to the -trusted option if the certificate is available
-and should be directly trusted.
+May be set alternatively to the B<-trusted> option if the certificate is
+available and should be directly trusted.
 
 If set, the issuer of the certificate is also used as the recipient of the CMP
-message, overriding any potential -recipient option.
+message, overriding any potential B<-recipient> option.
 
 =item B<-trusted filename>
 
 Trusted certificate(s) to use for CMP server authentication
-when verifying responses, unless the -srvcert option is given.
+when verifying responses, unless the B<-srvcert> option is given.
 
 =item B<-untrusted filenames>
 
@@ -251,7 +253,7 @@ the B<-cert> option.
 
 =item B<-keypass arg>
 
-Pass phrase source for the private key given with the -key option.
+Pass phrase source for the private key given with the B<-key> option.
 If not given here, the password will be prompted for if needed.
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
@@ -369,14 +371,14 @@ in IR, CR or KUR.  Default is the current client key if given.
 
 =item B<-newkeypass arg>
 
-Pass phrase source for the key given with the -newkey option.
+Pass phrase source for the key given with the B<-newkey> option.
 If not given here, the password will be prompted for if needed.
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
-=item B<-subject distinguished_name>
+=item B<-subject name>
 
-X509 subject DN to use in the requested certificate template.
+X509 subject Distinguished Name to use in the requested certificate template.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
@@ -384,16 +386,16 @@ characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
 In case B<-cert> is not set, i.e. when using MSG_MAC_ALG, the subject DN is also
 used as sender of the PKI message.
 
-=item B<-issuer distinguished_name>
+=item B<-issuer name>
 
-X509 issuer DN, i.e., the X509 distinguished name of the CA server,
+X509 issuer Distinguished Name (DN) of the CA server
 to be put in the requested certificate template in IR/CR/KUR.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
 
-If neither -srvcert nor -recipient is available, the name given in this option
-is also set as the recipient of the CMP message.
+If neither B<-srvcert> nor B<-recipient> is available,
+the name given in this option is also set as the recipient of the CMP message.
 
 =item B<-days number>
 
@@ -441,10 +443,11 @@ matches the given Common Name, IP address, or email address, respectively.
 =item B<-oldcert filename>
 
 The certificate to be updated (i.e., renewed or re-keyed) in KUR
-or to be revoked in RR. This defaults to -cert in case of KUR.
+or to be revoked in RR. This defaults to B<-cert> in case of KUR.
 
-If neither -srvcert, -recipient, nor -issuer is available, the name of the
-issuer given in this certificate is used as the recipient of the CMP message.
+If neither B<-srvcert>, B<-recipient>, nor B<-issuer> is available, 
+the name of the issuer given in this certificate 
+is used as the recipient of the CMP message.
 
 =item B<-revreason number>
 
@@ -534,8 +537,8 @@ This implies host name validation.
 
 =item B<-tls-host name>
 
-Address to be checked (rather than -server address) during host name validation.
-This may be a Common Name, a DNS name, or an IP address.
+Address to be checked (rather than B<-server> address) during host name
+validation. This may be a Common Name, a DNS name, or an IP address.
 
 =back
 
@@ -546,8 +549,9 @@ This may be a Common Name, a DNS name, or an IP address.
 
 =item B<-crl_check>
 
--crl_check, -crl_download and, -crls require certificate status checking for
-at least the leaf certificate using CRLs unless OCSP is enabled and succeeds.
+The B<-crl_check>, B<-crl_download>, and B<-crls> options enable mandatory
+certificate status checking for at least the leaf certificate
+using CRLs unless OCSP is enabled and succeeds.
 
 =item B<-crl_check_all>
 
@@ -626,7 +630,7 @@ This prints information about all received ITAV B<infoType>s to stdout.
 Sending an initial request message to a CMP server running on the local
 host, using a pre-shared secret key for authentication. In this example
 the client does not have the CA certificate yet, so we specify the CA's
-name with -recipient and save any CA certificates that we may receive
+name with B<-recipient> and save any CA certificates that we may receive
 in the ./capubs.pem file.
 
   openssl genrsa -out cl_key.pem

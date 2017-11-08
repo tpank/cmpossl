@@ -366,11 +366,12 @@ The argument value may be NULL for none, which is the default.
 CMP_CTX_get0_tlsBIO() returns the SSL/TLS BIO used for HTTPS, or NULL.
 
 CMP_CTX_set1_recipient() sets the recipient name that will be used in the
-PKIHeader, i.e. the X509 name of the (CA) server.
+PKIHeader of a request message, i.e. the X509 name of the (CA) server.
 Setting is overruled by subject of srvCert if set.
 If neither srvCert nor recipient are set, the recipient of the PKI message is
 determined in the following order: issuer, issuer of old cert (oldClCert),
 issuer of client cert (clCert), else NULL-DN.
+When a response is received, its sender must match the recipient of the request.
 
 CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
