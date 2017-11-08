@@ -160,7 +160,8 @@ The cert pointer is not consumed. It may be NULL to clear the entry.
 
 CMP_CTX_set1_clCert() sets the given client certificate in the given
 CMP_CTX structure. The client certificate will then be used by the
-functions to set the "sender" field for outgoing messages.
+functions to set the "sender" field for outgoing messages and it will be
+included in the extraCerts field.
 
 CMP_CTX_set1_oldClCert() sets the old certificate that we are updating
 in KUR. If this is not set, clCert will be the one being updated.
@@ -413,27 +414,28 @@ All other functions return 0 on error, 1 on success.
 
 =head1 EXAMPLE
 
-The following code does an Initial Request:
+The following code does an Initialization Request:
 
         cmp_ctx = CMP_CTX_create();
         CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
-        CMP_CTX_set1_referenceValue( cmp_ctx, idString, idStringLen);
-        CMP_CTX_set1_secretValue( cmp_ctx, secret, secretLen);
-        CMP_CTX_set0_pkey( cmp_ctx, initialPkey);
-        CMP_CTX_set1_caCert( cmp_ctx, caCert);
+        CMP_CTX_set1_referenceValue( cmp_ctx, ref, ref_len);
+        CMP_CTX_set1_secretValue( cmp_ctx, sec, sec_len);
+        CMP_CTX_set0_newPkey( cmp_ctx, new_pkey);
+        CMP_CTX_set1_caCert( cmp_ctx, ca_cert);
 
-        initialClCert = CMP_doInitialRequestSeq(cmp_ctx);
+        initialClCert = CMP_exec_IR_ses(cmp_ctx);
 
-The following code does an Initial Request with, using an
+The following code does an Initialization Request using an
 external identity certificate (RFC 4210, Appendix E.7):
 
         cmp_ctx = CMP_CTX_create();
-        CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
-        CMP_CTX_set1_referenceValue( cmp_ctx, idString, idStringLen);
-        CMP_CTX_set0_pkey( cmp_ctx, initialPkey);
-        CMP_CTX_set1_caCert( cmp_ctx, caCert);
+        CMP_CTX_set1_serverName( cmp_ctx, sname);
+        CMP_CTX_set1_clCert( cmp_ctx, cl_cert);
+        CMP_CTX_set0_pkey( cmp_ctx, pkey);
+        CMP_CTX_set0_newPkey( cmp_ctx, new_pkey);
+        CMP_CTX_set1_caCert( cmp_ctx, ca_cert);
 
-        initialClCert = CMP_doInitialRequestSeq(cmp_ctx);
+        initialClCert = CMP_exec_IR_ses(cmp_ctx);
 
 Here externalCert is an X509 certificate granted to the EE by another CA
 which is trusted by the current CA the code will connect to.
@@ -442,31 +444,31 @@ which is trusted by the current CA the code will connect to.
 The following code does a Key Update Request:
 
         cmp_ctx = CMP_CTX_create();
-        CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
-        CMP_CTX_set0_pkey( cmp_ctx, initialPkey);
-        CMP_CTX_set0_newPkey( cmp_ctx, updatedPkey);
-        CMP_CTX_set1_clCert( cmp_ctx, initialClCert);
-        CMP_CTX_set1_caCert( cmp_ctx, caCert);
+        CMP_CTX_set1_serverName( cmp_ctx, sname);
+        CMP_CTX_set0_pkey( cmp_ctx, pkey);
+        CMP_CTX_set0_newPkey( cmp_ctx, new_pkey);
+        CMP_CTX_set1_clCert( cmp_ctx, cl_cert);
+        CMP_CTX_set1_caCert( cmp_ctx, ca_cert);
 
-        updatedClCert = CMP_doKeyUpdateRequestSeq(cmp_ctx);
+        updatedClCert = CMP_exec_KUR_ses(cmp_ctx);
 
 The following code (which omits error handling) sends a genm including, as an
 example, the id-it-signKeyPairTypes OID and prints info on the genp contents.
 
     cmp_ctx = CMP_CTX_create();
-    CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
-    CMP_CTX_set1_referenceValue( cmp_ctx, idString, idStringLen);
-    CMP_CTX_set1_secretValue( cmp_ctx, password, passwordLen);
+    CMP_CTX_set1_serverName( cmp_ctx, sname);
+    CMP_CTX_set1_referenceValue( cmp_ctx, ref, ref_len);
+    CMP_CTX_set1_secretValue( cmp_ctx, sec, sec_len);
 
     ASN1_OBJECT *type = OBJ_txt2obj("1.3.6.1.5.5.7.4.2", 1);
     CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(type, NULL);
     CMP_CTX_genm_itav_push0(cmp_ctx, itav);
 
     STACK_OF(CMP_INFOTYPEANDVALUE) *itavs;
-    itavs = CMP_doGeneralMessageSeq(cmp_ctx);
+    itavs = CMP_exec_GENM_ses(cmp_ctx);
     print_itavs(itavs);
     sk_CMP_INFOTYPEANDVALUE_pop_free(itavs, CMP_INFOTYPEANDVALUE_free);
 
 =head1 SEE ALSO
 
-CMP_ses, CMP_http
+L<CMP_ses(3)>
