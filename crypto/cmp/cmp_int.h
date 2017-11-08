@@ -477,14 +477,14 @@ struct cmp_pkiheader_st {
 } /* CMP_PKIHEADER */;
 DECLARE_ASN1_FUNCTIONS(CMP_PKIHEADER)
 
-# define V_CMP_PKIBODY_IR        0
+/* # define V_CMP_PKIBODY_IR        0 - in cmp.h */
 # define V_CMP_PKIBODY_IP        1
-# define V_CMP_PKIBODY_CR        2
+/* # define V_CMP_PKIBODY_CR        2 - in cmp.h */
 # define V_CMP_PKIBODY_CP        3
-# define V_CMP_PKIBODY_P10CR     4
+/* # define V_CMP_PKIBODY_P10CR     4 - in cmp.h */
 # define V_CMP_PKIBODY_POPDECC   5
 # define V_CMP_PKIBODY_POPDECR   6
-# define V_CMP_PKIBODY_KUR       7
+/* # define V_CMP_PKIBODY_KUR       7 - in cmp.h */
 # define V_CMP_PKIBODY_KUP       8
 # define V_CMP_PKIBODY_KRR       9
 # define V_CMP_PKIBODY_KRP       10

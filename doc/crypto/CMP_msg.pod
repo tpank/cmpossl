@@ -2,12 +2,12 @@
 
 =head1 NAME
 
+ CMP_certreq_new,
  CMP_certConf_new,
  CMP_pollReq_new,
  CMP_cr_new,
  CMP_genm_new,
- CMP_error_new,
- CMP_certreq_new
+ CMP_error_new
 
 =head1 SYNOPSIS
 
@@ -18,15 +18,37 @@
  CMP_PKIMESSAGE * CMP_pollReq_new(CMP_CTX *ctx, int reqId);
  CMP_PKIMESSAGE * CMP_genm_new(CMP_CTX *ctx);
  CMP_PKIMESSAGE * CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
-                                int errorCode, STACK_OF (ASN1_UTF8STRING) *errorDetails);
+                                int errorCode,
+                                STACK_OF (ASN1_UTF8STRING) *errorDetails);
 
 =head1 DESCRIPTION
 
 This is the API for creating different CMP related PKIMESSAGES. The
-functions allocate a new message and fill it with the relevant data from
-the given CMP_CTX.
+functions allocate a new message, fill it with the relevant data derived from
+the given CMP_CTX, and create the applicable protection.
 
-CMP_certreq_new() creates a certificate request PKIMessage for IR/CR/KUR/P10CR.
+CMP_certreq_new() creates a PKIMessage for requesting a certificate, which can
+be either of IR/CR/KUR/P10CR, depending on the given B<bodytype>.
+The OpenSSL error reason code defined in err.h to use on error is given as
+B<err_code>.
+
+=over 4
+
+Available CMP certificate request PKIMessage B<bodytype>s are:
+
+=over 4
+
+=item * B<V_CMP_PKIBODY_IR>    - Initialization Request
+
+=item * B<V_CMP_PKIBODY_CR>    - Certification Request
+
+=item * B<V_CMP_PKIBODY_P10CR> - PKCS#10 Certification Request
+
+=item * B<V_CMP_PKIBODY_KUR>   - Key Update Request
+
+=back
+
+=back
 
 CMP_certConf_new() creates a Certificate Confirmation message.
 
@@ -38,18 +60,16 @@ CMP_error_new() creates a new Error Message.
 
 =head1 NOTES
 
-CMP is defined in RFC 4210 (and CRMF in RFC 4211).
-
-The implementation of CMP for OpenSSL is still work in progress. The API
-might change every release!
+CMP is specified in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
 All of the functions return a new CMP_PKIMESSAGE structure containing
-the generated message.
+the generated message on success, or NULL on error.
 
 =head1 EXAMPLE
 
 =head1 SEE ALSO
 
-CMP_CTX, CMP_ses, CMP_http
+L<CMP_CTX(3)>,
+L<ERR_load_strings(3)>

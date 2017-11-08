@@ -299,6 +299,12 @@ typedef STACK_OF (ASN1_UTF8STRING) CMP_PKIFREETEXT;
  * function DECLARATIONS
  * ########################################################################## */
 /* cmp_msg.c */
+
+/* CMP_PKIMESSAGE bodytype ASN.1 choice indices for CMP_certreq_new() */
+# define V_CMP_PKIBODY_IR        0
+# define V_CMP_PKIBODY_CR        2
+# define V_CMP_PKIBODY_P10CR     4
+# define V_CMP_PKIBODY_KUR       7
 CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code);
 CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
