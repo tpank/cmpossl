@@ -238,9 +238,15 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
      * Mitigates risk to accept misused certificate of an unauthorized entity of
      * a trusted hierarchy. */
     if (ctx->recip_used) { /* was known and not set to NULL-DN */
-        if (X509_NAME_cmp((*rep)->header->sender->d.directoryName,
-                          ctx->recip_used) != 0) {
+        X509_NAME *sender_name = (*rep)->header->sender->d.directoryName;
+        if (X509_NAME_cmp(sender_name, ctx->recip_used) != 0) {
+            char *expected = X509_NAME_oneline(ctx->recip_used, NULL, 0);
+            char *actual   = X509_NAME_oneline(sender_name, NULL, 0);
             CMPerr(type_function, CMP_R_UNEXPECTED_SENDER);
+            ERR_add_error_data(4, "expected = ", expected,
+                                  "; actual = ", actual ? actual : "(none)");
+            free(expected);
+            free(actual);
             return 0;
         }
     } /* Note: if recipient was NULL-DN, it could be learnt here if needed */
