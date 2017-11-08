@@ -384,8 +384,8 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nRecipient options:"},
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given."},
-    {"srvcert", OPT_SRVCERT, 's', "Certificate of CMP server to use and trust directly when verifying responses"},
-    {"trusted", OPT_TRUSTED, 's', "Trusted certificates for CMP server authentication when verifying responses,"},
+    {"srvcert", OPT_SRVCERT, 's', "Specific CMP server cert to use and trust directly when verifying responses"},
+    {"trusted", OPT_TRUSTED, 's', "Trusted CA certs to use for CMP server authentication when verifying responses,"},
              {OPT_MORE_STR, 0, 0, "unless -srvcert is given"},
     {"untrusted", OPT_UNTRUSTED, 's', "Intermediate certificates for constructing chains for CMP, TLS, and/or CA servers"},
     {"ignore_keyusage", OPT_IGNORE_KEYUSAGE, '-', "Ignore CMP-level cert key usage, else 'digitalSignature' needed for signatures"},

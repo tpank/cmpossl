@@ -189,16 +189,18 @@ When a response is received, its sender must match the recipient of the request.
 
 =item B<-srvcert filename>
 
-CMP server certificate to use for verifying the protection of response messages.
-May be set alternatively to the B<-trusted> option if the certificate is
-available and should be directly trusted.
+The specific CMP server certificate to use and trust directly
+for verifying the protection of response messages.
+May be set alternatively to the B<-trusted> option
+if the certificate is available and should be directly trusted.
 
 If set, the issuer of the certificate is also used as the recipient of the CMP
-message, overriding any potential B<-recipient> option.
+request and as the expected sender of the CMP response,
+overriding any potential B<-recipient> option.
 
 =item B<-trusted filename>
 
-Trusted certificate(s) to use for CMP server authentication
+Trusted CA certificate(s) to use for CMP server authentication
 when verifying responses, unless the B<-srvcert> option is given.
 
 =item B<-untrusted filenames>
@@ -445,8 +447,8 @@ matches the given Common Name, IP address, or email address, respectively.
 The certificate to be updated (i.e., renewed or re-keyed) in KUR
 or to be revoked in RR. This defaults to B<-cert> in case of KUR.
 
-If neither B<-srvcert>, B<-recipient>, nor B<-issuer> is available, 
-the name of the issuer given in this certificate 
+If neither B<-srvcert>, B<-recipient>, nor B<-issuer> is available,
+the name of the issuer given in this certificate
 is used as the recipient of the CMP message.
 
 =item B<-revreason number>
