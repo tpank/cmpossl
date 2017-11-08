@@ -471,7 +471,7 @@ int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx)
     if (!ctx)
         goto err;
     if (!ctx->extraCertsIn)
-        goto err;
+        return 0;
     return sk_X509_num(ctx->extraCertsIn);
  err:
     CMPerr(CMP_F_CMP_CTX_EXTRACERTSIN_NUM, CMP_R_INVALID_PARAMETERS);
@@ -515,10 +515,10 @@ int CMP_CTX_set1_extraCertsIn(CMP_CTX *ctx,
  * ################################################################ */
 int CMP_CTX_extraCertsOut_push1(CMP_CTX *ctx, const X509 *val)
 {
-    if (!ctx || !ctx->extraCertsOut)
+    if (!ctx)
         goto err;
-    if (!(ctx->extraCertsOut = sk_X509_new_null()) ||
-        !sk_X509_push(ctx->extraCertsOut, X509_dup((X509 *)val))) {
+    if ((!ctx->extraCertsOut && !(ctx->extraCertsOut = sk_X509_new_null()))
+        || (!sk_X509_push(ctx->extraCertsOut, X509_dup((X509 *)val)))) {
         CMPerr(CMP_F_CMP_CTX_EXTRACERTSOUT_PUSH1, CMP_R_OUT_OF_MEMORY);
         return 0;
     }
@@ -535,8 +535,10 @@ int CMP_CTX_extraCertsOut_push1(CMP_CTX *ctx, const X509 *val)
  * ################################################################ */
 int CMP_CTX_extraCertsOut_num(CMP_CTX *ctx)
 {
-    if (!ctx || !ctx->extraCertsOut)
+    if (!ctx)
         goto err;
+    if (!ctx->extraCertsOut)
+        return 0;
     return sk_X509_num(ctx->extraCertsOut);
  err:
     CMPerr(CMP_F_CMP_CTX_EXTRACERTSOUT_NUM, CMP_R_INVALID_PARAMETERS);
@@ -644,8 +646,10 @@ STACK_OF (X509) * CMP_CTX_caPubs_get1(CMP_CTX *ctx)
  * ################################################################ */
 X509 *CMP_CTX_caPubs_pop(CMP_CTX *ctx)
 {
-    if (!ctx || !ctx->caPubs)
+    if (!ctx)
         goto err;
+    if (!ctx->caPubs)
+        return NULL;
     return sk_X509_pop(ctx->caPubs);
  err:
     CMPerr(CMP_F_CMP_CTX_CAPUBS_POP, CMP_R_INVALID_PARAMETERS);
@@ -659,8 +663,10 @@ X509 *CMP_CTX_caPubs_pop(CMP_CTX *ctx)
  * ################################################################ */
 int CMP_CTX_caPubs_num(CMP_CTX *ctx)
 {
-    if (!ctx || !ctx->caPubs)
+    if (!ctx)
         goto err;
+    if (!ctx->caPubs)
+        return 0;
     return sk_X509_num(ctx->caPubs);
  err:
     CMPerr(CMP_F_CMP_CTX_CAPUBS_NUM, CMP_R_INVALID_PARAMETERS);
@@ -861,8 +867,8 @@ int CMP_CTX_subjectAltName_push1(CMP_CTX *ctx, const GENERAL_NAME *name)
 
     if ((!ctx->subjectAltNames
          && !(ctx->subjectAltNames = sk_GENERAL_NAME_new_null())) ||
-        !sk_GENERAL_NAME_push
-        (ctx->subjectAltNames, GENERAL_NAME_dup((GENERAL_NAME *)name))) {
+        !sk_GENERAL_NAME_push(ctx->subjectAltNames,
+                              GENERAL_NAME_dup((GENERAL_NAME *)name))) {
         CMPerr(CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1, CMP_R_OUT_OF_MEMORY);
         return 0;
     }
