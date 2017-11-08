@@ -410,6 +410,9 @@ might change every release!
 
 CMP_CTX_create() returns a pointer to an initialized CMP_CTX structure.
 
+CMP_CTX_extraCertsIn_num(), CMP_CTX_extraCertsOut_num(), CMP_CTX_caPubs_num(),
+return the number of relevant certificates, or -1 on error.
+
 All other functions return 0 on error, 1 on success.
 
 =head1 EXAMPLE

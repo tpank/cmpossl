@@ -463,8 +463,7 @@ X509 *CMP_CTX_extraCertsIn_pop(CMP_CTX *ctx)
 }
 
 /* ################################################################ *
- * Returns the number of extraCerts received in a response, 0 on error
- * TODO: should that return something else on error?
+ * Returns the number of extraCerts received in a response, -1 on error
  * ################################################################ */
 int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx)
 {
@@ -475,7 +474,7 @@ int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx)
     return sk_X509_num(ctx->extraCertsIn);
  err:
     CMPerr(CMP_F_CMP_CTX_EXTRACERTSIN_NUM, CMP_R_INVALID_PARAMETERS);
-    return 0;
+    return -1;
 }
 
 /* ################################################################ *
@@ -529,9 +528,8 @@ int CMP_CTX_extraCertsOut_push1(CMP_CTX *ctx, const X509 *val)
 }
 
 /* ################################################################ *
- * Return the number of certificates we have in the outbound
- * extraCerts stack, 0 on error
- * TODO: should that return something else on error?
+ * Return the number of certificates we have in the outbound extraCerts stack,
+ * -1 on error
  * ################################################################ */
 int CMP_CTX_extraCertsOut_num(CMP_CTX *ctx)
 {
@@ -542,7 +540,7 @@ int CMP_CTX_extraCertsOut_num(CMP_CTX *ctx)
     return sk_X509_num(ctx->extraCertsOut);
  err:
     CMPerr(CMP_F_CMP_CTX_EXTRACERTSOUT_NUM, CMP_R_INVALID_PARAMETERS);
-    return 0;
+    return -1;
 }
 
 /* ################################################################ *
@@ -657,9 +655,8 @@ X509 *CMP_CTX_caPubs_pop(CMP_CTX *ctx)
 }
 
 /* ################################################################ *
- * Return the number of certificates received in the caPubs field
- * of the last response message, 0 on error
- * TODO: should that return something else on error?
+ * Return the number of certificates received in the caPubs field of the last
+ * response message, -1 on error
  * ################################################################ */
 int CMP_CTX_caPubs_num(CMP_CTX *ctx)
 {
@@ -670,7 +667,7 @@ int CMP_CTX_caPubs_num(CMP_CTX *ctx)
     return sk_X509_num(ctx->caPubs);
  err:
     CMPerr(CMP_F_CMP_CTX_CAPUBS_NUM, CMP_R_INVALID_PARAMETERS);
-    return 0;
+    return -1;
 }
 
 /* ################################################################ *
