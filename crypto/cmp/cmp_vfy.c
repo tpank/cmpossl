@@ -379,6 +379,34 @@ oom:
     return NULL;
 }
 
+/* exceptional handling for 3GPP TS 33.310, only to use for IP and if the ctx
+ * option is explicitly set: use self-signed certificate as Trust Anchor from
+ * ExtraCerts to validate server cert - provided it also can validate the
+ * enrolled certificate */
+static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt, const
+                               CMP_PKIMESSAGE *msg) {
+    int valid = 0;
+    X509_STORE *store = X509_STORE_new();
+    if (store && /* store does not include CRLs */
+        CMP_X509_STORE_add1_certs(store, msg->extraCerts, 1/* s-sgnd only */)) {
+        valid = CMP_validate_cert_path(ctx, store, ctx->untrusted_certs, scrt);
+    }
+    if (valid) {
+        /* verify that our received certificate can also be
+         * validated with the same trusted store as scrt */
+        CMP_CERTRESPONSE *crep =
+            CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip,0);
+        X509 *newcrt = CMP_CERTRESPONSE_get_certificate(ctx,crep);
+        if (newcrt) {
+            valid = CMP_validate_cert_path(ctx, store, ctx->untrusted_certs,
+                    newcrt);
+            X509_free(newcrt);
+        }
+    }
+    X509_STORE_free(store);
+    return valid;
+}
+
 static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
     X509 *scrt = NULL;
@@ -393,10 +421,8 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         return NULL; /* FR#42: support for more than X509_NAME */
     }
 
-    /* if we've already found and validated a server cert, and it
-     * matches the sender name, we will use that, this is used for
-     * PKIconf where the server certificate and others could be missing
-     * from the extraCerts */
+    /* valid scrt, matching sender name, found earlier in transaction, will be
+     * used for PKIconf - where extraCerts have been left empty */
     if (ctx->validatedSrvCert &&
         cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted_store)) {
         scrt = ctx->validatedSrvCert;
@@ -405,10 +431,7 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         STACK_OF(X509) *untrusted = sk_X509_new_null();
         if (untrusted &&
             CMP_sk_X509_add1_certs(untrusted, ctx->untrusted_certs, 0, 1) &&
-        /* Load provided extraCerts to help with cert path validation.
-           Note that the extraCerts are not protected and may be bad
-           (and even if they were in the protected part
-            the protection is not yet verified). */
+            /* use provided extraCerts for cert path validation */
             CMP_sk_X509_add1_certs(untrusted, msg->extraCerts, 0, 1)) {
             int i;
 
@@ -427,35 +450,10 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         }
         sk_X509_pop_free(untrusted, X509_free);
 
-        if (!scrt_valid) {
-            /* do an exceptional handling for 3GPP for IP:
-             * when the ctx option is explicitly set, extract the Trust
-             * Anchor from ExtraCerts, provided that there is a
-             * self-signed certificate which can be used to validate
-             * the enrolled certificate - refer to 3GPP TS 33.310 */
-            if (ctx->permitTAInExtraCertsForIR &&
+        /* exceptional 3GPP TS 33.310 handling */
+        if (!scrt_valid && ctx->permitTAInExtraCertsForIR &&
                 CMP_PKIMESSAGE_get_bodytype(msg) == V_CMP_PKIBODY_IP) {
-                X509_STORE *store = X509_STORE_new();
-                if (store && /* store does not include CRLs */
-                    CMP_X509_STORE_add1_certs(store, msg->extraCerts,
-                                              1/* only self_signed */)) {
-                    scrt_valid = CMP_validate_cert_path(ctx, store,
-                                                 ctx->untrusted_certs, scrt);
-                }
-                if (scrt_valid) {
-                    /* verify that our received certificate can also be
-                     * validated with the same trusted store as scrt */
-                    CMP_CERTRESPONSE *crep =
-                    CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip,0);
-                    X509 *newcrt= CMP_CERTRESPONSE_get_certificate(ctx,crep);
-                    if (newcrt) {
-                        scrt_valid = CMP_validate_cert_path(ctx, store,
-                                               ctx->untrusted_certs, newcrt);
-                        X509_free(newcrt);
-                    }
-                }
-                X509_STORE_free(store);
-            }
+            scrt_valid = srv_cert_valid_3gpp(ctx, scrt, msg);
         }
     }
 
@@ -464,7 +462,6 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     }
     sk_X509_pop_free(found_crts, X509_free);
 
-    /* verification failed if no valid server cert was found */
     if (!scrt_valid) {
         char *sname = X509_NAME_oneline(
                          msg->header->sender->d.directoryName, NULL, 0);
