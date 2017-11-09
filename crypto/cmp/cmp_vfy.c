@@ -381,9 +381,9 @@ oom:
 
 static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
-    X509 *srvCert = NULL;
-    int srvCert_valid = 0;
-    STACK_OF(X509) *found_certs = NULL;
+    X509 *scrt = NULL;
+    int scrt_valid = 0;
+    STACK_OF(X509) *found_crts = NULL;
 
     if (!msg->header->sender || !msg->body)
         return 0; /* other NULL cases already have been checked */
@@ -399,8 +399,8 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
      * from the extraCerts */
     if (ctx->validatedSrvCert &&
         cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted_store)) {
-        srvCert = ctx->validatedSrvCert;
-        srvCert_valid = 1;
+        scrt = ctx->validatedSrvCert;
+        scrt_valid = 1;
     } else {
         STACK_OF(X509) *untrusted = sk_X509_new_null();
         if (untrusted &&
@@ -414,20 +414,20 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 
             /* try to find server certificate(s) from
              * trusted_store, untrusted_certs, or extaCerts */
-            found_certs = find_server_cert(ctx->trusted_store, untrusted, msg);
+            found_crts = find_server_cert(ctx->trusted_store, untrusted, msg);
 
             /* select first server certificate that can be validated */
-            for (i = 0; !srvCert_valid && i < sk_X509_num(found_certs); i++) {
+            for (i = 0; !scrt_valid && i < sk_X509_num(found_crts); i++) {
                 ERR_clear_error(); /* TODO: still the cert verification
                          callback function may print extra errors */
-                srvCert = sk_X509_value(found_certs, i);
-                srvCert_valid = CMP_validate_cert_path(ctx,
-                                        ctx->trusted_store, untrusted, srvCert);
+                scrt = sk_X509_value(found_crts, i);
+                scrt_valid = CMP_validate_cert_path(ctx,
+                                        ctx->trusted_store, untrusted, scrt);
             }
         }
         sk_X509_pop_free(untrusted, X509_free);
 
-        if (!srvCert_valid) {
+        if (!scrt_valid) {
             /* do an exceptional handling for 3GPP for IP:
              * when the ctx option is explicitly set, extract the Trust
              * Anchor from ExtraCerts, provided that there is a
@@ -435,49 +435,49 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
              * the enrolled certificate - refer to 3GPP TS 33.310 */
             if (ctx->permitTAInExtraCertsForIR &&
                 CMP_PKIMESSAGE_get_bodytype(msg) == V_CMP_PKIBODY_IP) {
-                X509_STORE *tempStore = X509_STORE_new();
-                if (tempStore && /* tempStore does not include CRLs */
-                    CMP_X509_STORE_add1_certs(tempStore, msg->extraCerts,
+                X509_STORE *store = X509_STORE_new();
+                if (store && /* store does not include CRLs */
+                    CMP_X509_STORE_add1_certs(store, msg->extraCerts,
                                               1/* only self_signed */)) {
-                    srvCert_valid = CMP_validate_cert_path(ctx, tempStore,
-                                                 ctx->untrusted_certs, srvCert);
+                    scrt_valid = CMP_validate_cert_path(ctx, store,
+                                                 ctx->untrusted_certs, scrt);
                 }
-                if (srvCert_valid) {
+                if (scrt_valid) {
                     /* verify that our received certificate can also be
-                     * validated with the same trusted store as srvCert */
+                     * validated with the same trusted store as scrt */
                     CMP_CERTRESPONSE *crep =
                     CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip,0);
-                    X509 *newClCert= CMP_CERTRESPONSE_get_certificate(ctx,crep);
-                    if (newClCert) {
-                        srvCert_valid = CMP_validate_cert_path(ctx, tempStore,
-                                               ctx->untrusted_certs, newClCert);
-                        X509_free(newClCert);
+                    X509 *newcrt= CMP_CERTRESPONSE_get_certificate(ctx,crep);
+                    if (newcrt) {
+                        scrt_valid = CMP_validate_cert_path(ctx, store,
+                                               ctx->untrusted_certs, newcrt);
+                        X509_free(newcrt);
                     }
                 }
-                X509_STORE_free(tempStore);
+                X509_STORE_free(store);
             }
         }
     }
 
-    if (srvCert_valid) {
-        X509_up_ref(srvCert);
+    if (scrt_valid) {
+        X509_up_ref(scrt);
     }
-    sk_X509_pop_free(found_certs, X509_free);
+    sk_X509_pop_free(found_crts, X509_free);
 
     /* verification failed if no valid server cert was found */
-    if (!srvCert_valid) {
-        char *sender_name = X509_NAME_oneline(
+    if (!scrt_valid) {
+        char *sname = X509_NAME_oneline(
                          msg->header->sender->d.directoryName, NULL, 0);
         CMPerr(CMP_F_SET_SRVCERT, CMP_R_NO_VALID_SRVCERT_FOUND);
-        ERR_add_error_data(2, "sender name = ", sender_name);
-        OPENSSL_free(sender_name);
+        ERR_add_error_data(2, "sender name = ", sname);
+        OPENSSL_free(sname);
         return NULL;
     }
 
     /* store trusted srv cert for future messages in the same transaction */
     X509_free(ctx->validatedSrvCert);
-    ctx->validatedSrvCert = srvCert;
-    return srvCert;
+    ctx->validatedSrvCert = scrt;
+    return scrt;
 }
 
 /* ##########################################################################
