@@ -381,7 +381,7 @@ oom:
 
 static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
-    X509 *srvCert;
+    X509 *srvCert = NULL;
     int srvCert_valid = 0;
     STACK_OF(X509) *found_certs = NULL;
 
