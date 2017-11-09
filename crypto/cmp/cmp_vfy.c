@@ -505,7 +505,23 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     switch (nid) {
         /* 5.1.3.1.  Shared Secret Information */
     case NID_id_PasswordBasedMAC:
-        return CMP_verify_MAC(msg, ctx->secretValue);
+        if (CMP_verify_MAC(msg, ctx->secretValue)) {
+            /* RFC 4210, 5.3.2: 'Note that if the PKI Message Protection is
+             * "shared secret information", then any certificate transported in
+             * the caPubs field may be directly trusted as a root CA
+             * certificate by the initiator.' */
+            switch (msg->body->type) {
+            case V_CMP_PKIBODY_IP:
+            case V_CMP_PKIBODY_CP:
+            case V_CMP_PKIBODY_KUP:
+            case V_CMP_PKIBODY_CCP:
+                if(!CMP_X509_STORE_add1_certs(ctx->trusted_store,
+                                              msg->body->value.ip->caPubs, 0))
+                    return 0;
+            }
+            return 1;
+        }
+        return 0;
 
         /* TODO: 5.1.3.2.  DH Key Pairs --> feature request #33 */
     case NID_id_DHBasedMac:

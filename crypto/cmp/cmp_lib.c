@@ -1671,8 +1671,9 @@ int CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
     for (i = 0; i < sk_X509_num(certs); i++) {
         X509 *cert = sk_X509_value(certs, i);
         if (!only_self_signed || X509_check_issued(cert, cert) == X509_V_OK)
-      /* don't fail as adding existing certificate to store would cause error */
-            X509_STORE_add_cert(store, cert); /* ups the cert ref counter */
+            /* adding existing cert to store also returns 1 => no error */
+            if (!X509_STORE_add_cert(store, cert)) /* ups cert ref counter */
+                return 0;
     }
     return 1;
 }
