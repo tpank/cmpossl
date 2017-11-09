@@ -353,7 +353,7 @@ typedef enum OPTION_choice {
     OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
     OPT_TLSTRUSTED, OPT_TLSHOST,
 
-    OPT_CRLS, OPT_CRL_DOWNLOAD,
+    OPT_CRL_DOWNLOAD, OPT_CRLS,
 #ifndef OPENSSL_NO_OCSP
     OPT_OCSP_CHECK_ALL,
     OPT_OCSP_USE_AIA,
@@ -430,7 +430,7 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0, "\nMisc request options:"},
 
     {"oldcert", OPT_OLDCERT, 's', "Certificate to be updated in kur (defaulting to -cert) or to be revoked in rr."},
-             {OPT_MORE_STR, 0, 0, "Its issuer is used as recipient if neither of -srvcert, -recipient, -issuer given."},
+             {OPT_MORE_STR, 0, 0, "Its issuer is used as recipient if neither -srvcert, -recipient, -issuer given."},
     {"csr", OPT_CSR, 's', "PKCS#10 CSR to use in p10cr"},
     {"revreason", OPT_REVREASON, 'n', "Set reason code to be included in revocation request (rr)."},
                  {OPT_MORE_STR, 0, 0, "Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
@@ -457,9 +457,12 @@ OPTIONS cmp_options[] = {
     {"tls-host", OPT_TLSHOST, 's', "Address to be checked (rather than -server) during TLS host name validation"},
 
     {OPT_MORE_STR, 0, 0, "\nCertificate verification options, for both CMP and TLS:"},
-    {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates."},
-       {OPT_MORE_STR, 0, 0, "URL may point to local file if prefixed by 'file:'"},
-    {"crl_download", OPT_CRL_DOWNLOAD, '-', "Retrieve CRLs from distribution points given in certificates as secondary source"},
+    {"crl_download", OPT_CRL_DOWNLOAD, '-', "Retrieve CRLs from distribution points given in certificates as primary source"},
+    {"crls", OPT_CRLS, 's', "Use given CRL(s) as secondary (fallback) source when verifying certificates."},
+       {OPT_MORE_STR, 0, 0, "URL may start with 'http:' or point to local file (possibly prefixed by 'file:')."},
+    {OPT_MORE_STR, 0, 0, "Note: -crl_download, -crls, and -crl_check require certificate status checking"},
+    {OPT_MORE_STR, 0, 0, "for at least the leaf certificate using CRLs unless OCSP is enabled and succeeds."},
+    {OPT_MORE_STR, 0, 0, "-crl_check_all requires revocation checks using CRLs for full certificate chain."},
 #ifndef OPENSSL_NO_OCSP
     {"ocsp_check_all", OPT_OCSP_CHECK_ALL, '-', "Require revocation checks (via OCSP) for full certificate chain"},
     {"ocsp_use_aia", OPT_OCSP_USE_AIA, '-', "Use OCSP with AIA entries in certificates as primary URL of OCSP responder"},
@@ -511,7 +514,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     { (char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key}, {&opt_tls_keypass},
     {&opt_tls_trusted}, {&opt_tls_host},
 
-    {&opt_crls}, { (char **)&opt_crl_download},
+    { (char **)&opt_crl_download}, {&opt_crls},
 #ifndef OPENSSL_NO_OCSP
     { (char **)&opt_ocsp_check_all}, { (char **)&opt_ocsp_use_aia}, {&opt_ocsp_url},
     { (char **)&opt_ocsp_timeout},
@@ -1433,7 +1436,7 @@ static X509_STORE *create_cert_store(const char *infile, const char *desc)
 #if OPENSSL_VERSION_NUMBER < 0x1010001fL
     store = setup_verify(bio_err, (char *)infile, NULL/* CApath */);
 #else
-    store = setup_verify(infile, NULL/* CApath */, 0/* noCAfile */, 0/* noCApath */);
+    store = setup_verify(infile, NULL/* CApath */, 1/* noCAfile */, 1/* noCApath */);
 #endif
     if (!store)
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, infile);
@@ -1550,19 +1553,19 @@ static STACK_OF(X509_CRL) *LOCAL_crls_http_cb(X509_STORE_CTX *ctx, X509_NAME *nm
  * In upstream openssl, X509_STORE_CTX_init() sets up the STORE_CTX
  * so that CRLs already loaded to the store get ignored if a callback is set.
  *
- * First try local CRLs from store, then try downloading CRLs from CRLDP
+ * First try downloading CRLs from any CDP entries, then local CRLs from store.
  */
 
-static STACK_OF(X509_CRL) *crls_local_then_http_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
+static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
 {
     STACK_OF(X509_CRL) *crls;
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    crls = X509_STORE_CTX_get1_crls(ctx, nm);
-#else
-    crls = X509_STORE_get1_crls(ctx, nm);
+    crls = LOCAL_crls_http_cb(ctx, nm);
+    if (crls == NULL) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define X509_STORE_CTX_get1_crls X509_STORE_get1_crls
 #endif
-    if (crls == NULL)
-        crls = LOCAL_crls_http_cb(ctx, nm);
+        crls = X509_STORE_CTX_get1_crls(ctx, nm);
+    }
     return crls;
 }
 
@@ -1951,18 +1954,14 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert,
                        const char **text)
 {
     int res = -1; /* indicating "ok" here */
-
     STACK_OF (X509) *untrusted = sk_X509_new_null();
-    if (!untrusted) {
-oom:
+    if (!untrusted ||
+        !CMP_sk_X509_add1_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx),
+                                0, 1/* no dups */)) {
         sk_X509_pop_free(untrusted, X509_free);
         /* BIO_puts(bio_err, "error: out of memory\n"); */
         return CMP_PKIFAILUREINFO_systemFailure;
     }
-
-    if (!CMP_sk_X509_add1_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx),
-                                0, 1/* no dups */))
-        goto oom;
     /* TODO: load caPubs [CMP_CTX_caPubs_get1(ctx)] as additional trusted certs
        during IR and if MSG_SIG_ALG is used, cf. RFC 4210, 5.3.2 */
 
@@ -2027,7 +2026,7 @@ static int set_store_parameters_crls(X509_STORE *ts) {
         return 0;
 
     if (opt_crl_download)
-        X509_STORE_set_lookup_crls(ts, crls_local_then_http_cb);
+        X509_STORE_set_lookup_crls(ts, get_crls_cb);
     /* TODO dvo: to be replaced with "store_setup_crl_download(ts)" from apps.h,
               after extended version of crls_http_cb has been pushed upstream */
 
@@ -2225,6 +2224,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                     sk_X509_pop_free(certs, X509_free);
                     goto oom;
             }
+            sk_X509_pop_free(certs, X509_free);
         )
         if (CMP_CTX_set1_untrusted_certs(ctx, untrusted)) {
             sk_X509_pop_free(untrusted, X509_free);
@@ -2283,7 +2283,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         OpenSSL_add_ssl_algorithms();
         SSL_load_error_strings();
 
-        ssl_ctx = SSL_CTX_new(SSLv23_client_method());
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+#define TLS_client_method SSLv23_client_method
+#endif
+        ssl_ctx = SSL_CTX_new(TLS_client_method());
         if (ssl_ctx == NULL) {
             goto err;
         }
@@ -2326,18 +2329,15 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             /* TODO: is the server host name correct for TLS via proxy? */
                 goto tls_err;
 #endif
-
-            SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, print_cert_verify_cb);
+            SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
         }
 
         {
             X509_STORE *untrusted =
                 sk_X509_to_store(CMP_CTX_get0_untrusted_certs(ctx));
             /* do immediately for automatic cleanup in case of errors: */
-            if (!SSL_CTX_set1_chain_cert_store(ssl_ctx, untrusted/*may be 0*/)){
-                X509_STORE_free (untrusted);
+            if (!SSL_CTX_set0_chain_cert_store(ssl_ctx, untrusted/*may be 0*/))
                 goto tls_err;
-            }
         }
 
         if (opt_tls_cert && opt_tls_key) {
@@ -2470,7 +2470,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     certform = opt_certform;
-    if (opt_srvcert || opt_trusted) { /* */
+    if (opt_srvcert || opt_trusted) {
         X509_STORE *ts = NULL;
         if (opt_srvcert) {
             X509 *srvcert;
@@ -2491,21 +2491,13 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                 X509_free(srvcert);
                 goto err;
             }
-
-            ts = X509_STORE_new();
-            if (!ts || !X509_STORE_add_cert(ts, srvcert)) {
-                X509_STORE_free(ts);
-                goto err;
-            }
-            X509_STORE_set_flags(ts, X509_V_FLAG_PARTIAL_CHAIN);
             X509_free(srvcert);
+            ts = X509_STORE_new();
         }
         if (opt_trusted) {
             ts = create_cert_store(opt_trusted, "trusted certificates");
-            if (!ts)
-                goto err;
         }
-        if (!set_store_parameters_crls(ts) ||
+        if (!set_store_parameters_crls(ts/* may be NULL */) ||
             !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
             !CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
@@ -2714,8 +2706,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     return 1;
 
  err:
-    if (local_crls)
-        sk_X509_CRL_pop_free(local_crls, X509_CRL_free);
+    sk_X509_CRL_pop_free(local_crls, X509_CRL_free);
     return 0;
 }
 
@@ -3311,9 +3302,7 @@ opt_err:
     if (opt_secret)
         OPENSSL_cleanse(opt_secret, strlen(opt_secret));
     NCONF_free(conf); /* must not do as long as opt_... variables are used */
-
-    if (tofree)
-        OPENSSL_free(tofree);
+    OPENSSL_free(tofree);
 
     return ret;
 }

@@ -178,8 +178,10 @@ static int CMP_verify_MAC(const CMP_PKIMESSAGE *msg,
 }
 
 /* ########################################################################## *
- * Attempt to validate certificate path. returns 1 if the path was
- * validated successfully and 0 if not.
+ * Attempt to validate certificate and path using given store of trusted certs
+ * (possibly including CRLs and a cert verification callback function) and
+ * given stack of non-trusted intermediate certs.
+ * Returns 1 on successful validation and 0 otherwise.
  * ########################################################################## */
 int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
                        const STACK_OF (X509) *untrusted_certs, const X509 *cert)
@@ -423,6 +425,7 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                                         ctx->trusted_store, untrusted, srvCert);
             }
         }
+        sk_X509_pop_free(untrusted, X509_free);
 
         if (!srvCert_valid) {
             /* do an exceptional handling for 3GPP for IP:
@@ -479,7 +482,7 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 
 /* ##########################################################################
  * Validates the protection of the given PKIMessage using either password-
- * based mac or a signature algorithm. In the case of signature algorithm,
+ * based mac (PBM) or a signature algorithm. In the case of signature algorithm,
  * the certificate can be provided in ctx->srvCert,
  * else it is taken from extraCerts and validated against ctx->trusted_store
  * utilizing ctx->untrusted_certs and extraCerts.

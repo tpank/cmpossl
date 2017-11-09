@@ -491,7 +491,7 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text)
         if (sinfo == NULL)
             goto err;
         certStatus->statusInfo = sinfo;
-        CMP_printf(ctx, "INFO: rejecting certificate.");
+        CMP_printf(ctx, "INFO: rejecting newly enrolled certificate.");
     }
 
     if (!CMP_PKIMESSAGE_protect(ctx, msg))

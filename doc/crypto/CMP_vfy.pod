@@ -2,40 +2,49 @@
 
 =head1 NAME
 
-  CMP_validate_msg,
-  CMP_validate_cert_path
+ CMP_validate_msg,
+ CMP_validate_cert_path
 
 =head1 SYNOPSIS
 
-  #include <openssl/cmp.h>
-
-  int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg);
-  int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
-                             X509_STORE *untrusted_store, const X509 *cert);
+ #include <openssl/cmp.h>
+ int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
+ int CMP_validate_cert_path(X509_STORE *trusted_store,
+                            const STACK_OF (X509) *untrusted_certs, X509 *cert);
 
 =head1 DESCRIPTION
 
-CMP_validate_msg() validates the protection of the given PKIMessage using
-either password-based mac or a signature algorithm.
-In the case of signature algorithm, the certificate can be provided in ctx->srvCert,
-else it is taken from extraCerts and validated against ctx->trusted_store
-utilizing ctx->untrusted_store and extraCerts.
-It returns 1 on success, 0 on error or validation failed.
+This is the API for validating the protection of CMP messages,
+which includes validating CMP server certificates and their paths
+while optionally checking the revocation status of the certificates(s).
 
-CMP_validate_cert_path() attempts to validate certificate path.
-It returns 1 if the path was validated successfully and 0 if not.
+CMP_validate_msg() validates the protection of the given PKIMessage
+using either password-based mac (PBM) or a signature algorithm.
+In the case of signature algorithm, the certificate can be provided in
+ctx->srvCert, else it is taken from extraCerts and validated against
+ctx->trusted_store utilizing ctx->untrusted_certs and extraCerts.
+
+If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
+the extraCerts field when a self-signed certificate is found there which can
+be used to validate the issued certificate returned in IP.  This is according
+to the need given in 3GPP TS 33.310.
+
+CMP_validate_cert_path() attempts to validate a certificate and its path
+using the given store of trusted certs (possibly including CRLs and a cert
+verification callbadk) and the given stack of non-trusted intermediate certs.
 
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
-The implementation of CMP for OpenSSL is still work in progress. The API
-might change every release!
-
 =head1 RETURN VALUES
+
+CMP_validate_msg() returns 1 on success, 0 on error or validation failed.
+
+CMP_validate_cert_path() returns 1 on successful validation and 0 otherwise.
 
 =head1 EXAMPLE
 
 =head1 SEE ALSO
 
-CMP_CTX, CMP_ses, CMP_msg, CMP_lib
+CMP_CTX, CMP_ses

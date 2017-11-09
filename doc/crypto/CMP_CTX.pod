@@ -39,7 +39,6 @@
  CMP_CTX_get0_trustedStore,
  CMP_CTX_set1_untrusted_certs,
  CMP_CTX_get0_untrusted_certs,
- CMP_CTX_set0_crls,
  CMP_CTX_set_error_callback,
  CMP_CTX_set_debug_callback,
  CMP_printf,
@@ -153,9 +152,9 @@ CMP_CTX_set1_secretValue() sets the B<secret> with the length B<len> in the B<ct
 CMP_CTX_set1_caCert() sets the given CA Certificate in the given CMP_CTX
 structure.
 
-CMP_CTX_set1_srvCert() sets the server certificate to be used for verifying
-response messages. It should be used together with CMP_CTX_set0_trustedStore()
-with a trusted store argument that contains this cert.
+CMP_CTX_set1_srvCert() sets the server certificate to be directly trusted for
+verifying response messages. Additionally using CMP_CTX_set0_trustedStore() is
+recommended in order to be able to supply verification parameters like CRLs.
 The cert pointer is not consumed. It may be NULL to clear the entry.
 
 CMP_CTX_set1_clCert() sets the given client certificate in the given
@@ -331,9 +330,6 @@ in CMP server authentication.
 
 CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx) returns a pointer to the list of
 untrusted certs.
-
-CMP_CTX_set0_crls() sets CRLs to be used as primary source during CMP
-server certificate verification.
 
 CMP_CTX_set_error_callback() sets a callback function for receiving
 error messages.

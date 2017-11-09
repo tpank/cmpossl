@@ -689,9 +689,10 @@ int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF (X509) * caPubs)
 }
 
 /* ################################################################ *
- * Sets the server certificate to be used for verifying response
- * messages. Also also sets ctx->trusted_store to contain the cert.
- * Pointer is not consumed; it may be NULL to clear the entry.
+ * Sets the server certificate to be directly trusted for verifying response
+ * messages. Additionally using CMP_CTX_set0_trustedStore() is recommended
+ * in order to be able to supply verification parameters like CRLs.
+ * Cert pointer is not consumed. It may be NULL to clear the entry.
  * returns 1 on success, 0 on error
  * ################################################################ */
 int CMP_CTX_set1_srvCert(CMP_CTX *ctx, const X509 *cert)
