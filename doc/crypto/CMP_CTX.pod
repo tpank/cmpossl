@@ -340,7 +340,7 @@ CMP_CTX_set_debug_callback() sets a callback function for receiving
 debug messages.
 
 CMP_printf() is used for printing debug messages if debug_cb is set
-(CMP_CTX_INIT defaults to puts()).
+(CMP_CTX_init defaults to puts()).
 
 CMP_CTX_status_get() returns the PKIstatus from the last
 CertRepMessage or Revocation Response, -1 on error.
@@ -412,7 +412,7 @@ might change every release!
 
 CMP_CTX_create() returns a pointer to an initialized CMP_CTX structure.
 
-CMP_CTX_delete(), CMP_printf() do not return anything.
+CMP_CTX_delete() and CMP_printf() do not return anything.
 
 CMP_CTX_extraCertsIn_num(), CMP_CTX_extraCertsOut_num(), CMP_CTX_caPubs_num(),
 return the number of relevant certificates, or -1 on error.
@@ -442,8 +442,8 @@ Revocation Response, -1 on error.
 CMP_CTX_statusString_get() returns the statusString from the last
 CertRepMessage or Revocation Response, NULL on error.
 
-CMP_CTX_get0_newClCert() returns the received (in IP/KUP/CP) client certificate
-from the context. NULL if there was none as well as on error.
+CMP_CTX_get0_newClCert() returns the last received (in IP/KUP/CP) client
+certificate from the context. NULL if there was none as well as on error.
 
 CMP_CTX_get0_tlsBIO() returns the SSL/TLS BIO to be used for HTTPS, NULL if
 none as well as on error.
