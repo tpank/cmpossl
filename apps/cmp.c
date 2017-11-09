@@ -187,6 +187,23 @@ static int opt_crl_download = 0;
 static X509_VERIFY_PARAM *vpm = NULL;
 static STACK_OF(X509_CRL) *local_crls = NULL;
 
+#ifndef OPENSSL_NO_OCSP
+#include <openssl/ocsp.h>
+static int   opt_ocsp_check_all = 0;
+static int   opt_ocsp_use_aia = 0;
+static char *opt_ocsp_url = NULL;
+static int   opt_ocsp_timeout = 10;
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+typedef int (*X509_STORE_CTX_check_revocation_fn)(X509_STORE_CTX *ctx);
+#endif
+X509_STORE_CTX_check_revocation_fn check_revocation = NULL;
+static int opt_ocsp_status = 0; /* unset if OPENSSL_VERSION_NUMBER<0x10100000L*/
+#define OCSP_USE_UNTRUSTED_CERTS
+#ifdef OCSP_USE_UNTRUSTED_CERTS
+static STACK_OF(X509) *ocsp_untrusted_certs = NULL;
+#endif
+#endif
+
 static char *opt_keyform_s = "PEM";
 static char *opt_certform_s = "PEM";
 static int opt_keyform = FORMAT_PEM;
@@ -337,6 +354,15 @@ typedef enum OPTION_choice {
     OPT_TLSTRUSTED, OPT_TLSHOST,
 
     OPT_CRLS, OPT_CRL_DOWNLOAD,
+#ifndef OPENSSL_NO_OCSP
+    OPT_OCSP_CHECK_ALL,
+    OPT_OCSP_USE_AIA,
+    OPT_OCSP_URL,
+    OPT_OCSP_TIMEOUT,
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    OPT_OCSP_STATUS,
+#endif
+#endif
     OPT_V_ENUM/* OPT_CRLALL etc. */
 } OPTION_CHOICE;
 
@@ -434,6 +460,17 @@ OPTIONS cmp_options[] = {
     {"crls", OPT_CRLS, 's', "Use given CRL(s) as primary source when verifying certificates."},
        {OPT_MORE_STR, 0, 0, "URL may point to local file if prefixed by 'file:'"},
     {"crl_download", OPT_CRL_DOWNLOAD, '-', "Retrieve CRLs from distribution points given in certificates as secondary source"},
+#ifndef OPENSSL_NO_OCSP
+    {"ocsp_check_all", OPT_OCSP_CHECK_ALL, '-', "Require revocation checks (via OCSP) for full certificate chain"},
+    {"ocsp_use_aia", OPT_OCSP_USE_AIA, '-', "Use OCSP with AIA entries in certificates as primary URL of OCSP responder"},
+    {"ocsp_url", OPT_OCSP_URL, 's', "Use OCSP with given URL as secondary (fallback) URL of OCSP responder."},
+    {OPT_MORE_STR, 0, 0, "Note: -ocsp_use_aia and -ocsp_url require certificate status checking"},
+    {OPT_MORE_STR, 0, 0, "for at least the leaf certificate using OCSP, with CRLs as fallback if enabled."},
+    {"ocsp_timeout", OPT_OCSP_TIMEOUT, 'n', "Timeout for retrieving OCSP responses (or 0 for none). Default 10 seconds"},
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    {"ocsp_status", OPT_OCSP_STATUS, '-', "Enable certificate status from TLS server via OCSP (not multi-)stapling"},
+#endif
+#endif
     OPT_V_OPTIONS, /* subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for leaf certificate but for full certificate chain"}, */
 
     {NULL}
@@ -475,6 +512,13 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     {&opt_tls_trusted}, {&opt_tls_host},
 
     {&opt_crls}, { (char **)&opt_crl_download},
+#ifndef OPENSSL_NO_OCSP
+    { (char **)&opt_ocsp_check_all}, { (char **)&opt_ocsp_use_aia}, {&opt_ocsp_url},
+    { (char **)&opt_ocsp_timeout},
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    { (char **)&opt_ocsp_status},
+#endif
+#endif
     /* virtually at this point: OPT_CRLALL etc. */
     {NULL}
 };
@@ -1171,6 +1215,207 @@ static int truststore_set_host(X509_STORE *ts, const char *host) {
         return X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
 }
 
+#ifndef OPENSSL_NO_OCSP
+/*
+ * ##########################################################################
+ * * code needed for OCSP support
+ * ##########################################################################
+ */
+
+static int backup_vpm(X509_STORE *ts, X509_VERIFY_PARAM **bak_vpm,
+                      const char **bak_host)
+{
+    /* Unfortunately there is no OpenSSL API function for retrieving the
+       hosts/ip entries in X509_VERIFY_PARAM. So we use ts->ex_data. */
+    *bak_host = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
+    return (*bak_vpm = X509_VERIFY_PARAM_new()) &&
+           X509_VERIFY_PARAM_inherit(*bak_vpm, X509_STORE_get0_param(ts));
+}
+static int restore_vpm(X509_STORE *ts, X509_VERIFY_PARAM *bak_vpm,
+                      const char *bak_host)
+{
+    return X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)bak_host)
+        && X509_STORE_set1_param(ts, bak_vpm);
+}
+
+/* Maximum leeway in validity period: default 5 minutes */
+# define MAX_OCSP_VALIDITY_PERIOD (5 * 60)
+
+/* Verify an OCSP response rsp obtained either via a classical OCSP request,
+ * where req != NULL and the request ID is taken from there,
+ * or via OCSP stapling, where req == NULL and the given id is used.
+ * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error */
+static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
+                  OCSP_REQUEST *req, OCSP_CERTID *id, OCSP_RESPONSE *rsp)
+{
+    X509_VERIFY_PARAM *bak_vpm = NULL;
+    OCSP_BASICRESP *br;
+    int res, status, reason;
+    ASN1_GENERALIZEDTIME *rev, *thisupd, *nextupd;
+    int failures = 0;
+
+    if (!rsp)
+        return 0;
+
+#if 0 && !defined NDEBUG
+    BIO_puts(bio_c_out, "======================================\n");
+    OCSP_RESPONSE_print(bio_c_out, rsp, 0);
+    BIO_puts(bio_c_out, "======================================\n");
+#endif
+
+    status = OCSP_response_status(rsp);
+    if (status != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
+        BIO_printf(bio_err, "OCSP responder error: %s (code %d)\n",
+                   OCSP_response_status_str(status), status);
+        return -1;
+    }
+
+    if (!(br = OCSP_response_get1_basic(rsp))) {
+        BIO_printf(bio_err, "error getting OCSP basic response\n");
+        return -1;
+    }
+    if (req && ((res = OCSP_check_nonce(req, br)) <= 0)) {
+        if (res == -1)
+            BIO_printf(bio_c_out, "warning: no nonce in OCSP response\n");
+        else {
+            BIO_printf(bio_err, "nonce verification error\n");
+            failures++;
+            goto end;
+        }
+    }
+
+    {  /* workaround for a bug in OCSP_basic_verify()
+        * neglecting the certs argument if br->certs is NULL */
+       X509 *dummy = X509_new();
+       (void)OCSP_basic_add1_cert(br, dummy);
+       X509_free(dummy);
+    }
+    if (ts) {
+        const char *bak_host;
+        X509_STORE_CTX_check_revocation_fn bak_revfn =
+            X509_STORE_get_check_revocation(ts);
+        if (!backup_vpm(ts, &bak_vpm, &bak_host) ||
+            !truststore_set_host(ts, NULL/* host not relevant for OCSP chk */))
+            goto end;
+        /* no OCSP/CRL-based revocation checking on OCSP responder cert chain */
+        X509_STORE_set_check_revocation(ts, NULL);
+        (void)X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts),
+                                            X509_V_FLAG_CRL_CHECK);
+        res = OCSP_basic_verify(br, untrusted, ts, 0/* OCSP flags */);
+        if (!restore_vpm(ts, bak_vpm, bak_host))
+            goto end;
+        X509_STORE_set_check_revocation(ts, bak_revfn);
+        if (res <= 0) {
+            BIO_printf(bio_err, "OCSP response verify failure\n");
+            ERR_print_errors(bio_err);
+            failures++;
+            goto end;
+        } else {
+#if 0 && !defined NDEBUG
+            BIO_printf(bio_c_out, "OCSP response verify OK\n");
+#endif
+        }
+    }
+
+    if (!OCSP_resp_find_status(br, req ? OCSP_onereq_get0_id(
+                                         OCSP_request_onereq_get0(req, 0)) : id,
+                               &status, &reason, &rev, &thisupd, &nextupd)) {
+        BIO_puts(bio_err, "OCSP status not found\n");
+        failures++;
+        goto end;
+    }
+    if (!OCSP_check_validity(thisupd, nextupd, MAX_OCSP_VALIDITY_PERIOD, -1)) {
+        BIO_puts(bio_err, "OCSP status times invalid.\n");
+        ERR_print_errors(bio_err);
+        failures++;
+        goto end;
+    } else {
+        switch (status) {
+        case V_OCSP_CERTSTATUS_GOOD:
+#if 0 && !defined NDEBUG
+            BIO_printf(bio_c_out, "OCSP status good\n");
+#endif
+            break;
+        case V_OCSP_CERTSTATUS_REVOKED:
+            BIO_printf(bio_err, "OCSP status: revoked, reason=%s\n",
+                       reason != -1 ? OCSP_crl_reason_str(reason) : "");
+            failures++;
+            break;
+        case V_OCSP_CERTSTATUS_UNKNOWN:
+        default:
+            BIO_printf(bio_err, "OCSP status unknown (value %d)\n", status);
+            failures++;
+            break;
+        }
+    }
+
+end:
+    OCSP_BASICRESP_free(br);
+    X509_VERIFY_PARAM_free(bak_vpm);
+    return (failures == 0);
+}
+
+/*
+ * ##########################################################################
+ * * callback function for verify stapled OCSP responses
+ * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error,
+ * -2 on no stapled OCSP response available
+ * ##########################################################################
+ */
+static int ocsp_resp_cb(SSL *ssl, void *arg)
+{
+    X509_STORE_CTX *ctx = arg;
+    X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
+    STACK_OF(X509) *untrusted;
+    X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
+    X509 *issuer = X509_STORE_CTX_get0_current_issuer(ctx);
+    OCSP_CERTID *id = NULL;
+    const unsigned char *resp;
+    OCSP_RESPONSE *rsp = NULL;
+    int ret = -1; /* tls_process_initial_server_flight reports this as malloc failure */
+    int len = SSL_get_tlsext_status_ocsp_resp(ssl, &resp);
+    if (!resp) {
+        BIO_puts(bio_err, "no OCSP response has been stapled\n");
+#ifdef LATE_OCSP_STAPLING_CHECK
+        return 0;
+#endif
+        return -2;
+    }
+    rsp = d2i_OCSP_RESPONSE(NULL, &resp, len);
+    if (!rsp) {
+        BIO_puts(bio_err, "error parsing stapled OCSP response\n");
+        BIO_dump_indent(bio_err, (char *)resp, len, 4);
+        /* well, this is likely not an internal error (malloc failure) */
+        goto end;
+    }
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+    /* feature seems not available, stapling does not work anyway for <1.1 */
+#define SSL_get0_verified_chain(ssl) NULL
+#endif
+    untrusted = SSL_get0_verified_chain(ssl);
+#ifdef OCSP_USE_UNTRUSTED_CERTS
+    /* help cert chain building when list of certs is insufficient
+     * from SSL_get0_verified_chain(ssl) and OCSP_resp_get0_certs(br) */
+    if (ocsp_untrusted_certs &&
+        (!(untrusted = sk_X509_dup(untrusted)) ||
+         !CMP_sk_X509_add1_certs(untrusted, ocsp_untrusted_certs, 0, 1)))
+            goto end; /* ERR_R_MALLOC_FAILURE */
+#endif
+
+    if (!(id = OCSP_cert_to_id(NULL, cert, issuer)))
+        goto end;
+    ret = check_ocsp_response(ts, untrusted, NULL, id, rsp);
+    OCSP_CERTID_free(id);
+#ifdef OCSP_USE_UNTRUSTED_CERTS
+    if (ocsp_untrusted_certs)
+        sk_X509_free(untrusted);
+#endif
+ end:
+    OCSP_RESPONSE_free(rsp);
+    return ret;
+}
+
+#endif /* !defined OPENSSL_NO_OCSP */
 /*
  * ##########################################################################
  * * create cert store structure with certificates read from given file
@@ -1321,6 +1566,236 @@ static STACK_OF(X509_CRL) *crls_local_then_http_cb(X509_STORE_CTX *ctx, X509_NAM
     return crls;
 }
 
+#ifndef OPENSSL_NO_OCSP
+/*
+ * ##########################################################################
+ * * code implementing OCSP support
+ * ##########################################################################
+ */
+
+#define OCSP_err(ok) \
+    (ok == -2 ? X509_V_ERR_OCSP_VERIFY_NEEDED : /* no OCSP response available*/\
+     ok !=  0 ? X509_V_ERR_OCSP_VERIFY_FAILED : X509_V_ERR_CERT_REVOKED)
+/* emulate the internal verify_cb_cert() of crypto/cmp/x509_vfy.c;
+   depth already set */
+static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
+{
+    X509_STORE_CTX_verify_cb verify_cb = X509_STORE_CTX_get_verify_cb(ctx);
+    X509_STORE_CTX_set_error(ctx, err);
+    X509_STORE_CTX_set_current_cert(ctx, (X509 *)cert);
+    return verify_cb && (*verify_cb)(0, ctx);
+}
+
+/*
+ * Get an OCSP_RESPONSE from a responder for the given cert and trust store.
+ * This is a simplified version. It examines certificates each time and makes
+ * one OCSP responder query for each request. A full version would store details
+ * such as the OCSP certificate IDs and minimise the number of OCSP responses
+ * by caching them until they were considered "expired".
+ * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error,
+ * -2 on no OCSP response available
+ */
+static int verify_cert_status_ocsp(X509_STORE_CTX *ctx,
+                                   const X509 *cert, const X509 *issuer) {
+    char *host = NULL, *path = NULL, *port = NULL;
+    int use_ssl;
+    STACK_OF(OPENSSL_STRING) *aia = NULL;
+    OCSP_REQUEST *req = NULL;
+    OCSP_CERTID *id = NULL;
+    int ret = -1;
+    char *url = opt_ocsp_url;
+    OCSP_RESPONSE *resp = NULL;
+
+    aia = X509_get1_ocsp((X509 *)cert);
+    if (aia && opt_ocsp_use_aia)
+        url = sk_OPENSSL_STRING_value(aia, 0);
+    if (!url) {
+        BIO_puts(bio_err,
+                 "cert_status: no AIA in cert and no default responder URL\n");
+        return -2;
+    }
+#if 0 && !defined NDEBUG
+    {
+        char *subj = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
+        BIO_printf(bio_c_out, "%s  ", subj);
+        BIO_printf(bio_c_out, "cert_status: AIA URL: %s\n\n", url);
+        OPENSSL_free(subj);
+    }
+#endif
+    if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl)) {
+        BIO_printf(bio_err, "cert_status: can't parse AIA URL: %s\n", url);
+        goto end;
+    }
+
+    if (!(req = OCSP_REQUEST_new()))
+        goto end;
+    if (!(id = OCSP_cert_to_id(NULL, (X509 *)cert, (X509 *)issuer)))
+        goto end;
+    if (!OCSP_request_add0_id(req, id))
+        goto end;
+    id = NULL;
+    if (!OCSP_request_add1_nonce(req, NULL, -1))
+        goto end;
+#if 0
+    STACK_OF(X509_EXTENSION) *exts;
+    int i;
+    /* Add any extensions to the request */
+    SSL_get_tlsext_status_exts(s, &exts);
+    for (i = 0; i < sk_X509_EXTENSION_num(exts); i++) {
+        X509_EXTENSION *ext = sk_X509_EXTENSION_value(exts, i);
+        if (!OCSP_REQUEST_add_ext(req, ext, -1))
+            goto end;
+    }
+#endif
+    /* process_responder is defined ocsp.c */
+    resp = process_responder(
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+                             bio_err,
+#endif
+                             req, host, path, port, use_ssl, NULL,
+                             opt_ocsp_timeout == 0 ? -1 : opt_ocsp_timeout);
+    if (resp == NULL) {
+        BIO_puts(bio_err, "cert_status: error querying responder\n");
+        goto end;
+    }
+
+    ret = check_ocsp_response(X509_STORE_CTX_get0_store(ctx),
+                              X509_STORE_CTX_get0_chain(ctx),
+                              req, id, resp);
+ end:
+    if (url) {
+        OPENSSL_free(host);
+        OPENSSL_free(path);
+        OPENSSL_free(port);
+    }
+    if (aia)
+        X509_email_free(aia);
+    OCSP_CERTID_free(id);
+    OCSP_REQUEST_free(req);
+    OCSP_RESPONSE_free(resp);
+    return ret;
+}
+
+/*
+ * check revocation status of cert at current error depth in ctx using CRLs.
+ * Emulates the internal check_cert() function from crypto/x509/x509_vfy.c
+ */
+static int check_cert(X509_STORE_CTX *ctx)
+{
+    int i, ok;
+    X509 *cert;
+    STACK_OF (X509) *chain = X509_STORE_CTX_get1_chain(ctx);
+    int cnum = X509_STORE_CTX_get_error_depth(ctx);
+    STACK_OF (X509) *tmp_chain = sk_X509_new_null();
+
+    if (!chain || !tmp_chain) {
+    oom:
+        BIO_printf(bio_err, "internal error: out of memory\n");
+        sk_X509_pop_free(chain, X509_free);
+        sk_X509_pop_free(tmp_chain, X509_free);
+        return 0;
+    }
+    for (i = 0; i < sk_X509_num(chain); i++) {
+        cert = sk_X509_value(chain, i);
+        if (i == cnum) {
+            if (!sk_X509_push(tmp_chain, cert))
+                goto oom;
+            X509_up_ref(cert);
+        } else {
+            cert = X509_dup(cert);
+            X509_set_proxy_flag(cert);/* do not check revocation of this cert */
+            if (!sk_X509_push(tmp_chain, cert)) {
+                X509_free(cert);
+                goto oom;
+            }
+        }
+    }
+    X509_STORE_CTX_set0_verified_chain(ctx, tmp_chain);
+    /* call internal check_cert() effectively only for the (cnum)-th cert: */
+    ok = check_revocation(ctx);
+    /* restore original chain, freeing tmp_chain: */
+    X509_STORE_CTX_set0_verified_chain(ctx, chain);
+    return ok;
+}
+
+/* As a generalization of check_revocation() in in crypto/x509/x509_vfy.c,
+   check revocation status on each cert in ctx->chain, trying first
+   OCSP stapling if enabled, then OCSP if enabled, then using CRLs if enabled */
+static int check_ocsp_crls(X509_STORE_CTX *ctx)
+{
+    STACK_OF (X509) *chain = X509_STORE_CTX_get0_chain(ctx);
+    int i, last, num = sk_X509_num(chain);
+    X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
+    int ocsp_check = opt_ocsp_use_aia || opt_ocsp_url || opt_ocsp_check_all;
+    unsigned long flags = X509_VERIFY_PARAM_get_flags(param);
+    int crl_check = flags & X509_V_FLAG_CRL_CHECK;
+    int crl_check_all = flags & X509_V_FLAG_CRL_CHECK_ALL;
+       /* when set, usually CRL_CHECK is set as well, e.g., via opt_verify() */
+
+    if (!opt_ocsp_status && !ocsp_check && !crl_check)
+        return 1;
+
+    if (opt_ocsp_check_all || crl_check_all)
+        last = num - 1;
+    else {
+        /* If checking CRL paths this isn't the EE certificate */
+        if (X509_STORE_CTX_get0_parent_ctx(ctx))
+            return 1;
+        last = 0;
+    }
+    for (i = 0; i <= last; i++) {
+        X509 *cert = sk_X509_value(chain, i);
+        X509 *issuer = sk_X509_value(chain, i < num-1 ? i+1 : num-1);
+        int must_check_ocsp = ocsp_check && (i == 0 || opt_ocsp_check_all);
+        int must_check_crls =  crl_check && (i == 0 ||      crl_check_all);
+        int ok = 1;
+        SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
+                                              SSL_get_ex_data_X509_STORE_CTX_idx());
+        if (i==last && X509_check_issued(cert, cert) == X509_V_OK)
+            break;
+
+        X509_STORE_CTX_set_error_depth(ctx, i); /* on current cert i in chain,
+                  first try OCSP stapling if i == 0, then OCSP, then CRLs */
+
+#ifndef LATE_OCSP_STAPLING_CHECK
+        if (ssl && i == 0 && opt_ocsp_status) { /* OCSP (not multi-)stapling */
+            ok = ocsp_resp_cb(ssl, ctx);
+            if (ok == 1) /* cert status ok */
+                continue;
+            if (ok == 0 || /* cert revoked, thus clear failure */
+                (ok < 1 && !must_check_ocsp
+                        && !must_check_crls)){/* OCSP stapling is the only check
+                                                 and it was inconclusive */
+                return verify_cb_cert(ctx, cert, OCSP_err(ok));
+            }
+            ok = 1;
+        }
+#else
+        ssl = ssl; /* prevent compiler warning/error */
+#endif
+        if (must_check_ocsp) {
+            ok =  verify_cert_status_ocsp(ctx, cert, issuer);
+            if (ok == 1) /* cert status ok */
+                continue;
+            if (ok == 0 || /* cert revoked, thus clear failure */
+                (ok < 1 && !must_check_crls)) { /* OCSP is the only check
+                                                   and it was inconclusive */
+                return verify_cb_cert(ctx, cert, OCSP_err(ok));
+            }
+        }
+        if (must_check_crls &&
+            (!must_check_ocsp || ok <= 0)) /* OCSP disabled or not positive */
+            ok = check_cert(ctx);
+        if (!ok)
+            return 0;
+        chain = X509_STORE_CTX_get0_chain(ctx); /* for some reason need again */
+
+    }
+    return 1;
+}
+
+#endif /* !defined OPENSSL_NO_OCSP */
+
 /*
  * ##########################################################################
  * * code for improving certificate error diagnostics
@@ -1402,6 +1877,19 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
         if (sbio && BIO_next(sbio) /* CMP_PKIMESSAGE_http_perform() is active */
             && !ssl) /* ssl_add_cert_chain() is active */
             return ok; /* avoid printing spurious errors */
+
+#ifndef OPENSSL_NO_OCSP
+#ifdef LATE_OCSP_STAPLING_CHECK
+        if (cert_error == X509_V_ERR_OCSP_VERIFY_NEEDED ||
+            cert_error == X509_V_ERR_UNABLE_TO_GET_CRL) {
+            if (opt_ocsp_status && depth == 0)
+                return 1; /* status of EE cert will be handled by ocsp_resp_cb()
+                         * strictly requiring stapled OCSP response.
+                         * In the (rare) case of multi-stapling the checks here
+                         * would overlap for the further certs in the chain */
+        }
+#endif
+#endif
 
         BIO_printf(bio_err, "%s at depth=%d error=%d (",
                    depth < 0 ? "signature verification" :
@@ -1542,6 +2030,12 @@ static int set_store_parameters_crls(X509_STORE *ts) {
         X509_STORE_set_lookup_crls(ts, crls_local_then_http_cb);
     /* TODO dvo: to be replaced with "store_setup_crl_download(ts)" from apps.h,
               after extended version of crls_http_cb has been pushed upstream */
+
+#ifndef OPENSSL_NO_OCSP
+    if (check_revocation) { /* this means opt_ocsp_use_aia || opt_ocsp_url */
+        X509_STORE_set_check_revocation(ts, &check_ocsp_crls);
+    }
+#endif
 
     return 1;
 }
@@ -1742,6 +2236,29 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
+#ifndef OPENSSL_NO_OCSP
+#ifdef OCSP_USE_UNTRUSTED_CERTS
+    ocsp_untrusted_certs = CMP_CTX_get0_untrusted_certs(ctx);
+#endif
+    if (opt_ocsp_use_aia || opt_ocsp_url || opt_ocsp_status) {
+        X509_STORE_CTX *tmp_ctx = X509_STORE_CTX_new();
+        if (opt_crl_download || opt_crls)
+            BIO_printf(bio_c_out,
+    "info: will try first OCSP then CRLs for certificate status checking\n");
+        /* Unfortunately, check_cert() in crypto/x509/x509_vfy.c is static, yet
+           we can access it indirectly via check_revocation() with a trick. */
+        if (tmp_ctx && X509_STORE_CTX_init(tmp_ctx, NULL, NULL, NULL))
+            check_revocation = X509_STORE_CTX_get_check_revocation(tmp_ctx);
+        X509_STORE_CTX_free(tmp_ctx);
+        if (!check_revocation) {
+            BIO_printf(bio_err,"internal error: cannot get check_revocation\n");
+            goto err;
+        }
+    } else if (opt_ocsp_check_all)
+        BIO_printf(bio_c_out,
+  "warning: -ocsp_check_all has little sense without -ocsl-aia or -ocsp_url\n");
+#endif
+
     if (opt_tls_trusted || opt_tls_host) {
         opt_use_tls = 1;
     }
@@ -1772,6 +2289,27 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
         SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
         SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
+
+#ifndef OPENSSL_NO_OCSP
+#ifdef LATE_OCSP_STAPLING_CHECK
+            if (opt_ocsp_status) {
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+/* The following does not work:
+                #define SSL_CTX_set_tlsext_status_type(ssl, type) \
+                        SSL_CTX_ctrl(ssl, SSL_CTRL_SET_TLSEXT_STATUS_REQ_TYPE, type, NULL)
+   Instead, we would have to set TLSEXT_STATUSTYPE_ocsp directly in the SSL struct:
+                SSL_set_tlsext_status_type(ssl, TLSEXT_STATUSTYPE_ocsp);
+ */
+#else
+                SSL_CTX_set_tlsext_status_type(ssl_ctx, TLSEXT_STATUSTYPE_ocsp);
+#endif
+                SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_resp_cb);
+             /* TODO: must set also X509_STORE_CTX *ctx via
+                SSL_CTX_set_tlsext_status_arg(ssl_ctx, ctx);
+                which likely can be done via an SSL_CTX cert_verify_callback */
+            }
+#endif
+#endif
 
         if (opt_tls_trusted) {
             if (!(store=create_cert_store(opt_tls_trusted, "trusted TLS certificates"))) {
@@ -2479,6 +3017,26 @@ opt_err:
         case OPT_CRL_DOWNLOAD:
             opt_crl_download = 1;
             break;
+#ifndef OPENSSL_NO_OCSP
+        case OPT_OCSP_CHECK_ALL:
+            opt_ocsp_check_all = 1;
+            break;
+        case OPT_OCSP_USE_AIA:
+            opt_ocsp_use_aia = 1;
+            break;
+        case OPT_OCSP_URL:
+            opt_ocsp_url = opt_str("ocsp_url");;
+            break;
+        case OPT_OCSP_TIMEOUT:
+            if (!opt_int(opt_arg(), &opt_ocsp_timeout)) /* TODO replace by: if ((opt_ocsp_timeout = opt_nat()) < 0) */
+                goto opt_err;
+            break;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        case OPT_OCSP_STATUS:
+            opt_ocsp_status = 1;
+            break;
+#endif
+#endif
         case OPT_V_CASES/* OPT_CRLALL etc. */:
             if (!opt_verify(o, vpm))
                 goto bad_ops;

@@ -72,6 +72,11 @@ B<openssl> B<cmp>
 [B<-crl_check_all>]
 [B<-crls URLs>]
 [B<-crl_download>]
+[B<-ocsp_check_all>]
+[B<-ocsp_use_aia>]
+[B<-ocsp_url url>]
+[B<-ocsp_timeout seconds>]
+[B<-ocsp_status>]
 [B<-policy arg>]
 [B<-purpose purpose>]
 [B<-verify_nameE<nbsp>name>]
@@ -566,6 +571,32 @@ as secondary source.
 This option enables CRL checking for, e.g., the CMP/TLS server certificate
 as it is the leaf certificate of the certificate chain.
 Compare B<X509_V_FLAG_CRL_CHECK>.
+
+=item B<-ocsp_check_all>
+
+Require revocation status checking (via OCSP) for full certificate chain.
+On OCSP response error try revocation status checking using CRLs if enabled.
+This option has little sense without -ocsp_use_aia or -ocsp_url.
+
+=item B<-ocsp_use_aia>
+
+Use OCSP with any AIA entries in certificates as primary URL of OCSP responder.
+On OCSP response error try revocation status checking using CRLs if enabled.
+
+=item B<-ocsp_url url>
+
+Use OCSP with given URL as secondary (fallback) address of OCSP responder.
+On OCSP response error try revocation status checking using CRLs if enabled.
+
+=item B<-ocsp_timeout seconds>
+
+Timeout for retrieving responses from OCSP responders (or 0 for none).
+Default is 10 seconds.
+
+=item B<-ocsp_status>
+
+Enable certificate status for TLS server certificate via OCSP stapling.
+Multi-stapling is not (yet) supported. Not available before OpenSSL 1.1.
 
 =item
 B<-policy>, B<-purpose>, B<-verify_name>, B<-verify_depth>, B<-auth_level>,
