@@ -24,6 +24,12 @@ In the case of signature algorithm, the certificate can be provided in
 ctx->srvCert, else it is taken from extraCerts and validated against
 ctx->trusted_store utilizing ctx->untrusted_certs and extraCerts.
 
+In case of successfull validation of PBM protection, the certificates in the
+messages caPubs field (if any) are added to ctx->trusted_store, to be available
+for validating future messages done in the context. Those could e.g. apply to
+later Polling Responses (pollRep) or PKI confimation (PKIConf) messages in the
+same transaction.
+
 If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
 the extraCerts field when a self-signed certificate is found there which can
 be used to validate the issued certificate returned in IP.  This is according
