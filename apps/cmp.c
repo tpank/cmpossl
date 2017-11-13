@@ -2198,6 +2198,14 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_crls || opt_crl_download)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_CRL_CHECK);
+    else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
+            BIO_printf(bio_c_out, "must use -crl_download or -crls when -crl_check is given\n");
+#if 0
+            X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK);
+#else
+            goto err;
+#endif
+    }
     { /* just as a precaution in case CRL_CHECK_ALL is set without CRL_CHECK */
         unsigned long flags = X509_VERIFY_PARAM_get_flags(vpm);
         if ((flags & X509_V_FLAG_CRL_CHECK_ALL) &&
@@ -2250,24 +2258,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             sk_X509_pop_free(untrusted, X509_free);
             /* BIO_puts(bio_err, "error: out of memory\n"); */
             goto err;
-        }
-    } else if (!opt_crl_download) {
-        if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK_ALL) {
-            BIO_printf(bio_c_out, "error: must use -crl_download or -crls when -crl_check_all is given\n");
-#if 0
-            X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK_ALL |
-                                               X509_V_FLAG_CRL_CHECK);
-#else
-            goto err;
-#endif
-        }
-        else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
-            BIO_printf(bio_c_out, "must use -crl_download or -crls when -crl_check is given\n");
-#if 0
-            X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK);
-#else
-            goto err;
-#endif
         }
     }
 
