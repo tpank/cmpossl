@@ -195,7 +195,6 @@ static int opt_crl_download = 0;
 static char *opt_crls = NULL;
 static int opt_crl_timeout = 10;
 static X509_VERIFY_PARAM *vpm = NULL;
-static STACK_OF(X509_CRL) *local_crls = NULL;
 
 #ifndef OPENSSL_NO_OCSP
 #include <openssl/ocsp.h>
@@ -2019,7 +2018,7 @@ static int parse_addr(char **opt_string, int port, const char* name)
     return port;
 }
 
-/* verbatim from apps/s_cb.c */
+/* verbatim from apps/s_cb.c */ /* does not consume the crls */
 static int add_crls_store(X509_STORE *st, STACK_OF(X509_CRL) *crls)
 {
     X509_CRL *crl;
@@ -2032,7 +2031,7 @@ static int add_crls_store(X509_STORE *st, STACK_OF(X509_CRL) *crls)
     return 1;
 }
 
-static int set_store_parameters_crls(X509_STORE *ts) {
+static int set_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls) {
     if (!ts || !vpm)
         return 0;
 
@@ -2045,8 +2044,7 @@ static int set_store_parameters_crls(X509_STORE *ts) {
 
     X509_STORE_set_verify_cb(ts, print_cert_verify_cb);
 
-    if (local_crls &&
-        !add_crls_store(ts, local_crls)) /* ups the references to crls */
+    if (crls && !add_crls_store(ts, crls)) /* ups the references to crls */
         return 0;
 
     if (opt_crl_download)
@@ -2092,6 +2090,9 @@ while(*curr_opt != '\0') { \
 static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 {
     int certform;
+    STACK_OF(X509_CRL) *all_crls = NULL;
+    int ret = 0;
+
     if (!opt_server) {
         BIO_puts(bio_err, "error: missing server address[:port]\n");
         goto err;
@@ -2227,8 +2228,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_crls) {
         X509_CRL *crl;
         STACK_OF(X509_CRL) *crls;
-        local_crls = sk_X509_CRL_new_null();
-        if (!local_crls) {
+        if (!(all_crls = sk_X509_CRL_new_null())) {
             goto err;
         }
         OPT_ITERATE(opt_crls,
@@ -2237,7 +2237,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                 goto err;
             }
             while((crl = sk_X509_CRL_shift(crls))) {
-                if (!sk_X509_CRL_push(local_crls, crl)) {
+                if (!sk_X509_CRL_push(all_crls, crl)) {
                     sk_X509_CRL_pop_free(crls, X509_CRL_free);
                     goto err;
                 }
@@ -2354,7 +2354,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             }
             /* do immediately for automatic cleanup in case of errors: */
             SSL_CTX_set_cert_store(ssl_ctx, store);
-            if (!set_store_parameters_crls(store))
+            if (!set_store_parameters_crls(store, all_crls))
                 goto tls_err;
 #if OPENSSL_VERSION_NUMBER >= 0x10002000
             /* enable and parameterize server hostname/IP address check */
@@ -2531,7 +2531,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         if (opt_trusted) {
             ts = create_cert_store(opt_trusted, "trusted certificates");
         }
-        if (!set_store_parameters_crls(ts/* may be NULL */) ||
+        if (!set_store_parameters_crls(ts/* may be NULL */, all_crls) ||
             !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
             !CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
@@ -2542,7 +2542,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_out_trusted) { /* in preparation for use in certConf_cb() */
         out_trusted = create_cert_store(opt_out_trusted,
                              "trusted certs for verifying newly enrolled cert");
-        if (!out_trusted || !set_store_parameters_crls(out_trusted))
+        if (!out_trusted || !set_store_parameters_crls(out_trusted, all_crls))
             goto err;
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
     }
@@ -2737,11 +2737,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_out_trusted)
         (void)CMP_CTX_set_certConf_callback(ctx, certConf_cb);
 
-    return 1;
+    ret = 1;
 
  err:
-    sk_X509_CRL_pop_free(local_crls, X509_CRL_free);
-    return 0;
+    sk_X509_CRL_pop_free(all_crls, X509_CRL_free);
+    return ret;
 }
 
 /*
