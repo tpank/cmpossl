@@ -470,7 +470,7 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                          msg->header->sender->d.directoryName, NULL, 0);
         CMPerr(CMP_F_SET_SRVCERT, CMP_R_NO_VALID_SRVCERT_FOUND);
         ERR_add_error_data(2, "sender name = ", sender_name);
-        free(sender_name);
+        OPENSSL_free(sender_name);
         return NULL;
     }
 
