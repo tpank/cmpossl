@@ -69,6 +69,7 @@ static char *opt_config = NULL;
 #define CMP_SECTION "cmp"
 #define DEFAULT_SECTION "default"
 static char *opt_section = CMP_SECTION;
+#define HTTP_HDR "http://"
 
 #undef PROG
 #define PROG    cmp_main
@@ -1996,10 +1997,13 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert,
     return res;
 }
 
-static int parse_addr(char *opt_string, int port, const char* name)
+static int parse_addr(char **opt_string, int port, const char* name)
 {
-    char *port_string = strrchr(opt_string, ':');
-    if (port_string == NULL) {
+    char *port_string;
+    if (strncmp(*opt_string, HTTP_HDR, strlen(HTTP_HDR)) == 0) {
+        (*opt_string) += strlen(HTTP_HDR);
+    }
+    if ((port_string = strrchr(*opt_string, ':')) == NULL) {
         BIO_printf(bio_err, "info: using default %s port '%d'\n",
                    name, port);
         return port;
@@ -2091,7 +2095,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (!opt_server) {
         BIO_puts(bio_err, "error: missing server address[:port]\n");
         goto err;
-    } else if (!(server_port = parse_addr(opt_server, server_port, "server"))) {
+    } else if (!(server_port = parse_addr(&opt_server, server_port, "server"))) {
         goto err;
     }
     CMP_CTX_set1_serverName(ctx, opt_server);
@@ -2099,7 +2103,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     CMP_CTX_set1_serverPath(ctx, opt_path);
 
     if (opt_proxy) {
-        if (!(proxy_port = parse_addr(opt_proxy, proxy_port, "proxy"))) {
+        if (!(proxy_port = parse_addr(&opt_proxy, proxy_port, "proxy"))) {
             goto err;
         }
         CMP_CTX_set1_proxyName(ctx, opt_proxy);
