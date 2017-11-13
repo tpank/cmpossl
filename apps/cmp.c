@@ -56,6 +56,14 @@
 #include "apps.h"
 #include "s_apps.h"
 
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+#define X509_STORE_CTX_set0_verified_chain(ctx, sk) { \
+        sk_X509_pop_free((ctx)->chain, X509_free); (ctx)->chain = (sk); }
+#define X509_STORE_CTX_get_check_revocation(ctx) ((ctx)->check_revocation)
+#define X509_STORE_get_check_revocation(store) ((store)->check_revocation)
+#define X509_STORE_set_check_revocation(store,f){(store)->check_revocation=(f);}
+#endif
+
 static char *opt_config = NULL;
 #define CONFIG_FILE "openssl.cnf"
 #define CMP_SECTION "cmp"
@@ -196,6 +204,8 @@ static char *opt_ocsp_url = NULL;
 static int   opt_ocsp_timeout = 10;
 #if OPENSSL_VERSION_NUMBER < 0x1010001fL
 typedef int (*X509_STORE_CTX_check_revocation_fn)(X509_STORE_CTX *ctx);
+#define X509_V_ERR_OCSP_VERIFY_NEEDED 73  /* Need OCSP verification */
+#define X509_V_ERR_OCSP_VERIFY_FAILED 74  /* Couldn't verify cert through OCSP*/
 #endif
 X509_STORE_CTX_check_revocation_fn check_revocation = NULL;
 static int opt_ocsp_status = 0; /* unset if OPENSSL_VERSION_NUMBER<0x10100000L*/
@@ -711,7 +721,7 @@ static int load_pkcs12(BIO *in, const char *desc,
 /* TODO dvo: push that separately upstream with the autofmt options */
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 /* adapted from apps/apps.c to include connection timeout */
-static int load_cert_crl_http(const char *url, int req_timeout, X509 **pcert, X509_CRL **pcrl)
+static int load_cert_crl_http_timeout(const char *url, int req_timeout, X509 **pcert, X509_CRL **pcrl)
 {
     char *host = NULL, *port = NULL, *path = NULL;
     BIO *bio = NULL;
@@ -775,7 +785,7 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
 
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        load_cert_crl_http(file, opt_crl_timeout, &x, NULL);
+        load_cert_crl_http_timeout(file, opt_crl_timeout, &x, NULL);
 #endif
         return x;
     }
@@ -824,7 +834,7 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
     cb_data.prompt_info = file;
 
     if (format == FORMAT_HTTP) {
-        load_cert_crl_http(file, opt_crl_timeout, &x, NULL);
+        load_cert_crl_http_timeout(file, opt_crl_timeout, &x, NULL);
         return x;
     }
 
@@ -1135,7 +1145,7 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *de
     format = adjust_format(&infile, format, 0);
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        load_cert_crl_http(infile, opt_crl_timeout, NULL, &crl);
+        load_cert_crl_http_timeout(infile, opt_crl_timeout, NULL, &crl);
 #endif
         return crl;
     }
@@ -1464,8 +1474,8 @@ static X509_STORE *sk_X509_to_store(const STACK_OF(X509) *certs/* may be NULL*/)
     return store;
 }
 
-/* TODO dvo: push that separately upstream
- * ##########################################################################
+/* TODO dvo: push that separately upstream */
+/* ##########################################################################
  * * code for loading CRL via HTTP or from file, slightly adapted from apps/apps.c
  * ##########################################################################
  * This is exclusively used in load_crl_crldp()
@@ -1552,8 +1562,8 @@ static STACK_OF(X509_CRL) *LOCAL_crls_http_cb(X509_STORE_CTX *ctx, X509_NAME *nm
     return crls;
 }
 
-/* TODO dvo: push that separately upstream
- *
+/* TODO dvo: push that separately upstream */
+/*
  * This allows for local CRLs and remote lookup through the callback.
  * In upstream openssl, X509_STORE_CTX_init() sets up the STORE_CTX
  * so that CRLs already loaded to the store get ignored if a callback is set.
@@ -3034,8 +3044,9 @@ opt_err:
             opt_crls = opt_str("crls");
             break;
         case OPT_CRL_TIMEOUT:
-            if (!opt_int(opt_arg(), &opt_crl_timeout)) /* TODO replace by: if ((opt_crl_timeout = opt_nat()) < 0) */
+            if ((opt_crl_timeout = opt_nat()) < 0)
                 goto opt_err;
+            break;
 #ifndef OPENSSL_NO_OCSP
         case OPT_OCSP_CHECK_ALL:
             opt_ocsp_check_all = 1;
@@ -3047,7 +3058,7 @@ opt_err:
             opt_ocsp_url = opt_str("ocsp_url");;
             break;
         case OPT_OCSP_TIMEOUT:
-            if (!opt_int(opt_arg(), &opt_ocsp_timeout)) /* TODO replace by: if ((opt_ocsp_timeout = opt_nat()) < 0) */
+            if ((opt_ocsp_timeout = opt_nat()) < 0)
                 goto opt_err;
             break;
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
