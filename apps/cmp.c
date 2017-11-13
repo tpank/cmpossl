@@ -3226,6 +3226,7 @@ opt_err:
             badops = 1;
             goto bad_ops;
         }
+        ++argv;
     }
 #endif /* OPENSSL_VERSION_NUMBER */
 
