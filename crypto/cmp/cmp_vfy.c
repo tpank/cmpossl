@@ -521,8 +521,32 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC);
         break;
 
-    default:
         /* 5.1.3.3.  Signature */
+    default:
+
+        /* validate sender name of received msg */
+        if (msg->header->sender->type != GEN_DIRNAME) {
+            CMPerr(CMP_F_CMP_VALIDATE_MSG,
+                   CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
+            return 0; /* FR#42: support for more than X509_NAME */
+        }
+        /* Compare sender name of response with recipient name used in request.
+         * Mitigates risk to accept misused certificate of an unauthorized
+         * entity of a trusted hierarchy. */
+        if (ctx->recip_used) { /* was known and not set to NULL-DN */
+            X509_NAME *sender_name = msg->header->sender->d.directoryName;
+            if (X509_NAME_cmp(sender_name, ctx->recip_used) != 0) {
+                char *expected = X509_NAME_oneline(ctx->recip_used, NULL, 0);
+                char *actual   = X509_NAME_oneline(sender_name, NULL, 0);
+                CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
+                ERR_add_error_data(4, "expected = ", expected,
+                                   "; actual = ", actual ? actual : "(none)");
+                free(expected);
+                free(actual);
+                return 0;
+            }
+        } /* Note: if recipient was NULL-DN it could be learnt here if needed */
+
         /* TODO: should that better whitelist DSA/RSA etc.?
          * -> check all possible options from OpenSSL, should there be macro? */
         {
