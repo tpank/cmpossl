@@ -2669,7 +2669,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    if (opt_revreason >= 0)
+    if (opt_revreason > CRL_REASON_NONE)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_REVOCATION_REASON, opt_revreason);
 
     if (opt_geninfo) {

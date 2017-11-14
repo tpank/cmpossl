@@ -167,6 +167,25 @@ static int add_policy_extensions(X509_EXTENSIONS ** exts,
     return 0;
 }
 
+/* ##########################################################################
+ * Adds a CRL revocation reason code to an extension stack (which may be NULL)
+ * returns 1 on success, 0 on error
+ * ########################################################################## */
+static int add_crl_reason_extension(X509_EXTENSIONS **exts, int reason_code)
+{
+    ASN1_ENUMERATED *val = NULL;
+    X509_EXTENSION *ext = NULL;
+    int ret = 0;
+    if ((val = ASN1_ENUMERATED_new()) &&
+        ASN1_ENUMERATED_set(val, reason_code) &&
+        (ext = X509V3_EXT_i2d(NID_crl_reason, 0, val)) &&
+        X509v3_add_ext(exts, ext, 0))
+        ret = 1;
+    X509_EXTENSION_free(ext);
+    ASN1_ENUMERATED_free(val);
+    return ret;
+}
+
 /* ########################################################################## *
  * Creates a new polling request PKIMessage for the given request ID
  * returns a pointer to the PKIMessage on success, NULL on error
@@ -414,18 +433,9 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
     X509_NAME_set(&certTpl->issuer, X509_get_issuer_name(ctx->oldClCert));
 
     /* revocation reason code is optional */
-    if (ctx->revocationReason != CRL_REASON_NONE) {
-        ASN1_ENUMERATED *val;
-        X509_EXTENSION *ext;
-        val = ASN1_ENUMERATED_new();
-        if (!val || !ASN1_ENUMERATED_set(val, ctx->revocationReason))
-            goto err;
-        ext = X509_EXTENSION_create_by_NID(NULL, NID_crl_reason, 0, val);
-        if (!ext || !X509v3_add_ext(&rd->crlEntryDetails, ext, -1))
-            goto err;
-        X509_EXTENSION_free(ext);
-        ASN1_ENUMERATED_free(val);
-    }
+    if (ctx->revocationReason != CRL_REASON_NONE &&
+        !add_crl_reason_extension(&rd->crlEntryDetails, ctx->revocationReason))
+        goto err;
 
     /* TODO: the Revocation Passphrase according to section 5.3.19.9 could be
      *       set here if set in ctx */
