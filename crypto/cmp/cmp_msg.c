@@ -84,46 +84,22 @@
  *
  * returns 1 on success, 0 on error
  * ########################################################################## */
-static int add_altname_extensions(X509_EXTENSIONS ** exts,
-                                  STACK_OF (GENERAL_NAME) * altnames,
-                                  int critical)
+static int add_subjectaltnames_extension(X509_EXTENSIONS **exts,
+                                         STACK_OF(GENERAL_NAME) *sans,
+                                         int critical)
 {
     X509_EXTENSION *ext = NULL;
-    unsigned char *der = NULL;
-    ASN1_OCTET_STRING *str = NULL;
-    int dlen;
+    int ret = 0;
 
-    if (!exts)
-        goto err;
-    if (!altnames)
+    if (!exts || !sans)
         goto err;
 
-    if (!(str = ASN1_OCTET_STRING_new()))
-        goto err;
-
-    dlen = i2d_GENERAL_NAMES(altnames, &der);
-    if (dlen == 0 || der == NULL)
-        goto err;
-
-    if (!ASN1_STRING_set(str, der, dlen))
-        goto err;
-    if (!X509_EXTENSION_create_by_NID
-        (&ext, NID_subject_alt_name, critical, str))
-        goto err;
-
-    ASN1_OCTET_STRING_free(str);
-    OPENSSL_free(der);
-
-    if (!X509v3_add_ext(exts, ext, 0))
-        goto err;
-
-    X509_EXTENSION_free(ext);
-
-    return 1;
+    if ((ext = X509V3_EXT_i2d(NID_subject_alt_name, 0, sans)) &&
+        X509v3_add_ext(exts, ext, 0))
+        ret = 1;
  err:
-    if (ext)
-        X509_EXTENSION_free(ext);
-    return 0;
+    X509_EXTENSION_free(ext);
+    return ret;
 }
 
 /* ##########################################################################
@@ -136,35 +112,17 @@ static int add_policy_extensions(X509_EXTENSIONS ** exts,
                                  CERTIFICATEPOLICIES *policies)
 {
     X509_EXTENSION *ext = NULL;
-    unsigned char *der = NULL;
-    int derlen = 0;
-    ASN1_OCTET_STRING *str = NULL;
+    int ret = 0;
 
     if (!exts || !policies)
         goto err;
 
-    if (!(str = ASN1_OCTET_STRING_new()))
-        goto err;
-
-    derlen = i2d_CERTIFICATEPOLICIES(policies, &der);
-    if (!ASN1_STRING_set(str, der, derlen))
-        goto err;
-    if (!X509_EXTENSION_create_by_NID(&ext, NID_certificate_policies, 1, str))
-        goto err;
-
-    ASN1_OCTET_STRING_free(str);
-    OPENSSL_free(der);
-
-    if (!X509v3_add_ext(exts, ext, 0))
-        goto err;
-
-    X509_EXTENSION_free(ext);
-
-    return 1;
+    if ((ext = X509V3_EXT_i2d(NID_certificate_policies, 1, policies)) &&
+        X509v3_add_ext(exts, ext, 0))
+        ret = 1;
  err:
-    if (ext)
-        X509_EXTENSION_free(ext);
-    return 0;
+    X509_EXTENSION_free(ext);
+    return ret;
 }
 
 /* ##########################################################################
@@ -337,7 +295,7 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
             /* TODO: for KUR, if <= 0, maybe copy any existing SANs from
                      oldcert --> Feature Reqest #39  */
             /* RFC5280: subjectAltName MUST be critical if subject is null */
-            if (!add_altname_extensions(&exts, ctx->subjectAltNames,
+            if (!add_subjectaltnames_extension(&exts, ctx->subjectAltNames,
                                         ctx->setSubjectAltNameCritical
                                         || subject == NULL))
                 goto err;
