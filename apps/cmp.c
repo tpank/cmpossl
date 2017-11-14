@@ -776,7 +776,7 @@ static int load_cert_crl_http_timeout(const char *url, int req_timeout, X509 **p
 static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass, const char *cert_descrip)
 {
     X509 *x = NULL;
-    BIO *cert;
+    BIO *cert = NULL;
     EVP_PKEY *pkey = NULL;
     PW_CB_DATA cb_data;
 
@@ -787,7 +787,7 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
         load_cert_crl_http_timeout(file, opt_crl_timeout, &x, NULL);
 #endif
-        return x;
+        goto end;
     }
 
     if (file == NULL) {
@@ -824,7 +824,7 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
 static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass, const char *cert_descrip)
 {
     X509 *x = NULL;
-    BIO *cert;
+    BIO *cert = NULL;
 
     BIO *err = bio_err;
     EVP_PKEY *pkey = NULL;
@@ -834,8 +834,10 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
     cb_data.prompt_info = file;
 
     if (format == FORMAT_HTTP) {
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
         load_cert_crl_http_timeout(file, opt_crl_timeout, &x, NULL);
-        return x;
+#endif
+        goto end;
     }
 
     if ((cert = BIO_new(BIO_s_file())) == NULL) {
@@ -1136,7 +1138,7 @@ static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format, const 
 }
 
 /* TODO dvo: push that separately upstream */
-/* this is exclusively used by load_crls_fmt */
+/* this is used by load_crls_fmt and LOCAL_load_crl_crldp */
 static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *desc) {
     X509_CRL *crl = NULL;
     BIO *bio_bak = bio_err;
@@ -1147,13 +1149,14 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *de
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
         load_cert_crl_http_timeout(infile, opt_crl_timeout, NULL, &crl);
 #endif
-        return crl;
+        goto end;
     }
     crl = load_crl(infile, format);
     if (crl == NULL) {
         ERR_clear_error();
         crl = load_crl(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
     }
+ end:
     bio_err = bio_bak;
     if (!crl) {
         ERR_print_errors(bio_err);
@@ -1173,7 +1176,8 @@ static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const c
         STACK_OF(X509_CRL) *crls = sk_X509_CRL_new_null();
         if (!crls)
             return NULL;
-        crl = load_crl(infile, format);
+        crl = load_crl_autofmt(infile, format, desc);
+        /* using load_crl_autofmt because of http capabilities including timeout */
         if (!crl) {
             sk_X509_CRL_free(crls);
             return NULL;
@@ -1527,11 +1531,12 @@ static X509_CRL *LOCAL_load_crl_crldp(STACK_OF(DIST_POINT) *crldp)
 
 /* TODO dvo: push that separately upstream */
 /* THIS IS crls_http_cb() FROM AND LOCAL TO apps.c,
- * but using LOCAL_load_crl_crldp instead of the one from apps.c */
+ * but using LOCAL_load_crl_crldp instead of the one from apps.c
+ * This variant does support non-blocking I/O using a timeout, yet note
+ * that if opt_crl_timeout > opt_msgtimeout the latter is overridden. */
 /*
  * Example of downloading CRLs from CRLDP: not usable for real world as it
- * always downloads, doesn't support non-blocking I/O and doesn't cache
- * anything.
+ * always downloads and doesn't cache anything.
  */
 
 static STACK_OF(X509_CRL) *LOCAL_crls_http_cb(X509_STORE_CTX *ctx, X509_NAME *nm)

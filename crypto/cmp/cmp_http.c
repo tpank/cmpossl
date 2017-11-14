@@ -89,6 +89,8 @@
 
 #include "cmp_int.h"
 
+#ifndef OPENSSL_NO_SOCK
+
 /* from apps.h */
 # ifndef openssl_fdset
 #  ifdef OPENSSL_SYSNAME_WIN32
@@ -159,6 +161,7 @@ int bio_connect(BIO *bio, int timeout) {
     return rv;
 }
 
+# endif /* OPENSSL_NO_SOCK */
 
 /* ########################################################################## */
 

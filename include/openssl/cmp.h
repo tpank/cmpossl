@@ -395,9 +395,11 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
 /* from cmp_http.c */
 /* TODO dvo: push generic defs upstream with extended load_cert_crl_http(),
    simplifying also other uses, e.g., in query_responder() in apps/ocsp.c */
+#ifndef OPENSSL_NO_SOCK
 int socket_wait(int fd, int for_read, int timeout);
 int bio_wait(BIO *bio, int timeout);
 int bio_connect(BIO *bio, int timeout);
+#endif
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
 int bio_http(BIO *bio, OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time);
