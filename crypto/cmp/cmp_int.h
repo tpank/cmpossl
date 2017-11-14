@@ -24,9 +24,6 @@ void CMP_add_error_data(const char *txt);
 /* from cmp_ses.c */
 void add_error_data(const char *txt);
 
-/* from cmp_ctx.c */
-int CMP_CTX_set1_recip_used(CMP_CTX *ctx, const X509_NAME *name);
-
 /* ########################################################################## *
  * ASN.1 DECLARATIONS
  * ########################################################################## */
@@ -61,7 +58,7 @@ struct cmp_ctx_st {
     X509 *newClCert; /* *new* CLIENT certificate received from the CA
      * TODO: this should be a stack since there could be more than one */
     X509_NAME *recipient; /* to set in recipient in pkiheader */
-    X509_NAME *recip_used; /* recipient actually used in pkiheader */
+    X509_NAME *expected_sender; /* expected sender in pkiheader of response */
     ASN1_OCTET_STRING *transactionID; /* the current transaction ID */
     ASN1_OCTET_STRING *recipNonce; /* last nonce received */
     STACK_OF(CMP_INFOTYPEANDVALUE) *geninfo_itavs;

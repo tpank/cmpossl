@@ -110,7 +110,7 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, lastStatusString, ASN1_UTF8STRING),
     ASN1_OPT(CMP_CTX, newClCert, X509),
     ASN1_OPT(CMP_CTX, recipient, X509_NAME),
-    ASN1_OPT(CMP_CTX, recip_used, X509_NAME),
+    ASN1_OPT(CMP_CTX, expected_sender, X509_NAME),
     ASN1_OPT(CMP_CTX, transactionID, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, recipNonce, ASN1_OCTET_STRING),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, geninfo_itavs, CMP_INFOTYPEANDVALUE),
@@ -757,30 +757,29 @@ int CMP_CTX_set1_recipient(CMP_CTX *ctx, const X509_NAME *name)
 }
 
 /* ################################################################ *
- * Store the X509 name of the recipient used in the PKIHeader.
- * internal function
+ * Store the X509 name of the expected sender in the PKIHeader of responses.
  * returns 1 on success, 0 on error
  * ################################################################ */
-int CMP_CTX_set1_recip_used(CMP_CTX *ctx, const X509_NAME *name)
+int CMP_CTX_set1_expected_sender(CMP_CTX *ctx, const X509_NAME *name)
 {
     if (!ctx)
         goto err;
 
-    if (ctx->recip_used) {
-        X509_NAME_free(ctx->recip_used);
-        ctx->recip_used = NULL;
+    if (ctx->expected_sender) {
+        X509_NAME_free(ctx->expected_sender);
+        ctx->expected_sender = NULL;
     }
 
     if (!name)
         return 1;
 
-    if (!(ctx->recip_used = X509_NAME_dup((X509_NAME *)name))) {
-        CMPerr(CMP_F_CMP_CTX_SET1_RECIP_USED, CMP_R_OUT_OF_MEMORY);
+    if (!(ctx->expected_sender = X509_NAME_dup((X509_NAME *)name))) {
+        CMPerr(CMP_F_CMP_CTX_SET1_EXPECTED_SENDER, CMP_R_OUT_OF_MEMORY);
         return 0;
     }
     return 1;
  err:
-    CMPerr(CMP_F_CMP_CTX_SET1_RECIP_USED, CMP_R_NULL_ARGUMENT);
+    CMPerr(CMP_F_CMP_CTX_SET1_EXPECTED_SENDER, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 

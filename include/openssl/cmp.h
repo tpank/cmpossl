@@ -325,6 +325,7 @@ CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
                                                 long reqId);
 int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
 int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
+int CMP_CTX_set1_expected_sender(CMP_CTX *ctx, const X509_NAME *name);
 int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
                                      const ASN1_OCTET_STRING
                                      *transactionID);
@@ -567,7 +568,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_PROXYNAME                     132
 # define CMP_F_CMP_CTX_SET1_RECIPIENT                     133
 # define CMP_F_CMP_CTX_SET1_RECIPNONCE                    134
-# define CMP_F_CMP_CTX_SET1_RECIP_USED                    135
+# define CMP_F_CMP_CTX_SET1_EXPECTED_SENDER               135
 # define CMP_F_CMP_CTX_SET1_REFERENCEVALUE                136
 # define CMP_F_CMP_CTX_SET1_SECRETVALUE                   137
 # define CMP_F_CMP_CTX_SET1_SERVERNAME                    138

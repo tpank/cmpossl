@@ -533,10 +533,10 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         /* Compare sender name of response with recipient name used in request.
          * Mitigates risk to accept misused certificate of an unauthorized
          * entity of a trusted hierarchy. */
-        if (ctx->recip_used) { /* was known and not set to NULL-DN */
+        if (ctx->expected_sender) { /* was known and not set to NULL-DN */
             X509_NAME *sender_name = msg->header->sender->d.directoryName;
-            if (X509_NAME_cmp(sender_name, ctx->recip_used) != 0) {
-                char *expected = X509_NAME_oneline(ctx->recip_used, NULL, 0);
+            if (X509_NAME_cmp(sender_name, ctx->expected_sender) != 0) {
+                char *expected = X509_NAME_oneline(ctx->expected_sender,NULL,0);
                 char *actual   = X509_NAME_oneline(sender_name, NULL, 0);
                 CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
                 ERR_add_error_data(4, "expected = ", expected,

@@ -61,7 +61,7 @@ static ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_FUNC(CMP_F_CMP_CTX_SET1_PROXYNAME), "CMP_CTX_set1_proxyName"},
     {ERR_FUNC(CMP_F_CMP_CTX_SET1_RECIPIENT), "CMP_CTX_set1_recipient"},
     {ERR_FUNC(CMP_F_CMP_CTX_SET1_RECIPNONCE), "CMP_CTX_set1_recipNonce"},
-    {ERR_FUNC(CMP_F_CMP_CTX_SET1_RECIP_USED), "CMP_CTX_set1_recip_used"},
+    {ERR_FUNC(CMP_F_CMP_CTX_SET1_EXPECTED_SENDER), "CMP_CTX_set1_expected_sender"},
     {ERR_FUNC(CMP_F_CMP_CTX_SET1_REFERENCEVALUE),
      "CMP_CTX_set1_referenceValue"},
     {ERR_FUNC(CMP_F_CMP_CTX_SET1_SECRETVALUE), "CMP_CTX_set1_secretValue"},

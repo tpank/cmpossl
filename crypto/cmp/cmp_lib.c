@@ -422,7 +422,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         goto err;
 
     /* determined recipient stored for checking sender of rcvd message */
-    if (!(rcp = ctx->recip_used)) {
+    if (!(rcp = ctx->expected_sender)) {
         if (ctx->srvCert)
             rcp = X509_get_subject_name(ctx->srvCert);
         else if (ctx->recipient)
@@ -434,7 +434,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         else if (ctx->clCert)
             rcp = X509_get_issuer_name(ctx->clCert);
 
-        CMP_CTX_set1_recip_used(ctx, rcp);
+        CMP_CTX_set1_expected_sender(ctx, rcp);
     }
     if (!CMP_PKIHEADER_set1_recipient(hdr, rcp))
         goto err;
