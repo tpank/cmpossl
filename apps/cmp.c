@@ -1070,7 +1070,7 @@ static X509 *load_cert_autofmt(const char *infile, int *format, const char *pass
     bio_err = bio_bak;
     if (!cert) {
         ERR_print_errors(bio_err);
-        BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc, infile);
+        BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, infile);
     }
     if (pass_string)
         OPENSSL_clear_free(pass_string, strlen(pass_string));
@@ -1104,11 +1104,21 @@ static STACK_OF(X509) *load_certs_fmt(const char *infile, int format, const char
     X509 *cert;
     if (format == FORMAT_PEM) {
         return load_certs(bio_err, infile, format, NULL, NULL, desc);
+    }
+    else if (format == FORMAT_PKCS12) {
+        STACK_OF(X509) *certs = NULL;
+        BIO *bio = bio_open_default(infile, 'r', format);
+        if (bio != NULL) {
+            if (!load_pkcs12(bio, desc, NULL, NULL, NULL, NULL, &certs))
+                certs = NULL;
+            BIO_free(bio);
+        }
+        return certs;
     } else {
         STACK_OF(X509) *certs = sk_X509_new_null();
         if (!certs)
             return NULL;
-        cert = load_cert(bio_err, infile, format, NULL, NULL, desc);
+        cert = load_cert_corrected_pkcs12(infile, format, NULL, desc);
         if (!cert) {
             sk_X509_free(certs);
             return NULL;
@@ -1440,35 +1450,14 @@ static int ocsp_resp_cb(SSL *ssl, void *arg)
 }
 
 #endif /* !defined OPENSSL_NO_OCSP */
-/*
- * ##########################################################################
- * * create cert store structure with certificates read from given file
- * returns pointer to created X509_STORE on success, NULL on error
- * ##########################################################################
- */
-static X509_STORE *create_cert_store(const char *infile, const char *desc)
-{
-    X509_STORE *store;
-    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
-    if (opt_certform != FORMAT_PEM)
-        BIO_printf(bio_c_out, "warning: unsupported type '%s' for reading %s, trying PEM\n", opt_certform_s, desc);
 
-    /* TODO: extend upstream setup_verify() to allow for further file formats, in particular PKCS12 */
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
-    store = setup_verify(bio_err, (char *)infile, NULL/* CApath */);
-#else
-    store = setup_verify(infile, NULL/* CApath */, 1/* noCAfile */, 1/* noCApath */);
-#endif
-    if (!store)
-        BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, infile);
-    return store;
-}
-
-static X509_STORE *sk_X509_to_store(const STACK_OF(X509) *certs/* may be NULL*/)
+static X509_STORE *sk_X509_to_store(X509_STORE *store/* may be NULL*/,
+                                    const STACK_OF(X509) *certs/* may be NULL*/)
 {
-    X509_STORE *store = X509_STORE_new();
     int i;
 
+    if (!store)
+        store = X509_STORE_new();
     if (!store)
         return NULL;
     for (i = 0; i < sk_X509_num(certs); i++) {
@@ -2102,6 +2091,35 @@ static int set_name(const char *str,
 
 /*
  * ##########################################################################
+ * * create cert store structure with certificates read from given file(s)
+ * returns pointer to created X509_STORE on success, NULL on error
+ * ##########################################################################
+ */
+static X509_STORE *create_cert_store(char *input, const char *desc)
+{
+    X509_STORE *store = NULL;
+    STACK_OF(X509) *certs = NULL;
+
+    if (!input)
+        return NULL;
+
+    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
+    OPT_ITERATE(input,
+        if (!(certs = load_certs_autofmt(input,
+                                 opt_certform, desc)) ||
+            !(store = sk_X509_to_store(store, certs))) {
+            /* BIO_puts(bio_err, "error: out of memory\n"); */
+            sk_X509_pop_free(certs, X509_free);
+            X509_STORE_free(store);
+            return NULL;
+        }
+        sk_X509_pop_free(certs, X509_free);
+    )
+    return store;
+}
+
+/*
+ * ##########################################################################
  * * set up the CMP_CTX structure based on options from config file/CLI
  * while parsing options and checking their consistency.
  * Prints reason for error to bio_err.
@@ -2389,7 +2407,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
         {
             X509_STORE *untrusted =
-                sk_X509_to_store(CMP_CTX_get0_untrusted_certs(ctx));
+                sk_X509_to_store(NULL, CMP_CTX_get0_untrusted_certs(ctx));
             /* do immediately for automatic cleanup in case of errors: */
             if (!SSL_CTX_set0_chain_cert_store(ssl_ctx, untrusted/*may be 0*/))
                 goto tls_err;

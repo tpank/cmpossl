@@ -20,7 +20,7 @@ B<openssl> B<cmp>
 [B<-recipient name>]
 [B<-expected_sender name>]
 [B<-srvcert filename>]
-[B<-trusted filename>]
+[B<-trusted filenames>]
 [B<-untrustedE<nbsp>filenames>]
 [B<-ignore_keyusage>]
 
@@ -49,7 +49,7 @@ B<openssl> B<cmp>
 [B<-implicitconfirm>]
 [B<-disableconfirm>]
 [B<-certout filename>]
-[B<-out-trusted filename>]
+[B<-out-trusted filenames>]
 [B<-verify_hostname cn>]
 [B<-verify_ip ip>]
 [B<-verify_email email>]
@@ -66,7 +66,7 @@ B<openssl> B<cmp>
 [B<-tls-cert filename>]
 [B<-tls-key filename>]
 [B<-tls-keypass arg>]
-[B<-tls-trusted filename>]
+[B<-tls-trusted filenames>]
 [B<-tls-host name>]
 
 [B<-crl_check>]
@@ -209,10 +209,13 @@ If set, the issuer of the certificate is also used as the recipient of the CMP
 request and as the expected sender of the CMP response,
 overriding any potential B<-recipient> option.
 
-=item B<-trusted filename>
+=item B<-trusted filenames>
 
 Trusted CA certificate(s) to use for CMP server authentication
 when verifying responses, unless the B<-srvcert> option is given.
+
+Multiple file names or URLs may be given, separated by commas or whitespace.
+Each source may contain multiple certificates.
 
 =item B<-untrusted filenames>
 
@@ -222,8 +225,8 @@ the CMP server (when verifying signature-based message protection),
 the TLS server (when establishing TLS connections),
 and/or the newly enrolled certificate (when verifying a certificate response).
 
-Multiple file names may be given, separated by commas or whitespace.
-Each file may contain multiple certificates.
+Multiple file names or URLs may be given, separated by commas or whitespace.
+Each source may contain multiple certificates.
 
 
 =item B<-ignore_keyusage>]
@@ -436,9 +439,12 @@ cope with broken servers not supporting implicit confirmation correctly.
 
 The file where the newly enrolled certificate should be saved.
 
-=item B<-out-trusted filename>
+=item B<-out-trusted filenames>
 
 Trusted certificate(s) to use for verifying the newly enrolled certificate.
+
+Multiple file names or URLs may be given, separated by commas or whitespace.
+Each source may contain multiple certificates.
 
 =item B<-verify_hostname cn>, B<-verify_ip ip>, B<-verify_email email>
 
@@ -543,10 +549,13 @@ If not given here, the password will be prompted for if needed.
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
-=item B<-tls-trusted filename>
+=item B<-tls-trusted filenames>
 
 Trusted certificate(s) to use for verifying the TLS server certificate.
 This implies host name validation.
+
+Multiple file names or URLs may be given, separated by commas or whitespace.
+Each source may contain multiple certificates.
 
 =item B<-tls-host name>
 
