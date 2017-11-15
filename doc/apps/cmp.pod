@@ -58,6 +58,7 @@ B<openssl> B<cmp>
 [B<-revreason number>]
 [B<-infotype name>]
 
+[B<-storepass arg>]
 [B<-certform DER|PEM|P12>]
 [B<-keyform DER|PEM|P12>]
 [B<-engine id>]
@@ -249,9 +250,11 @@ Reference value to use when messages are authenticated with pre-shared keys
 =item B<-secret arg>
 
 Source for secret value to use when messages are authenticated with
-pre-shared keys (password-based MAC).For more information about the format of
-B<arg> see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.  Implies that
-the B<-ref> option is also given.
+pre-shared keys (password-based MAC).
+Implies that the B<-ref> option is also given.
+
+For more information about the format of B<arg> see the
+B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-cert filename>
 
@@ -271,6 +274,7 @@ the B<-cert> option.
 
 Pass phrase source for the private key given with the B<-key> option.
 If not given here, the password will be prompted for if needed.
+
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
@@ -389,6 +393,7 @@ in IR, CR or KUR.  Default is the current client key if given.
 
 Pass phrase source for the key given with the B<-newkey> option.
 If not given here, the password will be prompted for if needed.
+
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
@@ -499,6 +504,16 @@ e.g., 'signKeyPairTypes'.
 
 =over 4
 
+=item B<-storepass arg>
+
+Pass phrase source for any certificate stores given with the B<-trusted>,
+B<-untrusted>, B<-out-trusted>, or B<-tls-trusted> options.
+If not given here, the password will be prompted for if needed.
+
+For more information about the format of B<arg> see the
+B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+
+
 =item B<-certform DER|PEM|P12>
 
 Format to try first when reading and to use for writing certificate files.
@@ -546,6 +561,7 @@ Private key for the client's TLS certificate.
 
 Pass phrase source for client's private TLS key.
 If not given here, the password will be prompted for if needed.
+
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
