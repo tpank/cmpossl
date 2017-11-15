@@ -413,7 +413,7 @@ OPTIONS cmp_options[] = {
     {"cert", OPT_CERT, 's', "Client's current certificate (needed unless using PSK)"},
     {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
     {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
-    {"extracerts", OPT_EXTRACERTS, 's', "Certificates to include in the extraCerts field of request"},
+    {"extracerts", OPT_EXTRACERTS, 's', "Certificates to append in extraCerts field when signing requests"},
 
     {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
     {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
@@ -2124,7 +2124,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     if (!input)
         return NULL;
 
-    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
+    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, input); */
     OPT_ITERATE(input,
         if (!(certs = load_certs_autofmt(input, opt_storeform, 1,
                                          opt_storepass, desc)) ||
@@ -2137,6 +2137,38 @@ static X509_STORE *load_certstore(char *input, const char *desc)
         sk_X509_pop_free(certs, X509_free);
     )
     return store;
+}
+
+static int load_untrusted(char *input,
+                          int (*set_fn)(CMP_CTX *ctx, STACK_OF(X509) *certs),
+                          CMP_CTX *ctx, const char *desc)
+{
+    STACK_OF(X509) *certs, *all_certs;
+    int ret = 0;
+    if (!input)
+        return 1;
+
+    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, input); */
+    if (!(all_certs = sk_X509_new_null())) {
+        goto oom;
+    }
+    OPT_ITERATE(input,
+        if (!(certs = load_certs_autofmt(input, opt_storeform, 0,
+                                         opt_storepass, desc)) ||
+            !CMP_sk_X509_add1_certs(all_certs, certs, 0, 1/*no dups*/)) {
+                goto oom;
+        }
+        sk_X509_pop_free(certs, X509_free);
+    )
+    if ((*set_fn)(ctx, all_certs)) {
+        ret = 1;
+    } else {
+    oom:
+        /* BIO_puts(bio_err, "error: out of memory\n"); */
+        ret = 0;
+    }
+    sk_X509_pop_free(all_certs, X509_free);
+    return ret;
 }
 
 /*
@@ -2326,29 +2358,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         )
     }
 
-    if (opt_untrusted) {
-        STACK_OF(X509) *certs, *untrusted = sk_X509_new_null();
-        if (!untrusted) {
-            goto oom;
-        }
-        OPT_ITERATE(opt_untrusted,
-            if (!(certs = load_certs_autofmt(opt_untrusted, opt_storeform, 0,
-                                    opt_storepass, "untrusted certificates")) ||
-                !CMP_sk_X509_add1_certs(untrusted, certs, 0, 1/*no dups*/)) {
-                    sk_X509_pop_free(certs, X509_free);
-                    goto oom;
-            }
-            sk_X509_pop_free(certs, X509_free);
-        )
-        if (CMP_CTX_set1_untrusted_certs(ctx, untrusted)) {
-            sk_X509_pop_free(untrusted, X509_free);
-        } else {
-        oom:
-            sk_X509_pop_free(untrusted, X509_free);
-            /* BIO_puts(bio_err, "error: out of memory\n"); */
-            goto err;
-        }
-    }
+    if (!load_untrusted(opt_untrusted, CMP_CTX_set1_untrusted_certs, ctx,
+                        "untrusted certificates"))
+        goto err;
 
 #ifndef OPENSSL_NO_OCSP
 #ifdef OCSP_USE_UNTRUSTED_CERTS
@@ -2575,15 +2587,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         X509_free(clcert);
     }
 
-    if (opt_extracerts) {
-        STACK_OF(X509) *extracerts = load_certs_autofmt(opt_extracerts,
-                         opt_storeform, 0, opt_storepass, "extra certificates");
-        if (!extracerts || !CMP_CTX_set1_extraCertsOut(ctx, extracerts)) {
-            sk_X509_pop_free(extracerts, X509_free);
-            goto err;
-        }
-        sk_X509_pop_free(extracerts, X509_free);
-    }
+    if (!load_untrusted(opt_extracerts, CMP_CTX_set1_extraCertsOut, ctx,
+                        "extra certificates"))
+        goto err;
 
     certform = opt_certform;
     if (opt_srvcert || opt_trusted) {

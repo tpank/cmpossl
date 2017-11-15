@@ -21,7 +21,7 @@ B<openssl> B<cmp>
 [B<-expected_sender name>]
 [B<-srvcert filename>]
 [B<-trusted filenames>]
-[B<-untrustedE<nbsp>filenames>]
+[B<-untrustedE<nbsp>sources>]
 [B<-ignore_keyusage>]
 
 [B<-ref value>]
@@ -29,7 +29,7 @@ B<openssl> B<cmp>
 [B<-cert filename>]
 [B<-key filename>]
 [B<-keypass arg>]
-[B<-extracerts filename>]
+[B<-extracerts sources>]
 
 [B<-cmd ir|cr|kur|p10cr|rr|genm>]
 [B<-geninfo OID:int:N>]
@@ -220,7 +220,7 @@ when verifying responses, unless the B<-srvcert> option is given.
 Multiple file names may be given, separated by commas or whitespace.
 Each source may contain multiple certificates.
 
-=item B<-untrusted filenames>
+=item B<-untrusted sources>
 
 Non-trusted intermediate certificate(s) that may be useful for constructing
 certificate chains for
@@ -280,9 +280,12 @@ If not given here, the password will be prompted for if needed.
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
-=item B<-extracerts filename>
+=item B<-extracerts sources>
 
-File or URL with certificates to include in the extraCerts field of requests.
+Certificates to append in the extraCerts field when signing sent messages.
+
+Multiple file names or URLs may be given, separated by commas or whitespace.
+Each source may contain multiple certificates.
 
 =back
 
