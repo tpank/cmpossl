@@ -29,7 +29,7 @@ B<openssl> B<cmp>
 [B<-cert filename>]
 [B<-key filename>]
 [B<-keypass arg>]
-[B<-extcerts filename>]
+[B<-extracerts filename>]
 
 [B<-cmd ir|cr|kur|p10cr|rr|genm>]
 [B<-geninfo OID:int:N>]
@@ -280,9 +280,9 @@ If not given here, the password will be prompted for if needed.
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
-=item B<-extcerts filename>
+=item B<-extracerts filename>
 
-File with certificates to include in the extraCerts field of requests.
+File or URL with certificates to include in the extraCerts field of requests.
 
 =back
 
@@ -509,7 +509,7 @@ e.g., 'signKeyPairTypes'.
 =item B<-storepass arg>
 
 Pass phrase source for any certificate stores given with the B<-trusted>,
-B<-untrusted>, B<-out-trusted>, or B<-tls-trusted> options.
+B<-untrusted>, B<-out-trusted>, B<-extracerts>, or B<-tls-trusted> options.
 If not given here, the password will be prompted for if needed.
 
 For more information about the format of B<arg> see the

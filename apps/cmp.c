@@ -180,7 +180,7 @@ static char *opt_secret = NULL;
 static char *opt_cert = NULL;
 static char *opt_key = NULL;
 static char *opt_keypass = NULL;
-static char *opt_extcerts = NULL;
+static char *opt_extracerts = NULL;
 
 static char *opt_certout = NULL;
 static char *opt_out_trusted = NULL;
@@ -348,7 +348,7 @@ typedef enum OPTION_choice {
     OPT_RECIPIENT, OPT_EXPECTED_SENDER, OPT_SRVCERT,
     OPT_TRUSTED, OPT_UNTRUSTED, OPT_IGNORE_KEYUSAGE,
 
-    OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
+    OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTRACERTS,
 
     OPT_CMD, OPT_GENINFO, OPT_DIGEST,
     OPT_UNPROTECTEDREQUESTS, OPT_UNPROTECTEDERRORS,
@@ -413,7 +413,7 @@ OPTIONS cmp_options[] = {
     {"cert", OPT_CERT, 's', "Client's current certificate (needed unless using PSK)"},
     {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
     {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
-    {"extcerts", OPT_EXTCERTS, 's', "Certificates to include in the extraCerts field of request"},
+    {"extracerts", OPT_EXTRACERTS, 's', "Certificates to include in the extraCerts field of request"},
 
     {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
     {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
@@ -514,7 +514,8 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     {&opt_recipient}, {&opt_expected_sender}, {&opt_srvcert},
     {&opt_trusted}, {&opt_untrusted}, { (char **)&opt_ignore_keyusage},
 
-    {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
+    {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass},
+    {&opt_extracerts},
 
     {&opt_cmd_s}, {&opt_geninfo}, {&opt_digest},
     { (char **)&opt_unprotectedRequests}, { (char **)&opt_unprotectedErrors},
@@ -2570,8 +2571,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         X509_free(clcert);
     }
 
-    if (opt_extcerts) {
-        STACK_OF(X509) *extracerts = load_certs_autofmt(opt_extcerts,
+    if (opt_extracerts) {
+        STACK_OF(X509) *extracerts = load_certs_autofmt(opt_extracerts,
                             opt_storeform, opt_storepass, "extra certificates");
         if (!extracerts || !CMP_CTX_set1_extraCertsOut(ctx, extracerts)) {
             sk_X509_pop_free(extracerts, X509_free);
@@ -3138,8 +3139,8 @@ opt_err:
         case OPT_CRLFORM:
             opt_crlform_s = opt_str("crlform");
             break;
-        case OPT_EXTCERTS:
-            opt_extcerts = opt_str("extcerts");
+        case OPT_EXTRACERTS:
+            opt_extracerts = opt_str("extracerts");
             break;
         case OPT_SUBJECT:
             opt_subject = opt_str("subject");
