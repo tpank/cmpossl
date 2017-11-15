@@ -176,7 +176,7 @@ ASN1_TYPE *CMP_INFOTYPEANDVALUE_get0_value(CMP_INFOTYPEANDVALUE *itav)
 }
 
 int CMP_INFOTYPEANDVALUE_stack_item_push0(
-                              STACK_OF (CMP_INFOTYPEANDVALUE) **itav_sk_p,
+                              STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,
                               const CMP_INFOTYPEANDVALUE *itav)
 {
     int created = 0;

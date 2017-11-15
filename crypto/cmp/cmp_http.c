@@ -293,7 +293,7 @@ typedef BIO CMPBIO;
  * returns 1 on success, 0 on error, returns the created bio inside the *bio
  * argument
  * ########################################################################## */
-static int CMP_new_http_bio(CMPBIO ** bio, const CMP_CTX *ctx)
+static int CMP_new_http_bio(CMPBIO **bio, const CMP_CTX *ctx)
 {
     BIO *cbio = NULL;
 

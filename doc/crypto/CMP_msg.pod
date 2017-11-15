@@ -13,13 +13,13 @@
 
  #include <openssl/cmp.h>
 
- CMP_PKIMESSAGE * CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code);
- CMP_PKIMESSAGE * CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
- CMP_PKIMESSAGE * CMP_pollReq_new(CMP_CTX *ctx, int reqId);
- CMP_PKIMESSAGE * CMP_genm_new(CMP_CTX *ctx);
- CMP_PKIMESSAGE * CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
-                                int errorCode,
-                                STACK_OF (ASN1_UTF8STRING) *errorDetails);
+ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code);
+ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
+ CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
+ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx);
+ CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
+                               int errorCode,
+                               STACK_OF(ASN1_UTF8STRING) *errorDetails);
 
 =head1 DESCRIPTION
 

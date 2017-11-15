@@ -108,7 +108,7 @@ static int add_subjectaltnames_extension(X509_EXTENSIONS **exts,
  *
  * returns 1 on success, 0 on error
  * ########################################################################## */
-static int add_policy_extensions(X509_EXTENSIONS ** exts,
+static int add_policy_extensions(X509_EXTENSIONS **exts,
                                  CERTIFICATEPOLICIES *policies)
 {
     X509_EXTENSION *ext = NULL;
@@ -200,7 +200,7 @@ static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin) {
     return NULL;
 }
 
-static X509_NAME* determine_subj(CMP_CTX *ctx, X509 *oldcert, int bodytype) {
+static X509_NAME*determine_subj(CMP_CTX *ctx, X509 *oldcert, int bodytype) {
     if (ctx->subjectName)
         return ctx->subjectName;
     else if (oldcert && (bodytype == V_CMP_PKIBODY_KUR ||

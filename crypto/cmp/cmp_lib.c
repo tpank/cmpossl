@@ -815,7 +815,7 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
         /* if we have untrusted store, try to add all the intermediate certs and
          * our own */
         if (ctx->untrusted_certs) {
-            STACK_OF (X509) * chain =
+            STACK_OF(X509) *chain =
                 CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
             /* Our own cert will be sent first */
             CMP_sk_X509_add1_certs(msg->extraCerts, chain,
@@ -1033,7 +1033,7 @@ int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg,
  *
  * returns 1 on success, 0 on error
  * ########################################################################## */
-int CMP_ITAV_stack_item_push0(STACK_OF (CMP_INFOTYPEANDVALUE) ** itav_sk_p,
+int CMP_ITAV_stack_item_push0(STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,
                               const CMP_INFOTYPEANDVALUE *itav)
 {
     int created = 0;
@@ -1571,10 +1571,10 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
  *      - the (self-signed) trust anchor is not included
  *      returns NULL on error
  * ########################################################################## */
-STACK_OF (X509) *CMP_build_cert_chain(const STACK_OF (X509) *certs,
-                                      const X509 *cert)
+STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
+                                     const X509 *cert)
 {
-    STACK_OF (X509) * chain = NULL, *result = NULL;
+    STACK_OF(X509) *chain = NULL, *result = NULL;
     X509_STORE *store = X509_STORE_new();
     X509_STORE_CTX *csc = NULL;
 
@@ -1585,7 +1585,7 @@ STACK_OF (X509) *CMP_build_cert_chain(const STACK_OF (X509) *certs,
     if (!csc)
         goto err;
 
-    CMP_X509_STORE_add1_certs(store, (STACK_OF (X509) *)certs, 0);
+    CMP_X509_STORE_add1_certs(store, (STACK_OF(X509) *)certs, 0);
     if (!X509_STORE_CTX_init(csc, store, (X509 *)cert, NULL))
         goto err;
 
@@ -1610,12 +1610,12 @@ STACK_OF (X509) *CMP_build_cert_chain(const STACK_OF (X509) *certs,
  * Add certificate to given stack, optionally only if not already contained
  * returns 1 on success, 0 on error
  * ########################################################################## */
-static int X509_cmp_from_ptrs(const struct x509_st * const *a,
-                              const struct x509_st * const *b)
+static int X509_cmp_from_ptrs(const struct x509_st *const *a,
+                              const struct x509_st *const *b)
 {
     return X509_cmp(*a, *b);
 }
-int CMP_sk_X509_add1_cert(STACK_OF (X509) *sk, X509 *cert, int not_duplicate)
+int CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert, int not_duplicate)
 {
     if (not_duplicate) {
         sk_X509_set_cmp_func(sk, &X509_cmp_from_ptrs);
@@ -1633,7 +1633,7 @@ int CMP_sk_X509_add1_cert(STACK_OF (X509) *sk, X509 *cert, int not_duplicate)
  * certs parameter may be NULL.
  * returns 1 on success, 0 on error
  * ########################################################################## */
-int CMP_sk_X509_add1_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
+int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
                       int no_self_signed, int no_duplicates)
 {
     int i;
@@ -1658,7 +1658,7 @@ int CMP_sk_X509_add1_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
  * certs parameter may be NULL.
  * returns 1 on success, 0 on error
  * ########################################################################## */
-int CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF (X509) *certs,
+int CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                          int only_self_signed)
 {
     int i;

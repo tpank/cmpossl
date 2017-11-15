@@ -10,7 +10,7 @@
  #include <openssl/cmp.h>
  int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
  int CMP_validate_cert_path(X509_STORE *trusted_store,
-                            const STACK_OF (X509) *untrusted_certs, X509 *cert);
+                            const STACK_OF(X509) *untrusted_certs, X509 *cert);
 
 =head1 DESCRIPTION
 

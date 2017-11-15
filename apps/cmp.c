@@ -1709,9 +1709,9 @@ static int check_cert(X509_STORE_CTX *ctx)
 {
     int i, ok;
     X509 *cert;
-    STACK_OF (X509) *chain = X509_STORE_CTX_get1_chain(ctx);
+    STACK_OF(X509) *chain = X509_STORE_CTX_get1_chain(ctx);
     int cnum = X509_STORE_CTX_get_error_depth(ctx);
-    STACK_OF (X509) *tmp_chain = sk_X509_new_null();
+    STACK_OF(X509) *tmp_chain = sk_X509_new_null();
 
     if (!chain || !tmp_chain) {
     oom:
@@ -1748,7 +1748,7 @@ static int check_cert(X509_STORE_CTX *ctx)
    OCSP stapling if enabled, then OCSP if enabled, then using CRLs if enabled */
 static int check_ocsp_crls(X509_STORE_CTX *ctx)
 {
-    STACK_OF (X509) *chain = X509_STORE_CTX_get0_chain(ctx);
+    STACK_OF(X509) *chain = X509_STORE_CTX_get0_chain(ctx);
     int i, last, num = sk_X509_num(chain);
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
     int ocsp_check = opt_ocsp_use_aia || opt_ocsp_url || opt_ocsp_check_all;
@@ -1976,7 +1976,7 @@ static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert,
                        const char **text)
 {
     int res = -1; /* indicating "ok" here */
-    STACK_OF (X509) *untrusted = sk_X509_new_null();
+    STACK_OF(X509) *untrusted = sk_X509_new_null();
     if (!untrusted ||
         !CMP_sk_X509_add1_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx),
                                 0, 1/* no dups */)) {

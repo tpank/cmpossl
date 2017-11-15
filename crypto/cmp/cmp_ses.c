@@ -810,11 +810,11 @@ X509 *CMP_exec_P10CR_ses(CMP_CTX *ctx)
  *
  * returns pointer to stack of ITAVs received in the answer or NULL on error
  * ########################################################################## */
-STACK_OF (CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx)
+STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx)
 {
     CMP_PKIMESSAGE *genm = NULL;
     CMP_PKIMESSAGE *genp = NULL;
-    STACK_OF (CMP_INFOTYPEANDVALUE) *rcvd_itavs = NULL;
+    STACK_OF(CMP_INFOTYPEANDVALUE) *rcvd_itavs = NULL;
 
     if (!(genm = CMP_genm_new(ctx)))
         goto err;

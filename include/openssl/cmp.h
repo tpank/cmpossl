@@ -450,21 +450,21 @@ int CMP_CTX_set1_issuer(CMP_CTX *ctx, const X509_NAME *name);
 int CMP_CTX_set1_subjectName(CMP_CTX *ctx, const X509_NAME *name);
 int CMP_CTX_set1_recipient(CMP_CTX *ctx, const X509_NAME *name);
 int CMP_CTX_subjectAltName_push1(CMP_CTX *ctx, const GENERAL_NAME *name);
-STACK_OF(X509) * CMP_CTX_caPubs_get1(CMP_CTX *ctx);
+STACK_OF(X509) *CMP_CTX_caPubs_get1(CMP_CTX *ctx);
 X509 *CMP_CTX_caPubs_pop(CMP_CTX *ctx);
 int CMP_CTX_caPubs_num(CMP_CTX *ctx);
-int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF (X509) * caPubs);
+int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF (X509) *caPubs);
 int CMP_CTX_policyOID_push1(CMP_CTX *ctx, const char *policyOID);
 int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, const CMP_INFOTYPEANDVALUE *itav);
 int CMP_CTX_genm_itav_push0(CMP_CTX *ctx, const CMP_INFOTYPEANDVALUE *itav);
 
 int CMP_CTX_set1_extraCertsOut(CMP_CTX *ctx,
-                               const STACK_OF (X509) * extraCertsOut);
+                               const STACK_OF (X509) *extraCertsOut);
 int CMP_CTX_extraCertsOut_push1(CMP_CTX *ctx, const X509 *val);
 int CMP_CTX_extraCertsOut_num(CMP_CTX *ctx);
-STACK_OF(X509) * CMP_CTX_extraCertsIn_get1(CMP_CTX *ctx);
+STACK_OF(X509) *CMP_CTX_extraCertsIn_get1(CMP_CTX *ctx);
 int CMP_CTX_set1_extraCertsIn(CMP_CTX *ctx,
-                              const STACK_OF (X509) * extraCertsIn);
+                              const STACK_OF (X509) *extraCertsIn);
 X509 *CMP_CTX_extraCertsIn_pop(CMP_CTX *ctx);
 int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx);
 
@@ -485,7 +485,7 @@ BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx);
 int CMP_CTX_set_msg_transfer(CMP_CTX *ctx, cmp_transfer_fn_t cb);
 int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
 int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
-int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO * failInfo);
+int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo);
 unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
 long CMP_CTX_status_get(CMP_CTX *ctx);
 CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx);

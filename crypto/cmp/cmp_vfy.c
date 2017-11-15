@@ -184,7 +184,7 @@ static int CMP_verify_MAC(const CMP_PKIMESSAGE *msg,
  * Returns 1 on successful validation and 0 otherwise.
  * ########################################################################## */
 int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
-                       const STACK_OF (X509) *untrusted_certs, const X509 *cert)
+                       const STACK_OF(X509) *untrusted_certs, const X509 *cert)
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
@@ -202,7 +202,7 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
         goto end;
 
     if (!X509_STORE_CTX_init(csc, trusted_store, (X509 *)cert,
-                             (STACK_OF (X509) *)untrusted_certs))
+                             (STACK_OF(X509) *)untrusted_certs))
         goto end;
 
     valid = X509_verify_cert(csc);
@@ -318,8 +318,8 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
  * Add them to sk (if not a duplicate to an existing one).
  * returns 0 on error else 1
  * ########################################################################## */
-static int find_acceptable_certs(STACK_OF (X509) *certs,
-    const CMP_PKIMESSAGE *msg, const X509_STORE *ts, STACK_OF (X509) *sk)
+static int find_acceptable_certs(STACK_OF(X509) *certs,
+    const CMP_PKIMESSAGE *msg, const X509_STORE *ts, STACK_OF(X509) *sk)
 {
     int i;
 
@@ -352,10 +352,10 @@ static int find_acceptable_certs(STACK_OF (X509) *certs,
  * returns NULL on (out of memory) error
  * ########################################################################## */
 static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
-                    STACK_OF (X509) *untrusted, const CMP_PKIMESSAGE *msg)
+                    STACK_OF(X509) *untrusted, const CMP_PKIMESSAGE *msg)
 {
     int ret;
-    STACK_OF (X509) *trusted, *found_certs;
+    STACK_OF(X509) *trusted, *found_certs;
 
     if (!ts || !msg) /* untrusted may be NULL */
         return NULL; /* maybe better flag and handle this as fatal error */

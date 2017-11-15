@@ -198,9 +198,9 @@ struct cmp_infotypeandvalue_st {
         /* NID_id_it_caProtEncCert - CA Protocol Encryption Certificate  */
         X509 *caProtEncCert;
         /* NID_id_it_signKeyPairTypes - Signing Key Pair Types  */
-        STACK_OF (X509_ALGOR) * signKeyPairTypes;
+        STACK_OF (X509_ALGOR) *signKeyPairTypes;
         /* NID_id_it_encKeyPairTypes - Encryption/Key Agreement Key Pair Types  */
-        STACK_OF (X509_ALGOR) * encKeyPairTypes;
+        STACK_OF (X509_ALGOR) *encKeyPairTypes;
         /* NID_id_it_preferredSymmAlg - Preferred Symmetric Algorithm  */
         X509_ALGOR *preferredSymmAlg;
         /* NID_id_it_caKeyUpdateInfo - Updated CA Key Pair      */
@@ -208,7 +208,7 @@ struct cmp_infotypeandvalue_st {
         /* NID_id_it_currentCRL - CRL  */
         X509_CRL *currentCRL;
         /* NID_id_it_unsupportedOIDs - Unsupported Object Identifiers  */
-        STACK_OF (ASN1_OBJECT) * unsupportedOIDs;
+        STACK_OF (ASN1_OBJECT) *unsupportedOIDs;
         /* NID_id_it_keyPairParamReq - Key Pair Parameters Request      */
         ASN1_OBJECT *keyPairParamReq;
         /* NID_id_it_keyPairParamRep - Key Pair Parameters Response  */
@@ -222,7 +222,7 @@ struct cmp_infotypeandvalue_st {
         /* NID_id_it_origPKIMessage - origPKIMessage  */
         CMP_PKIMESSAGES *origPKIMessage;
         /* NID_id_it_suppLangTags - Supported Language Tags */
-        STACK_OF (ASN1_UTF8STRING) * suppLangTagsValue;
+        STACK_OF (ASN1_UTF8STRING) *suppLangTagsValue;
         /* this is to be used for so far undeclared objects */
         ASN1_TYPE *other;
     } infoValue;
@@ -305,9 +305,9 @@ DEFINE_STACK_OF(CMP_REVDETAILS)
      }
  */
 struct cmp_revrepcontent_st {
-    STACK_OF (CMP_PKISTATUSINFO) * status;
-    STACK_OF (CRMF_CERTID) * certId;
-    STACK_OF (X509) * crls;
+    STACK_OF (CMP_PKISTATUSINFO) *status;
+    STACK_OF (CRMF_CERTID) *certId;
+    STACK_OF (X509) *crls;
 } /* CMP_REVREPCONTENT */;
 DECLARE_ASN1_FUNCTIONS(CMP_REVREPCONTENT)
 
@@ -322,8 +322,8 @@ DECLARE_ASN1_FUNCTIONS(CMP_REVREPCONTENT)
 typedef struct cmp_keyrecrepcontent_st {
     CMP_PKISTATUSINFO *status;
     X509 *newSigCert;
-    STACK_OF (X509) * caCerts;
-    STACK_OF (CMP_CERTIFIEDKEYPAIR) * keyPairHist;
+    STACK_OF (X509) *caCerts;
+    STACK_OF (CMP_CERTIFIEDKEYPAIR) *keyPairHist;
 } CMP_KEYRECREPCONTENT;
 DECLARE_ASN1_FUNCTIONS(CMP_KEYRECREPCONTENT)
 /*
@@ -392,8 +392,8 @@ DECLARE_ASN1_FUNCTIONS(CMP_CERTRESPONSE)
      }
  */
 struct cmp_certrepmessage_st {
-    STACK_OF (X509) * caPubs;
-    STACK_OF (CMP_CERTRESPONSE) * response;
+    STACK_OF (X509) *caPubs;
+    STACK_OF (CMP_CERTRESPONSE) *response;
 } /* CMP_CERTREPMESSAGE */;
 DECLARE_ASN1_FUNCTIONS(CMP_CERTREPMESSAGE)
 
@@ -474,7 +474,7 @@ struct cmp_pkiheader_st {
     ASN1_OCTET_STRING *senderNonce; /* 5 */
     ASN1_OCTET_STRING *recipNonce; /* 6 */
     CMP_PKIFREETEXT *freeText; /* 7 */
-    STACK_OF (CMP_INFOTYPEANDVALUE) * generalInfo; /* 8 */
+    STACK_OF (CMP_INFOTYPEANDVALUE) *generalInfo; /* 8 */
 } /* CMP_PKIHEADER */;
 DECLARE_ASN1_FUNCTIONS(CMP_PKIHEADER)
 
@@ -628,7 +628,7 @@ struct cmp_pkimessage_st {
     CMP_PKIBODY *body;
     ASN1_BIT_STRING *protection; /* 0 */
     /* CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
-    STACK_OF (X509) * extraCerts; /* 1 */
+    STACK_OF (X509) *extraCerts; /* 1 */
 } /* CMP_PKIMESSAGE */;
 DECLARE_ASN1_FUNCTIONS(CMP_PKIMESSAGE)
 

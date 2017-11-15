@@ -18,7 +18,7 @@
 
   #include "cmp_int.h"
   int CMP_INFOTYPEANDVALUE_stack_item_push0(
-                                STACK_OF (CMP_INFOTYPEANDVALUE) **itav_sk_p,
+                                STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,
                                 const CMP_INFOTYPEANDVALUE *itav);
 
 =head1 DESCRIPTION

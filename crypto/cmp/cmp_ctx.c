@@ -121,9 +121,9 @@ IMPLEMENT_ASN1_FUNCTIONS(CMP_CTX)
 /* ############################################################################ *
  * Returns a duplicate of the given stack of X509 certificates.
  * ############################################################################ */
-static STACK_OF (X509) * X509_stack_dup(const STACK_OF (X509) * stack)
+static STACK_OF(X509) *X509_stack_dup(const STACK_OF(X509) *stack)
 {
-    STACK_OF (X509) * newsk = NULL;
+    STACK_OF(X509) *newsk = NULL;
     int i;
 
     if (!stack)
@@ -193,7 +193,7 @@ int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store)
 /* ############################################################################ *
  * Get current list of non-trusted intermediate certs
  * ############################################################################ */
-STACK_OF (X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx)
+STACK_OF(X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx)
 {
     if (!ctx)
         return NULL;
@@ -204,7 +204,7 @@ STACK_OF (X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx)
  * Set untrusted certificates for path construction in CMP server authentication.
  * returns 1 on success, 0 on error
  * ############################################################################ */
-int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, STACK_OF (X509) *certs)
+int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, STACK_OF(X509) *certs)
 {
     if (ctx->untrusted_certs)
         sk_X509_pop_free(ctx->untrusted_certs, X509_free);
@@ -439,7 +439,7 @@ int CMP_CTX_set1_secretValue(CMP_CTX *ctx, const unsigned char *sec,
  * The stack is duplicated so the caller must handle freeing it!
  * returns pointer to created stack on success, NULL on error
  * ################################################################ */
-STACK_OF (X509) * CMP_CTX_extraCertsIn_get1(CMP_CTX *ctx)
+STACK_OF(X509) *CMP_CTX_extraCertsIn_get1(CMP_CTX *ctx)
 {
     if (!ctx)
         goto err;
@@ -488,7 +488,7 @@ int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  * ################################################################ */
 int CMP_CTX_set1_extraCertsIn(CMP_CTX *ctx,
-                              const STACK_OF (X509) * extraCertsIn)
+                              const STACK_OF(X509) *extraCertsIn)
 {
     if (!ctx)
         goto err;
@@ -554,7 +554,7 @@ int CMP_CTX_extraCertsOut_num(CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  * ################################################################ */
 int CMP_CTX_set1_extraCertsOut(CMP_CTX *ctx,
-                               const STACK_OF (X509) * extraCertsOut)
+                               const STACK_OF(X509) *extraCertsOut)
 {
     if (!ctx)
         goto err;
@@ -631,7 +631,7 @@ int CMP_CTX_genm_itav_push0(CMP_CTX *ctx, const CMP_INFOTYPEANDVALUE *itav)
  * were received in the caPubs field of the last response message.
  * returns NULL on error
  * ################################################################ */
-STACK_OF (X509) * CMP_CTX_caPubs_get1(CMP_CTX *ctx)
+STACK_OF(X509) *CMP_CTX_caPubs_get1(CMP_CTX *ctx)
 {
     if (!ctx)
         goto err;
@@ -680,7 +680,7 @@ int CMP_CTX_caPubs_num(CMP_CTX *ctx)
  * CMP_CTX structure so that they may be retrieved later.
  * returns 1 on success, 0 on error
  * ################################################################ */
-int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF (X509) *caPubs)
+int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF(X509) *caPubs)
 {
     if (!ctx || !caPubs)
         goto err;
