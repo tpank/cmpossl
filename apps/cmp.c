@@ -988,13 +988,17 @@ static int adjust_format(const char **infile, int format, int engine_ok) {
         /* the following is a heuristic whether first to try PEM or DER or PKCS12 as the input format for files */
         if (strlen(*infile) >= 4) {
             char *extension = (char *)(*infile + strlen(*infile) - 4);
-            if (strncmp(extension, ".pem", 4) == 0) /* weak recognition of PEM format */
+            if (strncmp(extension, ".crt", 4) == 0 ||
+                strncmp(extension, ".pem", 4) == 0)
+                /* weak recognition of PEM format */
                 format = FORMAT_PEM;
-            else if (strncmp(extension, ".der", 4) == 0 ||
-                     strncmp(extension, ".crt", 4) == 0 ||
-                     strncmp(extension, ".crl", 4) == 0) /* weak recognition of DER format */
+            else if (strncmp(extension, ".cer", 4) == 0 ||
+                     strncmp(extension, ".der", 4) == 0 ||
+                     strncmp(extension, ".crl", 4) == 0)
+                /* weak recognition of DER format */
                 format = FORMAT_ASN1;
-            else if (strncmp(extension, ".p12", 4) == 0) /* weak recognition of PKCS#12 format */
+            else if (strncmp(extension, ".p12", 4) == 0)
+                /* weak recognition of PKCS#12 format */
                 format = FORMAT_PKCS12;
             /* else retain given format */
         }
