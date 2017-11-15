@@ -210,10 +210,7 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
     X509_STORE_CTX_free(csc);
 
  end:
-    if (valid > 0)
-        return 1;
-
-    return 0;
+    return (valid > 0);
 }
 
 #if 0
@@ -379,12 +376,12 @@ oom:
     return NULL;
 }
 
-/* exceptional handling for 3GPP TS 33.310, only to use for IP and if the ctx
- * option is explicitly set: use self-signed certificate as Trust Anchor from
- * ExtraCerts to validate server cert - provided it also can validate the
- * enrolled certificate */
-static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt, const
-                               CMP_PKIMESSAGE *msg) {
+/* Exceptional handling for 3GPP TS 33.310, only to use for IP and if the ctx
+ * option is explicitly set: use self-signed certificates from extraCerts as
+ * trust anchor to validate server cert - provided it also can validate the
+ * newly enrolled certificate */
+static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt,
+                               const CMP_PKIMESSAGE *msg) {
     int valid = 0;
     X509_STORE *store = X509_STORE_new();
     if (store && /* store does not include CRLs */
@@ -392,16 +389,14 @@ static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt, const
         valid = CMP_validate_cert_path(ctx, store, ctx->untrusted_certs, scrt);
     }
     if (valid) {
-        /* verify that our received certificate can also be
-         * validated with the same trusted store as scrt */
+        /* verify that the newly enrolled certificate (which is assumed to have
+         * rid == 0) can also be validated with the same trusted store */
         CMP_CERTRESPONSE *crep =
-            CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip,0);
-        X509 *newcrt = CMP_CERTRESPONSE_get_certificate(ctx,crep);
-        if (newcrt) {
-            valid = CMP_validate_cert_path(ctx, store, ctx->untrusted_certs,
-                    newcrt);
-            X509_free(newcrt);
-        }
+            CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip, 0);
+        X509 *newcrt = CMP_CERTRESPONSE_get_certificate(ctx, crep); /* maybe
+            better use get_cert_status() from cmp_ses.c, which catches errors */
+        valid = CMP_validate_cert_path(ctx, store, ctx->untrusted_certs,newcrt);
+        X509_free(newcrt);
     }
     X509_STORE_free(store);
     return valid;
@@ -421,7 +416,7 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     }
 
     /* valid scrt, matching sender name, found earlier in transaction, will be
-     * used for PKIconf - where extraCerts have been left empty */
+     * used for validating any further msgs where extraCerts may be left out */
     if (ctx->validatedSrvCert &&
         cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted_store)) {
         scrt = ctx->validatedSrvCert;
