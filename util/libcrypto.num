@@ -4400,7 +4400,7 @@ CMP_CTX_set0_tlsBIO                     4338	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set0_newPkey                    4339	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_pkey                       4340	1_1_1	EXIST::FUNCTION:
 CRMF_ENCRYPTEDVALUE_free                4341	1_1_1	EXIST::FUNCTION:
-CMP_PKIMESSAGE_http_perform             4342	1_1_1	EXIST::FUNCTION:
+CMP_PKIMESSAGE_http_perform             4342	1_1_1	EXIST::FUNCTION:OCSP,SOCK
 CMP_PKIMESSAGE_add_extraCerts           4343	1_1_1	EXIST::FUNCTION:
 CMP_build_cert_chain                    4344	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_generalInfo_items_push1  4345	1_1_1	EXIST::FUNCTION:
@@ -4500,3 +4500,7 @@ CMP_sk_X509_add1_cert                   4436	1_1_1	EXIST::FUNCTION:
 CMP_CTX_get0_untrusted_certs            4437	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_untrusted_certs            4438	1_1_1	EXIST::FUNCTION:
 CMP_X509_STORE_add1_certs               4439	1_1_1	EXIST::FUNCTION:
+bio_wait                                4440	1_1_1	EXIST::FUNCTION:SOCK
+bio_connect                             4441	1_1_1	EXIST::FUNCTION:SOCK
+bio_http                                4442	1_1_1	EXIST::FUNCTION:OCSP,SOCK
+socket_wait                             4443	1_1_1	EXIST::FUNCTION:SOCK
