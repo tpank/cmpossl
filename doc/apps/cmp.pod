@@ -62,6 +62,7 @@ B<openssl> B<cmp>
 [B<-storeform DER|PEM|P12>]
 [B<-certform DER|PEM|P12>]
 [B<-keyform DER|PEM|P12>]
+[B<-clrform DER|PEM>]
 [B<-engine id>]
 
 [B<-tls-used>]
@@ -528,6 +529,10 @@ Default value is PEM.
 =item B<-keyform DER|PEM|P12>
 
 Format to try first when reading key files. Default value is PEM.
+
+=item B<-crlform DER|PEM>
+
+Format to try first when reading CRL files. Default value is PEM.
 
 =item B<-engine id>
 

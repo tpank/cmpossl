@@ -219,10 +219,11 @@ static char *opt_storepass = NULL;
 static char *opt_storeform_s = "PEM";
 static char *opt_certform_s = "PEM";
 static char *opt_keyform_s = "PEM";
+static char *opt_crlform_s = "PEM";
 static int opt_storeform = FORMAT_PEM;
 static int opt_certform = FORMAT_PEM;
 static int opt_keyform = FORMAT_PEM;
-static int opt_crlform = FORMAT_PEM; /* default to be tried first for file input; TODO maybe add cmd line arg */
+static int opt_crlform = FORMAT_PEM;
 
 static char *opt_newkey = NULL;
 static char *opt_newkeypass = NULL;
@@ -360,7 +361,7 @@ typedef enum OPTION_choice {
 
     OPT_OLDCERT, OPT_CSR, OPT_REVREASON, OPT_INFOTYPE,
 
-    OPT_STOREPASS, OPT_STOREFORM, OPT_CERTFORM, OPT_KEYFORM,
+    OPT_STOREPASS, OPT_STOREFORM, OPT_CERTFORM, OPT_KEYFORM, OPT_CRLFORM,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
@@ -458,6 +459,7 @@ OPTIONS cmp_options[] = {
     {"certform", OPT_CERTFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM."},
                {OPT_MORE_STR, 0, 0, "This also determines format to use for writing (not supported for P12)"},
     {"keyform", OPT_KEYFORM, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
+    {"crlform", OPT_CRLFORM, 's', "Format (PEM/DER) to try first when reading CRL files. Default PEM"},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use crypto engine with given identifier, possibly a hardware device."},
            {OPT_MORE_STR, 0, 0, "Engines may be defined in OpenSSL config file engine section."},
@@ -525,7 +527,8 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
 
     {&opt_oldcert}, {&opt_csr}, { (char **)&opt_revreason}, {&opt_infotype_s},
 
-    {&opt_storepass}, {&opt_storeform_s}, {&opt_certform_s}, {&opt_keyform_s},
+    {&opt_storepass},
+    {&opt_storeform_s}, {&opt_certform_s}, {&opt_keyform_s}, {&opt_crlform_s},
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
 #endif
@@ -2248,6 +2251,13 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                  "error: unknown option given for certificate store format\n");
         goto err;
     }
+
+    if (opt_crlform_s
+        && !opt_format(opt_crlform_s, OPT_FMT_PEMDER, &opt_crlform)) {
+        BIO_puts(bio_err, "error: unknown option given for CRL format\n");
+        goto err;
+    }
+
 #else
     if (opt_keyform_s)
         opt_keyform = str2fmt(opt_keyform_s);
@@ -2257,6 +2267,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_storeform_s)
         opt_storeform = str2fmt(opt_storeform_s);
+
+    if (opt_crlform_s)
+        opt_crlform = str2fmt(opt_crlform_s);
 #endif
 
     if (opt_infotype_s) {
@@ -3121,6 +3134,9 @@ opt_err:
             break;
         case OPT_KEYFORM:
             opt_keyform_s = opt_str("keyform");
+            break;
+        case OPT_CRLFORM:
+            opt_crlform_s = opt_str("crlform");
             break;
         case OPT_EXTCERTS:
             opt_extcerts = opt_str("extcerts");
