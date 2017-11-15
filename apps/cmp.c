@@ -227,6 +227,7 @@ static char *opt_subject = NULL;
 static char *opt_issuer = NULL;
 static int   opt_days = 0;
 static char *opt_recipient = NULL;
+static char *opt_expected_sender = NULL;
 static int   opt_popo = -1;
 static char *opt_reqexts = NULL;
 static int opt_disableConfirm = 0;
@@ -340,8 +341,8 @@ typedef enum OPTION_choice {
     OPT_SERVER, OPT_PROXY, OPT_PATH,
     OPT_MSGTIMEOUT, OPT_MAXPOLLTIME,
 
-    OPT_RECIPIENT, OPT_SRVCERT, OPT_TRUSTED, OPT_UNTRUSTED,
-    OPT_IGNORE_KEYUSAGE,
+    OPT_RECIPIENT, OPT_EXPECTED_SENDER, OPT_SRVCERT,
+    OPT_TRUSTED, OPT_UNTRUSTED, OPT_IGNORE_KEYUSAGE,
 
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTCERTS,
 
@@ -395,6 +396,7 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nRecipient options:"},
     {"recipient", OPT_RECIPIENT, 's', "Distinguished Name of the recipient to use unless the -srvcert option is given."},
+    {"expected_sender", OPT_EXPECTED_SENDER, 's', "Distinguished Name of expected response sender. Defaults to recipient determined."},
     {"srvcert", OPT_SRVCERT, 's', "Specific CMP server cert to use and trust directly when verifying responses"},
     {"trusted", OPT_TRUSTED, 's', "Trusted CA certs to use for CMP server authentication when verifying responses,"},
              {OPT_MORE_STR, 0, 0, "unless -srvcert is given"},
@@ -502,8 +504,8 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     {&opt_server}, {&opt_proxy}, {&opt_path},
     { (char **)&opt_msgtimeout}, { (char **)&opt_maxpolltime},
 
-    {&opt_recipient}, {&opt_srvcert}, {&opt_trusted}, {&opt_untrusted},
-    { (char **)&opt_ignore_keyusage},
+    {&opt_recipient}, {&opt_expected_sender}, {&opt_srvcert},
+    {&opt_trusted}, {&opt_untrusted}, { (char **)&opt_ignore_keyusage},
 
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass}, {&opt_extcerts},
 
@@ -2079,6 +2081,25 @@ while(*curr_opt != '\0') { \
     curr_opt = next_opt; \
 }
 
+static int set_name(const char *str,
+                    int (*set_fn)(CMP_CTX *ctx, const X509_NAME *name),
+                    CMP_CTX *ctx, const char *desc) {
+    if (str) {
+        X509_NAME *n = parse_name(str, MBSTRING_ASC, 0);
+        if (n == NULL) {
+            BIO_printf(bio_err, "error: unable to parse %s name '%s'\n",
+                       desc, str);
+            return 0;
+        }
+        if (!(*set_fn)(ctx, n)) {
+            X509_NAME_free(n);
+            return 0;
+        }
+        X509_NAME_free(n);
+    }
+    return 1;
+}
+
 /*
  * ##########################################################################
  * * set up the CMP_CTX structure based on options from config file/CLI
@@ -2547,47 +2568,19 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
     }
 
-    if (opt_subject) {
-        X509_NAME *n = parse_name(opt_subject, MBSTRING_ASC, 0);
-        if (n == NULL) {
-            BIO_printf(bio_err, "error: unable to parse subject name '%s'\n",
-                       opt_subject);
-            goto err;
-        }
-        if (!CMP_CTX_set1_subjectName(ctx, n)) {
-            X509_NAME_free(n);
-            goto err;
-        }
-        X509_NAME_free(n);
-    }
+    if (!set_name(opt_subject, CMP_CTX_set1_subjectName, ctx, "subject"))
+        goto err;
 
-    if (opt_issuer) {
-        X509_NAME *n = parse_name(opt_issuer, MBSTRING_ASC, 0);
-        if (n == NULL) {
-            BIO_printf(bio_err, "error: unable to parse issuer name '%s'\n", opt_issuer);
-            goto err;
-        }
-        if (!CMP_CTX_set1_issuer(ctx, n)) {
-            X509_NAME_free(n);
-            goto err;
-        }
-        X509_NAME_free(n);
-    }
 
-    if (opt_recipient) {
-        X509_NAME *n = parse_name(opt_recipient, MBSTRING_ASC, 0);
-        if (n == NULL) {
-            BIO_printf(bio_err,
-                       "error: unable to parse recipient name '%s'\n",
-                       opt_recipient);
-            goto err;
-        }
-        if (!CMP_CTX_set1_recipient(ctx, n)) {
-            X509_NAME_free(n);
-            goto err;
-        }
-        X509_NAME_free(n);
-    }
+    if (!set_name(opt_issuer, CMP_CTX_set1_issuer, ctx, "issuer"))
+        goto err;
+
+    if (!set_name(opt_recipient, CMP_CTX_set1_recipient, ctx, "recipient"))
+        goto err;
+
+    if (!set_name(opt_expected_sender, CMP_CTX_set1_expected_sender, ctx,
+                  "expected sender"))
+        goto err;
 
     if (opt_days > 0)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_VALIDITYDAYS, opt_days);
@@ -3087,6 +3080,9 @@ opt_err:
             break;
         case OPT_RECIPIENT:
             opt_recipient = opt_str("recipient");
+            break;
+        case OPT_EXPECTED_SENDER:
+            opt_expected_sender = opt_str("expected_sender");
             break;
         case OPT_REQEXTS:
             opt_reqexts = opt_str("reqexts");

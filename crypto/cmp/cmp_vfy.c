@@ -530,10 +530,10 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                    CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
             return 0; /* FR#42: support for more than X509_NAME */
         }
-        /* Compare sender name of response with recipient name used in request.
+        /* Compare actual sender name of response with expected sender name.
          * Mitigates risk to accept misused certificate of an unauthorized
          * entity of a trusted hierarchy. */
-        if (ctx->expected_sender) { /* was known and not set to NULL-DN */
+        if (ctx->expected_sender) { /* set explicitly or not NULL-DN recipent */
             X509_NAME *sender_name = msg->header->sender->d.directoryName;
             if (X509_NAME_cmp(sender_name, ctx->expected_sender) != 0) {
                 char *expected = X509_NAME_oneline(ctx->expected_sender,NULL,0);

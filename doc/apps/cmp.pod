@@ -18,6 +18,7 @@ B<openssl> B<cmp>
 [B<-maxpolltime seconds>]
 
 [B<-recipient name>]
+[B<-expected_sender name>]
 [B<-srvcert filename>]
 [B<-trusted filename>]
 [B<-untrustedE<nbsp>filenames>]
@@ -168,7 +169,7 @@ certificates on 'waiting' PKIStatus. Default is 0 (infinite).
 =item B<-recipient name>
 
 Distinguished Name (DN) of the CMP message recipient,
-i.e. the CMP server (usually a CA or RA entity).
+i.e., the CMP server (usually a CA or RA entity).
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
@@ -186,6 +187,16 @@ no suitable value for the recipient in the PKIHeader is available.
 As last resort it is set to NULL-DN.
 
 When a response is received, its sender must match the recipient of the request.
+
+=item B<-expected_sender name>
+
+Distinguished Name (DN) of the expected sender in CMP response messages,
+i.e., the CMP server (usually a CA or RA entity).
+
+The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
+characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
+
+If not given, the recipient name determined as specified above will be used.
 
 =item B<-srvcert filename>
 

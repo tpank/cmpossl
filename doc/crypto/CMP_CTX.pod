@@ -43,22 +43,23 @@
  CMP_CTX_set_debug_callback,
  CMP_printf,
 
- CMP_CTX_status_get
- CMP_CTX_statusString_get
- CMP_CTX_failInfoCode_get
- CMP_CTX_set_failInfoCode
- CMP_CTX_set_popoMethod
- CMP_CTX_set1_proxyName
- CMP_CTX_set_proxyPort
- CMP_CTX_set0_tlsBIO
- CMP_CTX_get_tlsBIO
- CMP_CTX_set1_recipient
- CMP_CTX_set1_serverName
- CMP_CTX_set1_serverPath
- CMP_CTX_set_serverPort
- CMP_CTX_set0_reqExtensions
- CMP_CTX_set_msg_transfer
- CMP_CTX_set_certConf_callback
+ CMP_CTX_status_get,
+ CMP_CTX_statusString_get,
+ CMP_CTX_failInfoCode_get,
+ CMP_CTX_set_failInfoCode,
+ CMP_CTX_set_popoMethod,
+ CMP_CTX_set1_proxyName,
+ CMP_CTX_set_proxyPort,
+ CMP_CTX_set0_tlsBIO,
+ CMP_CTX_get_tlsBIO,
+ CMP_CTX_set1_recipient,
+ CMP_CTX_set1_expected_sender,
+ CMP_CTX_set1_serverName,
+ CMP_CTX_set1_serverPath,
+ CMP_CTX_set_serverPort,
+ CMP_CTX_set0_reqExtensions,
+ CMP_CTX_set_msg_transfer,
+ CMP_CTX_set_certConf_callback,
  CMP_CTX_subjectAltName_push1
 
 =head1 SYNOPSIS
@@ -66,71 +67,72 @@
  #include <openssl/cmp.h>
 
  CMP_CTX *CMP_CTX_create();
- int CMP_CTX_init( CMP_CTX *ctx);
+ int CMP_CTX_init(CMP_CTX *ctx);
  void CMP_CTX_delete(CMP_CTX *ctx);
 
- int CMP_CTX_set1_referenceValue( CMP_CTX *ctx, const unsigned char *ref, size_t len);
- int CMP_CTX_set1_secretValue( CMP_CTX *ctx, const unsigned char *sec, const size_t len);
- int CMP_CTX_set1_caCert( CMP_CTX *ctx, const X509 *cert);
+ int CMP_CTX_set1_referenceValue(CMP_CTX *ctx, const unsigned char *ref, size_t len);
+ int CMP_CTX_set1_secretValue(CMP_CTX *ctx, const unsigned char *sec, const size_t len);
+ int CMP_CTX_set1_caCert(CMP_CTX *ctx, const X509 *cert);
  int CMP_CTX_set1_srvCert(CMP_CTX *ctx, const X509 *cert);
- int CMP_CTX_set1_clCert( CMP_CTX *ctx, const X509 *cert);
- int CMP_CTX_set1_oldClCert( CMP_CTX *ctx, const X509 *cert);
- int CMP_CTX_set1_p10CSR( CMP_CTX *ctx, const X509_REQ *csr);
- int CMP_CTX_set1_subjectName( CMP_CTX *ctx, const X509_NAME *name);
- int CMP_CTX_set1_issuer( CMP_CTX *ctx, const X509_NAME *name);
- int CMP_CTX_set1_newClCert( CMP_CTX *ctx, const X509 *cert);
- X509 *CMP_CTX_get0_newClCert( CMP_CTX *ctx);
- int CMP_CTX_set0_pkey( CMP_CTX *ctx, const EVP_PKEY *pkey);
- int CMP_CTX_set0_newPkey( CMP_CTX *ctx, const EVP_PKEY *pkey);
- int CMP_CTX_set1_pkey( CMP_CTX *ctx, const EVP_PKEY *pkey);
- int CMP_CTX_set1_newPkey( CMP_CTX *ctx, const EVP_PKEY *pkey);
- int CMP_CTX_set1_transactionID( CMP_CTX *ctx, const ASN1_OCTET_STRING *id);
- int CMP_CTX_set1_recipNonce( CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
- int CMP_CTX_set1_serverName( CMP_CTX *ctx, const char *name);
- int CMP_CTX_set_serverPort( CMP_CTX *ctx, int port);
+ int CMP_CTX_set1_clCert(CMP_CTX *ctx, const X509 *cert);
+ int CMP_CTX_set1_oldClCert(CMP_CTX *ctx, const X509 *cert);
+ int CMP_CTX_set1_p10CSR(CMP_CTX *ctx, const X509_REQ *csr);
+ int CMP_CTX_set1_subjectName(CMP_CTX *ctx, const X509_NAME *name);
+ int CMP_CTX_set1_issuer(CMP_CTX *ctx, const X509_NAME *name);
+ int CMP_CTX_set1_newClCert(CMP_CTX *ctx, const X509 *cert);
+ X509 *CMP_CTX_get0_newClCert(CMP_CTX *ctx);
+ int CMP_CTX_set0_pkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
+ int CMP_CTX_set0_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
+ int CMP_CTX_set1_pkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
+ int CMP_CTX_set1_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
+ int CMP_CTX_set1_transactionID(CMP_CTX *ctx, const ASN1_OCTET_STRING *id);
+ int CMP_CTX_set1_recipNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
+ int CMP_CTX_set1_serverName(CMP_CTX *ctx, const char *name);
+ int CMP_CTX_set_serverPort(CMP_CTX *ctx, int port);
  STACK_OF(X509) *CMP_CTX_caPubs_get1(CMP_CTX *ctx);
- X509 *CMP_CTX_caPubs_pop( CMP_CTX *ctx);
- int CMP_CTX_caPubs_num( CMP_CTX *ctx);
- int CMP_CTX_set1_caPubs( CMP_CTX *ctx, const STACK_OF(X509) *caPubs);
- int CMP_CTX_policyOID_push1( CMP_CTX *ctx, const char *policyOID);
+ X509 *CMP_CTX_caPubs_pop(CMP_CTX *ctx);
+ int CMP_CTX_caPubs_num(CMP_CTX *ctx);
+ int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF(X509) *caPubs);
+ int CMP_CTX_policyOID_push1(CMP_CTX *ctx, const char *policyOID);
  int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, CMP_INFOTYPEANDVALUE *itav);
  int CMP_CTX_genm_itav_push0(CMP_CTX *ctx, CMP_INFOTYPEANDVALUE *itav);
 
- int CMP_CTX_set1_extraCertsOut( CMP_CTX *ctx, const STACK_OF(X509) *extraCertsOut);
- int CMP_CTX_extraCertsOut_push1( CMP_CTX *ctx, const X509 *val);
- int CMP_CTX_extraCertsOut_num( CMP_CTX *ctx);
+ int CMP_CTX_set1_extraCertsOut(CMP_CTX *ctx, const STACK_OF(X509) *extraCertsOut);
+ int CMP_CTX_extraCertsOut_push1(CMP_CTX *ctx, const X509 *val);
+ int CMP_CTX_extraCertsOut_num(CMP_CTX *ctx);
  STACK_OF(X509) *CMP_CTX_extraCertsIn_get1(CMP_CTX *ctx);
- int CMP_CTX_set1_extraCertsIn( CMP_CTX *ctx, const STACK_OF(X509) *extraCertsIn);
- X509 *CMP_CTX_extraCertsIn_pop( CMP_CTX *ctx);
- int CMP_CTX_extraCertsIn_num( CMP_CTX *ctx);
+ int CMP_CTX_set1_extraCertsIn(CMP_CTX *ctx, const STACK_OF(X509) *extraCertsIn);
+ X509 *CMP_CTX_extraCertsIn_pop(CMP_CTX *ctx);
+ int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx);
 
- int CMP_CTX_set0_trustedStore( CMP_CTX *ctx, X509_STORE *store);
+ int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
  X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx);
 
- int CMP_CTX_set1_untrusted_certs( CMP_CTX *ctx, STACK_OF (X509) *store);
+ int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, STACK_OF (X509) *store);
  STACK_OF (X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
 
- int CMP_CTX_set_error_callback( CMP_CTX *ctx, cmp_logfn_t cb);
- int CMP_CTX_set_debug_callback( CMP_CTX *ctx, cmp_logfn_t cb);
+ int CMP_CTX_set_error_callback(CMP_CTX *ctx, cmp_logfn_t cb);
+ int CMP_CTX_set_debug_callback(CMP_CTX *ctx, cmp_logfn_t cb);
  void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
 
- int CMP_CTX_set_option( CMP_CTX *ctx, const int opt, const int val);
+ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val);
 
  long CMP_CTX_status_get(CMP_CTX *ctx);
  CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx);
  unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
- int CMP_CTX_set_failInfoCode( CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo);
- int CMP_CTX_set_popoMethod( CMP_CTX *ctx, int method);
- int CMP_CTX_set1_proxyName( CMP_CTX *ctx, const char *name);
- int CMP_CTX_set_proxyPort( CMP_CTX *ctx, int port);
+ int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo);
+ int CMP_CTX_set_popoMethod(CMP_CTX *ctx, int method);
+ int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name);
+ int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port);
  int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio);
  BIO *CMP_CTX_get_tlsBIO(CMP_CTX *ctx);
- int CMP_CTX_set1_recipient( CMP_CTX *ctx, const X509_NAME *name);
- int CMP_CTX_set1_serverPath( CMP_CTX *ctx, const char *path);
+ int CMP_CTX_set1_recipient(CMP_CTX *ctx, const X509_NAME *name);
+ int CMP_CTX_set1_expected_sender(CMP_CTX *ctx, const X509_NAME *name);
+ int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
  int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
  int CMP_CTX_set_msg_transfer(CMP_CTX *ctx, cmp_transfer_fn_t cb);
- int CMP_CTX_set_certConf_callback( CMP_CTX *ctx, cmp_certConfFn_t cb);
- int CMP_CTX_subjectAltName_push1( CMP_CTX *ctx, const GENERAL_NAME *name);
+ int CMP_CTX_set_certConf_callback(CMP_CTX *ctx, cmp_certConfFn_t cb);
+ int CMP_CTX_subjectAltName_push1(CMP_CTX *ctx, const GENERAL_NAME *name);
 
 =head1 DESCRIPTION
 
@@ -375,6 +377,10 @@ determined in the following order: issuer, issuer of old cert (oldClCert),
 issuer of client cert (clCert), else NULL-DN.
 When a response is received, its sender must match the recipient of the request.
 
+CMP_CTX_set1_expected_sender() sets the sender name that will be expected in
+the PKIHeader of response messages, i.e. the X509 name of the (CA) server.
+If not set, the recipient name determined as specified above will be used.
+
 CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
 CMP_CTX_set0_reqExtensions() sets the X.509v3 extensions to be used in IR/CR/KUR
@@ -460,11 +466,11 @@ All other functions return 1 on success, 0 on error.
 The following code does an Initialization Request:
 
         cmp_ctx = CMP_CTX_create();
-        CMP_CTX_set1_serverName( cmp_ctx, opt_serverName);
-        CMP_CTX_set1_referenceValue( cmp_ctx, ref, ref_len);
-        CMP_CTX_set1_secretValue( cmp_ctx, sec, sec_len);
-        CMP_CTX_set0_newPkey( cmp_ctx, new_pkey);
-        CMP_CTX_set1_caCert( cmp_ctx, ca_cert);
+        CMP_CTX_set1_serverName(cmp_ctx, opt_serverName);
+        CMP_CTX_set1_referenceValue(cmp_ctx, ref, ref_len);
+        CMP_CTX_set1_secretValue(cmp_ctx, sec, sec_len);
+        CMP_CTX_set0_newPkey(cmp_ctx, new_pkey);
+        CMP_CTX_set1_caCert(cmp_ctx, ca_cert);
 
         initialClCert = CMP_exec_IR_ses(cmp_ctx);
 
@@ -472,11 +478,11 @@ The following code does an Initialization Request using an
 external identity certificate (RFC 4210, Appendix E.7):
 
         cmp_ctx = CMP_CTX_create();
-        CMP_CTX_set1_serverName( cmp_ctx, sname);
-        CMP_CTX_set1_clCert( cmp_ctx, cl_cert);
-        CMP_CTX_set0_pkey( cmp_ctx, pkey);
-        CMP_CTX_set0_newPkey( cmp_ctx, new_pkey);
-        CMP_CTX_set1_caCert( cmp_ctx, ca_cert);
+        CMP_CTX_set1_serverName(cmp_ctx, sname);
+        CMP_CTX_set1_clCert(cmp_ctx, cl_cert);
+        CMP_CTX_set0_pkey(cmp_ctx, pkey);
+        CMP_CTX_set0_newPkey(cmp_ctx, new_pkey);
+        CMP_CTX_set1_caCert(cmp_ctx, ca_cert);
 
         initialClCert = CMP_exec_IR_ses(cmp_ctx);
 
@@ -487,11 +493,11 @@ which is trusted by the current CA the code will connect to.
 The following code does a Key Update Request:
 
         cmp_ctx = CMP_CTX_create();
-        CMP_CTX_set1_serverName( cmp_ctx, sname);
-        CMP_CTX_set0_pkey( cmp_ctx, pkey);
-        CMP_CTX_set0_newPkey( cmp_ctx, new_pkey);
-        CMP_CTX_set1_clCert( cmp_ctx, cl_cert);
-        CMP_CTX_set1_caCert( cmp_ctx, ca_cert);
+        CMP_CTX_set1_serverName(cmp_ctx, sname);
+        CMP_CTX_set0_pkey(cmp_ctx, pkey);
+        CMP_CTX_set0_newPkey(cmp_ctx, new_pkey);
+        CMP_CTX_set1_clCert(cmp_ctx, cl_cert);
+        CMP_CTX_set1_caCert(cmp_ctx, ca_cert);
 
         updatedClCert = CMP_exec_KUR_ses(cmp_ctx);
 
@@ -499,9 +505,9 @@ The following code (which omits error handling) sends a genm including, as an
 example, the id-it-signKeyPairTypes OID and prints info on the genp contents.
 
     cmp_ctx = CMP_CTX_create();
-    CMP_CTX_set1_serverName( cmp_ctx, sname);
-    CMP_CTX_set1_referenceValue( cmp_ctx, ref, ref_len);
-    CMP_CTX_set1_secretValue( cmp_ctx, sec, sec_len);
+    CMP_CTX_set1_serverName(cmp_ctx, sname);
+    CMP_CTX_set1_referenceValue(cmp_ctx, ref, ref_len);
+    CMP_CTX_set1_secretValue(cmp_ctx, sec, sec_len);
 
     ASN1_OBJECT *type = OBJ_txt2obj("1.3.6.1.5.5.7.4.2", 1);
     CMP_INFOTYPEANDVALUE *itav = CMP_ITAV_new(type, NULL);
