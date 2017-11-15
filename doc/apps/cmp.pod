@@ -59,6 +59,7 @@ B<openssl> B<cmp>
 [B<-infotype name>]
 
 [B<-storepass arg>]
+[B<-storeform DER|PEM|P12>]
 [B<-certform DER|PEM|P12>]
 [B<-keyform DER|PEM|P12>]
 [B<-engine id>]
@@ -513,6 +514,11 @@ If not given here, the password will be prompted for if needed.
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
+
+=item B<-storeform DER|PEM|P12>
+
+Format to try first when reading and to use for writing certificate store files.
+Default value is PEM.
 
 =item B<-certform DER|PEM|P12>
 

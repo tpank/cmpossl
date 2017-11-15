@@ -216,10 +216,12 @@ static STACK_OF(X509) *ocsp_untrusted_certs = NULL;
 #endif
 
 static char *opt_storepass = NULL;
-static char *opt_keyform_s = "PEM";
+static char *opt_storeform_s = "PEM";
 static char *opt_certform_s = "PEM";
-static int opt_keyform = FORMAT_PEM;
+static char *opt_keyform_s = "PEM";
+static int opt_storeform = FORMAT_PEM;
 static int opt_certform = FORMAT_PEM;
+static int opt_keyform = FORMAT_PEM;
 static int opt_crlform = FORMAT_PEM; /* default to be tried first for file input; TODO maybe add cmd line arg */
 
 static char *opt_newkey = NULL;
@@ -358,7 +360,7 @@ typedef enum OPTION_choice {
 
     OPT_OLDCERT, OPT_CSR, OPT_REVREASON, OPT_INFOTYPE,
 
-    OPT_STOREPASS, OPT_CERTFORM, OPT_KEYFORM,
+    OPT_STOREPASS, OPT_STOREFORM, OPT_CERTFORM, OPT_KEYFORM,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
@@ -452,6 +454,7 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nCredential format options:"},
     {"storepass", OPT_STOREPASS, 's', "Certificate store password (may be needed with -trusted, -out-trusted, etc.)"},
+    {"storeform", OPT_STOREFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate store files. Default PEM."},
     {"certform", OPT_CERTFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM."},
                {OPT_MORE_STR, 0, 0, "This also determines format to use for writing (not supported for P12)"},
     {"keyform", OPT_KEYFORM, 's', "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
@@ -522,7 +525,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
 
     {&opt_oldcert}, {&opt_csr}, { (char **)&opt_revreason}, {&opt_infotype_s},
 
-    {&opt_storepass}, {&opt_certform_s}, {&opt_keyform_s},
+    {&opt_storepass}, {&opt_storeform_s}, {&opt_certform_s}, {&opt_keyform_s},
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
 #endif
@@ -2105,7 +2108,7 @@ static int set_name(const char *str,
  * returns pointer to created X509_STORE on success, NULL on error
  * ##########################################################################
  */
-static X509_STORE *load_certstore(char *input,const char *pass,const char *desc)
+static X509_STORE *load_certstore(char *input, const char *desc)
 {
     X509_STORE *store = NULL;
     STACK_OF(X509) *certs = NULL;
@@ -2115,7 +2118,8 @@ static X509_STORE *load_certstore(char *input,const char *pass,const char *desc)
 
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
     OPT_ITERATE(input,
-        if (!(certs = load_certs_autofmt(input, opt_certform, pass, desc)) ||
+        if (!(certs = load_certs_autofmt(input, opt_storeform, opt_storepass,
+                                         desc)) ||
             !(store = sk_X509_to_store(store, certs))) {
             /* BIO_puts(bio_err, "error: out of memory\n"); */
             sk_X509_pop_free(certs, X509_free);
@@ -2234,15 +2238,25 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_certform_s
         && !opt_format(opt_certform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12, &opt_certform)) {
-        BIO_puts(bio_err, "error: unknown option given for key format\n");
+        BIO_puts(bio_err, "error: unknown option given for certificate format\n");
+        goto err;
+    }
+
+    if (opt_storeform_s
+        && !opt_format(opt_storeform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12, &opt_storeform)) {
+        BIO_puts(bio_err,
+                 "error: unknown option given for certificate store format\n");
         goto err;
     }
 #else
     if (opt_keyform_s)
-        opt_keyform=str2fmt(opt_keyform_s);
+        opt_keyform = str2fmt(opt_keyform_s);
 
     if (opt_certform_s)
-        opt_certform=str2fmt(opt_certform_s);
+        opt_certform = str2fmt(opt_certform_s);
+
+    if (opt_storeform_s)
+        opt_storeform = str2fmt(opt_storeform_s);
 #endif
 
     if (opt_infotype_s) {
@@ -2300,7 +2314,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto oom;
         }
         OPT_ITERATE(opt_untrusted,
-            if (!(certs = load_certs_autofmt(opt_untrusted, opt_certform,
+            if (!(certs = load_certs_autofmt(opt_untrusted, opt_storeform,
                                     opt_storepass, "untrusted certificates")) ||
                 !CMP_sk_X509_add1_certs(untrusted, certs, 0, 1/*no dups*/)) {
                     sk_X509_pop_free(certs, X509_free);
@@ -2397,7 +2411,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 #endif
 
         if (opt_tls_trusted) {
-            if (!(store = load_certstore(opt_tls_trusted, opt_storepass,
+            if (!(store = load_certstore(opt_tls_trusted,
                                          "trusted TLS certificates"))) {
                 goto tls_err;
             }
@@ -2545,7 +2559,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_extcerts) {
         STACK_OF(X509) *extracerts = load_certs_autofmt(opt_extcerts,
-                             opt_certform, opt_storepass, "extra certificates");
+                            opt_storeform, opt_storepass, "extra certificates");
         if (!extracerts || !CMP_CTX_set1_extraCertsOut(ctx, extracerts)) {
             sk_X509_pop_free(extracerts, X509_free);
             goto err;
@@ -2579,8 +2593,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             ts = X509_STORE_new();
         }
         if (opt_trusted) {
-            ts = load_certstore(opt_trusted, opt_storepass,
-                                "trusted certificates");
+            ts = load_certstore(opt_trusted, "trusted certificates");
         }
         if (!set_store_parameters_crls(ts/* may be NULL */, all_crls) ||
             !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
@@ -2591,7 +2604,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_out_trusted) { /* in preparation for use in certConf_cb() */
-        out_trusted = load_certstore(opt_out_trusted, opt_storepass,
+        out_trusted = load_certstore(opt_out_trusted,
                              "trusted certs for verifying newly enrolled cert");
         if (!out_trusted || !set_store_parameters_crls(out_trusted, all_crls))
             goto err;
@@ -3099,6 +3112,9 @@ opt_err:
             break;
         case OPT_STOREPASS:
             opt_storepass = opt_str("storepass");
+            break;
+        case OPT_STOREFORM:
+            opt_storeform_s = opt_str("storeform");
             break;
         case OPT_CERTFORM:
             opt_certform_s = opt_str("certform");
