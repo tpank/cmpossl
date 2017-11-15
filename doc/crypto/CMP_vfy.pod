@@ -20,18 +20,18 @@ while optionally checking the revocation status of the certificates(s).
 
 CMP_validate_msg() validates the protection of the given PKIMessage
 using either password-based mac (PBM) or a signature algorithm.
-In the case of signature algorithm, the certificate can be provided in
+In the case of signature algorithm the certificate can be provided directly in
 ctx->srvCert, else it is taken from extraCerts and validated against
-ctx->trusted_store utilizing ctx->untrusted_certs and extraCerts.
+ctx->trusted_store, utilizing ctx->untrusted_certs and extraCerts.
 
-In case of successfull validation of PBM protection, the certificates in the
-messages caPubs field (if any) are added to ctx->trusted_store, to be available
-for validating future messages done in the context. Those could e.g. apply to
-later Polling Responses (pollRep) or PKI confimation (PKIConf) messages in the
-same transaction.
+In case of successfull validation of PBM protection of a certificate response
+the certificates in the caPubs field (if any) are added to ctx->trusted_store,
+to be available for validating future messages in the same context.
+Those could, e.g., apply to later Polling Responses (pollRep)
+or PKI Confirmation (PKIConf) messages in the same transaction.
 
 If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
-the extraCerts field when a self-signed certificate is found there which can
+the extraCerts field when a self-signed certificate is found there that can
 be used to validate the issued certificate returned in IP.  This is according
 to the need given in 3GPP TS 33.310.
 

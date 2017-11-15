@@ -427,11 +427,12 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         scrt = ctx->validatedSrvCert;
         scrt_valid = 1;
     } else {
-        int i;
         STACK_OF(X509) *found_crts = NULL;
-        /* store provided extraCerts in ctx also for future use */
-        (void) CMP_sk_X509_add1_certs(ctx->untrusted_certs,
-                                      msg->extraCerts, 0, 1); /* TODO: oom? */
+        int i;
+        /* use and store provided extraCerts in ctx also for future use */
+        if (!CMP_sk_X509_add1_certs(ctx->untrusted_certs,
+                        msg->extraCerts, 1/* no self-signed */, 1/* no dups */))
+            return NULL;
 
         /* find server cert candidates from any available source */
         found_crts = find_server_cert(ctx->trusted_store, ctx->untrusted_certs,
@@ -510,13 +511,14 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
              * "shared secret information", then any certificate transported in
              * the caPubs field may be directly trusted as a root CA
              * certificate by the initiator.' */
-            switch (msg->body->type) {
+            switch (CMP_PKIMESSAGE_get_bodytype(msg)) {
             case V_CMP_PKIBODY_IP:
             case V_CMP_PKIBODY_CP:
             case V_CMP_PKIBODY_KUP:
             case V_CMP_PKIBODY_CCP:
-                if(!CMP_X509_STORE_add1_certs(ctx->trusted_store,
-                                              msg->body->value.ip->caPubs, 0))
+                if (!CMP_X509_STORE_add1_certs(ctx->trusted_store,
+                        msg->body->value.ip->caPubs, /* same for cp, kup, ccp */
+                                               0/* allow self-signed or not */))
                     return 0;
             }
             return 1;
