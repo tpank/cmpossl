@@ -429,6 +429,12 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     } else {
         STACK_OF(X509) *found_crts = NULL;
         int i;
+
+        /* release any cached cert, which is no more acceptable */
+        if (ctx->validatedSrvCert)
+            X509_free(ctx->validatedSrvCert);
+        ctx->validatedSrvCert = NULL;
+
         /* use and store provided extraCerts in ctx also for future use */
         if (!CMP_sk_X509_add1_certs(ctx->untrusted_certs,
                         msg->extraCerts, 1/* no self-signed */, 1/* no dups */))
