@@ -217,7 +217,7 @@ overriding any potential B<-recipient> option.
 Trusted CA certificate(s) to use for CMP server authentication
 when verifying responses, unless the B<-srvcert> option is given.
 
-Multiple file names or URLs may be given, separated by commas or whitespace.
+Multiple file names may be given, separated by commas or whitespace.
 Each source may contain multiple certificates.
 
 =item B<-untrusted filenames>
@@ -450,7 +450,7 @@ The file where the newly enrolled certificate should be saved.
 
 Trusted certificate(s) to use for verifying the newly enrolled certificate.
 
-Multiple file names or URLs may be given, separated by commas or whitespace.
+Multiple file names may be given, separated by commas or whitespace.
 Each source may contain multiple certificates.
 
 =item B<-verify_hostname cn>, B<-verify_ip ip>, B<-verify_email email>
@@ -581,7 +581,7 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 Trusted certificate(s) to use for verifying the TLS server certificate.
 This implies host name validation.
 
-Multiple file names or URLs may be given, separated by commas or whitespace.
+Multiple file names may be given, separated by commas or whitespace.
 Each source may contain multiple certificates.
 
 =item B<-tls-host name>

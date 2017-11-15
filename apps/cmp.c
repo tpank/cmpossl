@@ -1146,12 +1146,16 @@ static STACK_OF(X509) *load_certs_fmt(const char *infile, int format,
 /* TODO dvo: push that separately upstream */
 /* in apps.c there is load_certs which should be used for CMP upstream submission */
 static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format,
-                                          const char *pass, const char *desc) {
+                        int exclude_http, const char *pass, const char *desc) {
     STACK_OF(X509) *certs;
     BIO *bio_bak = bio_err;
-    bio_err = NULL;
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
+    if (exclude_http && format == FORMAT_HTTP) {
+        BIO_printf(bio_err, "error: HTTP retrieval not allowed for %s\n", desc);
+        return NULL;
+    }
+    bio_err = NULL;
     certs = load_certs_fmt(infile, format, pass, desc);
     if (certs == NULL) {
         int format2 = format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM;
@@ -1161,7 +1165,7 @@ static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format,
     bio_err = bio_bak;
     if (!certs) {
         ERR_print_errors(bio_err);
-        BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc, infile);
+        BIO_printf(bio_err, "error: unable to load %s from '%s'\n",desc,infile);
     }
     return certs;
 }
@@ -2122,8 +2126,8 @@ static X509_STORE *load_certstore(char *input, const char *desc)
 
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
     OPT_ITERATE(input,
-        if (!(certs = load_certs_autofmt(input, opt_storeform, opt_storepass,
-                                         desc)) ||
+        if (!(certs = load_certs_autofmt(input, opt_storeform, 1,
+                                         opt_storepass, desc)) ||
             !(store = sk_X509_to_store(store, certs))) {
             /* BIO_puts(bio_err, "error: out of memory\n"); */
             sk_X509_pop_free(certs, X509_free);
@@ -2328,7 +2332,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto oom;
         }
         OPT_ITERATE(opt_untrusted,
-            if (!(certs = load_certs_autofmt(opt_untrusted, opt_storeform,
+            if (!(certs = load_certs_autofmt(opt_untrusted, opt_storeform, 0,
                                     opt_storepass, "untrusted certificates")) ||
                 !CMP_sk_X509_add1_certs(untrusted, certs, 0, 1/*no dups*/)) {
                     sk_X509_pop_free(certs, X509_free);
@@ -2573,7 +2577,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_extracerts) {
         STACK_OF(X509) *extracerts = load_certs_autofmt(opt_extracerts,
-                            opt_storeform, opt_storepass, "extra certificates");
+                         opt_storeform, 0, opt_storepass, "extra certificates");
         if (!extracerts || !CMP_CTX_set1_extraCertsOut(ctx, extracerts)) {
             sk_X509_pop_free(extracerts, X509_free);
             goto err;
