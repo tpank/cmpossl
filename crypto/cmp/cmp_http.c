@@ -183,7 +183,7 @@ int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
 
     *resp = pattern; /* used for detecting parse errors */
     do {
-        rc = fn(rctx, resp);
+        rc = (*fn)(rctx, resp);
         if (rc != -1) {
             if (rc == 0) { /* an error occurred */
                 if (sending && !blocking)
