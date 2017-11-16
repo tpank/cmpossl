@@ -557,6 +557,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET0_TLSBIO                        121
 # define CMP_F_CMP_CTX_SET1_CAPUBS                        122
 # define CMP_F_CMP_CTX_SET1_CLCERT                        123
+# define CMP_F_CMP_CTX_SET1_EXPECTED_SENDER               135
 # define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  124
 # define CMP_F_CMP_CTX_SET1_EXTRACERTSOUT                 125
 # define CMP_F_CMP_CTX_SET1_ISSUER                        126
@@ -568,7 +569,6 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_PROXYNAME                     132
 # define CMP_F_CMP_CTX_SET1_RECIPIENT                     133
 # define CMP_F_CMP_CTX_SET1_RECIPNONCE                    134
-# define CMP_F_CMP_CTX_SET1_EXPECTED_SENDER               135
 # define CMP_F_CMP_CTX_SET1_REFERENCEVALUE                136
 # define CMP_F_CMP_CTX_SET1_SECRETVALUE                   137
 # define CMP_F_CMP_CTX_SET1_SERVERNAME                    138
@@ -604,7 +604,9 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_VERIFY_SIGNATURE                       168
 # define CMP_F_EXCHANGE_CERTCONF                          169
 # define CMP_F_EXCHANGE_ERROR                             170
+# define CMP_F_FIND_SRVCERT                               175
 # define CMP_F_GET_CERT_STATUS                            171
+# define CMP_F_GET_SRVCERT                                174
 # define CMP_F_POLLFORRESPONSE                            172
 # define CMP_F_SET_SRVCERT                                173
 
@@ -670,6 +672,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_RP_NOT_RECEIVED                            158
 # define CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED      159
 # define CMP_R_SERVER_NOT_REACHABLE                       160
+# define CMP_R_TLS_ERROR                                  173
 # define CMP_R_UNEXPECTED_PKIBODY                         161
 # define CMP_R_UNEXPECTED_PKISTATUS                       162
 # define CMP_R_UNEXPECTED_SENDER                          163
@@ -682,7 +685,6 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC      170
 # define CMP_R_WRONG_ALGORITHM_OID                        171
 # define CMP_R_WRONG_KEY_USAGE                            172
-# define CMP_R_TLS_ERROR                                  173
 
 # ifdef  __cplusplus
 }

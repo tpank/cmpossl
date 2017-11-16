@@ -402,7 +402,7 @@ static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt,
     return valid;
 }
 
-static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
+static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
     X509 *scrt = NULL;
     int scrt_valid = 0;
@@ -410,7 +410,7 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     if (!msg->header->sender || !msg->body)
         return 0; /* other NULL cases already have been checked */
     if (msg->header->sender->type != GEN_DIRNAME) {
-        CMPerr(CMP_F_SET_SRVCERT,
+        CMPerr(CMP_F_FIND_SRVCERT,
                CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
         return NULL; /* FR#42: support for more than X509_NAME */
     }
@@ -465,7 +465,7 @@ static X509 *set_srvCert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     if (!scrt_valid) {
         char *sname = X509_NAME_oneline(msg->header->sender->d.directoryName,
                                         NULL, 0);
-        CMPerr(CMP_F_SET_SRVCERT, CMP_R_NO_VALID_SRVCERT_FOUND);
+        CMPerr(CMP_F_FIND_SRVCERT, CMP_R_NO_VALID_SRVCERT_FOUND);
         ERR_add_error_data(2, "sender name = ", sname);
         OPENSSL_free(sname);
         return NULL;
@@ -495,6 +495,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     const
 #endif
     ASN1_OBJECT *algorOID = NULL;
+    X509 *scrt = NULL;
 
     if (!ctx || !msg || !msg->header ||
         !msg->header->protectionAlg) /* unprotected message */
@@ -533,6 +534,8 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         break;
 
         /* 5.1.3.3.  Signature */
+        /* TODO: should that better whitelist DSA/RSA etc.?
+         * -> check all possible options from OpenSSL, should there be macro? */
     default:
 
         /* validate sender name of received msg */
@@ -552,21 +555,14 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                 CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
                 ERR_add_error_data(4, "expected = ", expected,
                                    "; actual = ", actual ? actual : "(none)");
-                free(expected);
-                free(actual);
+                OPENSSL_free(expected);
+                OPENSSL_free(actual);
                 return 0;
             }
         } /* Note: if recipient was NULL-DN it could be learnt here if needed */
 
-        /* TODO: should that better whitelist DSA/RSA etc.?
-         * -> check all possible options from OpenSSL, should there be macro? */
-        {
-            X509 *srvCert = ctx->srvCert;
-            if (!srvCert)
-                srvCert = set_srvCert(ctx, msg);
-            if (srvCert)
-                return CMP_verify_signature(ctx, msg, srvCert);
-        }
+        if ((scrt = ctx->srvCert ? ctx->srvCert : find_srvcert(ctx, msg)))
+            return CMP_verify_signature(ctx, msg, scrt);
     }
     return 0;
 }
