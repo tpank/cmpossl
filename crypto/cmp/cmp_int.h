@@ -46,14 +46,14 @@ struct cmp_ctx_st {
     X509_NAME *issuer;  /* issuer name to used in cert template */
     X509_NAME *subjectName; /* subject name to be used in the cert template.
                                NB: could also be taken from clcert */
-    STACK_OF (GENERAL_NAME) *subjectAltNames;  /* names to be added to the
+    STACK_OF(GENERAL_NAME) *subjectAltNames;  /* names to be added to the
                             cert template as the subjectAltName extension */
     CERTIFICATEPOLICIES *policies; /* policies to be included in extensions */
     X509_EXTENSIONS *reqExtensions; /* exts to be added to cert template */
     ASN1_UTF8STRING *regToken; /* for setting itav for EJBCA in CA mode */
-    STACK_OF (X509) *extraCertsOut; /* to be included in PKI messages */
-    STACK_OF (X509) *extraCertsIn; /* extraCerts received from server */
-    STACK_OF (X509) *caPubs; /* CA certs received from server (in IP message) */
+    STACK_OF(X509) *extraCertsOut; /* to be included in PKI messages */
+    STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
+    STACK_OF(X509) *caPubs; /* CA certs received from server (in IP message) */
     CMP_PKIFREETEXT *lastStatusString;
     X509 *newClCert; /* *new* CLIENT certificate received from the CA
      * TODO: this should be a stack since there could be more than one */
@@ -102,7 +102,7 @@ struct cmp_ctx_st {
        the received certificate and reject if necessary */
     X509_STORE *trusted_store;    /* store for trusted (root) certificates and
                                      possibly CRLs and cert verify callback */
-    STACK_OF (X509) *untrusted_certs;  /* untrusted (intermediate) certs */
+    STACK_OF(X509) *untrusted_certs;  /* untrusted (intermediate) certs */
 
     /* HTTP transfer related settings */
     char *serverName;
@@ -198,9 +198,9 @@ struct cmp_infotypeandvalue_st {
         /* NID_id_it_caProtEncCert - CA Protocol Encryption Certificate  */
         X509 *caProtEncCert;
         /* NID_id_it_signKeyPairTypes - Signing Key Pair Types  */
-        STACK_OF (X509_ALGOR) *signKeyPairTypes;
+        STACK_OF(X509_ALGOR) *signKeyPairTypes;
         /* NID_id_it_encKeyPairTypes - Encryption/Key Agreement Key Pair Types  */
-        STACK_OF (X509_ALGOR) *encKeyPairTypes;
+        STACK_OF(X509_ALGOR) *encKeyPairTypes;
         /* NID_id_it_preferredSymmAlg - Preferred Symmetric Algorithm  */
         X509_ALGOR *preferredSymmAlg;
         /* NID_id_it_caKeyUpdateInfo - Updated CA Key Pair      */
@@ -208,7 +208,7 @@ struct cmp_infotypeandvalue_st {
         /* NID_id_it_currentCRL - CRL  */
         X509_CRL *currentCRL;
         /* NID_id_it_unsupportedOIDs - Unsupported Object Identifiers  */
-        STACK_OF (ASN1_OBJECT) *unsupportedOIDs;
+        STACK_OF(ASN1_OBJECT) *unsupportedOIDs;
         /* NID_id_it_keyPairParamReq - Key Pair Parameters Request      */
         ASN1_OBJECT *keyPairParamReq;
         /* NID_id_it_keyPairParamRep - Key Pair Parameters Response  */
@@ -222,7 +222,7 @@ struct cmp_infotypeandvalue_st {
         /* NID_id_it_origPKIMessage - origPKIMessage  */
         CMP_PKIMESSAGES *origPKIMessage;
         /* NID_id_it_suppLangTags - Supported Language Tags */
-        STACK_OF (ASN1_UTF8STRING) *suppLangTagsValue;
+        STACK_OF(ASN1_UTF8STRING) *suppLangTagsValue;
         /* this is to be used for so far undeclared objects */
         ASN1_TYPE *other;
     } infoValue;
@@ -230,7 +230,7 @@ struct cmp_infotypeandvalue_st {
 CMP_INFOTYPEANDVALUE *CMP_INFOTYPEANDVALUE_dup(CMP_INFOTYPEANDVALUE *itav);
 
 int CMP_INFOTYPEANDVALUE_stack_item_push0(
-		                      STACK_OF (CMP_INFOTYPEANDVALUE) **itav_sk_p,
+		                      STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,
                               const CMP_INFOTYPEANDVALUE *itav);
 
 
@@ -305,9 +305,9 @@ DEFINE_STACK_OF(CMP_REVDETAILS)
      }
  */
 struct cmp_revrepcontent_st {
-    STACK_OF (CMP_PKISTATUSINFO) *status;
-    STACK_OF (CRMF_CERTID) *certId;
-    STACK_OF (X509) *crls;
+    STACK_OF(CMP_PKISTATUSINFO) *status;
+    STACK_OF(CRMF_CERTID) *certId;
+    STACK_OF(X509) *crls;
 } /* CMP_REVREPCONTENT */;
 DECLARE_ASN1_FUNCTIONS(CMP_REVREPCONTENT)
 
@@ -322,8 +322,8 @@ DECLARE_ASN1_FUNCTIONS(CMP_REVREPCONTENT)
 typedef struct cmp_keyrecrepcontent_st {
     CMP_PKISTATUSINFO *status;
     X509 *newSigCert;
-    STACK_OF (X509) *caCerts;
-    STACK_OF (CMP_CERTIFIEDKEYPAIR) *keyPairHist;
+    STACK_OF(X509) *caCerts;
+    STACK_OF(CMP_CERTIFIEDKEYPAIR) *keyPairHist;
 } CMP_KEYRECREPCONTENT;
 DECLARE_ASN1_FUNCTIONS(CMP_KEYRECREPCONTENT)
 /*
@@ -392,8 +392,8 @@ DECLARE_ASN1_FUNCTIONS(CMP_CERTRESPONSE)
      }
  */
 struct cmp_certrepmessage_st {
-    STACK_OF (X509) *caPubs;
-    STACK_OF (CMP_CERTRESPONSE) *response;
+    STACK_OF(X509) *caPubs;
+    STACK_OF(CMP_CERTRESPONSE) *response;
 } /* CMP_CERTREPMESSAGE */;
 DECLARE_ASN1_FUNCTIONS(CMP_CERTREPMESSAGE)
 
@@ -474,7 +474,7 @@ struct cmp_pkiheader_st {
     ASN1_OCTET_STRING *senderNonce; /* 5 */
     ASN1_OCTET_STRING *recipNonce; /* 6 */
     CMP_PKIFREETEXT *freeText; /* 7 */
-    STACK_OF (CMP_INFOTYPEANDVALUE) *generalInfo; /* 8 */
+    STACK_OF(CMP_INFOTYPEANDVALUE) *generalInfo; /* 8 */
 } /* CMP_PKIHEADER */;
 DECLARE_ASN1_FUNCTIONS(CMP_PKIHEADER)
 
@@ -628,7 +628,7 @@ struct cmp_pkimessage_st {
     CMP_PKIBODY *body;
     ASN1_BIT_STRING *protection; /* 0 */
     /* CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
-    STACK_OF (X509) *extraCerts; /* 1 */
+    STACK_OF(X509) *extraCerts; /* 1 */
 } /* CMP_PKIMESSAGE */;
 DECLARE_ASN1_FUNCTIONS(CMP_PKIMESSAGE)
 

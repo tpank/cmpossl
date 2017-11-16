@@ -145,7 +145,7 @@ struct crmf_certtemplate_st {
     /* TODO: That should be - but that's only cosmetical */
     X509_EXTENSIONS *extensions; /* 9 */
 # endif
-    STACK_OF (X509_EXTENSION) * extensions; /* 9 */
+    STACK_OF(X509_EXTENSION) *extensions; /* 9 */
 } /* CRMF_CERTTEMPLATE */;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTTEMPLATE)
 
