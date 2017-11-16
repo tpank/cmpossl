@@ -382,7 +382,7 @@ ASN1_OCTET_STRING *CMP_get_cert_subject_key_id(const X509 *cert);
 STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF (X509) *certs,
                                      const X509 *cert);
 int CMP_sk_X509_add1_cert (STACK_OF (X509) *sk, X509 *cert, int not_duplicate);
-int CMP_sk_X509_add1_certs(STACK_OF (X509) *sk, STACK_OF (X509) *certs,
+int CMP_sk_X509_add1_certs(STACK_OF (X509) *sk, const STACK_OF (X509) *certs,
                       int no_self_signed, int no_duplicates);
 int CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF (X509) *certs,
                          int only_self_signed);
@@ -433,7 +433,7 @@ int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
  * does not recognize it correctly which leads to the file not being global in
  * the shared object when building with GNU. */
 STACK_OF(X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
-int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, STACK_OF (X509) *certs);
+int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, const STACK_OF (X509) *certs);
 void CMP_CTX_delete(CMP_CTX *ctx);
 int CMP_CTX_set_error_callback(CMP_CTX *ctx, cmp_logfn_t cb);
 int CMP_CTX_set_debug_callback(CMP_CTX *ctx, cmp_logfn_t cb);

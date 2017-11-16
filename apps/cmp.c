@@ -2144,7 +2144,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
 }
 
 static int load_untrusted(char *input,
-                          int (*set_fn)(CMP_CTX *ctx, STACK_OF(X509) *certs),
+                          int (*set_fn)(CMP_CTX *ctx, const STACK_OF(X509) *certs),
                           CMP_CTX *ctx, const char *desc)
 {
     STACK_OF(X509) *certs, *all_certs;

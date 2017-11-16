@@ -1633,7 +1633,7 @@ int CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert, int not_duplicate)
  * certs parameter may be NULL.
  * returns 1 on success, 0 on error
  * ########################################################################## */
-int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
+int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
                       int no_self_signed, int no_duplicates)
 {
     int i;
