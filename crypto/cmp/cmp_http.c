@@ -177,7 +177,7 @@ int bio_connect(BIO *bio, int timeout) {
 int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
              OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time)
 {
-    int rv, rc, sending = 1;
+    int rv = -4, rc, sending = 1;
     int blocking = max_time == 0;
     ASN1_VALUE *const pattern = (ASN1_VALUE *)-1;
 
