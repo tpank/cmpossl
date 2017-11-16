@@ -20,20 +20,25 @@ while optionally checking the revocation status of the certificates(s).
 
 CMP_validate_msg() validates the protection of the given PKIMessage
 using either password-based mac (PBM) or a signature algorithm.
-In the case of signature algorithm the certificate can be provided directly in
-ctx->srvCert, else it is taken from extraCerts and validated against
-ctx->trusted_store, utilizing ctx->untrusted_certs and extraCerts.
 
-In case of successfull validation of PBM protection of a certificate response
+In case of signature algorithm, the certificate to use for protection
+validation is taken from ctx->srvCert if set. Otherwise potentially suitable
+sender certificates are determined by matching the PKIMessage's sender DN and
+senderKID to the certificates available in the PKIMessage's extraCerts,
+ctx->untrusted_certs, and ctx->trusted_store.  The first candidate that can be
+validated against ctx->trusted_store, utilizing ctx->untrusted_certs and
+extraCerts, is used.
+
+In case of successful validation of PBM protection of a certificate response,
 the certificates in the caPubs field (if any) are added to ctx->trusted_store,
 to be available for validating future messages in the same context.
-Those could, e.g., apply to later Polling Responses (pollRep)
-or PKI Confirmation (PKIConf) messages in the same transaction.
+Those could e.g. apply to later Polling Responses (pollRep) or PKI Confirmation
+(PKIConf) messages in the same transaction.
 
-If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
-the extraCerts field when a self-signed certificate is found there that can
-be used to validate the issued certificate returned in IP.  This is according
-to the need given in 3GPP TS 33.310.
+If ctx->permitTAInExtraCertsForIR is true, a self-signed certificate from the
+PKIMessage's extraCerts field may also be used as trust anchor during
+protection validation if it can be used to validate the issued certificate
+returned in IP.  This is according to 3GPP TS 33.310.
 
 CMP_validate_cert_path() attempts to validate a certificate and its path
 using the given store of trusted certs (possibly including CRLs and a cert
