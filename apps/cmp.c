@@ -2936,11 +2936,6 @@ int cmp_main(int argc, char **argv)
         goto bad_ops;
     }
 
-    if (!strcmp(argv[1], "-help")) {
-        opt_help(cmp_options);
-        goto err;
-    }
-
     bio_c_out = BIO_new_fp(stdout, BIO_NOCLOSE);
 
     /* handle OPT_CONFIG and OPT_SECTION upfront to take effect for other opts*/
@@ -3012,8 +3007,8 @@ int cmp_main(int argc, char **argv)
         case OPT_EOF:
         case OPT_ERR:
 opt_err:
-         /* BIO_printf(bio_err, "%s: Use -help for the following summary.\n", prog);
-            goto err; */
+			BIO_printf(bio_err, "%s: Use -help for summary.\n", prog);
+            goto err;
         case OPT_HELP:
             ret = EXIT_SUCCESS;
             opt_help(cmp_options);
