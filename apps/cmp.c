@@ -3006,8 +3006,8 @@ int cmp_main(int argc, char **argv)
         switch (o) {
         case OPT_EOF:
         case OPT_ERR:
-opt_err:
-			BIO_printf(bio_err, "%s: Use -help for summary.\n", prog);
+ opt_err:
+            BIO_printf(bio_err, "%s: Use -help for summary.\n", prog);
             goto err;
         case OPT_HELP:
             ret = EXIT_SUCCESS;
