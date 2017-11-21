@@ -1122,7 +1122,11 @@ static STACK_OF(X509) *load_certs_fmt(const char *infile, int format,
     }
     else if (format == FORMAT_PKCS12) {
         STACK_OF(X509) *certs = NULL;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
         BIO *bio = bio_open_default(infile, 'r', format);
+#else
+        BIO *bio = BIO_new_file(infile, "rb");
+#endif
         if (bio != NULL) {
             PW_CB_DATA cb_data;
             cb_data.password = pass;
@@ -2099,7 +2103,7 @@ static int set_name(const char *str,
                     int (*set_fn)(CMP_CTX *ctx, const X509_NAME *name),
                     CMP_CTX *ctx, const char *desc) {
     if (str) {
-        X509_NAME *n = parse_name(str, MBSTRING_ASC, 0);
+        X509_NAME *n = parse_name((char *)str, MBSTRING_ASC, 0);
         if (n == NULL) {
             BIO_printf(bio_err, "error: unable to parse %s name '%s'\n",
                        desc, str);
