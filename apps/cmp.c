@@ -1022,7 +1022,7 @@ static char *get_passwd(const char *pass, const char *desc) {
     return result;
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+#if OPENSSL_VERSION_NUMBER < 0x100020b0L
 static void release_engine(ENGINE *e)
 {
 #ifndef OPENSSL_NO_ENGINE
@@ -1031,7 +1031,9 @@ static void release_engine(ENGINE *e)
         ENGINE_free(e);
 #endif
 }
+#endif
 
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
  static void OPENSSL_clear_free(void *str, size_t num)
 {
     if (str == NULL)

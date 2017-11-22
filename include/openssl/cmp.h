@@ -95,7 +95,9 @@ typedef int (*X509_STORE_CTX_verify_cb)(int, X509_STORE_CTX *);
     CRYPTO_set_ex_data(&(ctx)->ex_data, (idx), (data))
 #define X509_STORE_get_ex_data(ctx, idx) \
     CRYPTO_get_ex_data(&(ctx)->ex_data, (idx))
+#ifndef X509_V_ERR_STORE_LOOKUP
 #define X509_V_ERR_STORE_LOOKUP 70
+#endif
 #define X509_STORE_set_lookup_crls X509_STORE_set_lookup_crls_cb
 #define X509_VERIFY_PARAM_get_time(param) ((param)->check_time)
 #define X509_V_FLAG_NO_CHECK_TIME 0x200000
