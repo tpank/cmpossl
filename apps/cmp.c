@@ -442,7 +442,7 @@ OPTIONS cmp_options[] = {
     {"disableconfirm", OPT_DISABLECONFIRM, '-', "Do not confirm newly enrolled certificate"},
                            {OPT_MORE_STR, 0, 0, "WARNING: This setting leads to behavior violating RFC 4210."},
     {"certout", OPT_CERTOUT, 's', "File to save the newly enrolled certificate"},
-    {"out-trusted", OPT_OUT_TRUSTED, 's', "Trusted certificates to use for verifying the newly enrolled certificate"},
+    {"out_trusted", OPT_OUT_TRUSTED, 's', "Trusted certificates to use for verifying the newly enrolled certificate"},
 
     {OPT_MORE_STR, 0, 0, "\nMisc request options:"},
 
@@ -454,7 +454,7 @@ OPTIONS cmp_options[] = {
     {"infotype", OPT_INFOTYPE, 's', "InfoType name for requesting specific info in genm, e.g., 'signKeyPairTypes'"},
 
     {OPT_MORE_STR, 0, 0, "\nCredential format options:"},
-    {"storepass", OPT_STOREPASS, 's', "Certificate store password (may be needed with -trusted, -out-trusted, etc.)"},
+    {"storepass", OPT_STOREPASS, 's', "Certificate store password (may be needed with -trusted, -out_trusted, etc.)"},
     {"storeform", OPT_STOREFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate store files. Default PEM."},
     {"certform", OPT_CERTFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM."},
                {OPT_MORE_STR, 0, 0, "This also determines format to use for writing (not supported for P12)"},
@@ -468,13 +468,13 @@ OPTIONS cmp_options[] = {
 #endif
 
     {OPT_MORE_STR, 0, 0, "\nTLS options:"},
-    {"tls-used", OPT_USETLS, '-', "Force using TLS (even when other TLS options are not set) connecting to server"},
-    {"tls-cert", OPT_TLSCERT, 's', "Client's TLS certificate. May include certificate chain to be provided to server"},
-    {"tls-key", OPT_TLSKEY, 's', "Private key for the client's TLS certificate"},
-    {"tls-keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
-    {"tls-trusted", OPT_TLSTRUSTED, 's', "Trusted certificates to use for verifying the TLS server certificate."},
+    {"tls_used", OPT_USETLS, '-', "Force using TLS (even when other TLS options are not set) connecting to server"},
+    {"tls_cert", OPT_TLSCERT, 's', "Client's TLS certificate. May include certificate chain to be provided to server"},
+    {"tls_key", OPT_TLSKEY, 's', "Private key for the client's TLS certificate"},
+    {"tls_keypass", OPT_TLSKEYPASS, 's', "Pass phrase source for the client's private TLS key"},
+    {"tls_trusted", OPT_TLSTRUSTED, 's', "Trusted certificates to use for verifying the TLS server certificate."},
                     {OPT_MORE_STR, 0, 0, "This implies host name validation"},
-    {"tls-host", OPT_TLSHOST, 's', "Address to be checked (rather than -server) during TLS host name validation"},
+    {"tls_host", OPT_TLSHOST, 's', "Address to be checked (rather than -server) during TLS host name validation"},
 
     {OPT_MORE_STR, 0, 0, "\nCertificate verification options, for both CMP and TLS:"},
     {"crl_download", OPT_CRL_DOWNLOAD, '-', "Retrieve CRLs from distribution points given in certificates as primary source"},
@@ -2395,11 +2395,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_tls_cert || opt_tls_key || opt_tls_keypass) {
         opt_use_tls = 1;
         if (!opt_tls_key) {
-            BIO_printf(bio_err, "error: missing -tls-key option\n");
+            BIO_printf(bio_err, "error: missing -tls_key option\n");
             goto err;
          }
         else if (!opt_tls_cert) {
-            BIO_printf(bio_err, "error: missing -tls-cert option\n");
+            BIO_printf(bio_err, "error: missing -tls_cert option\n");
         }
     }
     if (opt_use_tls) {
@@ -3037,19 +3037,19 @@ int cmp_main(int argc, char **argv)
             opt_use_tls = 1;
             break;
         case OPT_TLSCERT:
-            opt_tls_cert = opt_str("tls-cert");
+            opt_tls_cert = opt_str("tls_cert");
             break;
         case OPT_TLSKEY:
-            opt_tls_key = opt_str("tls-key");
+            opt_tls_key = opt_str("tls_key");
             break;
         case OPT_TLSKEYPASS:
-            opt_tls_keypass = opt_str("tls-keypass");
+            opt_tls_keypass = opt_str("tls_keypass");
             break;
         case OPT_TLSTRUSTED:
-            opt_tls_trusted = opt_str("tls-trusted");
+            opt_tls_trusted = opt_str("tls_trusted");
             break;
         case OPT_TLSHOST:
-            opt_tls_host = opt_str("tls-host");
+            opt_tls_host = opt_str("tls_host");
             break;
 
         case OPT_PATH:
