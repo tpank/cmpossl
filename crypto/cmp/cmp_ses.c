@@ -149,12 +149,11 @@ static void message_add_error_data(CMP_PKIMESSAGE *msg)
 
 /* evaluate whether there's an standard-violating exception configured for
    handling unportected errors */
-static int unprotected_exception(const CMP_PKIMESSAGE *rep,
-                                 int type_rep,
-                                 int rcvd_type,
-                                 CMP_CTX *ctx)
+static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
+                                 const CMP_PKIMESSAGE *rep)
 {
     int exception = 0;
+    int rcvd_type = CMP_PKIMESSAGE_get_bodytype(rep);
 
     if (ctx->unprotectedErrors) {
         if (rcvd_type == V_CMP_PKIBODY_ERROR) {
@@ -173,7 +172,7 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
             CMP_printf(ctx, "WARN: ignoring missing protection of PKI Confirmation message");
             exception = 1;
         }
-        if (rcvd_type == type_rep &&
+        if (rcvd_type == expected_type &&
                 (rcvd_type == V_CMP_PKIBODY_IP ||
                  rcvd_type == V_CMP_PKIBODY_CP ||
                  rcvd_type == V_CMP_PKIBODY_KUP)) {
@@ -193,6 +192,7 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
     return exception;
 }
 
+
 /* ########################################################################## *
  * internal function
  *
@@ -202,7 +202,7 @@ static int unprotected_exception(const CMP_PKIMESSAGE *rep,
  * ########################################################################## */
 static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                               const char *type_string, int type_function,
-                              CMP_PKIMESSAGE **rep, int type_rep,
+                              CMP_PKIMESSAGE **rep, int expected_type,
                               int not_received)
 {
     int err, rcvd_type;
@@ -225,50 +225,17 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
         return 0;
     }
 
-    if ((rcvd_type = CMP_PKIMESSAGE_get_bodytype(*rep)) < 0) {
-        CMPerr(type_function, CMP_R_PKIBODY_ERROR);
-        return 0;
-    }
-
     CMP_printf(ctx, "INFO: Got response");
 
-    /* validate message protection */
-    if ((*rep)->header->protectionAlg) {
-        if (!CMP_validate_msg(ctx, *rep)) {
-            /* validation failed */
-             CMPerr(type_function, CMP_R_ERROR_VALIDATING_PROTECTION);
-             return 0;
-         }
-    } else {
-        CMP_printf(ctx, "INFO: response message is not protected");
-        /* detect explicitly permitted exceptions */
-        if (!unprotected_exception(*rep, type_rep, rcvd_type, ctx)) {
-            CMPerr(type_function, CMP_R_ERROR_VALIDATING_PROTECTION);
-            return 0;
-        }
-    }
-
-    /* compare received nonce with the one sent in request */
-    if (req->header->senderNonce && (!(*rep)->header->recipNonce ||
-        ASN1_OCTET_STRING_cmp(req->header->senderNonce,
-                              (*rep)->header->recipNonce))) {
-        /* senderNonce != recipNonce (sic although there is no "!" in the if) */
-        CMPerr(type_function, CMP_R_ERROR_NONCES_DO_NOT_MATCH);
+    if ((rcvd_type = CMP_PKIMESSAGE_check_received(ctx, type_function,
+                                     req->header->senderNonce, *rep,
+                                     expected_type, unprotected_exception)) < 0)
         return 0;
-    }
-
-    /* compare received transactionID with our current one */
-    if (ctx->transactionID && (!(*rep)->header->transactionID ||
-        ASN1_OCTET_STRING_cmp(ctx->transactionID,
-                              (*rep)->header->transactionID))) {
-        CMPerr(type_function, CMP_R_ERROR_TRANSACTIONID_UNMATCHED);
-        return 0;
-    }
 
     /* catch if received message type isn't one of expected ones (e.g. error) */
-    if (rcvd_type != type_rep &&
+    if (rcvd_type != expected_type &&
         /* for the final answer to polling, there could be IP/CP/KUP */
-        !(type_rep == V_CMP_PKIBODY_POLLREP &&
+        !(expected_type == V_CMP_PKIBODY_POLLREP &&
         (rcvd_type == V_CMP_PKIBODY_IP ||
          rcvd_type == V_CMP_PKIBODY_CP ||
          rcvd_type == V_CMP_PKIBODY_KUP))) {
@@ -276,11 +243,6 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
         message_add_error_data(*rep);
         return 0;
     }
-
-    /* RFC 4210 section 5.1.1 states: the recipNonce is copied from
-     * the senderNonce of the previous message in the transaction.
-     * --> Store for setting in next message */
-    CMP_CTX_set1_recipNonce(ctx, (*rep)->header->senderNonce);
 
     return 1;
 }

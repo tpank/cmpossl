@@ -383,6 +383,11 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 ASN1_OCTET_STRING *CMP_get_cert_subject_key_id(const X509 *cert);
 STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
                                      const X509 *cert);
+int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, int type_function,
+                                  const ASN1_OCTET_STRING *senderNonce,
+                                  CMP_PKIMESSAGE *msg, int callback_arg,
+                                  int (*allow_unprotected)(const CMP_CTX *, int,
+                                                       const CMP_PKIMESSAGE *));
 int CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert, int not_duplicate);
 int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
                       int no_self_signed, int no_duplicates);

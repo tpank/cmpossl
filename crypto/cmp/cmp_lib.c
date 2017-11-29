@@ -1734,3 +1734,73 @@ ASN1_OCTET_STRING *CMP_get_cert_subject_key_id(const X509 *cert)
  err:
     return NULL;
 }
+
+/* ########################################################################## *
+ * Checks received message (i.e., response by server or request from client):
+ * it has a valid body type,
+ * its protection can be validated or is absent (allowed only if callback fn
+ * is present and function yields positive result using also supplied argument),
+ * its transaction ID matches the one contained in the ctx (if any,
+ * else learns the current value), and
+ * its recipNonce matches the senderNonce given (if any).
+ * If so, learns the new senderNonce contained in the message (if any).
+ * returns body type (which is >= 0) of the mesage on success, -1 on error
+ * ########################################################################## */
+int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, int type_function,
+                                  const ASN1_OCTET_STRING *senderNonce,
+                                  const CMP_PKIMESSAGE *msg, int callback_arg,
+                                  int (*allow_unprotected)(const CMP_CTX *, int,
+                                                        const CMP_PKIMESSAGE *))
+{
+    int rcvd_type = CMP_PKIMESSAGE_get_bodytype(msg);
+
+    if (!ctx || !msg)
+        return -1;
+
+    if ((rcvd_type = CMP_PKIMESSAGE_get_bodytype(msg)) < 0) {
+        CMPerr(type_function, CMP_R_PKIBODY_ERROR);
+        return -1;
+    }
+
+    /* validate message protection */
+    if (msg->header->protectionAlg) {
+        if (!CMP_validate_msg(ctx, msg)) {
+            /* validation failed */
+             CMPerr(type_function, CMP_R_ERROR_VALIDATING_PROTECTION);
+             return -1;
+         }
+    } else {
+        CMP_printf(ctx, "INFO: received message is not protected");
+        /* detect explicitly permitted exceptions */
+        if (!allow_unprotected ||
+            !(*allow_unprotected)(ctx, callback_arg, msg)) {
+            CMPerr(type_function, CMP_R_ERROR_VALIDATING_PROTECTION);
+            return -1;
+        }
+    }
+
+    /* compare received transactionID with our current one */
+    if (ctx->transactionID && (!msg->header->transactionID ||
+        ASN1_OCTET_STRING_cmp(ctx->transactionID,
+                              msg->header->transactionID))) {
+        CMPerr(type_function, CMP_R_ERROR_TRANSACTIONID_UNMATCHED);
+        return -1;
+    }
+    if (!ctx->transactionID && /* in this case, learn transactionID */
+        !CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
+        return -1;
+
+    /* compare received nonce with the expected one */
+    if (senderNonce && (!msg->header->recipNonce ||
+        ASN1_OCTET_STRING_cmp(senderNonce, msg->header->recipNonce))) {
+        /* senderNonce != recipNonce (sic although there is no "!" in the if) */
+        CMPerr(type_function, CMP_R_ERROR_NONCES_DO_NOT_MATCH);
+        return -1;
+    }
+    /* RFC 4210 section 5.1.1 states: the recipNonce is copied from
+     * the senderNonce of the previous message in the transaction.
+     * --> Store for setting in next message */
+    CMP_CTX_set1_recipNonce(ctx, msg->header->senderNonce);
+
+    return rcvd_type;
+}
