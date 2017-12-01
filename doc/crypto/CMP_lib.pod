@@ -82,7 +82,7 @@
   STACK_OF(X509) *CMP_build_cert_chain(X509_STORE *store, const X509 *cert);
   int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, int type_function,
                                     const ASN1_OCTET_STRING *senderNonce,
-                                    CMP_PKIMESSAGE *msg, int callback_arg,
+                                    const CMP_PKIMESSAGE *msg, int callback_arg,
                                     int (*allow_unprotected)(const CMP_CTX *, int,
                                                              const CMP_PKIMESSAGE *));
   int sk_X509_add_certs(STACK_OF(X509) *stack, const STACK_OF(X509) *certs,
