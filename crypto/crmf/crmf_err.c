@@ -8,67 +8,60 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <stdio.h>
 #include <openssl/err.h>
-#include <openssl/crmf.h>
+#include <openssl/crmferr.h>
 
-/* BEGIN ERROR CODES */
 #ifndef OPENSSL_NO_ERR
 
-# define ERR_FUNC(func) ERR_PACK(ERR_LIB_CRMF,func,0)
-# define ERR_REASON(reason) ERR_PACK(ERR_LIB_CRMF,0,reason)
-
-static ERR_STRING_DATA CRMF_str_functs[] = {
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_CREATE_POPO),
+static const ERR_STRING_DATA CRMF_str_functs[] = {
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_CREATE_POPO, 0),
      "CRMF_CERTREQMSG_create_popo"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_PUSH0_EXTENSION),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_PUSH0_EXTENSION, 0),
      "CRMF_CERTREQMSG_push0_extension"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_PUSH0_REGCTRL),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_PUSH0_REGCTRL, 0),
      "CRMF_CERTREQMSG_push0_regCtrl"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_PUSH0_REGINFO),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_PUSH0_REGINFO, 0),
      "CRMF_CERTREQMSG_push0_regInfo"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET0_EXTENSIONS),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_SET0_EXTENSIONS, 0),
      "CRMF_CERTREQMSG_set0_extensions"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_SET1_ISSUER, 0),
      "CRMF_CERTREQMSG_set1_issuer"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET1_PUBLICKEY),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_SET1_PUBLICKEY, 0),
      "CRMF_CERTREQMSG_set1_publicKey"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET1_REGCTRL_OLDCERTID_FROM_CERT),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_SET1_REGCTRL_OLDCERTID_FROM_CERT, 0),
      "CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET1_REGINFO_REGTOKEN),
-     "CRMF_CERTREQMSG_set1_regInfo_regToken"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET1_SUBJECT),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_SET1_SUBJECT, 0),
      "CRMF_CERTREQMSG_set1_subject"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET_CERTREQID),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_SET_CERTREQID, 0),
      "CRMF_CERTREQMSG_set_certReqId"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET_POPO), "CRMF_CERTREQMSG_set_popo"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET_VALIDITY),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_SET_VALIDITY, 0),
      "CRMF_CERTREQMSG_set_validity"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQMSG_SET_VERSION2),
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_CERTREQMSG_SET_VERSION2, 0),
      "CRMF_CERTREQMSG_set_version2"},
-    {ERR_FUNC(CRMF_F_CRMF_CERTREQ_NEW), "CRMF_certreq_new"},
-    {ERR_FUNC(CRMF_F_CRMF_PASSWORDBASEDMAC_NEW), "CRMF_passwordBasedMac_new"},
-    {ERR_FUNC(CRMF_F_CRMF_PBMP_NEW), "CRMF_pbmp_new"},
-    {ERR_FUNC(CRMF_F_POPOSIGKEY_NEW), "poposigkey_new"},
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_PASSWORDBASEDMAC_NEW, 0),
+     "CRMF_passwordBasedMac_new"},
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_PBMP_NEW, 0), "CRMF_pbmp_new"},
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_POPOSIGKEY_NEW, 0), "poposigkey_new"},
     {0, NULL}
 };
 
-static ERR_STRING_DATA CRMF_str_reasons[] = {
-    {ERR_REASON(CRMF_R_CRMFERROR), "crmferror"},
-    {ERR_REASON(CRMF_R_ERROR), "error"},
-    {ERR_REASON(CRMF_R_ERROR_SETTING_PUBLIC_KEY), "error setting public key"},
-    {ERR_REASON(CRMF_R_ITERATIONCOUNT_BELOW_100), "iterationcount below 100"},
-    {ERR_REASON(CRMF_R_MALLOC_FAILURE), "malloc failure"},
-    {ERR_REASON(CRMF_R_NULL_ARGUMENT), "null argument"},
-    {ERR_REASON(CRMF_R_SETTING_MAC_ALRGOR_FAILURE),
-     "setting mac alrgor failure"},
-    {ERR_REASON(CRMF_R_SETTING_OWF_ALRGOR_FAILURE),
-     "setting owf alrgor failure"},
-    {ERR_REASON(CRMF_R_UNSUPPORTED_ALGORITHM), "unsupported algorithm"},
-    {ERR_REASON(CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY),
-     "unsupported alg for popsigningkey"},
-    {ERR_REASON(CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO),
-     "unsupported method for creating popo"},
+static const ERR_STRING_DATA CRMF_str_reasons[] = {
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_CRMFERROR), "crmferror"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_ERROR), "error"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_ITERATIONCOUNT_BELOW_100),
+    "iterationcount below 100"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_MALLOC_FAILURE), "malloc failure"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_NULL_ARGUMENT), "null argument"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_SETTING_MAC_ALRGOR_FAILURE),
+    "setting mac alrgor failure"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_SETTING_OWF_ALRGOR_FAILURE),
+    "setting owf alrgor failure"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_UNSUPPORTED_ALGORITHM),
+    "unsupported algorithm"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY),
+    "unsupported alg for popsigningkey"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO),
+    "unsupported method for creating popo"},
     {0, NULL}
 };
 
@@ -77,10 +70,9 @@ static ERR_STRING_DATA CRMF_str_reasons[] = {
 int ERR_load_CRMF_strings(void)
 {
 #ifndef OPENSSL_NO_ERR
-
     if (ERR_func_error_string(CRMF_str_functs[0].error) == NULL) {
-        ERR_load_strings(0, CRMF_str_functs);
-        ERR_load_strings(0, CRMF_str_reasons);
+        ERR_load_strings_const(CRMF_str_functs);
+        ERR_load_strings_const(CRMF_str_reasons);
     }
 #endif
     return 1;
