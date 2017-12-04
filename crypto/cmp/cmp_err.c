@@ -153,6 +153,8 @@ static ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_REASON(CMP_R_ERROR_DECRYPTING_KEY), "error decrypting key"},
     {ERR_REASON(CMP_R_ERROR_DECRYPTING_SYMMETRIC_KEY),
      "error decrypting symmetric key"},
+    {ERR_REASON(CMP_R_ERROR_LEARNING_TRANSACTIONID),
+     "error learning transactionid"},
     {ERR_REASON(CMP_R_ERROR_NONCES_DO_NOT_MATCH),
      "error nonces do not match"},
     {ERR_REASON(CMP_R_ERROR_PARSING_PKISTATUS), "error parsing pkistatus"},

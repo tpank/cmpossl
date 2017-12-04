@@ -1752,7 +1752,7 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, int type_function,
                                   int (*allow_unprotected)(const CMP_CTX *, int,
                                                         const CMP_PKIMESSAGE *))
 {
-    int rcvd_type = CMP_PKIMESSAGE_get_bodytype(msg);
+    int rcvd_type;
 
     if (!ctx || !msg)
         return -1;
@@ -1787,8 +1787,10 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, int type_function,
         return -1;
     }
     if (!ctx->transactionID && /* in this case, learn transactionID */
-        !CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
+        !CMP_CTX_set1_transactionID(ctx, msg->header->transactionID)) {
+        CMPerr(type_function, CMP_R_ERROR_LEARNING_TRANSACTIONID);
         return -1;
+    }
 
     /* compare received nonce with the expected one */
     if (senderNonce && (!msg->header->recipNonce ||

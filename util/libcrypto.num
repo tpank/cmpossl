@@ -4505,3 +4505,4 @@ bio_connect                             4441	1_1_1	EXIST::FUNCTION:SOCK
 bio_http                                4442	1_1_1	EXIST::FUNCTION:OCSP,SOCK
 socket_wait                             4443	1_1_1	EXIST::FUNCTION:SOCK
 CMP_CTX_set1_expected_sender            4444	1_1_1	EXIST::FUNCTION:
+CMP_PKIMESSAGE_check_received           4445	1_1_1	EXIST::FUNCTION:

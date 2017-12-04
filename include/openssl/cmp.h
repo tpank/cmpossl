@@ -644,6 +644,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_DECRYPTING_ENCCERT                   123
 # define CMP_R_ERROR_DECRYPTING_KEY                       124
 # define CMP_R_ERROR_DECRYPTING_SYMMETRIC_KEY             125
+# define CMP_R_ERROR_LEARNING_TRANSACTIONID               174
 # define CMP_R_ERROR_NONCES_DO_NOT_MATCH                  126
 # define CMP_R_ERROR_PARSING_PKISTATUS                    127
 # define CMP_R_ERROR_PROTECTING_MESSAGE                   128
