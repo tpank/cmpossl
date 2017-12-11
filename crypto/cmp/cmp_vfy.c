@@ -301,10 +301,13 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
     if (!name || X509_NAME_cmp(name, sender_name) != 0)
         return 0; /* missing or wrong subject */
     if (kid) {/* enforce that the right subject key id is there */
-        ASN1_OCTET_STRING *ckid = CMP_get_cert_subject_key_id(cert);
-        if (!ckid || ASN1_OCTET_STRING_cmp(ckid, kid) != 0)
+        ASN1_OCTET_STRING *ckid = CMP_get1_cert_subject_key_id(cert);
+        if (!ckid || ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
+            ASN1_OCTET_STRING_free(ckid);
             return 0; /* missing or wrong kid */
         }
+        ASN1_OCTET_STRING_free(ckid);
+    }
     return 1;
 }
 

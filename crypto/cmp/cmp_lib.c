@@ -766,10 +766,11 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
             /* set senderKID to  keyIdentifier of the used certificate according
              * to section 5.1.1 */
-            subjKeyIDStr = CMP_get_cert_subject_key_id(ctx->clCert);
+            subjKeyIDStr = CMP_get1_cert_subject_key_id(ctx->clCert);
             if (subjKeyIDStr) {
                 CMP_PKIHEADER_set1_senderKID(msg->header, subjKeyIDStr);
             }
+            ASN1_OCTET_STRING_free(subjKeyIDStr);
 
             /* Add ctx->extraCertsOut, the ctx->clCert,
              * and the chain upwards build up from ctx->untrusted_certs */
@@ -1706,30 +1707,17 @@ STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store)
 }
 
 /* ############################################################################
- * this function is intended to be used only within the CMP library although it
- * is included in cmp.h
+ * this function is defined within the CMP library though it is generally useful
  *
- * Returns the subject key identifier of the given certificate
+ * Returns a copy of the subject key identifier of the given certificate
  * returns NULL on error, respecively when none was found.
  * ########################################################################## */
-ASN1_OCTET_STRING *CMP_get_cert_subject_key_id(const X509 *cert)
+ASN1_OCTET_STRING *CMP_get1_cert_subject_key_id(const X509 *cert)
 {
-    X509_EXTENSION *ex = NULL;
-    int subjKeyIDLoc = -1;
-
     if (!cert)
         goto err;
 
-    subjKeyIDLoc =
-        X509_get_ext_by_NID((X509 *)cert, NID_subject_key_identifier, -1);
-    if (subjKeyIDLoc == -1)
-        goto err;
-
-    /* found a subject key ID */
-    if (!(ex = X509_get_ext((X509 *)cert, subjKeyIDLoc)))
-        goto err;
-
-    return X509_EXTENSION_get_data(ex);
+    return X509_get_ext_d2i((X509 *)cert, NID_subject_key_identifier,NULL,NULL);
 
  err:
     return NULL;
