@@ -275,40 +275,67 @@ int CMP_cert_callback(int ok, X509_STORE_CTX *ctx)
 static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
                            const X509_STORE *ts) {
     X509_NAME *name = NULL;
+    char *str;
     X509_NAME *sender_name = NULL;
     ASN1_OCTET_STRING *kid = NULL;
     X509_VERIFY_PARAM *vpm = NULL;
     time_t check_time, *ptime = NULL;
 
-    if (!cert || !msg || !ts)
-        return 0; /* maybe better flag and handle this as fatal error */
+    vpm = ts ? X509_STORE_get0_param((X509_STORE *)ts) : NULL;
+    if (!cert || !msg || !ts || !vpm)
+        return 0; /* TODO better flag and handle this as fatal internal error */
 
-    vpm = X509_STORE_get0_param((X509_STORE *)ts);
-    sender_name = msg->header->sender->d.directoryName;
-    kid = msg->header->senderKID;
-    if (!sender_name || !vpm) /* keyid is allowed to be NULL */
-        return 0; /* maybe better flag and handle this as fatal error */
+    name = X509_get_subject_name(cert);
+    CMP_add_error_line("considering cert with subject");
+    str = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
+    CMP_add_error_txt(" = ", str);
+    OPENSSL_free(str);
 
     if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_USE_CHECK_TIME) {
         check_time = X509_VERIFY_PARAM_get_time(vpm);
         ptime = &check_time;
     }
     if (!(X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_NO_CHECK_TIME))
-        if (X509_cmp_time(X509_get0_notAfter(cert), ptime) < 0)
-            return 0; /* expired */
+        if (X509_cmp_time(X509_get0_notAfter(cert), ptime) < 0) {
+            CMP_add_error_data("expired");
+            return 0;
+        }
 
-    name = X509_get_subject_name(cert);
-    if (!name || X509_NAME_cmp(name, sender_name) != 0)
-        return 0; /* missing or wrong subject */
-    if (kid) {/* enforce that the right subject key id is there */
+    sender_name = msg->header->sender->d.directoryName;
+    kid = msg->header->senderKID;
+
+    if (sender_name) { /* enforce that the right subject DN is there */
+        if (!name) {
+            CMP_add_error_data("missing subject");
+            return 0;
+        }
+        if (X509_NAME_cmp(name, sender_name) != 0) {
+            CMP_add_error_data("wrong subject");
+            return 0;
+        }
+    }
+
+    if (kid) { /* enforce that the right subject key id is there */
         ASN1_OCTET_STRING *ckid = CMP_get1_cert_subject_key_id(cert);
-        if (!ckid || ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
+        if (!ckid) {
+            CMP_add_error_data("missing subject key ID");
+            return 0;
+        }
+        if (ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
+            CMP_add_error_data("wrong subject key");
+            str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
+            CMP_add_error_txt("\n ID = ", str);
+            OPENSSL_free(str);
+            str = OPENSSL_buf2hexstr(kid->data, kid->length);
+            CMP_add_error_txt("\n vs.  ", str);
+            OPENSSL_free(str);
             ASN1_OCTET_STRING_free(ckid);
-            return 0; /* missing or wrong kid */
+            return 0;
         }
         ASN1_OCTET_STRING_free(ckid);
     }
-    return 1;
+
+    return 1; /* acceptable also if there is no identifier in msg header */
 }
 
 /* ########################################################################## *
@@ -409,10 +436,11 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
     X509 *scrt = NULL;
     int scrt_valid = 0;
+    GENERAL_NAME *sender = msg->header->sender;
 
-    if (!msg->header->sender || !msg->body)
+    if (!sender || !msg->body)
         return 0; /* other NULL cases already have been checked */
-    if (msg->header->sender->type != GEN_DIRNAME) {
+    if (sender->type != GEN_DIRNAME) {
         CMPerr(CMP_F_FIND_SRVCERT,
                CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
         return NULL; /* FR#42: support for more than X509_NAME */
@@ -427,6 +455,13 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     } else {
         STACK_OF(X509) *found_crts = NULL;
         int i;
+
+        /* tentatively set error, which allows accumulationg diagnostic info */
+        char *sname = X509_NAME_oneline(sender->d.directoryName, NULL, 0);
+        (void)ERR_set_mark();
+        CMPerr(CMP_F_FIND_SRVCERT, CMP_R_NO_VALID_SRVCERT_FOUND);
+        ERR_add_error_data(2, "sender name = ", sname);
+        OPENSSL_free(sname);
 
         /* release any cached cert, which is no more acceptable */
         if (ctx->validatedSrvCert)
@@ -444,8 +479,6 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 
         /* select first server cert that can be validated */
         for (i = 0; !scrt_valid && i < sk_X509_num(found_crts); i++) {
-            ERR_clear_error(); /* TODO: still the cert verification
-                                  callback function may print extra errors */
             scrt = sk_X509_value(found_crts, i);
             scrt_valid = CMP_validate_cert_path(ctx, ctx->trusted_store,
                                                 ctx->untrusted_certs, scrt);
@@ -464,17 +497,12 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             /* store trusted srv cert for future msgs of same transaction */
             X509_up_ref(scrt);
             ctx->validatedSrvCert = scrt;
-        }
+            (void)ERR_pop_to_mark(); /* discard diagnostic info */
+            /* TODO: still the cert verification
+               callback function may have printed extra errors */
+        } else
+            scrt = NULL;
         sk_X509_pop_free(found_crts, X509_free);
-    }
-
-    if (!scrt_valid) {
-        char *sname = X509_NAME_oneline(msg->header->sender->d.directoryName,
-                                        NULL, 0);
-        CMPerr(CMP_F_FIND_SRVCERT, CMP_R_NO_VALID_SRVCERT_FOUND);
-        ERR_add_error_data(2, "sender name = ", sname);
-        OPENSSL_free(sname);
-        return NULL;
     }
 
     return scrt;
@@ -559,8 +587,8 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                 char *expected = X509_NAME_oneline(ctx->expected_sender,NULL,0);
                 char *actual   = X509_NAME_oneline(sender_name, NULL, 0);
                 CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
-                ERR_add_error_data(4, "expected = ", expected,
-                                   "; actual = ", actual ? actual : "(none)");
+                ERR_add_error_data(4, "\n expected = ", expected,
+                                  "\n   actual = ", actual ? actual : "(none)");
                 OPENSSL_free(expected);
                 OPENSSL_free(actual);
                 return 0;

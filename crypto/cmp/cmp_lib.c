@@ -101,15 +101,16 @@
 #include "cmp_int.h"
 
 /* ########################################################################## *
- * Adds text to the extra error data field of the last error in openssl's error
- * queue. ERR_add_error_data() simply overwrites the previous contents of the
- * error data, while this function can be used to add a string to the end of it.
+ * Appends text to the extra error data field of the last error message in
+ * OpenSSL's error queue, after adding the given separator string. Note that,
+ * in contrast, ERR_add_error_data() simply overwrites the previous contents
+ * of the error data.
  * ########################################################################## */
-void CMP_add_error_data(const char *txt)
+void CMP_add_error_txt(const char *separator, const char *txt)
 {
     const char *current_error = NULL;
     ERR_peek_last_error_line_data(NULL, NULL, &current_error, NULL);
-    ERR_add_error_data(3, current_error, ":", txt);
+    ERR_add_error_data(3, current_error, separator, txt);
 }
 
 /* ########################################################################## *

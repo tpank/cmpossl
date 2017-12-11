@@ -323,6 +323,9 @@ CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
 CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
 
 /* cmp_lib.c */
+void    CMP_add_error_txt(const char *separator, const char *txt);
+#define CMP_add_error_data(txt) CMP_add_error_txt(":", txt)
+#define CMP_add_error_line(txt) CMP_add_error_txt("\n", txt)
 CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
                                                 long reqId);
 int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
