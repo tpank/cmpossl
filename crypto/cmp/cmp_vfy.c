@@ -77,7 +77,7 @@
 /* ########################################################################## *
  * internal function
  *
- * validate a message protected by signature according to section 5.1.3.3
+ * verify a message protected by signature according to section 5.1.3.3
  * (sha1+RSA/DSA or any other algorithm supported by OpenSSL)
  * returns 0 on error
  * ########################################################################## */
@@ -157,7 +157,7 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
 /* ########################################################################## *
  * internal function
  *
- * Validates a message protected with PBMAC
+ * Verify a message protected with PBMAC
  * ########################################################################## */
 static int CMP_verify_MAC(const CMP_PKIMESSAGE *msg,
                           const ASN1_OCTET_STRING *secret)
@@ -368,7 +368,7 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
 /* ########################################################################## *
  * internal function
  *
- * Find one or more server certificates by using find_acceptable_certs()
+ * Find candidate server certificate(s) by using find_acceptable_certs()
  * looking for a non-expired cert with subject matching the msg sender name
  * and (if set in msg) a matching sender keyID = subject key ID.
  *
@@ -400,6 +400,9 @@ static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
     if (!find_acceptable_certs(untrusted, msg, ts, found_certs))
         goto oom;
 
+    CMP_add_error_line(sk_X509_num(found_certs) ?
+                       "found at least one matching server cert" :
+                       "no matching server cert found");
     return found_certs;
 oom:
     sk_X509_pop_free(found_certs, X509_free);
