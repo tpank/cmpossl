@@ -454,7 +454,10 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         /* exceptional 3GPP TS 33.310 handling */
         if (!scrt_valid && ctx->permitTAInExtraCertsForIR &&
                 CMP_PKIMESSAGE_get_bodytype(msg) == V_CMP_PKIBODY_IP) {
-            scrt_valid = srv_cert_valid_3gpp(ctx, scrt, msg);
+            for (i = 0; !scrt_valid && i < sk_X509_num(found_crts); i++) {
+                scrt = sk_X509_value(found_crts, i);
+                scrt_valid = srv_cert_valid_3gpp(ctx, scrt, msg);
+            }
         }
 
         if (scrt_valid) {
