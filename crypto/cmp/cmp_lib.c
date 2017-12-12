@@ -108,9 +108,50 @@
  * ########################################################################## */
 void CMP_add_error_txt(const char *separator, const char *txt)
 {
-    const char *current_error = NULL;
-    ERR_peek_last_error_line_data(NULL, NULL, &current_error, NULL);
-    ERR_add_error_data(3, current_error, separator, txt);
+    const char *file;
+    int line;
+    const char *data;
+    int flags;
+
+    unsigned long err = ERR_peek_last_error();
+    if (!err) {
+        ERR_PUT_error(ERR_LIB_CMP, 0, err, "", 0);
+    }
+
+#define MAX_DATA_LEN 4096-100 /* workaround for ERR_print_errors_cb() limit */
+    do {
+        const char *curr, *next;
+        int len;
+        char *tmp;
+        ERR_peek_last_error_line_data(&file, &line, &data, &flags);
+        if (!(flags&ERR_TXT_STRING))
+            data = "";
+        len = strlen(data);
+        curr = next = txt;
+        while (*next && len + strlen(separator) + (next - txt) < MAX_DATA_LEN) {
+            curr = next;
+            if (*separator) {
+                next = strstr(curr, separator);
+                if (next)
+                    next += strlen(separator);
+                else
+                    next = curr + strlen(curr);
+            } else
+                next = curr + 1;
+        }
+        if (*next) { /* split error msg in case error data would get too long */
+            if (curr != txt) {
+                tmp = strndup(txt, curr - txt);
+                ERR_add_error_data(3, data, separator, tmp);
+                free(tmp);
+            }
+            ERR_PUT_error(ERR_LIB_CMP, 0/* func */, err, file, line);
+            txt = curr;
+        } else {
+            ERR_add_error_data(3, data, separator, txt);
+            txt = next;
+        }
+    } while (*txt);
 }
 
 /* ########################################################################## *
