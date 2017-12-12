@@ -229,9 +229,8 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
 
     CMP_printf(ctx, "INFO: Got response");
 
-    if ((rcvd_type = CMP_PKIMESSAGE_check_received(ctx, type_function,
-                                     req->header->senderNonce, *rep,
-                                     expected_type, unprotected_exception)) < 0)
+    if((rcvd_type = CMP_PKIMESSAGE_check_received(ctx, req, *rep, expected_type,
+                                                  unprotected_exception)) < 0)
         return 0;
 
     /* catch if received message type isn't one of expected ones (e.g. error) */

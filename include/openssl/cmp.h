@@ -390,8 +390,7 @@ int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
 char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
                                      const X509 *cert);
-int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, int type_function,
-                                  const ASN1_OCTET_STRING *senderNonce,
+int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
                                   const CMP_PKIMESSAGE *msg, int callback_arg,
                                   int (*allow_unprotected)(const CMP_CTX *, int,
                                                        const CMP_PKIMESSAGE *));
