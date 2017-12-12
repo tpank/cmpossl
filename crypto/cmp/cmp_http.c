@@ -404,7 +404,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         return CMP_R_OUT_OF_MEMORY;
     cbio = (ctx->tlsBIO) ? BIO_push(ctx->tlsBIO, hbio) : hbio;
 
-    /* tentatively set error, which allows accumulationg diagnostic info */
+    /* tentatively set error, which allows accumulating diagnostic info */
     (void)ERR_set_mark();
     CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);
     rv = bio_connect(cbio, ctx->msgTimeOut);

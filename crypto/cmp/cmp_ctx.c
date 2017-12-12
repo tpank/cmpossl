@@ -392,7 +392,7 @@ int CMP_CTX_set_debug_callback(CMP_CTX *ctx, cmp_logfn_t cb)
 
 /* ################################################################ *
  * Set the reference value to be used for identification (i.e. the
- * username) when using PBMAC.
+ * user name) when using PBMAC.
  * returns 1 on success, 0 on error
  * ################################################################ */
 int CMP_CTX_set1_referenceValue(CMP_CTX *ctx, const unsigned char *ref,
@@ -1140,7 +1140,7 @@ int CMP_CTX_set1_recipNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce)
 }
 
 /* ################################################################ *
- * Set the hostname of the (HTTP) proxy server to use for all connections
+ * Set the host name of the (HTTP) proxy server to use for all connections
  * returns 1 on success, 0 on error
  * ################################################################ */
 int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name)
@@ -1168,7 +1168,7 @@ int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name)
 }
 
 /* ################################################################ *
- * Set the (HTTP) hostname of the CA server
+ * Set the (HTTP) host name of the CA server
  * returns 1 on success, 0 on error
  * ################################################################ */
 int CMP_CTX_set1_serverName(CMP_CTX *ctx, const char *name)
@@ -1326,7 +1326,7 @@ int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo)
 
 /* ################################################################ *
  * Get the failinfo error code bits in CMP_CTX
- * returns bitstring in ulong on success, -1 on error
+ * returns bit string in ulong on success, -1 on error
  * ################################################################ */
 unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx)
 {

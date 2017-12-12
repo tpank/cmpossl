@@ -136,7 +136,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_PUSHING_GENM_ITEMS                   132
 # define CMP_R_ERROR_SENDING_REQUEST                      133
 # define CMP_R_ERROR_SETTING_CERTHASH                     134
-# define CMP_R_ERROR_STATUS_NOT_FOUND                     135
+# define CMP_R_ERROR_PKISTATUSINFO_NOT_FOUND              135
 # define CMP_R_ERROR_TRANSACTIONID_UNMATCHED              136
 # define CMP_R_ERROR_VALIDATING_PROTECTION                137
 # define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               138
@@ -151,7 +151,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  147
 # define CMP_R_NO_SECRET_VALUE_GIVEN_FOR_PBMAC            148
 # define CMP_R_NO_TRUSTED_CERTIFICATES_SET                149
-# define CMP_R_NO_VALID_SRVCERT_FOUND                     150
+# define CMP_R_NO_VALID_SERVER_CERT_FOUND                 150
 # define CMP_R_NULL_ARGUMENT                              151
 # define CMP_R_OUT_OF_MEMORY                              152
 # define CMP_R_PKIBODY_ERROR                              153
@@ -168,7 +168,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_UNEXPECTED_PKISTATUS                       164
 # define CMP_R_UNEXPECTED_SENDER                          165
 # define CMP_R_UNKNOWN_ALGORITHM_ID                       166
-# define CMP_R_UNKNOWN_CERTTYPE                           167
+# define CMP_R_UNKNOWN_CERT_TYPE                          167
 # define CMP_R_UNKNOWN_PKISTATUS                          168
 # define CMP_R_UNSUPPORTED_ALGORITHM                      169
 # define CMP_R_UNSUPPORTED_CIPHER                         170

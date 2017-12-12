@@ -142,7 +142,7 @@ struct crmf_certtemplate_st {
     /* subjectUID is deprecated in version 2 */
     ASN1_BIT_STRING *subjectUID; /* 8 */
 # if 0
-    /* TODO: That should be - but that's only cosmetical */
+    /* TODO: That should be - but that's only cosmetic */
     X509_EXTENSIONS *extensions; /* 9 */
 # endif
     STACK_OF(X509_EXTENSION) *extensions; /* 9 */

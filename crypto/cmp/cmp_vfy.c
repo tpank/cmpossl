@@ -270,7 +270,7 @@ static void print_store_certs(BIO *bio, X509_STORE *store) {
 }
 
 /* ########################################################################## *
- * This is a diagnostic function that may be registerd using
+ * This is a diagnostic function that may be registered using
  * X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
  * verify_cert() function at the end of a cert verification as an opportunity
  * to gather and output information regarding a (failing) cert verification,
@@ -515,10 +515,10 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         STACK_OF(X509) *found_crts = NULL;
         int i;
 
-        /* tentatively set error, which allows accumulationg diagnostic info */
+        /* tentatively set error, which allows accumulating diagnostic info */
         char *sname = X509_NAME_oneline(sender->d.directoryName, NULL, 0);
         (void)ERR_set_mark();
-        CMPerr(CMP_F_FIND_SRVCERT, CMP_R_NO_VALID_SRVCERT_FOUND);
+        CMPerr(CMP_F_FIND_SRVCERT, CMP_R_NO_VALID_SERVER_CERT_FOUND);
         ERR_add_error_data(2, "sender name = ", sname);
         OPENSSL_free(sname);
 
@@ -625,7 +625,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         break;
 
         /* 5.1.3.3.  Signature */
-        /* TODO: should that better whitelist DSA/RSA etc.?
+        /* TODO: should that better white-list DSA/RSA etc.?
          * -> check all possible options from OpenSSL, should there be macro? */
     default:
 
@@ -638,7 +638,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         /* Compare actual sender name of response with expected sender name.
          * Mitigates risk to accept misused certificate of an unauthorized
          * entity of a trusted hierarchy. */
-        if (ctx->expected_sender) { /* set explicitly or not NULL-DN recipent */
+        if (ctx->expected_sender) { /* set explicitly or not NULL-DN recipient */
             X509_NAME *sender_name = msg->header->sender->d.directoryName;
             if (X509_NAME_cmp(sender_name, ctx->expected_sender) != 0) {
                 char *expected = X509_NAME_oneline(ctx->expected_sender,NULL,0);
@@ -650,7 +650,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                 OPENSSL_free(actual);
                 return 0;
             }
-        } /* Note: if recipient was NULL-DN it could be learnt here if needed */
+        } /* Note: if recipient was NULL-DN it could be learned here if needed */
 
         if ((scrt = ctx->srvCert ? ctx->srvCert : find_srvcert(ctx, msg)))
             return CMP_verify_signature(ctx, msg, scrt);

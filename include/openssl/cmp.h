@@ -138,7 +138,7 @@ extern "C" {
         incorrectData           (7),
         -- the requester's data is incorrect (for notary services)
         missingTimeStamp        (8),
-        -- when the timestamp is missing but should be there
+        -- when the time stamp is missing but should be there
         -- (by policy)
         badPOP                          (9),
         -- the proof-of-possession failed
@@ -657,7 +657,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_PUSHING_GENM_ITEMS                   131
 # define CMP_R_ERROR_SENDING_REQUEST                      132
 # define CMP_R_ERROR_SETTING_CERTHASH                     133
-# define CMP_R_ERROR_STATUS_NOT_FOUND                     134
+# define CMP_R_ERROR_PKISTATUSINFO_NOT_FOUND              134
 # define CMP_R_ERROR_TRANSACTIONID_UNMATCHED              135
 # define CMP_R_ERROR_VALIDATING_PROTECTION                136
 # define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               137
@@ -672,7 +672,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  146
 # define CMP_R_NO_SECRET_VALUE_GIVEN_FOR_PBMAC            147
 # define CMP_R_NO_TRUSTED_CERTIFICATES_SET                148
-# define CMP_R_NO_VALID_SRVCERT_FOUND                     149
+# define CMP_R_NO_VALID_SERVER_CERT_FOUND                 149
 # define CMP_R_NULL_ARGUMENT                              150
 # define CMP_R_OUT_OF_MEMORY                              151
 # define CMP_R_PKIBODY_ERROR                              152
@@ -689,7 +689,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_UNEXPECTED_PKISTATUS                       162
 # define CMP_R_UNEXPECTED_SENDER                          163
 # define CMP_R_UNKNOWN_ALGORITHM_ID                       164
-# define CMP_R_UNKNOWN_CERTTYPE                           165
+# define CMP_R_UNKNOWN_CERT_TYPE                          165
 # define CMP_R_UNKNOWN_PKISTATUS                          166
 # define CMP_R_UNSUPPORTED_ALGORITHM                      167
 # define CMP_R_UNSUPPORTED_CIPHER                         168

@@ -586,7 +586,7 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
 
     if (!(prot = ASN1_BIT_STRING_new()))
         goto err;
-    /* OpenSSL defaults all bitstrings to be encoded as ASN.1 NamedBitList */
+    /* OpenSSL defaults all bit strings to be encoded as ASN.1 NamedBitList */
     prot->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
     prot->flags |= ASN1_STRING_FLAG_BITS_LEFT;
     ASN1_BIT_STRING_set(prot, mac, macLen);
@@ -685,7 +685,7 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
 
     if (!(prot = ASN1_BIT_STRING_new()))
         goto err;
-    /* OpenSSL defaults all bitstrings to be encoded as ASN.1 NamedBitList */
+    /* OpenSSL defaults all bit strings to be encoded as ASN.1 NamedBitList */
     prot->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
     prot->flags |= ASN1_STRING_FLAG_BITS_LEFT;
     ASN1_BIT_STRING_set(prot, mac, macLen);
@@ -1310,7 +1310,7 @@ CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
     }
 
     CMPerr(CMP_F_CMP_REVREPCONTENT_PKISTATUSINFO_GET,
-           CMP_R_ERROR_STATUS_NOT_FOUND);
+           CMP_R_ERROR_PKISTATUSINFO_NOT_FOUND);
     return NULL;
 }
 
@@ -1578,7 +1578,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
             break;
         default:
             CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
-                   CMP_R_UNKNOWN_CERTTYPE);
+                   CMP_R_UNKNOWN_CERT_TYPE);
             goto err;
         }
         if (!crt) {
@@ -1752,7 +1752,7 @@ STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store)
  * this function is defined within the CMP library though it is generally useful
  *
  * Returns a copy of the subject key identifier of the given certificate
- * returns NULL on error, respecively when none was found.
+ * returns NULL on error, respectively when none was found.
  * ########################################################################## */
 ASN1_OCTET_STRING *CMP_get1_cert_subject_key_id(const X509 *cert)
 {
@@ -1774,7 +1774,7 @@ ASN1_OCTET_STRING *CMP_get1_cert_subject_key_id(const X509 *cert)
  * else learns the current value), and
  * its recipNonce matches the senderNonce given (if any).
  * If so, learns the new senderNonce contained in the message (if any).
- * returns body type (which is >= 0) of the mesage on success, -1 on error
+ * returns body type (which is >= 0) of the message on success, -1 on error
  * ########################################################################## */
 int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, int type_function,
                                   const ASN1_OCTET_STRING *senderNonce,

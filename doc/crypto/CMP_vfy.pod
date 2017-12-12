@@ -44,9 +44,9 @@ returned in IP.  This is according to 3GPP TS 33.310.
 
 CMP_validate_cert_path() attempts to validate a certificate and its path
 using the given store of trusted certs (possibly including CRLs and a cert
-verification callbadk) and the given stack of non-trusted intermediate certs.
+verification callback) and the given stack of non-trusted intermediate certs.
 
-CMP_print_cert_verify_cb() is a diagnostic function that may be registerd
+CMP_print_cert_verify_cb() is a diagnostic function that may be registered
 using X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
 verify_cert() function at the end of a cert verification as an opportunity
 to gather and output information regarding a (failing) cert verification,

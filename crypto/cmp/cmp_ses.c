@@ -148,7 +148,7 @@ static void message_add_error_data(CMP_PKIMESSAGE *msg)
 }
 
 /* evaluate whether there's an standard-violating exception configured for
-   handling unportected errors */
+   handling unprotected errors */
 static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
                                  const CMP_PKIMESSAGE *rep)
 {
@@ -259,9 +259,9 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
  * timeout is disabled.
  *
  * returns 1 on success, returns received PKIMESSAGE in *msg argument
- * returns 0 on error or when timeout is reached without a received messsage
+ * returns 0 on error or when timeout is reached without a received message
  *
- * TODO: handle multiple pollreqs for multiple certificates --> FR #13
+ * TODO: handle multiple poll requests for multiple certificates --> FR #13
  * ########################################################################## */
 static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
 {
@@ -296,7 +296,7 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
             CMP_printf(ctx,
                        "INFO: Received polling response, waiting checkAfter =  %ld sec before next polling request.", checkAfter);
 
-            if (ctx->maxPollTime != 0) { /* timout is set in context */
+            if (ctx->maxPollTime != 0) { /* timeout is set in context */
                 if (maxTimeLeft == 0)
                     goto err;   /* timeout reached */
                 if (maxTimeLeft > checkAfter) {
@@ -428,7 +428,7 @@ static int save_statusInfo(CMP_CTX *ctx, CMP_PKISTATUSINFO *si)
 
 /* ########################################################################## *
  * Retrieve a copy of the certificate, if any, from the given CertResponse.
- * Take into accout PKIStatusInfo of CertResponse and report it on error.
+ * Take into account PKIStatusInfo of CertResponse and report it on error.
  * returns NULL if not found or on error
  * ########################################################################## */
 static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
@@ -647,13 +647,13 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
  * All options need to be set in the context,
  * in particular oldCert, the certificate to be revoked.
  *
- * TODO: this function can only revoke one certifcate so far, should be possible
+ * TODO: this function can only revoke one certificate so far, should be possible
  * for several according to 5.3.9
  *
  * The RFC is vague in which PKIStatus should be returned by the server, so we
  * take "accepted, "grantedWithMods", and "revocationWarning" as success,
  * "revocationNotification" is used by some CAs as an indication that the
- * certifcate was already revoked, "rejection" as indication that the
+ * certificate was already revoked, "rejection" as indication that the
  * revocation was rejected, and do not expect "waiting" or "keyUpdateWarning"
  * (which are handled as error).
  *

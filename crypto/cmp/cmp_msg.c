@@ -270,7 +270,7 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
 #endif
         if (!CRMF_CERTREQMSG_set_certReqId(cr0, CERTREQID))
             goto err;
-        /* rekey cannot be NULL so far - but it can be when centralized key
+        /* rkey cannot be NULL so far - but it can be when centralized key
            creation is supported --> Feature Request #14 */
         if (!CRMF_CERTREQMSG_set1_publicKey(cr0, rkey))
             goto err;

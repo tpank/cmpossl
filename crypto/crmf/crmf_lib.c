@@ -395,7 +395,7 @@ static CRMF_POPOSIGNINGKEY *poposigkey_new(CRMF_CERTREQUEST *cr,
     if (!(ps = CRMF_POPOSIGNINGKEY_new()))
         goto err;
 
-    /* OpenSSL defaults all bitstrings to be encoded as ASN.1 NamedBitList */
+    /* OpenSSL defaults all bit strings to be encoded as ASN.1 NamedBitList */
     ps->signature->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
     ps->signature->flags |= ASN1_STRING_FLAG_BITS_LEFT;
 

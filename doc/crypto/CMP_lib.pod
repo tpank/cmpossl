@@ -178,7 +178,7 @@ set in the given PKIMessage, 0 if not.
 CMP_PKIMESSAGE_genm_item_push0() pushes the B<itav> to the body of the
 of the PKIMessage B<msg> of GenMsg type. Consumes the B<itavs> pointer.
 
-CMP_PKIMESSAGE_genm_items_push1() adds a copyo of the B<itavs> stack to the body
+CMP_PKIMESSAGE_genm_items_push1() adds a copy of the B<itavs> stack to the body
 of the PKIMessage B<msg> of GenMsg type. Does not consume the B<itavs> pointer.
 
 CMP_PKIMESSAGE_get_bodytype() returns the body type of the given
@@ -198,7 +198,7 @@ CMP_calc_protection_pbmac() calculates the PBMAC protection for given B<PKImessa
 CMP_PKIMESSAGE_protect() protects the given message deciding on the algorithm
 depending on the available context information:  If there is a secretValue it
 selects PBMAC. If not and there is a clCert it selects Signature.  Generates and
-sets the protection to the given pkimessage.
+sets the protection to the given message.
 
 CMP_PKIMESSAGE_add_extraCerts() fills the extraCerts field in the message.
 
