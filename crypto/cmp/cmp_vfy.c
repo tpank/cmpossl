@@ -501,8 +501,6 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             X509_up_ref(scrt);
             ctx->validatedSrvCert = scrt;
             (void)ERR_pop_to_mark(); /* discard diagnostic info */
-            /* TODO: still the cert verification
-               callback function may have printed extra errors */
         } else
             scrt = NULL;
         sk_X509_pop_free(found_crts, X509_free);

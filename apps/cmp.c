@@ -1918,6 +1918,9 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
         X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
         BIO *sbio = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_SBIO);
         const char *expected = NULL;
+        BIO *bio_mem = BIO_new(BIO_s_mem());
+        char *str;
+        long len;
 
         if (sbio && BIO_next(sbio) /* CMP_PKIMESSAGE_http_perform() is active */
             && !ssl) /* ssl_add_cert_chain() is active */
@@ -1936,7 +1939,7 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 #endif
 #endif
 
-        BIO_printf(bio_err, "%s at depth=%d error=%d (",
+        BIO_printf(bio_mem, "%s at depth=%d error=%d (",
                    depth < 0 ? "signature verification" :
                    X509_STORE_CTX_get0_parent_ctx(ctx) ?
                    "CRL path validation" : "certificate verification",
@@ -1952,13 +1955,13 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
         default:
             break;
         }
-        BIO_printf(bio_err, "%s%s%s)\n",
+        BIO_printf(bio_mem, "%s%s%s)\n",
                    X509_verify_cert_error_string(cert_error),
                    expected ? "; expected: " : "",
                    expected ? expected : "");
 
-        BIO_printf(bio_err, "failure for:\n");
-        print_cert(bio_err, cert, X509_FLAG_NO_EXTENSIONS);
+        BIO_printf(bio_mem, "failure for:\n");
+        print_cert(bio_mem, cert, X509_FLAG_NO_EXTENSIONS);
         if (cert_error == X509_V_ERR_CERT_UNTRUSTED ||
             cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
             cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN ||
@@ -1966,11 +1969,15 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
             cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
             cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER ||
             cert_error == X509_V_ERR_STORE_LOOKUP) {
-            BIO_printf(bio_err, "chain store:\n");
-            print_certs(bio_err, X509_STORE_CTX_get0_untrusted(ctx));
-            BIO_printf(bio_err, "trust store:\n");
-            print_store_certs(bio_err, X509_STORE_CTX_get0_store(ctx));
+            BIO_printf(bio_mem, "chain store:\n");
+            print_certs(bio_mem, X509_STORE_CTX_get0_untrusted(ctx));
+            BIO_printf(bio_mem, "trust store:\n");
+            print_store_certs(bio_mem, X509_STORE_CTX_get0_store(ctx));
         }
+        len = BIO_get_mem_data(bio_mem, &str);
+        str[len-1] = '\0'; /* replace last '\n', terminating str */
+        CMP_add_error_line(str);
+        BIO_free(bio_mem);
     }
     return ok;
 }

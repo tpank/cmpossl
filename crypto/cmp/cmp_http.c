@@ -149,7 +149,7 @@ int bio_connect(BIO *bio, int timeout) {
           despite blocking BIO, BIO_do_connect() timed out */ ||
           ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT/* when non-blocking,
           BIO_do_connect() timed out early with rv == -1 and errno == 0 */)) {
-        ERR_clear_error();
+        /* ERR_clear_error(); would prevent diagnostics on cert error */
         (void)BIO_reset(bio); /* otherwise, blocking next connect() may crash
                              and non-blocking next BIO_do_connect() will fail */
         goto retry;
@@ -404,6 +404,9 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         return CMP_R_OUT_OF_MEMORY;
     cbio = (ctx->tlsBIO) ? BIO_push(ctx->tlsBIO, hbio) : hbio;
 
+    /* tentatively set error, which allows accumulationg diagnostic info */
+    (void)ERR_set_mark();
+    CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);
     rv = bio_connect(cbio, ctx->msgTimeOut);
     /* BIO_do_connect modifies hbio->prev_bio, which was ctx->tlsBIO - why?? */
     if (rv <= 0) {
@@ -411,7 +414,8 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
             err = CMP_R_CONNECT_TIMEOUT;
         /* else CMP_R_SERVER_NOT_REACHABLE */
         goto err;
-    }
+    } else
+        (void)ERR_pop_to_mark(); /* discard diagnostic info */
 
     pathlen = strlen(ctx->serverName) + strlen(ctx->serverPath) + 33;
     path = (char *)OPENSSL_malloc(pathlen);

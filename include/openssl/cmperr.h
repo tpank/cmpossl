@@ -96,6 +96,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_FIND_SRVCERT                               171
 # define CMP_F_GET_CERT_STATUS                            172
 # define CMP_F_POLLFORRESPONSE                            173
+# define CMP_R_ERROR_CONNECTING                           176
 
 /*
  * CMP reason codes.

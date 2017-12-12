@@ -696,6 +696,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC      170
 # define CMP_R_WRONG_ALGORITHM_OID                        171
 # define CMP_R_WRONG_KEY_USAGE                            172
+# define CMP_R_ERROR_CONNECTING                           176
 
 # ifdef  __cplusplus
 }
