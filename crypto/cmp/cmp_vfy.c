@@ -213,46 +213,103 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
     return (valid > 0);
 }
 
-#if 0
-/* ########################################################################## *
- * NOTE: This is only needed if/when we want to do additional checking on the
- *       certificates!
- *
- *               It is not currently used.
- *
- * This is called for every valid certificate. Here we could add additional
- * checks, for policies for example.
- * ########################################################################## */
-int CMP_cert_callback(int ok, X509_STORE_CTX *ctx)
-{
-    int cert_error = X509_STORE_CTX_get_error(ctx);
-    X509 *current_cert = X509_STORE_CTX_get_current_cert(ctx);
+/*
+ * ##########################################################################
+ * * helper functions for improving certificate verification error diagnostics
+ * ##########################################################################
+ */
 
-    if (!ok) {
-        switch (cert_error) {
-        case X509_V_ERR_NO_EXPLICIT_POLICY:
-            /* policies_print(NULL, ctx); */
-        case X509_V_ERR_CERT_HAS_EXPIRED:
-
-            /* since we are just checking the certificates, it is
-             * ok if they are self signed. But we should still warn
-             * the user.
-             */
-
-        case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
-            /* Continue after extension errors too */
-        case X509_V_ERR_INVALID_CA:
-        case X509_V_ERR_INVALID_NON_CA:
-        case X509_V_ERR_PATH_LENGTH_EXCEEDED:
-        case X509_V_ERR_INVALID_PURPOSE:
-        case X509_V_ERR_CRL_HAS_EXPIRED:
-        case X509_V_ERR_CRL_NOT_YET_VALID:
-        case X509_V_ERR_UNHANDLED_CRITICAL_EXTENSION:
-            ok = 1;
-
+static void print_cert(BIO *bio, const X509 *cert, unsigned long neg_cflags) {
+    if (cert) {
+        unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
+            XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
+        BIO_printf(bio, "    certificate\n");
+        X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_SUBJECT);
+        if (X509_check_issued((X509 *)cert, (X509 *)cert) == X509_V_OK) {
+            BIO_printf(bio, "        self-signed\n");
+        } else {
+            BIO_printf(bio, " ");
+            X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_ISSUER);
         }
+        X509_print_ex(bio, (X509 *)cert, flags,
+                           ~(X509_FLAG_NO_SERIAL | X509_FLAG_NO_VALIDITY));
+        if (X509_cmp_current_time(X509_get0_notBefore(cert)) > 0) {
+            BIO_printf(bio, "        not yet valid\n");
+        }
+        if (X509_cmp_current_time(X509_get0_notAfter(cert)) < 0) {
+            BIO_printf(bio, "        no more valid\n");
+        }
+        X509_print_ex(bio, (X509 *)cert, flags, ~(neg_cflags));
+    } else {
+        BIO_printf(bio, "    (no certificate)\n");
+    }
+}
 
-        return ok;
+static void print_certs(BIO *bio, const STACK_OF(X509) *certs) {
+    if (certs && sk_X509_num(certs) > 0) {
+        int i;
+        for (i = 0; i < sk_X509_num(certs); i++) {
+            X509 *cert = sk_X509_value(certs, i);
+            if (cert) {
+                print_cert(bio, cert, 0);
+            }
+        }
+    } else {
+        BIO_printf(bio, "    (no certificates)\n");
+    }
+}
+
+static void print_store_certs(BIO *bio, X509_STORE *store) {
+    if (store) {
+        STACK_OF(X509) *certs = CMP_X509_STORE_get1_certs(store);
+        print_certs(bio, certs);
+        sk_X509_pop_free(certs, X509_free);
+    } else {
+        BIO_printf(bio, "    (no certificate store)\n");
+    }
+}
+
+/* ########################################################################## *
+ * This is a diagnostic function that may be registerd using
+ * X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
+ * verify_cert() function at the end of a cert verification as an opportunity
+ * to gather and output information regarding a (failing) cert verification,
+ * and to possibly change the result of the verification (not done here).
+ * returns 0 if and only if the cert verification is considered failed.
+ * ########################################################################## */
+int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
+{
+    if (ok == 0 && ctx != NULL) {
+        int cert_error = X509_STORE_CTX_get_error(ctx);
+        int depth = X509_STORE_CTX_get_error_depth(ctx);
+        X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
+        BIO *bio_mem = BIO_new(BIO_s_mem());
+        char *str;
+        long len;
+
+        BIO_printf(bio_mem, "%s at depth=%d error=%d (%s)\n",
+                   depth < 0 ? "signature verification" :
+                   X509_STORE_CTX_get0_parent_ctx(ctx) ?
+                   "CRL path validation" : "certificate verification",
+                   depth, cert_error,X509_verify_cert_error_string(cert_error));
+        BIO_printf(bio_mem, "failure for:\n");
+        print_cert(bio_mem, cert, X509_FLAG_NO_EXTENSIONS);
+        if (cert_error == X509_V_ERR_CERT_UNTRUSTED ||
+            cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
+            cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN ||
+            cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT ||
+            cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
+            cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER ||
+            cert_error == X509_V_ERR_STORE_LOOKUP) {
+            BIO_printf(bio_mem, "chain store:\n");
+            print_certs(bio_mem, X509_STORE_CTX_get0_untrusted(ctx));
+            BIO_printf(bio_mem, "trust store:\n");
+            print_store_certs(bio_mem, X509_STORE_CTX_get0_store(ctx));
+        }
+        len = BIO_get_mem_data(bio_mem, &str);
+        str[len-1] = '\0'; /* replace last '\n', terminating str */
+        CMP_add_error_line(str);
+        BIO_free(bio_mem);
     }
 # if 0
     /* TODO: we could check policies here too */
@@ -262,7 +319,6 @@ int CMP_cert_callback(int ok, X509_STORE_CTX *ctx)
 
     return (ok);
 }
-#endif
 
 /* ########################################################################## *
  * internal function

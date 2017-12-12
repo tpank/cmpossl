@@ -1842,85 +1842,25 @@ static int check_ocsp_crls(X509_STORE_CTX *ctx)
 #endif /* !defined OPENSSL_NO_OCSP */
 
 /*
- * ##########################################################################
- * * code for improving certificate error diagnostics
- * ##########################################################################
- */
-
-static void print_cert(BIO *bio, const X509 *cert, unsigned long neg_cflags) {
-    if (cert) {
-        unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
-            XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
-        BIO_printf(bio, "    certificate\n");
-        X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_SUBJECT);
-        if (X509_check_issued((X509 *)cert, (X509 *)cert) == X509_V_OK) {
-            BIO_printf(bio, "        self-signed\n");
-        } else {
-            BIO_printf(bio, " ");
-            X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_ISSUER);
-        }
-        X509_print_ex(bio, (X509 *)cert, flags,
-                           ~(X509_FLAG_NO_SERIAL | X509_FLAG_NO_VALIDITY));
-        if (X509_cmp_current_time(X509_get0_notBefore(cert)) > 0) {
-            BIO_printf(bio, "        not yet valid\n");
-        }
-        if (X509_cmp_current_time(X509_get0_notAfter(cert)) < 0) {
-            BIO_printf(bio, "        no more valid\n");
-        }
-        X509_print_ex(bio, (X509 *)cert, flags, ~(neg_cflags));
-    } else {
-        BIO_printf(bio, "    (no certificate)\n");
-    }
-}
-
-static void print_certs(BIO *bio, const STACK_OF(X509) *certs) {
-    if (certs && sk_X509_num(certs) > 0) {
-        int i;
-        for (i = 0; i < sk_X509_num(certs); i++) {
-            X509 *cert = sk_X509_value(certs, i);
-            if (cert) {
-                print_cert(bio, cert, 0);
-            }
-        }
-    } else {
-        BIO_printf(bio, "    (no certificates)\n");
-    }
-}
-
-static void print_store_certs(BIO *bio, X509_STORE *store) {
-    if (store) {
-        STACK_OF(X509) *certs = CMP_X509_STORE_get1_certs(store);
-        print_certs(bio, certs);
-        sk_X509_pop_free(certs, X509_free);
-    } else {
-        BIO_printf(bio, "    (no certificate store)\n");
-    }
-}
-
-/*
  * This function is a callback used by OpenSSL's verify_cert function.
  * It's called at the end of a cert verification to allow an opportunity
- * to gather more information regarding a failing cert verification,
- * and to possibly change the result of the verification (not done here).
+ * to gather and output information regarding a failing cert verification,
+ * and to possibly change the result of the verification (here maybe for OCSP).
  * This callback is also activated when constructing our own TLS chain:
  * tls_construct_client_certificate() -> ssl3_output_cert_chain() ->
  * ssl_add_cert_chain() -> X509_verify_cert() where errors are ignored.
+ * returns 0 if and only if the cert verification is considered failed.
  */
 
 static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 {
     if (ok == 0 && ctx != NULL) {
         int cert_error = X509_STORE_CTX_get_error(ctx);
-        int depth = X509_STORE_CTX_get_error_depth(ctx);
-        X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
         SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
                     SSL_get_ex_data_X509_STORE_CTX_idx());
         X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
         BIO *sbio = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_SBIO);
         const char *expected = NULL;
-        BIO *bio_mem = BIO_new(BIO_s_mem());
-        char *str;
-        long len;
 
         if (sbio && BIO_next(sbio) /* CMP_PKIMESSAGE_http_perform() is active */
             && !ssl) /* ssl_add_cert_chain() is active */
@@ -1930,7 +1870,7 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 #ifdef LATE_OCSP_STAPLING_CHECK
         if (cert_error == X509_V_ERR_OCSP_VERIFY_NEEDED ||
             cert_error == X509_V_ERR_UNABLE_TO_GET_CRL) {
-            if (opt_ocsp_status && depth == 0)
+            if (opt_ocsp_status && X509_STORE_CTX_get_error_depth(ctx) == 0)
                 return 1; /* status of EE cert will be handled by ocsp_resp_cb()
                          * strictly requiring stapled OCSP response.
                          * In the (rare) case of multi-stapling the checks here
@@ -1939,11 +1879,6 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 #endif
 #endif
 
-        BIO_printf(bio_mem, "%s at depth=%d error=%d (",
-                   depth < 0 ? "signature verification" :
-                   X509_STORE_CTX_get0_parent_ctx(ctx) ?
-                   "CRL path validation" : "certificate verification",
-                   depth, cert_error);
         switch(cert_error) {
         case X509_V_ERR_HOSTNAME_MISMATCH:
         case X509_V_ERR_IP_ADDRESS_MISMATCH:
@@ -1951,35 +1886,14 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
                hosts/ip entries in X509_VERIFY_PARAM. So we use ts->ex_data.
                This works for names we set ourselves but not verify_hostname. */
             expected = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
+            BIO_printf(bio_err, "info: TLS connection expected host = %s\n",
+                       expected);
             break;
         default:
             break;
         }
-        BIO_printf(bio_mem, "%s%s%s)\n",
-                   X509_verify_cert_error_string(cert_error),
-                   expected ? "; expected: " : "",
-                   expected ? expected : "");
-
-        BIO_printf(bio_mem, "failure for:\n");
-        print_cert(bio_mem, cert, X509_FLAG_NO_EXTENSIONS);
-        if (cert_error == X509_V_ERR_CERT_UNTRUSTED ||
-            cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
-            cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN ||
-            cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT ||
-            cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
-            cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER ||
-            cert_error == X509_V_ERR_STORE_LOOKUP) {
-            BIO_printf(bio_mem, "chain store:\n");
-            print_certs(bio_mem, X509_STORE_CTX_get0_untrusted(ctx));
-            BIO_printf(bio_mem, "trust store:\n");
-            print_store_certs(bio_mem, X509_STORE_CTX_get0_store(ctx));
-        }
-        len = BIO_get_mem_data(bio_mem, &str);
-        str[len-1] = '\0'; /* replace last '\n', terminating str */
-        CMP_add_error_line(str);
-        BIO_free(bio_mem);
     }
-    return ok;
+    return CMP_print_cert_verify_cb(ok, ctx); /* print diagnostics */
 }
 
 /*

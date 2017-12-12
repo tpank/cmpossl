@@ -3,7 +3,8 @@
 =head1 NAME
 
  CMP_validate_msg,
- CMP_validate_cert_path
+ CMP_validate_cert_path,
+ CMP_print_cert_verify_cb
 
 =head1 SYNOPSIS
 
@@ -11,6 +12,7 @@
  int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
  int CMP_validate_cert_path(X509_STORE *trusted_store,
                             const STACK_OF(X509) *untrusted_certs, X509 *cert);
+ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
 =head1 DESCRIPTION
 
@@ -43,6 +45,13 @@ returned in IP.  This is according to 3GPP TS 33.310.
 CMP_validate_cert_path() attempts to validate a certificate and its path
 using the given store of trusted certs (possibly including CRLs and a cert
 verification callbadk) and the given stack of non-trusted intermediate certs.
+
+CMP_print_cert_verify_cb() is a diagnostic function that may be registerd
+using X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
+verify_cert() function at the end of a cert verification as an opportunity
+to gather and output information regarding a (failing) cert verification,
+and to possibly change the result of the verification (not done here).
+It returns 0 if and only if the cert verification is considered failed.
 
 =head1 NOTES
 

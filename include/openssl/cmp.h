@@ -402,6 +402,7 @@ STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store);
 int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg);
 int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
                       const STACK_OF(X509) *untrusted_certs, const X509 *cert);
+int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
 /* from cmp_http.c */
 /* TODO dvo: push generic defs upstream with extended load_cert_crl_http(),
