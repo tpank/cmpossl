@@ -168,8 +168,8 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
  *
  * Verify a message protected with PBMAC
  * ########################################################################## */
-static int CMP_verify_MAC(const CMP_PKIMESSAGE *msg,
-                          const ASN1_OCTET_STRING *secret)
+static int CMP_verify_PBMAC(const CMP_PKIMESSAGE *msg,
+                            const ASN1_OCTET_STRING *secret)
 {
     ASN1_BIT_STRING *protection = NULL;
     int valid = 0;
@@ -181,6 +181,9 @@ static int CMP_verify_MAC(const CMP_PKIMESSAGE *msg,
     valid = ASN1_STRING_cmp((const ASN1_STRING *)protection,
                             (const ASN1_STRING *)msg->protection) == 0;
     ASN1_BIT_STRING_free(protection);
+    if (!valid)
+        CMPerr(CMP_F_CMP_VERIFY_PBMAC, CMP_R_WRONG_PBM_VALUE);
+
     return valid;
  err:
     return 0;
@@ -608,7 +611,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     switch (nid) {
         /* 5.1.3.1.  Shared Secret Information */
     case NID_id_PasswordBasedMAC:
-        if (CMP_verify_MAC(msg, ctx->secretValue)) {
+        if (CMP_verify_PBMAC(msg, ctx->secretValue)) {
             /* RFC 4210, 5.3.2: 'Note that if the PKI Message Protection is
              * "shared secret information", then any certificate transported in
              * the caPubs field may be directly trusted as a root CA

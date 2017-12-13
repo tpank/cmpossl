@@ -131,7 +131,7 @@ static void message_add_error_data(CMP_PKIMESSAGE *msg)
         if ((buf = OPENSSL_malloc(CMP_PKISTATUSINFO_BUFLEN))) {
             if (CMP_PKISTATUSINFO_snprint(msg->body->value.error->
                    pKIStatusInfo, buf, CMP_PKISTATUSINFO_BUFLEN))
-                ERR_add_error_data(2, "got error message; ", buf);
+                ERR_add_error_data(1, buf);
             OPENSSL_free(buf);
         }
         break;
@@ -215,6 +215,7 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     else
         err = CMP_R_ERROR_SENDING_REQUEST;
     if (err) {
+        CMPerr(CMP_F_SEND_RECEIVE_CHECK, err);
         if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
             err == CMP_R_READ_TIMEOUT ||
             err == CMP_R_ERROR_DECODING_MESSAGE)
@@ -240,7 +241,8 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                 (rcvd_type == V_CMP_PKIBODY_IP ||
                  rcvd_type == V_CMP_PKIBODY_CP ||
                  rcvd_type == V_CMP_PKIBODY_KUP))) {
-        CMPerr(type_function, CMP_R_UNEXPECTED_PKIBODY);
+        CMPerr(CMP_F_SEND_RECEIVE_CHECK, rcvd_type == V_CMP_PKIBODY_ERROR ?
+                CMP_R_RECEIVED_ERROR : CMP_R_UNEXPECTED_PKIBODY);
         message_add_error_data(*rep);
         return 0;
     }

@@ -15,8 +15,8 @@
   CMP_PKIHEADER_new_senderNonce,
   CMP_PKIHEADER_push0_freeText,
   CMP_PKIHEADER_push1_freeText,
+  CMP_PKIMESSAGE_get0_header,
   CMP_PKIHEADER_init,
-  CMP_PKIHEADER_set1_recipNonce,
   CMP_PKIHEADER_set1_recipient,
   CMP_PKIHEADER_set1_sender,
   CMP_PKIHEADER_set1_senderKID,
@@ -26,6 +26,7 @@
   CMP_PKIMESSAGE_check_implicitConfirm,
   CMP_PKIMESSAGE_genm_item_push0,
   CMP_PKIMESSAGE_get_bodytype,
+  CMP_PKIMESSAGE_get_transactionID,
   CMP_PKISTATUSINFO_snprint,
   CMP_PKIMESSAGE_set_bodytype,
   CMP_PKIMESSAGE_set_implicitConfirm,
@@ -39,9 +40,11 @@
   CMP_CERTRESPONSE_get_certificate,
   CMP_build_cert_chain,
   CMP_PKIMESSAGE_check_received,
-  sk_X509_add_certs,
-  X509_STORE_add_certs,
-  X509_STORE_get1_certs
+  CMP_ASN1_OCTET_STRING_set1,
+  CMP_sk_X509_add1_cert,
+  CMP_sk_X509_add1_certs,
+  CMP_X509_STORE_add1_certs,
+  CMP_X509_STORE_get1_certs
 
 =head1 SYNOPSIS
 
@@ -61,8 +64,8 @@
   int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
   int CMP_PKIHEADER_push0_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
   int CMP_PKIHEADER_push1_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
+  CMP_PKIHEADER *CMP_PKIMESSAGE_get0_header(const CMP_PKIMESSAGE *msg);
   int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr);
-  int CMP_PKIHEADER_set1_recipNonce(CMP_PKIHEADER *hdr, const ASN1_OCTET_STRING *recipNonce);
   int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
   int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm);
   int CMP_PKIHEADER_set1_senderKID(CMP_PKIHEADER *hdr, const ASN1_OCTET_STRING *senderKID);
@@ -73,6 +76,7 @@
   int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg, const CMP_INFOTYPEANDVALUE *itav);
   int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
   int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
+  ASN1_OCTET_STRING *CMP_PKIMESSAGE_get_transactionID(const CMP_PKIMESSAGE *msg);
   char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
   int CMP_PKIMESSAGE_set_bodytype( CMP_PKIMESSAGE *msg, int type);
   int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
@@ -90,11 +94,14 @@
                                     const CMP_PKIMESSAGE *msg, int callback_arg,
                                     int (*allow_unprotected)(const CMP_CTX *,
                                     int, const CMP_PKIMESSAGE *));
-  int sk_X509_add_certs(STACK_OF(X509) *stack, const STACK_OF(X509) *certs,
-                        int no_self_signed);
-  int X509_STORE_add_certs(X509_STORE *store, const STACK_OF(X509) *certs,
-                           int only_self_signed);
-  STACK_OF(X509) *X509_STORE_get1_certs(const X509_STORE *store);
+  int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+                                 const ASN1_OCTET_STRING *src);
+  int CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert, int not_duplicate);
+  int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
+                             int no_self_signed, int no_duplicates);
+  int CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
+                                int only_self_signed);
+  STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store);
 
 =head1 DESCRIPTION
 
@@ -147,11 +154,10 @@ hdr->freeText and consumes the given pointer.
 CMP_PKIHEADER_push1_freeText() pushes an ASN1_UTF8STRING to
 hdr->freeText and does not consume the pointer.
 
+CMP_PKIMESSAGE_get0_header returns the header of the given CMP message.
+
 CMP_PKIHEADER_init() initializes a PKIHeader structure based on the
 values in the given CMP_CTX structure.
-
-CMP_PKIHEADER_set1_recipNonce() sets the recpiNonce field in the given
-hdr to the given value.
 
 CMP_PKIHEADER_set1_recipient() sets the recipient field in the given
 PKIHeader to the given X509 Name value, without consuming the pointer.
@@ -182,6 +188,10 @@ of the PKIMessage B<msg> of GenMsg type. Does not consume the B<itavs> pointer.
 
 CMP_PKIMESSAGE_get_bodytype() returns the body type of the given
 PKIMessage.
+
+CMP_PKIMESSAGE_get_transactionID() returns the transactionID of the given PKIMessage.
+
+ASN1_OCTET_STRING *CMP_PKIMESSAGE_get_transactionID(const CMP_PKIMESSAGE *msg)
 
 CMP_PKISTATUSINFO_snprint() places human-readable error string
 created from PKIStatusInfo in given buffer.
@@ -230,11 +240,21 @@ If so, learns from the message received the senderNonce
        and the transaction ID if not yet present in the ctx.
 It returns the body type (which is >= 0) of the message on success, -1 on error.
 
-sk_X509_add_certs() adds all or not self-signed certificates to given stack.
+CMP_ASN1_OCTET_STRING_set1() frees any previous value of the variable referenced
+via the first argument and assigns either a copy of the string given as the
+second argument or NULL. It returns 1 on success, 0 on error.
 
-X509_STORE_add_certs() adds all or self-signed certificates to given store.
+CMP_sk_X509_add1_cert() adds a certificate to given stack, optionally only if
+not already contained.
 
-X509_STORE_get1_certs() retrieves a copy of all certificates in the given store.
+CMP_sk_X509_add1_certs() adds certificates to given stack, optionally only if
+not self-signed and optionally only if not already contained.
+
+CMP_X509_STORE_add1_certs() adds all or only self-signed certificates from the
+ given stack to given store.
+
+CMP_X509_STORE_get1_certs() retrieves a copy of all certificates in the given
+store.
 
 
 =head1 NOTES

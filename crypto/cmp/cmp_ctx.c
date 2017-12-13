@@ -1092,21 +1092,12 @@ int CMP_CTX_set1_transactionID(CMP_CTX *ctx, const ASN1_OCTET_STRING *id)
     if (!ctx)
         goto err;
 
-    if (ctx->transactionID) {
-        ASN1_OCTET_STRING_free(ctx->transactionID);
-        ctx->transactionID = NULL;
-    }
+/* TODO DvO: clean up transaction management, reset validatedSrvCert elsewhere*/
     /* reset ctx->validatedSrvCert */
     X509_free(ctx->validatedSrvCert);
     ctx->validatedSrvCert = NULL;
-    if (!id)
-        return 1;
 
-    if (!(ctx->transactionID = ASN1_OCTET_STRING_dup((ASN1_OCTET_STRING *)id))){
-        CMPerr(CMP_F_CMP_CTX_SET1_TRANSACTIONID, CMP_R_OUT_OF_MEMORY);
-        return 0;
-    }
-    return 1;
+    return CMP_ASN1_OCTET_STRING_set1(&ctx->transactionID, id);
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_TRANSACTIONID, CMP_R_NULL_ARGUMENT);
     return 0;
@@ -1124,16 +1115,8 @@ int CMP_CTX_set1_recipNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce)
     if (!nonce)
         goto err;
 
-    if (ctx->recipNonce) {
-        ASN1_OCTET_STRING_free(ctx->recipNonce);
-        ctx->recipNonce = NULL;
-    }
+    return CMP_ASN1_OCTET_STRING_set1(&ctx->recipNonce, nonce);
 
-    if (!(ctx->recipNonce = ASN1_OCTET_STRING_dup((ASN1_OCTET_STRING *)nonce))){
-        CMPerr(CMP_F_CMP_CTX_SET1_RECIPNONCE, CMP_R_OUT_OF_MEMORY);
-        return 0;
-    }
-    return 1;
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_RECIPNONCE, CMP_R_NULL_ARGUMENT);
     return 0;

@@ -335,35 +335,43 @@ void    CMP_add_error_txt(const char *separator, const char *txt);
 # define CMP_add_error_line(txt) CMP_add_error_txt("\n", txt)
 CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
                                                 long reqId);
+CMP_PKIHEADER *CMP_PKIMESSAGE_get0_header(const CMP_PKIMESSAGE *msg);
 int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
+int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
+int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr);
+int CMP_PKIHEADER_set1_senderKID(CMP_PKIHEADER *hdr,
+                                 const ASN1_OCTET_STRING *senderKID);
+int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
 int CMP_CTX_set1_expected_sender(CMP_CTX *ctx, const X509_NAME *name);
 int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
                                      const ASN1_OCTET_STRING
                                      *transactionID);
-int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
-int CMP_PKIHEADER_set1_recipNonce(CMP_PKIHEADER *hdr,
-                                  const ASN1_OCTET_STRING *recipNonce);
-int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm);
-int CMP_PKIHEADER_set1_senderKID(CMP_PKIHEADER *hdr,
-                                 const ASN1_OCTET_STRING *senderKID);
-int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr);
-int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
-int CMP_PKIMESSAGE_check_implicitConfirm(CMP_PKIMESSAGE *msg);
 int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
 int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
+int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr,
+                                         const CMP_INFOTYPEANDVALUE *itav);
 int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr);
 ASN1_BIT_STRING *CMP_calc_protection(const CMP_PKIMESSAGE *pkimessage,
                                      const ASN1_OCTET_STRING *secret,
                                      const EVP_PKEY *pkey);
+
+CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
+                                                long reqId);
+int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
+int CMP_PKIMESSAGE_check_implicitConfirm(CMP_PKIMESSAGE *msg);
+ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
+                                           const ASN1_OCTET_STRING
+                                           *secret);
+ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
+                                         EVP_PKEY *pkey);
+>>>>>>> simplified ASN1_OCTET_STRING handling introducing CMP_ASN1_OCTET_STRING_set1() and set1_aostr_else_random()
 int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus,
                                 const X509 *cert);
-int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr,
-                                         const CMP_INFOTYPEANDVALUE *itav);
 int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg,
                                          STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
 int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
@@ -386,6 +394,7 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);
 int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type);
 int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
+ASN1_OCTET_STRING *CMP_PKIMESSAGE_get_transactionID(const CMP_PKIMESSAGE *msg);
 # define CMP_PKISTATUSINFO_BUFLEN 1024
 char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
@@ -394,6 +403,9 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
                                   const CMP_PKIMESSAGE *msg, int callback_arg,
                                   int (*allow_unprotected)(const CMP_CTX *, int,
                                                        const CMP_PKIMESSAGE *));
+
+int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+                               const ASN1_OCTET_STRING *src);
 int CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert, int not_duplicate);
 int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
                       int no_self_signed, int no_duplicates);

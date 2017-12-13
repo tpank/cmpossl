@@ -155,6 +155,18 @@ void CMP_add_error_txt(const char *separator, const char *txt)
 }
 
 /* ########################################################################## *
+ * returns the header of the given CMP message
+ * returns NULL on error
+ * ########################################################################## */
+CMP_PKIHEADER *CMP_PKIMESSAGE_get0_header(const CMP_PKIMESSAGE *msg)
+{
+    if (!msg)
+        return NULL;
+
+    return msg->header;
+}
+
+/* ########################################################################## *
  * Sets the protocol version number in PKIHeader.
  * returns 1 on success, 0 on error
  * ########################################################################## */
@@ -172,10 +184,11 @@ int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version)
 }
 
 
-static int cpy_gname(GENERAL_NAME **tgt, const X509_NAME *src) {
+static int set1_gname(GENERAL_NAME **tgt, const X509_NAME *src)
+{
     GENERAL_NAME *gen = NULL;
 
-    if (!(gen = GENERAL_NAME_new()))
+    if (!tgt || !(gen = GENERAL_NAME_new()))
         goto err;
 
     gen->type = GEN_DIRNAME;
@@ -208,7 +221,7 @@ int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm)
     if (!hdr)
         return 0;
 
-    return cpy_gname(&hdr->recipient, nm);
+    return set1_gname(&hdr->recipient, nm);
 }
 
 /* ########################################################################## *
@@ -221,7 +234,63 @@ int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm)
     if (!hdr)
         return 0;
 
-    return cpy_gname(&hdr->sender, nm);
+    return set1_gname(&hdr->sender, nm);
+}
+
+/* ########################################################################## *
+ * free any previous value of the variable referenced via tgt
+ * and assign either a copy of the src string or NULL.
+ * returns 1 on success, 0 on error.
+ * ########################################################################## */
+int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+                               const ASN1_OCTET_STRING *src)
+{
+    if (!tgt) {
+        CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1, CMP_R_NULL_ARGUMENT);
+        goto err;
+    }
+
+    ASN1_OCTET_STRING_free(*tgt);
+
+    if (src) {
+        if (!(*tgt = ASN1_OCTET_STRING_dup((ASN1_OCTET_STRING *)src))) {
+            CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1, CMP_R_OUT_OF_MEMORY);
+            goto err;
+        }
+    } else
+        *tgt = NULL;
+
+    return 1;
+ err:
+    return 0;
+}
+
+static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
+                                  const ASN1_OCTET_STRING *src, int len)
+{
+    unsigned char *bytes = NULL;
+    ASN1_OCTET_STRING *new = NULL;
+
+    if (!src) { /* generate a random value if none was given */
+        if (!(bytes = (unsigned char *)OPENSSL_malloc(len)))
+            goto err;
+        RAND_bytes(bytes, len);
+
+        if (!(new = ASN1_OCTET_STRING_new()) ||
+            !(ASN1_OCTET_STRING_set(new, bytes, len)))
+            goto err;
+        OPENSSL_free(bytes);
+    }
+
+    if (!CMP_ASN1_OCTET_STRING_set1(tgt, src ? src : new))
+        goto err;
+    ASN1_OCTET_STRING_free(new);
+    return 1;
+
+ err:
+    ASN1_OCTET_STRING_free(new);
+    OPENSSL_free(bytes);
+    return 0;
 }
 
 /* ########################################################################## *
@@ -237,42 +306,13 @@ int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm)
  * returns 1 on success, 0 on error
  * ########################################################################## */
 int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
-                                     const ASN1_OCTET_STRING *transactionID)
+                                     const ASN1_OCTET_STRING *tid)
 {
 #define TRANSACTIONID_LENGTH 16
-    unsigned char *tid = NULL;
 
     if (!hdr)
-        goto err;
-
-    if (transactionID) {
-        if (!(hdr->transactionID =
-              ASN1_OCTET_STRING_dup((ASN1_OCTET_STRING *)transactionID)))
-            goto err;
-    } else {
-        /* generate a random value if none was given */
-        if (!(tid = (unsigned char *)OPENSSL_malloc(TRANSACTIONID_LENGTH)))
-            goto err;
-        if (RAND_bytes(tid, TRANSACTIONID_LENGTH) <= 0) {
-            CMPerr(CMP_F_CMP_PKIHEADER_SET1_TRANSACTIONID,
-                    CMP_R_FAILURE_OBTAINING_RANDOM);
-            goto err;
-        }
-
-        if (hdr->transactionID == NULL)
-            hdr->transactionID = ASN1_OCTET_STRING_new();
-        if (!(ASN1_OCTET_STRING_set(hdr->transactionID, tid,
-                                    TRANSACTIONID_LENGTH)))
-            goto err;
-
-        OPENSSL_free(tid);
-    }
-
-    return 1;
- err:
-    if (tid)
-        OPENSSL_free(tid);
-    return 0;
+        return 0;
+    return set1_aostr_else_random(&hdr->transactionID,tid,TRANSACTIONID_LENGTH);
 }
 
 /* ########################################################################## *
@@ -292,52 +332,10 @@ int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
 int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr)
 {
 #define SENDERNONCE_LENGTH 16
-    unsigned char sn[SENDERNONCE_LENGTH];
 
     if (!hdr)
-        goto err;
-
-    if (RAND_bytes(sn, SENDERNONCE_LENGTH) <= 0) {
-        CMPerr(CMP_F_CMP_PKIHEADER_NEW_SENDERNONCE,
-                CMP_R_FAILURE_OBTAINING_RANDOM);
-        goto err;
-    }
-
-    if (hdr->senderNonce == NULL)
-        hdr->senderNonce = ASN1_OCTET_STRING_new();
-
-    if (!(ASN1_OCTET_STRING_set(hdr->senderNonce, sn, SENDERNONCE_LENGTH)))
-        goto err;
-
-    return 1;
- err:
-    return 0;
-}
-
-/* ########################################################################## *
- * (re-)sets given recipient nonce to given header
- * as per 5.1.1 used to mirror the nonce back to the other side
- *
- * returns 1 on success, 0 on error
- * ########################################################################## */
-int CMP_PKIHEADER_set1_recipNonce(CMP_PKIHEADER *hdr,
-                                  const ASN1_OCTET_STRING *recipNonce)
-{
-    if (!hdr)
-        goto err;
-    if (!recipNonce)
-        goto err;
-
-    if (hdr->recipNonce)
-        ASN1_OCTET_STRING_free(hdr->recipNonce);
-
-    if (!(hdr->recipNonce =
-          ASN1_OCTET_STRING_dup((ASN1_OCTET_STRING *)recipNonce)))
-        goto err;
-
-    return 1;
- err:
-    return 0;
+        return 0;
+    return set1_aostr_else_random(&hdr->senderNonce, NULL, SENDERNONCE_LENGTH);
 }
 
 /* ########################################################################## *
@@ -353,20 +351,8 @@ int CMP_PKIHEADER_set1_senderKID(CMP_PKIHEADER *hdr,
                                  const ASN1_OCTET_STRING *senderKID)
 {
     if (!hdr)
-        goto err;
-    if (!senderKID)
-        goto err;
-
-    if (hdr->senderKID)
-        ASN1_OCTET_STRING_free(hdr->senderKID);
-
-    if (!(hdr->senderKID =
-          ASN1_OCTET_STRING_dup((ASN1_OCTET_STRING *)senderKID)))
-        goto err;
-
-    return 1;
- err:
-    return 0;
+        return 0;
+    return CMP_ASN1_OCTET_STRING_set1(&hdr->senderKID, senderKID);
 }
 
 /* ########################################################################## *
@@ -490,11 +476,11 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         goto err;
 
     if (ctx->recipNonce)
-        if (!CMP_PKIHEADER_set1_recipNonce(hdr, ctx->recipNonce))
+        if (!CMP_ASN1_OCTET_STRING_set1(&hdr->recipNonce, ctx->recipNonce))
             goto err;
 
     if (ctx->transactionID) {
-        if (!CMP_PKIHEADER_set1_transactionID(hdr, ctx->transactionID))
+        if (!CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID, ctx->transactionID))
             goto err;
     } else {
         /* create new transaction ID */
@@ -502,6 +488,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
             goto err;
         if (!CMP_CTX_set1_transactionID(ctx, hdr->transactionID))
             goto err;
+        /* TODO DvO: clean up transaction management */
     }
 
     if (!CMP_PKIHEADER_new_senderNonce(hdr))
@@ -1729,7 +1716,7 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
         ASN1_OCTET_STRING_cmp(prev->header->transactionID,
                               msg->header->transactionID) != 0)) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
-               CMP_R_ERROR_TRANSACTIONID_UNMATCHED);
+               CMP_R_TRANSACTIONID_UNMATCHED);
         return -1;
     }
     if (!ctx->transactionID && /* in this case, learn transactionID */
@@ -1743,7 +1730,7 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
         ASN1_OCTET_STRING_cmp(prev->header->senderNonce,
                               msg->header->recipNonce) != 0)) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
-               CMP_R_ERROR_NONCES_DO_NOT_MATCH);
+               CMP_R_RECIPNONCE_UNMATCHED);
         return -1;
     }
     /* RFC 4210 section 5.1.1 states: the recipNonce is copied from
