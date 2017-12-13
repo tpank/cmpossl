@@ -72,6 +72,11 @@ B<openssl> B<cmp>
 [B<-tls_trusted filenames>]
 [B<-tls_host name>]
 
+[B<-reqin>]
+[B<-reqout>]
+[B<-respin>]
+[B<-respout>]
+
 [B<-crl_check>]
 [B<-crl_check_all>]
 [B<-crl_download>]
@@ -228,9 +233,8 @@ the CMP server (when verifying signature-based message protection),
 the TLS server (when establishing TLS connections),
 and/or the newly enrolled certificate (when verifying a certificate response).
 
-Multiple file names or URLs may be given, separated by commas or whitespace.
-Each source may contain multiple certificates.
-
+Multiple file names may be given, separated by commas and/or whitespace.
+Each file may contain multiple certificates.
 
 =item B<-ignore_keyusage>]
 
@@ -594,6 +598,37 @@ validation. This may be a Common Name, a DNS name, or an IP address.
 
 =back
 
+
+=head2 Testing and debugging options
+
+=over 4
+
+=item B<-reqin>
+
+Take sequence of CMP requests from file(s).
+Multiple file names may be given, separated by commas and/or whitespace.
+As many files are read as needed for a complete transaction.
+
+=item B<-reqout>
+
+Save sequence of CMP requests to file(s).
+Multiple file names may be given, separated by commas and/or whitespace.
+As many files are written as needed to store the complete transaction.
+
+=item B<-respin>
+
+Process sequence of CMP responses provided in file(s), skipping server.
+Multiple file names may be given, separated by commas and/or whitespace.
+As many files are read as needed for the complete transaction.
+
+=item B<-respout>]
+
+Save sequence of CMP responses to file(s).
+Multiple file names may be given, separated by commas and/or whitespace.
+As many files are written as needed to store the complete transaction.
+
+
+=back
 
 =head2 Certificate verification options, for both CMP and TLS
 

@@ -40,6 +40,7 @@
   CMP_CERTRESPONSE_get_certificate,
   CMP_build_cert_chain,
   CMP_PKIMESSAGE_check_received,
+  CMP_PKIMESSAGE_adapt_senderNonce_transactionID,
   CMP_ASN1_OCTET_STRING_set1,
   CMP_sk_X509_add1_cert,
   CMP_sk_X509_add1_certs,
@@ -94,6 +95,8 @@
                                     const CMP_PKIMESSAGE *msg, int callback_arg,
                                     int (*allow_unprotected)(const CMP_CTX *,
                                     int, const CMP_PKIMESSAGE *));
+  int CMP_PKIMESSAGE_adapt_senderNonce_transactionID(CMP_PKIMESSAGE *msg,
+                                                     const CMP_PKIMESSAGE *src);
   int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                  const ASN1_OCTET_STRING *src);
   int CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert, int not_duplicate);
@@ -239,6 +242,10 @@ its recipNonce matches the senderNonce of the previous message (if any).
 If so, learns from the message received the senderNonce
        and the transaction ID if not yet present in the ctx.
 It returns the body type (which is >= 0) of the message on success, -1 on error.
+
+CMP_PKIMESSAGE_adapt_senderNonce_transactionID() copies the recipNonce of the
+src to the senderNonce of the msg and copies the transactionID from src to msg.
+It returns 1 on success, 0 on error.
 
 CMP_ASN1_OCTET_STRING_set1() frees any previous value of the variable referenced
 via the first argument and assigns either a copy of the string given as the

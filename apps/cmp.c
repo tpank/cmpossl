@@ -194,7 +194,13 @@ static int opt_ignore_keyusage = 0;
 static int opt_crl_download = 0;
 static char *opt_crls = NULL;
 static int opt_crl_timeout = 10;
+
 static X509_VERIFY_PARAM *vpm = NULL;
+
+static char *opt_reqin = NULL;
+static char *opt_reqout = NULL;
+static char *opt_respin = NULL;
+static char *opt_respout = NULL;
 
 #ifndef OPENSSL_NO_OCSP
 #include <openssl/ocsp.h>
@@ -379,6 +385,7 @@ typedef enum OPTION_choice {
     OPT_OCSP_STATUS,
 #endif
 #endif
+    OPT_REQIN, OPT_REQOUT, OPT_RESPOUT, OPT_RESPIN,
     OPT_V_ENUM/* OPT_CRLALL etc. */
 } OPTION_CHOICE;
 
@@ -495,6 +502,12 @@ OPTIONS cmp_options[] = {
     {"ocsp_status", OPT_OCSP_STATUS, '-', "Enable certificate status from TLS server via OCSP (not multi-)stapling"},
 #endif
 #endif
+    {OPT_MORE_STR, 0, 0, "\nTesting and debugging options:"},
+    {"reqin", OPT_REQIN, 's', "Take sequence of CMP requests from file(s)"},
+    {"reqout", OPT_REQOUT, 's', "Save sequence of CMP requests to file(s)"},
+    {"respin", OPT_RESPIN, 's', "Process sequence of CMP responses provided in file(s), skipping server"},
+    {"respout", OPT_RESPOUT, 's', "Save sequence of CMP responses to file(s)"},
+    {OPT_MORE_STR, 0, 0, "\nVerification options:"},
     OPT_V_OPTIONS, /* subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for leaf certificate but for full certificate chain"}, */
 
     {NULL}
@@ -545,6 +558,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     { (char **)&opt_ocsp_status},
 #endif
 #endif
+    {&opt_reqin}, {&opt_reqout}, {&opt_respin}, {&opt_respout},
     /* virtually at this point: OPT_CRLALL etc. */
     {NULL}
 };
@@ -677,6 +691,185 @@ static int read_config()
     }
 
     return 1;
+}
+
+static char *next_item(char *opt) /* in list separated by comma and/or space */
+{
+    while (*opt != ',' && !isspace(*opt) && *opt != '\0') {
+        if (*opt++ ==  '\\' && *opt != '\0') {
+            opt++;
+        }
+    }
+    if (*opt != '\0') {
+        *opt++ = '\0';
+        while (isspace(*opt))
+            opt++;
+    }
+    return opt;
+}
+
+/* ########################################################################## *
+ * Writes CMP_PKIMESSAGE DER-encoded to the file specified with outfile
+ *
+ * returns 1 on success, 0 on error
+ * ########################################################################## */
+static int write_PKIMESSAGE(const CMP_PKIMESSAGE *message, char **filenames)
+{
+    char *file;
+    FILE *f;
+    int res = 0;
+
+    if (message == NULL || filenames == NULL) {
+        BIO_printf(bio_err, "NULL arg to write_PKIMESSAGE\n");
+        return 0;
+    }
+    if (**filenames == '\0') {
+        BIO_printf(bio_err,
+                 "No (more) file name has been provided for writing message\n");
+        return 0;
+    }
+
+    file = *filenames;
+    *filenames = next_item(file);
+    f = fopen(file, "wb");
+    if (f == NULL)
+        BIO_printf(bio_err, "Error opening file '%s' for writing\n", file);
+    else {
+        unsigned char *out = NULL;
+        size_t i2d_CMP_PKIMESSAGE(const CMP_PKIMESSAGE *, unsigned char **);
+        size_t len = i2d_CMP_PKIMESSAGE(message, &out);
+        if (len > 0) {
+            if (len == fwrite(out, sizeof(*out), len, f))
+                res = 1;
+            else
+                BIO_printf(bio_err, "Error writing file '%s'\n", file);
+            OPENSSL_free(out);
+        }
+        fclose(f);
+    }
+    return res;
+}
+
+/* ########################################################################## *
+ * Reads a DER-encoded CMP_PKIMESSAGE from the file specified in infile
+ * The CMP_MESSAGE must be freed by the caller
+ *
+ * returns a pointer to the parsed CMP_PKIMESSAGE, null on error
+ * ########################################################################## */
+static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
+{
+    char *file;
+    FILE *f;
+    size_t fsize;
+    unsigned char *in;
+    CMP_PKIMESSAGE *ret = NULL;
+
+    if (filenames == NULL) {
+        BIO_printf(bio_err, "NULL arg to read_PKIMESSAGE\n");
+        return 0;
+    }
+    if (**filenames == '\0') {
+        BIO_printf(bio_err,
+                 "No (more) file name has been provided for reading message\n");
+        return 0;
+    }
+
+    file = *filenames;
+    *filenames = next_item(file);
+    f = fopen(file, "rb");
+    if (f == NULL)
+        BIO_printf(bio_err, "Error opening file '%s' for reading\n", file);
+    else {
+        fseek(f, 0, SEEK_END);
+        fsize = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        in = OPENSSL_malloc(fsize);
+        if (in == NULL)
+            BIO_printf(bio_err, "Out of memory reading file '%s'\n", file);
+        else {
+            if (fsize != fread(in, 1, fsize, f))
+                BIO_printf(bio_err, "Error reading file '%s'\n", file);
+            else {
+                CMP_PKIMESSAGE *d2i_CMP_PKIMESSAGE(CMP_PKIMESSAGE **,
+                                               const unsigned char **, long);
+                const unsigned char *p = in;
+                ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
+                if (!ret)
+                    BIO_printf(bio_err,
+                               "Error parsing PKIMessage in file '%s'\n", file);
+            }
+            OPENSSL_free(in);
+        }
+        fclose(f);
+    }
+    return ret;
+}
+
+/* ########################################################################## *
+ * Sends the PKIMessage req and on success place the response in *res
+ * basically like CMP_PKIMESSAGE_http_perform(), but in addition allows
+ * to dump the sequence of requests and responses to files and/or
+ * to take the sequence of requests and responses from files.
+ * ########################################################################## */
+static int read_write_req_resp(const CMP_CTX *ctx,
+          /* not const if opt_reqin or opt_respin */const CMP_PKIMESSAGE *req,
+                               CMP_PKIMESSAGE **res)
+{
+    CMP_PKIMESSAGE *req_new = NULL;
+    void CMP_PKIMESSAGE_free(CMP_PKIMESSAGE *msg);
+
+    int ret = CMP_R_ERROR_WRITING_FILE;
+    if (req && opt_reqout &&
+        !write_PKIMESSAGE(req, &opt_reqout))
+        goto err;
+
+    if (opt_reqin) {
+        if (opt_respin) {
+            BIO_printf(bio_c_out,
+                       "warning: -reqin is ignored since -respin is present\n");
+        } else {
+            ret = CMP_R_ERROR_READING_FILE;
+            if (!(req_new = read_PKIMESSAGE(&opt_reqin)))
+                goto err;
+#if 0
+         /* The transaction ID in req_new may not be fresh. In this case the
+            Insta Demo CA correctly complains: "Transaction id already in use."
+            The following workaround unfortunately requires re-protection. */
+            CMP_PKIHEADER_set1_transactionID(
+                                     CMP_PKIMESSAGE_get0_header(req_new), NULL);
+            CMP_PKIMESSAGE_protect((CMP_CTX *)ctx, req_new);
+#endif
+        }
+    }
+
+    ret = CMP_R_ERROR_READING_FILE;
+    if (opt_respin) {
+        if ((*res = read_PKIMESSAGE(&opt_respin)))
+            ret = 0;
+    } else {
+        ret = CMP_PKIMESSAGE_http_perform(ctx, opt_reqin?req_new:req, res);
+    }
+
+    if (ret || !(*res))
+        goto err;
+    ret = CMP_R_OUT_OF_MEMORY;
+    if ((opt_reqin || opt_respin) &&
+        /* need to satisfy nonce and transactionID checks */
+        !CMP_PKIMESSAGE_adapt_senderNonce_transactionID((CMP_PKIMESSAGE *)req,
+                                                       *res))
+        goto err;
+
+    if (opt_respout &&
+        !write_PKIMESSAGE(*res, &opt_respout)) {
+        ret = CMP_R_ERROR_WRITING_FILE;
+        CMP_PKIMESSAGE_free(*res);
+        goto err;
+    }
+
+    ret = 0;
+ err:
+    CMP_PKIMESSAGE_free(req_new);
+    return ret;
 }
 
 /*
@@ -1949,22 +2142,11 @@ static int set_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls) {
     return 1;
 }
 
-#define OPT_ITERATE(curr_opt, CMD) \
-while(*curr_opt != '\0') { \
-    char *next_opt = curr_opt;                                            \
-    while(*next_opt != ',' && !isspace(*next_opt) && *next_opt != '\0') { \
-        if(*next_opt++ ==  '\\' && *next_opt != '\0') {                   \
-            next_opt++;                                                   \
-        }                                                                 \
-    }                                                                     \
-    if (*next_opt != '\0') {                                              \
-        *next_opt++ = '\0';                                               \
-        while(isspace(*next_opt)) {                                       \
-            next_opt++;                                                   \
-        }                                                                 \
-    }                                                                     \
+#define OPT_ITERATE(curr, CMD) \
+while (*curr != '\0') {  \
+    char *next = next_item(curr); \
     CMD \
-    curr_opt = next_opt; \
+    curr = next; \
 }
 
 static int set_name(const char *str,
@@ -2687,7 +2869,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_out_trusted)
         (void)CMP_CTX_set_certConf_callback(ctx, certConf_cb);
 
-    ret = 1;
+    if (opt_reqin || opt_reqout || opt_respin || opt_respout)
+        (void)CMP_CTX_set_msg_transfer(ctx, read_write_req_resp);
+    return 1;
 
  err:
     sk_X509_CRL_pop_free(all_crls, X509_CRL_free);
@@ -3095,6 +3279,18 @@ int cmp_main(int argc, char **argv)
             break;
         case OPT_GENINFO:
             opt_geninfo = opt_str("geninfo");
+            break;
+        case OPT_REQIN:
+            opt_reqin = opt_str("reqin");
+            break;
+        case OPT_REQOUT:
+            opt_reqout = opt_str("reqout");
+            break;
+        case OPT_RESPIN:
+            opt_respin = opt_str("respin");
+            break;
+        case OPT_RESPOUT:
+            opt_respout = opt_str("respout");
             break;
 #ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:

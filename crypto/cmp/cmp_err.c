@@ -291,6 +291,8 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     "wrong algorithm oid"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_WRONG_KEY_USAGE), "wrong key usage"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_WRONG_PBM_VALUE), "wrong pbm value"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_ERROR_READING_FILE), "error reading file"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_ERROR_WRITING_FILE), "error writing file"},
     {0, NULL}
 };
 

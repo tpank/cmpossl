@@ -403,6 +403,8 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
                                   const CMP_PKIMESSAGE *msg, int callback_arg,
                                   int (*allow_unprotected)(const CMP_CTX *, int,
                                                        const CMP_PKIMESSAGE *));
+int CMP_PKIMESSAGE_adapt_senderNonce_transactionID(CMP_PKIMESSAGE *msg,
+                                                   const CMP_PKIMESSAGE *src);
 
 int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                const ASN1_OCTET_STRING *src);
@@ -436,6 +438,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
 # endif
 
 /* from cmp_ses.c */
+
 X509 *CMP_exec_IR_ses(CMP_CTX *ctx);
 X509 *CMP_exec_CR_ses(CMP_CTX *ctx);
 X509 *CMP_exec_KUR_ses(CMP_CTX *ctx);
@@ -443,6 +446,10 @@ X509 *CMP_exec_P10CR_ses(CMP_CTX *ctx);
 int CMP_exec_RR_ses(CMP_CTX *ctx);
 STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx);
 
+/* from cmp_srv.c */
+
+int CMP_PKIMESSAGE_mock_request(const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
+                                CMP_PKIMESSAGE **res);
 /* from cmp_asn.c */
 void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
                               const ASN1_OBJECT *type,

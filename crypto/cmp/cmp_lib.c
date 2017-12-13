@@ -1745,3 +1745,17 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
 
     return rcvd_type;
 }
+
+/* ########################################################################## *
+ * copy src->recipNonce to msg->senderNonce and copy transactionID to msg
+ *
+ * returns 1 on success, 0 on error
+ * ########################################################################## */
+int CMP_PKIMESSAGE_adapt_senderNonce_transactionID(CMP_PKIMESSAGE *msg,
+                                                   const CMP_PKIMESSAGE *src)
+{
+    return CMP_ASN1_OCTET_STRING_set1(&msg->header->senderNonce,
+                                      src->header->recipNonce)
+        && CMP_ASN1_OCTET_STRING_set1(&msg->header->transactionID,
+                                      src->header->transactionID);
+}
