@@ -687,8 +687,7 @@ static int read_config()
  * ##########################################################################
  */
 
-/* TODO dvo: push that separately upstream with the autofmt options */
-/* declaration copied from apps/apps.c just for visibility reasons */
+/* TODO dvo: when load_cert_pass() from apps.c is available upstream, remove this declaration load_pkcs12(), which has been copied from apps.c just for visibility reasons */
 static int load_pkcs12(BIO *in, const char *desc,
                        pem_password_cb *pem_cb, void *cb_data,
                        EVP_PKEY **pkey, X509 **cert, STACK_OF(X509) **ca)
@@ -781,8 +780,8 @@ static int load_cert_crl_http_timeout(const char *url, int req_timeout, X509 **p
 }
 #endif
 
-static X509 *load_cert_pass(const char *file, int format, const char *pass, const char *cert_descrip)
 /* TODO dvo: replace this by load_cert_pass() from apps.c when available upstream after generalization w.r.t. timeout */
+static X509 *load_cert_pass(const char *file, int format, const char *pass, const char *cert_descrip)
 {
     X509 *x = NULL;
     BIO *cert = NULL;
@@ -850,7 +849,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass, cons
     return (x);
 }
 
-/* TODO dvo: push that separately upstream */
+/* TODO dvo: replace this by load_csr() from apps.c when available upstream */
 static X509_REQ *load_csr(const char *file, int format, const char *desc)
 {
     X509_REQ *req = NULL;
