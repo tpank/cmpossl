@@ -781,14 +781,11 @@ static int load_cert_crl_http_timeout(const char *url, int req_timeout, X509 **p
 }
 #endif
 
-/* TODO dvo: push that separately upstream with the autofmt options */
-/* improved version of load_cert() found in apps/apps.c */
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass, const char *cert_descrip)
+static X509 *load_cert_pass(const char *file, int format, const char *pass, const char *cert_descrip)
+/* TODO dvo: replace this by load_cert_pass() from apps.c when available upstream after generalization w.r.t. timeout */
 {
     X509 *x = NULL;
     BIO *cert = NULL;
-    EVP_PKEY *pkey = NULL;
     PW_CB_DATA cb_data;
 
     cb_data.password = pass;
@@ -801,6 +798,7 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
         goto end;
     }
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     if (file == NULL) {
         unbuffer(stdin);
         cert = dup_bio_in(format);
@@ -808,51 +806,9 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
         cert = bio_open_default(file, 'r', format);
     if (cert == NULL)
         goto end;
-
-    if (format == FORMAT_ASN1)
-        x = d2i_X509_bio(cert, NULL);
-    else if (format == FORMAT_PEM)
-        x = PEM_read_bio_X509_AUX(cert, NULL,
-                                  (pem_password_cb *)password_callback, &cb_data);
-    else if (format == FORMAT_PKCS12) {
-        if (!load_pkcs12(cert, cert_descrip, (pem_password_cb *)password_callback, &cb_data, &pkey, &x, NULL))
-            goto end;
-    } else {
-        BIO_printf(bio_err, "bad input format specified for %s\n", cert_descrip);
-        goto end;
-    }
- end:
-    if (x == NULL) {
-        BIO_printf(bio_err, "unable to load certificate\n");
-        ERR_print_errors(bio_err);
-    }
-    BIO_free(cert);
-    if (pkey)
-        EVP_PKEY_free(pkey);
-    return (x);
-}
 #else
-static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char *pass, const char *cert_descrip)
-{
-    X509 *x = NULL;
-    BIO *cert = NULL;
-
-    BIO *err = bio_err;
-    EVP_PKEY *pkey = NULL;
-    PW_CB_DATA cb_data;
-
-    cb_data.password = pass;
-    cb_data.prompt_info = file;
-
-    if (format == FORMAT_HTTP) {
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        load_cert_crl_http_timeout(file, opt_crl_timeout, &x, NULL);
-#endif
-        goto end;
-    }
-
     if ((cert = BIO_new(BIO_s_file())) == NULL) {
-        ERR_print_errors(err);
+        ERR_print_errors(bio_err);
         goto end;
     }
 
@@ -865,51 +821,34 @@ static X509 *load_cert_corrected_pkcs12(const char *file, int format, const char
         BIO_set_fp(cert, stdin, BIO_NOCLOSE);
     } else {
         if (BIO_read_filename(cert, file) <= 0) {
-            BIO_printf(err, "Error opening %s '%s'\n", cert_descrip, file);
-            ERR_print_errors(err);
+            BIO_printf(bio_err, "Error opening %s '%s'\n", cert_descrip, file);
+            ERR_print_errors(bio_err);
             goto end;
         }
     }
-
+#endif
     if (format == FORMAT_ASN1)
         x = d2i_X509_bio(cert, NULL);
-    else if (format == FORMAT_NETSCAPE) {
-        NETSCAPE_X509 *nx;
-        nx = ASN1_item_d2i_bio(ASN1_ITEM_rptr(NETSCAPE_X509), cert, NULL);
-        if (nx == NULL)
-            goto end;
-
-        if ((strncmp(NETSCAPE_CERT_HDR, (char *)nx->header->data,
-                     nx->header->length) != 0)) {
-            NETSCAPE_X509_free(nx);
-            BIO_printf(err, "Error reading header on certificate\n");
-            goto end;
-        }
-        x = nx->cert;
-        nx->cert = NULL;
-        NETSCAPE_X509_free(nx);
-    } else if (format == FORMAT_PEM)
+    else if (format == FORMAT_PEM)
         x = PEM_read_bio_X509_AUX(cert, NULL,
                                   (pem_password_cb *)password_callback, &cb_data);
     else if (format == FORMAT_PKCS12) {
-        if (!load_pkcs12(cert, cert_descrip, (pem_password_cb *)password_callback, &cb_data, &pkey, &x, NULL))
-            goto end;
+        EVP_PKEY *pkey = NULL; /* &pkey is required by PKCS12_parse */
+        load_pkcs12(cert, cert_descrip, (pem_password_cb *)password_callback, &cb_data,
+                    &pkey, &x, NULL);
+        EVP_PKEY_free(pkey);
     } else {
-        BIO_printf(err, "bad input format specified for %s\n", cert_descrip);
+        BIO_printf(bio_err, "bad input format specified for %s\n", cert_descrip);
         goto end;
     }
  end:
     if (x == NULL) {
-        BIO_printf(err, "unable to load certificate\n");
-        ERR_print_errors(err);
+        BIO_printf(bio_err, "unable to load certificate\n");
+        ERR_print_errors(bio_err);
     }
-    if (cert != NULL)
-        BIO_free(cert);
-    if (pkey)
-        EVP_PKEY_free(pkey);
+    BIO_free(cert);
     return (x);
 }
-#endif
 
 /* TODO dvo: push that separately upstream */
 static X509_REQ *load_csr(const char *file, int format, const char *desc)
@@ -949,29 +888,27 @@ static X509_REQ *load_csr(const char *file, int format, const char *desc)
     return req;
 }
 
-/* TODO dvo: push that separately upstream with the autofmt options */
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L /* compatibility declarations */
-static STACK_OF(X509) *load_certs_(const char *file, int format,
-                           const char *pass, const char *desc)
+#if OPENSSL_VERSION_NUMBER < 0x10100003L /* limited compatibility declarations */
+static int load_crls_(BIO *err, const char *file, int format, STACK_OF(X509_CRL) **crls,
+                      const char *pass, ENGINE *e, const char *desc)
 {
-    STACK_OF(X509) *certs = NULL;
-    if (!load_certs(file, &certs, format, pass, desc))
-        return NULL;
-    return certs;
+    if (*crls != NULL)
+        return 0;
+    *crls = load_crls(err, file, format, pass, e, desc);
+    return *crls != NULL;
 }
-/* TODO dvo: push that separately upstream with the autofmt options */
-static STACK_OF(X509_CRL) *load_crls_(const char *file, int format,
-                           const char *pass, const char *desc)
+static int load_certs_(BIO *err, const char *file, int format, STACK_OF(X509) **certs,
+                       const char *pass, ENGINE *e, const char *desc)
 {
-    STACK_OF(X509_CRL) *crls = NULL;
-    if (!load_crls(file, &crls, format, pass, desc))
-        return NULL;
-    return crls;
+    if (*certs != NULL)
+        return 0;
+    *certs = load_certs(err, file, format, pass, e, desc);
+    return *certs != NULL;
 }
-#define load_crls( bio, file, fmt,        pass, e, desc) load_crls_ (file, fmt,        pass,    desc)
-#define load_certs(bio, file, fmt,        pass, e, desc) load_certs_(file, fmt,        pass,    desc)
-#define load_cert( bio, file, fmt, stdin,       e, desc) load_cert  (file, fmt,                 desc)
-#define load_key(  bio, file, fmt, stdin, pass, e, desc) load_key   (file, fmt, stdin, pass, e, desc)
+#define load_crls( f, cs, fmt,        p,    d) load_crls_ (bio_err, f, fmt, cs,    p, 0, d)
+#define load_certs(f, cs, fmt,        p,    d) load_certs_(bio_err, f, fmt, cs,    p, 0, d)
+#define load_cert( f,     fmt,              d) load_cert  (bio_err, f, fmt,     NULL, 0, d)
+#define load_key(  f,     fmt, stdin, p, e, d) load_key   (bio_err, f, fmt, stdin, p, e, d)
 #endif
 
 /* TODO dvo: push that separately upstream with the autofmt options */
@@ -1052,10 +989,10 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pa
     BIO *bio_bak = bio_err;
     bio_err = NULL;
     format = adjust_format(&infile, format, 1);
-    pkey = load_key(bio_err, infile, format, 0, pass_string, e, desc);
+    pkey = load_key(infile, format, 0, pass_string, e, desc);
     if (pkey == NULL && format != FORMAT_HTTP && format != FORMAT_ENGINE) {
         ERR_clear_error();
-        pkey = load_key(bio_err, infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, 0, pass_string, NULL, desc);
+        pkey = load_key(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, 0, pass_string, NULL, desc);
     }
     bio_err = bio_bak;
     if (!pkey) {
@@ -1068,7 +1005,6 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format, const char *pa
 }
 
 /* TODO dvo: push that separately upstream */
-/* this is exclusively used by load_certs_fmt */
 static X509 *load_cert_autofmt(const char *infile, int *format,
                                const char *pass, const char *desc) {
     X509 *cert;
@@ -1077,11 +1013,11 @@ static X509 *load_cert_autofmt(const char *infile, int *format,
     BIO *bio_bak = bio_err;
     bio_err = NULL;
     *format = adjust_format(&infile, *format, 0);
-    cert = load_cert_corrected_pkcs12(infile, *format, pass_string, desc);
+    cert = load_cert_pass(infile, *format, pass_string, desc);
     if (cert == NULL && *format != FORMAT_HTTP) {
         ERR_clear_error();
         *format = (*format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
-        cert = load_cert_corrected_pkcs12(infile, *format, pass_string, desc);
+        cert = load_cert_pass(infile, *format, pass_string, desc);
     }
     bio_err = bio_bak;
     if (!cert) {
@@ -1114,70 +1050,70 @@ static X509_REQ *load_csr_autofmt(const char *infile, int *format, const char *d
     return csr;
 }
 
-/* TODO dvo: push that separately upstream */
-/* this is exclusively used by load_certs_autofmt */
-static STACK_OF(X509) *load_certs_fmt(const char *infile, int format,
-                                      const char *pass, const char *desc) {
-    X509 *cert;
-    if (format == FORMAT_PEM) {
-        return load_certs(bio_err, infile, format, pass, NULL, desc);
-    }
-    else if (format == FORMAT_PKCS12) {
-        STACK_OF(X509) *certs = NULL;
+/*
+ * Initialize or extend, if *certs != NULL, a certificate stack.
+ */
+/* TODO dvo: replace this by generalization of load_certs() when available upstream */
+static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs, int format,
+                                  const char *pass, const char *desc)
+{
+    int ret = 0;
+    if (format == FORMAT_PKCS12) {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-        BIO *bio = bio_open_default(infile, 'r', format);
+        BIO *bio = bio_open_default(file, 'r', format);
 #else
-        BIO *bio = BIO_new_file(infile, "rb");
+        BIO *bio = BIO_new_file(file, "rb");
 #endif
         if (bio != NULL) {
             PW_CB_DATA cb_data;
             cb_data.password = pass;
-            cb_data.prompt_info = infile;
-            if (!load_pkcs12(bio, desc, (pem_password_cb *)password_callback,
-                             &cb_data, NULL, NULL, &certs))
-                certs = NULL;
+            cb_data.prompt_info = file;
+            ret = load_pkcs12(bio, desc, (pem_password_cb *)password_callback,
+                              &cb_data, NULL, NULL, certs);
             BIO_free(bio);
         }
-        return certs;
-    } else {
-        STACK_OF(X509) *certs = sk_X509_new_null();
-        if (!certs)
-            return NULL;
-        cert = load_cert_corrected_pkcs12(infile, format, pass, desc);
-        if (!cert) {
-            sk_X509_free(certs);
-            return NULL;
+        return ret;
+    } else if (format == FORMAT_ASN1) { /* load only one cert in this case */
+        X509 *cert = load_cert_pass(file, format, pass, desc);
+        if (cert) {
+            if (!*certs)
+                *certs = sk_X509_new_null();
+            if (*certs)
+                ret = sk_X509_push(*certs, cert);
+            else
+                X509_free(cert);
         }
-        sk_X509_push(certs, cert);
-        return certs;
+        return ret;
     }
+    else
+        return load_certs(file, certs, format, pass, desc);
 }
 
 /* TODO dvo: push that separately upstream */
 /* in apps.c there is load_certs which should be used for CMP upstream submission */
-static STACK_OF(X509) *load_certs_autofmt(const char *infile, int format,
+static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs, int format,
                         int exclude_http, const char *pass, const char *desc) {
-    STACK_OF(X509) *certs;
+    int ret = 0;
     BIO *bio_bak = bio_err;
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
     if (exclude_http && format == FORMAT_HTTP) {
         BIO_printf(bio_err, "error: HTTP retrieval not allowed for %s\n", desc);
-        return NULL;
+        return ret;
     }
     bio_err = NULL;
-    certs = load_certs_fmt(infile, format, pass, desc);
-    if (certs == NULL) {
+    ret = load_certs_also_pkcs12(infile, certs, format, pass, desc);
+    if (!ret) {
         int format2 = format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM;
         ERR_clear_error();
-        certs = load_certs_fmt(infile, format2, pass, desc);
+        ret = load_certs_also_pkcs12(infile, certs, format2, pass, desc);
     }
     bio_err = bio_bak;
-    if (!certs) {
+    if (!ret) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n",desc,infile);
     }
-    return certs;
+    return ret;
 }
 
 /* TODO dvo: push that separately upstream */
@@ -1213,8 +1149,11 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format, const char *de
 static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format, const char *desc) {
     X509_CRL *crl;
     if (format == FORMAT_PEM) {
+        STACK_OF(X509_CRL) *crls = NULL;
         /* BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile); */
-        return load_crls(bio_err, infile, format, NULL, NULL, desc);
+        if (!load_crls(infile, &crls, format, NULL, desc))
+            return NULL;
+        return crls;
     } else {
         STACK_OF(X509_CRL) *crls = sk_X509_CRL_new_null();
         if (!crls)
@@ -2051,14 +1990,15 @@ static X509_STORE *load_certstore(char *input, const char *desc)
 {
     X509_STORE *store = NULL;
     STACK_OF(X509) *certs = NULL;
+    char *pass_string = get_passwd(opt_storepass, desc);
 
     if (!input)
         return NULL;
 
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, input); */
     OPT_ITERATE(input,
-        if (!(certs = load_certs_autofmt(input, opt_storeform, 1,
-                                         opt_storepass, desc)) ||
+            if (!load_certs_autofmt(input, &certs, opt_storeform, 1,
+                                    pass_string, desc) ||
             !(store = sk_X509_to_store(store, certs))) {
             /* BIO_puts(bio_err, "error: out of memory\n"); */
             sk_X509_pop_free(certs, X509_free);
@@ -2067,6 +2007,8 @@ static X509_STORE *load_certstore(char *input, const char *desc)
         }
         sk_X509_pop_free(certs, X509_free);
     )
+    if (pass_string)
+        OPENSSL_clear_free(pass_string, strlen(pass_string));
     return store;
 }
 
@@ -2074,7 +2016,7 @@ static int load_untrusted(char *input,
                           int (*set_fn)(CMP_CTX *ctx, const STACK_OF(X509) *certs),
                           CMP_CTX *ctx, const char *desc)
 {
-    STACK_OF(X509) *certs, *all_certs;
+    STACK_OF(X509) *certs = NULL, *all_certs;
     int ret = 0;
     if (!input)
         return 1;
@@ -2084,8 +2026,8 @@ static int load_untrusted(char *input,
         goto oom;
     }
     OPT_ITERATE(input,
-        if (!(certs = load_certs_autofmt(input, opt_storeform, 0,
-                                         opt_storepass, desc)) ||
+                if (!load_certs_autofmt(input, &certs, opt_storeform, 0,
+                                opt_storepass, desc) ||
             !CMP_sk_X509_add1_certs(all_certs, certs, 0, 1/*no dups*/)) {
                 goto oom;
         }
