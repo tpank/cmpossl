@@ -1899,6 +1899,7 @@ CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED:160:\
 	sender generalname type not supported
 CMP_R_SERVER_NOT_REACHABLE:161:server not reachable
 CMP_R_TLS_ERROR:162:tls error
+CMP_R_UNABLE_TO_CREATE_CONTEXT:175:unable to create context
 CMP_R_UNEXPECTED_PKIBODY:163:unexpected pkibody
 CMP_R_UNEXPECTED_PKISTATUS:164:unexpected pkistatus
 CMP_R_UNEXPECTED_SENDER:165:unexpected sender

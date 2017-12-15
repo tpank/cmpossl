@@ -166,6 +166,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED      160
 # define CMP_R_SERVER_NOT_REACHABLE                       161
 # define CMP_R_TLS_ERROR                                  162
+# define CMP_R_UNABLE_TO_CREATE_CONTEXT                   175
 # define CMP_R_UNEXPECTED_PKIBODY                         163
 # define CMP_R_UNEXPECTED_PKISTATUS                       164
 # define CMP_R_UNEXPECTED_SENDER                          165
