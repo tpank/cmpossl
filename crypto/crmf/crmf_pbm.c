@@ -238,6 +238,7 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
      */
     mac_nid = OBJ_obj2nid(pbm->mac->algorithm);
 
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
     /* OID 1.3.6.1.5.5.8.1.2 associated with NID_hmac_sha1 is explicitly
        mentioned in RFC 4210 and RFC 3370, but NID_hmac_sha1 is not included in
        builitin_pbe[] of crypto/evp/evp_pbe.c */
@@ -249,6 +250,7 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
        branch as NID_hmac_sha1 */
     else if (mac_nid == NID_hmac_md5)
         mac_nid = NID_hmacWithMD5;
+#endif
 
     if (!EVP_PBE_find(EVP_PBE_TYPE_PRF, mac_nid, NULL, &hmac_md_nid, NULL) ||
             ((m = EVP_get_digestbynid(hmac_md_nid)) == NULL)) {
