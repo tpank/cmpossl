@@ -254,8 +254,6 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_SERVER_NOT_REACHABLE),
     "server not reachable"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_TLS_ERROR), "tls error"},
-    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_UNABLE_TO_CREATE_CONTEXT),
-    "unable to create context"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_UNEXPECTED_PKIBODY), "unexpected pkibody"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_UNEXPECTED_PKISTATUS),
     "unexpected pkistatus"},
