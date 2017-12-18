@@ -1841,6 +1841,7 @@ CMP_R_ENCOUNTERED_KEYUPDATEWARNING:107:encountered keyupdatewarning
 CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS:108:encountered unsupported pkistatus
 CMP_R_ENCOUNTERED_WAITING:109:encountered waiting
 CMP_R_ERROR_CALCULATING_PROTECTION:110:error calculating protection
+CMP_R_ERROR_CONNECTING:175:error connecting
 CMP_R_ERROR_CREATING_CERTCONF:111:error creating certconf
 CMP_R_ERROR_CREATING_CR:112:error creating cr
 CMP_R_ERROR_CREATING_ERROR:113:error creating error
@@ -1859,6 +1860,7 @@ CMP_R_ERROR_DECRYPTING_SYMMETRIC_KEY:125:error decrypting symmetric key
 CMP_R_ERROR_LEARNING_TRANSACTIONID:126:error learning transactionid
 CMP_R_ERROR_NONCES_DO_NOT_MATCH:127:error nonces do not match
 CMP_R_ERROR_PARSING_PKISTATUS:128:error parsing pkistatus
+CMP_R_ERROR_PKISTATUSINFO_NOT_FOUND:176:error pkistatusinfo not found
 CMP_R_ERROR_PROTECTING_MESSAGE:129:error protecting message
 CMP_R_ERROR_PUSHING_GENERALINFO_ITEM:130:error pushing generalinfo item
 CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS:131:error pushing generalinfo items
@@ -1881,6 +1883,7 @@ CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION:147:\
 	missing key input for creating protection
 CMP_R_NO_SECRET_VALUE_GIVEN_FOR_PBMAC:148:no secret value given for pbmac
 CMP_R_NO_TRUSTED_CERTIFICATES_SET:149:no trusted certificates set
+CMP_R_NO_VALID_SERVER_CERT_FOUND:177:no valid server cert found
 CMP_R_NO_VALID_SRVCERT_FOUND:150:no valid srvcert found
 CMP_R_NULL_ARGUMENT:151:null argument
 CMP_R_OUT_OF_MEMORY:152:out of memory
@@ -1901,6 +1904,7 @@ CMP_R_UNEXPECTED_PKISTATUS:164:unexpected pkistatus
 CMP_R_UNEXPECTED_SENDER:165:unexpected sender
 CMP_R_UNKNOWN_ALGORITHM_ID:166:unknown algorithm id
 CMP_R_UNKNOWN_CERTTYPE:167:unknown certtype
+CMP_R_UNKNOWN_CERT_TYPE:178:unknown cert type
 CMP_R_UNKNOWN_PKISTATUS:168:unknown pkistatus
 CMP_R_UNSUPPORTED_ALGORITHM:169:unsupported algorithm
 CMP_R_UNSUPPORTED_CIPHER:170:unsupported cipher

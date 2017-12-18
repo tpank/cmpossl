@@ -96,7 +96,6 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_FIND_SRVCERT                               171
 # define CMP_F_GET_CERT_STATUS                            172
 # define CMP_F_POLLFORRESPONSE                            173
-# define CMP_R_ERROR_CONNECTING                           176
 
 /*
  * CMP reason codes.
@@ -112,6 +111,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS          108
 # define CMP_R_ENCOUNTERED_WAITING                        109
 # define CMP_R_ERROR_CALCULATING_PROTECTION               110
+# define CMP_R_ERROR_CONNECTING                           175
 # define CMP_R_ERROR_CREATING_CERTCONF                    111
 # define CMP_R_ERROR_CREATING_CR                          112
 # define CMP_R_ERROR_CREATING_ERROR                       113
@@ -130,13 +130,14 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_LEARNING_TRANSACTIONID               126
 # define CMP_R_ERROR_NONCES_DO_NOT_MATCH                  127
 # define CMP_R_ERROR_PARSING_PKISTATUS                    128
+# define CMP_R_ERROR_PKISTATUSINFO_NOT_FOUND              176
 # define CMP_R_ERROR_PROTECTING_MESSAGE                   129
 # define CMP_R_ERROR_PUSHING_GENERALINFO_ITEM             130
 # define CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS            131
 # define CMP_R_ERROR_PUSHING_GENM_ITEMS                   132
 # define CMP_R_ERROR_SENDING_REQUEST                      133
 # define CMP_R_ERROR_SETTING_CERTHASH                     134
-# define CMP_R_ERROR_PKISTATUSINFO_NOT_FOUND              135
+# define CMP_R_ERROR_STATUS_NOT_FOUND                     135
 # define CMP_R_ERROR_TRANSACTIONID_UNMATCHED              136
 # define CMP_R_ERROR_VALIDATING_PROTECTION                137
 # define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               138
@@ -151,7 +152,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  147
 # define CMP_R_NO_SECRET_VALUE_GIVEN_FOR_PBMAC            148
 # define CMP_R_NO_TRUSTED_CERTIFICATES_SET                149
-# define CMP_R_NO_VALID_SERVER_CERT_FOUND                 150
+# define CMP_R_NO_VALID_SERVER_CERT_FOUND                 177
+# define CMP_R_NO_VALID_SRVCERT_FOUND                     150
 # define CMP_R_NULL_ARGUMENT                              151
 # define CMP_R_OUT_OF_MEMORY                              152
 # define CMP_R_PKIBODY_ERROR                              153
@@ -168,7 +170,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_UNEXPECTED_PKISTATUS                       164
 # define CMP_R_UNEXPECTED_SENDER                          165
 # define CMP_R_UNKNOWN_ALGORITHM_ID                       166
-# define CMP_R_UNKNOWN_CERT_TYPE                          167
+# define CMP_R_UNKNOWN_CERTTYPE                           167
+# define CMP_R_UNKNOWN_CERT_TYPE                          178
 # define CMP_R_UNKNOWN_PKISTATUS                          168
 # define CMP_R_UNSUPPORTED_ALGORITHM                      169
 # define CMP_R_UNSUPPORTED_CIPHER                         170

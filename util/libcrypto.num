@@ -4378,7 +4378,7 @@ CRMF_CERTREQMSG_set_certReqId           4317	1_1_1	EXIST::FUNCTION:
 CMP_PKIHEADER_set1_transactionID        4318	1_1_1	EXIST::FUNCTION:
 CMP_INFOTYPEANDVALUE_it                 4319	1_1_1	EXIST:!EXPORT_VAR_AS_FUNCTION:VARIABLE:
 CMP_INFOTYPEANDVALUE_it                 4319	1_1_1	EXIST:EXPORT_VAR_AS_FUNCTION:FUNCTION:
-CMP_get_cert_subject_key_id             4320	1_1_1	EXIST::FUNCTION:
+CMP_get_cert_subject_key_id             4320	1_1_1	NOEXIST::FUNCTION:
 CMP_PKIHEADER_set1_recipient            4321	1_1_1	EXIST::FUNCTION:
 CMP_statusInfo_new                      4322	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set0_pkey                       4323	1_1_1	EXIST::FUNCTION:
@@ -4655,3 +4655,6 @@ ERR_load_strings_const                  4590	1_1_1	EXIST::FUNCTION:
 EVP_shake128                            4591	1_1_1	EXIST::FUNCTION:
 UI_get_result_length                    4592	1_1_1	EXIST::FUNCTION:
 EVP_aria_256_ccm                        4593	1_1_1	EXIST::FUNCTION:ARIA
+CMP_add_error_txt                       4594	1_1_1	EXIST::FUNCTION:
+CMP_print_cert_verify_cb                4595	1_1_1	EXIST::FUNCTION:
+CMP_get1_cert_subject_key_id            4596	1_1_1	EXIST::FUNCTION:
