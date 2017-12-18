@@ -141,7 +141,7 @@ void CMP_add_error_txt(const char *separator, const char *txt)
         }
         if (*next) { /* split error msg in case error data would get too long */
             if (curr != txt) {
-                tmp = strndup(txt, curr - txt);
+                tmp = OPENSSL_strndup(txt, curr - txt);
                 ERR_add_error_data(3, data, separator, tmp);
                 free(tmp);
             }

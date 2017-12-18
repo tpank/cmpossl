@@ -155,7 +155,7 @@ int bio_connect(BIO *bio, int timeout) {
         goto retry;
     }
     if (rv <= 0 && BIO_should_retry(bio)) {
-        if (blocking || (rv = bio_wait(bio, max_time - time(NULL))) > 0)
+        if (blocking || (rv = bio_wait(bio, (int)(max_time - time(NULL)))) > 0)
             goto retry;
     }
     return rv;
@@ -201,7 +201,7 @@ int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
         /* else BIO_should_retry was true */
         sending = 0;
         if (!blocking) {
-            rv = bio_wait(bio, max_time - time(NULL));
+            rv = bio_wait(bio, (int)(max_time - time(NULL)));
             if (rv <= 0) { /* error or timeout */
                 if (rv < 0) /* error */
                     rv = -4;
