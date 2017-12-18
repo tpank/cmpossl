@@ -1979,6 +1979,7 @@ static int set_name(const char *str,
     return 1;
 }
 
+/* TODO dvo: push that separately upstream */
 /*
  * ##########################################################################
  * * create cert store structure with certificates read from given file(s)
@@ -2011,6 +2012,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     return store;
 }
 
+/* TODO dvo: push that separately upstream */
 static int load_untrusted(char *input,
                           int (*set_fn)(CMP_CTX *ctx, const STACK_OF(X509) *certs),
                           CMP_CTX *ctx, const char *desc)
@@ -2210,6 +2212,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_crl_timeout == 0)
         opt_crl_timeout = -1;
     if (opt_crls) {
+/* TODO dvo: extract load_multiple_crls() and push that separately upstream */
         X509_CRL *crl;
         STACK_OF(X509_CRL) *crls;
         if (!(all_crls = sk_X509_CRL_new_null())) {
