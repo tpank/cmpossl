@@ -379,12 +379,14 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
         }
         if (ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
             CMP_add_error_data("wrong subject key");
+#if OPENSSL_VERSION_NUMBER >= 0x10100005L
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
             CMP_add_error_txt("\n ID = ", str);
             OPENSSL_free(str);
             str = OPENSSL_buf2hexstr(kid->data, kid->length);
             CMP_add_error_txt("\n vs.  ", str);
             OPENSSL_free(str);
+#endif
             return 0;
         }
     }

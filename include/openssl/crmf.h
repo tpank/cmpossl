@@ -75,6 +75,7 @@
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
+
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
 #endif
@@ -234,8 +235,6 @@ int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
 # define CRMF_POPO_RAVERIFIED    3
 int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
                                 int dgst, int ppmtd);
-
-int ERR_load_CRMF_strings(void);
 
 # ifdef  __cplusplus
 }

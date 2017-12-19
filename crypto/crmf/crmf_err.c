@@ -11,6 +11,10 @@
 #include <openssl/err.h>
 #include <openssl/crmferr.h>
 
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
+#define ERR_load_strings_const(str) ERR_load_strings(ERR_LIB_CMP, str)
+#endif
+
 #ifndef OPENSSL_NO_ERR
 
 static const ERR_STRING_DATA CRMF_str_functs[] = {
