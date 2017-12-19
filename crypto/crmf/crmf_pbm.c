@@ -178,7 +178,7 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
     EVP_MD_CTX *ctx = NULL;
     unsigned char basekey[EVP_MAX_MD_SIZE];
     unsigned int basekeyLen;
-    long iterations;
+    uint64_t iterations;
     int error = CRMF_R_CRMFERROR;
 
     if (!mac || !pbm || !pbm->mac || !pbm->mac->algorithm || !msg || !secret) {
@@ -219,9 +219,15 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
     if (!(EVP_DigestFinal_ex(ctx, basekey, &basekeyLen)))
         goto err;
 
-    /* the first iteration is already done above -> -1 */
-    iterations = ASN1_INTEGER_get(pbm->iterationCount) - 1;
-    while (iterations-- > 0) {
+    if (!ASN1_INTEGER_get_uint64(&iterations, pbm->iterationCount)
+            || iterations < 100 /* min from RFC */
+            || iterations > CRMF_PBM_MAX_ITERATION_COUNT) {
+        error = CRMF_R_BAD_PBM_ITERATIONCOUNT;
+        goto err;
+    }
+
+    /* the first iteration was already done above */
+    while (--iterations > 0) {
         if (!(EVP_DigestInit_ex(ctx, m, NULL)))
             goto err;
         if (!EVP_DigestUpdate(ctx, basekey, basekeyLen))

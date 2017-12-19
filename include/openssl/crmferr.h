@@ -41,6 +41,7 @@ int ERR_load_CRMF_strings(void);
 /*
  * CRMF reason codes.
  */
+# define CRMF_R_BAD_PBM_ITERATIONCOUNT                    110
 # define CRMF_R_CRMFERROR                                 100
 # define CRMF_R_ERROR                                     101
 # define CRMF_R_ITERATIONCOUNT_BELOW_100                  102

@@ -207,6 +207,7 @@ struct crmf_pbmparameter_st {
     X509_ALGOR *mac;
 } /* CRMF_PBMPARAMETER */;
 DECLARE_ASN1_FUNCTIONS(CRMF_PBMPARAMETER)
+#define CRMF_PBM_MAX_ITERATION_COUNT 100000 /* manipulated cnt leads to DoS */
 
 /*
 POPOSigningKeyInput ::= SEQUENCE {

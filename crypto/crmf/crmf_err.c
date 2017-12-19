@@ -11,10 +11,6 @@
 #include <openssl/err.h>
 #include <openssl/crmferr.h>
 
-#if OPENSSL_VERSION_NUMBER < 0x10101000L
-#define ERR_load_strings_const(str) ERR_load_strings(ERR_LIB_CRMF, str)
-#endif
-
 #ifndef OPENSSL_NO_ERR
 
 static const ERR_STRING_DATA CRMF_str_functs[] = {
@@ -50,6 +46,8 @@ static const ERR_STRING_DATA CRMF_str_functs[] = {
 };
 
 static const ERR_STRING_DATA CRMF_str_reasons[] = {
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_BAD_PBM_ITERATIONCOUNT),
+    "bad pbm iterationcount"},
     {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_CRMFERROR), "crmferror"},
     {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_ERROR), "error"},
     {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_ITERATIONCOUNT_BELOW_100),

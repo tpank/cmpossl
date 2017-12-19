@@ -2019,6 +2019,7 @@ CONF_R_UNABLE_TO_CREATE_NEW_SECTION:103:unable to create new section
 CONF_R_UNKNOWN_MODULE_NAME:113:unknown module name
 CONF_R_VARIABLE_EXPANSION_TOO_LONG:116:variable expansion too long
 CONF_R_VARIABLE_HAS_NO_VALUE:104:variable has no value
+CRMF_R_BAD_PBM_ITERATIONCOUNT:110:bad pbm iterationcount
 CRMF_R_CRMFERROR:100:crmferror
 CRMF_R_ERROR:101:error
 CRMF_R_ITERATIONCOUNT_BELOW_100:102:iterationcount below 100
