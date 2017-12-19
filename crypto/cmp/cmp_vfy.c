@@ -372,7 +372,7 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
     }
 
     if (kid) { /* enforce that the right subject key id is there */
-        ASN1_OCTET_STRING *ckid = CMP_get1_cert_subject_key_id(cert);
+        const ASN1_OCTET_STRING *ckid = X509_get0_subject_key_id(cert);
         if (!ckid) {
             CMP_add_error_data("missing subject key ID");
             return 0;
@@ -385,10 +385,8 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
             str = OPENSSL_buf2hexstr(kid->data, kid->length);
             CMP_add_error_txt("\n vs.  ", str);
             OPENSSL_free(str);
-            ASN1_OCTET_STRING_free(ckid);
             return 0;
         }
-        ASN1_OCTET_STRING_free(ckid);
     }
 
     return 1; /* acceptable also if there is no identifier in msg header */

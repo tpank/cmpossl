@@ -783,7 +783,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
         /* use MSG_SIG_ALG according to 5.1.3.3 if client Certificate and
          * private key is given */
         if (ctx->clCert && ctx->pkey) {
-            ASN1_OCTET_STRING *subjKeyIDStr = NULL;
+            const ASN1_OCTET_STRING *subjKeyIDStr = NULL;
             int algNID = 0;
             ASN1_OBJECT *alg = NULL;
 
@@ -808,11 +808,10 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
             /* set senderKID to  keyIdentifier of the used certificate according
              * to section 5.1.1 */
-            subjKeyIDStr = CMP_get1_cert_subject_key_id(ctx->clCert);
+            subjKeyIDStr = X509_get0_subject_key_id(ctx->clCert);
             if (subjKeyIDStr) {
                 CMP_PKIHEADER_set1_senderKID(msg->header, subjKeyIDStr);
             }
-            ASN1_OCTET_STRING_free(subjKeyIDStr);
 
             /* Add ctx->extraCertsOut, the ctx->clCert,
              * and the chain upwards build up from ctx->untrusted_certs */
@@ -1746,23 +1745,6 @@ STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store)
         }
     }
     return sk;
-}
-
-/* ############################################################################
- * this function is defined within the CMP library though it is generally useful
- *
- * Returns a copy of the subject key identifier of the given certificate
- * returns NULL on error, respectively when none was found.
- * ########################################################################## */
-ASN1_OCTET_STRING *CMP_get1_cert_subject_key_id(const X509 *cert)
-{
-    if (!cert)
-        goto err;
-
-    return X509_get_ext_d2i((X509 *)cert, NID_subject_key_identifier,NULL,NULL);
-
- err:
-    return NULL;
 }
 
 /* ########################################################################## *

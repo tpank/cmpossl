@@ -385,7 +385,6 @@ int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type);
 int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
 #define CMP_PKISTATUSINFO_BUFLEN 1024
 char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
-ASN1_OCTET_STRING *CMP_get1_cert_subject_key_id(const X509 *cert);
 STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
                                      const X509 *cert);
 int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, int type_function,
