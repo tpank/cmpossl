@@ -158,6 +158,7 @@ my @known_algorithms = ( "RC2", "RC4", "RC5", "IDEA", "DES", "BF",
 			 "RFC3779",
 			 # TLS
 			 "PSK", "SRP", "HEARTBEATS",
+			 # Certificate Management Protocol RFC 4210, CRMF RFC 4211
 			 "CMP", "CRMF",
 			 # CMS
 			 "CMS",

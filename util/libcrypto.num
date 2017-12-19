@@ -4328,7 +4328,7 @@ CMP_PKIHEADER_set_messageTime           4269	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_newPkey                    4270	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_option                      4271	1_1_1	EXIST::FUNCTION:
 CMP_ir_new                              4272	1_1_1	NOEXIST::FUNCTION:
-ERR_load_CMP_strings                    4273	1_1_1	EXIST::FUNCTION:
+ERR_load_CMP_strings                    4273	1_1_1	NOEXIST::FUNCTION:
 CRMF_PBMPARAMETER_free                  4274	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_extraCertsIn               4275	1_1_1	EXIST::FUNCTION:
 CMP_doCertificateRequestSeq             4276	1_1_1	NOEXIST::FUNCTION:
@@ -4340,7 +4340,7 @@ CMP_CTX_set1_subjectName                4281	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMESSAGES_it                 4282	1_1_1	EXIST:!EXPORT_VAR_AS_FUNCTION:VARIABLE:
 CRMF_CERTREQMESSAGES_it                 4282	1_1_1	EXIST:EXPORT_VAR_AS_FUNCTION:FUNCTION:
 CMP_CTX_set_error_callback              4283	1_1_1	EXIST::FUNCTION:
-ERR_load_CRMF_strings                   4284	1_1_1	EXIST::FUNCTION:
+ERR_load_CRMF_strings                   4284	1_1_1	NOEXIST::FUNCTION:
 i2d_CRMF_CERTTEMPLATE                   4285	1_1_1	EXIST::FUNCTION:
 CMP_INFOTYPEANDVALUE_set                4286	1_1_1	EXIST::FUNCTION:
 i2d_CRMF_CERTREQMESSAGES                4287	1_1_1	EXIST::FUNCTION:
@@ -4657,4 +4657,4 @@ UI_get_result_length                    4592	1_1_1	EXIST::FUNCTION:
 EVP_aria_256_ccm                        4593	1_1_1	EXIST::FUNCTION:ARIA
 CMP_add_error_txt                       4594	1_1_1	EXIST::FUNCTION:
 CMP_print_cert_verify_cb                4595	1_1_1	EXIST::FUNCTION:
-CMP_get1_cert_subject_key_id            4596	1_1_1	EXIST::FUNCTION:
+CMP_get1_cert_subject_key_id            4596	1_1_1	NOEXIST::FUNCTION:
