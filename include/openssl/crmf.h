@@ -73,13 +73,13 @@
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
-#if OPENSSL_VERSION_NUMBER >= 0x10101000L
-# include <openssl/crmferr.h>
-#endif
+# if OPENSSL_VERSION_NUMBER >= 0x10101000L
+#  include <openssl/crmferr.h>
+# endif
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
-#endif
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+#  define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
+# endif
 
 # ifdef  __cplusplus
 extern "C" {
@@ -145,10 +145,7 @@ struct crmf_certtemplate_st {
     ASN1_BIT_STRING *issuerUID; /* 7 */
     /* subjectUID is deprecated in version 2 */
     ASN1_BIT_STRING *subjectUID; /* 8 */
-# if 0
-    /* TODO: That should be - but that's only cosmetic */
-    X509_EXTENSIONS *extensions; /* 9 */
-# endif
+    /* Could be X509_EXTENSION*S*, but that's only cosmetic */
     STACK_OF(X509_EXTENSION) *extensions; /* 9 */
 } /* CRMF_CERTTEMPLATE */;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTTEMPLATE)
@@ -209,9 +206,8 @@ int CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey(CRMF_CERTREQMSG *msg,
                                                  X509_PUBKEY *pubkey);
 int CRMF_CERTREQMSG_set1_regCtrl_oldCertID(CRMF_CERTREQMSG *crm,
                                            CRMF_CERTID *cid);
-/* TODO: TEMPORARY - that should be done differently */
 int CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(CRMF_CERTREQMSG *crm,
-                                                      X509 *oldc);
+                                                     X509 *oldc);
 
 int CRMF_CERTREQMSG_set1_regInfo_utf8Pairs(CRMF_CERTREQMSG *msg,
                                            ASN1_UTF8STRING *utf8pairs);
@@ -240,14 +236,15 @@ int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
 # ifdef  __cplusplus
 }
 # endif
-#endif /* fndef HEADER_CRMF_H */
+#endif /* ifndef HEADER_CRMF_H */
 
-#if OPENSSL_VERSION_NUMBER < 0x10101000L
-#ifdef __cplusplus
+#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(HEADER_CRMF_ERROR_CODES)
+# define HEADER_CRMF_ERROR_CODES
+# ifdef  __cplusplus
 extern "C" {
-#endif
+# endif
 /* BEGIN ERROR CODES */
-#ifdef  __cplusplus
+# ifdef  __cplusplus
 }
-#endif
+# endif
 #endif

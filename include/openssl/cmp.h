@@ -73,46 +73,46 @@
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
-#if OPENSSL_VERSION_NUMBER >= 0x10101000L
-# include <openssl/cmperr.h>
-#endif
+# if OPENSSL_VERSION_NUMBER >= 0x10101000L
+#  include <openssl/cmperr.h>
+# endif
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
-#define X509_get0_subject_key_id(x) (X509_check_purpose((x), -1, -1),(x)->skid)
-#define OPENSSL_strndup strndup
-#endif
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
-#define OPENSSL_zalloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
-#define X509_up_ref(x)((x)->references++)
-#define ASN1_STRING_get0_data ASN1_STRING_data
-#define X509_OBJECT_get0_X509(obj) ((obj)->data.x509)
-#define X509_STORE_get0_objects(store) ((store)->objs)
-#define X509_STORE_CTX_get0_untrusted(ctx) ((ctx)->untrusted)
-#define X509_STORE_CTX_get0_chain X509_STORE_CTX_get_chain
-#define X509_STORE_CTX_get_by_subject X509_STORE_get_by_subject
-#define X509_STORE_CTX_set_current_cert(ctx, x) { (ctx)->current_cert = (x); }
-#define X509_STORE_CTX_set_error_depth(ctx, n) { (ctx)->error_depth = (n); }
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+#  define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
+#  define X509_get0_subject_key_id(x) (X509_check_purpose((x), -1, -1),(x)->skid)
+#  define OPENSSL_strndup strndup
+# endif
+# if OPENSSL_VERSION_NUMBER < 0x1010001fL
+#  define OPENSSL_zalloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
+#  define X509_up_ref(x)((x)->references++)
+#  define ASN1_STRING_get0_data ASN1_STRING_data
+#  define X509_OBJECT_get0_X509(obj) ((obj)->data.x509)
+#  define X509_STORE_get0_objects(store) ((store)->objs)
+#  define X509_STORE_CTX_get0_untrusted(ctx) ((ctx)->untrusted)
+#  define X509_STORE_CTX_get0_chain X509_STORE_CTX_get_chain
+#  define X509_STORE_CTX_get_by_subject X509_STORE_get_by_subject
+#  define X509_STORE_CTX_set_current_cert(ctx, x) { (ctx)->current_cert = (x); }
+#  define X509_STORE_CTX_set_error_depth(ctx, n) { (ctx)->error_depth = (n); }
 typedef int (*X509_STORE_CTX_verify_cb)(int, X509_STORE_CTX *);
-#define X509_STORE_CTX_get_verify_cb(ctx) ((ctx)->verify_cb)
-#define X509_STORE_get_verify_cb(store) ((store)->verify_cb)
-#define X509_STORE_get0_param(ctx) ((ctx)->param)
-#define X509_STORE_set_ex_data(ctx, idx, data) \
-    CRYPTO_set_ex_data(&(ctx)->ex_data, (idx), (data))
-#define X509_STORE_get_ex_data(ctx, idx) \
-    CRYPTO_get_ex_data(&(ctx)->ex_data, (idx))
-#ifndef X509_V_ERR_STORE_LOOKUP
-#define X509_V_ERR_STORE_LOOKUP 70
-#endif
-#define X509_STORE_set_lookup_crls X509_STORE_set_lookup_crls_cb
-#define X509_VERIFY_PARAM_get_time(param) ((param)->check_time)
-#define X509_V_FLAG_NO_CHECK_TIME 0x200000
-#define X509_set_proxy_flag(x) { (x)->ex_flags |= EXFLAG_PROXY; }
-#define X509_get0_notBefore X509_get_notBefore
-#define X509_get0_notAfter X509_get_notAfter
-#define X509_get_key_usage(x) ((X509_check_purpose((x), -1, -1), \
-          (x)->ex_flags & EXFLAG_KUSAGE) ? (x)->ex_kusage : (unsigned long) ~0)
-#endif
+#  define X509_STORE_CTX_get_verify_cb(ctx) ((ctx)->verify_cb)
+#  define X509_STORE_get_verify_cb(store) ((store)->verify_cb)
+#  define X509_STORE_get0_param(ctx) ((ctx)->param)
+#  define X509_STORE_set_ex_data(ctx, idx, data) \
+       CRYPTO_set_ex_data(&(ctx)->ex_data, (idx), (data))
+#  define X509_STORE_get_ex_data(ctx, idx) \
+       CRYPTO_get_ex_data(&(ctx)->ex_data, (idx))
+#  ifndef X509_V_ERR_STORE_LOOKUP
+#   define X509_V_ERR_STORE_LOOKUP 70
+#  endif
+#  define X509_STORE_set_lookup_crls X509_STORE_set_lookup_crls_cb
+#  define X509_VERIFY_PARAM_get_time(param) ((param)->check_time)
+#  define X509_V_FLAG_NO_CHECK_TIME 0x200000
+#  define X509_set_proxy_flag(x) { (x)->ex_flags |= EXFLAG_PROXY; }
+#  define X509_get0_notBefore X509_get_notBefore
+#  define X509_get0_notAfter X509_get_notAfter
+#  define X509_get_key_usage(x) ((X509_check_purpose((x), -1, -1), \
+       (x)->ex_flags & EXFLAG_KUSAGE) ? (x)->ex_kusage : (unsigned long) ~0)
+# endif
 
 # include <openssl/crmf.h>
 
@@ -330,8 +330,8 @@ CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
 
 /* cmp_lib.c */
 void    CMP_add_error_txt(const char *separator, const char *txt);
-#define CMP_add_error_data(txt) CMP_add_error_txt(":", txt)
-#define CMP_add_error_line(txt) CMP_add_error_txt("\n", txt)
+# define CMP_add_error_data(txt) CMP_add_error_txt(":", txt)
+# define CMP_add_error_line(txt) CMP_add_error_txt("\n", txt)
 CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
                                                 long reqId);
 int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
@@ -387,7 +387,7 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);
 int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type);
 int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
-#define CMP_PKISTATUSINFO_BUFLEN 1024
+# define CMP_PKISTATUSINFO_BUFLEN 1024
 char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
                                      const X509 *cert);
@@ -412,18 +412,18 @@ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 /* from cmp_http.c */
 /* TODO dvo: push generic defs upstream with extended load_cert_crl_http(),
    simplifying also other uses, e.g., in query_responder() in apps/ocsp.c */
-#ifndef OPENSSL_NO_SOCK
+# ifndef OPENSSL_NO_SOCK
 int socket_wait(int fd, int for_read, int timeout);
 int bio_wait(BIO *bio, int timeout);
 int bio_connect(BIO *bio, int timeout);
-#endif
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+# endif
+# if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
 int bio_http(BIO *bio, OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time);
 int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
                                 const CMP_PKIMESSAGE *msg,
                                 CMP_PKIMESSAGE **out);
-#endif
+# endif
 
 /* from cmp_ses.c */
 X509 *CMP_exec_IR_ses(CMP_CTX *ctx);
@@ -543,12 +543,13 @@ void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
 # endif
 #endif /* fndef HEADER_CMP_H */
 
-#if OPENSSL_VERSION_NUMBER < 0x10101000L
-#ifdef __cplusplus
+#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(HEADER_CMP_ERROR_CODES)
+# define HEADER_CMP_ERROR_CODES
+# ifdef  __cplusplus
 extern "C" {
-#endif
+# endif
 /* BEGIN ERROR CODES */
-#ifdef  __cplusplus
+# ifdef  __cplusplus
 }
-#endif
+# endif
 #endif

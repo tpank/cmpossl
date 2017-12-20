@@ -6,7 +6,8 @@ CRMF_CERTREQMSG_set1_regCtrl_authenticator,
 CRMF_CERTREQMSG_set1_regCtrl_pkiPublicationInfo,
 CRMF_CERTREQMSG_set1_regCtrl_pkiArchiveOptions,
 CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey,
-CRMF_CERTREQMSG_set1_regCtrl_oldCertID
+CRMF_CERTREQMSG_set1_regCtrl_oldCertID,
+CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert
 
 =head1 SYNOPSIS
 
