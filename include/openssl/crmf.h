@@ -67,14 +67,15 @@
 #ifndef HEADER_CRMF_H
 # define HEADER_CRMF_H
 
-# include <openssl/crmferr.h>
-
 # include <openssl/opensslconf.h>
 
 # include <openssl/ossl_typ.h>
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
+# include <openssl/crmferr.h>
+#endif
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
@@ -239,4 +240,14 @@ int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
 # ifdef  __cplusplus
 }
 # endif
+#endif /* fndef HEADER_CRMF_H */
+
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
+#ifdef __cplusplus
+extern "C" {
+#endif
+/* BEGIN ERROR CODES */
+#ifdef  __cplusplus
+}
+#endif
 #endif

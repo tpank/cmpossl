@@ -67,14 +67,15 @@
 #ifndef HEADER_CMP_H
 # define HEADER_CMP_H
 
-# include <openssl/cmperr.h>
-
 # include <openssl/opensslconf.h>
 
 # include <openssl/ossl_typ.h>
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
+# include <openssl/cmperr.h>
+#endif
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
@@ -540,4 +541,14 @@ void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
 # ifdef  __cplusplus
 }
 # endif
+#endif /* fndef HEADER_CMP_H */
+
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
+#ifdef __cplusplus
+extern "C" {
+#endif
+/* BEGIN ERROR CODES */
+#ifdef  __cplusplus
+}
+#endif
 #endif
