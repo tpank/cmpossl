@@ -74,8 +74,8 @@
  * should be freed up.
  */
 /* ########################################################################## *
- * In this file are the functions which set the individual items inside       *
- * the CRMF structures                                                        *
+ * This file contains the functions which set the individual items inside       *
+ * the CRMF structures.                                                       *
  * ########################################################################## */
 
 #include <openssl/asn1.h>
@@ -85,19 +85,26 @@
 #include <openssl/err.h>
 #include "crmf_int.h"
 
-/* atyp = Attribute Type
+/*
+ * atyp = Attribute Type
  * valt = Value Type
- * ctrlinf = "regCtrl" or "regInfo" */
+ * ctrlinf = "regCtrl" or "regInfo"
+ */
 #define IMPLEMENT_CRMF_CTRL_FUNC(atyp, valt, ctrlinf)                     \
 int CRMF_CERTREQMSG_set1_##ctrlinf##_##atyp(CRMF_CERTREQMSG *msg,         \
                                          valt *in)                        \
 {                                                                         \
     CRMF_ATTRIBUTETYPEANDVALUE *atav = NULL;                              \
-    if (!msg || !in) goto err;                                            \
-    if (!(atav = CRMF_ATTRIBUTETYPEANDVALUE_new())) goto err;             \
-    if (!(atav->type = OBJ_nid2obj(NID_id_##ctrlinf##_##atyp))) goto err; \
-    if (!(atav->value.atyp = valt##_dup(in))) goto err;                   \
-    if (!CRMF_CERTREQMSG_push0_##ctrlinf(msg, atav)) goto err;            \
+    if (msg == NULL || in  == NULL)                                       \
+        goto err;                                                         \
+    if ((atav = CRMF_ATTRIBUTETYPEANDVALUE_new()) == NULL)                \
+        goto err;                                                         \
+    if ((atav->type = OBJ_nid2obj(NID_id_##ctrlinf##_##atyp)) == NULL)    \
+        goto err;                                                         \
+    if ((atav->value.atyp = valt##_dup(in)) == NULL)                      \
+        goto err;                                                         \
+    if (!CRMF_CERTREQMSG_push0_##ctrlinf(msg, atav))                      \
+        goto err;                                                         \
     return 1;                                                             \
  err:                                                                     \
     if (atav) CRMF_ATTRIBUTETYPEANDVALUE_free(atav);                      \
@@ -105,13 +112,13 @@ int CRMF_CERTREQMSG_set1_##ctrlinf##_##atyp(CRMF_CERTREQMSG *msg,         \
 }
 
 
-/* ########################################################################## *
+/*
  * Pushes the given control attribute into the controls stack of a CertRequest
  * (section 6)
  * returns 1 on success, 0 on error
- * ########################################################################## */
+ */
 static int CRMF_CERTREQMSG_push0_regCtrl(CRMF_CERTREQMSG *crm,
-                                  CRMF_ATTRIBUTETYPEANDVALUE *ctrl)
+        CRMF_ATTRIBUTETYPEANDVALUE *ctrl)
 {
     int new = 0;
 
@@ -160,19 +167,19 @@ int CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(CRMF_CERTREQMSG *crm,
     int ret;
     CRMF_CERTID *cid = NULL;
 
-    if (!crm || !oldc)
+    if (crm == NULL || oldc == NULL)
         goto err;
 
-    if (!(cid = CRMF_CERTID_new()))
+    if ((cid = CRMF_CERTID_new()) == NULL)
         goto err;
 
-    if (!X509_NAME_set(&cid->issuer->d.directoryName,
-                X509_get_issuer_name(oldc)))
+    if (!X509_NAME_set(&cid->issuer->d.directoryName, X509_get_issuer_name(oldc)))
         goto err;
     cid->issuer->type = GEN_DIRNAME;
 
     ASN1_INTEGER_free(cid->serialNumber);
-    if (!(cid->serialNumber = ASN1_INTEGER_dup(X509_get_serialNumber(oldc))))
+    if ((cid->serialNumber =
+         ASN1_INTEGER_dup(X509_get_serialNumber(oldc))) == NULL)
         goto err;
 
     ret = CRMF_CERTREQMSG_set1_regCtrl_oldCertID(crm, cid);
@@ -181,34 +188,36 @@ int CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(CRMF_CERTREQMSG *crm,
  err:
     CRMFerr(CRMF_F_CRMF_CERTREQMSG_SET1_REGCTRL_OLDCERTID_FROM_CERT,
             CRMF_R_ERROR);
-    if (cid) {
+    if (cid)
         CRMF_CERTID_free(cid);
-    }
     return 0;
 }
 
 
- /* id-regCtrl-protocolEncrKey Control (section 6.6) */
- /* For some reason X509_PUBKEY_dup() is not implemented in OpenSSL X509
-  * TODO: check whether that should go elsewhere */
+ /*
+  * id-regCtrl-protocolEncrKey Control (section 6.6) */
+ /*
+  * For some reason X509_PUBKEY_dup() is not implemented in OpenSSL X509
+  * TODO: check whether that should go elsewhere
+  */
 static IMPLEMENT_ASN1_DUP_FUNCTION(X509_PUBKEY)
 IMPLEMENT_CRMF_CTRL_FUNC(protocolEncrKey, X509_PUBKEY, regCtrl)
 
-/* ########################################################################## *
+/*
  * Pushes the attribute given in regInfo in to the CertReqMsg->regInfo stack.
  * (section 7)
  * returns 1 on success, 0 on error
- * ########################################################################## */
+ */
 static int CRMF_CERTREQMSG_push0_regInfo(CRMF_CERTREQMSG *crm,
                                   CRMF_ATTRIBUTETYPEANDVALUE *ri)
 {
     int new = 0;
 
-    if (!crm || !ri)
+    if (crm == NULL || ri == NULL)
         goto err;
 
-    if (!(crm->regInfo)) {
-        if (!(crm->regInfo = sk_CRMF_ATTRIBUTETYPEANDVALUE_new_null()))
+    if ((crm->regInfo) == NULL) {
+        if ((crm->regInfo = sk_CRMF_ATTRIBUTETYPEANDVALUE_new_null()) == NULL)
             goto err;
         new = 1;
     }
@@ -233,7 +242,7 @@ IMPLEMENT_CRMF_CTRL_FUNC(certReq, CRMF_CERTREQUEST, regInfo)
 
 
 static CRMF_CERTTEMPLATE *tmpl(CRMF_CERTREQMSG *crm) {
-    if (!crm->certReq)
+    if (crm->certReq == NULL)
         return NULL;
     return crm->certReq->certTemplate;
 }
@@ -241,10 +250,10 @@ static CRMF_CERTTEMPLATE *tmpl(CRMF_CERTREQMSG *crm) {
 
 int CRMF_CERTREQMSG_set_version2(CRMF_CERTREQMSG *crm)
 {
-    if (!crm || !tmpl(crm))
+    if (crm  == NULL || tmpl(crm) == NULL)
         goto err;
 
-    if (!(tmpl(crm)->version))
+    if ((tmpl(crm)->version) == NULL)
         tmpl(crm)->version = ASN1_INTEGER_new();
     ASN1_INTEGER_set(tmpl(crm)->version, 2L);
     return 1;
@@ -260,14 +269,14 @@ int CRMF_CERTREQMSG_set_validity(CRMF_CERTREQMSG *crm, time_t from, time_t to)
     ASN1_TIME *from_asn = NULL;
     ASN1_TIME *to_asn = NULL;
 
-    if (!crm || !tmpl(crm))
+    if (crm == NULL || tmpl(crm) == NULL)
         goto err;
 
-    if (from && (!(from_asn = ASN1_TIME_set(NULL, from))))
+    if (from && ((from_asn = ASN1_TIME_set(NULL, from)) == NULL))
         goto err;
-    if (to && (!(to_asn = ASN1_TIME_set(NULL, to))))
+    if (to && ((to_asn = ASN1_TIME_set(NULL, to)) == NULL))
         goto err;
-    if (!(vld = CRMF_OPTIONALVALIDITY_new()))
+    if ((vld = CRMF_OPTIONALVALIDITY_new()) == NULL)
         goto err;
 
     vld->notBefore = from_asn;
@@ -288,7 +297,7 @@ int CRMF_CERTREQMSG_set_validity(CRMF_CERTREQMSG *crm, time_t from, time_t to)
 
 int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, long rid)
 {
-    if (!crm || !crm->certReq)
+    if (crm == NULL || crm->certReq == NULL)
         goto err;
 
     return ASN1_INTEGER_set(crm->certReq->certReqId, rid);
@@ -300,7 +309,7 @@ int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, long rid)
 
 int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey)
 {
-    if (!crm || !tmpl(crm) || !pkey)
+    if (crm == NULL || tmpl(crm) == NULL || pkey == NULL)
         goto err;
 
     return X509_PUBKEY_set(&(tmpl(crm)->publicKey), (EVP_PKEY *)pkey);
@@ -312,7 +321,7 @@ int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey)
 
 int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *crm, const X509_NAME *subj)
 {
-    if (!crm || !tmpl(crm) || !subj)
+    if (crm == NULL || tmpl(crm) == NULL || subj == NULL)
         goto err;
 
     return X509_NAME_set(&(tmpl(crm)->subject), (X509_NAME *)subj);
@@ -324,7 +333,7 @@ int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *crm, const X509_NAME *subj)
 
 int CRMF_CERTREQMSG_set1_issuer( CRMF_CERTREQMSG *crm, const X509_NAME *is)
 {
-    if (!crm || !tmpl(crm) || !is)
+    if (crm == NULL || tmpl(crm) == NULL || is == NULL)
         goto err;
 
     return X509_NAME_set(&(tmpl(crm)->issuer), (X509_NAME*) is);
@@ -337,7 +346,7 @@ err:
 int CRMF_CERTREQMSG_set0_extensions( CRMF_CERTREQMSG *crm,
                                      X509_EXTENSIONS *exts)
 {
-    if (!crm || !tmpl(crm))
+    if (crm == NULL || tmpl(crm) == NULL)
         goto err;
 
     tmpl(crm)->extensions = exts;
@@ -353,11 +362,11 @@ int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
 {
     int new = 0;
 
-    if (!crm || !tmpl(crm) || !ext)
+    if (crm == NULL || tmpl(crm) == NULL || ext == NULL)
         goto err;
 
-    if (!tmpl(crm)->extensions) {
-        if (!(tmpl(crm)->extensions = sk_X509_EXTENSION_new_null()))
+    if ((tmpl(crm)->extensions) == NULL) {
+        if ((tmpl(crm)->extensions = sk_X509_EXTENSION_new_null()) == NULL)
             goto err;
         new = 1;
     }
@@ -375,10 +384,10 @@ int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
     return 0;
 }
 
-/* ########################################################################## *
+/*
  * TODO: also support cases 1+2 defined in RFC4211, section 4.1.
  * returns pointer to created CRMF_POPOSIGNINGKEY on success, NULL on error
- * ########################################################################## */
+ */
 static CRMF_POPOSIGNINGKEY *poposigkey_new(CRMF_CERTREQUEST *cr,
                                              const EVP_PKEY *pkey, int dgst)
 {
@@ -391,7 +400,7 @@ static CRMF_POPOSIGNINGKEY *poposigkey_new(CRMF_CERTREQUEST *cr,
 
     EVP_MD_CTX *ctx = NULL;
 
-    if (!(ps = CRMF_POPOSIGNINGKEY_new()))
+    if ((ps = CRMF_POPOSIGNINGKEY_new()) == NULL)
         goto err;
 
     /* OpenSSL defaults all bit strings to be encoded as ASN.1 NamedBitList */
@@ -402,7 +411,7 @@ static CRMF_POPOSIGNINGKEY *poposigkey_new(CRMF_CERTREQUEST *cr,
 
     max_sig_size = EVP_PKEY_size((EVP_PKEY *)pkey);
     sig = OPENSSL_malloc(max_sig_size);
-    if (!sig)
+    if (sig == NULL)
         goto err;
 
     if (!OBJ_find_sigid_by_algs(&alg_nid, dgst, EVP_PKEY_id(pkey))) {
@@ -457,12 +466,12 @@ int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
     if (ppmtd == CRMF_POPO_NONE)
         return 1;
 
-    if (!crm)
+    if (crm == NULL)
         goto err;
-    if (ppmtd == CRMF_POPO_SIGNATURE && !pkey)
+    if (ppmtd == CRMF_POPO_SIGNATURE && (pkey == NULL))
         goto err;
 
-    if (!(pp = CRMF_PROOFOFPOSSESION_new()))
+    if ((pp = CRMF_PROOFOFPOSSESION_new()) == NULL)
         goto err;
 
     switch (ppmtd) {
@@ -472,7 +481,7 @@ int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
         break;
 
     case CRMF_POPO_SIGNATURE:
-        if (!(pp->value.signature = poposigkey_new(crm->certReq, pkey, dgst)))
+        if ((pp->value.signature = poposigkey_new(crm->certReq, pkey, dgst)) == NULL)
             goto err;
         pp->type = CRMF_PROOFOFPOSESSION_SIGNATURE;
         break;

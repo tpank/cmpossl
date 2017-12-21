@@ -114,65 +114,59 @@ DECLARE_ASN1_FUNCTIONS(CRMF_CERTREQMESSAGES)
 typedef struct crmf_optionalvalidity_st CRMF_OPTIONALVALIDITY;
 
 /*
-CertTemplate ::= SEQUENCE {
- version          [0] Version                           OPTIONAL,
- serialNumber [1] INTEGER                               OPTIONAL,
- signingAlg   [2] AlgorithmIdentifier   OPTIONAL,
- issuer           [3] Name                                      OPTIONAL,
- validity         [4] OptionalValidity          OPTIONAL,
- subject          [5] Name                                      OPTIONAL,
- publicKey        [6] SubjectPublicKeyInfo      OPTIONAL,
- issuerUID        [7] UniqueIdentifier          OPTIONAL,
- subjectUID   [8] UniqueIdentifier              OPTIONAL,
- extensions   [9] Extensions                    OPTIONAL }
+ * CertTemplate ::= SEQUENCE {
+ * version          [0] Version                   OPTIONAL,
+ * serialNumber [1] INTEGER                       OPTIONAL,
+ * signingAlg   [2] AlgorithmIdentifier           OPTIONAL,
+ * issuer           [3] Name                      OPTIONAL,
+ * validity         [4] OptionalValidity          OPTIONAL,
+ * subject          [5] Name                      OPTIONAL,
+ * publicKey        [6] SubjectPublicKeyInfo      OPTIONAL,
+ * issuerUID        [7] UniqueIdentifier          OPTIONAL,
+ * subjectUID   [8] UniqueIdentifier              OPTIONAL,
+ * extensions   [9] Extensions                    OPTIONAL }
  */
 struct crmf_certtemplate_st {
-    ASN1_INTEGER *version;  /* 0 */
-    /* serialNumber MUST be omitted.  This field is assigned by the CA
-     * during certificate creation. */
-    ASN1_INTEGER *serialNumber; /* 1 */
-    /* signingAlg MUST be omitted.  This field is assigned by the CA
-     * during certificate creation. */
-    X509_ALGOR *signingAlg; /* 2 */
-    X509_NAME *issuer;      /* 3 */
+    ASN1_INTEGER *version;           /* 0 */
+    ASN1_INTEGER *serialNumber;      /* 1 */ /* serialNumber MUST be omitted  */
+             /* This field is assigned by the CA during certificate creation  */
+    X509_ALGOR *signingAlg;          /* 2 */  /* signingAlg MUST be omitted   */
+             /* This field is assigned by the CA during certificate creation  */
+    X509_NAME *issuer;               /* 3 */
     CRMF_OPTIONALVALIDITY *validity; /* 4 */
-    X509_NAME *subject;     /* 5 */
-    X509_PUBKEY *publicKey; /* 6 */
-    /* According to rfc 3280:
-       UniqueIdentifier  ::=  BIT STRING
-     */
-    /* issuerUID is deprecated in version 2 */
-    ASN1_BIT_STRING *issuerUID; /* 7 */
-    /* subjectUID is deprecated in version 2 */
-    ASN1_BIT_STRING *subjectUID; /* 8 */
-    /* Could be X509_EXTENSION*S*, but that's only cosmetic */
+    X509_NAME *subject;              /* 5 */
+    X509_PUBKEY *publicKey;          /* 6 */
+    ASN1_BIT_STRING *issuerUID;      /* 7 */  /* deprecated in version 2      */
+                  /* According to rfc 3280: UniqueIdentifier  ::=  BIT STRING */
+    ASN1_BIT_STRING *subjectUID;     /* 8 */  /* deprecated in version 2      */
+                      /* Could be X509_EXTENSION*S*, but that's only cosmetic */
     STACK_OF(X509_EXTENSION) *extensions; /* 9 */
 } /* CRMF_CERTTEMPLATE */;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTTEMPLATE)
 
 /*
-EncryptedValue ::= SEQUENCE {
- intendedAlg   [0] AlgorithmIdentifier  OPTIONAL,
- -- the intended algorithm for which the value will be used
- symmAlg           [1] AlgorithmIdentifier      OPTIONAL,
- -- the symmetric algorithm used to encrypt the value
- encSymmKey    [2] BIT STRING                   OPTIONAL,
- -- the (encrypted) symmetric key used to encrypt the value
- keyAlg            [3] AlgorithmIdentifier      OPTIONAL,
- -- algorithm used to encrypt the symmetric key
- valueHint         [4] OCTET STRING                     OPTIONAL,
- -- a brief description or identifier of the encValue content
- -- (may be meaningful only to the sending entity, and used only
- -- if EncryptedValue might be re-examined by the sending entity
- -- in the future)
- encValue               BIT STRING }
- -- the encrypted value itself
-*/
+ * EncryptedValue ::= SEQUENCE {
+ * intendedAlg   [0] AlgorithmIdentifier  OPTIONAL,
+ *                   -- the intended algorithm for which the value will be used
+ * symmAlg       [1] AlgorithmIdentifier  OPTIONAL,
+ *                   -- the symmetric algorithm used to encrypt the value
+ * encSymmKey    [2] BIT STRING           OPTIONAL,
+ * -- the (encrypted) symmetric key used to encrypt the value
+ * keyAlg        [3] AlgorithmIdentifier  OPTIONAL,
+ *                   -- algorithm used to encrypt the symmetric key
+ * valueHint     [4] OCTET STRING         OPTIONAL,
+ *                  -- a brief description or identifier of the encValue content
+ *                  -- (may be meaningful only to the sending entity, and
+ *                  --  used only if EncryptedValue might be re-examined
+ *                  --  by the sending entity in the future)
+ * encValue            BIT STRING }
+ * -- the encrypted value itself
+ */
 typedef struct crmf_encrypetedvalue_st {
-    X509_ALGOR *intendedAlg; /* 0 */
-    X509_ALGOR *symmAlg;    /* 1 */
-    ASN1_BIT_STRING *encSymmKey; /* 2 */
-    X509_ALGOR *keyAlg;     /* 3 */
+    X509_ALGOR *intendedAlg;      /* 0 */
+    X509_ALGOR *symmAlg;          /* 1 */
+    ASN1_BIT_STRING *encSymmKey;  /* 2 */
+    X509_ALGOR *keyAlg;           /* 3 */
     ASN1_OCTET_STRING *valueHint; /* 4 */
     ASN1_BIT_STRING *encValue;
 } CRMF_ENCRYPTEDVALUE;
@@ -180,9 +174,10 @@ DECLARE_ASN1_FUNCTIONS(CRMF_ENCRYPTEDVALUE)
 
 
 /* CertReqMessages */
-/* ########################################################################## *
+/*
  * function DECLARATIONS
- * ########################################################################## */
+ *
+ */
 
 /* crmf_pbm.c */
 CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
@@ -220,20 +215,20 @@ int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, long rid);
 int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey);
 int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *crm, const X509_NAME *subj);
 int CRMF_CERTREQMSG_set1_issuer(CRMF_CERTREQMSG *crm, const X509_NAME *is);
-int CRMF_CERTREQMSG_set0_extensions( CRMF_CERTREQMSG *crm,
-                                     X509_EXTENSIONS *exts);
+int CRMF_CERTREQMSG_set0_extensions(CRMF_CERTREQMSG *crm,
+                                    X509_EXTENSIONS *exts);
 
 int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
                                     const X509_EXTENSION *ext);
 
-# define CRMF_POPO_NONE          0
-# define CRMF_POPO_SIGNATURE     1
-# define CRMF_POPO_ENCRCERT      2
-# define CRMF_POPO_RAVERIFIED    3
+# define CRMF_POPO_NONE       0
+# define CRMF_POPO_SIGNATURE  1
+# define CRMF_POPO_ENCRCERT   2
+# define CRMF_POPO_RAVERIFIED 3
 int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
                                 int dgst, int ppmtd);
 
-# ifdef  __cplusplus
+# ifdef __cplusplus
 }
 # endif
 #endif /* ifndef HEADER_CRMF_H */

@@ -75,14 +75,14 @@
 #include <openssl/crypto.h>
 #include "crmf_int.h"
 
-/* ############################################################################ *
+/*
  * creates and initializes CRMF_PBMPARAMETER (section 4.4)
  * slen SHOULD be > 8    (16 is common)
  * owfnid e.g. NID_sha256
  * itercnt MUST be > 100 (500 is common)
  * macnid e.g. NID_hmac_sha1
  * returns pointer to CRMF_PBMPARAMETER on success, NULL on error
- * ############################################################################ */
+ */
 CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
                                  long itercnt, int macnid)
 {
@@ -90,12 +90,13 @@ CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
     unsigned char *salt = NULL;
     int error = CRMF_R_CRMFERROR;
 
-    if (!(pbm = CRMF_PBMPARAMETER_new())) {
+    if ((pbm = CRMF_PBMPARAMETER_new()) == NULL) {
         error = CRMF_R_MALLOC_FAILURE;
         goto err;
     }
 
-    /* salt contains a randomly generated value used in computing the key
+    /*
+     * salt contains a randomly generated value used in computing the key
      * of the MAC process.  The salt SHOULD be at least 8 octets (64
      * bits) long.
      */
@@ -107,7 +108,8 @@ CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
     if (!(ASN1_OCTET_STRING_set(pbm->salt, salt, slen)))
         goto err;
 
-    /* owf identifies the hash algorithm and associated parameters used to
+    /*
+     * owf identifies the hash algorithm and associated parameters used to
      * compute the key used in the MAC process.  All implementations MUST
      * support SHA-1.
      */
@@ -117,14 +119,14 @@ CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
     }
 
     /*
-       iterationCount identifies the number of times the hash is applied
-       during the key computation process.  The iterationCount MUST be a
-       minimum of 100.      Many people suggest using values as high as 1000
-       iterations as the minimum value.  The trade off here is between
-       protection of the password from attacks and the time spent by the
-       server processing all of the different iterations in deriving
-       passwords.  Hashing is generally considered a cheap operation but
-       this may not be true with all hash functions in the future.
+     * iterationCount identifies the number of times the hash is applied
+     * during the key computation process.  The iterationCount MUST be a
+     * minimum of 100.      Many people suggest using values as high as 1000
+     * iterations as the minimum value.  The trade off here is between
+     * protection of the password from attacks and the time spent by the
+     * server processing all of the different iterations in deriving
+     * passwords.  Hashing is generally considered a cheap operation but
+     * this may not be true with all hash functions in the future.
      */
     if (itercnt < 100) {
         error = CRMF_R_ITERATIONCOUNT_BELOW_100;
@@ -134,10 +136,11 @@ CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
     if (!ASN1_INTEGER_set(pbm->iterationCount, itercnt))
         goto err;
 
-    /* mac identifies the algorithm and associated parameters of the MAC
-       function to be used.  All implementations MUST support HMAC-SHA1
-       [HMAC].      All implementations SHOULD support DES-MAC and Triple-
-       DES-MAC [PKCS11].
+    /*
+     * mac identifies the algorithm and associated parameters of the MAC
+     * function to be used.  All implementations MUST support HMAC-SHA1
+     * [HMAC]. All implementations SHOULD support DES-MAC and Triple-
+     * DES-MAC [PKCS11].
      */
     if (!X509_ALGOR_set0(pbm->mac, OBJ_nid2obj(macnid), V_ASN1_UNDEF, NULL)) {
         error = CRMF_R_SETTING_MAC_ALRGOR_FAILURE;
@@ -155,7 +158,7 @@ CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
     return NULL;
 }
 
-/* ############################################################################
+/*
  * calculates the PBM based on the settings of the given CRMF_PBMPARAMETER
  * @pbm identifies the algorithms to use
  * @msg message to apply the PBM for
@@ -167,7 +170,7 @@ CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
  * @macLen pointer to the length of the mac, will be set
  *
  * returns 1 at success, 0 at error
- * ############################################################################ */
+ */
 int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
                               const unsigned char *msg, size_t msgLen,
                               const unsigned char *secret, size_t secretLen,
@@ -181,7 +184,8 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
     uint64_t iterations;
     int error = CRMF_R_CRMFERROR;
 
-    if (!mac || !pbm || !pbm->mac || !pbm->mac->algorithm || !msg || !secret) {
+    if (mac == NULL || pbm == NULL || pbm->mac == NULL ||
+            pbm->mac->algorithm == NULL || msg == NULL || secret == NULL) {
         error = CRMF_R_NULL_ARGUMENT;
         goto err;
     }
@@ -245,15 +249,19 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
     mac_nid = OBJ_obj2nid(pbm->mac->algorithm);
 
 #if OPENSSL_VERSION_NUMBER < 0x10101000L
-    /* OID 1.3.6.1.5.5.8.1.2 associated with NID_hmac_sha1 is explicitly
-       mentioned in RFC 4210 and RFC 3370, but NID_hmac_sha1 is not included in
-       builitin_pbe[] of crypto/evp/evp_pbe.c */
+    /*
+     * OID 1.3.6.1.5.5.8.1.2 associated with NID_hmac_sha1 is explicitly
+     * mentioned in RFC 4210 and RFC 3370, but NID_hmac_sha1 is not included in
+     * builitin_pbe[] of crypto/evp/evp_pbe.c
+     */
     if (mac_nid == NID_hmac_sha1)
         mac_nid = NID_hmacWithSHA1;
-    /* NID_hmac_md5 not included in builtin_pbe[] of crypto/evp/evp_pbe.c as
-       it is not explicitly referenced in the RFC it might not be used by any
-       implementation although its OID 1.3.6.1.5.5.8.1.1 it is in the same OID
-       branch as NID_hmac_sha1 */
+    /*
+     * NID_hmac_md5 not included in builtin_pbe[] of crypto/evp/evp_pbe.c as
+     * it is not explicitly referenced in the RFC it might not be used by any
+     * implementation although its OID 1.3.6.1.5.5.8.1.1 it is in the same OID
+     * branch as NID_hmac_sha1
+     */
     else if (mac_nid == NID_hmac_md5)
         mac_nid = NID_hmacWithMD5;
 #endif
