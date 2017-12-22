@@ -818,7 +818,7 @@ static int read_write_req_resp(const CMP_CTX *ctx,
     CMP_PKIMESSAGE *req_new = NULL;
     void CMP_PKIMESSAGE_free(CMP_PKIMESSAGE *msg);
 
-    int ret = CMP_R_ERROR_WRITING_FILE;
+    int ret = CMP_R_ERROR_TRANSFERRING_OUT;
     if (req && opt_reqout &&
         !write_PKIMESSAGE(req, &opt_reqout))
         goto err;
@@ -828,7 +828,7 @@ static int read_write_req_resp(const CMP_CTX *ctx,
             BIO_printf(bio_c_out,
                        "warning: -reqin is ignored since -respin is present\n");
         } else {
-            ret = CMP_R_ERROR_READING_FILE;
+            ret = CMP_R_ERROR_TRANSFERRING_IN;
             if (!(req_new = read_PKIMESSAGE(&opt_reqin)))
                 goto err;
 #if 0
@@ -842,7 +842,7 @@ static int read_write_req_resp(const CMP_CTX *ctx,
         }
     }
 
-    ret = CMP_R_ERROR_READING_FILE;
+    ret = CMP_R_ERROR_TRANSFERRING_IN;
     if (opt_respin) {
         if ((*res = read_PKIMESSAGE(&opt_respin)))
             ret = 0;
@@ -861,7 +861,7 @@ static int read_write_req_resp(const CMP_CTX *ctx,
 
     if (opt_respout &&
         !write_PKIMESSAGE(*res, &opt_respout)) {
-        ret = CMP_R_ERROR_WRITING_FILE;
+        ret = CMP_R_ERROR_TRANSFERRING_OUT;
         CMP_PKIMESSAGE_free(*res);
         goto err;
     }

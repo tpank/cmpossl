@@ -212,6 +212,9 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     CMP_printf(ctx, "INFO: Sending %s", type_string);
     if (ctx->msg_transfer_fn)
         err = (ctx->msg_transfer_fn)(ctx, req, rep);
+        /* may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
+                           or CMP_R_ERROR_TRANSFERRING_IN
+           DO NOT DELETE the two error reason codes just given */
     else
         err = CMP_R_ERROR_SENDING_REQUEST;
     if (err) {
