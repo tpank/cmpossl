@@ -201,8 +201,6 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     "error decrypting key"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_ERROR_DECRYPTING_SYMMETRIC_KEY),
     "error decrypting symmetric key"},
-    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_ERROR_LEARNING_TRANSACTIONID),
-    "error learning transactionid"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_ERROR_PARSING_PKISTATUS),
     "error parsing pkistatus"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_ERROR_PROTECTING_MESSAGE),

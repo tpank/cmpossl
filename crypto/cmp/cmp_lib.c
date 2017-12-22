@@ -1715,11 +1715,6 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
                CMP_R_TRANSACTIONID_UNMATCHED);
         return -1;
     }
-    if (!ctx->transactionID && /* in this case, learn transactionID */
-        !CMP_CTX_set1_transactionID(ctx, msg->header->transactionID)) {
-        CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED, CMP_R_ERROR_LEARNING_TRANSACTIONID);
-        return -1;
-    }
 
     /* compare received nonce with the expected one from previous msg */
     if (prev && prev->header->senderNonce && (!msg->header->recipNonce ||

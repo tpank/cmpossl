@@ -1859,7 +1859,6 @@ CMP_R_ERROR_DECRYPTING_CERTIFICATE:122:error decrypting certificate
 CMP_R_ERROR_DECRYPTING_ENCCERT:123:error decrypting enccert
 CMP_R_ERROR_DECRYPTING_KEY:124:error decrypting key
 CMP_R_ERROR_DECRYPTING_SYMMETRIC_KEY:125:error decrypting symmetric key
-CMP_R_ERROR_LEARNING_TRANSACTIONID:126:error learning transactionid
 CMP_R_ERROR_PARSING_PKISTATUS:128:error parsing pkistatus
 CMP_R_ERROR_PROTECTING_MESSAGE:129:error protecting message
 CMP_R_ERROR_PUSHING_GENERALINFO_ITEM:130:error pushing generalinfo item
