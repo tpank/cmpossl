@@ -430,6 +430,7 @@ int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 
 /* ########################################################################## *
  * Initialize the given PkiHeader structure with values set in the CMP_CTX
+ * This starts a new transaction in case ctx->transactionID is NULL.
  *
  * returns 1 on success, 0 on error
  * ########################################################################## */
@@ -479,7 +480,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         if (!CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID, ctx->transactionID))
             goto err;
     } else {
-        /* create new transaction ID */
+        /* create new transaction ID, starting a new transaction */
         if (!CMP_PKIHEADER_set1_transactionID(hdr, NULL))
             goto err;
         if (!CMP_CTX_set1_transactionID(ctx, hdr->transactionID))
