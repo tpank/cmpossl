@@ -554,6 +554,10 @@ void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
                          d2i_CMP_PROTECTEDPART, bp, p)
 # define i2d_CMP_PROTECTEDPART_bio(bp, o) \
          ASN1_i2d_bio_of(CMP_PROTECTEDPART, i2d_CMP_PROTECTEDPART, bp, o)
+CMP_PKIMESSAGE *d2i_CMP_PKIMESSAGE(CMP_PKIMESSAGE **,
+                                   const unsigned char **, long);
+int i2d_CMP_PKIMESSAGE(CMP_PKIMESSAGE *, unsigned char **);
+void CMP_PKIMESSAGE_free(CMP_PKIMESSAGE *msg);
 
 # ifdef  __cplusplus
 }

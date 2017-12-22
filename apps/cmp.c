@@ -713,13 +713,13 @@ static char *next_item(char *opt) /* in list separated by comma and/or space */
  *
  * returns 1 on success, 0 on error
  * ########################################################################## */
-static int write_PKIMESSAGE(const CMP_PKIMESSAGE *message, char **filenames)
+static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
 {
     char *file;
     FILE *f;
     int res = 0;
 
-    if (message == NULL || filenames == NULL) {
+    if (msg == NULL || filenames == NULL) {
         BIO_printf(bio_err, "NULL arg to write_PKIMESSAGE\n");
         return 0;
     }
@@ -736,8 +736,7 @@ static int write_PKIMESSAGE(const CMP_PKIMESSAGE *message, char **filenames)
         BIO_printf(bio_err, "Error opening file '%s' for writing\n", file);
     else {
         unsigned char *out = NULL;
-        size_t i2d_CMP_PKIMESSAGE(const CMP_PKIMESSAGE *, unsigned char **);
-        size_t len = i2d_CMP_PKIMESSAGE(message, &out);
+        size_t len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *) msg, &out);
         if (len > 0) {
             if (len == fwrite(out, sizeof(*out), len, f))
                 res = 1;
@@ -790,8 +789,6 @@ static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
             if (fsize != fread(in, 1, fsize, f))
                 BIO_printf(bio_err, "Error reading file '%s'\n", file);
             else {
-                CMP_PKIMESSAGE *d2i_CMP_PKIMESSAGE(CMP_PKIMESSAGE **,
-                                               const unsigned char **, long);
                 const unsigned char *p = in;
                 ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
                 if (!ret)
@@ -816,7 +813,6 @@ static int read_write_req_resp(const CMP_CTX *ctx,
                                CMP_PKIMESSAGE **res)
 {
     CMP_PKIMESSAGE *req_new = NULL;
-    void CMP_PKIMESSAGE_free(CMP_PKIMESSAGE *msg);
 
     int ret = CMP_R_ERROR_TRANSFERRING_OUT;
     if (req && opt_reqout &&
