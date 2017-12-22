@@ -308,8 +308,6 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
 int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
                                      const ASN1_OCTET_STRING *tid)
 {
-#define TRANSACTIONID_LENGTH 16
-
     if (!hdr)
         return 0;
     return set1_aostr_else_random(&hdr->transactionID,tid,TRANSACTIONID_LENGTH);
@@ -331,8 +329,6 @@ int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
  * ########################################################################## */
 int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr)
 {
-#define SENDERNONCE_LENGTH 16
-
     if (!hdr)
         return 0;
     return set1_aostr_else_random(&hdr->senderNonce, NULL, SENDERNONCE_LENGTH);

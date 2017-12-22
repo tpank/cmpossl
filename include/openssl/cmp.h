@@ -333,8 +333,8 @@ CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
 void    CMP_add_error_txt(const char *separator, const char *txt);
 # define CMP_add_error_data(txt) CMP_add_error_txt(":", txt)
 # define CMP_add_error_line(txt) CMP_add_error_txt("\n", txt)
-CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
-                                                long reqId);
+# define TRANSACTIONID_LENGTH 16
+# define SENDERNONCE_LENGTH 16
 CMP_PKIHEADER *CMP_PKIMESSAGE_get0_header(const CMP_PKIMESSAGE *msg);
 int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
 int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm);
