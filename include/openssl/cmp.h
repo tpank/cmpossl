@@ -342,11 +342,7 @@ int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr);
 int CMP_PKIHEADER_set1_senderKID(CMP_PKIHEADER *hdr,
                                  const ASN1_OCTET_STRING *senderKID);
-int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
 int CMP_CTX_set1_expected_sender(CMP_CTX *ctx, const X509_NAME *name);
-int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
-                                     const ASN1_OCTET_STRING
-                                     *transactionID);
 int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
 int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr,

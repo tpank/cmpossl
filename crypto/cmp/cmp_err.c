@@ -150,6 +150,8 @@ static const ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_PACK(ERR_LIB_CMP, CMP_F_GET_CERT_STATUS, 0), "get_cert_status"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_POLLFORRESPONSE, 0), "pollForResponse"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_SEND_RECEIVE_CHECK, 0), "send_receive_check"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_SET1_AOSTR_ELSE_RANDOM, 0),
+     "set1_aostr_else_random"},
     {0, NULL}
 };
 

@@ -286,6 +286,7 @@ CMP_F_FIND_SRVCERT:171:find_srvcert
 CMP_F_GET_CERT_STATUS:172:get_cert_status
 CMP_F_POLLFORRESPONSE:173:pollForResponse
 CMP_F_SEND_RECEIVE_CHECK:177:send_receive_check
+CMP_F_SET1_AOSTR_ELSE_RANDOM:178:set1_aostr_else_random
 CMS_F_CHECK_CONTENT:99:check_content
 CMS_F_CMS_ADD0_CERT:164:CMS_add0_cert
 CMS_F_CMS_ADD0_RECIPIENT_KEY:100:CMS_add0_recipient_key
