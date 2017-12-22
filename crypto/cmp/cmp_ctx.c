@@ -1092,11 +1092,7 @@ int CMP_CTX_set1_transactionID(CMP_CTX *ctx, const ASN1_OCTET_STRING *id)
     if (!ctx)
         goto err;
 
-/* TODO DvO: clean up transaction management, reset validatedSrvCert elsewhere*/
-    /* reset ctx->validatedSrvCert */
-    X509_free(ctx->validatedSrvCert);
-    ctx->validatedSrvCert = NULL;
-
+/* TODO DvO: clean up transaction management */
     return CMP_ASN1_OCTET_STRING_set1(&ctx->transactionID, id);
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_TRANSACTIONID, CMP_R_NULL_ARGUMENT);
