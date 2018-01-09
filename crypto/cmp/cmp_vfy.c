@@ -117,11 +117,15 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     protPartDerLen = i2d_CMP_PROTECTEDPART(&protPart, &protPartDer);
 
     /* verify protection of protected part */
-    ctx = EVP_MD_CTX_create();
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),
                                          &digest_NID, NULL) ||
         !(digest = (EVP_MD *)EVP_get_digestbynid(digest_NID))) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ALGORITHM_NOT_SUPPORTED);
+        return 0;
+    }
+
+    if (!(ctx = EVP_MD_CTX_create())) {
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_OUT_OF_MEMORY);
         return 0;
     }
     ret = EVP_VerifyInit_ex(ctx, digest, NULL) &&
