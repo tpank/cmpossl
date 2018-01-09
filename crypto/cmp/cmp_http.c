@@ -457,7 +457,7 @@ int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
         if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
             err = CMP_R_TLS_ERROR;
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, err);
-        if (err == CMP_R_TLS_ERROR || CMP_R_SERVER_NOT_REACHABLE)
+        if (err == CMP_R_TLS_ERROR || err == CMP_R_SERVER_NOT_REACHABLE)
             add_TLS_error_hint(ctx, ERR_peek_error());
     }
 
