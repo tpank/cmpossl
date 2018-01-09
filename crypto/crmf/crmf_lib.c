@@ -392,6 +392,7 @@ static CRMF_POPOSIGNINGKEY *poposigkey_new(CRMF_CERTREQUEST *cr,
                                              const EVP_PKEY *pkey, int dgst)
 {
     CRMF_POPOSIGNINGKEY *ps = NULL;
+    int l;
     size_t crlen, max_sig_size;
     unsigned int siglen;
     unsigned char *crder = NULL, *sig = NULL;
@@ -407,7 +408,10 @@ static CRMF_POPOSIGNINGKEY *poposigkey_new(CRMF_CERTREQUEST *cr,
     ps->signature->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
     ps->signature->flags |= ASN1_STRING_FLAG_BITS_LEFT;
 
-    crlen = i2d_CRMF_CERTREQUEST(cr, &crder);
+    l = i2d_CRMF_CERTREQUEST(cr, &crder);
+    if (l < 0 || crder == NULL)
+        goto err;
+    crlen = (size_t) l;
 
     max_sig_size = EVP_PKEY_size((EVP_PKEY *)pkey);
     sig = OPENSSL_malloc(max_sig_size);
