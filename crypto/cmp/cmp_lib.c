@@ -240,7 +240,7 @@ int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
                                      const ASN1_OCTET_STRING *transactionID)
 {
 #define TRANSACTIONID_LENGTH 16
-    unsigned char *transactionIDuchar = NULL;
+    unsigned char *tid = NULL;
 
     if (!hdr)
         goto err;
@@ -251,25 +251,27 @@ int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
             goto err;
     } else {
         /* generate a random value if none was given */
-        if (!(transactionIDuchar =
-              (unsigned char *)OPENSSL_malloc(TRANSACTIONID_LENGTH)))
+        if (!(tid = (unsigned char *)OPENSSL_malloc(TRANSACTIONID_LENGTH)))
             goto err;
-        RAND_bytes(transactionIDuchar, TRANSACTIONID_LENGTH);
-
-        if (hdr->transactionID == NULL) {
-            hdr->transactionID = ASN1_OCTET_STRING_new();
+        if (RAND_bytes(tid, TRANSACTIONID_LENGTH) !=0) {
+            CMPerr(CMP_F_CMP_PKIHEADER_SET1_TRANSACTIONID,
+                    CMP_R_FAILURE_OBTAINING_RANDOM);
+            goto err;
         }
-        if (!(ASN1_OCTET_STRING_set
-              (hdr->transactionID, transactionIDuchar, TRANSACTIONID_LENGTH)))
+
+        if (hdr->transactionID == NULL)
+            hdr->transactionID = ASN1_OCTET_STRING_new();
+        if (!(ASN1_OCTET_STRING_set(hdr->transactionID, tid,
+                                    TRANSACTIONID_LENGTH)))
             goto err;
 
-        OPENSSL_free(transactionIDuchar);
+        OPENSSL_free(tid);
     }
 
     return 1;
  err:
-    if (transactionIDuchar)
-        OPENSSL_free(transactionIDuchar);
+    if (tid)
+        OPENSSL_free(tid);
     return 0;
 }
 
@@ -290,19 +292,21 @@ int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
 int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr)
 {
 #define SENDERNONCE_LENGTH 16
-    unsigned char senderNonce[SENDERNONCE_LENGTH];
+    unsigned char sn[SENDERNONCE_LENGTH];
 
     if (!hdr)
         goto err;
 
-    RAND_bytes(senderNonce, SENDERNONCE_LENGTH);
-
-    if (hdr->senderNonce == NULL) {
-        hdr->senderNonce = ASN1_OCTET_STRING_new();
+    if (RAND_bytes(sn, SENDERNONCE_LENGTH) != 1) {
+        CMPerr(CMP_F_CMP_PKIHEADER_NEW_SENDERNONCE,
+                CMP_R_FAILURE_OBTAINING_RANDOM);
+        goto err;
     }
 
-    if (!(ASN1_OCTET_STRING_set
-          (hdr->senderNonce, senderNonce, SENDERNONCE_LENGTH)))
+    if (hdr->senderNonce == NULL)
+        hdr->senderNonce = ASN1_OCTET_STRING_new();
+
+    if (!(ASN1_OCTET_STRING_set(hdr->senderNonce, sn, SENDERNONCE_LENGTH)))
         goto err;
 
     return 1;
