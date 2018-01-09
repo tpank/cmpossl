@@ -532,12 +532,12 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
  * error
  * ########################################################################## */
-ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
-                                           const ASN1_OCTET_STRING *secret)
+ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_msg *msg,
+                                           const ASN1_OCTET_STRING *sec)
 {
     ASN1_BIT_STRING *prot = NULL;
-    CMP_PROTECTEDPART protPart;
-    ASN1_STRING *pbmStr = NULL;
+    CMP_PROTECTEDPART prot_part;
+    ASN1_STRING *pbm_str = NULL;
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
     const
 #endif
@@ -545,11 +545,11 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
 
     CRMF_PBMPARAMETER *pbm = NULL;
 
-    size_t protPartDerLen;
-    unsigned int macLen;
-    unsigned char *protPartDer = NULL;
+    size_t prot_part_der_len;
+    unsigned int mac_len;
+    unsigned char *prot_part_der = NULL;
     unsigned char *mac = NULL;
-    const unsigned char *pbmStrUchar = NULL;
+    const unsigned char *pbm_str_uc = NULL;
 
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
     const
@@ -557,31 +557,30 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
     void *ppval = NULL;
     int pptype = 0;
 
-    if (!secret) {
+    if (!sec) {
         CMPerr(CMP_F_CMP_CALC_PROTECTION_PBMAC,
-               CMP_R_NO_SECRET_VALUE_GIVEN_FOR_PBMAC);
+               CMP_R_NO_sec_VALUE_GIVEN_FOR_PBMAC);
         goto err;
     }
 
-    protPart.header = pkimessage->header;
-    protPart.body = pkimessage->body;
-    protPartDerLen = i2d_CMP_PROTECTEDPART(&protPart, &protPartDer);
+    prot_part.header = msg->header;
+    prot_part.body = msg->body;
+    prot_part_der_len = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
 
-    X509_ALGOR_get0(&algorOID, &pptype, &ppval,
-                    pkimessage->header->protectionAlg);
+    X509_ALGOR_get0(&algorOID, &pptype, &ppval, msg->header->protectionAlg);
 
     if (NID_id_PasswordBasedMAC == OBJ_obj2nid(algorOID)) {
         /* there is no pbm set in this message */
         if (!ppval)
             goto err;
 
-        pbmStr = (ASN1_STRING *)ppval;
-        pbmStrUchar = (unsigned char *)pbmStr->data;
-        pbm = d2i_CRMF_PBMPARAMETER(NULL, &pbmStrUchar, pbmStr->length);
+        pbm_str = (ASN1_STRING *)ppval;
+        pbm_str_uc = (unsigned char *)pbm_str->data;
+        pbm = d2i_CRMF_PBMPARAMETER(NULL, &pbm_str_uc, pbm_str->length);
 
         if (!(CRMF_passwordBasedMac_new
-              (pbm, protPartDer, protPartDerLen, secret->data, secret->length,
-               &mac, &macLen)))
+              (pbm, prot_part_der, prot_part_der_len, sec->data, sec->length,
+               &mac, &mac_len)))
             goto err;
     } else {
         CMPerr(CMP_F_CMP_CALC_PROTECTION_PBMAC, CMP_R_WRONG_ALGORITHM_OID);
@@ -593,10 +592,10 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
     /* OpenSSL defaults all bit strings to be encoded as ASN.1 NamedBitList */
     prot->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
     prot->flags |= ASN1_STRING_FLAG_BITS_LEFT;
-    ASN1_BIT_STRING_set(prot, mac, macLen);
+    ASN1_BIT_STRING_set(prot, mac, mac_len);
 
     /* cleanup */
-    OPENSSL_free(protPartDer);
+    OPENSSL_free(prot_part_der);
     CRMF_PBMPARAMETER_free(pbm);
     OPENSSL_free(mac);
     return prot;
@@ -608,8 +607,8 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
         CRMF_PBMPARAMETER_free(pbm);
     if (mac)
         OPENSSL_free(mac);
-    if (protPartDer)
-        OPENSSL_free(protPartDer);
+    if (prot_part_der)
+        OPENSSL_free(prot_part_der);
     return NULL;
 }
 
@@ -624,20 +623,18 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
  * error
  * ########################################################################## */
 /* TODO factor out similarities with CMP_calc_protection_pbmac */
-ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
-                                         EVP_PKEY *pkey)
+ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *msg, EVP_PKEY *pkey)
 {
     ASN1_BIT_STRING *prot = NULL;
-    CMP_PROTECTEDPART protPart;
+    CMP_PROTECTEDPART prot_part;
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
     const
 #endif
     ASN1_OBJECT *algorOID = NULL;
 
-    size_t protPartDerLen;
-    unsigned int macLen;
-    size_t maxMacLen;
-    unsigned char *protPartDer = NULL;
+    size_t prot_part_der_len;
+    unsigned int mac_len;
+    unsigned char *prot_part_der = NULL;
     unsigned char *mac = NULL;
 
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
@@ -657,18 +654,17 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
     }
 
     /* construct data to be signed */
-    protPart.header = pkimessage->header;
-    protPart.body = pkimessage->body;
-    protPartDerLen = i2d_CMP_PROTECTEDPART(&protPart, &protPartDer);
+    prot_part.header = msg->header;
+    prot_part.body = msg->body;
+    prot_part_der_len = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
     /* TODO: should here be caught if protPardDer is NULL? */
 
     X509_ALGOR_get0(&algorOID, &pptype, &ppval,
-                    pkimessage->header->protectionAlg);
+                    msg->header->protectionAlg);
 
     if (OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
         && (md = EVP_get_digestbynid(md_NID))) {
-        maxMacLen = EVP_PKEY_size(pkey);
-        mac = OPENSSL_malloc(maxMacLen);
+        mac = OPENSSL_malloc(EVP_PKEY_size(pkey));
         if (!mac)
             goto err;
 
@@ -678,9 +674,9 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
             goto err;
         if (!(EVP_SignInit_ex(evp_ctx, md, NULL)))
             goto err;
-        if (!(EVP_SignUpdate(evp_ctx, protPartDer, protPartDerLen)))
+        if (!(EVP_SignUpdate(evp_ctx, prot_part_der, prot_part_der_len)))
             goto err;
-        if (!(EVP_SignFinal(evp_ctx, mac, &macLen, pkey)))
+        if (!(EVP_SignFinal(evp_ctx, mac, &mac_len, pkey)))
             goto err;
     } else {
         CMPerr(CMP_F_CMP_CALC_PROTECTION_SIG, CMP_R_UNKNOWN_ALGORITHM_ID);
@@ -692,13 +688,13 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
     /* OpenSSL defaults all bit strings to be encoded as ASN.1 NamedBitList */
     prot->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
     prot->flags |= ASN1_STRING_FLAG_BITS_LEFT;
-    ASN1_BIT_STRING_set(prot, mac, macLen);
+    ASN1_BIT_STRING_set(prot, mac, mac_len);
 
     /* cleanup */
     EVP_MD_CTX_destroy(evp_ctx);
     OPENSSL_free(mac);
-    if (protPartDer)
-        OPENSSL_free(protPartDer);
+    if (prot_part_der)
+        OPENSSL_free(prot_part_der);
     return prot;
 
  err:
@@ -706,8 +702,8 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
         EVP_MD_CTX_destroy(evp_ctx);
     if (mac)
         OPENSSL_free(mac);
-    if (protPartDer)
-        OPENSSL_free(protPartDer);
+    if (prot_part_der)
+        OPENSSL_free(prot_part_der);
 
     CMPerr(CMP_F_CMP_CALC_PROTECTION_SIG, CMP_R_ERROR_CALCULATING_PROTECTION);
     return NULL;
@@ -723,25 +719,25 @@ static X509_ALGOR *CMP_create_pbmac_algor(CMP_CTX *ctx)
 {
     X509_ALGOR *alg = NULL;
     CRMF_PBMPARAMETER *pbm = NULL;
-    unsigned char *pbmDer = NULL;
-    int pbmDerLen;
-    ASN1_STRING *pbmStr = NULL;
+    unsigned char *pbm_der = NULL;
+    int pbm_der_len;
+    ASN1_STRING *pbm_str = NULL;
 
     if (!(alg = X509_ALGOR_new()))
         goto err;
     if (!(pbm = CRMF_pbmp_new(ctx->pbm_slen, ctx->pbm_owf,
                               ctx->pbm_itercnt, ctx->pbm_mac)))
         goto err;
-    if (!(pbmStr = ASN1_STRING_new()))
+    if (!(pbm_str = ASN1_STRING_new()))
         goto err;
 
-    pbmDerLen = i2d_CRMF_PBMPARAMETER(pbm, &pbmDer);
+    pbm_der_len = i2d_CRMF_PBMPARAMETER(pbm, &pbm_der);
 
-    ASN1_STRING_set(pbmStr, pbmDer, pbmDerLen);
-    OPENSSL_free(pbmDer);
+    ASN1_STRING_set(pbm_str, pbm_der, pbm_der_len);
+    OPENSSL_free(pbm_der);
 
     X509_ALGOR_set0(alg, OBJ_nid2obj(NID_id_PasswordBasedMAC),
-                    V_ASN1_SEQUENCE, pbmStr);
+                    V_ASN1_SEQUENCE, pbm_str);
 
     CRMF_PBMPARAMETER_free(pbm);
     return alg;

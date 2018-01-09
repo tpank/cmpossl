@@ -85,14 +85,14 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
                                 const CMP_PKIMESSAGE *msg, const X509 *cert)
 {
     EVP_MD_CTX *ctx = NULL;
-    CMP_PROTECTEDPART protPart;
+    CMP_PROTECTEDPART prot_part;
     int ret = 0;
     int digest_NID;
     EVP_MD *digest = NULL;
     EVP_PKEY *pubkey = NULL;
 
-    size_t protPartDerLen = 0;
-    unsigned char *protPartDer = NULL;
+    size_t prot_part_der_len = 0;
+    unsigned char *prot_part_der = NULL;
 
     if (!msg || !cert)
         goto param_err;
@@ -112,9 +112,9 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     }
 
     /* create the DER representation of protected part */
-    protPart.header = msg->header;
-    protPart.body = msg->body;
-    protPartDerLen = i2d_CMP_PROTECTEDPART(&protPart, &protPartDer);
+    prot_part.header = msg->header;
+    prot_part.body = msg->body;
+    prot_part_der_len = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
 
     /* verify protection of protected part */
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),
@@ -129,13 +129,13 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
         return 0;
     }
     ret = EVP_VerifyInit_ex(ctx, digest, NULL) &&
-          EVP_VerifyUpdate(ctx, protPartDer, protPartDerLen) &&
+          EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len) &&
           EVP_VerifyFinal(ctx, msg->protection->data,
                           msg->protection->length, pubkey) == 1;
 
     /* cleanup */
     EVP_MD_CTX_destroy(ctx);
-    OPENSSL_free(protPartDer);
+    OPENSSL_free(prot_part_der);
     EVP_PKEY_free(pubkey);
 
     if (!ret) {
