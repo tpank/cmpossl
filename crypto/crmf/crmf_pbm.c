@@ -104,7 +104,10 @@ CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
         error = CRMF_R_MALLOC_FAILURE;
         goto err;
     }
-    RAND_bytes(salt, slen);
+    if (RAND_bytes(salt, slen) != 0) {
+        error = CRMF_R_FAILURE_OBTAINING_RANDOM;
+        goto err;
+    }
     if (!(ASN1_OCTET_STRING_set(pbm->salt, salt, slen)))
         goto err;
 
