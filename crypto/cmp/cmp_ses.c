@@ -359,6 +359,7 @@ static int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
     return success;
 }
 
+#if 0 /* curerntly unused */
 /* ########################################################################### *
  * internal function
  *
@@ -390,6 +391,7 @@ static int exchange_error(CMP_CTX *ctx, int status, int failure,const char *txt)
     CMP_PKIMESSAGE_free(PKIconf);
     return success;
 }
+#endif
 
 /* ########################################################################## *
  * internal function
@@ -563,20 +565,22 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
                                  ctx->newPkey ? ctx->newPkey : ctx->pkey))) {
         failure = CMP_PKIFAILUREINFO_incorrectData;
         txt = "public key in new certificate does not match our private key";
+#if 0 /* better leave this for any ctx->certConf_cb to decide */
         (void)exchange_error(ctx, CMP_PKISTATUS_rejection, failure, txt);
         /* cannot flag error earlier send_receive_check() indirectly calls
          * ERR_clear_error() */
         CMPerr(type_function, CMP_R_CERTIFICATE_NOT_ACCEPTED);
         ERR_add_error_data(1, txt);
         return 0;
+#endif
     }
-    /* TODO: possibly compare also subject and other fields of the newly
-     * enrolled cert with requested cert template if present, execute the
-     * callback function set in ctx which can be used to examine whether a
-     * received certificate should be accepted */
-    if (ctx->certConf_cb && (failure = ctx->certConf_cb(ctx, ctx->lastPKIStatus,
-                                                  ctx->newClCert, &txt)) >= 0) {
-        if (txt == NULL)
+
+    /* Execute the certification checking callback function possibly set in ctx,
+     * which can determine whether to accept a newly enrolled certificate.
+     * It may overrule the pre-decision reflected in 'failure' and '*txt'. */
+    if (ctx->certConf_cb && (failure = ctx->certConf_cb(ctx, ctx->newClCert,
+                                                        failure, &txt)) >= 0) {
+        if (failure >= 0 && txt == NULL)
             txt = "CMP client application did not accept receive certificate";
     }
 

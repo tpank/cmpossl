@@ -1851,12 +1851,16 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 * Note: While often handy, there is no hard default requirement than an EE must
 *       be able to validate its own certificate.
 */
-static int certConf_cb(CMP_CTX *ctx, int status, const X509 *cert,
+static int certConf_cb(CMP_CTX *ctx, const X509 *cert, int failure,
                        const char **text)
 {
     int res = -1; /* indicating "ok" here */
-    STACK_OF(X509) *untrusted = sk_X509_new_null();
-    if (!untrusted ||
+    STACK_OF(X509) *untrusted = NULL;
+
+    if (failure >= 0) /* accept any error flagged by library */
+        return failure;
+
+    if (!(untrusted = sk_X509_new_null()) ||
         !CMP_sk_X509_add1_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx),
                                 0, 1/* no dups */)) {
         sk_X509_pop_free(untrusted, X509_free);

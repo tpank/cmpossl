@@ -392,13 +392,16 @@ int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req, CMP_PKI
 This function should send the PKIMessage req and on success place the response in *res.
 On success it must return 0, else a CMP error reason code defined in cmp.h.
 
-CMP_CTX_set_certConf_callback() sets a callback that can be used to
-check the certificate received from the server. If the certificate
-shall be accepted the callback must return -1 (indicating success).
-Else a bit number <= CMP_PKIFAILUREINFO_MAX indicates failure, and the text
+CMP_CTX_set_certConf_callback() sets a callback function that can be used to
+check the newly enrolled certificate received from the server.
+If may overrule the pre-decision reflected in 'failure' and '*txt' parameter.
+If it accepts the certificate the callback must return -1 (indicating success).
+Else a bit number <= CMP_PKIFAILUREINFO_MAX indicates failure, and the txt
 output parameter may be set to point to a constant string with more detail.
 Typically, the callback will check at least that the certificate can be verified
 given some set of trusted certificates, like with the -out-trusted CLI option.
+It may also, for instance, compare the subject and other fields of the newly
+enrolled cert with the requested certificate template.
 
 CMP_CTX_subjectAltName_push1() adds the given X509 name to the list of
 alternate names on the certificate template request.  If this is done,

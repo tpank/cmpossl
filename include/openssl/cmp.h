@@ -305,7 +305,8 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
  * context DECLARATIONS
  * ########################################################################## */
 typedef void (*cmp_logfn_t) (const char *msg);
-typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, int status, const X509 *cert, const char **text);
+typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, const X509 *cert, int failure,
+                                 const char **txt);
 typedef int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                                   CMP_PKIMESSAGE **res);
 typedef STACK_OF(ASN1_UTF8STRING) CMP_PKIFREETEXT;
