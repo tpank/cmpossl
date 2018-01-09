@@ -116,10 +116,6 @@ static char *V_CMP_TABLE[] = {
     "POLLREP",
 };
 
-#define MSG_TYPE_STR(type)      \
-        (((unsigned int) (type) < sizeof(V_CMP_TABLE)/sizeof(V_CMP_TABLE[0])) \
-         ? V_CMP_TABLE[(unsigned int)(type)] : "unknown")
-
 /* ########################################################################## *
  * internal function
  *
@@ -127,22 +123,28 @@ static char *V_CMP_TABLE[] = {
  * ########################################################################## */
 static void message_add_error_data(CMP_PKIMESSAGE *msg)
 {
-    char *tempbuf;
-    switch (CMP_PKIMESSAGE_get_bodytype(msg)) {
+    char *buf;
+    int bt = CMP_PKIMESSAGE_get_bodytype(msg);
+
+    switch (bt) {
     case V_CMP_PKIBODY_ERROR:
-        if ((tempbuf = OPENSSL_malloc(CMP_PKISTATUSINFO_BUFLEN))) {
+        if ((buf = OPENSSL_malloc(CMP_PKISTATUSINFO_BUFLEN))) {
             if (CMP_PKISTATUSINFO_snprint(msg->body->value.error->
-                   pKIStatusInfo, tempbuf, CMP_PKISTATUSINFO_BUFLEN))
-                ERR_add_error_data(2, "got error message; ", tempbuf);
-            OPENSSL_free(tempbuf);
+                   pKIStatusInfo, buf, CMP_PKISTATUSINFO_BUFLEN))
+                ERR_add_error_data(2, "got error message; ", buf);
+            OPENSSL_free(buf);
         }
         break;
     case -1:
-        ERR_add_error_data(1, "got no message");
+        ERR_add_error_data(1, "got no message, or invalid type '-1'");
         break;
     default:
-        ERR_add_error_data(3, "got unexpected message type '",
-                           MSG_TYPE_STR(CMP_PKIMESSAGE_get_bodytype(msg)), "'");
+        if (bt<0 || (size_t) bt >= sizeof(V_CMP_TABLE)/sizeof(V_CMP_TABLE[0])) {
+            ERR_add_error_data(1, "got invalid message type out of sane range");
+        } else {
+            ERR_add_error_data(3, "got unexpected message type '",
+                                  V_CMP_TABLE[bt], "'");
+        }
         break;
     }
 }
@@ -234,11 +236,11 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
 
     /* catch if received message type isn't one of expected ones (e.g. error) */
     if (rcvd_type != expected_type &&
-        /* for the final answer to polling, there could be IP/CP/KUP */
-        !(expected_type == V_CMP_PKIBODY_POLLREP &&
-        (rcvd_type == V_CMP_PKIBODY_IP ||
-         rcvd_type == V_CMP_PKIBODY_CP ||
-         rcvd_type == V_CMP_PKIBODY_KUP))) {
+            /* for the final answer to polling, there could be IP/CP/KUP */
+            !(expected_type == V_CMP_PKIBODY_POLLREP &&
+                (rcvd_type == V_CMP_PKIBODY_IP ||
+                 rcvd_type == V_CMP_PKIBODY_CP ||
+                 rcvd_type == V_CMP_PKIBODY_KUP))) {
         CMPerr(type_function, CMP_R_UNEXPECTED_PKIBODY);
         message_add_error_data(*rep);
         return 0;
