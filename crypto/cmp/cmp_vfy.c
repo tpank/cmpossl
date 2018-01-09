@@ -91,6 +91,7 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     EVP_MD *digest = NULL;
     EVP_PKEY *pubkey = NULL;
 
+    int l;
     size_t prot_part_der_len = 0;
     unsigned char *prot_part_der = NULL;
 
@@ -114,7 +115,11 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     /* create the DER representation of protected part */
     prot_part.header = msg->header;
     prot_part.body = msg->body;
-    prot_part_der_len = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+
+    l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+    if (l < 0 || prot_part_der == NULL)
+        return 0;
+    prot_part_der_len = (size_t) l;
 
     /* verify protection of protected part */
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),

@@ -532,24 +532,23 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
  * error
  * ########################################################################## */
-ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_msg *msg,
+/* Note: very similar to CMP_calc_protection_sig(), but doubtful whether
+ *       factorizing would bring benefit */
+ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *msg,
                                            const ASN1_OCTET_STRING *sec)
 {
     ASN1_BIT_STRING *prot = NULL;
     CMP_PROTECTEDPART prot_part;
-    ASN1_STRING *pbm_str = NULL;
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
     const
 #endif
     ASN1_OBJECT *algorOID = NULL;
 
-    CRMF_PBMPARAMETER *pbm = NULL;
-
+    int l;
     size_t prot_part_der_len;
     unsigned int mac_len;
     unsigned char *prot_part_der = NULL;
     unsigned char *mac = NULL;
-    const unsigned char *pbm_str_uc = NULL;
 
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
     const
@@ -557,15 +556,22 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_msg *msg,
     void *ppval = NULL;
     int pptype = 0;
 
+    CRMF_PBMPARAMETER *pbm = NULL;
+    ASN1_STRING *pbm_str = NULL;
+    const unsigned char *pbm_str_uc = NULL;
+
     if (!sec) {
-        CMPerr(CMP_F_CMP_CALC_PROTECTION_PBMAC,
-               CMP_R_NO_sec_VALUE_GIVEN_FOR_PBMAC);
+        CMPerr(CMP_F_CMP_CALC_PROTECTION_PBMAC, CMP_R_NO_SECRET_VALUE_GIVEN);
         goto err;
     }
 
     prot_part.header = msg->header;
     prot_part.body = msg->body;
-    prot_part_der_len = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+
+    l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+    if (l < 0 || prot_part_der == NULL)
+        goto err;
+    prot_part_der_len = (size_t) l;
 
     X509_ALGOR_get0(&algorOID, &pptype, &ppval, msg->header->protectionAlg);
 
@@ -622,7 +628,8 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_msg *msg,
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
  * error
  * ########################################################################## */
-/* TODO factor out similarities with CMP_calc_protection_pbmac */
+/* Note: very similar to CMP_calc_protection_pbmac(), but doubtful whether
+ *       factorizing would bring benefit */
 ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *msg, EVP_PKEY *pkey)
 {
     ASN1_BIT_STRING *prot = NULL;
@@ -632,6 +639,7 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *msg, EVP_PKEY *pkey)
 #endif
     ASN1_OBJECT *algorOID = NULL;
 
+    int l;
     size_t prot_part_der_len;
     unsigned int mac_len;
     unsigned char *prot_part_der = NULL;
@@ -656,11 +664,13 @@ ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *msg, EVP_PKEY *pkey)
     /* construct data to be signed */
     prot_part.header = msg->header;
     prot_part.body = msg->body;
-    prot_part_der_len = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
-    /* TODO: should here be caught if protPardDer is NULL? */
 
-    X509_ALGOR_get0(&algorOID, &pptype, &ppval,
-                    msg->header->protectionAlg);
+    l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+    if (l < 0 || prot_part_der == NULL)
+        goto err;
+    prot_part_der_len = (size_t) l;
+
+    X509_ALGOR_get0(&algorOID, &pptype, &ppval, msg->header->protectionAlg);
 
     if (OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
         && (md = EVP_get_digestbynid(md_NID))) {

@@ -1884,6 +1884,7 @@ CMP_R_IP_NOT_RECEIVED:145:ip not received
 CMP_R_KUP_NOT_RECEIVED:146:kup not received
 CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION:147:\
 	missing key input for creating protection
+CMP_R_NO_SECRET_VALUE_GIVEN:180:no secret value given
 CMP_R_NO_SECRET_VALUE_GIVEN_FOR_PBMAC:148:no secret value given for pbmac
 CMP_R_NO_TRUSTED_CERTIFICATES_SET:149:no trusted certificates set
 CMP_R_NO_VALID_SERVER_CERT_FOUND:177:no valid server cert found
