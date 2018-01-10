@@ -328,7 +328,7 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMES
 {
     static const char req_hdr[] =
         "Content-Type: application/pkixcmp\r\n"
-        "Cache-control: no-cache\r\n" "Content-Length: %d\r\n\r\n";
+        "Cache-Control: no-cache\r\n" "Content-Length: %d\r\n\r\n";
     OCSP_REQ_CTX *rctx = NULL;
 
     rctx = OCSP_REQ_CTX_new(io, maxline);
