@@ -384,7 +384,7 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx,
                                 CMP_PKIMESSAGE **res)
 {
     int rv;
-    char *path = 0;
+    char *path = NULL;
     size_t pos = 0, pathlen = 0;
     CMPBIO *cbio = NULL;
     CMPBIO *hbio = NULL;
