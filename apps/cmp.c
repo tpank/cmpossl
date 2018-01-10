@@ -1996,7 +1996,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     char *pass_string = get_passwd(opt_storepass, desc);
 
     if (!input)
-        return NULL;
+        goto err;
 
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, input); */
     OPT_ITERATE(input,
@@ -2004,12 +2004,14 @@ static X509_STORE *load_certstore(char *input, const char *desc)
                                     pass_string, desc) ||
                 !(store = sk_X509_to_store(store, certs))) {
                     /* BIO_puts(bio_err, "error: out of memory\n"); */
-                    sk_X509_pop_free(certs, X509_free);
                     X509_STORE_free(store);
-                    return NULL;
+                    goto err;
             }
             sk_X509_pop_free(certs, X509_free);
+            certs = NULL;
     )
+ err:
+    sk_X509_pop_free(certs, X509_free);
     if (pass_string)
         OPENSSL_clear_free(pass_string, strlen(pass_string));
     return store;
