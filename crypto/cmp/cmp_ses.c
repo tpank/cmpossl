@@ -337,7 +337,7 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
  * send certConf for IR, CR or KUR sequences and check response
  * returns 1 on success, 0 on error
  * ########################################################################## */
-static int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
+int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
 {
     CMP_PKIMESSAGE *certConf = NULL;
     CMP_PKIMESSAGE *PKIconf = NULL;
@@ -359,14 +359,13 @@ static int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
     return success;
 }
 
-#if 0 /* curerntly unused */
 /* ########################################################################### *
- * internal function
+ * internal function, currently unused
  *
  * send given error and check response
  * returns 1 on success, 0 on error
  * ########################################################################## */
-static int exchange_error(CMP_CTX *ctx, int status, int failure,const char *txt)
+int exchange_error(CMP_CTX *ctx, int status, int failure,const char *txt)
 {
     CMP_PKIMESSAGE *error = NULL;
     CMP_PKISTATUSINFO *si = NULL;
@@ -391,7 +390,6 @@ static int exchange_error(CMP_CTX *ctx, int status, int failure,const char *txt)
     CMP_PKIMESSAGE_free(PKIconf);
     return success;
 }
-#endif
 
 /* ########################################################################## *
  * internal function

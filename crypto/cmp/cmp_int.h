@@ -687,6 +687,14 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
 /* sequence id for the first - and so far only - revocation request */
 # define REVREQSID 0L
 
+/* ########################################################################## *
+ * functions
+ * ########################################################################## */
+
+/* from cmp_ses.c */
+int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt);
+int exchange_error(CMP_CTX *ctx, int status, int failure,const char *txt);
+
 
 # ifdef  __cplusplus
 }
