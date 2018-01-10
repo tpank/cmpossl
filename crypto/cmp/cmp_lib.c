@@ -253,7 +253,7 @@ int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr,
         /* generate a random value if none was given */
         if (!(tid = (unsigned char *)OPENSSL_malloc(TRANSACTIONID_LENGTH)))
             goto err;
-        if (RAND_bytes(tid, TRANSACTIONID_LENGTH) !=0) {
+        if (RAND_bytes(tid, TRANSACTIONID_LENGTH) <= 0) {
             CMPerr(CMP_F_CMP_PKIHEADER_SET1_TRANSACTIONID,
                     CMP_R_FAILURE_OBTAINING_RANDOM);
             goto err;
@@ -297,7 +297,7 @@ int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr)
     if (!hdr)
         goto err;
 
-    if (RAND_bytes(sn, SENDERNONCE_LENGTH) != 1) {
+    if (RAND_bytes(sn, SENDERNONCE_LENGTH) <= 0) {
         CMPerr(CMP_F_CMP_PKIHEADER_NEW_SENDERNONCE,
                 CMP_R_FAILURE_OBTAINING_RANDOM);
         goto err;
