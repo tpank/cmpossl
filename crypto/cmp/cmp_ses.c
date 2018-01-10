@@ -476,8 +476,8 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
         break;
     default:
         CMP_printf(ctx,
-                  "ERROR: encountered unsupported PKIStatus %d for certificate",
-                   CMP_CTX_status_get(ctx));
+                 "ERROR: encountered unsupported PKIStatus %ld for certificate",
+                   ctx->lastPKIStatus);
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
         goto err;
     }
