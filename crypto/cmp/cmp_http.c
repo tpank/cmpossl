@@ -100,8 +100,11 @@
 #  endif
 # endif
 
-/* TODO dvo: push that upstream with extended load_cert_crl_http(),
-   simplifying also other uses of select(), e.g., in query_responder() in apps/ocsp.c */
+/*
+ * TODO dvo: push that upstream with extended load_cert_crl_http(),
+ * simplifying also other uses of select(), e.g., in query_responder()
+ * in apps/ocsp.c
+ */
 /* returns < 0 on error, 0 on timeout, > 0 on success */
 int socket_wait(int fd, int for_read, int timeout)
 {
@@ -119,8 +122,11 @@ int socket_wait(int fd, int for_read, int timeout)
                   for_read ? NULL : &confds, NULL, &tv);
 }
 
-/* TODO dvo: push that upstream with extended load_cert_crl_http(),
-   simplifying also other uses of select(), e.g., in query_responder() in apps/ocsp.c */
+/*
+ * TODO dvo: push that upstream with extended load_cert_crl_http(),
+ * simplifying also other uses of select(), e.g., in query_responder()
+ * in apps/ocsp.c
+ */
 /* returns < 0 on error, 0 on timeout, > 0 on success */
 int bio_wait(BIO *bio, int timeout) {
     int fd;
@@ -129,14 +135,16 @@ int bio_wait(BIO *bio, int timeout) {
     return socket_wait(fd, BIO_should_read(bio), timeout);
 }
 
-/* TODO dvo: push that upstream with extended load_cert_crl_http(),
-   simplifying also other uses of connect(), e.g., in query_responder() in apps/ocsp.c */
+/*
+ * TODO dvo: push that upstream with extended load_cert_crl_http(),
+ * simplifying also other uses of connect(), e.g., in query_responder()
+ * in apps/ocsp.c
+ */
 /* returns -1 on error, 0 on timeout, 1 on success */
 int bio_connect(BIO *bio, int timeout) {
     int blocking;
     time_t max_time;
     int rv;
-
     blocking = timeout <= 0;
     max_time = timeout > 0 ? time(NULL) + timeout : 0;
 
@@ -145,13 +153,19 @@ int bio_connect(BIO *bio, int timeout) {
         BIO_set_nbio(bio, 1);
  retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
     rv = BIO_do_connect(bio);
-    if (rv <= 0 && (errno == ETIMEDOUT /* in blocking case,
-          despite blocking BIO, BIO_do_connect() timed out */ ||
-          ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT/* when non-blocking,
-          BIO_do_connect() timed out early with rv == -1 and errno == 0 */)) {
+    /*
+     * in blocking case, despite blocking BIO, BIO_do_connect() timed out
+     * when non-blocking, BIO_do_connect() timed out early
+     * with rv == -1 and errno == 0
+     */
+    if (rv <= 0 && (errno == ETIMEDOUT ||
+                    ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT)) {
         /* ERR_clear_error(); would prevent diagnostics on cert error */
-        (void)BIO_reset(bio); /* otherwise, blocking next connect() may crash
-                             and non-blocking next BIO_do_connect() will fail */
+        (void)BIO_reset(bio);
+        /*
+         * otherwise, blocking next connect() may crash and
+         * non-blocking next BIO_do_connect() will fail
+         */
         goto retry;
     }
     if (rv <= 0 && BIO_should_retry(bio)) {
@@ -163,17 +177,23 @@ int bio_connect(BIO *bio, int timeout) {
 
 # endif /* OPENSSL_NO_SOCK */
 
-/* ########################################################################## */
+
 
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 
-/* TODO dvo: push that upstream with extended load_cert_crl_http(),
-   simplifying also other uses of XXX_sendreq_nbio, e.g., in query_responder() in apps/ocsp.c */
-/* Even better would be to extend OCSP_REQ_CTX_nbio() and
-   thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior */
-/* Exchange ASN.1 request and response via HTTP on any BIO
-   returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
-   1: success and then provides the received message via the *resp argument */
+/*
+ * TODO dvo: push that upstream with extended load_cert_crl_http(),
+ * simplifying also other uses of XXX_sendreq_nbio, e.g., in query_responder()
+ * in apps/ocsp.c
+ */
+/*
+ * Even better would be to extend OCSP_REQ_CTX_nbio() and
+ * thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior */
+/*
+ * Exchange ASN.1 request and response via HTTP on any BIO
+ * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
+ * 1: success and then provides the received message via the *resp argument
+ */
 int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
              OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time)
 {
@@ -215,7 +235,8 @@ int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
 }
 
 /* one declaration and three defines copied from ocsp_ht.c; keep in sync! */
-struct ocsp_req_ctx_st { /* dummy declaration to get access to internal state variable */
+/* dummy declaration to get access to internal state variable */
+struct ocsp_req_ctx_st {
     int state;                  /* Current I/O state */
     unsigned char *iobuf;       /* Line buffer */
     int iobuflen;               /* Line buffer length */
@@ -225,8 +246,12 @@ struct ocsp_req_ctx_st { /* dummy declaration to get access to internal state va
 #define OHS_NOREAD              0x1000
 #define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
 
-/* adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c - TODO: generalize the function there */
-static int OCSP_REQ_CTX_i2d_hdr(OCSP_REQ_CTX *rctx, const char *req_hdr, const ASN1_ITEM *it, ASN1_VALUE *val)
+/*
+ * adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c -
+ * TODO: generalize the function there
+ */
+static int OCSP_REQ_CTX_i2d_hdr(OCSP_REQ_CTX *rctx, const char *req_hdr,
+                                const ASN1_ITEM *it, ASN1_VALUE *val)
 {
     int reqlen = ASN1_item_i2d(val, NULL, it);
     if (BIO_printf(rctx->mem, req_hdr, reqlen) <= 0)
@@ -237,16 +262,18 @@ static int OCSP_REQ_CTX_i2d_hdr(OCSP_REQ_CTX *rctx, const char *req_hdr, const A
     return 1;
 }
 
-/* ########################################################################## */
+
 
 static void add_TLS_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 {
     char buf[200];
     if (errdetail == 0) {
         snprintf(buf, 200, "server has disconnected%s",
-                 ctx->tlsBIO ? " violating the protocol" : ", likely because it requires the use of TLS");
+                 ctx->tlsBIO ? " violating the protocol" :
+                               ", likely because it requires the use of TLS");
         CMP_add_error_data(buf);
-        snprintf(buf, 200, "connecting to '%s' port %d", ctx->serverName, ctx->serverPort);
+        snprintf(buf, 200, "connecting to '%s' port %d", ctx->serverName,
+                 ctx->serverPort);
         CMP_add_error_data(buf);
     } else {
 #if 0
@@ -287,30 +314,30 @@ static void add_TLS_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 
 typedef BIO CMPBIO;
 
-/* ########################################################################## *
+/*
  * internal function
  * Create a new http connection, with a specified source ip/interface
  * returns 1 on success, 0 on error, returns the created bio inside the *bio
  * argument
- * ########################################################################## */
+ */
 static int CMP_new_http_bio(CMPBIO **bio, const CMP_CTX *ctx)
 {
     BIO *cbio = NULL;
 
-    if (!ctx)
+    if (ctx == NULL)
         goto err;
 
-    if (!ctx->proxyName || !ctx->proxyPort) {
+    if (((ctx->proxyName == NULL)) || !ctx->proxyPort) {
         char buf[32];
         cbio = BIO_new_connect(ctx->serverName);
-        if (!cbio)
+        if (cbio == NULL)
             goto err;
         snprintf(buf, sizeof(buf), "%d", ctx->serverPort);
         BIO_set_conn_port(cbio, buf);
     } else {
         char buf[32];
         cbio = BIO_new_connect(ctx->proxyName);
-        if (!cbio)
+        if (cbio == NULL)
             goto err;
         snprintf(buf, sizeof(buf), "%d", ctx->proxyPort);
         BIO_set_conn_port(cbio, buf);
@@ -323,8 +350,8 @@ static int CMP_new_http_bio(CMPBIO **bio, const CMP_CTX *ctx)
     return 0;
 }
 
-static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMESSAGE *req,
-                               int maxline)
+static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
+                                     const CMP_PKIMESSAGE *req, int maxline)
 {
     static const char req_hdr[] =
         "Content-Type: application/pkixcmp\r\n"
@@ -332,14 +359,15 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMES
     OCSP_REQ_CTX *rctx = NULL;
 
     rctx = OCSP_REQ_CTX_new(io, maxline);
-    if (!rctx)
+    if (rctx == NULL)
         return NULL;
 
     if (!OCSP_REQ_CTX_http(rctx, "POST", path))
         goto err;
 
-    if (req && !OCSP_REQ_CTX_i2d_hdr(rctx, req_hdr, ASN1_ITEM_rptr(CMP_PKIMESSAGE),
-                                 (ASN1_VALUE *)req))
+    if (req && !OCSP_REQ_CTX_i2d_hdr(rctx, req_hdr,
+                                     ASN1_ITEM_rptr(CMP_PKIMESSAGE),
+                                     (ASN1_VALUE *)req))
         goto err;
 
     return rctx;
@@ -349,23 +377,27 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path, const CMP_PKIMES
     return NULL;
 }
 
-/* Exchange CMP request/response via HTTP on (non-)blocking BIO
-   returns 1 on success, 0 on error, -1 on BIO_should_retry */
+/*
+ * Exchange CMP request/response via HTTP on (non-)blocking BIO
+ * returns 1 on success, 0 on error, -1 on BIO_should_retry
+ */
 static int CMP_http_nbio(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp)
 {
     return OCSP_REQ_CTX_nbio_d2i(rctx, resp, ASN1_ITEM_rptr(CMP_PKIMESSAGE));
 }
 
-/* Send out CNP request and get response on blocking or non-blocking BIO
-   returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
-   1: success and then provides the received message via the *resp argument */
+/*
+ * Send out CNP request and get response on blocking or non-blocking BIO
+ * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
+ * 1: success and then provides the received message via the *resp argument
+ */
 static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
                        CMP_PKIMESSAGE **resp, time_t max_time)
 {
     OCSP_REQ_CTX *rctx;
     int rv;
 
-    if (!(rctx = CMP_sendreq_new(bio, path, req, -1)))
+    if ((rctx = CMP_sendreq_new(bio, path, req, -1)) == NULL)
         return -4;
 
     rv = bio_http(bio, rctx, CMP_http_nbio, (ASN1_VALUE **)resp, max_time);
@@ -375,10 +407,10 @@ static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
     return rv;
 }
 
-/* ################################################################ *
+/*
  * Send the PKIMessage req and on success place the response in *res.
  * returns 0 on success, else a CMP error reason code defined in cmp.h
- * ################################################################ */
+ */
 int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx,
                                 const CMP_PKIMESSAGE *req,
                                 CMP_PKIMESSAGE **res)
@@ -391,16 +423,16 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx,
     int err = CMP_R_SERVER_NOT_REACHABLE;
     time_t max_time;
 
-    if (!ctx || !req || !res)
+    if (ctx == NULL || req == NULL || res == NULL)
         return CMP_R_NULL_ARGUMENT;
 
     max_time = ctx->msgTimeOut > 0 ? time(NULL) + ctx->msgTimeOut : 0;
 
-    if (!ctx->serverName || !ctx->serverPath || !ctx->serverPort)
+    if (ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort)
         return CMP_R_NULL_ARGUMENT;
 
     CMP_new_http_bio(&hbio, ctx);
-    if (!hbio)
+    if (hbio == NULL)
         return CMP_R_OUT_OF_MEMORY;
     cbio = (ctx->tlsBIO) ? BIO_push(ctx->tlsBIO, hbio) : hbio;
 
@@ -419,16 +451,19 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx,
 
     pathlen = strlen(ctx->serverName) + strlen(ctx->serverPath) + 33;
     path = (char *)OPENSSL_malloc(pathlen);
-    if (!path) {
+    if (path == NULL) {
         err = CMP_R_OUT_OF_MEMORY;
         goto err;
     }
 
-    /* Section 5.1.2 of RFC 1945 states that the absoluteURI form is only
-     * allowed when using a proxy */
+    /*
+     * Section 5.1.2 of RFC 1945 states that the absoluteURI form is only
+     * allowed when using a proxy
+     */
     if (ctx->proxyName && ctx->proxyPort)
         pos = BIO_snprintf(path, pathlen-1, "http%s://%s:%d",
-                           ctx->tlsBIO ? "s" : "", ctx->serverName, ctx->serverPort);
+                           ctx->tlsBIO ? "s" : "", ctx->serverName,
+                           ctx->serverPort);
 
     /* make sure path includes a forward slash */
     if (ctx->serverPath[0] != '/')
@@ -445,9 +480,13 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx,
     else if (rv == -1)
         err = CMP_R_ERROR_DECODING_MESSAGE;
     else if (rv == 0) { /* timeout */
-        /* We should notify/alert the peer when we abort; TODO: does the below BIO_reset suffice?
-           We cannot do one of the following because ssl is not available here: SSL_shutdown(ssl);
-           or more directly sth like ssl3_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_CLOSE_NOTIFY); */
+        /* We should notify/alert the peer when we abort;
+         * TODO: does the below BIO_reset suffice?
+         * We cannot do one of the following because ssl is not available here:
+         * SSL_shutdown(ssl);
+         * or more directly sth like
+         * ssl3_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_CLOSE_NOTIFY);
+         */
         err = CMP_R_READ_TIMEOUT;
     } else
         err = 0;
@@ -464,8 +503,10 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx,
     (void)BIO_reset(cbio); /* notify/alert peer, init for potential next use */
     if (ctx->tlsBIO) {
         /* BIO_set_next(cbio, NULL); workaround for altered forward pointer */
-        /* Must not pop ctx->tlsBIO or hbio nor do this before reset,
-           else ssl_free_wbio_buffer() fails on ossl_assert(s->wbio != NULL) */
+        /*
+         * Must not pop ctx->tlsBIO or hbio nor do this before reset,
+         * else ssl_free_wbio_buffer() fails on ossl_assert(s->wbio != NULL)
+         */
     }
     BIO_free(hbio);
 
