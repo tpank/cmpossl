@@ -175,7 +175,7 @@ static int CMP_verify_MAC(const CMP_PKIMESSAGE *msg,
     int valid = 0;
 
     /* generate expected protection for the message */
-    if (!(protection = CMP_calc_protection_pbmac(msg, secret)))
+    if (!(protection = CMP_calc_protection(msg, secret, NULL)))
         goto err;               /* failed to generate protection string! */
 
     valid = ASN1_STRING_cmp((const ASN1_STRING *)protection,

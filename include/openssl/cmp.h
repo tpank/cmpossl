@@ -355,11 +355,9 @@ int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr,
 int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
 int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr);
-ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
-                                           const ASN1_OCTET_STRING
-                                           *secret);
-ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
-                                         EVP_PKEY *pkey);
+ASN1_BIT_STRING *CMP_calc_protection(const CMP_PKIMESSAGE *pkimessage,
+                                     const ASN1_OCTET_STRING *secret,
+                                     const EVP_PKEY *pkey);
 int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus,

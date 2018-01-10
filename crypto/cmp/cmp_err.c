@@ -14,10 +14,8 @@
 #ifndef OPENSSL_NO_ERR
 
 static const ERR_STRING_DATA CMP_str_functs[] = {
-    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CALC_PROTECTION_PBMAC, 0),
-     "CMP_calc_protection_pbmac"},
-    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CALC_PROTECTION_SIG, 0),
-     "CMP_calc_protection_sig"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CALC_PROTECTION, 0),
+     "CMP_calc_protection"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CERTCONF_NEW, 0), "CMP_certConf_new"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1, 0),
      "CMP_CERTORENCCERT_encCert_get1"},
