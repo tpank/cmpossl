@@ -22,7 +22,9 @@ int ERR_load_CMP_strings(void);
 /*
  * CMP function codes.
  */
-# define CMP_F_CMP_CALC_PROTECTION                        100
+# define CMP_F_CMP_CALC_PROTECTION                        176
+# define CMP_F_CMP_CALC_PROTECTION_PBMAC                  100
+# define CMP_F_CMP_CALC_PROTECTION_SIG                    101
 # define CMP_F_CMP_CERTCONF_NEW                           102
 # define CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1             103
 # define CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0       104

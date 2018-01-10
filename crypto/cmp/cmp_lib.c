@@ -528,7 +528,10 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
  *
  * calculate protection for given PKImessage utilizing the given credentials
  * and the algorithm parameters set inside the message header's protectionAlg.
- * Does PBMAC in case 'secret' is non-NULL and signature using 'pkey' otherwise.
+ *
+ * Either secret or pkey must be set, the other must be NULL. Attempts doing
+ * PBMAC in case 'secret' is set and signature if 'pkey' is set - but will only
+ * do the protection already marked in msg->header->protectionAlg.
  *
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
  * error
@@ -573,11 +576,10 @@ ASN1_BIT_STRING *CMP_calc_protection(const CMP_PKIMESSAGE *msg,
         goto err;
     prot_part_der_len = (size_t) l;
 
-    if (secret != NULL && pkey == NULL) {
-        X509_ALGOR_get0(&algorOID, &pptype, &ppval, msg->header->protectionAlg);
+    X509_ALGOR_get0(&algorOID, &pptype, &ppval, msg->header->protectionAlg);
 
+    if (secret != NULL && pkey == NULL) {
         if (NID_id_PasswordBasedMAC == OBJ_obj2nid(algorOID)) {
-            /* there is no pbm set in this message */
             if (!ppval)
                 goto err;
 
@@ -585,19 +587,16 @@ ASN1_BIT_STRING *CMP_calc_protection(const CMP_PKIMESSAGE *msg,
             pbm_str_uc = (unsigned char *)pbm_str->data;
             pbm = d2i_CRMF_PBMPARAMETER(NULL, &pbm_str_uc, pbm_str->length);
 
-            if (!(CRMF_passwordBasedMac_new
-                  (pbm, prot_part_der, prot_part_der_len, secret->data, secret->length,
-                   &mac, &mac_len)))
+            if (!(CRMF_passwordBasedMac_new(pbm, prot_part_der,
+                                            prot_part_der_len, secret->data,
+                                            secret->length, &mac, &mac_len)))
                 goto err;
         } else {
             CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_WRONG_ALGORITHM_OID);
             goto err;
         }
-    }
-    else if (secret == NULL && pkey != NULL) {
-        /* EVP_SignFinal() will check that pkey type is correct for the algorithm */
-
-        X509_ALGOR_get0(&algorOID, &pptype, &ppval, msg->header->protectionAlg);
+    } else if (secret == NULL && pkey != NULL) {
+        /* EVP_SignFinal() will check that pkey type is correct for the alg */
 
         if (OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
             && (md = EVP_get_digestbynid(md_NID))) {
@@ -605,7 +604,6 @@ ASN1_BIT_STRING *CMP_calc_protection(const CMP_PKIMESSAGE *msg,
             if (!mac)
                 goto err;
 
-            /* calculate signature */
             evp_ctx = EVP_MD_CTX_create();
             if (!evp_ctx)
                 goto err;
@@ -619,8 +617,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const CMP_PKIMESSAGE *msg,
             CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_UNKNOWN_ALGORITHM_ID);
             goto err;
         }
-    }
-    else {
+    } else {
         CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_INVALID_PARAMETERS);
         goto err;
     }
