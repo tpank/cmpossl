@@ -1287,12 +1287,16 @@ static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
         }
     }
 
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
     {  /* workaround for a bug in OCSP_basic_verify()
         * neglecting the certs argument if br->certs is NULL */
        X509 *dummy = X509_new();
-       (void)OCSP_basic_add1_cert(br, dummy);
+       if (dummy)
+           (void)OCSP_basic_add1_cert(br, dummy);
        X509_free(dummy);
     }
+#endif
+
     if (ts) {
         const char *bak_host;
         X509_STORE_CTX_check_revocation_fn bak_revfn =
