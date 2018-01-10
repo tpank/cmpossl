@@ -1369,7 +1369,7 @@ static int ocsp_resp_cb(SSL *ssl, void *arg)
 {
     X509_STORE_CTX *ctx = arg;
     X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
-    STACK_OF(X509) *untrusted;
+    STACK_OF(X509) *untrusted = NULL;
     X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
     X509 *issuer = X509_STORE_CTX_get0_current_issuer(ctx);
     OCSP_CERTID *id = NULL;
@@ -1399,21 +1399,20 @@ static int ocsp_resp_cb(SSL *ssl, void *arg)
 #ifdef OCSP_USE_UNTRUSTED_CERTS
     /* help cert chain building when list of certs is insufficient
      * from SSL_get0_verified_chain(ssl) and OCSP_resp_get0_certs(br) */
-    if (ocsp_untrusted_certs &&
-        (!(untrusted = sk_X509_dup(untrusted)) ||
-         !CMP_sk_X509_add1_certs(untrusted, ocsp_untrusted_certs, 0, 1)))
+    if (ocsp_untrusted_certs) {
+        if (!CMP_sk_X509_add1_certs(ocsp_untrusted_certs, untrusted, 0, 1))
             goto end; /* ERR_R_MALLOC_FAILURE */
+        /* cleanup of new certs in ocsp_untrusted_certs will be done by lib */
+        untrusted = ocsp_untrusted_certs;
+    }
 #endif
 
     if (!(id = OCSP_cert_to_id(NULL, cert, issuer)))
         goto end;
     ret = check_ocsp_response(ts, untrusted, NULL, id, rsp);
     OCSP_CERTID_free(id);
-#ifdef OCSP_USE_UNTRUSTED_CERTS
-    if (ocsp_untrusted_certs)
-        sk_X509_free(untrusted);
-#endif
  end:
+    /* must not: sk_X509_free(untrusted); */
     OCSP_RESPONSE_free(rsp);
     return ret;
 }
