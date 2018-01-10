@@ -113,8 +113,10 @@
  int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, const STACK_OF(X509) *store);
  STACK_OF(X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
 
+ typedef void (*cmp_logfn_t) (const char *msg);
  int CMP_CTX_set_error_callback(CMP_CTX *ctx, cmp_logfn_t cb);
  int CMP_CTX_set_debug_callback(CMP_CTX *ctx, cmp_logfn_t cb);
+
  void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
 
  int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val);
@@ -132,8 +134,13 @@
  int CMP_CTX_set1_expected_sender(CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
  int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
+
+ typedef int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **res);
  int CMP_CTX_set_msg_transfer(CMP_CTX *ctx, cmp_transfer_fn_t cb);
+
+ typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, const X509 *cert, int failure, const char **txt);
  int CMP_CTX_set_certConf_callback(CMP_CTX *ctx, cmp_certConfFn_t cb);
+
  int CMP_CTX_subjectAltName_push1(CMP_CTX *ctx, const GENERAL_NAME *name);
 
 =head1 DESCRIPTION
@@ -340,11 +347,11 @@ in CMP server authentication.
 CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx) returns a pointer to the list of
 untrusted certs.
 
-CMP_CTX_set_error_callback() sets a callback function for receiving
-error messages.
+CMP_CTX_set_error_callback() sets the callback for receiving error messages to
+B<cb>.
 
-CMP_CTX_set_debug_callback() sets a callback function for receiving
-debug messages.
+CMP_CTX_set_debug_callback() sets a callback for receiving debug messages to
+B<cb>.
 
 CMP_printf() is used for printing debug messages if debug_cb is set
 (CMP_CTX_init defaults to puts()).
@@ -390,23 +397,21 @@ CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
 CMP_CTX_set0_reqExtensions() sets the X.509v3 extensions to be used in IR/CR/KUR
 
-CMP_CTX_set_msg_transfer() sets the message transfer callback function used for
-sending CMP requests and receiving responses. Default is CMP_PKIMESSAGE_http_perform().
-The function given as argument must have type
-int (*cmp_transfer_fn_t) (CMP_CTX *ctx, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **res);
-This function should send the PKIMessage req and on success place the response in *res.
+CMP_CTX_set_msg_transfer() sets the message transfer callback function to B<cb>.
+Default is CMP_PKIMESSAGE_http_perform().
+This function sends the request PKIMessage and on success places the response in *res.
 On success it must return 0, else a CMP error reason code defined in cmp.h.
 
-CMP_CTX_set_certConf_callback() sets a callback function that can be used to
-check the newly enrolled certificate received from the server.
-If may overrule the pre-decision reflected in 'failure' and '*txt' parameter.
+CMP_CTX_set_certConf_callback() sets the callback for evaluating
+evaluate the newly enrolled certificate received from the server to B<cb>.
+The callback may overrule the pre-decision given in 'failure' and '*txt' parameter.
 If it accepts the certificate the callback must return -1 (indicating success).
 Else a bit number <= CMP_PKIFAILUREINFO_MAX indicates failure, and the txt
 output parameter may be set to point to a constant string with more detail.
 Typically, the callback will check at least that the certificate can be verified
-given some set of trusted certificates, like with the -out-trusted CLI option.
-It may also, for instance, compare the subject and other fields of the newly
-enrolled cert with the requested certificate template.
+using a set of trusted certificates.
+It also might compare the subject and other fields of the newly
+enrolled cert with the certificate template of the request.
 
 CMP_CTX_subjectAltName_push1() adds the given X509 name to the list of
 alternate names on the certificate template request.  If this is done,
