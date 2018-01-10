@@ -333,7 +333,7 @@ CMP_CTX *CMP_CTX_create(void)
  * returns the PKIStatus from the last CertRepMessage
  * or Revocation Response, -1 on error
  * ################################################################ */
-long CMP_CTX_status_get(CMP_CTX *ctx)
+int CMP_CTX_status_get(CMP_CTX *ctx)
 {
     return ctx != NULL ? ctx->lastPKIStatus : -1;
 }

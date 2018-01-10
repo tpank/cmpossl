@@ -1165,7 +1165,7 @@ CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text)
  * returns the PKIStatus of the given PKIStatusInfo
  * returns -1 on error
  * ########################################################################## */
-long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *si)
+int CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *si)
 {
     if (!si || !si->status) {
         CMPerr(CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET,
@@ -1186,7 +1186,7 @@ long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *si)
  * ########################################################################## */
 static char *CMP_PKISTATUSINFO_PKIStatus_get_string(CMP_PKISTATUSINFO *si)
 {
-    long PKIStatus;
+    int PKIStatus;
 
     if ((PKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(si)) < 0)
         return NULL;
