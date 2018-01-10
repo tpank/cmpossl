@@ -124,10 +124,10 @@ static ENGINE *setup_engine_no_default(const char *engine, int debug)
             ERR_print_errors(bio_err);
             return NULL;
         }
-        if (debug) {
-            ENGINE_ctrl(e, ENGINE_CTRL_SET_LOGSTREAM, 0, bio_err, 0);
-        }
-        ENGINE_ctrl_cmd(e, "SET_USER_INTERFACE", 0, ui_method, 0, 1);
+        if (debug && !ENGINE_ctrl(e, ENGINE_CTRL_SET_LOGSTREAM, 0, bio_err, 0))
+            return NULL;
+        if (!ENGINE_ctrl_cmd(e, "SET_USER_INTERFACE", 0, ui_method, 0, 1))
+            return NULL;
 #if 0
         if (!ENGINE_set_default(e, ENGINE_METHOD_ALL)) {
             BIO_printf(bio_err, "can't use that engine\n");
