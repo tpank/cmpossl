@@ -74,13 +74,13 @@
 
 #include "cmp_int.h"
 
-/* ########################################################################## *
+/*
  * internal function
  *
  * verify a message protected by signature according to section 5.1.3.3
  * (sha1+RSA/DSA or any other algorithm supported by OpenSSL)
  * returns 0 on error
- * ########################################################################## */
+ */
 static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
                                 const CMP_PKIMESSAGE *msg, const X509 *cert)
 {
@@ -95,7 +95,7 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     size_t prot_part_der_len = 0;
     unsigned char *prot_part_der = NULL;
 
-    if (!msg || !cert)
+    if (msg == NULL || cert == NULL)
         goto param_err;
 
     /* verify that keyUsage, if present, contains digitalSignature */
@@ -106,7 +106,7 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     }
 
     pubkey = X509_get_pubkey((X509 *)cert);
-    if (!pubkey) {
+    if (pubkey == NULL) {
     param_err:
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_INVALID_KEY);
         return 0;
@@ -124,12 +124,12 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     /* verify protection of protected part */
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),
                                          &digest_NID, NULL) ||
-        !(digest = (EVP_MD *)EVP_get_digestbynid(digest_NID))) {
+        (digest = (EVP_MD *)EVP_get_digestbynid(digest_NID)) == NULL) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ALGORITHM_NOT_SUPPORTED);
         return 0;
     }
 
-    if (!(ctx = EVP_MD_CTX_create())) {
+    if ((ctx = EVP_MD_CTX_create()) == NULL) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_OUT_OF_MEMORY);
         return 0;
     }
@@ -163,11 +163,11 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     return ret;
 }
 
-/* ########################################################################## *
+/*
  * internal function
  *
  * Verify a message protected with PBMAC
- * ########################################################################## */
+ */
 static int CMP_verify_PBMAC(const CMP_PKIMESSAGE *msg,
                             const ASN1_OCTET_STRING *secret)
 {
@@ -175,7 +175,7 @@ static int CMP_verify_PBMAC(const CMP_PKIMESSAGE *msg,
     int valid = 0;
 
     /* generate expected protection for the message */
-    if (!(protection = CMP_calc_protection(msg, secret, NULL)))
+    if ((protection = CMP_calc_protection(msg, secret, NULL)) == NULL)
         goto err;               /* failed to generate protection string! */
 
     valid = ASN1_STRING_cmp((const ASN1_STRING *)protection,
@@ -189,28 +189,28 @@ static int CMP_verify_PBMAC(const CMP_PKIMESSAGE *msg,
     return 0;
 }
 
-/* ########################################################################## *
+/*
  * Attempt to validate certificate and path using given store of trusted certs
  * (possibly including CRLs and a cert verification callback function) and
  * given stack of non-trusted intermediate certs.
  * Returns 1 on successful validation and 0 otherwise.
- * ########################################################################## */
+ */
 int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
                        const STACK_OF(X509) *untrusted_certs, const X509 *cert)
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
 
-    if (!cert)
+    if (cert == NULL)
         goto end;
 
-    if (!trusted_store) {
+    if (trusted_store == NULL) {
         CMPerr(CMP_F_CMP_VALIDATE_CERT_PATH,
                CMP_R_NO_TRUSTED_CERTIFICATES_SET);
         goto end;
     }
 
-    if (!(csc = X509_STORE_CTX_new()))
+    if ((csc = X509_STORE_CTX_new()) == NULL)
         goto end;
 
     if (!X509_STORE_CTX_init(csc, trusted_store, (X509 *)cert,
@@ -226,9 +226,7 @@ int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
 }
 
 /*
- * ##########################################################################
- * * helper functions for improving certificate verification error diagnostics
- * ##########################################################################
+ * helper functions for improving certificate verification error diagnostics
  */
 
 static void print_cert(BIO *bio, const X509 *cert, unsigned long neg_cflags) {
@@ -281,14 +279,14 @@ static void print_store_certs(BIO *bio, X509_STORE *store) {
     }
 }
 
-/* ########################################################################## *
+/*
  * This is a diagnostic function that may be registered using
  * X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
  * verify_cert() function at the end of a cert verification as an opportunity
  * to gather and output information regarding a (failing) cert verification,
  * and to possibly change the result of the verification (not done here).
  * returns 0 if and only if the cert verification is considered failed.
- * ########################################################################## */
+ */
 int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
 {
     if (ok == 0 && ctx != NULL) {
@@ -303,7 +301,8 @@ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
                    depth < 0 ? "signature verification" :
                    X509_STORE_CTX_get0_parent_ctx(ctx) ?
                    "CRL path validation" : "certificate verification",
-                   depth, cert_error,X509_verify_cert_error_string(cert_error));
+                   depth, cert_error,
+                   X509_verify_cert_error_string(cert_error));
         BIO_printf(bio_mem, "failure for:\n");
         print_cert(bio_mem, cert, X509_FLAG_NO_EXTENSIONS);
         if (cert_error == X509_V_ERR_CERT_UNTRUSTED ||
@@ -332,14 +331,14 @@ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
     return (ok);
 }
 
-/* ########################################################################## *
+/*
  * internal function
  *
  * Check if the given cert is acceptable as sender cert of the given message.
  * The subject DN must match, the subject key ID as well if present in the msg,
  * and the cert must not be expired (for checking this, the ts must be given).
  * returns 0 on error or not acceptable, else 1
- * ########################################################################## */
+ */
 static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
                            const X509_STORE *ts) {
     X509_NAME *name = NULL;
@@ -350,7 +349,7 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
     time_t check_time, *ptime = NULL;
 
     vpm = ts ? X509_STORE_get0_param((X509_STORE *)ts) : NULL;
-    if (!cert || !msg || !ts || !vpm)
+    if (cert == NULL || msg == NULL || ts == NULL || vpm == NULL)
         return 0; /* TODO better flag and handle this as fatal internal error */
 
     name = X509_get_subject_name(cert);
@@ -373,7 +372,7 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
     kid = msg->header->senderKID;
 
     if (sender_name) { /* enforce that the right subject DN is there */
-        if (!name) {
+        if (name == NULL) {
             CMP_add_error_data("missing subject");
             return 0;
         }
@@ -385,7 +384,7 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
 
     if (kid) { /* enforce that the right subject key id is there */
         const ASN1_OCTET_STRING *ckid = X509_get0_subject_key_id(cert);
-        if (!ckid) {
+        if (ckid == NULL) {
             CMP_add_error_data("missing subject key ID");
             return 0;
         }
@@ -406,19 +405,19 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
     return 1; /* acceptable also if there is no identifier in msg header */
 }
 
-/* ########################################################################## *
+/*
  * internal function
  *
  * Find in the list of certificates all acceptable certs (see cert_acceptable()).
  * Add them to sk (if not a duplicate to an existing one).
  * returns 0 on error else 1
- * ########################################################################## */
+ */
 static int find_acceptable_certs(STACK_OF(X509) *certs,
     const CMP_PKIMESSAGE *msg, const X509_STORE *ts, STACK_OF(X509) *sk)
 {
     int i;
 
-    if (!sk)
+    if (sk == NULL)
         return 0; /* maybe better flag and handle this as fatal error */
 
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
@@ -433,7 +432,7 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
     return 1;
 }
 
-/* ########################################################################## *
+/*
  * internal function
  *
  * Find candidate server certificate(s) by using find_acceptable_certs()
@@ -445,18 +444,18 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
  *
  * Returns exactly one if there is a single clear hit, else several candidates.
  * returns NULL on (out of memory) error
- * ########################################################################## */
+ */
 static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
                     STACK_OF(X509) *untrusted, const CMP_PKIMESSAGE *msg)
 {
     int ret;
     STACK_OF(X509) *trusted, *found_certs;
 
-    if (!ts || !msg) /* untrusted may be NULL */
+    if (ts == NULL || msg == NULL) /* untrusted may be NULL */
         return NULL; /* maybe better flag and handle this as fatal error */
 
     /* sk_TYPE_find to use compfunc X509_cmp, not ptr comparison */
-    if (!(found_certs = sk_X509_new_null()))
+    if ((found_certs = sk_X509_new_null()) == NULL)
         goto oom;
 
     trusted = CMP_X509_STORE_get1_certs(ts);
@@ -477,10 +476,12 @@ oom:
     return NULL;
 }
 
-/* Exceptional handling for 3GPP TS 33.310, only to use for IP and if the ctx
+/*
+ * Exceptional handling for 3GPP TS 33.310, only to use for IP and if the ctx
  * option is explicitly set: use self-signed certificates from extraCerts as
  * trust anchor to validate server cert - provided it also can validate the
- * newly enrolled certificate */
+ * newly enrolled certificate
+ */
 static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt,
                                const CMP_PKIMESSAGE *msg) {
     int valid = 0;
@@ -490,13 +491,16 @@ static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt,
         valid = CMP_validate_cert_path(ctx, store, ctx->untrusted_certs, scrt);
     }
     if (valid) {
-        /* verify that the newly enrolled certificate (which is assumed to have
-         * rid == 0) can also be validated with the same trusted store */
+        /*
+         * verify that the newly enrolled certificate (which is assumed to have
+         * rid == 0) can also be validated with the same trusted store
+         */
         CMP_CERTRESPONSE *crep =
             CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip, 0);
         X509 *newcrt = CMP_CERTRESPONSE_get_certificate(ctx, crep); /* maybe
             better use get_cert_status() from cmp_ses.c, which catches errors */
-        valid = CMP_validate_cert_path(ctx, store, ctx->untrusted_certs,newcrt);
+        valid = CMP_validate_cert_path(ctx, store, ctx->untrusted_certs,
+                                       newcrt);
         X509_free(newcrt);
     }
     X509_STORE_free(store);
@@ -509,7 +513,7 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     int scrt_valid = 0;
     GENERAL_NAME *sender = msg->header->sender;
 
-    if (!sender || !msg->body)
+    if (sender == NULL || msg->body == NULL)
         return 0; /* other NULL cases already have been checked */
     if (sender->type != GEN_DIRNAME) {
         CMPerr(CMP_F_FIND_SRVCERT,
@@ -517,8 +521,10 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         return NULL; /* FR#42: support for more than X509_NAME */
     }
 
-    /* valid scrt, matching sender name, found earlier in transaction, will be
-     * used for validating any further msgs where extraCerts may be left out */
+    /*
+     * valid scrt, matching sender name, found earlier in transaction, will be
+     * used for validating any further msgs where extraCerts may be left out
+     */
     if (ctx->validatedSrvCert &&
         cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted_store)) {
         scrt = ctx->validatedSrvCert;
@@ -577,7 +583,7 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     return scrt;
 }
 
-/* ##########################################################################
+/*
  * Validates the protection of the given PKIMessage using either password-
  * based mac (PBM) or a signature algorithm. In the case of signature algorithm,
  * the certificate can be provided in ctx->srvCert,
@@ -590,7 +596,7 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
  * to the need given in 3GPP TS 33.310.
  *
  * returns 1 on success, 0 on error or validation failed
- * ########################################################################## */
+ */
 int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
     int nid = 0;
@@ -600,8 +606,8 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     ASN1_OBJECT *algorOID = NULL;
     X509 *scrt = NULL;
 
-    if (!ctx || !msg || !msg->header ||
-        !msg->header->protectionAlg) /* unprotected message */
+    if (ctx == NULL || msg == NULL || msg->header == NULL ||
+        msg->header->protectionAlg == NULL) /* unprotected message */
         return 0;
 
     /* determine the nid for the used protection algorithm */
@@ -612,10 +618,12 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         /* 5.1.3.1.  Shared Secret Information */
     case NID_id_PasswordBasedMAC:
         if (CMP_verify_PBMAC(msg, ctx->secretValue)) {
-            /* RFC 4210, 5.3.2: 'Note that if the PKI Message Protection is
+            /*
+             * RFC 4210, 5.3.2: 'Note that if the PKI Message Protection is
              * "shared secret information", then any certificate transported in
              * the caPubs field may be directly trusted as a root CA
-             * certificate by the initiator.' */
+             * certificate by the initiator.'
+             */
             switch (CMP_PKIMESSAGE_get_bodytype(msg)) {
             case V_CMP_PKIBODY_IP:
             case V_CMP_PKIBODY_CP:
@@ -636,9 +644,11 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC);
         break;
 
-        /* 5.1.3.3.  Signature */
+        /*
+         * 5.1.3.3.  Signature */
         /* TODO: should that better white-list DSA/RSA etc.?
-         * -> check all possible options from OpenSSL, should there be macro? */
+         * -> check all possible options from OpenSSL, should there be macro?
+         */
     default:
 
         /* validate sender name of received msg */
@@ -647,9 +657,11 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                    CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
             return 0; /* FR#42: support for more than X509_NAME */
         }
-        /* Compare actual sender name of response with expected sender name.
+        /*
+         * Compare actual sender name of response with expected sender name.
          * Mitigates risk to accept misused certificate of an unauthorized
-         * entity of a trusted hierarchy. */
+         * entity of a trusted hierarchy.
+         */
         if (ctx->expected_sender) { /* set explicitly or not NULL-DN recipient */
             X509_NAME *sender_name = msg->header->sender->d.directoryName;
             if (X509_NAME_cmp(sender_name, ctx->expected_sender) != 0) {
@@ -662,7 +674,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                 OPENSSL_free(actual);
                 return 0;
             }
-        } /* Note: if recipient was NULL-DN it could be learned here if needed */
+        }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
         if ((scrt = ctx->srvCert ? ctx->srvCert : find_srvcert(ctx, msg)))
             return CMP_verify_signature(ctx, msg, scrt);

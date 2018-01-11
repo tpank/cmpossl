@@ -15,17 +15,22 @@
 extern "C" {
 # endif
 
-/* ########################################################################## *
+/*
+ * ##########################################################################
  * ASN.1 DECLARATIONS
- * ########################################################################## */
+ * ##########################################################################
+ */
 
-/* this structure is used to store the context for CMP sessions
+/*
+ * this structure is used to store the context for CMP sessions
  * partly using OpenSSL ASN.1 types in order to ease handling it - such
-   ASN.1 entries must be given first, in same order as ASN1_SEQUENCE(CMP_CTX) */
+ * ASN.1 entries must be given first, in same order as ASN1_SEQUENCE(CMP_CTX)
+ */
 struct cmp_ctx_st {
     /* "reference and secret" for MSG_MAC_ALG */
     ASN1_OCTET_STRING *referenceValue;
     ASN1_OCTET_STRING *secretValue;
+
     X509 *srvCert; /* certificate used to identify the server */
     X509 *validatedSrvCert; /* stores the server Cert as soon as its
                                trust chain has been validated */
@@ -108,15 +113,15 @@ struct cmp_ctx_st {
 } /* CMP_CTX */;
 DECLARE_ASN1_FUNCTIONS(CMP_CTX)
 
-/*
-     RevAnnContent ::= SEQUENCE {
-             status                          PKIStatus,
-             certId                          CertId,
-             willBeRevokedAt         GeneralizedTime,
-             badSinceDate            GeneralizedTime,
-             crlDetails                      Extensions  OPTIONAL
-             -- extra CRL details (e.g., crl number, reason, location, etc.)
-     }
+/*-
+ *   RevAnnContent ::= SEQUENCE {
+ *       status              PKIStatus,
+ *       certId              CertId,
+ *       willBeRevokedAt     GeneralizedTime,
+ *       badSinceDate        GeneralizedTime,
+ *       crlDetails          Extensions  OPTIONAL
+ *       -- extra CRL details (e.g., crl number, reason, location, etc.)
+ *   }
  */
 typedef struct cmp_revanncontent_st {
     ASN1_INTEGER *status;
@@ -127,29 +132,29 @@ typedef struct cmp_revanncontent_st {
 } CMP_REVANNCONTENT;
 DECLARE_ASN1_FUNCTIONS(CMP_REVANNCONTENT)
 
-/*
-     Challenge ::= SEQUENCE {
-             owf                             AlgorithmIdentifier  OPTIONAL,
-
-             -- MUST be present in the first Challenge; MAY be omitted in
-             -- any subsequent Challenge in POPODecKeyChallContent (if
-             -- omitted, then the owf used in the immediately preceding
-             -- Challenge is to be used).
-
-             witness                         OCTET STRING,
-             -- the result of applying the one-way function (owf) to a
-             -- randomly-generated INTEGER, A.      [Note that a different
-             -- INTEGER MUST be used for each Challenge.]
-             challenge                       OCTET STRING
-             -- the encryption (under the public key for which the cert.
-             -- request is being made) of Rand, where Rand is specified as
-             --   Rand ::= SEQUENCE {
-             --              int      INTEGER,
-             --               - the randomly-generated INTEGER A (above)
-             --              sender   GeneralName
-             --               - the sender's name (as included in PKIHeader)
-             --   }
-     }
+/*-
+ *   Challenge ::= SEQUENCE {
+ *       owf                 AlgorithmIdentifier  OPTIONAL,
+ *
+ *       -- MUST be present in the first Challenge; MAY be omitted in
+ *       -- any subsequent Challenge in POPODecKeyChallContent (if
+ *       -- omitted, then the owf used in the immediately preceding
+ *       -- Challenge is to be used).
+ *
+ *       witness             OCTET STRING,
+ *       -- the result of applying the one-way function (owf) to a
+ *       -- randomly-generated INTEGER, A.  [Note that a different
+ *       -- INTEGER MUST be used for each Challenge.]
+ *       challenge           OCTET STRING
+ *       -- the encryption (under the public key for which the cert.
+ *       -- request is being made) of Rand, where Rand is specified as
+ *       --   Rand ::= SEQUENCE {
+ *       --      int      INTEGER,
+ *       --       - the randomly-generated INTEGER A (above)
+ *       --      sender   GeneralName
+ *       --       - the sender's name (as included in PKIHeader)
+ *       --   }
+ *   }
  */
 typedef struct cmp_challenge_st {
     X509_ALGOR *owf;
@@ -158,12 +163,12 @@ typedef struct cmp_challenge_st {
 } CMP_CHALLENGE;
 DECLARE_ASN1_FUNCTIONS(CMP_CHALLENGE)
 
-/*
-     CAKeyUpdAnnContent ::= SEQUENCE {
-             oldWithNew   CMPCertificate, -- old pub signed with new priv
-             newWithOld   CMPCertificate, -- new pub signed with old priv
-             newWithNew   CMPCertificate  -- new pub signed with new priv
-     }
+/*-
+ *  CAKeyUpdAnnContent ::= SEQUENCE {
+ *     oldWithNew         Certificate,
+ *     newWithOld         Certificate,
+ *     newWithNew         Certificate
+ *  }
  */
 typedef struct cmp_cakeyupdanncontent_st {
     X509 *oldWithNew;
@@ -172,15 +177,18 @@ typedef struct cmp_cakeyupdanncontent_st {
 } CMP_CAKEYUPDANNCONTENT;
 DECLARE_ASN1_FUNCTIONS(CMP_CAKEYUPDANNCONTENT)
 
-/* declared already here as it will be used in CMP_PKIMESSAGE (nested) and infotype and * value*/
+/*-
+ * declared already here as it will be used in CMP_PKIMESSAGE (nested) and
+ * infotype and * value
+ */
 typedef STACK_OF(CMP_PKIMESSAGE) CMP_PKIMESSAGES;
 DECLARE_ASN1_FUNCTIONS(CMP_PKIMESSAGES)
 
-/*
-     InfoTypeAndValue ::= SEQUENCE {
-             infoType                               OBJECT IDENTIFIER,
-             infoValue                              ANY DEFINED BY infoType  OPTIONAL
-     }
+/*-
+ *   InfoTypeAndValue ::= SEQUENCE {
+ *       infoType               OBJECT IDENTIFIER,
+ *       infoValue              ANY DEFINED BY infoType  OPTIONAL
+ *   }
  */
 struct cmp_infotypeandvalue_st {
     ASN1_OBJECT *infoType;
@@ -190,21 +198,21 @@ struct cmp_infotypeandvalue_st {
         X509 *caProtEncCert;
         /* NID_id_it_signKeyPairTypes - Signing Key Pair Types  */
         STACK_OF(X509_ALGOR) *signKeyPairTypes;
-        /* NID_id_it_encKeyPairTypes - Encryption/Key Agreement Key Pair Types  */
+        /* NID_id_it_encKeyPairTypes - Encryption/Key Agreement Key Pair Types*/
         STACK_OF(X509_ALGOR) *encKeyPairTypes;
         /* NID_id_it_preferredSymmAlg - Preferred Symmetric Algorithm  */
         X509_ALGOR *preferredSymmAlg;
-        /* NID_id_it_caKeyUpdateInfo - Updated CA Key Pair      */
+        /* NID_id_it_caKeyUpdateInfo - Updated CA Key Pair */
         CMP_CAKEYUPDANNCONTENT *caKeyUpdateInfo;
         /* NID_id_it_currentCRL - CRL  */
         X509_CRL *currentCRL;
-        /* NID_id_it_unsupportedOIDs - Unsupported Object Identifiers  */
+        /* NID_id_it_unsupportedOIDs - Unsupported Object Identifiers */
         STACK_OF(ASN1_OBJECT) *unsupportedOIDs;
-        /* NID_id_it_keyPairParamReq - Key Pair Parameters Request      */
+        /* NID_id_it_keyPairParamReq - Key Pair Parameters Request */
         ASN1_OBJECT *keyPairParamReq;
         /* NID_id_it_keyPairParamRep - Key Pair Parameters Response  */
         X509_ALGOR *keyPairParamRep;
-        /* NID_id_it_revPassphrase - Revocation Passphrase      */
+        /* NID_id_it_revPassphrase - Revocation Passphrase */
         CRMF_ENCRYPTEDVALUE *revPassphrase;
         /* NID_id_it_implicitConfirm - ImplicitConfirm  */
         ASN1_NULL *implicitConfirm;
@@ -221,7 +229,7 @@ struct cmp_infotypeandvalue_st {
 CMP_INFOTYPEANDVALUE *CMP_INFOTYPEANDVALUE_dup(CMP_INFOTYPEANDVALUE *itav);
 
 int CMP_INFOTYPEANDVALUE_stack_item_push0(
-		                      STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,
+                              STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,
                               const CMP_INFOTYPEANDVALUE *itav);
 
 
@@ -234,13 +242,13 @@ typedef struct cmp_certorenccert_st {
 } CMP_CERTORENCCERT;
 DECLARE_ASN1_FUNCTIONS(CMP_CERTORENCCERT)
 
-/*
-     CertifiedKeyPair ::= SEQUENCE {
-             certOrEncCert           CertOrEncCert,
-             privateKey              [0] EncryptedValue              OPTIONAL,
-             -- see [CRMF] for comment on encoding
-             publicationInfo [1] PKIPublicationInfo  OPTIONAL
-     }
+/*-
+ *   CertifiedKeyPair ::= SEQUENCE {
+ *       certOrEncCert       CertOrEncCert,
+ *       privateKey      [0] EncryptedValue      OPTIONAL,
+ *       -- see [CRMF] for comment on encoding
+ *       publicationInfo [1] PKIPublicationInfo  OPTIONAL
+ *   }
  */
 typedef struct cmp_certifiedkeypair_st {
     CMP_CERTORENCCERT *certOrEncCert;
@@ -249,12 +257,12 @@ typedef struct cmp_certifiedkeypair_st {
 } CMP_CERTIFIEDKEYPAIR;
 DECLARE_ASN1_FUNCTIONS(CMP_CERTIFIEDKEYPAIR)
 
-/*
-     PKIStatusInfo ::= SEQUENCE {
-             status            PKIStatus,
-             statusString      PKIFreeText     OPTIONAL,
-             failInfo          PKIFailureInfo  OPTIONAL
-     }
+/*-
+ *   PKIStatusInfo ::= SEQUENCE {
+ *       status        PKIStatus,
+ *       statusString  PKIFreeText     OPTIONAL,
+ *       failInfo      PKIFailureInfo  OPTIONAL
+ *   }
  */
 struct cmp_pkistatusinfo_st {
     CMP_PKISTATUS *status;
@@ -263,18 +271,14 @@ struct cmp_pkistatusinfo_st {
 } /* CMP_PKISTATUSINFO */;
 DECLARE_ASN1_FUNCTIONS(CMP_PKISTATUSINFO)
 
-/*
-     RevReqContent ::= SEQUENCE OF RevDetails
-
-     RevDetails ::= SEQUENCE {
-             certDetails             CertTemplate,
-             -- allows requester to specify as much as they can about
-             -- the cert. for which revocation is requested
-             -- (e.g., for cases in which serialNumber is not available)
-             crlEntryDetails         Extensions               OPTIONAL
-             -- requested crlEntryExtensions
-     }
-*/
+/*-
+ *  RevReqContent ::= SEQUENCE OF RevDetails
+ *
+ *  RevDetails ::= SEQUENCE {
+ *      certDetails         CertTemplate,
+ *      crlEntryDetails     Extensions       OPTIONAL
+ *  }
+ */
 typedef struct cmp_revdetails_st {
     CRMF_CERTTEMPLATE *certDetails;
     X509_EXTENSIONS *crlEntryDetails;
@@ -282,18 +286,18 @@ typedef struct cmp_revdetails_st {
 DECLARE_ASN1_FUNCTIONS(CMP_REVDETAILS)
 DEFINE_STACK_OF(CMP_REVDETAILS)
 
-/*
-     RevRepContent ::= SEQUENCE {
-             status           SEQUENCE SIZE (1..MAX) OF PKIStatusInfo,
-             -- in same order as was sent in RevReqContent
-             revCerts [0] SEQUENCE SIZE (1..MAX) OF CertId
-                                                                                     OPTIONAL,
-             -- IDs for which revocation was requested
-             -- (same order as status)
-             crls     [1] SEQUENCE SIZE (1..MAX) OF CertificateList
-                                                                                     OPTIONAL
-             -- the resulting CRLs (there may be more than one)
-     }
+/*-
+ *   RevRepContent ::= SEQUENCE {
+ *       status       SEQUENCE SIZE (1..MAX) OF PKIStatusInfo,
+ *       -- in same order as was sent in RevReqContent
+ *       revCerts [0] SEQUENCE SIZE (1..MAX) OF CertId
+ *                                           OPTIONAL,
+ *       -- IDs for which revocation was requested
+ *       -- (same order as status)
+ *       crls     [1] SEQUENCE SIZE (1..MAX) OF CertificateList
+ *                                           OPTIONAL
+ *       -- the resulting CRLs (there may be more than one)
+ *   }
  */
 struct cmp_revrepcontent_st {
     STACK_OF(CMP_PKISTATUSINFO) *status;
@@ -302,14 +306,16 @@ struct cmp_revrepcontent_st {
 } /* CMP_REVREPCONTENT */;
 DECLARE_ASN1_FUNCTIONS(CMP_REVREPCONTENT)
 
-/*
-     KeyRecRepContent ::= SEQUENCE {
-             status                                  PKIStatusInfo,
-             newSigCert                      [0] CMPCertificate OPTIONAL,
-             caCerts                         [1] SEQUENCE SIZE (1..MAX) OF CMPCertificate OPTIONAL,
-             keyPairHist             [2] SEQUENCE SIZE (1..MAX) OF CertifiedKeyPair OPTIONAL
-     }
-*/
+/*-
+ *  KeyRecRepContent ::= SEQUENCE {
+ *      status          PKIStatusInfo,
+ *      newSigCert  [0] Certificate                   OPTIONAL,
+ *      caCerts     [1] SEQUENCE SIZE (1..MAX) OF
+ *                                   Certificate      OPTIONAL,
+ *      keyPairHist [2] SEQUENCE SIZE (1..MAX) OF
+ *                                   CertifiedKeyPair OPTIONAL
+ *   }
+ */
 typedef struct cmp_keyrecrepcontent_st {
     CMP_PKISTATUSINFO *status;
     X509 *newSigCert;
@@ -317,14 +323,14 @@ typedef struct cmp_keyrecrepcontent_st {
     STACK_OF(CMP_CERTIFIEDKEYPAIR) *keyPairHist;
 } CMP_KEYRECREPCONTENT;
 DECLARE_ASN1_FUNCTIONS(CMP_KEYRECREPCONTENT)
-/*
-     ErrorMsgContent ::= SEQUENCE {
-             pKIStatusInfo                  PKIStatusInfo,
-             errorCode                              INTEGER                   OPTIONAL,
-             -- implementation-specific error codes
-             errorDetails                   PKIFreeText               OPTIONAL
-             -- implementation-specific error details
-     }
+/*-
+ *   ErrorMsgContent ::= SEQUENCE {
+ *       pKIStatusInfo          PKIStatusInfo,
+ *       errorCode              INTEGER           OPTIONAL,
+ *       -- implementation-specific error codes
+ *       errorDetails           PKIFreeText       OPTIONAL
+ *       -- implementation-specific error details
+ *   }
  */
 typedef struct cmp_errormsgcontent_st {
     CMP_PKISTATUSINFO *pKIStatusInfo;
@@ -333,17 +339,17 @@ typedef struct cmp_errormsgcontent_st {
 } CMP_ERRORMSGCONTENT;
 DECLARE_ASN1_FUNCTIONS(CMP_ERRORMSGCONTENT)
 
-/*
-     CertConfirmContent ::= SEQUENCE OF CertStatus
-
-     CertStatus ::= SEQUENCE {
-            certHash        OCTET STRING,
-            -- the hash of the certificate, using the same hash algorithm
-            -- as is used to create and verify the certificate signature
-            certReqId       INTEGER,
-            -- to match this confirmation with the corresponding req/rep
-            statusInfo      PKIStatusInfo OPTIONAL
-     }
+/*-
+ *   CertConfirmContent ::= SEQUENCE OF CertStatus
+ *
+ *   CertStatus ::= SEQUENCE {
+ *      certHash    OCTET STRING,
+ *      -- the hash of the certificate, using the same hash algorithm
+ *      -- as is used to create and verify the certificate signature
+ *      certReqId   INTEGER,
+ *      -- to match this confirmation with the corresponding req/rep
+ *      statusInfo  PKIStatusInfo OPTIONAL
+ *   }
  */
 struct cmp_certstatus_st {
     ASN1_OCTET_STRING *certHash;
@@ -354,18 +360,18 @@ DECLARE_ASN1_FUNCTIONS(CMP_CERTSTATUS)
 
 typedef STACK_OF(CMP_CERTSTATUS) CMP_CERTCONFIRMCONTENT;
 
-/*
-     CertResponse ::= SEQUENCE {
-             certReqId                       INTEGER,
-             -- to match this response with corresponding request (a value
-             -- of -1 is to be used if certReqId is not specified in the
-             -- corresponding request)
-             status                          PKIStatusInfo,
-             certifiedKeyPair        CertifiedKeyPair        OPTIONAL,
-             rspInfo                         OCTET STRING            OPTIONAL
-             -- analogous to the id-regInfo-utf8Pairs string defined
-             -- for regInfo in CertReqMsg [CRMF]
-     }
+/*-
+ *   CertResponse ::= SEQUENCE {
+ *       certReqId           INTEGER,
+ *       -- to match this response with corresponding request (a value
+ *       -- of -1 is to be used if certReqId is not specified in the
+ *       -- corresponding request)
+ *       status              PKIStatusInfo,
+ *       certifiedKeyPair    CertifiedKeyPair    OPTIONAL,
+ *       rspInfo             OCTET STRING        OPTIONAL
+ *       -- analogous to the id-regInfo-utf8Pairs string defined
+ *       -- for regInfo in CertReqMsg [CRMF]
+ *   }
  */
 struct cmp_certresponse_st {
     ASN1_INTEGER *certReqId;
@@ -375,12 +381,12 @@ struct cmp_certresponse_st {
 } /* CMP_CERTRESPONSE */;
 DECLARE_ASN1_FUNCTIONS(CMP_CERTRESPONSE)
 
-/*
-     CertRepMessage ::= SEQUENCE {
-             caPubs           [1] SEQUENCE SIZE (1..MAX) OF CMPCertificate
-                                              OPTIONAL,
-             response                 SEQUENCE OF CertResponse
-     }
+/*-
+ *   CertRepMessage ::= SEQUENCE {
+ *       caPubs       [1] SEQUENCE SIZE (1..MAX) OF CMPCertificate
+ *                        OPTIONAL,
+ *       response         SEQUENCE OF CertResponse
+ *   }
  */
 struct cmp_certrepmessage_st {
     STACK_OF(X509) *caPubs;
@@ -388,10 +394,10 @@ struct cmp_certrepmessage_st {
 } /* CMP_CERTREPMESSAGE */;
 DECLARE_ASN1_FUNCTIONS(CMP_CERTREPMESSAGE)
 
-/*
-     PollReqContent ::= SEQUENCE OF SEQUENCE {
-             certReqId                              INTEGER
-     }
+/*-
+ *   PollReqContent ::= SEQUENCE OF SEQUENCE {
+ *         certReqId                              INTEGER
+ *   }
  */
 typedef struct cmp_pollreq_st {
     ASN1_INTEGER *certReqId;
@@ -401,12 +407,12 @@ DEFINE_STACK_OF(CMP_POLLREQ)
 typedef STACK_OF(CMP_POLLREQ) CMP_POLLREQCONTENT;
 DECLARE_ASN1_FUNCTIONS(CMP_POLLREQCONTENT)
 
-/*
-     PollRepContent ::= SEQUENCE OF SEQUENCE {
-             certReqId                              INTEGER,
-             checkAfter                             INTEGER,  -- time in seconds
-             reason                                 PKIFreeText OPTIONAL
-     }
+/*-
+ * PollRepContent ::= SEQUENCE OF SEQUENCE {
+ *         certReqId                              INTEGER,
+ *         checkAfter                             INTEGER,  -- time in seconds
+ *         reason                                 PKIFreeText OPTIONAL
+ * }
  */
 struct cmp_pollrep_st {
     ASN1_INTEGER *certReqId;
@@ -418,41 +424,41 @@ DEFINE_STACK_OF(CMP_POLLREP)
 typedef STACK_OF(CMP_POLLREP) CMP_POLLREPCONTENT;
 DECLARE_ASN1_FUNCTIONS(CMP_POLLREPCONTENT)
 
-/*
-     PKIHeader ::= SEQUENCE {
-             pvno                            INTEGER         { cmp1999(1), cmp2000(2) },
-             sender                          GeneralName,
-             -- identifies the sender
-             recipient                       GeneralName,
-             -- identifies the intended recipient
-             messageTime     [0] GeneralizedTime             OPTIONAL,
-             -- time of production of this message (used when sender
-             -- believes that the transport will be "suitable"; i.e.,
-             -- that the time will still be meaningful upon receipt)
-             protectionAlg   [1] AlgorithmIdentifier         OPTIONAL,
-             -- algorithm used for calculation of protection bits
-             senderKID               [2] KeyIdentifier                       OPTIONAL,
-             recipKID                [3] KeyIdentifier                       OPTIONAL,
-             -- to identify specific keys used for protection
-             transactionID   [4] OCTET STRING                        OPTIONAL,
-             -- identifies the transaction; i.e., this will be the same in
-             -- corresponding request, response, certConf, and PKIConf
-             -- messages
-             senderNonce     [5] OCTET STRING                        OPTIONAL,
-             recipNonce              [6] OCTET STRING                        OPTIONAL,
-             -- nonces used to provide replay protection, senderNonce
-             -- is inserted by the creator of this message; recipNonce
-             -- is a nonce previously inserted in a related message by
-             -- the intended recipient of this message
-             freeText                [7] PKIFreeText                         OPTIONAL,
-             -- this may be used to indicate context-specific instructions
-             -- (this field is intended for human consumption)
-             generalInfo     [8] SEQUENCE SIZE (1..MAX) OF
-                                                            InfoTypeAndValue         OPTIONAL
-             -- this may be used to convey context-specific information
-             -- (this field not primarily intended for human consumption)
-     }
-*/
+/*-
+ * PKIHeader ::= SEQUENCE {
+ *     pvno                INTEGER     { cmp1999(1), cmp2000(2) },
+ *     sender              GeneralName,
+ *     -- identifies the sender
+ *     recipient           GeneralName,
+ *     -- identifies the intended recipient
+ *     messageTime     [0] GeneralizedTime         OPTIONAL,
+ *     -- time of production of this message (used when sender
+ *     -- believes that the transport will be "suitable"; i.e.,
+ *     -- that the time will still be meaningful upon receipt)
+ *     protectionAlg   [1] AlgorithmIdentifier     OPTIONAL,
+ *     -- algorithm used for calculation of protection bits
+ *     senderKID       [2] KeyIdentifier           OPTIONAL,
+ *     recipKID        [3] KeyIdentifier           OPTIONAL,
+ *     -- to identify specific keys used for protection
+ *     transactionID   [4] OCTET STRING            OPTIONAL,
+ *     -- identifies the transaction; i.e., this will be the same in
+ *     -- corresponding request, response, certConf, and PKIConf
+ *     -- messages
+ *     senderNonce     [5] OCTET STRING            OPTIONAL,
+ *     recipNonce      [6] OCTET STRING            OPTIONAL,
+ *     -- nonces used to provide replay protection, senderNonce
+ *     -- is inserted by the creator of this message; recipNonce
+ *     -- is a nonce previously inserted in a related message by
+ *     -- the intended recipient of this message
+ *     freeText        [7] PKIFreeText             OPTIONAL,
+ *     -- this may be used to indicate context-specific instructions
+ *     -- (this field is intended for human consumption)
+ *     generalInfo     [8] SEQUENCE SIZE (1..MAX) OF
+ *                            InfoTypeAndValue     OPTIONAL
+ *     -- this may be used to convey context-specific information
+ *     -- (this field not primarily intended for human consumption)
+ *   }
+ */
 struct cmp_pkiheader_st {
     ASN1_INTEGER *pvno;
     GENERAL_NAME *sender;
@@ -504,36 +510,36 @@ typedef STACK_OF(X509_CRL) CMP_CRLANNCONTENT;
 typedef STACK_OF(CMP_INFOTYPEANDVALUE) CMP_GENMSGCONTENT;
 typedef STACK_OF(CMP_INFOTYPEANDVALUE) CMP_GENREPCONTENT;
 
-/*
-     PKIBody ::= CHOICE {           -- message-specific body elements
-             ir               [0]  CertReqMessages,            --Initialization Request
-             ip               [1]  CertRepMessage,             --Initialization Response
-             cr               [2]  CertReqMessages,            --Certification Request
-             cp               [3]  CertRepMessage,             --Certification Response
-             p10cr    [4]  CertificationRequest,   --imported from [PKCS10]
-             popdecc  [5]  POPODecKeyChallContent, --pop Challenge
-             popdecr  [6]  POPODecKeyRespContent,  --pop Response
-             kur      [7]  CertReqMessages,            --Key Update Request
-             kup      [8]  CertRepMessage,             --Key Update Response
-             krr      [9]  CertReqMessages,            --Key Recovery Request
-             krp      [10] KeyRecRepContent,           --Key Recovery Response
-             rr               [11] RevReqContent,              --Revocation Request
-             rp               [12] RevRepContent,              --Revocation Response
-             ccr      [13] CertReqMessages,            --Cross-Cert. Request
-             ccp      [14] CertRepMessage,             --Cross-Cert. Response
-             ckuann   [15] CAKeyUpdAnnContent,         --CA Key Update Ann.
-             cann     [16] CertAnnContent,             --Certificate Ann.
-             rann     [17] RevAnnContent,              --Revocation Ann.
-             crlann   [18] CRLAnnContent,              --CRL Announcement
-             pkiconf  [19] PKIConfirmContent,          --Confirmation
-             nested   [20] NestedMessageContent,   --Nested Message
-             genm     [21] GenMsgContent,              --General Message
-             genp     [22] GenRepContent,              --General Response
-             error    [23] ErrorMsgContent,            --Error Message
-             certConf [24] CertConfirmContent,         --Certificate confirm
-             pollReq  [25] PollReqContent,             --Polling request
-             pollRep  [26] PollRepContent              --Polling response
-*/
+/*-
+ *   PKIBody ::= CHOICE {           -- message-specific body elements
+ *           ir       [0]  CertReqMessages,            --Initialization Request
+ *           ip       [1]  CertRepMessage,             --Initialization Response
+ *           cr       [2]  CertReqMessages,            --Certification Request
+ *           cp       [3]  CertRepMessage,             --Certification Response
+ *           p10cr    [4]  CertificationRequest,       --imported from [PKCS10]
+ *           popdecc  [5]  POPODecKeyChallContent,     --pop Challenge
+ *           popdecr  [6]  POPODecKeyRespContent,      --pop Response
+ *           kur      [7]  CertReqMessages,            --Key Update Request
+ *           kup      [8]  CertRepMessage,             --Key Update Response
+ *           krr      [9]  CertReqMessages,            --Key Recovery Request
+ *           krp      [10] KeyRecRepContent,           --Key Recovery Response
+ *           rr       [11] RevReqContent,              --Revocation Request
+ *           rp       [12] RevRepContent,              --Revocation Response
+ *           ccr      [13] CertReqMessages,            --Cross-Cert. Request
+ *           ccp      [14] CertRepMessage,             --Cross-Cert. Response
+ *           ckuann   [15] CAKeyUpdAnnContent,         --CA Key Update Ann.
+ *           cann     [16] CertAnnContent,             --Certificate Ann.
+ *           rann     [17] RevAnnContent,              --Revocation Ann.
+ *           crlann   [18] CRLAnnContent,              --CRL Announcement
+ *           pkiconf  [19] PKIConfirmContent,          --Confirmation
+ *           nested   [20] NestedMessageContent,       --Nested Message
+ *           genm     [21] GenMsgContent,              --General Message
+ *           genp     [22] GenRepContent,              --General Response
+ *           error    [23] ErrorMsgContent,            --Error Message
+ *           certConf [24] CertConfirmContent,         --Certificate confirm
+ *           pollReq  [25] PollReqContent,             --Polling request
+ *           pollRep  [26] PollRepContent              --Polling response
+ */
 typedef struct cmp_pkibody_st {
     int type;
     union {
@@ -541,78 +547,78 @@ typedef struct cmp_pkibody_st {
         CMP_CERTREPMESSAGE *ip; /* 1 */
         CRMF_CERTREQMESSAGES *cr; /* 2 */
         CMP_CERTREPMESSAGE *cp; /* 3 */
-        /* p10cr        [4]  CertificationRequest,       --imported from [PKCS10] */
+        /* p10cr      [4]  CertificationRequest,     --imported from [PKCS10] */
         /* PKCS10_CERTIFICATIONREQUEST is effectively X509_REQ so it is used directly */
         X509_REQ *p10cr; /* 4 */
-        /* popdecc      [5]  POPODecKeyChallContent, --pop Challenge */
+        /* popdecc    [5]  POPODecKeyChallContent, --pop Challenge */
         /* POPODecKeyChallContent ::= SEQUENCE OF Challenge */
         CMP_POPODECKEYCHALLCONTENT *popdecc; /* 5 */
-        /* popdecr      [6]  POPODecKeyRespContent,  --pop Response */
+        /* popdecr    [6]  POPODecKeyRespContent,  --pop Response */
         /* POPODecKeyRespContent ::= SEQUENCE OF INTEGER */
         CMP_POPODECKEYRESPCONTENT *popdecr; /* 6 */
         CRMF_CERTREQMESSAGES *kur; /* 7 */
         CMP_CERTREPMESSAGE *kup; /* 8 */
         CRMF_CERTREQMESSAGES *krr; /* 9 */
 
-        /* krp          [10] KeyRecRepContent,           --Key Recovery Response */
+        /* krp        [10] KeyRecRepContent,         --Key Recovery Response */
         CMP_KEYRECREPCONTENT *krp; /* 10 */
-        /* rr           [11] RevReqContent,                      --Revocation Request */
+        /* rr         [11] RevReqContent,            --Revocation Request */
         CMP_REVREQCONTENT *rr; /* 11 */
-        /* rp           [12] RevRepContent,                      --Revocation Response */
+        /* rp         [12] RevRepContent,            --Revocation Response */
         CMP_REVREPCONTENT *rp; /* 12 */
-        /* ccr          [13] CertReqMessages,            --Cross-Cert. Request */
+        /* ccr        [13] CertReqMessages,          --Cross-Cert. Request */
         CRMF_CERTREQMESSAGES *ccr; /* 13 */
-        /* ccp          [14] CertRepMessage,             --Cross-Cert. Response */
+        /* ccp        [14] CertRepMessage,           --Cross-Cert. Response */
         CMP_CERTREPMESSAGE *ccp; /* 14 */
-        /* ckuann       [15] CAKeyUpdAnnContent,         --CA Key Update Ann. */
+        /* ckuann     [15] CAKeyUpdAnnContent,       --CA Key Update Ann. */
         CMP_CAKEYUPDANNCONTENT *ckuann; /* 15 */
-        /* cann         [16] CertAnnContent,             --Certificate Ann. */
+        /* cann       [16] CertAnnContent,           --Certificate Ann. */
         /* CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
         X509 *cann;         /* 16 */
-        /* rann         [17] RevAnnContent,                      --Revocation Ann. */
+        /* rann       [17] RevAnnContent,            --Revocation Ann. */
         CMP_REVANNCONTENT *rann; /* 17 */
-        /* crlann       [18] CRLAnnContent,                      --CRL Announcement */
+        /* crlann     [18] CRLAnnContent,            --CRL Announcement */
         /* CRLAnnContent ::= SEQUENCE OF CertificateList */
         CMP_CRLANNCONTENT *crlann;
         /* PKIConfirmContent ::= NULL */
-        /* pkiconf      [19] PKIConfirmContent,          --Confirmation */
+        /* pkiconf    [19] PKIConfirmContent,        --Confirmation */
         /* CMP_PKICONFIRMCONTENT would be only a typedef of ASN1_NULL */
         /* CMP_CONFIRMCONTENT *pkiconf; */
         /* NOTE: this should ASN1_NULL according to the RFC but there might be a struct in it when sent from faulty servers... */
         ASN1_TYPE *pkiconf; /* 19 */
-        /* nested       [20] NestedMessageContent,       --Nested Message */
+        /* nested     [20] NestedMessageContent,     --Nested Message */
         /* NestedMessageContent ::= PKIMessages */
         CMP_PKIMESSAGES *nested; /* 20 */
-        /* genm         [21] GenMsgContent,                      --General Message */
+        /* genm       [21] GenMsgContent,            --General Message */
         /* GenMsgContent ::= SEQUENCE OF InfoTypeAndValue */
         CMP_GENMSGCONTENT *genm; /* 21 */
-        /* genp         [22] GenRepContent,                      --General Response */
+        /* genp       [22] GenRepContent,            --General Response */
         /* GenRepContent ::= SEQUENCE OF InfoTypeAndValue */
         CMP_GENREPCONTENT *genp; /* 22 */
-        /* error        [23] ErrorMsgContent,            --Error Message */
+        /* error      [23] ErrorMsgContent,          --Error Message */
         CMP_ERRORMSGCONTENT *error; /* 23 */
         /* certConf [24] CertConfirmContent,     --Certificate confirm */
         CMP_CERTCONFIRMCONTENT *certConf; /* 24 */
-        /* pollReq      [25] PollReqContent,             --Polling request */
+        /* pollReq    [25] PollReqContent,           --Polling request */
         CMP_POLLREQCONTENT *pollReq;
-        /* pollRep      [26] PollRepContent                      --Polling response */
+        /* pollRep    [26] PollRepContent            --Polling response */
         CMP_POLLREPCONTENT *pollRep;
     } value;
 } CMP_PKIBODY;
 DECLARE_ASN1_FUNCTIONS(CMP_PKIBODY)
 
-/*
-     PKIProtection ::= BIT STRING
-
-     PKIMessages ::= SEQUENCE SIZE (1..MAX) OF PKIMessage
-
-      PKIMessage ::= SEQUENCE {
-             header                   PKIHeader,
-             body                     PKIBody,
-             protection   [0] PKIProtection OPTIONAL,
-             extraCerts   [1] SEQUENCE SIZE (1..MAX) OF CMPCertificate
-                                              OPTIONAL
-     }
+/*-
+ *   PKIProtection ::= BIT STRING
+ *
+ *   PKIMessages ::= SEQUENCE SIZE (1..MAX) OF PKIMessage
+ *
+ *    PKIMessage ::= SEQUENCE {
+ *           header           PKIHeader,
+ *           body             PKIBody,
+ *           protection   [0] PKIProtection OPTIONAL,
+ *           extraCerts   [1] SEQUENCE SIZE (1..MAX) OF CMPCertificate
+ *                                            OPTIONAL
+ *   }
  */
 struct cmp_pkimessage_st {
     CMP_PKIHEADER *header;
@@ -623,73 +629,74 @@ struct cmp_pkimessage_st {
 } /* CMP_PKIMESSAGE */;
 DECLARE_ASN1_FUNCTIONS(CMP_PKIMESSAGE)
 
-    /*
-       ProtectedPart ::= SEQUENCE {
-       header    PKIHeader,
-       body      PKIBody
-       }
-     */
+/*-
+ * ProtectedPart ::= SEQUENCE {
+ * header    PKIHeader,
+ * body      PKIBody
+ * }
+ */
 typedef struct cmp_protectedpart_st {
     CMP_PKIHEADER *header;
     CMP_PKIBODY *body;
 } CMP_PROTECTEDPART;
 DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
 
-/* this is not defined here as it is already in CRMF:
-     id-PasswordBasedMac OBJECT IDENTIFIER ::= {1 2 840 113533 7 66 13}
-     PBMParameter ::= SEQUENCE {
-             salt                            OCTET STRING,
-             -- note:  implementations MAY wish to limit acceptable sizes
-             -- of this string to values appropriate for their environment
-             -- in order to reduce the risk of denial-of-service attacks
-             owf                             AlgorithmIdentifier,
-             -- AlgId for a One-Way Function (SHA-1 recommended)
-             iterationCount          INTEGER,
-             -- number of times the OWF is applied
-             -- note:  implementations MAY wish to limit acceptable sizes
-             -- of this integer to values appropriate for their environment
-             -- in order to reduce the risk of denial-of-service attacks
-             mac                             AlgorithmIdentifier
-             -- the MAC AlgId (e.g., DES-MAC, Triple-DES-MAC [PKCS11],
-     }       -- or HMAC [RFC2104, RFC2202])
+/*-
+ *  this is not defined here as it is already in CRMF:
+ *   id-PasswordBasedMac OBJECT IDENTIFIER ::= {1 2 840 113533 7 66 13}
+ *   PBMParameter ::= SEQUENCE {
+ *           salt                OCTET STRING,
+ *           -- note:  implementations MAY wish to limit acceptable sizes
+ *           -- of this string to values appropriate for their environment
+ *           -- in order to reduce the risk of denial-of-service attacks
+ *           owf                 AlgorithmIdentifier,
+ *           -- AlgId for a One-Way Function (SHA-1 recommended)
+ *           iterationCount      INTEGER,
+ *           -- number of times the OWF is applied
+ *           -- note:  implementations MAY wish to limit acceptable sizes
+ *           -- of this integer to values appropriate for their environment
+ *           -- in order to reduce the risk of denial-of-service attacks
+ *           mac                 AlgorithmIdentifier
+ *           -- the MAC AlgId (e.g., DES-MAC, Triple-DES-MAC [PKCS11],
+ *   }       -- or HMAC [RFC2104, RFC2202])
  */
-/*
-    TODO: this is not yet defined here - but DH is anyway not used yet
-
-     id-DHBasedMac OBJECT IDENTIFIER ::= {1 2 840 113533 7 66 30}
-     DHBMParameter ::= SEQUENCE {
-             owf                             AlgorithmIdentifier,
-             -- AlgId for a One-Way Function (SHA-1 recommended)
-             mac                             AlgorithmIdentifier
-             -- the MAC AlgId (e.g., DES-MAC, Triple-DES-MAC [PKCS11],
-     }       -- or HMAC [RFC2104, RFC2202])
-
+/*-
+ *  TODO: this is not yet defined here - but DH is anyway not used yet
+ *
+ *   id-DHBasedMac OBJECT IDENTIFIER ::= {1 2 840 113533 7 66 30}
+ *   DHBMParameter ::= SEQUENCE {
+ *           owf                 AlgorithmIdentifier,
+ *           -- AlgId for a One-Way Function (SHA-1 recommended)
+ *           mac                 AlgorithmIdentifier
+ *           -- the MAC AlgId (e.g., DES-MAC, Triple-DES-MAC [PKCS11],
+ *   }       -- or HMAC [RFC2104, RFC2202])
  */
-/* The following is not cared for, because it is described in section 5.2.5
+/*-
+ * The following is not cared for, because it is described in section 5.2.5
  * that this is beyond the scope of CMP
-     OOBCert ::= CMPCertificate
-
-     OOBCertHash ::= SEQUENCE {
-             hashAlg         [0] AlgorithmIdentifier         OPTIONAL,
-             certId          [1] CertId                                      OPTIONAL,
-             hashVal                 BIT STRING
-             -- hashVal is calculated over the DER encoding of the
-             -- self-signed certificate with the identifier certID.
-     }
+ *   OOBCert ::= CMPCertificate
+ *
+ *   OOBCertHash ::= SEQUENCE {
+ *           hashAlg         [0] AlgorithmIdentifier         OPTIONAL,
+ *           certId          [1] CertId                      OPTIONAL,
+ *           hashVal             BIT STRING
+ *           -- hashVal is calculated over the DER encoding of the
+ *           -- self-signed certificate with the identifier certID.
+ *   }
  */
 
-/* ########################################################################## *
+/*
  * constants
- * ########################################################################## */
+ */
 
 /* certReqId for the first - and so far only - certificate request */
 # define CERTREQID 0L
 /* sequence id for the first - and so far only - revocation request */
 # define REVREQSID 0L
 
-/* ########################################################################## *
+/*
  * functions
- * ########################################################################## */
+ */
 
 /* from cmp_ses.c */
 int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt);
