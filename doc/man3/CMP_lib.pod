@@ -33,7 +33,7 @@
   CMP_PKISTATUSINFO_snprint,
   CMP_PKIMESSAGE_set_bodytype,
   CMP_PKIMESSAGE_set_implicitConfirm,
-  CMP_calc_protection_pbmac,
+  CMP_calc_protection,
   CMP_PKIMESSAGE_protect,
   CMP_PKIMESSAGE_add_extraCerts,
   CMP_ITAV_new,
@@ -86,8 +86,9 @@
   char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
   int CMP_PKIMESSAGE_set_bodytype( CMP_PKIMESSAGE *msg, int type);
   int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
-  ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
-                                             const ASN1_OCTET_STRING *secret);
+  ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *msg,
+                                             const ASN1_OCTET_STRING *secret,
+                                             const EVP_PKEY *pkey);
   int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
@@ -214,7 +215,10 @@ the PKIMessage body field.
 CMP_PKIMESSAGE_set_implicitConfirm() sets implicitConfirm in the
 generalInfo field of the header.
 
-CMP_calc_protection_pbmac() calculates the PBMAC protection for given B<PKImessage> utilizing the given B<secret>.
+CMP_calc_protection()
+calculates the protection for given PKImessage utilizing the given credentials
+and the algorithm parameters set inside the message header's protectionAlg.
+Does PBMAC in case B<secret> is non-NULL and signature using B<pkey> otherwise.
 
 CMP_PKIMESSAGE_protect() protects the given message deciding on the algorithm
 depending on the available context information:  If there is a secretValue it
