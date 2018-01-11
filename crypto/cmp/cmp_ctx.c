@@ -1118,15 +1118,13 @@ int CMP_CTX_set1_recipNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce)
     return 0;
 }
 
-/* ################################################################ *
+/*
  * stores the given nonce as the last senderNonce sent out
  * returns 1 on success, 0 on error
- * ################################################################ */
+ */
 int CMP_CTX_set1_last_snonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce)
 {
-    if (!ctx)
-        goto err;
-    if (!nonce)
+    if (ctx == NULL || nonce == NULL)
         goto err;
 
     return CMP_ASN1_OCTET_STRING_set1(&ctx->last_snonce, nonce);

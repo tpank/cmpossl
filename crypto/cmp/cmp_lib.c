@@ -470,7 +470,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
     if (!set1_aostr_else_random(&hdr->senderNonce, NULL, SENDERNONCE_LENGTH))
         goto err;
 
-    /* store senderNonce - for cmp with recipNonce in next incoming msg */
+    /* store senderNonce - for cmp with recipNonce in next outgoing msg */
     CMP_CTX_set1_last_snonce(ctx, hdr->senderNonce);
 
 #if 0
@@ -1648,15 +1648,16 @@ STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store)
 /* ########################################################################## *
  * Checks received message (i.e., response by server or request from client)
  *
- * Ensures that.
+ * Ensures that:
  * it has a valid body type,
- * its protection is valid, or absent (allowed only if callback fn is
+ * its protection is valid or absent (allowed only if callback function is
  * present and function yields positive result using also supplied argument),
  * its transaction ID matches stored in ctx (if any),
  * and its recipNonce matches the senderNonce in ctx.
  *
- * Learns the senderNonce from the received message, and if not yet in ctx also
- * the transaction ID.
+ * If everything is fine:
+ * learns the senderNonce from the received message,
+ * learns the transaction ID if it is not yet in ctx.
  *
  * returns body type (which is >= 0) of the message on success, -1 on error
  * ########################################################################## */

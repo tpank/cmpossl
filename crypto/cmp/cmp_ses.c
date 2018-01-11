@@ -248,7 +248,7 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                  rcvd_type == V_CMP_PKIBODY_KUP))) {
         CMPerr(CMP_F_SEND_RECEIVE_CHECK, rcvd_type == V_CMP_PKIBODY_ERROR ?
                 CMP_R_RECEIVED_ERROR :
-                CMP_R_UNEXPECTED_PKIBODY); /* in next line for err script */
+                CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
         message_add_error_data(*rep);
         return 0;
     }
@@ -303,8 +303,8 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
             CMP_printf(ctx,
-                       "INFO: Received polling response, waiting checkAfter =  %ld sec before next polling request.",
-                       checkAfter);
+                       "INFO: Received polling response, waiting checkAfter = "
+                       "%ld sec before next polling request.", checkAfter);
 
             if (ctx->maxPollTime != 0) { /* timeout is set in context */
                 if (maxTimeLeft == 0)
