@@ -393,7 +393,7 @@ CMP_CTX_set0_reqExtensions() sets the X.509v3 extensions to be used in IR/CR/KUR
 CMP_CTX_set_msg_transfer() sets the message transfer callback function used for
 sending CMP requests and receiving responses. Default is CMP_PKIMESSAGE_http_perform().
 The function given as argument must have type
-int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **res);
+int (*cmp_transfer_fn_t) (CMP_CTX *ctx, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **res);
 This function should send the PKIMessage req and on success place the response in *res.
 On success it must return 0, else a CMP error reason code defined in cmp.h.
 

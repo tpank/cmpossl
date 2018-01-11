@@ -16,6 +16,9 @@
   CMP_PKIHEADER_push0_freeText,
   CMP_PKIHEADER_push1_freeText,
   CMP_PKIMESSAGE_get0_header,
+  CMP_PKIHEADER_get0_transactionID,
+  CMP_PKIHEADER_get0_senderNonce,
+  CMP_PKIHEADER_get0_recipNonce,
   CMP_PKIHEADER_init,
   CMP_PKIHEADER_set1_recipient,
   CMP_PKIHEADER_set1_sender,
@@ -40,7 +43,6 @@
   CMP_CERTRESPONSE_get_certificate,
   CMP_build_cert_chain,
   CMP_PKIMESSAGE_check_received,
-  CMP_PKIMESSAGE_adapt_senderNonce_transactionID,
   CMP_ASN1_OCTET_STRING_set1,
   CMP_sk_X509_add1_cert,
   CMP_sk_X509_add1_certs,
@@ -66,6 +68,9 @@
   int CMP_PKIHEADER_push0_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
   int CMP_PKIHEADER_push1_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
   CMP_PKIHEADER *CMP_PKIMESSAGE_get0_header(const CMP_PKIMESSAGE *msg);
+  ASN1_OCTET_STRING *CMP_PKIHEADER_get0_transactionID(const CMP_PKIHEADER *hdr);
+  ASN1_OCTET_STRING *CMP_PKIHEADER_get0_senderNonce(const CMP_PKIHEADER *hdr);
+  ASN1_OCTET_STRING *CMP_PKIHEADER_get0_recipNonce(const CMP_PKIHEADER *hdr);
   int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr);
   int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
   int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm);
@@ -95,8 +100,6 @@
                                     const CMP_PKIMESSAGE *msg, int callback_arg,
                                     int (*allow_unprotected)(const CMP_CTX *,
                                     int, const CMP_PKIMESSAGE *));
-  int CMP_PKIMESSAGE_adapt_senderNonce_transactionID(CMP_PKIMESSAGE *msg,
-                                                     const CMP_PKIMESSAGE *src);
   int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                  const ASN1_OCTET_STRING *src);
   int CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert, int not_duplicate);
@@ -158,6 +161,12 @@ CMP_PKIHEADER_push1_freeText() pushes an ASN1_UTF8STRING to
 hdr->freeText and does not consume the pointer.
 
 CMP_PKIMESSAGE_get0_header returns the header of the given CMP message.
+
+CMP_PKIHEADER_get0_transactionID returns the transaction ID of the given PKIHeader.
+
+CMP_PKIHEADER_get0_senderNonce returns the sender nonce of the given PKIHeader.
+
+CMP_PKIHEADER_get0_recipNonce returns the recipient nonce of the given PKIHeader.
 
 CMP_PKIHEADER_init() initializes a PKIHeader structure based on the
 values in the given CMP_CTX structure.
@@ -242,10 +251,6 @@ its recipNonce matches the senderNonce of the previous message (if any).
 If so, learns from the message received the senderNonce
        and the transaction ID if not yet present in the ctx.
 It returns the body type (which is >= 0) of the message on success, -1 on error.
-
-CMP_PKIMESSAGE_adapt_senderNonce_transactionID() copies the recipNonce of the
-src to the senderNonce of the msg and copies the transactionID from src to msg.
-It returns 1 on success, 0 on error.
 
 CMP_ASN1_OCTET_STRING_set1() frees any previous value of the variable referenced
 via the first argument and assigns either a copy of the string given as the

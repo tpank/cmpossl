@@ -818,13 +818,13 @@ static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
  * to dump the sequence of requests and responses to files and/or
  * to take the sequence of requests and responses from files.
  * ########################################################################## */
-static int read_write_req_resp(const CMP_CTX *ctx,
-          /* not const if opt_reqin or opt_respin */const CMP_PKIMESSAGE *req,
-                               CMP_PKIMESSAGE **res)
+static int read_write_req_resp(CMP_CTX *ctx,
+                               const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **res)
 {
     CMP_PKIMESSAGE *req_new = NULL;
-
+    CMP_PKIHEADER *hdr;
     int ret = CMP_R_ERROR_TRANSFERRING_OUT;
+
     if (req && opt_reqout &&
         !write_PKIMESSAGE(req, &opt_reqout))
         goto err;
@@ -859,10 +859,12 @@ static int read_write_req_resp(const CMP_CTX *ctx,
     if (ret || !(*res))
         goto err;
     ret = CMP_R_OUT_OF_MEMORY;
+    hdr = CMP_PKIMESSAGE_get0_header(*res);
     if ((opt_reqin || opt_respin) &&
         /* need to satisfy nonce and transactionID checks */
-        !CMP_PKIMESSAGE_adapt_senderNonce_transactionID((CMP_PKIMESSAGE *)req,
-                                                       *res))
+        (!CMP_CTX_set1_last_snonce(ctx, CMP_PKIHEADER_get0_recipNonce(hdr)) ||
+         !CMP_CTX_set1_transactionID(ctx, CMP_PKIHEADER_get0_transactionID(hdr))
+        ))
         goto err;
 
     if (opt_respout &&

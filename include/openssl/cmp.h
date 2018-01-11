@@ -307,7 +307,7 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
 typedef void (*cmp_logfn_t) (const char *msg);
 typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, const X509 *cert, int failure,
                                  const char **txt);
-typedef int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
+typedef int (*cmp_transfer_fn_t) (CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                                   CMP_PKIMESSAGE **res);
 typedef STACK_OF(ASN1_UTF8STRING) CMP_PKIFREETEXT;
 
@@ -336,6 +336,9 @@ void    CMP_add_error_txt(const char *separator, const char *txt);
 # define TRANSACTIONID_LENGTH 16
 # define SENDERNONCE_LENGTH 16
 CMP_PKIHEADER *CMP_PKIMESSAGE_get0_header(const CMP_PKIMESSAGE *msg);
+ASN1_OCTET_STRING *CMP_PKIHEADER_get0_transactionID(const CMP_PKIHEADER *hdr);
+ASN1_OCTET_STRING *CMP_PKIHEADER_get0_senderNonce(const CMP_PKIHEADER *hdr);
+ASN1_OCTET_STRING *CMP_PKIHEADER_get0_recipNonce(const CMP_PKIHEADER *hdr);
 int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
 int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
@@ -397,8 +400,6 @@ STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
 int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
         int callback_arg,
         int (*allow_unprotected)(const CMP_CTX *, int, const CMP_PKIMESSAGE *));
-int CMP_PKIMESSAGE_adapt_senderNonce_transactionID(CMP_PKIMESSAGE *msg,
-                                                   const CMP_PKIMESSAGE *src);
 
 int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                const ASN1_OCTET_STRING *src);
@@ -426,7 +427,7 @@ int bio_connect(BIO *bio, int timeout);
 # if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
 int bio_http(BIO *bio, OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time);
-int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
+int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx,
                                 const CMP_PKIMESSAGE *msg,
                                 CMP_PKIMESSAGE **out);
 # endif

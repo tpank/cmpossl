@@ -8,7 +8,7 @@
 
  #include <openssl/cmp.h>
 
- int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
+ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx,
                                  const CMP_PKIMESSAGE *req,
                                  CMP_PKIMESSAGE **res);
 

@@ -166,6 +166,24 @@ CMP_PKIHEADER *CMP_PKIMESSAGE_get0_header(const CMP_PKIMESSAGE *msg)
     return msg->header;
 }
 
+/* returns the transactionID of the given PKIHeader or NULL on error */
+ASN1_OCTET_STRING *CMP_PKIHEADER_get0_transactionID(const CMP_PKIHEADER *hdr)
+{
+    return hdr == NULL ? NULL : hdr->transactionID;
+}
+
+/* returns the senderNonce of the given PKIHeader or NULL on error */
+ASN1_OCTET_STRING *CMP_PKIHEADER_get0_senderNonce(const CMP_PKIHEADER *hdr)
+{
+    return hdr == NULL ? NULL : hdr->senderNonce;
+}
+
+/* returns the recipNonce of the given PKIHeader or NULL on error */
+ASN1_OCTET_STRING *CMP_PKIHEADER_get0_recipNonce(const CMP_PKIHEADER *hdr)
+{
+    return hdr == NULL ? NULL : hdr->recipNonce;
+}
+
 /* ########################################################################## *
  * Sets the protocol version number in PKIHeader.
  * returns 1 on success, 0 on error
@@ -1725,20 +1743,4 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
         return -1;
 
     return rcvd_type;
-}
-
-/* ########################################################################## *
- * copy src->recipNonce to msg->senderNonce and copy transactionID to msg
- *
- * This code is exclusively used for testing.
- *
- * returns 1 on success, 0 on error
- * ########################################################################## */
-int CMP_PKIMESSAGE_adapt_senderNonce_transactionID(CMP_PKIMESSAGE *msg,
-                                                   const CMP_PKIMESSAGE *src)
-{
-    return CMP_ASN1_OCTET_STRING_set1(&msg->header->senderNonce,
-                                      src->header->recipNonce)
-        && CMP_ASN1_OCTET_STRING_set1(&msg->header->transactionID,
-                                      src->header->transactionID);
 }
