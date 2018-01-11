@@ -41,7 +41,6 @@ struct cmp_ctx_st {
                             cert template as the subjectAltName extension */
     CERTIFICATEPOLICIES *policies; /* policies to be included in extensions */
     X509_EXTENSIONS *reqExtensions; /* exts to be added to cert template */
-    ASN1_UTF8STRING *regToken; /* for setting itav for EJBCA in CA mode */
     STACK_OF(X509) *extraCertsOut; /* to be included in PKI messages */
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
     STACK_OF(X509) *caPubs; /* CA certs received from server (in IP message) */
