@@ -257,7 +257,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->failInfoCode = 0;
 
     ctx->error_cb = NULL;
-    ctx->debug_cb = (cmp_logfn_t) puts;
+    ctx->debug_cb = (cmp_log_cb_t) puts;
     ctx->certConf_cb = NULL;
     ctx->trusted_store = X509_STORE_new();
     ctx->untrusted_certs = sk_X509_new_null();
@@ -274,7 +274,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->proxyPort = 8080;
     ctx->msgTimeOut = 2 * 60;
     ctx->tlsBIO = NULL;
-    ctx->msg_transfer_fn =
+    ctx->transfer_cb =
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
         CMP_PKIMESSAGE_http_perform;
 #else
@@ -360,7 +360,7 @@ CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx)
  * it be rejected.
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set_certConf_callback(CMP_CTX *ctx, cmp_certConfFn_t cb)
+int CMP_CTX_set_certConf_cb(CMP_CTX *ctx, cmp_certConf_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
@@ -374,7 +374,7 @@ int CMP_CTX_set_certConf_callback(CMP_CTX *ctx, cmp_certConfFn_t cb)
  * Set a callback function which will receive debug messages.
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set_error_callback(CMP_CTX *ctx, cmp_logfn_t cb)
+int CMP_CTX_set_error_cb(CMP_CTX *ctx, cmp_log_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
@@ -388,7 +388,7 @@ int CMP_CTX_set_error_callback(CMP_CTX *ctx, cmp_logfn_t cb)
  * Set a callback function which will receive error messages.
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set_debug_callback(CMP_CTX *ctx, cmp_logfn_t cb)
+int CMP_CTX_set_debug_cb(CMP_CTX *ctx, cmp_log_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
@@ -1247,11 +1247,11 @@ BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx)
  * Set callback function for sending CMP request and receiving response.
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set_msg_transfer(CMP_CTX *ctx, cmp_transfer_fn_t cb)
+int CMP_CTX_set_transfer_cb(CMP_CTX *ctx, cmp_transfer_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
-    ctx->msg_transfer_fn = cb;
+    ctx->transfer_cb = cb;
     return 1;
  err:
     return 0;
@@ -1453,7 +1453,7 @@ void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...) {
  * ERR_print_errors_cb() to the ctx->error_cb() function set by the user
  * returns always 1
  */
-int CMP_CTX_error_callback(const char *str, size_t len, void *u) {
+int CMP_CTX_error_cb(const char *str, size_t len, void *u) {
     CMP_CTX *ctx = (CMP_CTX *)u;
     if (ctx && ctx->error_cb)
         ctx->error_cb(str);

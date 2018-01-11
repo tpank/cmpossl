@@ -40,8 +40,8 @@
  CMP_CTX_get0_trustedStore,
  CMP_CTX_set1_untrusted_certs,
  CMP_CTX_get0_untrusted_certs,
- CMP_CTX_set_error_callback,
- CMP_CTX_set_debug_callback,
+ CMP_CTX_set_error_cb,
+ CMP_CTX_set_debug_cb,
  CMP_printf,
 
  CMP_CTX_status_get,
@@ -59,8 +59,8 @@
  CMP_CTX_set1_serverPath,
  CMP_CTX_set_serverPort,
  CMP_CTX_set0_reqExtensions,
- CMP_CTX_set_msg_transfer,
- CMP_CTX_set_certConf_callback,
+ CMP_CTX_set_transfer_cb,
+ CMP_CTX_set_certConf_cb,
  CMP_CTX_subjectAltName_push1
 
 =head1 SYNOPSIS
@@ -113,9 +113,9 @@
  int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, const STACK_OF(X509) *store);
  STACK_OF(X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
 
- typedef void (*cmp_logfn_t) (const char *msg);
- int CMP_CTX_set_error_callback(CMP_CTX *ctx, cmp_logfn_t cb);
- int CMP_CTX_set_debug_callback(CMP_CTX *ctx, cmp_logfn_t cb);
+ typedef void (*cmp_log_cb_t) (const char *msg);
+ int CMP_CTX_set_error_cb(CMP_CTX *ctx, cmp_log_cb_t cb);
+ int CMP_CTX_set_debug_cb(CMP_CTX *ctx, cmp_log_cb_t cb);
 
  void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
 
@@ -135,11 +135,13 @@
  int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
  int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
 
- typedef int (*cmp_transfer_fn_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req, CMP_PKIMESSAGE **res);
- int CMP_CTX_set_msg_transfer(CMP_CTX *ctx, cmp_transfer_fn_t cb);
+ typedef int (*cmp_transfer_cb_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
+                                   CMP_PKIMESSAGE **res);
+ int CMP_CTX_set_transfer_cb(CMP_CTX *ctx, cmp_transfer_cb_t cb);
 
- typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, const X509 *cert, int failure, const char **txt);
- int CMP_CTX_set_certConf_callback(CMP_CTX *ctx, cmp_certConfFn_t cb);
+ typedef int (*cmp_certConf_cb_t) (CMP_CTX *ctx, const X509 *cert, int failure,
+                                   const char **txt);
+ int CMP_CTX_set_certConf_cb(CMP_CTX *ctx, cmp_certConf_cb_t cb);
 
  int CMP_CTX_subjectAltName_push1(CMP_CTX *ctx, const GENERAL_NAME *name);
 
@@ -187,8 +189,8 @@ is also used as sender of the PKI message.
 CMP_CTX_set1_issuer() sets the name of the intended issuer that
 will be set in the CertTemplate, i.e., the X509 name of the CA server.
 
-CMP_CTX_set1_newClCert() sets the given (newly obtained) Client
-Certificate in the given CMP_CTX structure.
+CMP_CTX_set1_newClCert() sets the given (newly enrolle) client certificate
+in the given CMP_CTX structure.
 
 CMP_CTX_get0_newClCert() returns a pointer to the last enrolled certificate.
 
@@ -347,11 +349,11 @@ in CMP server authentication.
 CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx) returns a pointer to the list of
 untrusted certs.
 
-CMP_CTX_set_error_callback() sets the callback for receiving error messages to
-B<cb>.
+CMP_CTX_set_error_cb() sets the callback for receiving error messages.
+The callback obtains the error string via the B<msg> parameter.
 
-CMP_CTX_set_debug_callback() sets a callback for receiving debug messages to
-B<cb>.
+CMP_CTX_set_debug_cb() sets the callback for receiving debug messages.
+The callback obtains the debug string via the B<msg> parameter.
 
 CMP_printf() is used for printing debug messages if debug_cb is set
 (CMP_CTX_init defaults to puts()).
@@ -397,21 +399,24 @@ CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
 CMP_CTX_set0_reqExtensions() sets the X.509v3 extensions to be used in IR/CR/KUR
 
-CMP_CTX_set_msg_transfer() sets the message transfer callback function to B<cb>.
+CMP_CTX_set_transfer_cb() sets the message transfer callback function.
 Default is CMP_PKIMESSAGE_http_perform().
-This function sends the request PKIMessage and on success places the response in *res.
+The callback should send the CMP request it obtains via the B<req> parameter
+and on success place the response in the B<*res> output parameter.
 On success it must return 0, else a CMP error reason code defined in cmp.h.
 
-CMP_CTX_set_certConf_callback() sets the callback for evaluating
-evaluate the newly enrolled certificate received from the server to B<cb>.
-The callback may overrule the pre-decision given in 'failure' and '*txt' parameter.
-If it accepts the certificate the callback must return -1 (indicating success).
-Else a bit number <= CMP_PKIFAILUREINFO_MAX indicates failure, and the txt
-output parameter may be set to point to a constant string with more detail.
+CMP_CTX_set_certConf_cb() sets the callback used for evaluating the newly
+enrolled certificate before the library sends, depending on its result,
+a positive or negative certConf messge to the server. The callback should
+inspect the certificate it obtains via the B<cert> parameter and may
+overrule the pre-decision given in the B<failure> and B<*txt> parameters.
+If it accepts the certificate it must return -1, indicating success. Else it
+must return a bit number <= CMP_PKIFAILUREINFO_MAX indicating failure and may
+set the B<*txt> output parameter to point to a string constant with more detail.
 Typically, the callback will check at least that the certificate can be verified
 using a set of trusted certificates.
-It also might compare the subject and other fields of the newly
-enrolled cert with the certificate template of the request.
+It also could compare the subject DN and other fields of the newly
+enrolled certificate with the certificate template of the request.
 
 CMP_CTX_subjectAltName_push1() adds the given X509 name to the list of
 alternate names on the certificate template request.  If this is done,
@@ -470,7 +475,7 @@ none as well as on error.
 CMP_CTX_failInfoCode_get() returns the failinfo error code bits in context as
 returns bitstring in ulong on success, -1 on error.
 
-CMP_CTX_error_callback() always returns 1.
+CMP_CTX_error_cb() always returns 1.
 
 All other functions return 1 on success, 0 on error.
 

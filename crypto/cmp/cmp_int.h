@@ -93,9 +93,9 @@ struct cmp_ctx_st {
     /* TODO: this should be a stack since there could be more than one */
     unsigned long failInfoCode; /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
-    cmp_logfn_t error_cb, debug_cb;/* log callback fns for error/debug output */
-    cmp_certConfFn_t certConf_cb;  /* callback for letting the user check
-       the received certificate and reject if necessary */
+    cmp_log_cb_t error_cb, debug_cb;/* log callbacks for error/debug output */
+    cmp_certConf_cb_t certConf_cb;   /* callback for letting the user check
+                           the received certificate and reject if necessary */
     X509_STORE *trusted_store;    /* store for trusted (root) certificates and
                                      possibly CRLs and cert verify callback */
     STACK_OF(X509) *untrusted_certs;  /* untrusted (intermediate) certs */
@@ -109,7 +109,7 @@ struct cmp_ctx_st {
     int msgTimeOut; /* maximum time in seconds to wait for
                        each CMP message round trip to complete */
     BIO *tlsBIO;
-    cmp_transfer_fn_t msg_transfer_fn;
+    cmp_transfer_cb_t transfer_cb;
 } /* CMP_CTX */;
 DECLARE_ASN1_FUNCTIONS(CMP_CTX)
 

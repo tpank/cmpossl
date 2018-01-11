@@ -308,10 +308,10 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
 /*
  * context DECLARATIONS
  */
-typedef void (*cmp_logfn_t) (const char *msg);
-typedef int (*cmp_certConfFn_t) (CMP_CTX *ctx, const X509 *cert, int failure,
+typedef void (*cmp_log_cb_t) (const char *msg);
+typedef int (*cmp_certConf_cb_t) (CMP_CTX *ctx, const X509 *cert, int failure,
                                  const char **txt);
-typedef int (*cmp_transfer_fn_t) (CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
+typedef int (*cmp_transfer_cb_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                                   CMP_PKIMESSAGE **res);
 typedef STACK_OF(ASN1_UTF8STRING) CMP_PKIFREETEXT;
 
@@ -475,9 +475,9 @@ int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
 STACK_OF(X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
 int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, const STACK_OF(X509) *certs);
 void CMP_CTX_delete(CMP_CTX *ctx);
-int CMP_CTX_set_error_callback(CMP_CTX *ctx, cmp_logfn_t cb);
-int CMP_CTX_set_debug_callback(CMP_CTX *ctx, cmp_logfn_t cb);
-int CMP_CTX_set_certConf_callback(CMP_CTX *ctx, cmp_certConfFn_t cb);
+int CMP_CTX_set_error_cb(CMP_CTX *ctx, cmp_log_cb_t cb);
+int CMP_CTX_set_debug_cb(CMP_CTX *ctx, cmp_log_cb_t cb);
+int CMP_CTX_set_certConf_cb(CMP_CTX *ctx, cmp_certConf_cb_t cb);
 int CMP_CTX_set1_referenceValue(CMP_CTX *ctx, const unsigned char *ref,
                                 size_t len);
 int CMP_CTX_set1_secretValue(CMP_CTX *ctx, const unsigned char *sec,
@@ -523,7 +523,7 @@ int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name);
 int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio);
 BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx);
-int CMP_CTX_set_msg_transfer(CMP_CTX *ctx, cmp_transfer_fn_t cb);
+int CMP_CTX_set_transfer_cb(CMP_CTX *ctx, cmp_transfer_cb_t cb);
 int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
 int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
 int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo);
@@ -548,7 +548,7 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val);
 int CMP_CTX_push_freeText(CMP_CTX *ctx, const char *text);
 # endif
 
-int CMP_CTX_error_callback(const char *str, size_t len, void *u);
+int CMP_CTX_error_cb(const char *str, size_t len, void *u);
 void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
 
 /* BIO definitions */

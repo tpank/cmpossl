@@ -214,8 +214,8 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     int err, rcvd_type;
 
     CMP_printf(ctx, "INFO: Sending %s", type_string);
-    if (ctx->msg_transfer_fn)
-        err = (ctx->msg_transfer_fn)(ctx, req, rep);
+    if (ctx->transfer_cb != NULL)
+        err = (ctx->transfer_cb)(ctx, req, rep);
         /* may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
          *                 or CMP_R_ERROR_TRANSFERRING_IN
          * DO NOT DELETE the two error reason codes in this comment, they are
@@ -666,7 +666,7 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
 
     /* print out openssl and cmp errors to error_cb if it's set */
     if (result == NULL && ctx->error_cb)
-        ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
+        ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
     return result;
 }
 
@@ -759,7 +759,7 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
             OPENSSL_free(tempbuf);
         }
         if (ctx->error_cb)
-            ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
+            ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
     }
     CMP_PKIMESSAGE_free(rr);
     CMP_PKIMESSAGE_free(rp);
@@ -827,6 +827,6 @@ STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx)
     /* print out openssl and cmp errors to error_cb if it's set */
     /* TODO: verify that !recv_itavs is necessarily an error */
     if (rcvd_itavs == NULL && ctx && ctx->error_cb)
-        ERR_print_errors_cb(CMP_CTX_error_callback, (void *)ctx);
+        ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
     return rcvd_itavs;
 }

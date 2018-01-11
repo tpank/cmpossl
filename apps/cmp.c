@@ -2876,7 +2876,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MAXPOLLTIME, opt_maxpolltime);
 
     if (opt_out_trusted)
-        (void)CMP_CTX_set_certConf_callback(ctx, certConf_cb);
+        (void)CMP_CTX_set_certConf_cb(ctx, certConf_cb);
 
 #ifndef NDEBUG
     if (opt_reqin || opt_reqout || opt_respin || opt_respout)
