@@ -197,10 +197,12 @@ static int opt_crl_timeout = 10;
 
 static X509_VERIFY_PARAM *vpm = NULL;
 
+#ifdef DEBUG
 static char *opt_reqin = NULL;
 static char *opt_reqout = NULL;
 static char *opt_respin = NULL;
 static char *opt_respout = NULL;
+#endif
 
 #ifndef OPENSSL_NO_OCSP
 #include <openssl/ocsp.h>
@@ -385,7 +387,9 @@ typedef enum OPTION_choice {
     OPT_OCSP_STATUS,
 #endif
 #endif
+#ifdef DEBUG
     OPT_REQIN, OPT_REQOUT, OPT_RESPOUT, OPT_RESPIN,
+#endif
     OPT_V_ENUM/* OPT_CRLALL etc. */
 } OPTION_CHOICE;
 
@@ -502,11 +506,14 @@ OPTIONS cmp_options[] = {
     {"ocsp_status", OPT_OCSP_STATUS, '-', "Enable certificate status from TLS server via OCSP (not multi-)stapling"},
 #endif
 #endif
+#ifdef DEBUG
     {OPT_MORE_STR, 0, 0, "\nTesting and debugging options:"},
     {"reqin", OPT_REQIN, 's', "Take sequence of CMP requests from file(s)"},
     {"reqout", OPT_REQOUT, 's', "Save sequence of CMP requests to file(s)"},
     {"respin", OPT_RESPIN, 's', "Process sequence of CMP responses provided in file(s), skipping server"},
     {"respout", OPT_RESPOUT, 's', "Save sequence of CMP responses to file(s)"},
+#endif
+
     {OPT_MORE_STR, 0, 0, "\nVerification options:"},
     OPT_V_OPTIONS, /* subsumes: {"crl_check_all", OPT_CRLALL, '-', "Check CRLs not only for leaf certificate but for full certificate chain"}, */
 
@@ -558,7 +565,9 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
     { (char **)&opt_ocsp_status},
 #endif
 #endif
+#ifdef DEBUG
     {&opt_reqin}, {&opt_reqout}, {&opt_respin}, {&opt_respout},
+#endif
     /* virtually at this point: OPT_CRLALL etc. */
     {NULL}
 };
@@ -708,6 +717,7 @@ static char *next_item(char *opt) /* in list separated by comma and/or space */
     return opt;
 }
 
+#ifdef DEBUG
 /* ########################################################################## *
  * Writes CMP_PKIMESSAGE DER-encoded to the file specified with outfile
  *
@@ -867,6 +877,7 @@ static int read_write_req_resp(const CMP_CTX *ctx,
     CMP_PKIMESSAGE_free(req_new);
     return ret;
 }
+#endif
 
 /*
  * ##########################################################################
@@ -2865,8 +2876,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_out_trusted)
         (void)CMP_CTX_set_certConf_callback(ctx, certConf_cb);
 
+#ifdef DEBUG
     if (opt_reqin || opt_reqout || opt_respin || opt_respout)
         (void)CMP_CTX_set_msg_transfer(ctx, read_write_req_resp);
+#endif
+
     return 1;
 
  err:
@@ -3276,6 +3290,7 @@ int cmp_main(int argc, char **argv)
         case OPT_GENINFO:
             opt_geninfo = opt_str("geninfo");
             break;
+#ifdef DEBUG
         case OPT_REQIN:
             opt_reqin = opt_str("reqin");
             break;
@@ -3288,6 +3303,7 @@ int cmp_main(int argc, char **argv)
         case OPT_RESPOUT:
             opt_respout = opt_str("respout");
             break;
+#endif
 #ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
             opt_engine = opt_str("engine");
