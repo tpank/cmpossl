@@ -113,6 +113,7 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, expected_sender, X509_NAME),
     ASN1_OPT(CMP_CTX, transactionID, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, recipNonce, ASN1_OCTET_STRING),
+    ASN1_OPT(CMP_CTX, last_snonce, ASN1_OCTET_STRING),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, geninfo_itavs, CMP_INFOTYPEANDVALUE),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, genm_itavs, CMP_INFOTYPEANDVALUE),
 } ASN1_SEQUENCE_END(CMP_CTX)
@@ -1114,6 +1115,24 @@ int CMP_CTX_set1_recipNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce)
 
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_RECIPNONCE, CMP_R_NULL_ARGUMENT);
+    return 0;
+}
+
+/* ################################################################ *
+ * stores the given nonce as the last senderNonce sent out
+ * returns 1 on success, 0 on error
+ * ################################################################ */
+int CMP_CTX_set1_last_snonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce)
+{
+    if (!ctx)
+        goto err;
+    if (!nonce)
+        goto err;
+
+    return CMP_ASN1_OCTET_STRING_set1(&ctx->last_snonce, nonce);
+
+ err:
+    CMPerr(CMP_F_CMP_CTX_SET1_LAST_SNONCE, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 

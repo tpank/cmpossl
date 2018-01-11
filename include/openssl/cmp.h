@@ -363,7 +363,6 @@ ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
                                            *secret);
 ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
                                          EVP_PKEY *pkey);
->>>>>>> simplified ASN1_OCTET_STRING handling introducing CMP_ASN1_OCTET_STRING_set1() and set1_aostr_else_random()
 int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus,
@@ -395,10 +394,9 @@ ASN1_OCTET_STRING *CMP_PKIMESSAGE_get_transactionID(const CMP_PKIMESSAGE *msg);
 char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
                                      const X509 *cert);
-int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
-                                  const CMP_PKIMESSAGE *msg, int callback_arg,
-                                  int (*allow_unprotected)(const CMP_CTX *, int,
-                                                       const CMP_PKIMESSAGE *));
+int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
+        int callback_arg,
+        int (*allow_unprotected)(const CMP_CTX *, int, const CMP_PKIMESSAGE *));
 int CMP_PKIMESSAGE_adapt_senderNonce_transactionID(CMP_PKIMESSAGE *msg,
                                                    const CMP_PKIMESSAGE *src);
 
@@ -505,6 +503,7 @@ int CMP_CTX_set0_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
 int CMP_CTX_set1_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
 int CMP_CTX_set1_transactionID(CMP_CTX *ctx, const ASN1_OCTET_STRING *id);
 int CMP_CTX_set1_recipNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
+int CMP_CTX_set1_last_snonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
 int CMP_CTX_set1_serverName(CMP_CTX *ctx, const char *name);
 int CMP_CTX_set_serverPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name);

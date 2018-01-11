@@ -4313,7 +4313,7 @@ CRMF_CERTID_it                          4255	1_1_1	EXIST:EXPORT_VAR_AS_FUNCTION:
 CRMF_CERTREQMSG_set_popo                4256	1_1_1	NOEXIST::FUNCTION:
 CMP_CTX_set_certConf_callback           4257	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey 4258	1_1_1	EXIST::FUNCTION:
-CMP_calc_protection_sig                 4259	1_1_1	NOEXIST::FUNCTION:
+CMP_calc_protection_sig                 4259	1_1_1	EXIST::FUNCTION:
 CRMF_CERTID_new                         4260	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set0_reqExtensions              4261	1_1_1	EXIST::FUNCTION:
 CRMF_CERTTEMPLATE_it                    4262	1_1_1	EXIST:!EXPORT_VAR_AS_FUNCTION:VARIABLE:
@@ -4375,7 +4375,7 @@ CMP_CTX_set1_oldClCert                  4314	1_1_1	EXIST::FUNCTION:
 i2d_CRMF_CERTID                         4315	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_set1_regCtrl_pkiPublicationInfo 4316	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_set_certReqId           4317	1_1_1	EXIST::FUNCTION:
-CMP_PKIHEADER_set1_transactionID        4318	1_1_1	EXIST::FUNCTION:
+CMP_PKIHEADER_set1_transactionID        4318	1_1_1	NOEXIST::FUNCTION:
 CMP_INFOTYPEANDVALUE_it                 4319	1_1_1	EXIST:!EXPORT_VAR_AS_FUNCTION:VARIABLE:
 CMP_INFOTYPEANDVALUE_it                 4319	1_1_1	EXIST:EXPORT_VAR_AS_FUNCTION:FUNCTION:
 CMP_get_cert_subject_key_id             4320	1_1_1	NOEXIST::FUNCTION:
@@ -4395,7 +4395,7 @@ d2i_CRMF_CERTTEMPLATE                   4333	1_1_1	EXIST::FUNCTION:
 CMP_CTX_get0_tlsBIO                     4334	1_1_1	EXIST::FUNCTION:
 CMP_PKISTATUSINFO_snprint               4335	1_1_1	EXIST::FUNCTION:
 CMP_ITAV_new                            4336	1_1_1	EXIST::FUNCTION:
-CMP_calc_protection_pbmac               4337	1_1_1	NOEXIST::FUNCTION:
+CMP_calc_protection_pbmac               4337	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set0_tlsBIO                     4338	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set0_newPkey                    4339	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_pkey                       4340	1_1_1	EXIST::FUNCTION:
@@ -4416,7 +4416,7 @@ CRMF_PKIPUBLICATIONINFO_free            4354	1_1_1	EXIST::FUNCTION:
 CMP_CTX_delete                          4355	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_caPubs                     4356	1_1_1	EXIST::FUNCTION:
 CRMF_PBMPARAMETER_new                   4357	1_1_1	EXIST::FUNCTION:
-CMP_PKIHEADER_new_senderNonce           4358	1_1_1	EXIST::FUNCTION:
+CMP_PKIHEADER_new_senderNonce           4358	1_1_1	NOEXIST::FUNCTION:
 CMP_CTX_set1_referenceValue             4359	1_1_1	EXIST::FUNCTION:
 CMP_validate_cert_path                  4360	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_certVerify_callback         4361	1_1_1	NOEXIST::FUNCTION:
@@ -4470,7 +4470,7 @@ CMP_CTX_set1_recipient                  4406	1_1_1	EXIST::FUNCTION:
 i2d_CMP_INFOTYPEANDVALUE                4407	1_1_1	EXIST::FUNCTION:
 d2i_CMP_INFOTYPEANDVALUE                4408	1_1_1	EXIST::FUNCTION:
 CMP_CTX_get0_trustedStore               4409	1_1_1	EXIST::FUNCTION:
-CMP_PKIHEADER_set1_recipNonce           4410	1_1_1	EXIST::FUNCTION:
+CMP_PKIHEADER_set1_recipNonce           4410	1_1_1	NOEXIST::FUNCTION:
 CMP_CTX_set1_transactionID              4411	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMESSAGES_free               4412	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_create_popo             4413	1_1_1	EXIST::FUNCTION:
@@ -4658,12 +4658,13 @@ EVP_aria_256_ccm                        4593	1_1_1	EXIST::FUNCTION:ARIA
 CMP_add_error_txt                       4594	1_1_1	EXIST::FUNCTION:
 CMP_print_cert_verify_cb                4595	1_1_1	EXIST::FUNCTION:
 CMP_get1_cert_subject_key_id            4596	1_1_1	NOEXIST::FUNCTION:
-i2d_CMP_PKIMESSAGE                      4597	1_1_1	NOEXIST::FUNCTION:
-d2i_CMP_PKIMESSAGE                      4598	1_1_1	NOEXIST::FUNCTION:
-CMP_PKIMESSAGE_get_transactionID        4599	1_1_1	NOEXIST::FUNCTION:
-CMP_ASN1_OCTET_STRING_set1              4600	1_1_1	NOEXIST::FUNCTION:
-CMP_PKIMESSAGE_get0_header              4601	1_1_1	NOEXIST::FUNCTION:
-CMP_PKIMESSAGE_free                     4602	1_1_1	NOEXIST::FUNCTION:
-CMP_PKIMESSAGE_adapt_senderNonce_transactionID 4603	1_1_1	NOEXIST::FUNCTION:
-CMP_PKIMESSAGE_mock_request             4604	1_1_1	NOEXIST::FUNCTION:
+i2d_CMP_PKIMESSAGE                      4597	1_1_1	EXIST::FUNCTION:
+d2i_CMP_PKIMESSAGE                      4598	1_1_1	EXIST::FUNCTION:
+CMP_PKIMESSAGE_get_transactionID        4599	1_1_1	EXIST::FUNCTION:
+CMP_ASN1_OCTET_STRING_set1              4600	1_1_1	EXIST::FUNCTION:
+CMP_PKIMESSAGE_get0_header              4601	1_1_1	EXIST::FUNCTION:
+CMP_PKIMESSAGE_free                     4602	1_1_1	EXIST::FUNCTION:
+CMP_PKIMESSAGE_adapt_senderNonce_transactionID 4603	1_1_1	EXIST::FUNCTION:
+CMP_PKIMESSAGE_mock_request             4604	1_1_1	EXIST::FUNCTION:
 CMP_calc_protection                     4605	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set1_last_snonce                4606	1_1_1	EXIST::FUNCTION:

@@ -467,6 +467,9 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
     if (!set1_aostr_else_random(&hdr->senderNonce, NULL, SENDERNONCE_LENGTH))
         goto err;
 
+    /* store senderNonce - for cmp with recipNonce in next incoming msg */
+    CMP_CTX_set1_last_snonce(ctx, hdr->senderNonce);
+
 #if 0
     /*
        freeText                [7] PKIFreeText                         OPTIONAL,
@@ -1183,7 +1186,7 @@ static char *CMP_PKISTATUSINFO_PKIFailureInfo_get_string(CMP_PKISTATUSINFO *si)
 }
 
 /* ########################################################################## *
- * returns the status field of the RevRepContent with the given 
+ * returns the status field of the RevRepContent with the given
  * request/sequence id inside a revocation response.
  * RevRepContent has the revocation statuses in same order as they were sent in
  * RevReqContent.
@@ -1640,20 +1643,23 @@ STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store)
 }
 
 /* ########################################################################## *
- * Checks message received (i.e., response by server or request from client):
+ * Checks received message (i.e., response by server or request from client)
+ *
+ * Ensures that.
  * it has a valid body type,
- * its protection can be validated or is absent (allowed only if callback fn
- * is present and function yields positive result using also supplied argument),
- * its transaction ID matches the one of the previous message (if any), and
- * its recipNonce matches the senderNonce of the previous message (if any).
- * If so, learns from the message received the senderNonce
- *        and the transaction ID if not yet present in the ctx.
+ * its protection is valid, or absent (allowed only if callback fn is
+ * present and function yields positive result using also supplied argument),
+ * its transaction ID matches stored in ctx (if any),
+ * and its recipNonce matches the senderNonce in ctx.
+ *
+ * Learns the senderNonce from the received message, and if not yet in ctx also
+ * the transaction ID.
+ *
  * returns body type (which is >= 0) of the message on success, -1 on error
  * ########################################################################## */
-int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
-                                  const CMP_PKIMESSAGE *msg, int callback_arg,
-                                  int (*allow_unprotected)(const CMP_CTX *, int,
-                                                        const CMP_PKIMESSAGE *))
+int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
+         int callback_arg,
+         int (*allow_unprotected)(const CMP_CTX *, int, const CMP_PKIMESSAGE *))
 {
     int rcvd_type;
 
@@ -1685,18 +1691,22 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
     }
 
     /* compare received transactionID with the expected one in previous msg */
-    if (prev && prev->header->transactionID && (!msg->header->transactionID ||
-        ASN1_OCTET_STRING_cmp(prev->header->transactionID,
-                              msg->header->transactionID) != 0)) {
-        CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
-               CMP_R_TRANSACTIONID_UNMATCHED);
-        return -1;
+    if (ctx->transactionID) {
+        if (ASN1_OCTET_STRING_cmp(ctx->transactionID,
+                                  msg->header->transactionID) != 0) {
+            CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
+                    CMP_R_TRANSACTIONID_UNMATCHED);
+            return -1;
+        }
+    } else {
+        /* if not yet present, learn transactionID */
+        if (!CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
+            return -1;
     }
 
-    /* compare received nonce with the expected one from previous msg */
-    if (prev && prev->header->senderNonce && (!msg->header->recipNonce ||
-        ASN1_OCTET_STRING_cmp(prev->header->senderNonce,
-                              msg->header->recipNonce) != 0)) {
+    /* compare received nonce with the one we sent */
+    if (ASN1_OCTET_STRING_cmp(ctx->last_snonce,
+                              msg->header->recipNonce) != 0) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
                CMP_R_RECIPNONCE_UNMATCHED);
         return -1;
@@ -1707,15 +1717,14 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *prev,
     if (!CMP_CTX_set1_recipNonce(ctx, msg->header->senderNonce))
         return -1;
 
-    if (!ctx->transactionID && /* if not yet present, learn transactionID */
-        !CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
-        return -1;
 
     return rcvd_type;
 }
 
 /* ########################################################################## *
  * copy src->recipNonce to msg->senderNonce and copy transactionID to msg
+ *
+ * This code is exclusively used for testing.
  *
  * returns 1 on success, 0 on error
  * ########################################################################## */

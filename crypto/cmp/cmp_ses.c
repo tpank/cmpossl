@@ -213,8 +213,10 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     if (ctx->msg_transfer_fn)
         err = (ctx->msg_transfer_fn)(ctx, req, rep);
         /* may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
-                           or CMP_R_ERROR_TRANSFERRING_IN
-           DO NOT DELETE the two error reason codes just given */
+         *                 or CMP_R_ERROR_TRANSFERRING_IN
+         * DO NOT DELETE the two error reason codes in this comment, they are
+         * for mkerr.pl
+         */
     else
         err = CMP_R_ERROR_SENDING_REQUEST;
     if (err) {
@@ -233,7 +235,7 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
 
     CMP_printf(ctx, "INFO: Got response");
 
-    if((rcvd_type = CMP_PKIMESSAGE_check_received(ctx, req, *rep, expected_type,
+    if((rcvd_type = CMP_PKIMESSAGE_check_received(ctx, *rep, expected_type,
                                                   unprotected_exception)) < 0)
         return 0;
 
@@ -245,7 +247,8 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                  rcvd_type == V_CMP_PKIBODY_CP ||
                  rcvd_type == V_CMP_PKIBODY_KUP))) {
         CMPerr(CMP_F_SEND_RECEIVE_CHECK, rcvd_type == V_CMP_PKIBODY_ERROR ?
-                CMP_R_RECEIVED_ERROR : CMP_R_UNEXPECTED_PKIBODY);
+                CMP_R_RECEIVED_ERROR :
+                CMP_R_UNEXPECTED_PKIBODY); /* in next line for err script */
         message_add_error_data(*rep);
         return 0;
     }
@@ -300,7 +303,8 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
             CMP_printf(ctx,
-                       "INFO: Received polling response, waiting checkAfter =  %ld sec before next polling request.", checkAfter);
+                       "INFO: Received polling response, waiting checkAfter =  %ld sec before next polling request.",
+                       checkAfter);
 
             if (ctx->maxPollTime != 0) { /* timeout is set in context */
                 if (maxTimeLeft == 0)
