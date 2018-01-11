@@ -144,6 +144,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_ERROR_VALIDATING_PROTECTION                136
 # define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               137
 # define CMP_R_FAILED_TO_SEND_REQUEST                     138
+# define CMP_R_FAILURE_OBTAINING_RANDOM                   178
 # define CMP_R_GENP_NOT_RECEIVED                          139
 # define CMP_R_INVALID_ARGS                               140
 # define CMP_R_INVALID_CONTEXT                            141

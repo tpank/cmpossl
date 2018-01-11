@@ -1874,6 +1874,7 @@ CMP_R_ERROR_TRANSFERRING_OUT:135:error transferring out
 CMP_R_ERROR_VALIDATING_PROTECTION:136:error validating protection
 CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE:137:failed to receive pkimessage
 CMP_R_FAILED_TO_SEND_REQUEST:138:failed to send request
+CMP_R_FAILURE_OBTAINING_RANDOM:178:failure obtaining random
 CMP_R_GENP_NOT_RECEIVED:139:genp not received
 CMP_R_INVALID_ARGS:140:invalid args
 CMP_R_INVALID_CONTEXT:141:invalid context

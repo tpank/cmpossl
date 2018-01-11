@@ -221,6 +221,8 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     "failed to receive pkimessage"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_FAILED_TO_SEND_REQUEST),
     "failed to send request"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_FAILURE_OBTAINING_RANDOM),
+    "failure obtaining random"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_GENP_NOT_RECEIVED), "genp not received"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_INVALID_ARGS), "invalid args"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_INVALID_CONTEXT), "invalid context"},

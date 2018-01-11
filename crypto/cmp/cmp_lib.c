@@ -274,7 +274,10 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
     if (!src) { /* generate a random value if src == NULL */
         if (!(bytes = (unsigned char *)OPENSSL_malloc(len)))
             goto oom;
-        RAND_bytes(bytes, len);
+        if (RAND_bytes(bytes, len) <= 0) {
+            CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM, CMP_R_FAILURE_OBTAINING_RANDOM);
+            goto err;
+        }
 
         if (!(new = ASN1_OCTET_STRING_new()) ||
             !(ASN1_OCTET_STRING_set(new, bytes, len)))
