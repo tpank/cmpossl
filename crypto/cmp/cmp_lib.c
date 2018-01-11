@@ -1695,22 +1695,20 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
     }
 
     /* compare received transactionID with the expected one in previous msg */
-    if (ctx->transactionID) {
-        if (ASN1_OCTET_STRING_cmp(ctx->transactionID,
-                                  msg->header->transactionID) != 0) {
-            CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
-                    CMP_R_TRANSACTIONID_UNMATCHED);
-            return -1;
-        }
-    } else {
-        /* if not yet present, learn transactionID */
-        if (!CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
-            return -1;
+    if (ctx->transactionID != NULL &&
+        (msg->header->transactionID == NULL ||
+            ASN1_OCTET_STRING_cmp(ctx->transactionID,
+                                  msg->header->transactionID) != 0)) {
+        CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
+               CMP_R_TRANSACTIONID_UNMATCHED);
+        return -1;
     }
 
     /* compare received nonce with the one we sent */
-    if (ASN1_OCTET_STRING_cmp(ctx->last_snonce,
-                              msg->header->recipNonce) != 0) {
+    if (ctx->last_snonce != NULL &&
+        (msg->header->recipNonce == NULL ||
+         ASN1_OCTET_STRING_cmp(ctx->last_snonce,
+                               msg->header->recipNonce) != 0)) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
                CMP_R_RECIPNONCE_UNMATCHED);
         return -1;
@@ -1721,6 +1719,10 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
     if (!CMP_CTX_set1_recipNonce(ctx, msg->header->senderNonce))
         return -1;
 
+    /* if not yet present, learn transactionID */
+    if (ctx->transactionID == NULL &&
+        !CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
+        return -1;
 
     return rcvd_type;
 }
