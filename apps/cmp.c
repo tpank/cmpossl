@@ -746,9 +746,10 @@ static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
         BIO_printf(bio_err, "Error opening file '%s' for writing\n", file);
     else {
         unsigned char *out = NULL;
-        size_t len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *) msg, &out);
-        if (len > 0) {
-            if (len == fwrite(out, sizeof(*out), len, f))
+        int len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *) msg, &out);
+
+        if (len >= 0) {
+            if ((size_t)len == fwrite(out, sizeof(*out), len, f))
                 res = 1;
             else
                 BIO_printf(bio_err, "Error writing file '%s'\n", file);
