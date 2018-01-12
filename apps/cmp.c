@@ -2121,7 +2121,7 @@ static int add_crls_store(X509_STORE *st, STACK_OF(X509_CRL) *crls)
     return 1;
 }
 
-static int set_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls) {
+static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls) {
     if (!ts || !vpm)
         return 0;
 
@@ -2524,7 +2524,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             }
             /* do immediately for automatic cleanup in case of errors: */
             SSL_CTX_set_cert_store(ssl_ctx, store);
-            if (!set_store_parameters_crls(store, all_crls))
+            if (!set1_store_parameters_crls(store, all_crls))
                 goto tls_err;
 #if OPENSSL_VERSION_NUMBER >= 0x10002000
             /* enable and parameterize server hostname/IP address check */
@@ -2696,7 +2696,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         if (opt_trusted) {
             ts = load_certstore(opt_trusted, "trusted certificates");
         }
-        if (!set_store_parameters_crls(ts/* may be NULL */, all_crls) ||
+        if (!set1_store_parameters_crls(ts/* may be NULL */, all_crls) ||
             !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
             !CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
@@ -2707,7 +2707,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_out_trusted) { /* in preparation for use in certConf_cb() */
         out_trusted = load_certstore(opt_out_trusted,
                              "trusted certs for verifying newly enrolled cert");
-        if (!out_trusted || !set_store_parameters_crls(out_trusted, all_crls))
+        if (!out_trusted || !set1_store_parameters_crls(out_trusted, all_crls))
             goto err;
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
     }
@@ -2883,7 +2883,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         (void)CMP_CTX_set_transfer_cb(ctx, read_write_req_resp);
 #endif
 
-    return 1;
+    ret = 1;
 
  err:
     sk_X509_CRL_pop_free(all_crls, X509_CRL_free);
