@@ -411,8 +411,7 @@ static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
  * Send the PKIMessage req and on success place the response in *res.
  * returns 0 on success, else a CMP error reason code defined in cmp.h
  */
-int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
-                                const CMP_PKIMESSAGE *req,
+int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                                 CMP_PKIMESSAGE **res)
 {
     int rv;

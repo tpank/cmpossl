@@ -438,8 +438,7 @@ int bio_connect(BIO *bio, int timeout);
 typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
 int bio_http(BIO *bio, OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp,
              time_t max_time);
-int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
-                                const CMP_PKIMESSAGE *msg,
+int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
                                 CMP_PKIMESSAGE **out);
 # endif
 

@@ -276,7 +276,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->tlsBIO = NULL;
     ctx->transfer_cb =
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        (cmp_transfer_cb_t) CMP_PKIMESSAGE_http_perform;
+        CMP_PKIMESSAGE_http_perform;
 #else
         NULL;
 #endif
