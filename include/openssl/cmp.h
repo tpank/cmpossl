@@ -504,7 +504,7 @@ int CMP_CTX_set0_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
 int CMP_CTX_set1_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
 int CMP_CTX_set1_transactionID(CMP_CTX *ctx, const ASN1_OCTET_STRING *id);
 int CMP_CTX_set1_recipNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
-int CMP_CTX_set1_last_snonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
+int CMP_CTX_set1_last_senderNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
 int CMP_CTX_set1_serverName(CMP_CTX *ctx, const char *name);
 int CMP_CTX_set_serverPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name);

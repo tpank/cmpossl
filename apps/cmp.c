@@ -862,7 +862,7 @@ static int read_write_req_resp(CMP_CTX *ctx,
     hdr = CMP_PKIMESSAGE_get0_header(*res);
     if ((opt_reqin || opt_respin) &&
         /* need to satisfy nonce and transactionID checks */
-        (!CMP_CTX_set1_last_snonce(ctx, CMP_PKIHEADER_get0_recipNonce(hdr)) ||
+        (!CMP_CTX_set1_last_senderNonce(ctx, CMP_PKIHEADER_get0_recipNonce(hdr)) ||
          !CMP_CTX_set1_transactionID(ctx, CMP_PKIHEADER_get0_transactionID(hdr))
         ))
         goto err;

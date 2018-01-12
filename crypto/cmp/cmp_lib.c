@@ -489,7 +489,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         goto err;
 
     /* store senderNonce - for cmp with recipNonce in next outgoing msg */
-    CMP_CTX_set1_last_snonce(ctx, hdr->senderNonce);
+    CMP_CTX_set1_last_senderNonce(ctx, hdr->senderNonce);
 
 #if 0
     /*
@@ -1723,9 +1723,9 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
     }
 
     /* compare received nonce with the one we sent */
-    if (ctx->last_snonce != NULL &&
+    if (ctx->last_senderNonce != NULL &&
         (msg->header->recipNonce == NULL ||
-         ASN1_OCTET_STRING_cmp(ctx->last_snonce,
+         ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
                                msg->header->recipNonce) != 0)) {
         CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
                CMP_R_RECIPNONCE_UNMATCHED);

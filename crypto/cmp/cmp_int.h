@@ -51,7 +51,7 @@ struct cmp_ctx_st {
     X509_NAME *expected_sender; /* expected sender in pkiheader of response */
     ASN1_OCTET_STRING *transactionID; /* the current transaction ID */
     ASN1_OCTET_STRING *recipNonce; /* last nonce received */
-    ASN1_OCTET_STRING *last_snonce; /* last sender nonce sent  */
+    ASN1_OCTET_STRING *last_senderNonce; /* last nonce sent */
     STACK_OF(CMP_INFOTYPEANDVALUE) *geninfo_itavs;
     STACK_OF(CMP_INFOTYPEANDVALUE) *genm_itavs;
 

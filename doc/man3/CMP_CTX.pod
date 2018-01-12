@@ -22,7 +22,7 @@
  CMP_CTX_set1_newPkey,
  CMP_CTX_set1_transactionID,
  CMP_CTX_set1_recipNonce,
- CMP_CTX_set1_last_snonce,
+ CMP_CTX_set1_last_senderNonce,
  CMP_CTX_set_option,
  CMP_CTX_caPubs_get1,
  CMP_CTX_caPubs_pop,
@@ -88,7 +88,7 @@
  int CMP_CTX_set1_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey);
  int CMP_CTX_set1_transactionID(CMP_CTX *ctx, const ASN1_OCTET_STRING *id);
  int CMP_CTX_set1_recipNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
- int CMP_CTX_set1_last_snonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
+ int CMP_CTX_set1_last_senderNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce);
  int CMP_CTX_set1_serverName(CMP_CTX *ctx, const char *name);
  int CMP_CTX_set_serverPort(CMP_CTX *ctx, int port);
  STACK_OF(X509) *CMP_CTX_caPubs_get1(CMP_CTX *ctx);
@@ -206,8 +206,8 @@ CMP_CTX structure.
 CMP_CTX_set1_recipNonce() sets the given recipient nonce in the given
 CMP_CTX structure.
 
-CMP_CTX_set1_last_snonce() stores the last sent sender B<nonce> in the B<ctx>.
-This will be used to validate the recipNonce in incoming messages.
+CMP_CTX_set1_last_senderNonce() stores the last sent sender B<nonce> in 
+the B<ctx>. This will be used to validate the recipNonce in incoming messages.
 
 CMP_CTX_set1_serverName() sets the given server Address (as IP or name)
 in the given CMP_CTX structure.
