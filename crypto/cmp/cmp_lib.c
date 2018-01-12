@@ -288,6 +288,7 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
 {
     unsigned char *bytes = NULL;
     ASN1_OCTET_STRING *new = NULL;
+    int res = 0;
 
     if (src == NULL) { /* generate a random value if src == NULL */
         if ((bytes = (unsigned char *)OPENSSL_malloc(len)) == NULL)
@@ -298,23 +299,18 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
         }
 
         if (!(new = ASN1_OCTET_STRING_new()) ||
-            !(ASN1_OCTET_STRING_set(new, bytes, len)))
-            goto oom;
-        OPENSSL_free(bytes);
-        bytes = NULL;
+            !(ASN1_OCTET_STRING_set(new, bytes, len))) {
+        oom:
+            CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM, CMP_R_OUT_OF_MEMORY);
+            goto err;
+        }
     }
 
-    if (!CMP_ASN1_OCTET_STRING_set1(tgt, src ? src : new))
-        goto err;
-    ASN1_OCTET_STRING_free(new);
-    return 1;
-
- oom:
-    CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM, CMP_R_OUT_OF_MEMORY);
+    res = CMP_ASN1_OCTET_STRING_set1(tgt, src ? src : new);
  err:
     ASN1_OCTET_STRING_free(new);
     OPENSSL_free(bytes);
-    return 0;
+    return res;
 }
 
 /*
