@@ -770,7 +770,7 @@ static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
 {
     char *file;
     FILE *f;
-    size_t fsize;
+    long fsize;
     unsigned char *in;
     CMP_PKIMESSAGE *ret = NULL;
 
@@ -793,20 +793,24 @@ static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
         fseek(f, 0, SEEK_END);
         fsize = ftell(f);
         fseek(f, 0, SEEK_SET);
-        in = OPENSSL_malloc(fsize);
-        if (in == NULL)
-            BIO_printf(bio_err, "Out of memory reading file '%s'\n", file);
-        else {
-            if (fsize != fread(in, 1, fsize, f))
-                BIO_printf(bio_err, "Error reading file '%s'\n", file);
+        if (fsize < 0) {
+            BIO_printf(bio_err, "Error getting size of file '%s'\n", file);
+        } else {
+            in = OPENSSL_malloc(fsize);
+            if (in == NULL)
+                BIO_printf(bio_err, "Out of memory reading file '%s'\n", file);
             else {
-                const unsigned char *p = in;
-                ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
-                if (!ret)
-                    BIO_printf(bio_err,
+                if ((size_t)fsize != fread(in, 1, fsize, f))
+                    BIO_printf(bio_err, "Error reading file '%s'\n", file);
+                else {
+                    const unsigned char *p = in;
+                    ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
+                    if (!ret)
+                        BIO_printf(bio_err,
                                "Error parsing PKIMessage in file '%s'\n", file);
+                }
+                OPENSSL_free(in);
             }
-            OPENSSL_free(in);
         }
         fclose(f);
     }
