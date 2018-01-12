@@ -311,7 +311,7 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
 typedef void (*cmp_log_cb_t) (const char *msg);
 typedef int (*cmp_certConf_cb_t) (CMP_CTX *ctx, const X509 *cert, int failure,
                                  const char **txt);
-typedef int (*cmp_transfer_cb_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
+typedef int (*cmp_transfer_cb_t) (CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                                   CMP_PKIMESSAGE **res);
 typedef STACK_OF(ASN1_UTF8STRING) CMP_PKIFREETEXT;
 
@@ -438,7 +438,8 @@ int bio_connect(BIO *bio, int timeout);
 typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
 int bio_http(BIO *bio, OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp,
              time_t max_time);
-int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
+int CMP_PKIMESSAGE_http_perform(const CMP_CTX *ctx,
+                                const CMP_PKIMESSAGE *msg,
                                 CMP_PKIMESSAGE **out);
 # endif
 

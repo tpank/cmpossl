@@ -2880,7 +2880,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
 #ifndef NDEBUG
     if (opt_reqin || opt_reqout || opt_respin || opt_respout)
-        (void)CMP_CTX_set_msg_transfer(ctx, read_write_req_resp);
+        (void)CMP_CTX_set_transfer_cb(ctx, read_write_req_resp);
 #endif
 
     return 1;
