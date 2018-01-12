@@ -86,9 +86,9 @@
   char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
   int CMP_PKIMESSAGE_set_bodytype( CMP_PKIMESSAGE *msg, int type);
   int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
-  ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *msg,
-                                             const ASN1_OCTET_STRING *secret,
-                                             const EVP_PKEY *pkey);
+  ASN1_BIT_STRING *CMP_calc_protection(const CMP_PKIMESSAGE *msg,
+                                       const ASN1_OCTET_STRING *secret,
+                                       const EVP_PKEY *pkey);
   int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
