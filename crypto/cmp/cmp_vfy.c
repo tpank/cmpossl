@@ -341,7 +341,6 @@ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
  */
 static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
                            const X509_STORE *ts) {
-    X509_NAME *name = NULL;
     char *str;
     X509_NAME *sender_name = NULL;
     ASN1_OCTET_STRING *kid = NULL;
@@ -351,12 +350,6 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
     vpm = ts ? X509_STORE_get0_param((X509_STORE *)ts) : NULL;
     if (cert == NULL || msg == NULL || ts == NULL || vpm == NULL)
         return 0; /* TODO better flag and handle this as fatal internal error */
-
-    name = X509_get_subject_name(cert);
-    CMP_add_error_line("considering cert with subject");
-    str = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
-    CMP_add_error_txt(" = ", str);
-    OPENSSL_free(str);
 
     if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_USE_CHECK_TIME) {
         check_time = X509_VERIFY_PARAM_get_time(vpm);
@@ -368,10 +361,10 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
             return 0;
         }
 
-    sender_name = msg->header->sender->d.directoryName;
-    kid = msg->header->senderKID;
+    if ((sender_name = msg->header->sender->d.directoryName) != NULL) {
+        X509_NAME *name = X509_get_subject_name(cert);
 
-    if (sender_name) { /* enforce that the right subject DN is there */
+        /* enforce that the right subject DN is there */
         if (name == NULL) {
             CMP_add_error_data("missing subject");
             return 0;
@@ -382,8 +375,10 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
         }
     }
 
-    if (kid) { /* enforce that the right subject key id is there */
+    if ((kid = msg->header->senderKID) != NULL) {
         const ASN1_OCTET_STRING *ckid = X509_get0_subject_key_id(cert);
+
+        /* enforce that the right subject key id is there */
         if (ckid == NULL) {
             CMP_add_error_data("missing subject key ID");
             return 0;
@@ -422,6 +417,11 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
 
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
+        char *str = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
+
+        CMP_add_error_line("considering cert with subject");
+        CMP_add_error_txt(" = ", str);
+        OPENSSL_free(str);
 
         if (!cert_acceptable(cert, msg, ts))
             continue;
