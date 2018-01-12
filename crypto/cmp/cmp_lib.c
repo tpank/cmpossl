@@ -301,6 +301,7 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
             !(ASN1_OCTET_STRING_set(new, bytes, len)))
             goto oom;
         OPENSSL_free(bytes);
+        bytes = NULL;
     }
 
     if (!CMP_ASN1_OCTET_STRING_set1(tgt, src ? src : new))
