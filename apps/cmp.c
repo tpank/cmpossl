@@ -223,7 +223,7 @@ static STACK_OF(X509) *ocsp_untrusted_certs = NULL;
 #endif
 #endif
 
-static char *opt_storepass = NULL;
+static char *opt_certpass = NULL;
 static char *opt_storeform_s = "PEM";
 static char *opt_certform_s = "PEM";
 static char *opt_keyform_s = "PEM";
@@ -369,7 +369,7 @@ typedef enum OPTION_choice {
 
     OPT_OLDCERT, OPT_CSR, OPT_REVREASON, OPT_INFOTYPE,
 
-    OPT_STOREPASS, OPT_STOREFORM, OPT_CERTFORM, OPT_KEYFORM, OPT_CRLFORM,
+    OPT_CERTPASS, OPT_STOREFORM, OPT_CERTFORM, OPT_KEYFORM, OPT_CRLFORM,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
@@ -465,7 +465,7 @@ OPTIONS cmp_options[] = {
     {"infotype", OPT_INFOTYPE, 's', "InfoType name for requesting specific info in genm, e.g., 'signKeyPairTypes'"},
 
     {OPT_MORE_STR, 0, 0, "\nCredential format options:"},
-    {"storepass", OPT_STOREPASS, 's', "Certificate store password (may be needed with -trusted, -out_trusted, etc.)"},
+    {"certpass", OPT_CERTPASS, 's', "Pass phrase source potentially needed for loading trusted/untrusted certificates"},
     {"storeform", OPT_STOREFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate store files. Default PEM."},
     {"certform", OPT_CERTFORM, 's', "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM."},
                {OPT_MORE_STR, 0, 0, "This also determines format to use for writing (not supported for P12)"},
@@ -548,7 +548,7 @@ static varref cmp_vars[]= { /* must be in the same order as enumerated above!! *
 
     {&opt_oldcert}, {&opt_csr}, { (char **)&opt_revreason}, {&opt_infotype_s},
 
-    {&opt_storepass},
+    {&opt_certpass},
     {&opt_storeform_s}, {&opt_certform_s}, {&opt_keyform_s}, {&opt_crlform_s},
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
@@ -2193,7 +2193,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
 {
     X509_STORE *store = NULL;
     STACK_OF(X509) *certs = NULL;
-    char *pass_string = get_passwd(opt_storepass, desc);
+    char *pass_string = get_passwd(opt_certpass, desc);
 
     if (!input)
         goto err;
@@ -2233,7 +2233,7 @@ static int load_untrusted(char *input,
     }
     OPT_ITERATE(input,
                 if (!load_certs_autofmt(input, &certs, opt_storeform, 0,
-                                opt_storepass, desc) ||
+                                opt_certpass, desc) ||
             !CMP_sk_X509_add1_certs(all_certs, certs, 0, 1/*no dups*/)) {
                 goto oom;
         }
@@ -2716,9 +2716,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
     }
-    if (opt_storepass) {
-        OPENSSL_cleanse(opt_storepass, strlen(opt_storepass));
-        opt_storepass = NULL;
+    if (opt_certpass) {
+        OPENSSL_cleanse(opt_certpass, strlen(opt_certpass));
+        opt_certpass = NULL;
     }
 
     if (!set_name(opt_subject, CMP_CTX_set1_subjectName, ctx, "subject"))
@@ -3216,8 +3216,8 @@ int cmp_main(int argc, char **argv)
             if (!opt_verify(o, vpm))
                 goto bad_ops;
             break;
-        case OPT_STOREPASS:
-            opt_storepass = opt_str("storepass");
+        case OPT_CERTPASS:
+            opt_certpass = opt_str("certpass");
             break;
         case OPT_STOREFORM:
             opt_storeform_s = opt_str("storeform");
@@ -3504,8 +3504,8 @@ int cmp_main(int argc, char **argv)
     release_engine(e);
 
     /* if we ended up here without proper cleaning */
-    if (opt_storepass)
-        OPENSSL_cleanse(opt_storepass, strlen(opt_storepass));
+    if (opt_certpass)
+        OPENSSL_cleanse(opt_certpass, strlen(opt_certpass));
     if (opt_keypass)
         OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
     if (opt_newkeypass)

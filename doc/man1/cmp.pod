@@ -58,7 +58,7 @@ B<openssl> B<cmp>
 [B<-revreason number>]
 [B<-infotype name>]
 
-[B<-storepass arg>]
+[B<-certpass arg>]
 [B<-storeform DER|PEM|P12>]
 [B<-certform DER|PEM|P12>]
 [B<-keyform DER|PEM|P12>]
@@ -513,7 +513,7 @@ e.g., 'signKeyPairTypes'.
 
 =over 4
 
-=item B<-storepass arg>
+=item B<-certpass arg>
 
 Pass phrase source for any certificate stores given with the B<-trusted>,
 B<-untrusted>, B<-out_trusted>, B<-extracerts>, or B<-tls_trusted> options.
