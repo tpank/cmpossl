@@ -4664,7 +4664,11 @@ CMP_PKIMESSAGE_get_transactionID        4599	1_1_1	EXIST::FUNCTION:
 CMP_ASN1_OCTET_STRING_set1              4600	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_get0_header              4601	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_free                     4602	1_1_1	EXIST::FUNCTION:
-CMP_PKIMESSAGE_adapt_senderNonce_transactionID 4603	1_1_1	EXIST::FUNCTION:
+CMP_PKIMESSAGE_adapt_senderNonce_transactionID 4603	1_1_1	NOEXIST::FUNCTION:
 CMP_PKIMESSAGE_mock_request             4604	1_1_1	EXIST::FUNCTION:
 CMP_calc_protection                     4605	1_1_1	EXIST::FUNCTION:
-CMP_CTX_set1_last_snonce                4606	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set1_last_snonce                4606	1_1_1	NOEXIST::FUNCTION:
+CMP_PKIHEADER_get0_senderNonce          4607	1_1_1	EXIST::FUNCTION:
+CMP_PKIHEADER_get0_transactionID        4608	1_1_1	EXIST::FUNCTION:
+CMP_PKIHEADER_get0_recipNonce           4609	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set1_last_senderNonce           4610	1_1_1	EXIST::FUNCTION:

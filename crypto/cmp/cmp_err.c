@@ -65,6 +65,8 @@ static const ERR_STRING_DATA CMP_str_functs[] = {
      "CMP_CTX_set1_issuer"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CTX_SET1_LAST_SENDERNONCE, 0),
      "CMP_CTX_set1_last_senderNonce"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CTX_SET1_LAST_SNONCE, 0),
+     "CMP_CTX_set1_last_snonce"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CTX_SET1_NEWCLCERT, 0),
      "CMP_CTX_set1_newClCert"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CTX_SET1_NEWPKEY, 0),

@@ -50,7 +50,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  125
 # define CMP_F_CMP_CTX_SET1_EXTRACERTSOUT                 126
 # define CMP_F_CMP_CTX_SET1_ISSUER                        127
-# define CMP_F_CMP_CTX_SET1_LAST_SENDERNONCE              178
+# define CMP_F_CMP_CTX_SET1_LAST_SENDERNONCE              179
+# define CMP_F_CMP_CTX_SET1_LAST_SNONCE                   178
 # define CMP_F_CMP_CTX_SET1_NEWCLCERT                     128
 # define CMP_F_CMP_CTX_SET1_NEWPKEY                       129
 # define CMP_F_CMP_CTX_SET1_OLDCLCERT                     130
