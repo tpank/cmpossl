@@ -4300,7 +4300,7 @@ CMP_CTX_statusString_get                4243	1_1_1	EXIST::FUNCTION:
 CMP_INFOTYPEANDVALUE_get0_value         4244	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_protect                  4245	1_1_1	EXIST::FUNCTION:
 CMP_PKISTATUSINFO_PKIStatus_get         4246	1_1_1	EXIST::FUNCTION:
-CMP_CTX_set_debug_callback              4247	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set_debug_callback              4247	1_1_1	NOEXIST::FUNCTION:
 CMP_INFOTYPEANDVALUE_get0_type          4248	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_serverName                 4249	1_1_1	EXIST::FUNCTION:
 CMP_CTX_geninfo_itav_push0              4250	1_1_1	EXIST::FUNCTION:
@@ -4311,7 +4311,7 @@ CMP_INFOTYPEANDVALUE_new                4254	1_1_1	EXIST::FUNCTION:
 CRMF_CERTID_it                          4255	1_1_1	EXIST:!EXPORT_VAR_AS_FUNCTION:VARIABLE:
 CRMF_CERTID_it                          4255	1_1_1	EXIST:EXPORT_VAR_AS_FUNCTION:FUNCTION:
 CRMF_CERTREQMSG_set_popo                4256	1_1_1	NOEXIST::FUNCTION:
-CMP_CTX_set_certConf_callback           4257	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set_certConf_callback           4257	1_1_1	NOEXIST::FUNCTION:
 CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey 4258	1_1_1	EXIST::FUNCTION:
 CMP_calc_protection_sig                 4259	1_1_1	EXIST::FUNCTION:
 CRMF_CERTID_new                         4260	1_1_1	EXIST::FUNCTION:
@@ -4339,7 +4339,7 @@ CRMF_CERTREQMSG_set1_regInfo_certReq    4280	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_subjectName                4281	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMESSAGES_it                 4282	1_1_1	EXIST:!EXPORT_VAR_AS_FUNCTION:VARIABLE:
 CRMF_CERTREQMESSAGES_it                 4282	1_1_1	EXIST:EXPORT_VAR_AS_FUNCTION:FUNCTION:
-CMP_CTX_set_error_callback              4283	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set_error_callback              4283	1_1_1	NOEXIST::FUNCTION:
 ERR_load_CRMF_strings                   4284	1_1_1	NOEXIST::FUNCTION:
 i2d_CRMF_CERTTEMPLATE                   4285	1_1_1	EXIST::FUNCTION:
 CMP_INFOTYPEANDVALUE_set                4286	1_1_1	EXIST::FUNCTION:
@@ -4350,7 +4350,7 @@ CMP_CTX_caPubs_get1                     4290	1_1_1	EXIST::FUNCTION:
 CRMF_CERTTEMPLATE_free                  4291	1_1_1	EXIST::FUNCTION:
 CMP_certConf_new                        4292	1_1_1	EXIST::FUNCTION:
 CMP_CTX_caPubs_num                      4293	1_1_1	EXIST::FUNCTION:
-CMP_CTX_error_callback                  4294	1_1_1	EXIST::FUNCTION:
+CMP_CTX_error_callback                  4294	1_1_1	NOEXIST::FUNCTION:
 d2i_CRMF_ENCRYPTEDVALUE                 4295	1_1_1	EXIST::FUNCTION:
 CMP_CTX_extraCertsIn_pop                4296	1_1_1	EXIST::FUNCTION:
 CMP_validate_msg                        4297	1_1_1	EXIST::FUNCTION:
@@ -4461,7 +4461,7 @@ d2i_CRMF_PKIPUBLICATIONINFO             4397	1_1_1	EXIST::FUNCTION:
 i2d_CRMF_ENCRYPTEDVALUE                 4398	1_1_1	EXIST::FUNCTION:
 CMP_CTX_extraCertsIn_num                4399	1_1_1	EXIST::FUNCTION:
 CMP_kur_new                             4400	1_1_1	NOEXIST::FUNCTION:
-CMP_CTX_set_msg_transfer                4401	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set_msg_transfer                4401	1_1_1	NOEXIST::FUNCTION:
 CMP_doKeyUpdateRequestSeq               4402	1_1_1	NOEXIST::FUNCTION:
 CMP_PKIMESSAGE_set_implicitConfirm      4403	1_1_1	EXIST::FUNCTION:
 CMP_PKIHEADER_set_version               4404	1_1_1	EXIST::FUNCTION:
@@ -4672,3 +4672,8 @@ CMP_PKIHEADER_get0_senderNonce          4607	1_1_1	EXIST::FUNCTION:
 CMP_PKIHEADER_get0_transactionID        4608	1_1_1	EXIST::FUNCTION:
 CMP_PKIHEADER_get0_recipNonce           4609	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set1_last_senderNonce           4610	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set_certConf_cb                 4611	1_1_1	EXIST::FUNCTION:
+CMP_CTX_error_cb                        4612	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set_transfer_cb                 4613	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set_debug_cb                    4614	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set_error_cb                    4615	1_1_1	EXIST::FUNCTION:
