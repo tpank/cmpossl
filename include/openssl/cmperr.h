@@ -84,10 +84,11 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_PKIMESSAGE_GENM_ITEMS_PUSH1            157
 # define CMP_F_CMP_PKIMESSAGE_GENM_ITEM_PUSH0             158
 # define CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM                159
-# define CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0            160
+# define CMP_F_CMP_PKIMESSAGE_POLLRESPONSE_GET0           160
 # define CMP_F_CMP_PKIMESSAGE_PROTECT                     161
 # define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET            162
 # define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING     163
+# define CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0            180
 # define CMP_F_CMP_POLLREQ_NEW                            164
 # define CMP_F_CMP_REVREPCONTENT_PKISTATUSINFO_GET        165
 # define CMP_F_CMP_RR_NEW                                 166
@@ -148,9 +149,10 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_FAILURE_OBTAINING_RANDOM                   178
 # define CMP_R_GENP_NOT_RECEIVED                          139
 # define CMP_R_INVALID_ARGS                               140
+# define CMP_R_INVALID_CERTIFICATE                        179
 # define CMP_R_INVALID_CONTEXT                            141
 # define CMP_R_INVALID_KEY                                142
-# define CMP_R_INVALID_CERTIFICATE                        143
+# define CMP_R_INVALID_PARAMETERS                         143
 # define CMP_R_IP_NOT_RECEIVED                            144
 # define CMP_R_KUP_NOT_RECEIVED                           145
 # define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  146

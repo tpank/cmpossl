@@ -4484,7 +4484,7 @@ CMP_exec_KUR_ses                        4420	1_1_1	EXIST::FUNCTION:
 CMP_exec_IR_ses                         4421	1_1_1	EXIST::FUNCTION:
 CMP_exec_P10CR_ses                      4422	1_1_1	EXIST::FUNCTION:
 CMP_exec_RR_ses                         4423	1_1_1	EXIST::FUNCTION:
-CMP_PKIMESSAGE_pollResponse_get0        4424	1_1_1	EXIST::FUNCTION:
+CMP_PKIMESSAGE_pollResponse_get0        4424	1_1_1	NOEXIST::FUNCTION:
 CMP_CTX_status_get                      4425	1_1_1	EXIST::FUNCTION:
 CMP_REVREPCONTENT_PKIStatusInfo_get     4426	1_1_1	EXIST::FUNCTION:
 CMP_CTX_get0_newClCert                  4427	1_1_1	EXIST::FUNCTION:
@@ -4677,3 +4677,4 @@ CMP_CTX_error_cb                        4612	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_transfer_cb                 4613	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_debug_cb                    4614	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_error_cb                    4615	1_1_1	EXIST::FUNCTION:
+CMP_POLLREPCONTENT_pollRep_get0         4616	1_1_1	EXIST::FUNCTION:
