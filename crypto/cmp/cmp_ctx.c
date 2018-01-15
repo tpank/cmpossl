@@ -407,7 +407,7 @@ int CMP_CTX_set1_referenceValue(CMP_CTX *ctx, const unsigned char *ref,
                                 size_t len)
 {
     if (ctx == NULL || ref == NULL) {
-        CMPerr(CMP_F_CMP_CTX_SET1_REFERENCEVALUE, CMP_R_INVALID_PARAMETERS);
+        CMPerr(CMP_F_CMP_CTX_SET1_REFERENCEVALUE, CMP_R_INVALID_ARGS);
         goto err;
     }
 
@@ -455,7 +455,7 @@ STACK_OF(X509) *CMP_CTX_extraCertsIn_get1(CMP_CTX *ctx)
         return NULL;
     return X509_stack_dup(ctx->extraCertsIn);
  err:
-    CMPerr(CMP_F_CMP_CTX_EXTRACERTSIN_GET1, CMP_R_INVALID_PARAMETERS);
+    CMPerr(CMP_F_CMP_CTX_EXTRACERTSIN_GET1, CMP_R_INVALID_ARGS);
     return NULL;
 }
 
@@ -486,7 +486,7 @@ int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx)
         return 0;
     return sk_X509_num(ctx->extraCertsIn);
  err:
-    CMPerr(CMP_F_CMP_CTX_EXTRACERTSIN_NUM, CMP_R_INVALID_PARAMETERS);
+    CMPerr(CMP_F_CMP_CTX_EXTRACERTSIN_NUM, CMP_R_INVALID_ARGS);
     return -1;
 }
 
@@ -537,7 +537,7 @@ int CMP_CTX_extraCertsOut_push1(CMP_CTX *ctx, const X509 *val)
     }
     return 1;
  err:
-    CMPerr(CMP_F_CMP_CTX_EXTRACERTSOUT_PUSH1, CMP_R_INVALID_PARAMETERS);
+    CMPerr(CMP_F_CMP_CTX_EXTRACERTSOUT_PUSH1, CMP_R_INVALID_ARGS);
     return 0;
 }
 
@@ -553,7 +553,7 @@ int CMP_CTX_extraCertsOut_num(CMP_CTX *ctx)
         return 0;
     return sk_X509_num(ctx->extraCertsOut);
  err:
-    CMPerr(CMP_F_CMP_CTX_EXTRACERTSOUT_NUM, CMP_R_INVALID_PARAMETERS);
+    CMPerr(CMP_F_CMP_CTX_EXTRACERTSOUT_NUM, CMP_R_INVALID_ARGS);
     return -1;
 }
 
@@ -649,7 +649,7 @@ STACK_OF(X509) *CMP_CTX_caPubs_get1(CMP_CTX *ctx)
         return NULL;
     return X509_stack_dup(ctx->caPubs);
  err:
-    CMPerr(CMP_F_CMP_CTX_CAPUBS_GET1, CMP_R_INVALID_PARAMETERS);
+    CMPerr(CMP_F_CMP_CTX_CAPUBS_GET1, CMP_R_INVALID_ARGS);
     return NULL;
 }
 
@@ -665,7 +665,7 @@ X509 *CMP_CTX_caPubs_pop(CMP_CTX *ctx)
         return NULL;
     return sk_X509_pop(ctx->caPubs);
  err:
-    CMPerr(CMP_F_CMP_CTX_CAPUBS_POP, CMP_R_INVALID_PARAMETERS);
+    CMPerr(CMP_F_CMP_CTX_CAPUBS_POP, CMP_R_INVALID_ARGS);
     return NULL;
 }
 
@@ -681,7 +681,7 @@ int CMP_CTX_caPubs_num(CMP_CTX *ctx)
         return 0;
     return sk_X509_num(ctx->caPubs);
  err:
-    CMPerr(CMP_F_CMP_CTX_CAPUBS_NUM, CMP_R_INVALID_PARAMETERS);
+    CMPerr(CMP_F_CMP_CTX_CAPUBS_NUM, CMP_R_INVALID_ARGS);
     return -1;
 }
 

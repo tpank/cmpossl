@@ -602,7 +602,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const CMP_PKIMESSAGE *msg,
             goto err;
         }
     } else {
-        CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_INVALID_PARAMETERS);
+        CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_INVALID_ARGS);
         goto err;
     }
 
@@ -1563,13 +1563,14 @@ STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
     if (!X509_STORE_CTX_init(csc, store, (X509 *)cert, NULL))
         goto err;
 
+    (void)ERR_set_mark();
     /*
      * ignore return value as it would fail without trust anchor given in store
      */
     (void)X509_verify_cert(csc);
 
-    /* don't leave any errors in the queue */
-    ERR_clear_error();
+    /* don't leave any new errors in the queue */
+    (void)ERR_pop_to_mark();
 
     chain = X509_STORE_CTX_get0_chain(csc);
 

@@ -150,7 +150,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_INVALID_ARGS                               140
 # define CMP_R_INVALID_CONTEXT                            141
 # define CMP_R_INVALID_KEY                                142
-# define CMP_R_INVALID_PARAMETERS                         143
+# define CMP_R_INVALID_CERTIFICATE                        143
 # define CMP_R_IP_NOT_RECEIVED                            144
 # define CMP_R_KUP_NOT_RECEIVED                           145
 # define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  146

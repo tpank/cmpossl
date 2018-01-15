@@ -229,7 +229,7 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_INVALID_ARGS), "invalid args"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_INVALID_CONTEXT), "invalid context"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_INVALID_KEY), "invalid key"},
-    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_INVALID_PARAMETERS), "invalid parameters"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_INVALID_CERTIFICATE), "invalid certificate"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_IP_NOT_RECEIVED), "ip not received"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_KUP_NOT_RECEIVED), "kup not received"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION),

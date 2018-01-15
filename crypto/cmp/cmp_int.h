@@ -698,6 +698,10 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  * functions
  */
 
+/* from cmp_vfy.c */
+extern BIO *cert_verify_err_bio;
+void add_cert_verify_err_data(void);
+
 /* from cmp_ses.c */
 int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt);
 int exchange_error(CMP_CTX *ctx, int status, int failure,const char *txt);

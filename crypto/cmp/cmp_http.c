@@ -152,7 +152,7 @@ int bio_connect(BIO *bio, int timeout) {
     if (!blocking)
         BIO_set_nbio(bio, 1);
  retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
-    rv = BIO_do_connect(bio);
+    rv = BIO_do_connect(bio); /* This indirectly calls ERR_clear_error(); */
     /*
      * in blocking case, despite blocking BIO, BIO_do_connect() timed out
      * when non-blocking, BIO_do_connect() timed out early
@@ -160,7 +160,7 @@ int bio_connect(BIO *bio, int timeout) {
      */
     if (rv <= 0 && (errno == ETIMEDOUT ||
                     ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT)) {
-        /* ERR_clear_error(); would prevent diagnostics on cert error */
+        ERR_clear_error();
         (void)BIO_reset(bio);
         /*
          * otherwise, blocking next connect() may crash and
@@ -293,7 +293,7 @@ static void add_TLS_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
     /*  case 0x14090086: */ /* xSL_F_SSL3_GET_SERVER_CERTIFICATE */
     /*  case 0x1416F086: */ /* xSL_F_TLS_PROCESS_SERVER_CERTIFICATE */
         case SSL_R_CERTIFICATE_VERIFY_FAILED:
-            CMP_add_error_data("Cannot authenticate the server via its TLS certificate; hint: verify the trusted root certs and cert revocation status if CRLs or OCSP is used");
+            CMP_add_error_data("Cannot authenticate server via its TLS certificate, likely due to mismatch with our trusted TLS certs or missing revocation status");
             break;
     /*  case 0x14094418: */ /* xSL_F_SSL3_READ_BYTES */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -301,7 +301,7 @@ static void add_TLS_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 #else
         case SSL_AD_REASON_OFFSET+TLS1_AD_UNKNOWN_CA:
 #endif
-            CMP_add_error_data("Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor, or missing/invalid CRL");
+            CMP_add_error_data("Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor or missing revocation status");
             break;
         case SSL_AD_REASON_OFFSET+40:
             CMP_add_error_data("Server requires our TLS certificate but did not receive one");
@@ -387,7 +387,7 @@ static int CMP_http_nbio(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp)
 }
 
 /*
- * Send out CNP request and get response on blocking or non-blocking BIO
+ * Send out CMP request and get response on blocking or non-blocking BIO
  * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
  * 1: success and then provides the received message via the *resp argument
  */
@@ -401,6 +401,7 @@ static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
         return -4;
 
     rv = bio_http(bio, rctx, CMP_http_nbio, (ASN1_VALUE **)resp, max_time);
+ /* This indirectly calls ERR_clear_error(); */
 
     OCSP_REQ_CTX_free(rctx);
 
@@ -409,6 +410,7 @@ static int CMP_sendreq(BIO *bio, const char *path, const CMP_PKIMESSAGE *req,
 
 /*
  * Send the PKIMessage req and on success place the response in *res.
+ * Any previous error is likely to be removed by ERR_clear_error().
  * returns 0 on success, else a CMP error reason code defined in cmp.h
  */
 int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
@@ -419,20 +421,18 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     size_t pos = 0, pathlen = 0;
     CMPBIO *cbio = NULL;
     CMPBIO *hbio = NULL;
-    int err = CMP_R_SERVER_NOT_REACHABLE;
+    int err = CMP_R_OUT_OF_MEMORY;
     time_t max_time;
 
-    if (ctx == NULL || req == NULL || res == NULL)
+    if (ctx == NULL || req == NULL || res == NULL ||
+        ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort)
         return CMP_R_NULL_ARGUMENT;
 
     max_time = ctx->msgTimeOut > 0 ? time(NULL) + ctx->msgTimeOut : 0;
 
-    if (ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort)
-        return CMP_R_NULL_ARGUMENT;
-
     CMP_new_http_bio(&hbio, ctx);
     if (hbio == NULL)
-        return CMP_R_OUT_OF_MEMORY;
+        goto err;
     cbio = (ctx->tlsBIO) ? BIO_push(ctx->tlsBIO, hbio) : hbio;
 
     /* tentatively set error, which allows accumulating diagnostic info */
@@ -441,19 +441,15 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     rv = bio_connect(cbio, ctx->msgTimeOut);
     /* BIO_do_connect modifies hbio->prev_bio, which was ctx->tlsBIO - why?? */
     if (rv <= 0) {
-        if (rv == 0)
-            err = CMP_R_CONNECT_TIMEOUT;
-        /* else CMP_R_SERVER_NOT_REACHABLE */
+        err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_SERVER_NOT_REACHABLE;
         goto err;
     } else
         (void)ERR_pop_to_mark(); /* discard diagnostic info */
 
     pathlen = strlen(ctx->serverName) + strlen(ctx->serverPath) + 33;
     path = (char *)OPENSSL_malloc(pathlen);
-    if (path == NULL) {
-        err = CMP_R_OUT_OF_MEMORY;
+    if (path == NULL)
         goto err;
-    }
 
     /*
      * Section 5.1.2 of RFC 1945 states that the absoluteURI form is only
@@ -491,6 +487,10 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
         err = 0;
 
  err:
+    if (cert_verify_err_bio != NULL) { /* cert verify error at TLS level */
+        CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_INVALID_CERTIFICATE);
+        add_cert_verify_err_data();
+    }
     if (err) {
         if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
             err = CMP_R_TLS_ERROR;

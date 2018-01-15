@@ -526,6 +526,7 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
     CMP_CERTREPMESSAGE *body;
     CMP_CERTRESPONSE *crep;
     STACK_OF(X509) *extracerts;
+    int ret = 1;
 
  retry:
     body = (*resp)->body->value.ip; /* same for cp and kup */
@@ -587,7 +588,7 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
 #if 0 /* better leave this for any ctx->certConf_cb to decide */
         (void)exchange_error(ctx, CMP_PKISTATUS_rejection, failure, txt);
         /*
-         * cannot flag error earlier send_receive_check() indirectly calls
+         * cannot flag failure earlier as send_receive_check() indirectly calls
          * ERR_clear_error()
          */
         CMPerr(type_function, CMP_R_CERTIFICATE_NOT_ACCEPTED);
@@ -609,11 +610,11 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
 
     if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(*resp))
         if (!exchange_certConf(ctx, failure, txt))
-            return 0;
+            ret = 0;
 
     if (failure >= 0) {
         /*
-         * cannot flag error earlier as send_receive_check() indirectly calls
+         * cannot flag failure earlier as send_receive_check() indirectly calls
          * ERR_clear_error()
          */
         CMPerr(type_function, CMP_R_CERTIFICATE_NOT_ACCEPTED);
@@ -621,7 +622,7 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
                   "certConf callback resulted in rejection of new certificate");
         return 0;
     }
-    return 1;
+    return ret;
 }
 
 /*

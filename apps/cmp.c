@@ -1398,7 +1398,7 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format, con
 /*
  * ##########################################################################
  * * set the expected host name or IP address in the given cert store.
- * The string must not be freed as long as print_cert_verify_cb() may use it.
+ * The string must not be freed as long as cert_verify_cb() may use it.
  * returns 1 on success, 0 on error.
  * ##########################################################################
  */
@@ -1416,7 +1416,7 @@ static int truststore_set_host(X509_STORE *ts, const char *host) {
                                     X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
     /* Unfortunately there is no OpenSSL API function for retrieving the hosts/
        ip entries in X509_VERIFY_PARAM. So we store the host value in ex_data
-       for use in print_cert_verify_cb() and backup/restore functions below. */
+       for use in cert_verify_cb() and backup/restore functions below. */
     if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)host))
         return 0;
     if (host && isdigit(host[0]))
@@ -2000,7 +2000,7 @@ static int check_ocsp_crls(X509_STORE_CTX *ctx)
  * returns 0 if and only if the cert verification is considered failed.
  */
 
-static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
+static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 {
     if (ok == 0 && ctx != NULL) {
         int cert_error = X509_STORE_CTX_get_error(ctx);
@@ -2064,31 +2064,19 @@ static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 static int certConf_cb(CMP_CTX *ctx, const X509 *cert, int failure,
                        const char **text)
 {
-    int res = -1; /* indicating "ok" here */
-    STACK_OF(X509) *untrusted = NULL;
-
     if (failure >= 0) /* accept any error flagged by library */
         return failure;
 
-    if (!(untrusted = sk_X509_new_null()) ||
-        !CMP_sk_X509_add1_certs(untrusted, CMP_CTX_get0_untrusted_certs(ctx),
-                                0, 1/* no dups */)) {
-        sk_X509_pop_free(untrusted, X509_free);
-        /* BIO_puts(bio_err, "error: out of memory\n"); */
-        return CMP_PKIFAILUREINFO_systemFailure;
-    }
     /* TODO: load caPubs [CMP_CTX_caPubs_get1(ctx)] as additional trusted certs
        during IR and if MSG_SIG_ALG is used, cf. RFC 4210, 5.3.2 */
 
-    if (out_trusted && !CMP_validate_cert_path(ctx, out_trusted,untrusted,cert))
-        res = CMP_PKIFAILUREINFO_incorrectData;
+    if (out_trusted && !CMP_validate_cert_path(ctx, out_trusted, cert))
+        failure = CMP_PKIFAILUREINFO_incorrectData;
 
-    sk_X509_pop_free(untrusted, X509_free);
-
-    if (res >= 0)
+    if (failure >= 0)
         BIO_puts(bio_c_out,
                  "error: failed to validate newly enrolled certificate\n");
-    return res;
+    return failure;
 }
 
 static int parse_addr(char **opt_string, int port, const char* name)
@@ -2137,7 +2125,7 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls) 
         return 0;
     }
 
-    X509_STORE_set_verify_cb(ts, print_cert_verify_cb);
+    X509_STORE_set_verify_cb(ts, cert_verify_cb);
 
     if (crls && !add_crls_store(ts, crls)) /* ups the references to crls */
         return 0;

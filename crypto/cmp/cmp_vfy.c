@@ -192,37 +192,52 @@ static int CMP_verify_PBMAC(const CMP_PKIMESSAGE *msg,
 /*
  * Attempt to validate certificate and path using given store of trusted certs
  * (possibly including CRLs and a cert verification callback function) and
- * given stack of non-trusted intermediate certs.
+ * non-trusted intermediate certs from the given ctx.
+ * Internal version not producing any errors output itself.
  * Returns 1 on successful validation and 0 otherwise.
  */
-int CMP_validate_cert_path(CMP_CTX *ctx, X509_STORE *trusted_store,
-                       const STACK_OF(X509) *untrusted_certs, const X509 *cert)
+static int validate_cert_path(const CMP_CTX *ctx,
+                              const X509_STORE *trusted_store, const X509 *cert)
 {
     int valid = 0;
-    X509_STORE_CTX *csc = NULL;
+    X509_STORE_CTX *csc = X509_STORE_CTX_new();
 
-    if (cert == NULL)
-        goto end;
-
-    if (trusted_store == NULL) {
-        CMPerr(CMP_F_CMP_VALIDATE_CERT_PATH,
-               CMP_R_NO_TRUSTED_CERTIFICATES_SET);
-        goto end;
-    }
-
-    if ((csc = X509_STORE_CTX_new()) == NULL)
-        goto end;
-
-    if (!X509_STORE_CTX_init(csc, trusted_store, (X509 *)cert,
-                             (STACK_OF(X509) *)untrusted_certs))
-        goto end;
+    if (csc == NULL ||
+        !X509_STORE_CTX_init(csc, (X509_STORE *)trusted_store, (X509 *)cert,
+                             (STACK_OF(X509) *)ctx->untrusted_certs))
+        goto oom;
 
     valid = X509_verify_cert(csc);
 
+ oom:
     X509_STORE_CTX_free(csc);
+    return valid > 0;
+}
+
+/*
+ * Attempt to validate certificate and path using given store of trusted certs
+ * (possibly including CRLs and a cert verification callback function) and
+ * non-trusted intermediate certs from the given ctx.
+ * Returns 1 on successful validation and 0 otherwise.
+ */
+int CMP_validate_cert_path(const CMP_CTX *ctx, const X509_STORE *trusted_store,
+                           const X509 *cert)
+{
+    int valid = 0;
+
+    if (ctx == NULL || trusted_store == NULL || cert == NULL) {
+        CMPerr(CMP_F_CMP_VALIDATE_CERT_PATH, CMP_R_NULL_ARGUMENT);
+        goto end;
+    }
+
+    valid = validate_cert_path(ctx, trusted_store, cert);
+    if (!valid) {
+        CMPerr(CMP_F_CMP_VALIDATE_CERT_PATH, CMP_R_INVALID_CERTIFICATE);
+        add_cert_verify_err_data();
+    }
 
  end:
-    return (valid > 0);
+    return valid;
 }
 
 /*
@@ -279,6 +294,21 @@ static void print_store_certs(BIO *bio, X509_STORE *store) {
     }
 }
 
+/* needed because cert verify errors are threatened by ERR_clear_error() */
+BIO *cert_verify_err_bio = NULL;
+void add_cert_verify_err_data(void)
+{
+    char *str;
+    long len = BIO_get_mem_data(cert_verify_err_bio/* may be NULL */, &str);
+
+    if (len > 0) {
+        str[len-1] = '\0'; /* replace last '\n', terminating str */
+        CMP_add_error_line(str);
+    }
+    BIO_free(cert_verify_err_bio);
+    cert_verify_err_bio = NULL;
+}
+
 /*
  * This is a diagnostic function that may be registered using
  * X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
@@ -293,18 +323,18 @@ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
         int cert_error = X509_STORE_CTX_get_error(ctx);
         int depth = X509_STORE_CTX_get_error_depth(ctx);
         X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
-        BIO *bio_mem = BIO_new(BIO_s_mem());
-        char *str;
-        long len;
 
-        BIO_printf(bio_mem, "%s at depth=%d error=%d (%s)\n",
+        if (cert_verify_err_bio == NULL) {
+            cert_verify_err_bio = BIO_new(BIO_s_mem()); /* may result in NULL */
+        }
+        BIO_printf(cert_verify_err_bio, "%s at depth=%d error=%d (%s)\n",
                    depth < 0 ? "signature verification" :
                    X509_STORE_CTX_get0_parent_ctx(ctx) ?
                    "CRL path validation" : "certificate verification",
                    depth, cert_error,
                    X509_verify_cert_error_string(cert_error));
-        BIO_printf(bio_mem, "failure for:\n");
-        print_cert(bio_mem, cert, X509_FLAG_NO_EXTENSIONS);
+        BIO_printf(cert_verify_err_bio, "failure for:\n");
+        print_cert(cert_verify_err_bio, cert, X509_FLAG_NO_EXTENSIONS);
         if (cert_error == X509_V_ERR_CERT_UNTRUSTED ||
             cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
             cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN ||
@@ -312,15 +342,12 @@ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
             cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
             cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER ||
             cert_error == X509_V_ERR_STORE_LOOKUP) {
-            BIO_printf(bio_mem, "chain store:\n");
-            print_certs(bio_mem, X509_STORE_CTX_get0_untrusted(ctx));
-            BIO_printf(bio_mem, "trust store:\n");
-            print_store_certs(bio_mem, X509_STORE_CTX_get0_store(ctx));
+            BIO_printf(cert_verify_err_bio, "chain store:\n");
+            print_certs(cert_verify_err_bio, X509_STORE_CTX_get0_untrusted(ctx));
+            BIO_printf(cert_verify_err_bio, "trust store:\n");
+            print_store_certs(cert_verify_err_bio,
+                              X509_STORE_CTX_get0_store(ctx));
         }
-        len = BIO_get_mem_data(bio_mem, &str);
-        str[len-1] = '\0'; /* replace last '\n', terminating str */
-        CMP_add_error_line(str);
-        BIO_free(bio_mem);
     }
 # if 0
     /* TODO: we could check policies here too */
@@ -357,7 +384,7 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
     }
     if (!(X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_NO_CHECK_TIME))
         if (X509_cmp_time(X509_get0_notAfter(cert), ptime) < 0) {
-            CMP_add_error_data("expired");
+            CMP_add_error_data(" expired");
             return 0;
         }
 
@@ -366,11 +393,11 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
 
         /* enforce that the right subject DN is there */
         if (name == NULL) {
-            CMP_add_error_data("missing subject");
+            CMP_add_error_data(" missing subject");
             return 0;
         }
         if (X509_NAME_cmp(name, sender_name) != 0) {
-            CMP_add_error_data("wrong subject");
+            CMP_add_error_data(" wrong subject");
             return 0;
         }
     }
@@ -380,17 +407,17 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
 
         /* enforce that the right subject key id is there */
         if (ckid == NULL) {
-            CMP_add_error_data("missing subject key ID");
+            CMP_add_error_data(" missing subject key ID");
             return 0;
         }
         if (ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
-            CMP_add_error_data("wrong subject key");
+            CMP_add_error_data(" wrong subject key");
 #if OPENSSL_VERSION_NUMBER >= 0x10100005L
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
-            CMP_add_error_txt("\n ID = ", str);
+            CMP_add_error_txt("\n    ID = ", str);
             OPENSSL_free(str);
             str = OPENSSL_buf2hexstr(kid->data, kid->length);
-            CMP_add_error_txt("\n vs.  ", str);
+            CMP_add_error_txt("\n    vs.  ", str);
             OPENSSL_free(str);
 #endif
             return 0;
@@ -419,7 +446,7 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
         X509 *cert = sk_X509_value(certs, i);
         char *str = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
 
-        CMP_add_error_line("considering cert with subject");
+        CMP_add_error_line("  considering cert with subject");
         CMP_add_error_txt(" = ", str);
         OPENSSL_free(str);
 
@@ -488,7 +515,7 @@ static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt,
     X509_STORE *store = X509_STORE_new();
     if (store && /* store does not include CRLs */
         CMP_X509_STORE_add1_certs(store, msg->extraCerts, 1/* s-sgnd only */)) {
-        valid = CMP_validate_cert_path(ctx, store, ctx->untrusted_certs, scrt);
+        valid = validate_cert_path(ctx, store, scrt);
     }
     if (valid) {
         /*
@@ -499,8 +526,7 @@ static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt,
             CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip, 0);
         X509 *newcrt = CMP_CERTRESPONSE_get_certificate(ctx, crep); /* maybe
             better use get_cert_status() from cmp_ses.c, which catches errors */
-        valid = CMP_validate_cert_path(ctx, store, ctx->untrusted_certs,
-                                       newcrt);
+        valid = CMP_validate_cert_path(ctx, store, newcrt);
         X509_free(newcrt);
     }
     X509_STORE_free(store);
@@ -537,7 +563,7 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         char *sname = X509_NAME_oneline(sender->d.directoryName, NULL, 0);
         (void)ERR_set_mark();
         CMPerr(CMP_F_FIND_SRVCERT, CMP_R_NO_VALID_SERVER_CERT_FOUND);
-        ERR_add_error_data(2, "sender name = ", sname);
+        ERR_add_error_data(2, "\ntrying to match msg sender name = ", sname);
         OPENSSL_free(sname);
 
         /* release any cached cert, which is no more acceptable */
@@ -557,8 +583,7 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         /* select first server cert that can be validated */
         for (i = 0; !scrt_valid && i < sk_X509_num(found_crts); i++) {
             scrt = sk_X509_value(found_crts, i);
-            scrt_valid = CMP_validate_cert_path(ctx, ctx->trusted_store,
-                                                ctx->untrusted_certs, scrt);
+            scrt_valid = CMP_validate_cert_path(ctx, ctx->trusted_store, scrt);
         }
 
         /* exceptional 3GPP TS 33.310 handling */
@@ -574,9 +599,10 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             /* store trusted srv cert for future msgs of same transaction */
             X509_up_ref(scrt);
             ctx->validatedSrvCert = scrt;
-            (void)ERR_pop_to_mark(); /* discard diagnostic info */
-        } else
+            (void)ERR_pop_to_mark(); /* discard any diagnostic info on finding server cert */
+        } else {
             scrt = NULL;
+        }
         sk_X509_pop_free(found_crts, X509_free);
     }
 
