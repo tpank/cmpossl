@@ -94,6 +94,7 @@
 #include <openssl/rand.h>
 /* for bio_err */
 #include <openssl/err.h>
+#include "internal/cryptlib.h" /* for DECIMAL_SIZE */
 
 #include <time.h>
 #include <string.h>
@@ -1260,44 +1261,51 @@ int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit)
 
 /*
  * returns a pointer to the PollResponse with the given CertReqId
- * (or the first one in case -1) inside a pollRep PKIMessage
- * returns NULL on error or if no PollResponse available
+ * (or the first one in case -1) inside a PollRepContent
+ * returns NULL on error or if no suitable PollResponse available
  */
-CMP_POLLREP *CMP_PKIMESSAGE_pollResponse_get0(CMP_PKIMESSAGE *prep, long rid)
+/* cannot factor overlap with CERTREPMESSAGE_certResponse_get0 due to typing */
+CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid)
 {
     CMP_POLLREP *pollRep = NULL;
     int i;
+    char str[DECIMAL_SIZE(rid)+1];
+ 
+    if (prc == NULL) {
+        CMPerr(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0, CMP_R_INVALID_ARGS);
+        return NULL;
+    }
 
-    if (prep == NULL || prep->body->type != V_CMP_PKIBODY_POLLREP ||
-        prep->body->value.pollRep == NULL)
-        goto err;
-
-    for (i = 0; i < sk_CMP_POLLREP_num(prep->body->value.pollRep); i++) {
-        pollRep = sk_CMP_POLLREP_value(prep->body->value.pollRep, i);
+    for (i = 0; i < sk_CMP_POLLREP_num(prc); i++) {
+        pollRep = sk_CMP_POLLREP_value(prc, i);
         /* is it the right CertReqId? */
         if (rid == -1 || rid == ASN1_INTEGER_get(pollRep->certReqId))
             return pollRep;
     }
 
- err:
-    CMPerr(CMP_F_CMP_PKIMESSAGE_POLLRESPONSE_GET0,
-           CMP_R_CERTRESPONSE_NOT_FOUND);
+    CMPerr(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0, CMP_R_CERTRESPONSE_NOT_FOUND);
+    BIO_snprintf(str, sizeof(str), "%ld", rid);
+    ERR_add_error_data(2, "expected certReqId = ", str);
     return NULL;
 }
 
 /*
  * returns a pointer to the CertResponse with the given CertReqId
  * (or the first one in case -1) inside a CertRepMessage
- * returns NULL on error or if no CertResponse available
+ * returns NULL on error or if no suitable CertResponse available
  */
+/* cannot factor overlap with POLLREPCONTENT_pollResponse_get0 due to typing */
 CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid)
 {
     CMP_CERTRESPONSE *crep = NULL;
     int i;
+    char str[DECIMAL_SIZE(rid)+1];
 
-    if (crepmsg == NULL)
-        goto err;
+    if (crepmsg == NULL || crepmsg->response == NULL) {
+        CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0, CMP_R_INVALID_ARGS);
+        return NULL;
+    }
 
     for (i = 0; i < sk_CMP_CERTRESPONSE_num(crepmsg->response); i++) {
         crep = sk_CMP_CERTRESPONSE_value(crepmsg->response, i);
@@ -1306,9 +1314,10 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
             return crep;
     }
 
- err:
     CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
            CMP_R_CERTRESPONSE_NOT_FOUND);
+    BIO_snprintf(str, sizeof(str), "%ld", rid);
+    ERR_add_error_data(2, "expected certReqId = ", str);
     return NULL;
 }
 

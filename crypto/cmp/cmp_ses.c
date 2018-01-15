@@ -297,7 +297,8 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
         /* handle potential pollRep */
         if (CMP_PKIMESSAGE_get_bodytype(prep) == V_CMP_PKIBODY_POLLREP) {
             int checkAfter;
-            if (!(pollRep = CMP_PKIMESSAGE_pollResponse_get0(prep, rid)))
+            if (!(pollRep = CMP_POLLREPCONTENT_pollRep_get0(
+                                               prep->body->value.pollRep, rid)))
                 goto err;
             checkAfter = ASN1_INTEGER_get(pollRep->checkAfter);
             if (checkAfter < 0) {

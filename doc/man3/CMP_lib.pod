@@ -6,7 +6,7 @@
   CMP_add_error_data,
   CMP_add_error_line,
   CMP_REVREPCONTENT_PKIStatus_get,
-  CMP_PKIMESSAGE_pollResponse_get0,
+  CMP_POLLREPCONTENT_pollRep_get0,
   CMP_CERTREPMESSAGE_certResponse_get0,
   CMP_CERTSTATUS_set_certHash,
   CMP_PKIFAILUREINFO_check,
@@ -57,7 +57,7 @@
   void CMP_add_error_data(const char *txt);
   void CMP_add_error_line(const char *txt);
   CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep, long rsid);
-  CMP_POLLREP *CMP_PKIMESSAGE_pollResponse_get0(CMP_PKIMESSAGE *prep, long rid);
+  CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid);
   CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
   int CMP_CERTSTATUS_set_certHash( CMP_CERTSTATUS *certStatus, const X509 *cert);
   char *CMP_ERRORMSGCONTENT_PKIStatus_get_string( CMP_ERRORMSGCONTENT *error);
@@ -127,13 +127,13 @@ CMP_REVREPCONTENT_PKIStatusInfo_get() returns the status field of the
 RevRepContent with the given request/sequence id inside a revocation response
 (matching the sequence id as sent in the RevReqContent), or NULL on error.
 
-CMP_PKIMESSAGE_pollResponse_get0() returns a pointer to the PollResponse
-with the given certReqId (or the first one in case -1) inside a pollRep PKIMessage.
-If no PollResponse is available or if there is an error, it returns NULL.
+CMP_POLLREPCONTENT_pollRep_get0() returns a pointer to the PollRep
+with the given certReqId (or the first one in case -1) inside a PollRepContent.
+If no suitable PollRep is available or if there is an error, it returns NULL.
 
 CMP_CERTREPMESSAGE_certResponse_get0() returns a pointer to the CertResponse
 with the given certReqId (or the first one in case -1 inside a CertRepMessage.
-If no CertResponse is available or if there is an error, it returns NULL.
+If no suitable CertResponse is available or there is an error, it returns NULL.
 
 CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
 using the same hash algorithm as is used to create and verify the
