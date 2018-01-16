@@ -280,7 +280,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
 #else
         NULL;
 #endif
-    ctx->transfer_cb_opts = NULL;
+    ctx->transfer_cb_arg = NULL;
     return 1;
 
  err:
@@ -1259,30 +1259,30 @@ int CMP_CTX_set_transfer_cb(CMP_CTX *ctx, cmp_transfer_cb_t cb)
 }
 
 /*
- * Set option, respecively structure containing options, to be used by
- * callback - if applicable
+ * Set argument, respecively a pointer to a structure containing arguments,
+ * optionally to be used by the transfer callback
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set1_transfer_cb_opts(CMP_CTX *ctx, void* opts)
+int CMP_CTX_set_transfer_cb_arg(CMP_CTX *ctx, void* arg)
 {
     if (ctx == NULL)
         goto err;
-    ctx->transfer_cb_opts = opts;
+    ctx->transfer_cb_arg = arg;
     return 1;
  err:
     return 0;
 }
 
 /*
- * Get option, respecively structure containing options, to be used by
- * callback - if applicable
- * returns transfer cb options set previously (NULL if not set or on error)
+ * Get argument, respecively the pointer to a structure containing arguments,
+ * optionally to be used by transfer callback
+ * returns callback argument set previously (NULL if not set or on error)
  */
-void *CMP_CTX_get_transfer_cb_opts(CMP_CTX *ctx)
+void *CMP_CTX_get_transfer_cb_arg(CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;
-    return ctx->transfer_cb_opts;
+    return ctx->transfer_cb_arg;
 }
 
 /*
