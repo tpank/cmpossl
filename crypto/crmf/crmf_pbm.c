@@ -225,8 +225,16 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
         goto err;
     if (!(EVP_DigestFinal_ex(ctx, basekey, &basekeyLen)))
         goto err;
-
-    if (!ASN1_INTEGER_get_uint64(&iterations, pbm->iterationCount)
+    if (
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+        !ASN1_INTEGER_get_uint64(&iterations, pbm->iterationCount)
+#else
+        ASN1_INTEGER_get(pbm->iterationCount) < 0) {
+        error = CRMF_R_BAD_PBM_ITERATIONCOUNT;
+        goto err;
+    }
+    if (!(iterations = (uint64_t) ASN1_INTEGER_get(pbm->iterationCount))
+#endif
             || iterations < 100 /* min from RFC */
             || iterations > CRMF_PBM_MAX_ITERATION_COUNT) {
         error = CRMF_R_BAD_PBM_ITERATIONCOUNT;
