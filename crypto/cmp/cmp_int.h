@@ -61,10 +61,10 @@ struct cmp_ctx_st {
     STACK_OF(CMP_INFOTYPEANDVALUE) *genm_itavs;
 
     /* non-OpenSSL ASN.1 members starting here */
-    EVP_PKEY *pkey; /* EVP_PKEY holding the *current* key pair
-                     * Note: so far for some reason this is not an ASN.1 type */
+    EVP_PKEY *pkey;    /* EVP_PKEY holding the *current* key pair
+                        * Note: this is not an ASN.1 type */
     EVP_PKEY *newPkey; /* EVP_PKEY holding the *new* key pair
-                        * Note: so far for some reason this is not an ASN.1 type */
+                        * Note: this is not an ASN.1 type */
 
     /* PBMParameters */
     size_t pbm_slen;
@@ -548,7 +548,8 @@ typedef struct cmp_pkibody_st {
         CRMF_CERTREQMESSAGES *cr; /* 2 */
         CMP_CERTREPMESSAGE *cp; /* 3 */
         /* p10cr      [4]  CertificationRequest,     --imported from [PKCS10] */
-        /* PKCS10_CERTIFICATIONREQUEST is effectively X509_REQ so it is used directly */
+        /* PKCS10_CERTIFICATIONREQUEST is effectively X509_REQ
+           so it is used directly */
         X509_REQ *p10cr; /* 4 */
         /* popdecc    [5]  POPODecKeyChallContent, --pop Challenge */
         /* POPODecKeyChallContent ::= SEQUENCE OF Challenge */

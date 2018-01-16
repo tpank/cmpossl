@@ -168,7 +168,7 @@ ASN1_ADB(CMP_INFOTYPEANDVALUE) = {
                        CMP_PKIMESSAGES)),
     ADB_ENTRY(NID_id_it_suppLangTags,
               ASN1_SEQUENCE_OF_OPT(CMP_INFOTYPEANDVALUE,
-                                   infoValue.suppLangTagsValue, ASN1_UTF8STRING)),
+                                 infoValue.suppLangTagsValue, ASN1_UTF8STRING)),
 #if 0
     /* this is what CL likes for KUR - not in the RFC */
     ADB_ENTRY(NID_id_smime_aa_signingCertificate,

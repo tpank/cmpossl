@@ -264,10 +264,8 @@ int CMP_CTX_init(CMP_CTX *ctx)
 
     ctx->serverName = NULL;
     ctx->serverPort = 8080;
-    /*
-     * serverPath has to be an empty string if not set since it is not mandatory
-     */
-    ctx->serverPath = OPENSSL_zalloc(1); /* this will be freed by CMP_CTX_delete() */
+    /* serverPath must be an empty string if not set since it's not mandatory */
+    ctx->serverPath = OPENSSL_zalloc(1); /* will be freed by CMP_CTX_delete() */
     if (ctx->serverPath == NULL)
         goto err;
     ctx->proxyName = NULL;

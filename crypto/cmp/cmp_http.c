@@ -286,14 +286,16 @@ static void add_TLS_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
         case SSL_R_WRONG_VERSION_NUMBER:
     /*  case 0x140770FC: */ /* xSL_F_SSL23_GET_SERVER_HELLO */
         case SSL_R_UNKNOWN_PROTOCOL:
-            CMP_add_error_data("The server does not support (a recent version of) TLS");
+            CMP_add_error_data(
+                       "The server does not support (a recent version of) TLS");
             break;
     /*  case 0x1407E086: */ /* xSL_F_SSL3_GET_SERVER_HELLO */
     /*  case 0x1409F086: */ /* xSL_F_SSL3_WRITE_PENDING */
     /*  case 0x14090086: */ /* xSL_F_SSL3_GET_SERVER_CERTIFICATE */
     /*  case 0x1416F086: */ /* xSL_F_TLS_PROCESS_SERVER_CERTIFICATE */
         case SSL_R_CERTIFICATE_VERIFY_FAILED:
-            CMP_add_error_data("Cannot authenticate server via its TLS certificate, likely due to mismatch with our trusted TLS certs or missing revocation status");
+            CMP_add_error_data(
+"Cannot authenticate server via its TLS certificate, likely due to mismatch with our trusted TLS certs or missing revocation status");
             break;
     /*  case 0x14094418: */ /* xSL_F_SSL3_READ_BYTES */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -301,10 +303,12 @@ static void add_TLS_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 #else
         case SSL_AD_REASON_OFFSET+TLS1_AD_UNKNOWN_CA:
 #endif
-            CMP_add_error_data("Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor or missing revocation status");
+            CMP_add_error_data(
+"Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor or missing revocation status");
             break;
         case SSL_AD_REASON_OFFSET+40:
-            CMP_add_error_data("Server requires our TLS certificate but did not receive one");
+            CMP_add_error_data(
+                 "Server requires our TLS certificate but did not receive one");
             break;
         default:
             break;

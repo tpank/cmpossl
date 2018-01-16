@@ -430,7 +430,7 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
 /*
  * internal function
  *
- * Find in the list of certificates all acceptable certs (see cert_acceptable()).
+ * Find in the list of certs all acceptable certs (see cert_acceptable()).
  * Add them to sk (if not a duplicate to an existing one).
  * returns 0 on error else 1
  */
@@ -599,7 +599,8 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             /* store trusted srv cert for future msgs of same transaction */
             X509_up_ref(scrt);
             ctx->validatedSrvCert = scrt;
-            (void)ERR_pop_to_mark(); /* discard any diagnostic info on finding server cert */
+            (void)ERR_pop_to_mark();
+                        /* discard any diagnostic info on finding server cert */
         } else {
             scrt = NULL;
         }
@@ -618,8 +619,8 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
  *
  * If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
  * the extraCerts field when a self-signed certificate is found there which can
- * be used to validate the enrolled certificate returned in IP.  This is according
- * to the need given in 3GPP TS 33.310.
+ * be used to validate the enrolled certificate returned in IP.
+ *  This is according to the need given in 3GPP TS 33.310.
  *
  * returns 1 on success, 0 on error or validation failed
  */
@@ -688,7 +689,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
          * Mitigates risk to accept misused certificate of an unauthorized
          * entity of a trusted hierarchy.
          */
-        if (ctx->expected_sender) { /* set explicitly or not NULL-DN recipient */
+        if (ctx->expected_sender) {/* set explicitly or not NULL-DN recipient */
             X509_NAME *sender_name = msg->header->sender->d.directoryName;
             if (X509_NAME_cmp(sender_name, ctx->expected_sender) != 0) {
                 char *expected = X509_NAME_oneline(ctx->expected_sender,NULL,0);

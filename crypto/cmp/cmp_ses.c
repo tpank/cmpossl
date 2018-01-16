@@ -169,11 +169,13 @@ static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
             CMP_PKISTATUSINFO_PKIStatus_get(
             CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp, REVREQSID))
                 == CMP_PKISTATUS_rejection) {
-            CMP_printf(ctx, "WARN: ignoring missing protection of revocation response message with rejection status");
+            CMP_printf(ctx,
+"WARN: ignoring missing protection of revocation response message with rejection status");
             exception = 1;
         }
         if (rcvd_type == V_CMP_PKIBODY_PKICONF) {
-            CMP_printf(ctx, "WARN: ignoring missing protection of PKI Confirmation message");
+            CMP_printf(ctx,
+               "WARN: ignoring missing protection of PKI Confirmation message");
             exception = 1;
         }
         if (rcvd_type == expected_type &&
@@ -190,7 +192,8 @@ static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
                 return 0;
             if (CMP_PKISTATUSINFO_PKIStatus_get(crep->status) ==
                 CMP_PKISTATUS_rejection) {
-                CMP_printf(ctx, "WARN: ignoring missing protection of CertRepMessage with rejection status");
+                CMP_printf(ctx,
+   "WARN: ignoring missing protection of CertRepMessage with rejection status");
                 exception = 1;
             }
         }
@@ -308,8 +311,8 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
             CMP_printf(ctx,
-                       "INFO: Received polling response, waiting checkAfter =  %ld sec before next polling request.",
-                       checkAfter);
+                       "INFO: Received polling response, waiting checkAfter =  "
+                       "%ld sec before next polling request.", checkAfter);
 
             if (ctx->maxPollTime != 0) { /* timeout is set in context */
                 if (maxTimeLeft == 0)
@@ -455,7 +458,8 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
 
     switch (CMP_PKISTATUSINFO_PKIStatus_get(crep->status)) {
     case CMP_PKISTATUS_waiting:
-        CMP_printf(ctx, "WARN: encountered \"waiting\" status for certificate when actually aiming to extract cert");
+        CMP_printf(ctx,
+"WARN: encountered \"waiting\" status for certificate when actually aiming to extract cert");
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_WAITING);
         goto err;
     case CMP_PKISTATUS_grantedWithMods:
@@ -472,11 +476,13 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
         goto err;
 
     case CMP_PKISTATUS_revocationWarning:
-        CMP_printf(ctx, "WARN: encountered \"revocationWarning\" status for certificate when actually aiming to extract cert");
+        CMP_printf(ctx,
+"WARN: encountered \"revocationWarning\" status for certificate when actually aiming to extract cert");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
     case CMP_PKISTATUS_revocationNotification:
-        CMP_printf(ctx, "WARN: encountered \"revocationNotification\" status for certificate when actually aiming to extract cert");
+        CMP_printf(ctx,
+"WARN: encountered \"revocationNotification\" status for certificate when actually aiming to extract cert");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
     case CMP_PKISTATUS_keyUpdateWarning:
@@ -496,7 +502,7 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
         goto err;
     }
-    if (crt == NULL) {/* according to PKIStatus, we can (possibly) expect a cert */
+    if (crt == NULL) {/* according to PKIStatus, we can expect a cert */
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_CERTIFICATE_NOT_FOUND);
     }
 
@@ -678,8 +684,8 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
  * All options need to be set in the context,
  * in particular oldCert, the certificate to be revoked.
  *
- * TODO: this function can only revoke one certificate so far, should be possible
- * for several according to 5.3.9
+ * TODO: this function can only revoke one certificate so far,
+ * should be possible for several according to 5.3.9
  *
  * The RFC is vague in which PKIStatus should be returned by the server, so we
  * take "accepted, "grantedWithMods", and "revocationWarning" as success,

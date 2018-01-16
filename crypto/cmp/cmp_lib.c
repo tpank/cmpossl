@@ -1477,7 +1477,8 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
     const char *status, *failureinfo;
     int i, n;
 
-    if (si == NULL || (status = CMP_PKISTATUSINFO_PKIStatus_get_string(si)) == NULL)
+    if (si == NULL ||
+        (status = CMP_PKISTATUSINFO_PKIStatus_get_string(si)) == NULL)
         return NULL;
 
     failureinfo = CMP_PKISTATUSINFO_PKIFailureInfo_get_string(si);
@@ -1622,8 +1623,8 @@ int CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert, int not_duplicate)
 
 /*
  * Add certificates from 'certs' to given stack,
- * optionally only if not self-signed and optionally only if not already contained
- * certs parameter may be NULL.
+ * optionally only if not self-signed and
+ * optionally only if not already contained* certs parameter may be NULL.
  * returns 1 on success, 0 on error
  */
 int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,

@@ -125,9 +125,12 @@ IMPLEMENT_ASN1_FUNCTIONS(CRMF_ENCRYPTEDKEY)
 
 
 ASN1_CHOICE(CRMF_PKIARCHIVEOPTIONS) = {
-    ASN1_IMP(CRMF_PKIARCHIVEOPTIONS, value.encryptedPrivKey, CRMF_ENCRYPTEDKEY, 0),
-    ASN1_IMP(CRMF_PKIARCHIVEOPTIONS, value.keyGenParameters, ASN1_OCTET_STRING, 1),
-    ASN1_IMP(CRMF_PKIARCHIVEOPTIONS, value.archiveRemGenPrivKey, ASN1_BOOLEAN, 2)
+    ASN1_IMP(CRMF_PKIARCHIVEOPTIONS, value.encryptedPrivKey,
+             CRMF_ENCRYPTEDKEY, 0),
+    ASN1_IMP(CRMF_PKIARCHIVEOPTIONS, value.keyGenParameters,
+             ASN1_OCTET_STRING, 1),
+    ASN1_IMP(CRMF_PKIARCHIVEOPTIONS, value.archiveRemGenPrivKey,
+             ASN1_BOOLEAN, 2)
 } ASN1_CHOICE_END(CRMF_PKIARCHIVEOPTIONS)
 IMPLEMENT_ASN1_FUNCTIONS(CRMF_PKIARCHIVEOPTIONS)
 IMPLEMENT_ASN1_DUP_FUNCTION(CRMF_PKIARCHIVEOPTIONS)
@@ -216,15 +219,19 @@ ASN1_ADB_TEMPLATE(attributetypeandvalue_default) = ASN1_OPT(
 ASN1_ADB(CRMF_ATTRIBUTETYPEANDVALUE) = {
     ADB_ENTRY(NID_id_regCtrl_regToken, ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
                                               value.regToken, ASN1_UTF8STRING)),
-    ADB_ENTRY(NID_id_regCtrl_authenticator, ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
+    ADB_ENTRY(NID_id_regCtrl_authenticator,
+              ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
                                          value.authenticator, ASN1_UTF8STRING)),
-    ADB_ENTRY(NID_id_regCtrl_pkiPublicationInfo, ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
+    ADB_ENTRY(NID_id_regCtrl_pkiPublicationInfo,
+              ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
                             value.pkiPublicationInfo, CRMF_PKIPUBLICATIONINFO)),
-    ADB_ENTRY(NID_id_regCtrl_pkiArchiveOptions, ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
+    ADB_ENTRY(NID_id_regCtrl_pkiArchiveOptions,
+              ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
                               value.pkiArchiveOptions, CRMF_PKIARCHIVEOPTIONS)),
     ADB_ENTRY(NID_id_regCtrl_oldCertID, ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
                                                  value.oldCertID, CRMF_CERTID)),
-    ADB_ENTRY(NID_id_regCtrl_protocolEncrKey, ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
+    ADB_ENTRY(NID_id_regCtrl_protocolEncrKey
+              , ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
                                            value.protocolEncrKey, X509_PUBKEY)),
     ADB_ENTRY(NID_id_regInfo_utf8Pairs, ASN1_SIMPLE(CRMF_ATTRIBUTETYPEANDVALUE,
                                              value.utf8Pairs, ASN1_UTF8STRING)),

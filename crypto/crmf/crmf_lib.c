@@ -73,10 +73,11 @@
  * cases increases its link count) in the parent and so both (x and obj above)
  * should be freed up.
  */
-/* ########################################################################## *
- * This file contains the functions which set the individual items inside       *
- * the CRMF structures.                                                       *
- * ########################################################################## */
+
+/*
+ * This file contains the functions which set the individual items inside
+ * the CRMF structures
+ */
 
 #include <openssl/asn1.h>
 #include <openssl/asn1t.h>
@@ -173,7 +174,8 @@ int CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(CRMF_CERTREQMSG *crm,
     if ((cid = CRMF_CERTID_new()) == NULL)
         goto err;
 
-    if (!X509_NAME_set(&cid->issuer->d.directoryName, X509_get_issuer_name(oldc)))
+    if (!X509_NAME_set(&cid->issuer->d.directoryName,
+                       X509_get_issuer_name(oldc)))
         goto err;
     cid->issuer->type = GEN_DIRNAME;
 
@@ -485,7 +487,8 @@ int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
         break;
 
     case CRMF_POPO_SIGNATURE:
-        if ((pp->value.signature = poposigkey_new(crm->certReq, pkey, dgst)) == NULL)
+        if ((pp->value.signature = poposigkey_new(crm->certReq, pkey, dgst))
+            == NULL)
             goto err;
         pp->type = CRMF_PROOFOFPOSESSION_SIGNATURE;
         break;

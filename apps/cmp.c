@@ -303,7 +303,8 @@ typedef struct options_st {
         OPT_V__LAST
 
 # define OPT_V_OPTIONS \
-        { "policy", OPT_V_POLICY, 's', "adds policy to the acceptable policy set"}, \
+        { "policy", OPT_V_POLICY, 's',
+            "adds policy to the acceptable policy set"},    \
         { "purpose", OPT_V_PURPOSE, 's', \
             "certificate chain purpose"}, \
         { "verify_name", OPT_V_VERIFY_NAME, 's', "verification policy name"}, \
@@ -321,9 +322,12 @@ typedef struct options_st {
         { "ignore_critical", OPT_V_IGNORE_CRITICAL, '-', \
             "permit unhandled critical extensions"}, \
         { "issuer_checks", OPT_V_ISSUER_CHECKS, '-', "(deprecated)"}, \
-        { "crl_check", OPT_V_CRL_CHECK, '-', "check leaf certificate revocation" }, \
-        { "crl_check_all", OPT_V_CRL_CHECK_ALL, '-', "check full chain revocation" }, \
-        { "policy_check", OPT_V_POLICY_CHECK, '-', "perform rfc5280 policy checks"}, \
+        { "crl_check", OPT_V_CRL_CHECK, '-',
+            "check leaf certificate revocation" }, \
+        { "crl_check_all", OPT_V_CRL_CHECK_ALL, '-',
+            "check full chain revocation" }, \
+        { "policy_check", OPT_V_POLICY_CHECK, '-',
+             "perform rfc5280 policy checks"}, \
         { "explicit_policy", OPT_V_EXPLICIT_POLICY, '-', \
             "set policy variable require-explicit-policy"}, \
         { "inhibit_any", OPT_V_INHIBIT_ANY, '-', \
@@ -342,15 +346,18 @@ typedef struct options_st {
             "check root CA self-signatures"}, \
         { "trusted_first", OPT_V_TRUSTED_FIRST, '-', \
             "search trust store first (default)" }, \
-        { "suiteB_128_only", OPT_V_SUITEB_128_ONLY, '-', "Suite B 128-bit-only mode"}, \
+        { "suiteB_128_only", OPT_V_SUITEB_128_ONLY, '-',
+            "Suite B 128-bit-only mode"},  \
         { "suiteB_128", OPT_V_SUITEB_128, '-', \
             "Suite B 128-bit mode allowing 192-bit algorithms"}, \
         { "suiteB_192", OPT_V_SUITEB_192, '-', "Suite B 192-bit-only mode" }, \
         { "partial_chain", OPT_V_PARTIAL_CHAIN, '-', \
             "accept chains anchored by intermediate trust-store CAs"}, \
         { "no_alt_chains", OPT_V_NO_ALT_CHAINS, '-', "(deprecated)" }, \
-        { "no_check_time", OPT_V_NO_CHECK_TIME, '-', "ignore certificate validity time" }, \
-        { "allow_proxy_certs", OPT_V_ALLOW_PROXY_CERTS, '-', "allow the use of proxy certificates" }
+        { "no_check_time", OPT_V_NO_CHECK_TIME, '-',
+            "ignore certificate validity time" }, \
+        { "allow_proxy_certs", OPT_V_ALLOW_PROXY_CERTS, '-',
+            "allow the use of proxy certificates" }
 #endif
 
 typedef enum OPTION_choice {
@@ -407,36 +414,36 @@ OPTIONS cmp_options[] = {
     /* OPTION_CHOICE values must be in the same order as enumerated above!! */
     {"help", OPT_HELP, '-', "Display this summary"},
     {"config", OPT_CONFIG, 's',
-     "Configuration file to use; \"\" means none. Default from env variable 'OPENSSL_CONF'"},
+"Configuration file to use; \"\" means none. Default from env variable 'OPENSSL_CONF'"},
     {"section", OPT_SECTION, 's',
-     "Section in config file defining CMP options. \"\" means 'default'. Default 'cmp'"},
+"Section in config file defining CMP options. \"\" means 'default'. Default 'cmp'"},
 
     {OPT_MORE_STR, 0, 0, "\nMessage transfer options:"},
     {"server", OPT_SERVER, 's',
      "'address[:port]' of CMP server. Port default 8080"},
     {"proxy", OPT_PROXY, 's',
-     "'address[:port]' of HTTP proxy, if needed for CMP server. Port default 8080"},
+ "'address[:port]' of HTTP proxy, if needed for CMP server. Port default 8080"},
     {"path", OPT_PATH, 's',
      "HTTP path location inside the server (aka CMP alias). Default '/'"},
     {"msgtimeout", OPT_MSGTIMEOUT, 'n',
      "Timeout per CMP message round trip (or 0 for none). Default 120 seconds"},
     {"maxpolltime", OPT_MAXPOLLTIME, 'n',
-     "Maximum total number of seconds to poll for certificates (default: 0 = infinite)"},
+"Maximum total number of seconds to poll for certificates (default: 0 = infinite)"},
 
     {OPT_MORE_STR, 0, 0, "\nRecipient options:"},
     {"recipient", OPT_RECIPIENT, 's',
-     "Distinguished Name of the recipient to use unless the -srvcert option is given."},
+"Distinguished Name of the recipient to use unless the -srvcert option is given."},
     {"expected_sender", OPT_EXPECTED_SENDER, 's',
-     "Distinguished Name of expected response sender. Defaults to recipient determined."},
+"Distinguished Name of expected response sender. Defaults to recipient determined."},
     {"srvcert", OPT_SRVCERT, 's',
      "Specific CMP server cert to use and trust directly when verifying responses"},
     {"trusted", OPT_TRUSTED, 's',
-     "Trusted CA certs to use for CMP server authentication when verifying responses,"},
+"Trusted CA certs to use for CMP server authentication when verifying responses,"},
     {OPT_MORE_STR, 0, 0, "unless -srvcert is given"},
     {"untrusted", OPT_UNTRUSTED, 's',
-     "Intermediate certificates for constructing chains for CMP, TLS, and/or CA servers"},
+"Intermediate certificates for constructing chains for CMP, TLS, and/or CA servers"},
     {"ignore_keyusage", OPT_IGNORE_KEYUSAGE, '-',
-     "Ignore CMP-level cert key usage, else 'digitalSignature' needed for signatures"},
+"Ignore CMP-level cert key usage, else 'digitalSignature' needed for signatures"},
 
     {OPT_MORE_STR, 0, 0, "\nSender options:"},
     {"ref", OPT_REF, 's',
@@ -457,15 +464,15 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "given in the form <OID>:int:<n>, e.g., '1.2.3:int:987'"},
     {"digest", OPT_DIGEST, 's',
-     "Digest to use in message protection and POPO signatures. Default 'sha256'"},
+   "Digest to use in message protection and POPO signatures. Default 'sha256'"},
     {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
      "Send messages without CMP-level protection"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-',
      "Accept unprotected error responses: regular error messages as well as"},
     {OPT_MORE_STR, 0, 0,
-     "negative certificate responses (ip/cp/kup) and revocation responses (rp)."},
+   "negative certificate responses (ip/cp/kup) and revocation responses (rp)."},
     {OPT_MORE_STR, 0, 0,
-     "WARNING: This setting leads to behaviour allowing violation of RFC 4210."},
+    "WARNING: This setting leads to behaviour allowing violation of RFC 4210."},
     {"extracertsout", OPT_EXTRACERTSOUT, 's',
      "File to save received extra certificates"},
     {"cacertsout", OPT_CACERTSOUT, 's',
@@ -473,18 +480,18 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nCertificate request options:"},
     {"newkey", OPT_NEWKEY, 's',
-     "Private key for the requested certificate, defaulting to current client's key."},
+"Private key for the requested certificate, defaulting to current client's key."},
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
     {"subject", OPT_SUBJECT, 's',
      "X509 subject name to use in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's',
-     "Distinguished Name of the issuer, to be put in the requested certificate template."},
+"Distinguished Name of the issuer, to be put in the requested certificate template."},
     {OPT_MORE_STR, 0, 0,
      "Also used as recipient if neither -recipient nor -srvcert are given."},
     {"days", OPT_DAYS, 'n',
      "Number of days the new certificate is asked to be valid for"},
     {"reqexts", OPT_REQEXTS, 's',
-     "Name of section in OpenSSL config file defining certificate request extensions"},
+"Name of section in OpenSSL config file defining certificate request extensions"},
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method."},
     {OPT_MORE_STR, 0, 0,
      "0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
@@ -497,51 +504,51 @@ OPTIONS cmp_options[] = {
     {"certout", OPT_CERTOUT, 's',
      "File to save the newly enrolled certificate"},
     {"out_trusted", OPT_OUT_TRUSTED, 's',
-     "Trusted certificates to use for verifying the newly enrolled certificate"},
+    "Trusted certificates to use for verifying the newly enrolled certificate"},
 
     {OPT_MORE_STR, 0, 0, "\nMisc request options:"},
 
     {"oldcert", OPT_OLDCERT, 's',
-     "Certificate to be updated in kur (defaulting to -cert) or to be revoked in rr."},
+"Certificate to be updated in kur (defaulting to -cert) or to be revoked in rr."},
     {OPT_MORE_STR, 0, 0,
-     "Its issuer is used as recipient if neither -srvcert, -recipient, -issuer given."},
+"Its issuer is used as recipient if neither -srvcert, -recipient, -issuer given."},
     {"csr", OPT_CSR, 's', "PKCS#10 CSR to use in p10cr"},
     {"revreason", OPT_REVREASON, 'n',
      "Set reason code to be included in revocation request (rr)."},
     {OPT_MORE_STR, 0, 0,
      "Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
     {"infotype", OPT_INFOTYPE, 's',
-     "InfoType name for requesting specific info in genm, e.g., 'signKeyPairTypes'"},
+"InfoType name for requesting specific info in genm, e.g., 'signKeyPairTypes'"},
 
     {OPT_MORE_STR, 0, 0, "\nCredential format options:"},
     {"certpass", OPT_CERTPASS, 's',
-        "Pass phrase source potentially needed for loading trusted/untrusted certificates"},
+"Pass phrase source potentially needed for loading trusted/untrusted certificates"},
     {"storeform", OPT_STOREFORM, 's',
-            "Format (PEM/DER/P12) to try first when reading certificate store files. Default PEM."},
+"Format (PEM/DER/P12) to try first when reading certificate store files. Default PEM."},
     {"certform", OPT_CERTFORM, 's',
-            "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM."},
+"Format (PEM/DER/P12) to try first when reading certificate files. Default PEM."},
                {OPT_MORE_STR, 0, 0,
-                       "This also determines format to use for writing (not supported for P12)"},
+      "This also determines format to use for writing (not supported for P12)"},
     {"keyform", OPT_KEYFORM, 's',
-            "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
+       "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
     {"crlform", OPT_CRLFORM, 's',
-            "Format (PEM/DER) to try first when reading CRL files. Default PEM"},
+       "Format (PEM/DER) to try first when reading CRL files. Default PEM"},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's',
      "Use crypto engine with given identifier, possibly a hardware device."},
     {OPT_MORE_STR, 0, 0,
      "Engines may be defined in OpenSSL config file engine section."},
     {OPT_MORE_STR, 0, 0,
-     "Options like -key specifying keys held in the engine can give key identifiers"},
+"Options like -key specifying keys held in the engine can give key identifiers"},
     {OPT_MORE_STR, 0, 0,
-     "prefixed by 'engine:', e.g., '-key engine:pkcs11:object=mykey;pin-value=1234'"},
+"prefixed by 'engine:', e.g., '-key engine:pkcs11:object=mykey;pin-value=1234'"},
 #endif
 
     {OPT_MORE_STR, 0, 0, "\nTLS options:"},
     {"tls_used", OPT_USETLS, '-',
-     "Force using TLS (even when other TLS options are not set) connecting to server"},
+"Force using TLS (even when other TLS options are not set) connecting to server"},
     {"tls_cert", OPT_TLSCERT, 's',
-     "Client's TLS certificate. May include certificate chain to be provided to server"},
+"Client's TLS certificate. May include certificate chain to be provided to server"},
     {"tls_key", OPT_TLSKEY, 's',
      "Private key for the client's TLS certificate"},
     {"tls_keypass", OPT_TLSKEYPASS, 's',
@@ -550,37 +557,37 @@ OPTIONS cmp_options[] = {
      "Trusted certificates to use for verifying the TLS server certificate."},
     {OPT_MORE_STR, 0, 0, "This implies host name validation"},
     {"tls_host", OPT_TLSHOST, 's',
-     "Address to be checked (rather than -server) during TLS host name validation"},
+ "Address to be checked (rather than -server) during TLS host name validation"},
 
     {OPT_MORE_STR, 0, 0,
      "\nCertificate verification options, for both CMP and TLS:"},
     {"crl_download", OPT_CRL_DOWNLOAD, '-',
-     "Retrieve CRLs from distribution points given in certificates as primary source"},
+"Retrieve CRLs from distribution points given in certificates as primary source"},
     {"crls", OPT_CRLS, 's',
-     "Use given CRL(s) as secondary (fallback) source when verifying certificates."},
+"Use given CRL(s) as secondary (fallback) source when verifying certificates."},
     {OPT_MORE_STR, 0, 0,
-     "URL may start with 'http:' or point to local file (possibly prefixed by 'file:')."},
+"URL may start with 'http:' or point to local file (possibly prefixed by 'file:')."},
     {OPT_MORE_STR, 0, 0,
-     "Note: -crl_download, -crls, and -crl_check require certificate status checking"},
+"Note: -crl_download, -crls, and -crl_check require certificate status checking"},
     {OPT_MORE_STR, 0, 0,
-     "for at least the leaf certificate using CRLs unless OCSP is enabled and succeeds."},
+"for at least the leaf certificate using CRLs unless OCSP is enabled and succeeds."},
     {OPT_MORE_STR, 0, 0,
      "-crl_check_all requires revocation checks using CRLs for full certificate chain."},
     {"crl_timeout", OPT_CRL_TIMEOUT, 'n',
-     "Request timeout for online CRL retrieval (or 0 for none). Default 10 seconds"},
+"Request timeout for online CRL retrieval (or 0 for none). Default 10 seconds"},
 #ifndef OPENSSL_NO_OCSP
     {"ocsp_check_all", OPT_OCSP_CHECK_ALL, '-',
      "Require revocation checks (via OCSP) for full certificate chain"},
     {"ocsp_use_aia", OPT_OCSP_USE_AIA, '-',
-     "Use OCSP with AIA entries in certificates as primary URL of OCSP responder"},
+  "Use OCSP with AIA entries in certificates as primary URL of OCSP responder"},
     {"ocsp_url", OPT_OCSP_URL, 's',
      "Use OCSP with given URL as secondary (fallback) URL of OCSP responder."},
     {OPT_MORE_STR, 0, 0,
      "Note: -ocsp_use_aia and -ocsp_url require certificate status checking"},
     {OPT_MORE_STR, 0, 0,
-     "for at least the leaf certificate using OCSP, with CRLs as fallback if enabled."},
+"for at least the leaf certificate using OCSP, with CRLs as fallback if enabled."},
     {"ocsp_timeout", OPT_OCSP_TIMEOUT, 'n',
-     "Timeout for retrieving OCSP responses (or 0 for none). Default 10 seconds"},
+   "Timeout for retrieving OCSP responses (or 0 for none). Default 10 seconds"},
 # if OPENSSL_VERSION_NUMBER >= 0x10100000L
     {"ocsp_status", OPT_OCSP_STATUS, '-',
      "Enable certificate status from TLS server via OCSP (not multi-)stapling"},
@@ -596,11 +603,11 @@ OPTIONS cmp_options[] = {
 #endif
 
     {OPT_MORE_STR, 0, 0, "\nVerification options:"},
-    /*-
-     * subsumes:
-     * {"crl_check_all", OPT_CRLALL, '-',
-     *  "Check CRLs not only for leaf certificate but for full certificate chain"},
-     */
+ /*
+  * subsumes:
+  * {"crl_check_all", OPT_CRLALL, '-',
+  *  "Check CRLs not only for leaf certificate but for full certificate chain"},
+  */
     OPT_V_OPTIONS,
 
     {NULL}
@@ -611,7 +618,7 @@ typedef union {
     int *num;
     long *num_long;
 } varref;
-static varref cmp_vars[] = { /* must be in the same order as enumerated above!! */
+static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_config}, {&opt_section},
 
     {&opt_server}, {&opt_proxy}, {&opt_path},
@@ -743,7 +750,7 @@ static int read_config()
             break;
         default:
             BIO_printf(bio_err,
-                       "internal error: unsupported type '%c' for option '%s'\n",
+                      "internal error: unsupported type '%c' for option '%s'\n",
                        opt->valtype, opt->name);
             return 0;
             break;
@@ -778,7 +785,7 @@ static int read_config()
 #endif
                 {
                     BIO_printf(bio_err,
-                               "error for option '%s' in config file section '%s'\n",
+                          "error for option '%s' in config file section '%s'\n",
                                opt->name, opt_section);
                     return 0;
                 }
@@ -843,7 +850,7 @@ static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
     }
     if (**filenames == '\0') {
         BIO_printf(bio_err,
-                   "No (more) file name has been provided for writing message\n");
+              "Not enough file names have been provided for writing message\n");
         return 0;
     }
 
@@ -888,7 +895,7 @@ static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
     }
     if (**filenames == '\0') {
         BIO_printf(bio_err,
-                   "No (more) file name has been provided for reading message\n");
+              "Not enough file names have been provided for reading message\n");
         return 0;
     }
 
@@ -951,11 +958,11 @@ static int read_write_req_resp(CMP_CTX *ctx,
             if ((req_new = read_PKIMESSAGE(&opt_reqin)) == NULL)
                 goto err;
 # if 0
-            /*
-             * The transaction ID in req_new may not be fresh. In this case the
-             * Insta Demo CA correctly complains: "Transaction id already in use."
-             * The following workaround unfortunately requires re-protection.
-             */
+          /*
+           * The transaction ID in req_new may not be fresh. In this case the
+           * Insta Demo CA correctly complains: "Transaction id already in use."
+           * The following workaround unfortunately requires re-protection.
+           */
             CMP_PKIHEADER_set1_transactionID(CMP_PKIMESSAGE_get0_header
                                              (req_new), NULL);
             CMP_PKIMESSAGE_protect((CMP_CTX *)ctx, req_new);
@@ -1036,7 +1043,7 @@ static int load_pkcs12(BIO *in, const char *desc,
             tpass[len] = 0;
         if (!PKCS12_verify_mac(p12, tpass, len)) {
             BIO_printf(bio_err,
-                       "Mac verify error (wrong password?) in PKCS12 file for %s\n",
+                   "Mac verify error (wrong password?) in PKCS12 file for %s\n",
                        desc);
             goto die;
         }
@@ -1219,7 +1226,7 @@ static X509_REQ *load_csr(const char *file, int format, const char *desc)
     return req;
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x10100003L /* limited compatibility declarations */
+#if OPENSSL_VERSION_NUMBER < 0x10100003L/* limited compatibility declarations */
 static int load_crls_(BIO *err, const char *file, int format,
                       STACK_OF(X509_CRL) **crls, const char *pass, ENGINE *e,
                       const char *desc)
@@ -1240,10 +1247,10 @@ static int load_certs_(BIO *err, const char *file, int format,
     return *certs != NULL;
 }
 
-# define load_crls( f, cs, fmt,        p,    d) load_crls_ (bio_err, f, fmt, cs,    p, 0, d)
-# define load_certs(f, cs, fmt,        p,    d) load_certs_(bio_err, f, fmt, cs,    p, 0, d)
-# define load_cert( f,     fmt,              d) load_cert  (bio_err, f, fmt,     NULL, 0, d)
-# define load_key(  f,     fmt, stdin, p, e, d) load_key   (bio_err, f, fmt, stdin, p, e, d)
+# define load_crls( f, c, t,    p,    d) load_crls_ (bio_err, f, t, c, p, 0, d)
+# define load_certs(f, c, t,    p,    d) load_certs_(bio_err, f, t, c, p, 0, d)
+# define load_cert( f,    t,          d) load_cert  (bio_err, f, t, NULL, 0, d)
+# define load_key(  f,    t, i, p, e, d) load_key   (bio_err, f, t, i, p, e, d)
 #endif
 
 /* TODO DvO: push that separately upstream with the autofmt options */
@@ -1295,7 +1302,7 @@ static char *get_passwd(const char *pass, const char *desc)
     }
     if (pass != NULL && result == NULL) {
         BIO_printf(bio_err,
-                   "For compatibility, trying plain input string (better precede with 'pass:')\n");
+"For compatibility, trying plain input string (better precede with 'pass:')\n");
         result = OPENSSL_strdup(pass);
     }
     return result;
@@ -1779,7 +1786,8 @@ static int ocsp_resp_cb(SSL *ssl, void *arg)
     OCSP_CERTID *id = NULL;
     const unsigned char *resp;
     OCSP_RESPONSE *rsp = NULL;
-    int ret = -1; /* tls_process_initial_server_flight reports this as malloc failure */
+    int ret = -1; /* tls_process_initial_server_flight reports
+                     this return code as malloc failure */
     int len = SSL_get_tlsext_status_ocsp_resp(ssl, &resp);
 
     if (resp == NULL) {
@@ -1827,7 +1835,7 @@ static int ocsp_resp_cb(SSL *ssl, void *arg)
 #endif /* !defined OPENSSL_NO_OCSP */
 
 static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */ ,
-                                    const STACK_OF(X509) *certs /* may be NULL */)
+                                  const STACK_OF(X509) *certs /* may be NULL */)
 {
     int i;
 
@@ -2537,7 +2545,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (!opt_unprotectedRequests &&
         !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
         BIO_puts(bio_err,
-                 "error: missing -unprotectedrequests, or -ref and -secret, or -cert and -key, for client authentication\n");
+"error: missing -unprotectedrequests, or -ref and -secret, or -cert and -key, for client authentication\n");
         goto err;
     }
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
@@ -2548,7 +2556,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
         if (opt_certout == NULL) {
             BIO_puts(bio_err,
-                     "error: -certout not given, nowhere to save certificate\n");
+                    "error: -certout not given, nowhere to save certificate\n");
             goto err;
         }
     }
@@ -2568,13 +2576,13 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (!opt_unprotectedRequests && !(opt_ref && opt_secret)
         && !(opt_cert && opt_key)) {
         BIO_puts(bio_err,
-                 "error: missing -ref/-secret or -cert/-key for client authentication\n");
+       "error: missing -ref/-secret or -cert/-key for client authentication\n");
         goto err;
     }
     if (opt_recipient == NULL && opt_srvcert == NULL && opt_issuer == NULL &&
         opt_oldcert == NULL && opt_cert == NULL) {
         BIO_puts(bio_err,
-                 "warning: missing -recipient, -srvcert, -issuer, -oldcert or -cert; recipient will be set to \"NULL-DN\"\n");
+"warning: missing -recipient, -srvcert, -issuer, -oldcert or -cert; recipient will be set to \"NULL-DN\"\n");
     }
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     if (opt_keyform_s
@@ -2635,7 +2643,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_CRL_CHECK);
     else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
         BIO_printf(bio_c_out,
-                   "must use -crl_download or -crls when -crl_check is given\n");
+                  "must use -crl_download or -crls when -crl_check is given\n");
 #if 0
         X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK);
 #else
@@ -2647,7 +2655,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         if ((flags & X509_V_FLAG_CRL_CHECK_ALL) &&
             !(flags & X509_V_FLAG_CRL_CHECK))
             BIO_printf(bio_c_out,
-                       "warning: -crl_check_all has no effect without -crls, -crl_download, or -crl_check\n");
+"warning: -crl_check_all has no effect without -crls, -crl_download, or -crl_check\n");
     }
     if (opt_crl_timeout == 0)
         opt_crl_timeout = -1;
@@ -2747,7 +2755,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 /* The following does not work:
  *  #define SSL_CTX_set_tlsext_status_type(ssl, type) \
  *          SSL_CTX_ctrl(ssl, SSL_CTRL_SET_TLSEXT_STATUS_REQ_TYPE, type, NULL)
- * Instead, we would have to set TLSEXT_STATUSTYPE_ocsp directly in the SSL struct:
+ * Instead, we'd have to set TLSEXT_STATUSTYPE_ocsp directly in the SSL struct:
  *          SSL_set_tlsext_status_type(ssl, TLSEXT_STATUSTYPE_ocsp);
  */
 #  else
@@ -3678,12 +3686,12 @@ int cmp_main(int argc, char **argv)
                     *cmp_vars[i].txt = *++argv;
                     if (**argv == '\0') {
                         BIO_printf(bio_c_out,
-                                   "Warning: argument of -%s option is empty string, resetting option\n",
+          "Warning: argument of -%s option is empty string, resetting option\n",
                                    opt->name);
                         *cmp_vars[i].txt = NULL;
                     } else if (**argv == '-') {
                         BIO_printf(bio_c_out,
-                                   "Warning: argument of -%s option starts with hyphen\n",
+                         "Warning: argument of -%s option starts with hyphen\n",
                                    opt->name);
                     }
                     argc--;
