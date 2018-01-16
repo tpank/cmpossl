@@ -60,6 +60,8 @@
  CMP_CTX_set_serverPort,
  CMP_CTX_set0_reqExtensions,
  CMP_CTX_set_transfer_cb,
+ CMP_CTX_set1_transfer_cb_opts,
+ CMP_CTX_get_transfer_cb_opts,
  CMP_CTX_set_certConf_cb,
  CMP_CTX_subjectAltName_push1
 
@@ -138,6 +140,8 @@
  typedef int (*cmp_transfer_cb_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                                    CMP_PKIMESSAGE **res);
  int CMP_CTX_set_transfer_cb(CMP_CTX *ctx, cmp_transfer_cb_t cb);
+ int CMP_CTX_set1_transfer_cb_opts(CMP_CTX *ctx, void* opts);
+ void *CMP_CTX_get_transfer_cb_opts(CMP_CTX *ctx);
 
  typedef int (*cmp_certConf_cb_t) (CMP_CTX *ctx, const X509 *cert, int failure,
                                    const char **txt);
@@ -199,15 +203,15 @@ private and public keys, corresponding to the client certificate set with
 B<CMP_CTX_set1_clCert()> in the given CMP_CTX structure.
 Used to create the protection in case of MSG_SIG_ALG.
 
-CMP_CTX_set1_pkey() is the same as above, except that it does not
+CMP_CTX_set1_pkey() is the same as CMP_CTX_set0_pkey(), except that it does not
 consume the pointer.
 
 CMP_CTX_set0_newPkey() sets the given EVP_PKEY structure, holding the
 private and public keys, which shall be certified, in the given CMP_CTX
 structure
 
-CMP_CTX_set1_newPkey() is the same as above, except that it does not
-consume the pointer.
+CMP_CTX_set1_newPkey() is the same as CMP_CTX_set0_newPkey(), except that it
+does not consume the pointer.
 
 CMP_CTX_set1_transactionID() sets the given transaction ID in the given
 CMP_CTX structure.
@@ -215,7 +219,7 @@ CMP_CTX structure.
 CMP_CTX_set1_recipNonce() sets the given recipient nonce in the given
 CMP_CTX structure.
 
-CMP_CTX_set1_last_senderNonce() stores the last sent sender B<nonce> in 
+CMP_CTX_set1_last_senderNonce() stores the last sent sender B<nonce> in
 the B<ctx>. This will be used to validate the recipNonce in incoming messages.
 
 CMP_CTX_set1_serverName() sets the given server Address (as IP or name)
@@ -393,7 +397,8 @@ When a response is received, its sender must match the recipient of the request.
 
 CMP_CTX_set1_expected_sender() sets the sender name that will be expected in
 the PKIHeader of response messages, i.e. the X509 name of the (CA) server.
-If not set, the recipient name determined as specified above will be used.
+If not set, the recipient name determined as specified in
+CMP_CTX_set1_recipient() will be used.
 
 CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
@@ -403,7 +408,18 @@ CMP_CTX_set_transfer_cb() sets the message transfer callback function.
 Default is CMP_PKIMESSAGE_http_perform().
 The callback should send the CMP request it obtains via the B<req> parameter
 and on success place the response in the B<*res> output parameter.
+The transfer callback may make use of proprietarily defined options stored in
+the ctx by means of CMP_CTX_set1_transfer_cb_opts() and retrieved through
+CMP_CTX_get_transfer_cb_opts().
 On success it must return 0, else a CMP error reason code defined in cmp.h.
+
+CMP_CTX_set1_transfer_cb_opts() sets an option, respecively structure
+containing options, to be used by callback - if applicable.  B<opts> is not
+consumed, and it must therefore explicitly be freed when needed. It may be NULL
+to clear the entry.
+
+CMP_CTX_get_transfer_cb_opts() gets the option, respecively structure
+containing options, previously set with CMP_CTX_set1_transfer_cb_opts().
 
 CMP_CTX_set_certConf_cb() sets the callback used for evaluating the newly
 enrolled certificate before the library sends, depending on its result,
@@ -471,6 +487,9 @@ certificate from the context. NULL if there was none as well as on error.
 
 CMP_CTX_get0_tlsBIO() returns the SSL/TLS BIO to be used for HTTPS, NULL if
 none as well as on error.
+
+CMP_CTX_get_transfer_cb_opts() returns transfer callback options set previously.
+NULL if not set or on function parameter error.
 
 CMP_CTX_failInfoCode_get() returns the failinfo error code bits in context as
 returns bitstring in ulong on success, -1 on error.

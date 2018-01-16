@@ -4678,3 +4678,5 @@ CMP_CTX_set_transfer_cb                 4613	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_debug_cb                    4614	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_error_cb                    4615	1_1_1	EXIST::FUNCTION:
 CMP_POLLREPCONTENT_pollRep_get0         4616	1_1_1	EXIST::FUNCTION:
+CMP_CTX_set1_transfer_cb_opts           4617	1_1_1	EXIST::FUNCTION:
+CMP_CTX_get_transfer_cb_opts            4618	1_1_1	EXIST::FUNCTION:

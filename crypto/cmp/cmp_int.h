@@ -110,6 +110,7 @@ struct cmp_ctx_st {
                        each CMP message round trip to complete */
     BIO *tlsBIO;
     cmp_transfer_cb_t transfer_cb;
+    void *transfer_cb_opts; /* allows to store options individual to cb */
 } /* CMP_CTX */;
 DECLARE_ASN1_FUNCTIONS(CMP_CTX)
 
