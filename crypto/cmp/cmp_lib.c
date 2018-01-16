@@ -94,7 +94,11 @@
 #include <openssl/rand.h>
 /* for bio_err */
 #include <openssl/err.h>
-#include "internal/cryptlib.h" /* for DECIMAL_SIZE */
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+# include "crypto/cryptlib.h" /* for DECIMAL_SIZE */
+#else
+# include "internal/cryptlib.h" /* for DECIMAL_SIZE */
+#endif
 
 #include <time.h>
 #include <string.h>
