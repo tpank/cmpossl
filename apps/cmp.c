@@ -2311,7 +2311,7 @@ static int certConf_cb(CMP_CTX *ctx, const X509 *cert, int failure,
         failure = CMP_PKIFAILUREINFO_incorrectData;
 
     if (failure >= 0)
-        BIO_puts(bio_c_out,
+        BIO_puts(bio_err,
                  "error: failed to validate newly enrolled certificate\n");
     return failure;
 }
@@ -2642,8 +2642,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_crls || opt_crl_download)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_CRL_CHECK);
     else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
-        BIO_printf(bio_c_out,
-                  "must use -crl_download or -crls when -crl_check is given\n");
+        BIO_printf(bio_err,
+           "error: must use -crl_download or -crls when -crl_check is given\n");
 #if 0
         X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK);
 #else
