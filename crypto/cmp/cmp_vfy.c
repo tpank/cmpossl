@@ -368,7 +368,6 @@ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
  */
 static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
                            const X509_STORE *ts) {
-    char *str;
     X509_NAME *sender_name = NULL;
     ASN1_OCTET_STRING *kid = NULL;
     X509_VERIFY_PARAM *vpm = NULL;
@@ -411,6 +410,9 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
             return 0;
         }
         if (ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
+#if OPENSSL_VERSION_NUMBER >= 0x10100005L
+            char *str;
+#endif
             CMP_add_error_data(" wrong subject key");
 #if OPENSSL_VERSION_NUMBER >= 0x10100005L
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
