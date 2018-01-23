@@ -303,7 +303,7 @@ typedef struct options_st {
         OPT_V__LAST
 
 # define OPT_V_OPTIONS \
-        { "policy", OPT_V_POLICY, 's',
+        { "policy", OPT_V_POLICY, 's', \
             "adds policy to the acceptable policy set"},    \
         { "purpose", OPT_V_PURPOSE, 's', \
             "certificate chain purpose"}, \
@@ -322,11 +322,11 @@ typedef struct options_st {
         { "ignore_critical", OPT_V_IGNORE_CRITICAL, '-', \
             "permit unhandled critical extensions"}, \
         { "issuer_checks", OPT_V_ISSUER_CHECKS, '-', "(deprecated)"}, \
-        { "crl_check", OPT_V_CRL_CHECK, '-',
+        { "crl_check", OPT_V_CRL_CHECK, '-', \
             "check leaf certificate revocation" }, \
         { "crl_check_all", OPT_V_CRL_CHECK_ALL, '-',
             "check full chain revocation" }, \
-        { "policy_check", OPT_V_POLICY_CHECK, '-',
+        { "policy_check", OPT_V_POLICY_CHECK, '-', \
              "perform rfc5280 policy checks"}, \
         { "explicit_policy", OPT_V_EXPLICIT_POLICY, '-', \
             "set policy variable require-explicit-policy"}, \
@@ -346,7 +346,7 @@ typedef struct options_st {
             "check root CA self-signatures"}, \
         { "trusted_first", OPT_V_TRUSTED_FIRST, '-', \
             "search trust store first (default)" }, \
-        { "suiteB_128_only", OPT_V_SUITEB_128_ONLY, '-',
+        { "suiteB_128_only", OPT_V_SUITEB_128_ONLY, '-', \
             "Suite B 128-bit-only mode"},  \
         { "suiteB_128", OPT_V_SUITEB_128, '-', \
             "Suite B 128-bit mode allowing 192-bit algorithms"}, \
@@ -354,9 +354,9 @@ typedef struct options_st {
         { "partial_chain", OPT_V_PARTIAL_CHAIN, '-', \
             "accept chains anchored by intermediate trust-store CAs"}, \
         { "no_alt_chains", OPT_V_NO_ALT_CHAINS, '-', "(deprecated)" }, \
-        { "no_check_time", OPT_V_NO_CHECK_TIME, '-',
+        { "no_check_time", OPT_V_NO_CHECK_TIME, '-', \
             "ignore certificate validity time" }, \
-        { "allow_proxy_certs", OPT_V_ALLOW_PROXY_CERTS, '-',
+        { "allow_proxy_certs", OPT_V_ALLOW_PROXY_CERTS, '-', \
             "allow the use of proxy certificates" }
 #endif
 
