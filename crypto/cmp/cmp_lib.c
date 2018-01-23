@@ -1149,21 +1149,17 @@ static char *CMP_PKISTATUSINFO_PKIStatus_get_string(CMP_PKISTATUSINFO *si)
 
 /*
  * internal function
+ * convert PKIFailureInfo bit to human-readable string or empty string if not set
  *
- * convert PKIStatus to human-readable string
- * Limitation: in case more than one bit is set, only one is considered.
- *
- * returns pointer to string containing the the PKIFailureInfo
+ * returns pointer to static string
  * returns NULL on error
  */
-static char *CMP_PKISTATUSINFO_PKIFailureInfo_get_string(CMP_PKISTATUSINFO *si)
+static char *CMP_PKIFAILUREINFO_get_string(CMP_PKIFAILUREINFO *fi, int i)
 {
-    int i;
-
-    if (si == NULL)
+    if (fi == NULL)
         return NULL;
-    for (i = 0; i <= CMP_PKIFAILUREINFO_MAX; i++) {
-        if (ASN1_BIT_STRING_get_bit(si->failInfo, i)) {
+    if (0 <= i && i <= CMP_PKIFAILUREINFO_MAX) {
+        if (ASN1_BIT_STRING_get_bit(fi, i)) {
             switch (i) {
             case CMP_PKIFAILUREINFO_badAlg:
                 return "PKIFailureInfo: badAlg";
@@ -1220,9 +1216,11 @@ static char *CMP_PKISTATUSINFO_PKIFailureInfo_get_string(CMP_PKISTATUSINFO *si)
             case CMP_PKIFAILUREINFO_duplicateCertReq:
                 return "PKIFailureInfo: duplicateCertReq";
             }
+        } else {
+            return ""; /* bit is not set */
         }
     }
-    return 0;
+    return NULL; /* illegal bit position */
 }
 
 /*
@@ -1474,25 +1472,40 @@ int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg)
  */
 char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
 {
-    const char *status, *failureinfo;
-    int i, n;
+    const char *status, *failure;
+    int i;
+    int n = 0;
 
     if (si == NULL ||
         (status = CMP_PKISTATUSINFO_PKIStatus_get_string(si)) == NULL)
         return NULL;
+    BIO_snprintf(buf, bufsize, "%s; ", status);
 
-    failureinfo = CMP_PKISTATUSINFO_PKIFailureInfo_get_string(si);
-    /* PKIFailureInfo is optional */
-    n = sk_ASN1_UTF8STRING_num(si->statusString);
+    /* PKIFailure is optional and may be empty */
+    if (si->failInfo != NULL) {
+        for (i = 0; i <= CMP_PKIFAILUREINFO_MAX; i++) {
+            failure = CMP_PKIFAILUREINFO_get_string(si->failInfo, i);
+            if (failure == NULL)
+                return NULL;
+            if (failure[0] != '\0')
+                BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "%s%s",
+                             n > 0 ? ", " : "", failure);
+            n += strlen(failure);
+        }
+    }
+    if (n == 0)
+        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "<no failure info>");
+
     /* StatusString sequence is optional and may be empty */
-    BIO_snprintf(buf, bufsize, "%s; %s%s", status,
-                 failureinfo ? failureinfo : "<no failure info>",
-                 n > 0 ? "; StatusString(s): " : "");
-
-    for (i = 0; i < n; i++) {
-        ASN1_UTF8STRING *text = sk_ASN1_UTF8STRING_value(si->statusString, i);
-        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "\"%s\"%s",
-                     ASN1_STRING_get0_data(text), i < n-1 ? ", " : "");
+    n = sk_ASN1_UTF8STRING_num(si->statusString);
+    if (n > 0) {
+        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf),
+                     "; StatusString%s: ", n > 1 ? "s" : "");
+        for (i = 0; i < n; i++) {
+            ASN1_UTF8STRING *text = sk_ASN1_UTF8STRING_value(si->statusString, i);
+            BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "\"%s\"%s",
+                         ASN1_STRING_get0_data(text), i < n-1 ? ", " : "");
+        }
     }
     return buf;
 }
