@@ -193,50 +193,35 @@ static int CMP_verify_PBMAC(const CMP_PKIMESSAGE *msg,
  * Attempt to validate certificate and path using given store of trusted certs
  * (possibly including CRLs and a cert verification callback function) and
  * non-trusted intermediate certs from the given ctx.
- * Internal version not producing any errors output itself.
- * Returns 1 on successful validation and 0 otherwise.
- */
-static int validate_cert_path(const CMP_CTX *ctx,
-                              const X509_STORE *trusted_store, const X509 *cert)
-{
-    int valid = 0;
-    X509_STORE_CTX *csc = X509_STORE_CTX_new();
-
-    if (csc == NULL ||
-        !X509_STORE_CTX_init(csc, (X509_STORE *)trusted_store, (X509 *)cert,
-                             (STACK_OF(X509) *)ctx->untrusted_certs))
-        goto oom;
-
-    valid = X509_verify_cert(csc);
-
- oom:
-    X509_STORE_CTX_free(csc);
-    return valid > 0;
-}
-
-/*
- * Attempt to validate certificate and path using given store of trusted certs
- * (possibly including CRLs and a cert verification callback function) and
- * non-trusted intermediate certs from the given ctx.
+ * The defer_errors parameter needs to be set when used in a certConf callback
+ * as any following certConf exchange will likely clear the OpenSSL error queue.
  * Returns 1 on successful validation and 0 otherwise.
  */
 int CMP_validate_cert_path(const CMP_CTX *ctx, const X509_STORE *trusted_store,
-                           const X509 *cert)
+                           const X509 *cert, int defer_errors)
 {
     int valid = 0;
+    X509_STORE_CTX *csc = NULL;
 
     if (ctx == NULL || trusted_store == NULL || cert == NULL) {
         CMPerr(CMP_F_CMP_VALIDATE_CERT_PATH, CMP_R_NULL_ARGUMENT);
         goto end;
     }
 
-    valid = validate_cert_path(ctx, trusted_store, cert);
-    if (!valid) {
-        CMPerr(CMP_F_CMP_VALIDATE_CERT_PATH, CMP_R_INVALID_CERTIFICATE);
-        add_cert_verify_err_data();
+    if ((csc = X509_STORE_CTX_new()) == NULL ||
+        !X509_STORE_CTX_init(csc, (X509_STORE *)trusted_store, (X509 *)cert,
+                             (STACK_OF(X509) *)ctx->untrusted_certs)) {
+        CMPerr(CMP_F_CMP_VALIDATE_CERT_PATH, CMP_R_OUT_OF_MEMORY);
+        goto end;
     }
 
+    valid = X509_verify_cert(csc) > 0;
+
+    if (!valid && !defer_errors)
+        put_cert_verify_err(CMP_F_CMP_VALIDATE_CERT_PATH);
+
  end:
+    X509_STORE_CTX_free(csc);
     return valid;
 }
 
@@ -295,18 +280,21 @@ static void print_store_certs(BIO *bio, X509_STORE *store) {
 }
 
 /* needed because cert verify errors are threatened by ERR_clear_error() */
-BIO *cert_verify_err_bio = NULL;
-void add_cert_verify_err_data(void)
-{
-    char *str;
-    long len = BIO_get_mem_data(cert_verify_err_bio/* may be NULL */, &str);
+static BIO *cert_verify_err_bio = NULL;
 
-    if (len > 0) {
-        str[len-1] = '\0'; /* replace last '\n', terminating str */
-        CMP_add_error_line(str);
+void put_cert_verify_err(int func)
+{
+    if (cert_verify_err_bio != NULL) { /* cert verify error in callback */
+        char *str;
+        long len = BIO_get_mem_data(cert_verify_err_bio, &str);
+        CMPerr(func, CMP_R_INVALID_CERTIFICATE);
+        if (len > 0) {
+            str[len-1] = '\0'; /* replace last '\n', terminating str */
+            CMP_add_error_line(str);
+        }
+        BIO_free(cert_verify_err_bio);
+        cert_verify_err_bio = NULL;
     }
-    BIO_free(cert_verify_err_bio);
-    cert_verify_err_bio = NULL;
 }
 
 /*
@@ -517,7 +505,7 @@ static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt,
     X509_STORE *store = X509_STORE_new();
     if (store && /* store does not include CRLs */
         CMP_X509_STORE_add1_certs(store, msg->extraCerts, 1/* s-sgnd only */)) {
-        valid = validate_cert_path(ctx, store, scrt);
+        valid = CMP_validate_cert_path(ctx, store, scrt, 0);
     }
     if (valid) {
         /*
@@ -528,7 +516,7 @@ static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt,
             CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip, 0);
         X509 *newcrt = CMP_CERTRESPONSE_get_certificate(ctx, crep); /* maybe
             better use get_cert_status() from cmp_ses.c, which catches errors */
-        valid = CMP_validate_cert_path(ctx, store, newcrt);
+        valid = CMP_validate_cert_path(ctx, store, newcrt, 0);
         X509_free(newcrt);
     }
     X509_STORE_free(store);
@@ -538,7 +526,7 @@ static int srv_cert_valid_3gpp(CMP_CTX *ctx, const X509 *scrt,
 static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
     X509 *scrt = NULL;
-    int scrt_valid = 0;
+    int valid = 0;
     GENERAL_NAME *sender = msg->header->sender;
 
     if (sender == NULL || msg->body == NULL)
@@ -556,7 +544,7 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     if (ctx->validatedSrvCert &&
         cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted_store)) {
         scrt = ctx->validatedSrvCert;
-        scrt_valid = 1;
+        valid = 1;
     } else {
         STACK_OF(X509) *found_crts = NULL;
         int i;
@@ -583,21 +571,21 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                                       msg);
 
         /* select first server cert that can be validated */
-        for (i = 0; !scrt_valid && i < sk_X509_num(found_crts); i++) {
+        for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
             scrt = sk_X509_value(found_crts, i);
-            scrt_valid = CMP_validate_cert_path(ctx, ctx->trusted_store, scrt);
+            valid = CMP_validate_cert_path(ctx, ctx->trusted_store, scrt, 0);
         }
 
         /* exceptional 3GPP TS 33.310 handling */
-        if (!scrt_valid && ctx->permitTAInExtraCertsForIR &&
+        if (!valid && ctx->permitTAInExtraCertsForIR &&
                 CMP_PKIMESSAGE_get_bodytype(msg) == V_CMP_PKIBODY_IP) {
-            for (i = 0; !scrt_valid && i < sk_X509_num(found_crts); i++) {
+            for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
                 scrt = sk_X509_value(found_crts, i);
-                scrt_valid = srv_cert_valid_3gpp(ctx, scrt, msg);
+                valid = srv_cert_valid_3gpp(ctx, scrt, msg);
             }
         }
 
-        if (scrt_valid) {
+        if (valid) {
             /* store trusted srv cert for future msgs of same transaction */
             X509_up_ref(scrt);
             ctx->validatedSrvCert = scrt;

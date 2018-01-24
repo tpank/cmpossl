@@ -419,7 +419,7 @@ STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store);
 /* cmp_vfy.c */
 int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg);
 int CMP_validate_cert_path(const CMP_CTX *ctx, const X509_STORE *trusted_store,
-                           const X509 *cert);
+                           const X509 *cert, int defer_errors);
 int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
 /*

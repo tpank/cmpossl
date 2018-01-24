@@ -2268,11 +2268,13 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
             /*
              * Unfortunately there is no OpenSSL API function for retrieving the
              * hosts/ip entries in X509_VERIFY_PARAM. So we use ts->ex_data.
-             * This works for names we set ourselves but not verify_hostname.
+             * This works for names we set ourselves but not verify_hostname
+             * used for CertConf_cb.
              */
             expected = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
-            BIO_printf(bio_err, "info: TLS connection expected host = %s\n",
-                       expected);
+            if (expected != NULL)
+                BIO_printf(bio_err, "info: TLS connection expected host = %s\n",
+                           expected);
             break;
         default:
             break;
@@ -2307,7 +2309,7 @@ static int certConf_cb(CMP_CTX *ctx, const X509 *cert, int failure,
     /* TODO: load caPubs [CMP_CTX_caPubs_get1(ctx)] as additional trusted certs
        during IR and if MSG_SIG_ALG is used, cf. RFC 4210, 5.3.2 */
 
-    if (out_trusted && !CMP_validate_cert_path(ctx, out_trusted, cert))
+    if (out_trusted && !CMP_validate_cert_path(ctx, out_trusted, cert, 1))
         failure = CMP_PKIFAILUREINFO_incorrectData;
 
     if (failure >= 0)

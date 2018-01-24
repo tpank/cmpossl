@@ -11,7 +11,7 @@
  #include <openssl/cmp.h>
  int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
  int CMP_validate_cert_path(CMP_CTX *ctx, const X509_STORE *trusted_store,
-                            const X509 *cert);
+                            const X509 *cert, int defer_errors);
  int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
 =head1 DESCRIPTION
@@ -45,6 +45,8 @@ returned in IP.  This is according to 3GPP TS 33.310.
 CMP_validate_cert_path() attempts to validate the given certificate and its path
 using the given store of trusted certs (possibly including CRLs and a cert
 verification callback) and non-trusted intermediate certs from the B<ctx>.
+The B<defer_errors> parameter needs to be set when used in a certConf callback
+because any following certConf exchange will likely clear the OpenSSL error queue.
 
 CMP_print_cert_verify_cb() is a diagnostic function that may be registered
 using X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
