@@ -210,7 +210,7 @@ static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
  * Regardless of success, caller is responsible for freeing *rep (unless NULL).
  */
 static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
-                              const char *type_string, int type_function,
+                              const char *type_string, int func,
                               CMP_PKIMESSAGE **rep, int expected_type,
                               int not_received)
 {
@@ -231,9 +231,9 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
         if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
             err == CMP_R_READ_TIMEOUT ||
             err == CMP_R_ERROR_DECODING_MESSAGE)
-            CMPerr(type_function, not_received);
+            CMPerr(func, not_received);
         else {
-            CMPerr(type_function, CMP_R_ERROR_SENDING_REQUEST);
+            CMPerr(func, CMP_R_ERROR_SENDING_REQUEST);
             CMP_add_error_data(type_string);
         }
         *rep = NULL;
@@ -526,7 +526,7 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
  * Regardless of success, caller is responsible for freeing *resp (unless NULL).
  */
 static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
-                         int type_function, int not_received)
+                         int func, int not_received)
 {
     int failure = -1; /* no failure */
     const char *txt = NULL;
@@ -553,7 +553,7 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
         if (pollForResponse(ctx, rid, resp)) {
             goto retry;
         } else {
-            CMPerr(type_function, not_received);
+            CMPerr(func, not_received);
             ERR_add_error_data(1,
                              "received 'waiting' pkistatus but polling failed");
             *resp = NULL;
@@ -598,7 +598,7 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
          * cannot flag failure earlier as send_receive_check() indirectly calls
          * ERR_clear_error()
          */
-        CMPerr(type_function, CMP_R_CERTIFICATE_NOT_ACCEPTED);
+        CMPerr(func, CMP_R_CERTIFICATE_NOT_ACCEPTED);
         ERR_add_error_data(1, txt);
         return 0;
 #endif
@@ -611,8 +611,8 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
      */
     if (ctx->certConf_cb && (failure = ctx->certConf_cb(ctx, ctx->newClCert,
                                                         failure, &txt)) >= 0) {
-        if (failure >= 0 && txt == NULL)
-            txt = "CMP client application did not accept receive certificate";
+        if (txt == NULL)
+            txt = "CMP client application did not accept newly enrolled certificate";
     }
 
     if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(*resp))
@@ -621,10 +621,11 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
 
     if (failure >= 0) {
         /*
-         * cannot flag failure earlier as send_receive_check() indirectly calls
-         * ERR_clear_error()
+         * cannot flag failure earlier because send_receive_check()
+         * indirectly calls ERR_clear_error()
          */
-        CMPerr(type_function, CMP_R_CERTIFICATE_NOT_ACCEPTED);
+        put_cert_verify_err(func);
+        CMPerr(func, CMP_R_CERTIFICATE_NOT_ACCEPTED);
         ERR_add_error_data(1,
                   "certConf callback resulted in rejection of new certificate");
         return 0;

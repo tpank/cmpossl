@@ -491,10 +491,9 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
         err = 0;
 
  err:
-    if (cert_verify_err_bio != NULL) { /* cert verify error at TLS level */
-        CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_INVALID_CERTIFICATE);
-        add_cert_verify_err_data();
-    }
+    /* for any cert verify error at TLS level: */
+    put_cert_verify_err(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM);
+
     if (err) {
         if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
             err = CMP_R_TLS_ERROR;
