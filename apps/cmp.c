@@ -2454,39 +2454,63 @@ static X509_STORE *load_certstore(char *input, const char *desc)
 }
 
 /* TODO DvO: push that separately upstream */
-static int load_certs_multifile(char *input, int format, const char *pass,
-                        int (*add1_fn) (void *arg, const STACK_OF(X509) *certs),
-                        void *arg, const char *desc)
+static STACK_OF(X509) *load_certs_multifile(char *files, int format,
+                                            const char *pass, const char *desc)
 {
     STACK_OF(X509) *certs = NULL;
-    STACK_OF(X509) *all_certs;
-    int ret = 0;
+    STACK_OF(X509) *result = sk_X509_new_null();
 
-    if (input == NULL)
-        return 1;
-
-    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, input); */
-    if ((all_certs = sk_X509_new_null()) == NULL) {
+    if (files == NULL) {
+        goto err;
+    }
+    if (result == NULL) {
         goto oom;
     }
-    OPT_ITERATE(input,
+
+    OPT_ITERATE(files,
     {
-        if (!load_certs_autofmt(input, &certs, format, 0, pass, desc) ||
-            !CMP_sk_X509_add1_certs(all_certs, certs, 0, 1/*no dups*/)) {
+        if (!load_certs_autofmt(files, &certs, format, 0, pass, desc)) {
+            goto err;
+        }
+        if (!CMP_sk_X509_add1_certs(result, certs, 0, 1/*no dups*/)) {
             goto oom;
         }
         sk_X509_pop_free(certs, X509_free);
         certs = NULL;
     })
-    if ((*add1_fn)(arg, all_certs)) {
-        ret = 1;
-    } else {
-    oom:
-        sk_X509_pop_free(certs, X509_free);
-        /* BIO_puts(bio_err, "error: out of memory\n"); */
-        ret = 0;
+    return result;
+
+ oom:
+    BIO_printf(bio_err, "Error: out of memory\n");
+ err:
+    sk_X509_pop_free(certs, X509_free);
+    sk_X509_pop_free(result, X509_free);
+    return NULL;
+}
+
+static
+int setup_certs(char *files, int format, const char *pass, const char *desc,
+                int (*addn_fn) (CMP_CTX *ctx, const STACK_OF(X509) *certs),
+                int (*add1_fn) (CMP_CTX *ctx, const X509 *cert), CMP_CTX *ctx)
+{
+    int ret = 1;
+
+    if (files) {
+        STACK_OF(X509) *certs = load_certs_multifile(files, format, pass, desc);
+        if (certs == NULL) {
+            ret = 0;
+        } else {
+            if (addn_fn != NULL) {
+                ret = (*addn_fn)(ctx, certs);
+            } else {
+                int i;
+                for (i = 0; i < sk_X509_num(certs /* may be NULL */); i++) {
+                    ret &= (*add1_fn)(ctx, sk_X509_value(certs, i));
+                }
+            }
+            sk_X509_pop_free(certs, X509_free);
+        }
     }
-    sk_X509_pop_free(all_certs, X509_free);
     return ret;
 }
 
@@ -2682,8 +2706,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             sk_X509_CRL_free(crls);
         })
     }
-    if (!load_certs_multifile(opt_untrusted, opt_storeform, opt_certpass,
-                   CMP_CTX_set1_untrusted_certs, ctx, "untrusted certificates"))
+    if (!setup_certs(opt_untrusted, opt_storeform, opt_certpass,
+                     "untrusted certificates",
+                     CMP_CTX_set1_untrusted_certs, NULL, ctx))
         goto err;
 
 #ifndef OPENSSL_NO_OCSP
@@ -2949,8 +2974,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         X509_free(clcert);
     }
 
-    if (!load_certs_multifile(opt_extracerts, opt_storeform, opt_certpass,
-                         CMP_CTX_set1_extraCertsOut, ctx, "extra certificates"))
+    if (!setup_certs(opt_extracerts, opt_storeform, opt_certpass,
+                     "extra certificates",
+                     CMP_CTX_set1_extraCertsOut, NULL, ctx))
         goto err;
 
     certform = opt_certform;
