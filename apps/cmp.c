@@ -2452,10 +2452,9 @@ static X509_STORE *load_certstore(char *input, const char *desc)
 }
 
 /* TODO DvO: push that separately upstream */
-static int load_untrusted(char *input,
-                          int (*set_fn) (CMP_CTX *ctx,
-                                         const STACK_OF(X509) *certs),
-                          CMP_CTX *ctx, const char *desc)
+static int load_certs_multifile(char *input, int format, const char *pass,
+                        int (*add1_fn) (void *arg, const STACK_OF(X509) *certs),
+                        void *arg, const char *desc)
 {
     STACK_OF(X509) *certs = NULL;
     STACK_OF(X509) *all_certs;
@@ -2470,15 +2469,14 @@ static int load_untrusted(char *input,
     }
     OPT_ITERATE(input,
     {
-        if (!load_certs_autofmt(input, &certs, opt_storeform, 0,
-                                opt_certpass, desc) ||
+        if (!load_certs_autofmt(input, &certs, format, 0, pass, desc) ||
             !CMP_sk_X509_add1_certs(all_certs, certs, 0, 1/*no dups*/)) {
             goto oom;
         }
         sk_X509_pop_free(certs, X509_free);
         certs = NULL;
     })
-    if ((*set_fn)(ctx, all_certs)) {
+    if ((*add1_fn)(arg, all_certs)) {
         ret = 1;
     } else {
     oom:
@@ -2682,8 +2680,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             sk_X509_CRL_free(crls);
         })
     }
-    if (!load_untrusted(opt_untrusted, CMP_CTX_set1_untrusted_certs, ctx,
-                        "untrusted certificates"))
+    if (!load_certs_multifile(opt_untrusted, opt_storeform, opt_certpass,
+                   CMP_CTX_set1_untrusted_certs, ctx, "untrusted certificates"))
         goto err;
 
 #ifndef OPENSSL_NO_OCSP
@@ -2949,8 +2947,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         X509_free(clcert);
     }
 
-    if (!load_untrusted(opt_extracerts, CMP_CTX_set1_extraCertsOut, ctx,
-                        "extra certificates"))
+    if (!load_certs_multifile(opt_extracerts, opt_storeform, opt_certpass,
+                         CMP_CTX_set1_extraCertsOut, ctx, "extra certificates"))
         goto err;
 
     certform = opt_certform;
