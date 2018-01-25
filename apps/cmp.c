@@ -2517,6 +2517,156 @@ int setup_certs(char *files, int format, const char *pass, const char *desc,
 }
 
 /*
+ * set up verification aspects of CMP_CTX based on options from config file/CLI.
+ * Prints reason for error to bio_err.
+ * Returns pointer on success, NULL on error
+ */
+static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
+    int certform;
+
+    *all_crls = NULL;
+    if (opt_crls || opt_crl_download)
+        X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_CRL_CHECK);
+    else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
+        BIO_printf(bio_err,
+           "error: must use -crl_download or -crls when -crl_check is given\n");
+#if 0
+        X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK);
+#else
+        goto err;
+#endif
+    }
+    {  /* just as a precaution in case CRL_CHECK_ALL is set without CRL_CHECK */
+        unsigned long flags = X509_VERIFY_PARAM_get_flags(vpm);
+        if ((flags & X509_V_FLAG_CRL_CHECK_ALL) &&
+            !(flags & X509_V_FLAG_CRL_CHECK))
+            BIO_printf(bio_c_out,
+"warning: -crl_check_all has no effect without -crls, -crl_download, or -crl_check\n");
+    }
+    if (opt_crl_timeout == 0)
+        opt_crl_timeout = -1;
+    if (opt_crls) {
+/* TODO DvO: extract load_multiple_crls() and push that separately upstream */
+        X509_CRL *crl;
+        STACK_OF(X509_CRL) *crls;
+
+        if ((*all_crls = sk_X509_CRL_new_null()) == NULL) {
+            goto oom;
+        }
+        OPT_ITERATE(opt_crls,
+        {
+            crls = load_crls_autofmt(opt_crls, opt_crlform,
+                                  "CRL(s) for checking certificate revocation");
+            if (crls == NULL)
+                goto err;
+            while((crl = sk_X509_CRL_shift(crls))) {
+                if (!sk_X509_CRL_push(*all_crls, crl)) {
+                    sk_X509_CRL_pop_free(crls, X509_CRL_free);
+                    goto oom;
+                }
+            }
+            sk_X509_CRL_free(crls);
+        })
+    }
+    if (!setup_certs(opt_untrusted, opt_storeform, opt_certpass,
+                     "untrusted certificates",
+                     CMP_CTX_set1_untrusted_certs, NULL, ctx))
+        goto err;
+
+#ifndef OPENSSL_NO_OCSP
+# ifdef OCSP_USE_UNTRUSTED_CERTS
+    ocsp_untrusted_certs = CMP_CTX_get0_untrusted_certs(ctx);
+# endif
+    if (opt_ocsp_use_aia || opt_ocsp_url || opt_ocsp_status) {
+        X509_STORE_CTX *tmp_ctx = X509_STORE_CTX_new();
+
+        if (opt_crl_download || opt_crls)
+            BIO_printf(bio_c_out,
+       "info: will try first OCSP then CRLs for certificate status checking\n");
+        /*
+         * Unfortunately, check_cert() in crypto/x509/x509_vfy.c is static, yet
+         * we can access it indirectly via check_revocation() with a trick.
+         */
+        if (tmp_ctx && X509_STORE_CTX_init(tmp_ctx, NULL, NULL, NULL))
+            check_revocation = X509_STORE_CTX_get_check_revocation(tmp_ctx);
+        X509_STORE_CTX_free(tmp_ctx);
+        if (!check_revocation) {
+            BIO_printf(bio_err,
+                       "internal error: cannot get check_revocation\n");
+            goto err;
+        }
+    } else if (opt_ocsp_check_all)
+        BIO_printf(bio_c_out,
+  "warning: -ocsp_check_all has little sense without -ocsl-aia or -ocsp_url\n");
+#endif
+
+    certform = opt_certform;
+    if (opt_srvcert || opt_trusted) {
+        X509_STORE *ts = NULL;
+
+        if (opt_srvcert) {
+            X509 *srvcert;
+            if (opt_trusted) {
+                BIO_puts(bio_err,
+      "warning: -trusted option is ignored since -srvcert option is present\n");
+                opt_trusted = NULL;
+            }
+            if (opt_recipient) {
+                BIO_puts(bio_err,
+    "warning: -recipient option is ignored since -srvcert option is present\n");
+                opt_recipient = NULL;
+            }
+            /*
+             * opt_keypass is needed here in case opt_srvcert is an encrypted
+             * PKCS#12 file
+             */
+            if (!(srvcert = load_cert_autofmt(opt_srvcert, &certform, NULL,
+                                             "trusted CMP server certificate")))
+                goto err;
+            if (!CMP_CTX_set1_srvCert(ctx, srvcert)) {
+                X509_free(srvcert);
+                goto oom;
+            }
+            X509_free(srvcert);
+            if (!(ts = X509_STORE_new()))
+                goto oom;
+        }
+        if (opt_trusted &&
+            !(ts = load_certstore(opt_trusted, "trusted certificates")))
+            goto err;
+        if (!set1_store_parameters_crls(ts, *all_crls) ||
+            !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
+            !CMP_CTX_set0_trustedStore(ctx, ts)) {
+            X509_STORE_free(ts);
+            goto oom;
+        }
+    }
+
+    if (opt_unprotectedErrors)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
+
+    if (opt_ignore_keyusage)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IGNORE_KEYUSAGE, 1);
+
+    if (opt_out_trusted) { /* in preparation for use in certConf_cb() */
+        if (!(out_trusted = load_certstore(opt_out_trusted,
+                            "trusted certs for verifying newly enrolled cert")))
+            goto err;
+        /* any -verify_hostname, -verify_ip, and -verify_email apply here */
+        if (!set1_store_parameters_crls(out_trusted, *all_crls))
+            goto oom;
+    }
+    return 1;
+
+ oom:
+    BIO_printf(bio_err, "out of memory\n");
+ err:
+    sk_X509_CRL_pop_free(*all_crls, X509_CRL_free);
+    return 0;
+}
+
+
+/*
  * set up ssl_ctx for the CMP_CTX based on options from config file/CLI.
  * Prints reason for error to bio_err.
  * Returns pointer on success, NULL on error
@@ -2537,7 +2687,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
 #endif
     ssl_ctx = SSL_CTX_new(TLS_client_method());
     if (ssl_ctx == NULL) {
-        goto err;
+        goto oom;
     }
     SSL_CTX_set_options(ssl_ctx,
                         SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 |
@@ -2575,13 +2725,13 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         /* do immediately for automatic cleanup in case of errors: */
         SSL_CTX_set_cert_store(ssl_ctx, store);
         if (!set1_store_parameters_crls(store, all_crls))
-            goto err;
+            goto oom;
 #if OPENSSL_VERSION_NUMBER >= 0x10002000
         /* enable and parameterize server hostname/IP address check */
         if (!truststore_set_host(store, opt_tls_host ?
                                  opt_tls_host : opt_server))
             /* TODO: is the server host name correct for TLS via proxy? */
-            goto err;
+            goto oom;
 #endif
         SSL_CTX_set_verify(ssl_ctx,
                            SSL_VERIFY_PEER |
@@ -2594,7 +2744,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         /* do immediately for automatic cleanup in case of errors: */
         if (!SSL_CTX_set0_chain_cert_store(ssl_ctx,
                                            untrusted_store /* may be 0 */))
-            goto err;
+            goto oom;
     }
 
     if (opt_tls_cert && opt_tls_key) {
@@ -2667,6 +2817,8 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     }
     return ssl_ctx;
 
+ oom:
+    BIO_printf(bio_err, "out of memory\n");
  err:
     SSL_CTX_free(ssl_ctx);
     return NULL;
@@ -2683,7 +2835,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
 
     if (!set_name(opt_subject, CMP_CTX_set1_subjectName, ctx, "subject") ||
         !set_name(opt_issuer, CMP_CTX_set1_issuer, ctx, "issuer"))
-        goto err;
+        goto oom;
 
     if (opt_newkey) {
         EVP_PKEY *pkey =
@@ -2734,9 +2886,11 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         else {
             X509_REQ *csr =
                 load_csr_autofmt(opt_csr, &certform, "PKCS#10 CSR for p10cr");
-            if (csr == NULL || !CMP_CTX_set1_p10CSR(ctx, csr)) {
-                X509_REQ_free(csr);
+            if (csr == NULL)
                 goto err;
+            if (!CMP_CTX_set1_p10CSR(ctx, csr)) {
+                X509_REQ_free(csr);
+                goto oom;
             }
             X509_REQ_free(csr);
         }
@@ -2763,7 +2917,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
                 goto err;
             if (!CMP_CTX_set1_oldClCert(ctx, oldcert)) {
                 X509_free(oldcert);
-                goto err;
+                goto oom;
             }
             X509_free(oldcert);
         } else {
@@ -2781,6 +2935,8 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
                                  opt_revreason);
     return 1;
 
+ oom:
+    BIO_printf(bio_err, "Error: out of memory\n");
  err:
     return 0;
 }
@@ -2793,7 +2949,6 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
  */
 static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 {
-    int certform;
     STACK_OF(X509_CRL) *all_crls = NULL;
     int ret = 0;
 
@@ -2803,16 +2958,18 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     } else if (!(server_port = parse_addr(&opt_server, server_port, "server"))) {
         goto err;
     }
-    CMP_CTX_set1_serverName(ctx, opt_server);
-    CMP_CTX_set_serverPort(ctx, server_port);
-    CMP_CTX_set1_serverPath(ctx, opt_path);
+    if (!CMP_CTX_set1_serverName(ctx, opt_server) ||
+        !CMP_CTX_set_serverPort(ctx, server_port) ||
+        !CMP_CTX_set1_serverPath(ctx, opt_path))
+        goto oom;
 
     if (opt_proxy) {
         if (!(proxy_port = parse_addr(&opt_proxy, proxy_port, "proxy"))) {
             goto err;
         }
-        CMP_CTX_set1_proxyName(ctx, opt_proxy);
-        CMP_CTX_set_proxyPort(ctx, proxy_port);
+        if (!CMP_CTX_set1_proxyName(ctx, opt_proxy) ||
+            !CMP_CTX_set_proxyPort(ctx, proxy_port))
+            goto oom;
     }
 
     if (opt_cmd_s) {
@@ -2928,80 +3085,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    if (opt_crls || opt_crl_download)
-        X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_CRL_CHECK);
-    else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
-        BIO_printf(bio_err,
-           "error: must use -crl_download or -crls when -crl_check is given\n");
-#if 0
-        X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK);
-#else
+
+    if (!setup_verification_ctx(ctx, &all_crls))
         goto err;
-#endif
-    }
-    {  /* just as a precaution in case CRL_CHECK_ALL is set without CRL_CHECK */
-        unsigned long flags = X509_VERIFY_PARAM_get_flags(vpm);
-        if ((flags & X509_V_FLAG_CRL_CHECK_ALL) &&
-            !(flags & X509_V_FLAG_CRL_CHECK))
-            BIO_printf(bio_c_out,
-"warning: -crl_check_all has no effect without -crls, -crl_download, or -crl_check\n");
-    }
-    if (opt_crl_timeout == 0)
-        opt_crl_timeout = -1;
-    if (opt_crls) {
-/* TODO DvO: extract load_multiple_crls() and push that separately upstream */
-        X509_CRL *crl;
-        STACK_OF(X509_CRL) *crls;
-
-        if ((all_crls = sk_X509_CRL_new_null()) == NULL) {
-            goto err;
-        }
-        OPT_ITERATE(opt_crls,
-        {
-            crls = load_crls_autofmt(opt_crls, opt_crlform,
-                                  "CRL(s) for checking certificate revocation");
-            if (crls == NULL)
-                goto err;
-            while((crl = sk_X509_CRL_shift(crls))) {
-                if (!sk_X509_CRL_push(all_crls, crl)) {
-                    sk_X509_CRL_pop_free(crls, X509_CRL_free);
-                    goto err;
-                }
-            }
-            sk_X509_CRL_free(crls);
-        })
-    }
-    if (!setup_certs(opt_untrusted, opt_storeform, opt_certpass,
-                     "untrusted certificates",
-                     CMP_CTX_set1_untrusted_certs, NULL, ctx))
-        goto err;
-
-#ifndef OPENSSL_NO_OCSP
-# ifdef OCSP_USE_UNTRUSTED_CERTS
-    ocsp_untrusted_certs = CMP_CTX_get0_untrusted_certs(ctx);
-# endif
-    if (opt_ocsp_use_aia || opt_ocsp_url || opt_ocsp_status) {
-        X509_STORE_CTX *tmp_ctx = X509_STORE_CTX_new();
-
-        if (opt_crl_download || opt_crls)
-            BIO_printf(bio_c_out,
-       "info: will try first OCSP then CRLs for certificate status checking\n");
-        /*
-         * Unfortunately, check_cert() in crypto/x509/x509_vfy.c is static, yet
-         * we can access it indirectly via check_revocation() with a trick.
-         */
-        if (tmp_ctx && X509_STORE_CTX_init(tmp_ctx, NULL, NULL, NULL))
-            check_revocation = X509_STORE_CTX_get_check_revocation(tmp_ctx);
-        X509_STORE_CTX_free(tmp_ctx);
-        if (!check_revocation) {
-            BIO_printf(bio_err,
-                       "internal error: cannot get check_revocation\n");
-            goto err;
-        }
-    } else if (opt_ocsp_check_all)
-        BIO_printf(bio_c_out,
-  "warning: -ocsp_check_all has little sense without -ocsl-aia or -ocsp_url\n");
-#endif
 
 
     if (opt_tls_trusted || opt_tls_host) {
@@ -3075,7 +3161,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                  "error: no server certificate or trusted certificates set\n");
         goto err;
     }
-    certform = opt_certform;
+
     if (opt_cert) {
         X509 *clcert;
         STACK_OF(X509) *certs = NULL;
@@ -3087,14 +3173,19 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
 
         clcert = sk_X509_delete(certs, 0);
-        ok = clcert != NULL && CMP_CTX_set1_clCert(ctx, clcert);
+        if (clcert == NULL) {
+            BIO_puts(bio_err, "error: no client certificate found\n");
+            sk_X509_pop_free(certs, X509_free);
+            goto err;
+        }
+        ok = CMP_CTX_set1_clCert(ctx, clcert);
         X509_free(clcert);
 
         if (ok)
             ok = CMP_CTX_set1_extraCertsOut(ctx, certs);
         sk_X509_pop_free(certs, X509_free);
         if (!ok)
-            goto err;
+            goto oom;
     }
 
     /* some extra certs may have already been set from optional additional
@@ -3103,55 +3194,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
                      "extra certificates",
                      NULL, CMP_CTX_extraCertsOut_push1, ctx))
         goto err;
-
-    certform = opt_certform;
-    if (opt_srvcert || opt_trusted) {
-        X509_STORE *ts = NULL;
-
-        if (opt_srvcert) {
-            X509 *srvcert;
-            if (opt_trusted) {
-                BIO_puts(bio_err,
-      "warning: -trusted option is ignored since -srvcert option is present\n");
-                opt_trusted = NULL;
-            }
-            if (opt_recipient) {
-                BIO_puts(bio_err,
-    "warning: -recipient option is ignored since -srvcert option is present\n");
-                opt_recipient = NULL;
-            }
-            /*
-             * opt_keypass is needed here in case opt_srvcert is an encrypted
-             * PKCS#12 file
-             */
-            srvcert = load_cert_autofmt(opt_srvcert, &certform, NULL,
-                                        "trusted CMP server certificate");
-            if (srvcert == NULL || !CMP_CTX_set1_srvCert(ctx, srvcert)) {
-                X509_free(srvcert);
-                goto err;
-            }
-            X509_free(srvcert);
-            ts = X509_STORE_new();
-        }
-        if (opt_trusted) {
-            ts = load_certstore(opt_trusted, "trusted certificates");
-        }
-        if (!set1_store_parameters_crls(ts/* may be NULL */, all_crls) ||
-            !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
-            !CMP_CTX_set0_trustedStore(ctx, ts)) {
-            X509_STORE_free(ts);
-            goto err;
-        }
-    }
-
-    if (opt_out_trusted) { /* in preparation for use in certConf_cb() */
-        out_trusted = load_certstore(opt_out_trusted,
-                             "trusted certs for verifying newly enrolled cert");
-        if (out_trusted == NULL ||
-            !set1_store_parameters_crls(out_trusted, all_crls))
-            goto err;
-        /* any -verify_hostname, -verify_ip, and -verify_email apply here */
-    }
     if (opt_certpass) {
         OPENSSL_cleanse(opt_certpass, strlen(opt_certpass));
         opt_certpass = NULL;
@@ -3165,17 +3207,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_unprotectedRequests)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_REQUESTS, 1);
 
-    if (opt_unprotectedErrors)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
-
-    if (opt_ignore_keyusage)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IGNORE_KEYUSAGE, 1);
-
-    if (!set_name(opt_recipient, CMP_CTX_set1_recipient, ctx, "recipient") ||
-        !set_name(opt_expected_sender, CMP_CTX_set1_expected_sender, ctx,
-                  "expected sender"))
-        goto err;
-
     if (opt_digest) {
         int digest = OBJ_ln2nid(opt_digest);
         if (digest == NID_undef) {
@@ -3186,6 +3217,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DIGEST_ALGNID, digest);
     }
+
+    if (!set_name(opt_recipient, CMP_CTX_set1_recipient, ctx, "recipient") ||
+        !set_name(opt_expected_sender, CMP_CTX_set1_expected_sender, ctx,
+                  "expected sender"))
+        goto oom;
 
     if (opt_geninfo) {
         long value;
@@ -3223,20 +3259,20 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
         aint = ASN1_INTEGER_new();
         if (aint == NULL || !ASN1_INTEGER_set(aint, value)) {
-            goto err;
+            goto oom;
         }
 
         val = ASN1_TYPE_new();
         if (val == NULL) {
             ASN1_INTEGER_free(aint);
-            goto err;
+            goto oom;
         }
         ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
 
         itav = CMP_ITAV_new(type, val);
         if (itav == NULL) {
             ASN1_TYPE_free(val);
-            goto err;
+            goto oom;
         }
 
         if (!CMP_CTX_geninfo_itav_push0(ctx, itav)) {
@@ -3260,6 +3296,9 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
  err:
     sk_X509_CRL_pop_free(all_crls, X509_CRL_free);
     return ret;
+ oom:
+    BIO_printf(bio_err, "Error: out of memory\n");
+    goto err;
 }
 
 /*
