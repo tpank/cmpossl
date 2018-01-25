@@ -2825,6 +2825,118 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
 }
 
 /*
+ * set up protection aspects of CMP_CTX based on options from config file/CLI
+ * while parsing options and checking their consistency.
+ * Prints reason for error to bio_err.
+ * Returns 1 on success, 0 on error
+ */
+static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
+    if (!opt_unprotectedRequests &&
+        !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
+        BIO_puts(bio_err,
+"error: missing -unprotectedrequests, or -ref and -secret, or -cert and -key, for client authentication\n");
+        goto err;
+    }
+
+    if ((opt_ref == NULL) != (opt_secret == NULL)) {
+        BIO_puts(bio_err,
+         "error: must give both -ref and -secret options or neither of them\n");
+        goto err;
+    }
+
+    if (opt_ref && opt_secret) {
+        char *pass_string = NULL;
+
+        if ((pass_string = get_passwd(opt_secret, "PBMAC"))) {
+            OPENSSL_cleanse(opt_secret, strlen(opt_secret));
+            opt_secret = NULL;
+            CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
+                                        strlen(opt_ref));
+            CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
+                                     strlen(pass_string));
+            OPENSSL_clear_free(pass_string, strlen(pass_string));
+        }
+    }
+
+    if ((opt_cert == NULL) != (opt_key == NULL)) {
+        BIO_puts(bio_err,
+           "error: must give both -cert and -key options or neither of them\n");
+        goto err;
+    }
+    if (opt_key) {
+        EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyform, opt_keypass, e,
+                                      "private key for CMP client certificate");
+
+        if (pkey == NULL || !CMP_CTX_set0_pkey(ctx, pkey)) {
+            EVP_PKEY_free(pkey);
+            goto err;
+        }
+    }
+    if ((opt_cert || opt_unprotectedRequests) && !(opt_srvcert || opt_trusted)){
+        BIO_puts(bio_err,
+                 "error: no server certificate or trusted certificates set\n");
+        goto err;
+    }
+
+    if (opt_cert) {
+        X509 *clcert;
+        STACK_OF(X509) *certs = NULL;
+        int ok;
+
+        if (!load_certs_autofmt(opt_cert, &certs, opt_certform, 1,
+            opt_keypass, "CMP client certificate (and optionally extra certs)"))
+  /* opt_keypass is needed here in case opt_cert is an encrypted PKCS#12 file */
+            goto err;
+
+        clcert = sk_X509_delete(certs, 0);
+        if (clcert == NULL) {
+            BIO_puts(bio_err, "error: no client certificate found\n");
+            sk_X509_pop_free(certs, X509_free);
+            goto err;
+        }
+        ok = CMP_CTX_set1_clCert(ctx, clcert);
+        X509_free(clcert);
+
+        if (ok)
+            ok = CMP_CTX_set1_extraCertsOut(ctx, certs);
+        sk_X509_pop_free(certs, X509_free);
+        if (!ok)
+            goto oom;
+    }
+
+    /* some extra certs may have already been set from optional additional
+       certs in opt_cert, thus using CMP_CTX_extraCertsOut_push1 here */
+    if (!setup_certs(opt_extracerts, opt_storeform, opt_certpass,
+                     "extra certificates",
+                     NULL, CMP_CTX_extraCertsOut_push1, ctx))
+        goto err;
+    if (opt_certpass) {
+        OPENSSL_cleanse(opt_certpass, strlen(opt_certpass));
+        opt_certpass = NULL;
+    }
+
+    if (opt_unprotectedRequests)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_REQUESTS, 1);
+
+    if (opt_digest) {
+        int digest = OBJ_ln2nid(opt_digest);
+        if (digest == NID_undef) {
+            BIO_printf(bio_err,
+                       "error: digest algorithm name not recognized: '%s'\n",
+                       opt_digest);
+            goto err;
+        }
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DIGEST_ALGNID, digest);
+    }
+    return 1;
+
+ oom:
+    BIO_printf(bio_err, "out of memory\n");
+ err:
+    return 0;
+}
+
+/*
  * set up IR/CR/KUR/CertConf/RR specific parts of the CMP_CTX
  * based on options from config file/CLI.
  * Prints reason for error to bio_err.
@@ -2994,12 +3106,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
 
-    if (!opt_unprotectedRequests &&
-        !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
-        BIO_puts(bio_err,
-"error: missing -unprotectedrequests, or -ref and -secret, or -cert and -key, for client authentication\n");
-        goto err;
-    }
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
         if (opt_newkey == NULL && opt_key == NULL) {
             BIO_puts(bio_err,
@@ -3123,100 +3229,12 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
 
-    if ((opt_ref == NULL) != (opt_secret == NULL)) {
-        BIO_puts(bio_err,
-         "error: must give both -ref and -secret options or neither of them\n");
+    if (!setup_protection_ctx(ctx, e))
         goto err;
-    }
-    if (opt_ref && opt_secret) {
-        char *pass_string = NULL;
-
-        if ((pass_string = get_passwd(opt_secret, "PBMAC"))) {
-            OPENSSL_cleanse(opt_secret, strlen(opt_secret));
-            opt_secret = NULL;
-            CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
-                                        strlen(opt_ref));
-            CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
-                                     strlen(pass_string));
-            OPENSSL_clear_free(pass_string, strlen(pass_string));
-        }
-    }
-
-    if ((opt_cert == NULL) != (opt_key == NULL)) {
-        BIO_puts(bio_err,
-           "error: must give both -cert and -key options or neither of them\n");
-        goto err;
-    }
-    if (opt_key) {
-        EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyform, opt_keypass, e,
-                                      "private key for CMP client certificate");
-
-        if (pkey == NULL || !CMP_CTX_set0_pkey(ctx, pkey)) {
-            EVP_PKEY_free(pkey);
-            goto err;
-        }
-    }
-    if ((opt_cert || opt_unprotectedRequests) && !(opt_srvcert || opt_trusted)){
-        BIO_puts(bio_err,
-                 "error: no server certificate or trusted certificates set\n");
-        goto err;
-    }
-
-    if (opt_cert) {
-        X509 *clcert;
-        STACK_OF(X509) *certs = NULL;
-        int ok;
-
-        if (!load_certs_autofmt(opt_cert, &certs, opt_certform, 1,
-            opt_keypass, "CMP client certificate (and optionally extra certs)"))
-  /* opt_keypass is needed here in case opt_cert is an encrypted PKCS#12 file */
-            goto err;
-
-        clcert = sk_X509_delete(certs, 0);
-        if (clcert == NULL) {
-            BIO_puts(bio_err, "error: no client certificate found\n");
-            sk_X509_pop_free(certs, X509_free);
-            goto err;
-        }
-        ok = CMP_CTX_set1_clCert(ctx, clcert);
-        X509_free(clcert);
-
-        if (ok)
-            ok = CMP_CTX_set1_extraCertsOut(ctx, certs);
-        sk_X509_pop_free(certs, X509_free);
-        if (!ok)
-            goto oom;
-    }
-
-    /* some extra certs may have already been set from optional additional
-       certs in opt_cert, thus using CMP_CTX_extraCertsOut_push1 here */
-    if (!setup_certs(opt_extracerts, opt_storeform, opt_certpass,
-                     "extra certificates",
-                     NULL, CMP_CTX_extraCertsOut_push1, ctx))
-        goto err;
-    if (opt_certpass) {
-        OPENSSL_cleanse(opt_certpass, strlen(opt_certpass));
-        opt_certpass = NULL;
-    }
-
 
     if (!setup_request_ctx(ctx, e))
         goto err;
 
-
-    if (opt_unprotectedRequests)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_REQUESTS, 1);
-
-    if (opt_digest) {
-        int digest = OBJ_ln2nid(opt_digest);
-        if (digest == NID_undef) {
-            BIO_printf(bio_err,
-                       "error: digest algorithm name not recognized: '%s'\n",
-                       opt_digest);
-            goto err;
-        }
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DIGEST_ALGNID, digest);
-    }
 
     if (!set_name(opt_recipient, CMP_CTX_set1_recipient, ctx, "recipient") ||
         !set_name(opt_expected_sender, CMP_CTX_set1_expected_sender, ctx,
