@@ -2516,6 +2516,84 @@ int setup_certs(char *files, int format, const char *pass, const char *desc,
     return ret;
 }
 
+
+/*
+ * parse and tranform some options, checking their syntax.
+ * Prints reason for error to bio_err.
+ * Returns 1 on success, 0 on error
+ */
+static int transform_opts(void) {
+    if (opt_cmd_s) {
+        if (!strcmp(opt_cmd_s, "ir"))
+            opt_cmd = CMP_IR;
+        else if (!strcmp(opt_cmd_s, "kur"))
+            opt_cmd = CMP_KUR;
+        else if (!strcmp(opt_cmd_s, "cr"))
+            opt_cmd = CMP_CR;
+        else if (!strcmp(opt_cmd_s, "p10cr"))
+            opt_cmd = CMP_P10CR;
+        else if (!strcmp(opt_cmd_s, "rr"))
+            opt_cmd = CMP_RR;
+        else if (!strcmp(opt_cmd_s, "genm"))
+            opt_cmd = CMP_GENM;
+        else {
+            BIO_printf(bio_err, "error: unknown cmp command '%s'\n", opt_cmd_s);
+            return 0;
+        }
+    } else {
+        BIO_puts(bio_err, "error: no cmp command to execute\n");
+        return 0;
+    }
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    if (opt_keyform_s
+        && !opt_format(opt_keyform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
+# ifndef OPENSSL_NO_ENGINE
+                                    | OPT_FMT_ENGINE
+# endif
+        , &opt_keyform)) {
+        BIO_puts(bio_err, "error: unknown option given for key format\n");
+        return 0;
+    }
+
+    if (opt_certform_s
+        && !opt_format(opt_certform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
+                       &opt_certform)) {
+        BIO_puts(bio_err,
+                 "error: unknown option given for certificate format\n");
+        return 0;
+    }
+
+    if (opt_storeform_s
+        && !opt_format(opt_storeform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
+                       &opt_storeform)) {
+        BIO_puts(bio_err,
+                 "error: unknown option given for certificate store format\n");
+        return 0;
+    }
+
+    if (opt_crlform_s
+        && !opt_format(opt_crlform_s, OPT_FMT_PEMDER, &opt_crlform)) {
+        BIO_puts(bio_err, "error: unknown option given for CRL format\n");
+        return 0;
+    }
+#else
+    if (opt_keyform_s)
+        opt_keyform = str2fmt(opt_keyform_s);
+
+    if (opt_certform_s)
+        opt_certform = str2fmt(opt_certform_s);
+
+    if (opt_storeform_s)
+        opt_storeform = str2fmt(opt_storeform_s);
+
+    if (opt_crlform_s)
+        opt_crlform = str2fmt(opt_crlform_s);
+#endif
+
+    return 1;
+}
+
 /*
  * set up verification aspects of CMP_CTX based on options from config file/CLI.
  * Prints reason for error to bio_err.
@@ -3084,27 +3162,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto oom;
     }
 
-    if (opt_cmd_s) {
-        if (!strcmp(opt_cmd_s, "ir"))
-            opt_cmd = CMP_IR;
-        else if (!strcmp(opt_cmd_s, "kur"))
-            opt_cmd = CMP_KUR;
-        else if (!strcmp(opt_cmd_s, "cr"))
-            opt_cmd = CMP_CR;
-        else if (!strcmp(opt_cmd_s, "p10cr"))
-            opt_cmd = CMP_P10CR;
-        else if (!strcmp(opt_cmd_s, "rr"))
-            opt_cmd = CMP_RR;
-        else if (!strcmp(opt_cmd_s, "genm"))
-            opt_cmd = CMP_GENM;
-        else {
-            BIO_printf(bio_err, "error: unknown cmp command '%s'\n", opt_cmd_s);
-            goto err;
-        }
-    } else {
-        BIO_puts(bio_err, "error: no cmp command to execute\n");
+    if (!transform_opts())
         goto err;
-    }
 
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
         if (opt_newkey == NULL && opt_key == NULL) {
@@ -3136,51 +3195,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         BIO_puts(bio_err,
 "warning: missing -recipient, -srvcert, -issuer, -oldcert or -cert; recipient will be set to \"NULL-DN\"\n");
     }
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    if (opt_keyform_s
-        && !opt_format(opt_keyform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
-# ifndef OPENSSL_NO_ENGINE
-                                    | OPT_FMT_ENGINE
-# endif
-        , &opt_keyform)) {
-        BIO_puts(bio_err, "error: unknown option given for key format\n");
-        goto err;
-    }
-
-    if (opt_certform_s
-        && !opt_format(opt_certform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
-                       &opt_certform)) {
-        BIO_puts(bio_err,
-                 "error: unknown option given for certificate format\n");
-        goto err;
-    }
-
-    if (opt_storeform_s
-        && !opt_format(opt_storeform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
-                       &opt_storeform)) {
-        BIO_puts(bio_err,
-                 "error: unknown option given for certificate store format\n");
-        goto err;
-    }
-
-    if (opt_crlform_s
-        && !opt_format(opt_crlform_s, OPT_FMT_PEMDER, &opt_crlform)) {
-        BIO_puts(bio_err, "error: unknown option given for CRL format\n");
-        goto err;
-    }
-#else
-    if (opt_keyform_s)
-        opt_keyform = str2fmt(opt_keyform_s);
-
-    if (opt_certform_s)
-        opt_certform = str2fmt(opt_certform_s);
-
-    if (opt_storeform_s)
-        opt_storeform = str2fmt(opt_storeform_s);
-
-    if (opt_crlform_s)
-        opt_crlform = str2fmt(opt_crlform_s);
-#endif
 
     if (opt_infotype_s) {
         char id_buf[87] = "id-it-";
