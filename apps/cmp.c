@@ -1495,6 +1495,21 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
     return ret;
 }
 
+static int crl_expired(const X509_CRL *crl, const X509_VERIFY_PARAM *vpm0) {
+    time_t check_time, *ptime = NULL;
+    const ASN1_TIME *crl_endtime;
+    unsigned long flags = X509_VERIFY_PARAM_get_flags((X509_VERIFY_PARAM*)vpm0);
+
+    if (flags & X509_V_FLAG_USE_CHECK_TIME) {
+        check_time = X509_VERIFY_PARAM_get_time(vpm0);
+        ptime = &check_time;
+    }
+    crl_endtime = X509_CRL_get0_nextUpdate(crl);
+    /* well, should ignore expiry of base CRL if delta CRL is valid */
+    return (!(flags & X509_V_FLAG_NO_CHECK_TIME) &&
+            crl_endtime && X509_cmp_time(crl_endtime, ptime) < 0);
+}
+
 /*
  * TODO DvO: push that separately upstream
  * this is used by load_crls_fmt and LOCAL_load_crl_crldp
@@ -2640,6 +2655,18 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
                     sk_X509_CRL_pop_free(crls, X509_CRL_free);
                     goto oom;
                 }
+                if (crl_expired(crl, vpm)) {
+                    char *issuer =
+                        X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
+                    BIO_printf(bio_c_out,
+                               "warning: CRL from '%s' issued by %s has expired\n",
+                               opt_crls, issuer);
+                    OPENSSL_free(issuer);
+#if 0
+                    sk_X509_CRL_pop_free(crls, X509_CRL_free);
+                    goto err;
+#endif
+                }
             }
             sk_X509_CRL_free(crls);
             opt_crls = next;
@@ -2739,6 +2766,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
     BIO_printf(bio_err, "out of memory\n");
  err:
     sk_X509_CRL_pop_free(*all_crls, X509_CRL_free);
+    *all_crls = NULL;
     return 0;
 }
 
