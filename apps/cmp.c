@@ -2673,6 +2673,119 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
 }
 
 /*
+ * set up IR/CR/KUR/CertConf/RR specific parts of the CMP_CTX
+ * based on options from config file/CLI.
+ * Prints reason for error to bio_err.
+ * Returns pointer on success, NULL on error
+ */
+static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
+    int certform;
+
+    if (!set_name(opt_subject, CMP_CTX_set1_subjectName, ctx, "subject") ||
+        !set_name(opt_issuer, CMP_CTX_set1_issuer, ctx, "issuer"))
+        goto err;
+
+    if (opt_newkey) {
+        EVP_PKEY *pkey =
+            load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e,
+                             "new private key for certificate to be enrolled");
+
+        if (opt_newkeypass) {
+            OPENSSL_cleanse(opt_newkeypass, strlen(opt_newkeypass));
+            opt_newkeypass = NULL;
+        }
+        if (pkey == NULL || !CMP_CTX_set0_newPkey(ctx, pkey)) {
+            EVP_PKEY_free(pkey);
+            goto err;
+        }
+    }
+
+    if (opt_days > 0)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_VALIDITYDAYS, opt_days);
+
+    if (opt_reqexts) {
+        X509V3_CTX ext_ctx;
+        X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
+
+        X509V3_set_ctx(&ext_ctx, NULL, NULL, NULL, NULL, 0);
+        X509V3_set_nconf(&ext_ctx, conf);
+        if (!X509V3_EXT_add_nconf_sk(conf, &ext_ctx, opt_reqexts, &exts)) {
+            BIO_printf(bio_err, "error loading extension section '%s'\n",
+                       opt_reqexts);
+            sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
+            goto err;
+        }
+        CMP_CTX_set0_reqExtensions(ctx, exts);
+    }
+
+    if (opt_popo < -1 || opt_popo > 3) {
+        BIO_printf(bio_err,
+        "error: invalid value '%d' for popo method (must be between 0 and 3)\n",
+                   opt_popo);
+        goto err;
+    }
+    if (opt_popo >= 0)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_POPOMETHOD, opt_popo);
+
+    if (opt_csr) {
+        if (opt_cmd != CMP_P10CR)
+            BIO_puts(bio_c_out,
+              "warning: -csr option is ignored for command other than p10cr\n");
+        else {
+            X509_REQ *csr =
+                load_csr_autofmt(opt_csr, &certform, "PKCS#10 CSR for p10cr");
+            if (csr == NULL || !CMP_CTX_set1_p10CSR(ctx, csr)) {
+                X509_REQ_free(csr);
+                goto err;
+            }
+            X509_REQ_free(csr);
+        }
+    }
+
+    if (opt_disableConfirm)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DISABLECONFIRM, 1);
+
+    if (opt_implicitConfirm)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IMPLICITCONFIRM, 1);
+
+    (void)CMP_CTX_set_certConf_cb(ctx, certConf_cb);
+
+    certform = opt_certform;
+    if (opt_oldcert) {
+        if (opt_cmd == CMP_KUR || opt_cmd == CMP_RR) {
+            /*
+             * opt_keypass is needed here in case opt_oldcert is an encrypted
+             * PKCS#12 file
+             */
+            X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform,
+                              opt_keypass, "certificate to be updated/revoked");
+            if (oldcert == NULL)
+                goto err;
+            if (!CMP_CTX_set1_oldClCert(ctx, oldcert)) {
+                X509_free(oldcert);
+                goto err;
+            }
+            X509_free(oldcert);
+        } else {
+            BIO_printf(bio_c_out,
+    "warning: -oldcert option is ignored for commands other than KUR and RR\n");
+        }
+    }
+    if (opt_keypass) {
+        OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
+        opt_keypass = NULL;
+    }
+
+    if (opt_revreason > CRL_REASON_NONE)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_REVOCATION_REASON,
+                                 opt_revreason);
+    return 1;
+
+ err:
+    return 0;
+}
+
+/*
  * set up the CMP_CTX structure based on options from config file/CLI
  * while parsing options and checking their consistency.
  * Prints reason for error to bio_err.
@@ -2949,21 +3062,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    if (opt_newkey) {
-        EVP_PKEY *pkey =
-            load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e,
-                             "new private key for certificate to be enrolled");
-
-        if (opt_newkeypass) {
-            OPENSSL_cleanse(opt_newkeypass, strlen(opt_newkeypass));
-            opt_newkeypass = NULL;
-        }
-        if (pkey == NULL || !CMP_CTX_set0_newPkey(ctx, pkey)) {
-            EVP_PKEY_free(pkey);
-            goto err;
-        }
-    }
-
     if ((opt_cert == NULL) != (opt_key == NULL)) {
         BIO_puts(bio_err,
            "error: must give both -cert and -key options or neither of them\n");
@@ -3065,50 +3163,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         opt_certpass = NULL;
     }
 
-    if (!set_name(opt_subject, CMP_CTX_set1_subjectName, ctx, "subject"))
+
+    if (!setup_request_ctx(ctx, e))
         goto err;
 
-    if (!set_name(opt_issuer, CMP_CTX_set1_issuer, ctx, "issuer"))
-        goto err;
-
-    if (!set_name(opt_recipient, CMP_CTX_set1_recipient, ctx, "recipient"))
-        goto err;
-
-    if (!set_name(opt_expected_sender, CMP_CTX_set1_expected_sender, ctx,
-                  "expected sender"))
-        goto err;
-
-    if (opt_days > 0)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_VALIDITYDAYS, opt_days);
-
-    if (opt_popo < -1 || opt_popo > 3) {
-        BIO_printf(bio_err,
-        "error: invalid value '%d' for popo method (must be between 0 and 3)\n",
-                   opt_popo);
-        goto err;
-    }
-    if (opt_popo >= 0)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_POPOMETHOD, opt_popo);
-    if (opt_reqexts) {
-        X509V3_CTX ext_ctx;
-        X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
-
-        X509V3_set_ctx(&ext_ctx, NULL, NULL, NULL, NULL, 0);
-        X509V3_set_nconf(&ext_ctx, conf);
-        if (!X509V3_EXT_add_nconf_sk(conf, &ext_ctx, opt_reqexts, &exts)) {
-            BIO_printf(bio_err, "error loading extension section '%s'\n",
-                       opt_reqexts);
-            sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
-            goto err;
-        }
-        CMP_CTX_set0_reqExtensions(ctx, exts);
-    }
-
-    if (opt_disableConfirm)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DISABLECONFIRM, 1);
-
-    if (opt_implicitConfirm)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IMPLICITCONFIRM, 1);
 
     if (opt_unprotectedRequests)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_REQUESTS, 1);
@@ -3118,6 +3176,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_ignore_keyusage)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IGNORE_KEYUSAGE, 1);
+
+    if (!set_name(opt_recipient, CMP_CTX_set1_recipient, ctx, "recipient") ||
+        !set_name(opt_expected_sender, CMP_CTX_set1_expected_sender, ctx,
+                  "expected sender"))
+        goto err;
 
     if (opt_digest) {
         int digest = OBJ_ln2nid(opt_digest);
@@ -3129,51 +3192,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DIGEST_ALGNID, digest);
     }
-
-    certform = opt_certform;
-    if (opt_oldcert) {
-        if (opt_cmd == CMP_KUR || opt_cmd == CMP_RR) {
-            /*
-             * opt_keypass is needed here in case opt_oldcert is an encrypted
-             * PKCS#12 file
-             */
-            X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform,
-                              opt_keypass, "certificate to be updated/revoked");
-            if (oldcert == NULL)
-                goto err;
-            if (!CMP_CTX_set1_oldClCert(ctx, oldcert)) {
-                X509_free(oldcert);
-                goto err;
-            }
-            X509_free(oldcert);
-        } else {
-            BIO_printf(bio_c_out,
-    "warning: -oldcert option is ignored for commands other than KUR and RR\n");
-        }
-    }
-    if (opt_keypass) {
-        OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
-        opt_keypass = NULL;
-    }
-
-    if (opt_csr) {
-        if (opt_cmd != CMP_P10CR)
-            BIO_puts(bio_c_out,
-              "warning: -csr option is ignored for command other than p10cr\n");
-        else {
-            X509_REQ *csr =
-                load_csr_autofmt(opt_csr, &certform, "PKCS#10 CSR for p10cr");
-            if (csr == NULL || !CMP_CTX_set1_p10CSR(ctx, csr)) {
-                X509_REQ_free(csr);
-                goto err;
-            }
-            X509_REQ_free(csr);
-        }
-    }
-
-    if (opt_revreason > CRL_REASON_NONE)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_REVOCATION_REASON,
-                                 opt_revreason);
 
     if (opt_geninfo) {
         long value;
@@ -3237,9 +3255,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MSGTIMEOUT, opt_msgtimeout);
     if (opt_maxpolltime >= 0)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MAXPOLLTIME, opt_maxpolltime);
-
-    if (opt_out_trusted)
-        (void)CMP_CTX_set_certConf_cb(ctx, certConf_cb);
 
 #ifndef NDEBUG
     if (opt_reqin || opt_reqout || opt_respin || opt_respout)
