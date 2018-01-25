@@ -2392,13 +2392,6 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
     return 1;
 }
 
-#define OPT_ITERATE(curr, CMD) \
-while (*curr != '\0') { \
-    char *next = next_item(curr); \
-    CMD \
-    curr = next; \
-}
-
 static int set_name(const char *str,
                     int (*set_fn) (CMP_CTX *ctx, const X509_NAME *name),
                     CMP_CTX *ctx, const char *desc)
@@ -2436,8 +2429,9 @@ static X509_STORE *load_certstore(char *input, const char *desc)
         goto err;
 
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, input); */
-    OPT_ITERATE(input,
-    {
+    while (*input != '\0') {
+        char *next = next_item(input);           \
+
         if (!load_certs_autofmt(input, &certs, opt_storeform, 1,
                                 pass_string, desc) ||
             !(store = sk_X509_to_store(store, certs))) {
@@ -2447,7 +2441,8 @@ static X509_STORE *load_certstore(char *input, const char *desc)
         }
         sk_X509_pop_free(certs, X509_free);
         certs = NULL;
-    })
+        input = next;
+    }
  err:
     sk_X509_pop_free(certs, X509_free);
     if (pass_string)
@@ -2469,8 +2464,9 @@ static STACK_OF(X509) *load_certs_multifile(char *files, int format,
         goto oom;
     }
 
-    OPT_ITERATE(files,
-    {
+    while (*files != '\0') {
+        char *next = next_item(files);
+
         if (!load_certs_autofmt(files, &certs, format, 0, pass, desc)) {
             goto err;
         }
@@ -2479,7 +2475,8 @@ static STACK_OF(X509) *load_certs_multifile(char *files, int format,
         }
         sk_X509_pop_free(certs, X509_free);
         certs = NULL;
-    })
+        files = next;
+    }
     return result;
 
  oom:
@@ -2631,8 +2628,9 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
         if ((*all_crls = sk_X509_CRL_new_null()) == NULL) {
             goto oom;
         }
-        OPT_ITERATE(opt_crls,
-        {
+        while (*opt_crls != '\0') {
+            char *next = next_item(opt_crls);
+
             crls = load_crls_autofmt(opt_crls, opt_crlform,
                                   "CRL(s) for checking certificate revocation");
             if (crls == NULL)
@@ -2644,7 +2642,8 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
                 }
             }
             sk_X509_CRL_free(crls);
-        })
+            opt_crls = next;
+        }
     }
     if (!setup_certs(opt_untrusted, opt_storeform, opt_certpass,
                      "untrusted certificates",
