@@ -451,11 +451,13 @@ OPTIONS cmp_options[] = {
     {"secret", OPT_SECRET, 's',
      "Password source for client authentication with a pre-shared key (secret)"},
     {"cert", OPT_CERT, 's',
-     "Client's current certificate (needed unless using PSK)"},
+     "Client's current certificate (needed unless using PSK)."},
+    {OPT_MORE_STR, 0, 0,
+     "Any further certs included are appended in extraCerts field."},
     {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
     {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
     {"extracerts", OPT_EXTRACERTS, 's',
-     "Certificates to append in extraCerts field when signing requests"},
+     "Certificates to append in extraCerts field in sent messages"},
 
     {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
     {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
@@ -2286,7 +2288,7 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 /*-
  * callback validating that the new certificate can be verified,
  * using ctx->trusted_store (which may consist of ctx->srvCert) and
- * ctx->untrusted_certs which at this point already contain ctx->extraCertsIn.
+ * ctx->untrusted_certs which at this point already contains ctx->extraCertsIn.
  * Returns -1 on acceptance, else a CMP_PKIFAILUREINFO bit number.
  * Quoting from RFC 4210 section 5.1. Overall PKI Message:
  *     The extraCerts field can contain certificates that may be useful to
@@ -2751,7 +2753,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
     if (opt_use_tls) {
-        X509 *cert = NULL;
         EVP_PKEY *pkey = NULL;
         X509_STORE *store = NULL;
         SSL_CTX *ssl_ctx;
@@ -2828,36 +2829,40 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
 
         if (opt_tls_cert && opt_tls_key) {
+            X509 *cert = NULL;
+            STACK_OF(X509) *certs = NULL;
+            int i;
+            int ok = 1;
+
             certform =
                 adjust_format((const char **)&opt_tls_cert, opt_certform, 0);
-            if (certform == FORMAT_PEM) {
-                if (SSL_CTX_use_certificate_chain_file(ssl_ctx, opt_tls_cert) <=
-                    0) {
-                    BIO_printf(bio_err,
-"error: unable to load and use client TLS certificate (and possibly extra certificates) '%s'\n",
-                               opt_tls_cert);
-                    goto tls_err;
-                }
-            } else {
-/*
- * opt_tls_keypass is needed here if opt_tls_cert is an encrypted PKCS#12 file
- * TODO: add any extra certs, e.g. from P12 using SSL_CTX_add_extra_chain_cert()
- */
-                if ((cert = load_cert_autofmt(opt_tls_cert, &certform,
-                                           opt_tls_keypass,
-                                           "TLS client certificate")) == NULL) {
-                    goto tls_err;
-                }
-                if (SSL_CTX_use_certificate(ssl_ctx, cert) <= 0) {
-                    BIO_printf(bio_err,
-                           "error: unable to use client TLS certificate '%s'\n",
-                               opt_tls_cert);
-                    X509_free(cert);
-                    goto tls_err;
-                }
-                X509_free(cert); /* we don't need the handle any more */
-                cert = NULL;
+            if (!load_certs_autofmt(opt_tls_cert, &certs, certform, 1,
+                                    opt_tls_keypass, /* is needed here */
+                 /* in case opt_tls_cert is an encrypted PKCS#12 file  */
+                              "TLS client certificate (optionally with chain)"))
+                goto tls_err;
+            cert = sk_X509_delete(certs, 0);
+
+            /*
+             * When the list of extra certificates in certs in non-empty,
+             * well send them (instead of a chain built from opt_untrusted)
+             * along with the TLS end entity certificate.
+             */
+            for (i = 0; i < sk_X509_num(certs); i++) {
+                if (ok)
+                    ok = SSL_CTX_add_extra_chain_cert(ssl_ctx,
+                                                      sk_X509_value(certs, i));
             }
+            sk_X509_free(certs); /* must not free the stack elements */
+
+            if (!ok || !cert || SSL_CTX_use_certificate(ssl_ctx, cert) <= 0) {
+                BIO_printf(bio_err,
+                      "error: unable to use client TLS certificate file '%s'\n",
+                           opt_tls_cert);
+                X509_free(cert);
+                goto tls_err;
+            }
+            X509_free(cert); /* we don't need the handle any more */
 
             pkey = load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass,
                                     e, "TLS client private key");
@@ -2962,21 +2967,30 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     certform = opt_certform;
     if (opt_cert) {
         X509 *clcert;
+        STACK_OF(X509) *certs = NULL;
+        int ok;
 
-        clcert =
-            load_cert_autofmt(opt_cert, &certform, opt_keypass,
-                              "CMP client certificate");
+        if (!load_certs_autofmt(opt_cert, &certs, opt_certform, 1,
+            opt_keypass, "CMP client certificate (and optionally extra certs)"))
   /* opt_keypass is needed here in case opt_cert is an encrypted PKCS#12 file */
-        if (clcert == NULL || !CMP_CTX_set1_clCert(ctx, clcert)) {
-            X509_free(clcert);
             goto err;
-        }
+
+        clcert = sk_X509_delete(certs, 0);
+        ok = clcert != NULL && CMP_CTX_set1_clCert(ctx, clcert);
         X509_free(clcert);
+
+        if (ok)
+            ok = CMP_CTX_set1_extraCertsOut(ctx, certs);
+        sk_X509_pop_free(certs, X509_free);
+        if (!ok)
+            goto err;
     }
 
+    /* some extra certs may have already been set from optional additional
+       certs in opt_cert, thus using CMP_CTX_extraCertsOut_push1 here */
     if (!setup_certs(opt_extracerts, opt_storeform, opt_certpass,
                      "extra certificates",
-                     CMP_CTX_set1_extraCertsOut, NULL, ctx))
+                     NULL, CMP_CTX_extraCertsOut_push1, ctx))
         goto err;
 
     certform = opt_certform;

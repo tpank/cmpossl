@@ -270,6 +270,7 @@ be given with B<-key>.  For IR this can be used for authenticating a request
 message using an external entity certificate as defined in appendix E.7 of RFC
 4210. For KUR this is also used as certificate to be updated if the B<-oldcert>
 option is not given.
+If the file includes further certs, they are appended in the extraCerts field.
 
 =item B<-key filename>
 
@@ -286,7 +287,7 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-extracerts sources>
 
-Certificates to append in the extraCerts field when signing sent messages.
+Certificates to append in the extraCerts field in sent messages.
 
 Multiple file names or URLs may be given, separated by commas or whitespace.
 Each source may contain multiple certificates.
@@ -568,8 +569,8 @@ when connecting to CMP server.
 
 =item B<-tls_cert filename>
 
-Client's TLS certificate. PEM format may also include certificate chain
-to be provided to server.
+Client's TLS certificate. If the file includes further certificates,
+they are provided to the server as the client certificate chain.
 
 =item B<-tls_key filename>
 
