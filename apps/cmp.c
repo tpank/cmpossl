@@ -2517,6 +2517,162 @@ int setup_certs(char *files, int format, const char *pass, const char *desc,
 }
 
 /*
+ * set up ssl_ctx for the CMP_CTX based on options from config file/CLI.
+ * Prints reason for error to bio_err.
+ * Returns pointer on success, NULL on error
+ */
+static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
+                              STACK_OF(X509_CRL) *all_crls)
+{
+    EVP_PKEY *pkey = NULL;
+    X509_STORE *store = NULL;
+    SSL_CTX *ssl_ctx;
+
+    /* initialize OpenSSL's SSL lib */
+    OpenSSL_add_ssl_algorithms();
+    SSL_load_error_strings();
+
+#if OPENSSL_VERSION_NUMBER < 0x1010001fL
+# define TLS_client_method SSLv23_client_method
+#endif
+    ssl_ctx = SSL_CTX_new(TLS_client_method());
+    if (ssl_ctx == NULL) {
+        goto err;
+    }
+    SSL_CTX_set_options(ssl_ctx,
+                        SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 |
+                        SSL_OP_NO_TLSv1);
+    SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
+
+#ifndef OPENSSL_NO_OCSP
+# ifdef LATE_OCSP_STAPLING_CHECK
+    if (opt_ocsp_status) {
+#  if OPENSSL_VERSION_NUMBER < 0x1010001fL
+/* The following does not work:
+ *  #define SSL_CTX_set_tlsext_status_type(ssl, type) \
+ *          SSL_CTX_ctrl(ssl, SSL_CTRL_SET_TLSEXT_STATUS_REQ_TYPE, type, NULL)
+ * Instead, we'd have to set TLSEXT_STATUSTYPE_ocsp directly in the SSL struct:
+ *          SSL_set_tlsext_status_type(ssl, TLSEXT_STATUSTYPE_ocsp);
+ */
+#  else
+        SSL_CTX_set_tlsext_status_type(ssl_ctx, TLSEXT_STATUSTYPE_ocsp);
+#  endif
+        SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_resp_cb);
+        /*
+         * TODO: must set also X509_STORE_CTX *ctx via
+         *       SSL_CTX_set_tlsext_status_arg(ssl_ctx, ctx);
+         * which likely can be done via an SSL_CTX cert_verify_callback
+         */
+    }
+# endif
+#endif
+
+    if (opt_tls_trusted) {
+        if ((store = load_certstore(opt_tls_trusted,
+                                    "trusted TLS certificates")) == NULL) {
+            goto err;
+        }
+        /* do immediately for automatic cleanup in case of errors: */
+        SSL_CTX_set_cert_store(ssl_ctx, store);
+        if (!set1_store_parameters_crls(store, all_crls))
+            goto err;
+#if OPENSSL_VERSION_NUMBER >= 0x10002000
+        /* enable and parameterize server hostname/IP address check */
+        if (!truststore_set_host(store, opt_tls_host ?
+                                 opt_tls_host : opt_server))
+            /* TODO: is the server host name correct for TLS via proxy? */
+            goto err;
+#endif
+        SSL_CTX_set_verify(ssl_ctx,
+                           SSL_VERIFY_PEER |
+                           SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+    }
+
+    {
+        X509_STORE *untrusted_store = sk_X509_to_store(NULL, untrusted_certs);
+
+        /* do immediately for automatic cleanup in case of errors: */
+        if (!SSL_CTX_set0_chain_cert_store(ssl_ctx,
+                                           untrusted_store /* may be 0 */))
+            goto err;
+    }
+
+    if (opt_tls_cert && opt_tls_key) {
+        X509 *cert = NULL;
+        STACK_OF(X509) *certs = NULL;
+        int i;
+        int certform =
+            adjust_format((const char **)&opt_tls_cert, opt_certform, 0);
+        int ok = 1;
+
+        if (!load_certs_autofmt(opt_tls_cert, &certs, certform, 1,
+                                opt_tls_keypass, /* is needed here */
+             /* in case opt_tls_cert is an encrypted PKCS#12 file  */
+                          "TLS client certificate (optionally with chain)"))
+            goto err;
+        cert = sk_X509_delete(certs, 0);
+
+        /*
+         * When the list of extra certificates in certs in non-empty,
+         * well send them (instead of a chain built from opt_untrusted)
+         * along with the TLS end entity certificate.
+         */
+        for (i = 0; i < sk_X509_num(certs); i++) {
+            if (ok)
+                ok = SSL_CTX_add_extra_chain_cert(ssl_ctx,
+                                                  sk_X509_value(certs, i));
+        }
+        sk_X509_free(certs); /* must not free the stack elements */
+
+        if (!ok || !cert || SSL_CTX_use_certificate(ssl_ctx, cert) <= 0) {
+            BIO_printf(bio_err,
+                      "error: unable to use client TLS certificate file '%s'\n",
+                       opt_tls_cert);
+            X509_free(cert);
+            goto err;
+        }
+        X509_free(cert); /* we don't need the handle any more */
+
+        pkey = load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass,
+                                e, "TLS client private key");
+        if (opt_tls_keypass) {
+            OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
+            opt_tls_keypass = NULL;
+        }
+        if (pkey == NULL)
+            goto err;
+        /*
+         * verify the key matches the cert,
+         * not using SSL_CTX_check_private_key(ssl_ctx)
+         * because it gives poor and sometimes misleading diagnostics
+         */
+        if (!X509_check_private_key(SSL_CTX_get0_certificate(ssl_ctx),
+                                    pkey)) {
+            BIO_printf(bio_err,
+        "error: TLS private key '%s' does not match the TLS certificate '%s'\n",
+                       opt_tls_key, opt_tls_cert);
+            EVP_PKEY_free(pkey);
+            pkey = NULL;    /* otherwise, for some reason double free! */
+            goto err;
+        }
+        if (SSL_CTX_use_PrivateKey(ssl_ctx, pkey) <= 0) {
+            BIO_printf(bio_err,
+                       "error: unable to use TLS client private key '%s'\n",
+                       opt_tls_key);
+            EVP_PKEY_free(pkey);
+            pkey = NULL; /* otherwise, for some reason double free! */
+            goto err;
+        }
+        EVP_PKEY_free(pkey); /* we don't need the handle any more */
+    }
+    return ssl_ctx;
+
+ err:
+    SSL_CTX_free(ssl_ctx);
+    return NULL;
+}
+
+/*
  * set up the CMP_CTX structure based on options from config file/CLI
  * while parsing options and checking their consistency.
  * Prints reason for error to bio_err.
@@ -2740,6 +2896,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
   "warning: -ocsp_check_all has little sense without -ocsl-aia or -ocsp_url\n");
 #endif
 
+
     if (opt_tls_trusted || opt_tls_host) {
         opt_use_tls = 1;
     }
@@ -2752,164 +2909,26 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             BIO_printf(bio_err, "error: missing -tls_cert option\n");
         }
     }
+
     if (opt_use_tls) {
-        EVP_PKEY *pkey = NULL;
-        X509_STORE *store = NULL;
-        SSL_CTX *ssl_ctx;
         BIO *sbio;
-
-        /* initialize OpenSSL's SSL lib */
-        OpenSSL_add_ssl_algorithms();
-        SSL_load_error_strings();
-
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
-# define TLS_client_method SSLv23_client_method
-#endif
-        ssl_ctx = SSL_CTX_new(TLS_client_method());
-        if (ssl_ctx == NULL) {
+        X509_STORE *store;
+        SSL_CTX *ssl_ctx = setup_ssl_ctx(e, CMP_CTX_get0_untrusted_certs(ctx),
+                                         all_crls);
+        if (!ssl_ctx)
             goto err;
-        }
-        SSL_CTX_set_options(ssl_ctx,
-                            SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 |
-                            SSL_OP_NO_TLSv1);
-        SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
 
-#ifndef OPENSSL_NO_OCSP
-# ifdef LATE_OCSP_STAPLING_CHECK
-        if (opt_ocsp_status) {
-#  if OPENSSL_VERSION_NUMBER < 0x1010001fL
-/* The following does not work:
- *  #define SSL_CTX_set_tlsext_status_type(ssl, type) \
- *          SSL_CTX_ctrl(ssl, SSL_CTRL_SET_TLSEXT_STATUS_REQ_TYPE, type, NULL)
- * Instead, we'd have to set TLSEXT_STATUSTYPE_ocsp directly in the SSL struct:
- *          SSL_set_tlsext_status_type(ssl, TLSEXT_STATUSTYPE_ocsp);
- */
-#  else
-            SSL_CTX_set_tlsext_status_type(ssl_ctx, TLSEXT_STATUSTYPE_ocsp);
-#  endif
-            SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_resp_cb);
-            /*
-             * TODO: must set also X509_STORE_CTX *ctx via
-             *       SSL_CTX_set_tlsext_status_arg(ssl_ctx, ctx);
-             * which likely can be done via an SSL_CTX cert_verify_callback
-             */
-        }
-# endif
-#endif
-
-        if (opt_tls_trusted) {
-            if ((store = load_certstore(opt_tls_trusted,
-                                        "trusted TLS certificates")) == NULL) {
-                goto tls_err;
-            }
-            /* do immediately for automatic cleanup in case of errors: */
-            SSL_CTX_set_cert_store(ssl_ctx, store);
-            if (!set1_store_parameters_crls(store, all_crls))
-                goto tls_err;
-#if OPENSSL_VERSION_NUMBER >= 0x10002000
-            /* enable and parameterize server hostname/IP address check */
-            if (!truststore_set_host(store, opt_tls_host ?
-                                     opt_tls_host : opt_server))
-                /* TODO: is the server host name correct for TLS via proxy? */
-                goto tls_err;
-#endif
-            SSL_CTX_set_verify(ssl_ctx,
-                               SSL_VERIFY_PEER |
-                               SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-        }
-
-        {
-            X509_STORE *untrusted =
-                sk_X509_to_store(NULL, CMP_CTX_get0_untrusted_certs(ctx));
-
-            /* do immediately for automatic cleanup in case of errors: */
-            if (!SSL_CTX_set0_chain_cert_store(ssl_ctx,
-                                               untrusted /* may be 0 */))
-                goto tls_err;
-        }
-
-        if (opt_tls_cert && opt_tls_key) {
-            X509 *cert = NULL;
-            STACK_OF(X509) *certs = NULL;
-            int i;
-            int ok = 1;
-
-            certform =
-                adjust_format((const char **)&opt_tls_cert, opt_certform, 0);
-            if (!load_certs_autofmt(opt_tls_cert, &certs, certform, 1,
-                                    opt_tls_keypass, /* is needed here */
-                 /* in case opt_tls_cert is an encrypted PKCS#12 file  */
-                              "TLS client certificate (optionally with chain)"))
-                goto tls_err;
-            cert = sk_X509_delete(certs, 0);
-
-            /*
-             * When the list of extra certificates in certs in non-empty,
-             * well send them (instead of a chain built from opt_untrusted)
-             * along with the TLS end entity certificate.
-             */
-            for (i = 0; i < sk_X509_num(certs); i++) {
-                if (ok)
-                    ok = SSL_CTX_add_extra_chain_cert(ssl_ctx,
-                                                      sk_X509_value(certs, i));
-            }
-            sk_X509_free(certs); /* must not free the stack elements */
-
-            if (!ok || !cert || SSL_CTX_use_certificate(ssl_ctx, cert) <= 0) {
-                BIO_printf(bio_err,
-                      "error: unable to use client TLS certificate file '%s'\n",
-                           opt_tls_cert);
-                X509_free(cert);
-                goto tls_err;
-            }
-            X509_free(cert); /* we don't need the handle any more */
-
-            pkey = load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass,
-                                    e, "TLS client private key");
-            if (opt_tls_keypass) {
-                OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
-                opt_tls_keypass = NULL;
-            }
-            if (pkey == NULL)
-                goto tls_err;
-            /*
-             * verify the key matches the cert,
-             * not using SSL_CTX_check_private_key(ssl_ctx)
-             * because it gives poor and sometimes misleading diagnostics
-             */
-            if (!X509_check_private_key(SSL_CTX_get0_certificate(ssl_ctx),
-                                        pkey)) {
-                BIO_printf(bio_err,
-        "error: TLS private key '%s' does not match the TLS certificate '%s'\n",
-                           opt_tls_key, opt_tls_cert);
-                EVP_PKEY_free(pkey);
-                pkey = NULL;    /* otherwise, for some reason double free! */
-                goto tls_err;
-            }
-            if (SSL_CTX_use_PrivateKey(ssl_ctx, pkey) <= 0) {
-                BIO_printf(bio_err,
-                           "error: unable to use TLS client private key '%s'\n",
-                           opt_tls_key);
-                EVP_PKEY_free(pkey);
-                pkey = NULL; /* otherwise, for some reason double free! */
-                goto tls_err;
-            }
-            EVP_PKEY_free(pkey); /* we don't need the handle any more */
-        }
-
+        store = SSL_CTX_get_cert_store(ssl_ctx);
         sbio = BIO_new_ssl(ssl_ctx, 1);
         SSL_CTX_free(ssl_ctx);
-        ssl_ctx = NULL;
         if (sbio == NULL || (store &&
-                       !X509_STORE_set_ex_data(store, X509_STORE_EX_DATA_SBIO,
-                                               sbio))) {
+               !X509_STORE_set_ex_data(store, X509_STORE_EX_DATA_SBIO, sbio))) {
             BIO_printf(bio_err, "error: cannot initialize SSL BIO");
-        tls_err:
-            SSL_CTX_free(ssl_ctx);
             goto err;
         }
         CMP_CTX_set0_tlsBIO(ctx, sbio);
     }
+
 
     if ((opt_ref == NULL) != (opt_secret == NULL)) {
         BIO_puts(bio_err,
@@ -3763,7 +3782,7 @@ int cmp_main(int argc, char **argv)
         e = setup_engine_no_default(opt_engine, 0);
     cmp_ctx = CMP_CTX_create();
     if (cmp_ctx == NULL || !setup_ctx(cmp_ctx, e)) {
-        BIO_puts(bio_err, "error creating new cmp context\n");
+        BIO_puts(bio_err, "error setting up CMP context\n");
         goto err;
     }
 
