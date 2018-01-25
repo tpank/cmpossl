@@ -2868,12 +2868,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
 
-    if (!opt_unprotectedRequests && !(opt_ref && opt_secret)
-        && !(opt_cert && opt_key)) {
-        BIO_puts(bio_err,
-       "error: missing -ref/-secret or -cert/-key for client authentication\n");
-        goto err;
-    }
     if (opt_recipient == NULL && opt_srvcert == NULL && opt_issuer == NULL &&
         opt_oldcert == NULL && opt_cert == NULL) {
         BIO_puts(bio_err,
