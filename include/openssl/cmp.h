@@ -111,6 +111,8 @@ typedef int (*X509_STORE_CTX_verify_cb)(int, X509_STORE_CTX *);
 #  define X509_set_proxy_flag(x) { (x)->ex_flags |= EXFLAG_PROXY; }
 #  define X509_get0_notBefore X509_get_notBefore
 #  define X509_get0_notAfter X509_get_notAfter
+#  define X509_CRL_get0_lastUpdate X509_CRL_get_lastUpdate
+#  define X509_CRL_get0_nextUpdate X509_CRL_get_nextUpdate
 #  define X509_get_key_usage(x) ((X509_check_purpose((x), -1, -1), \
        (x)->ex_flags & EXFLAG_KUSAGE) ? (x)->ex_kusage : (unsigned long) ~0)
 # endif
