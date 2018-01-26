@@ -231,6 +231,10 @@ int CMP_CTX_init(CMP_CTX *ctx)
         goto err;
     }
 
+#if OPENSSL_VERSION_NUMBER < 0x10100003L
+    OpenSSL_add_all_algorithms(); /* needed for SHA256 with OpenSSL 1.0.2 */
+#endif
+
     /* all other elements are initialized through ASN1 macros */
     ctx->pkey = NULL;
     ctx->newPkey = NULL;

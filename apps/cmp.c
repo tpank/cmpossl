@@ -324,7 +324,7 @@ typedef struct options_st {
         { "issuer_checks", OPT_V_ISSUER_CHECKS, '-', "(deprecated)"}, \
         { "crl_check", OPT_V_CRL_CHECK, '-', \
             "check leaf certificate revocation" }, \
-        { "crl_check_all", OPT_V_CRL_CHECK_ALL, '-',
+        { "crl_check_all", OPT_V_CRL_CHECK_ALL, '-', \
             "check full chain revocation" }, \
         { "policy_check", OPT_V_POLICY_CHECK, '-', \
              "perform rfc5280 policy checks"}, \
