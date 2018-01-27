@@ -1171,7 +1171,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
                                   (pem_password_cb *)password_callback,
                                   &cb_data);
     else if (format == FORMAT_PKCS12) {
-        EVP_PKEY *pkey = NULL;  /* &pkey is required by PKCS12_parse */
+        EVP_PKEY *pkey = NULL;  /* &pkey is required for matching cert */
 
         load_pkcs12(cert, cert_descrip, (pem_password_cb *)password_callback,
                     &cb_data, &pkey, &x, NULL);
@@ -1426,6 +1426,7 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
                                   int format, const char *pass,
                                   const char *desc)
 {
+    X509 *cert = NULL;
     int ret = 0;
 
     if (format == FORMAT_PKCS12) {
@@ -1435,23 +1436,25 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
         BIO *bio = BIO_new_file(file, "rb");
 #endif
         if (bio != NULL) {
+            EVP_PKEY *pkey = NULL;  /* &pkey is required for matching cert */
             PW_CB_DATA cb_data;
 
             cb_data.password = pass;
             cb_data.prompt_info = file;
             ret = load_pkcs12(bio, desc, (pem_password_cb *)password_callback,
-                              &cb_data, NULL, NULL, certs);
+                              &cb_data, &pkey, &cert, certs);
+            EVP_PKEY_free(pkey);
             BIO_free(bio);
         }
-        return ret;
-    } else if (format == FORMAT_ASN1) { /* load only one cert in this case */
-        X509 *cert = load_cert_pass(file, format, pass, desc);
-
+    } else if (format == FORMAT_ASN1) {/* load only one cert in this case */
+        cert = load_cert_pass(file, format, pass, desc);
+    }
+    if (format == FORMAT_PKCS12 || format == FORMAT_ASN1) {
         if (cert) {
             if ((*certs) == NULL)
                 *certs = sk_X509_new_null();
             if (*certs)
-                ret = sk_X509_push(*certs, cert);
+                ret = sk_X509_insert(*certs, cert, 0);
             else
                 X509_free(cert);
         }
