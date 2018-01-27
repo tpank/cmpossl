@@ -215,14 +215,74 @@ static X509_NAME *determine_subj(CMP_CTX *ctx, X509 *oldcert, int bodytype) {
 }
 
 /*
+ * Create CRMF certificate request message for IR/CR/KUR
+ * returns a pointer to the CRMF_CERTREQMSG on success, NULL on error
+ */
+static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
+                                long rid, EVP_PKEY *rkey)
+{
+    CRMF_CERTREQMSG *crm = NULL;
+    X509 *oldcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
+             /* for KUR, oldcert defaults to current client cert */
+    X509_NAME *subject = determine_subj(ctx, oldcert, bodytype);
+    X509_EXTENSIONS *exts = NULL;
+
+    if ((crm = CRMF_CERTREQMSG_new()) == NULL ||
+        !CRMF_CERTREQMSG_set_certReqId(crm, rid) ||
+
+    /* fill certTemplate, corresponding to PKCS#10 CertificationRequestInfo */
+#if 0
+        !CRMF_CERTREQMSG_set_version2(crm) /* RFC4211: SHOULD be omitted */
+#endif
+            /* rkey cannot be NULL so far - but it can be when
+             * centralized key creation is supported --> Feature Request #14 */
+        !CRMF_CERTREQMSG_set1_publicKey(crm, rkey) ||
+        (subject && !CRMF_CERTREQMSG_set1_subject(crm, subject)) ||
+        (ctx->issuer && !CRMF_CERTREQMSG_set1_issuer(crm, ctx->issuer)))
+        goto err;
+    if (ctx->days) {
+        time_t notBefore, notAfter;
+        notBefore = time(NULL);
+        notAfter = notBefore + 60 * 60 * 24 * ctx->days;
+        if (!CRMF_CERTREQMSG_set_validity(crm, notBefore, notAfter))
+            goto err;
+    }
+
+    /* extensions */ /* exts are copied from ctx to allow reuse */
+    if ((ctx->reqExtensions && (exts = exts_dup(ctx->reqExtensions)) == NULL)||
+        (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 &&
+        /* TODO: for KUR, if <= 0, maybe copy any existing SANs from
+                 oldcert --> Feature Reqest #39  */
+        /* RFC5280: subjectAltName MUST be critical if subject is null */
+         !add_subjectaltnames_extension(&exts, ctx->subjectAltNames,
+                          ctx->setSubjectAltNameCritical ||subject == NULL)) ||
+        (ctx->policies && !add_policy_extensions(&exts, ctx->policies)) ||
+        !CRMF_CERTREQMSG_set0_extensions(crm, exts))
+        goto err;
+    exts = NULL;
+    /* end fill certTemplate, now set any controls */
+
+    /* for KUR, setting OldCertId according to D.6 */
+    if (bodytype == V_CMP_PKIBODY_KUR &&
+        !CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(crm, oldcert))
+            goto err;
+
+    return crm;
+
+ err:
+    sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
+    CRMF_CERTREQMSG_free(crm);
+    return NULL;
+}
+
+/*
  * Create certificate request PKIMessage for IR/CR/KUR/P10CR
  * returns a pointer to the PKIMessage on success, NULL on error
  */
 CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
 {
     CMP_PKIMESSAGE *msg = NULL;
-    CRMF_CERTREQMSG *cr0 = NULL;
-    X509_EXTENSIONS *exts = NULL;
+    CRMF_CERTREQMSG *crm = NULL;
 
     if (ctx == NULL ||
         (bodytype != V_CMP_PKIBODY_P10CR && ctx->pkey == NULL &&
@@ -250,77 +310,17 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
         if ((msg->body->value.p10cr = X509_REQ_dup(ctx->p10CSR)) == NULL)
             goto err;
     } else {
-        X509_NAME *subject = NULL;
-        EVP_PKEY *rkey = NULL;
-        X509 *oldcert = NULL;
+        EVP_PKEY *rkey = ctx->newPkey ? ctx->newPkey
+            : ctx->pkey; /* default is currenty client key */
 
-        /* for KUR, oldcert defaults to current client cert */
-        oldcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
-        subject = determine_subj(ctx, oldcert, bodytype);
-        rkey = ctx->newPkey ? ctx->newPkey : ctx->pkey; /* dflt curr clnt key */
-
-        if ((msg->body->value.ir = sk_CRMF_CERTREQMSG_new_null()) == NULL)
-            goto err; /* value.ir is same for cr and kur */
-
-        if ((cr0 = CRMF_CERTREQMSG_new()) == NULL)
+        if ((crm = crm_new(ctx, bodytype, CERTREQID, rkey)) == NULL ||
+            (!CRMF_CERTREQMSG_create_popo(crm, rkey, ctx->digest,
+                                         ctx->popoMethod)) ||
+            ((msg->body->value.ir = sk_CRMF_CERTREQMSG_new_null()) == NULL) ||
+                      /* value.ir is same for cr and kur */
+            !sk_CRMF_CERTREQMSG_push(msg->body->value.ir, crm))
             goto err;
-#if 0
-        if (!CRMF_CERTREQMSG_set_version2(cr0)) /* RFC4211: SHOULD be omitted */
-            goto err;
-#endif
-        if (!CRMF_CERTREQMSG_set_certReqId(cr0, CERTREQID))
-            goto err;
-        /*
-         * rkey cannot be NULL so far - but it can be when centralized key
-         * creation is supported --> Feature Request #14
-         */
-        if (!CRMF_CERTREQMSG_set1_publicKey(cr0, rkey))
-            goto err;
-        if (subject)
-            if (!CRMF_CERTREQMSG_set1_subject(cr0, subject))
-                goto err;
-        if (ctx->issuer)
-            if (!CRMF_CERTREQMSG_set1_issuer(cr0, ctx->issuer))
-                goto err;
-        if (ctx->days) {
-            time_t notBefore, notAfter;
-            notBefore = time(NULL);
-            notAfter = notBefore + 60 * 60 * 24 * ctx->days;
-            if (!CRMF_CERTREQMSG_set_validity(cr0, notBefore, notAfter))
-                goto err;
-        }
-
-        /* extensions */ /* exts are copied from ctx to allow reuse */
-        if (ctx->reqExtensions && (exts = exts_dup(ctx->reqExtensions)) == NULL)
-            goto err;
-        if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0)
-            /* TODO: for KUR, if <= 0, maybe copy any existing SANs from
-                     oldcert --> Feature Reqest #39  */
-            /* RFC5280: subjectAltName MUST be critical if subject is null */
-            if (!add_subjectaltnames_extension(&exts, ctx->subjectAltNames,
-                                        ctx->setSubjectAltNameCritical
-                                        || subject == NULL))
-                goto err;
-        if (ctx->policies) {
-            if (add_policy_extensions(&exts, ctx->policies))
-                goto err;
-        }
-        if (!CRMF_CERTREQMSG_set0_extensions(cr0, exts))
-            goto err;
-        exts = NULL;
-
-        /* for KUR, setting OldCertId according to D.6 */
-        if (bodytype == V_CMP_PKIBODY_KUR)
-            if (!CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(cr0, oldcert))
-                goto err;
-
-        if (!CRMF_CERTREQMSG_create_popo(cr0, rkey, ctx->digest,
-                                         ctx->popoMethod))
-            goto err;
-
-        if (!sk_CRMF_CERTREQMSG_push(msg->body->value.ir, cr0))
-            goto err;
-        cr0 = NULL;
+        crm = NULL;
         /* TODO: here optional 2nd certreqmsg could be pushed to the stack */
     }
 
@@ -331,12 +331,8 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
 
  err:
     CMPerr(CMP_F_CMP_CERTREQ_NEW, err_code);
-    if (exts)
-        sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
-    if (cr0)
-        CRMF_CERTREQMSG_free(cr0);
-    if (msg)
-        CMP_PKIMESSAGE_free(msg);
+    CRMF_CERTREQMSG_free(crm);
+    CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
 
