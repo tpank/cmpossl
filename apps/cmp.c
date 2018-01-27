@@ -1470,6 +1470,7 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
                               const char *desc)
 {
     int ret = 0;
+    char *pass_string;
     BIO *bio_bak = bio_err;
 
     /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
@@ -1478,13 +1479,14 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
         BIO_printf(bio_err, "error: HTTP retrieval not allowed for %s\n", desc);
         return ret;
     }
+    pass_string = get_passwd(pass, desc);
     bio_err = NULL;
-    ret = load_certs_also_pkcs12(infile, certs, format, pass, desc);
+    ret = load_certs_also_pkcs12(infile, certs, format, pass_string, desc);
     if (!ret) {
         int format2 = format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM;
 
         ERR_clear_error();
-        ret = load_certs_also_pkcs12(infile, certs, format2, pass, desc);
+        ret = load_certs_also_pkcs12(infile, certs, format2, pass_string, desc);
     }
     bio_err = bio_bak;
     if (!ret) {
@@ -1492,6 +1494,8 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc,
                    infile);
     }
+    if (pass_string)
+        OPENSSL_clear_free(pass_string, strlen(pass_string));
     return ret;
 }
 
