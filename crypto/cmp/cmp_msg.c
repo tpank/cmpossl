@@ -134,7 +134,9 @@ static int add_crl_reason_extension(X509_EXTENSIONS **exts, int reason_code)
     ASN1_ENUMERATED *val = NULL;
     X509_EXTENSION *ext = NULL;
     int ret = 0;
-    if ((val = ASN1_ENUMERATED_new()) &&
+
+    if (exts != NULL &&
+        (val = ASN1_ENUMERATED_new()) &&
         ASN1_ENUMERATED_set(val, reason_code) &&
         (ext = X509V3_EXT_i2d(NID_crl_reason, 0, val)) &&
         X509v3_add_ext(exts, ext, 0))
@@ -142,45 +144,6 @@ static int add_crl_reason_extension(X509_EXTENSIONS **exts, int reason_code)
     X509_EXTENSION_free(ext);
     ASN1_ENUMERATED_free(val);
     return ret;
-}
-
-/*
- * Creates a new polling request PKIMessage for the given request ID
- * returns a pointer to the PKIMessage on success, NULL on error
- */
-CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId)
-{
-    CMP_PKIMESSAGE *msg = NULL;
-    CMP_POLLREQ *preq = NULL;
-
-    if (ctx == NULL)
-        goto err;
-
-    if ((msg = CMP_PKIMESSAGE_new()) == NULL)
-        goto err;
-    if (!CMP_PKIHEADER_init(ctx, msg->header))
-        goto err;
-    if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_POLLREQ))
-        goto err;
-
-    if ((preq = CMP_POLLREQ_new()) == NULL)
-        goto err;
-    /* TODO support multiple cert request ids to poll */
-    ASN1_INTEGER_set(preq->certReqId, reqId);
-    if ((msg->body->value.pollReq = sk_CMP_POLLREQ_new_null()) == NULL)
-        goto err;
-
-    sk_CMP_POLLREQ_push(msg->body->value.pollReq, preq);
-
-    if (!CMP_PKIMESSAGE_protect(ctx, msg))
-        goto err;
-
-    return msg;
- err:
-    CMPerr(CMP_F_CMP_POLLREQ_NEW, CMP_R_ERROR_CREATING_POLLREQ);
-    if (msg)
-        CMP_PKIMESSAGE_free(msg);
-    return NULL;
 }
 
 static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin) {
@@ -235,7 +198,7 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
         !CRMF_CERTREQMSG_set_version2(crm) /* RFC4211: SHOULD be omitted */
 #endif
             /* rkey cannot be NULL so far - but it can be when
-             * centralized key creation is supported --> Feature Request #14 */
+             * centralized key creation is supported --> Feature Request #68 */
         !CRMF_CERTREQMSG_set1_publicKey(crm, rkey) ||
         (subject && !CRMF_CERTREQMSG_set1_subject(crm, subject)) ||
         (ctx->issuer && !CRMF_CERTREQMSG_set1_issuer(crm, ctx->issuer)))
@@ -252,7 +215,7 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
     if ((ctx->reqExtensions && (exts = exts_dup(ctx->reqExtensions)) == NULL)||
         (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 &&
         /* TODO: for KUR, if <= 0, maybe copy any existing SANs from
-                 oldcert --> Feature Reqest #39  */
+                 oldcert --> Feature Reqest #93  */
         /* RFC5280: subjectAltName MUST be critical if subject is null */
          !add_subjectaltnames_extension(&exts, ctx->subjectAltNames,
                           ctx->setSubjectAltNameCritical ||subject == NULL)) ||
@@ -333,6 +296,37 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
     CMPerr(CMP_F_CMP_CERTREQ_NEW, err_code);
     CRMF_CERTREQMSG_free(crm);
     CMP_PKIMESSAGE_free(msg);
+    return NULL;
+}
+
+/*
+ * Creates a new polling request PKIMessage for the given request ID
+ * returns a pointer to the PKIMessage on success, NULL on error
+ */
+CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId)
+{
+    CMP_PKIMESSAGE *msg = NULL;
+    CMP_POLLREQ *preq = NULL;
+
+    if (ctx == NULL ||
+        (msg = CMP_PKIMESSAGE_new()) == NULL ||
+        !CMP_PKIHEADER_init(ctx, msg->header) ||
+        !CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_POLLREQ))
+        goto err;
+
+    /* TODO support multiple cert request IDs to poll */
+    if ((preq = CMP_POLLREQ_new()) == NULL ||
+        !ASN1_INTEGER_set(preq->certReqId, reqId) ||
+        ((msg->body->value.pollReq = sk_CMP_POLLREQ_new_null()) == NULL) ||
+        !sk_CMP_POLLREQ_push(msg->body->value.pollReq, preq) ||
+        !CMP_PKIMESSAGE_protect(ctx, msg))
+        goto err;
+
+    return msg;
+ err:
+    CMPerr(CMP_F_CMP_POLLREQ_NEW, CMP_R_ERROR_CREATING_POLLREQ);
+    if (msg)
+        CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
 
