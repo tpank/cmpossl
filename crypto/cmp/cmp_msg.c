@@ -146,7 +146,7 @@ static int add_crl_reason_extension(X509_EXTENSIONS **exts, int reason_code)
     return ret;
 }
 
-static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin) {
+static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin /* may be NULL */) {
     X509_EXTENSIONS *exts = NULL;
     if (extin) {
         int i;
@@ -212,7 +212,7 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
     }
 
     /* extensions */ /* exts are copied from ctx to allow reuse */
-    if ((ctx->reqExtensions && (exts = exts_dup(ctx->reqExtensions)) == NULL)||
+    if ((exts = exts_dup(ctx->reqExtensions)) == NULL ||
         (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 &&
         /* TODO: for KUR, if <= 0, maybe copy any existing SANs from
                  oldcert --> Feature Reqest #93  */
