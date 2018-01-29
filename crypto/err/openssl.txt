@@ -1887,6 +1887,7 @@ CMP_R_IP_NOT_RECEIVED:144:ip not received
 CMP_R_KUP_NOT_RECEIVED:145:kup not received
 CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION:146:\
 	missing key input for creating protection
+CMP_R_MULTIPLE_SAN_SOURCES:180:multiple san sources
 CMP_R_NO_TRUSTED_CERTIFICATES_SET:147:no trusted certificates set
 CMP_R_NO_VALID_SERVER_CERT_FOUND:148:no valid server cert found
 CMP_R_NULL_ARGUMENT:149:null argument

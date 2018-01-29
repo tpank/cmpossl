@@ -59,6 +59,7 @@
  CMP_CTX_set1_serverPath,
  CMP_CTX_set_serverPort,
  CMP_CTX_set0_reqExtensions,
+ CMP_CTX_reqExtensions_have_SAN,
  CMP_CTX_set_transfer_cb,
  CMP_CTX_set_transfer_cb_arg,
  CMP_CTX_get_transfer_cb_arg,
@@ -136,6 +137,7 @@
  int CMP_CTX_set1_expected_sender(CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
  int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
+ int CMP_CTX_reqExtensions_have_SAN(CMP_CTX *ctx);
 
  typedef int (*cmp_transfer_cb_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                                    CMP_PKIMESSAGE **res);
@@ -403,6 +405,9 @@ CMP_CTX_set1_recipient() will be used.
 CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
 CMP_CTX_set0_reqExtensions() sets the X.509v3 extensions to be used in IR/CR/KUR
+
+CMP_CTX_reqExtensions_have_SAN() returns 1 if the context contains
+a Subject Alternative Name extension, in all other cases (including errors) 0.
 
 CMP_CTX_set_transfer_cb() sets the message transfer callback function.
 Default is CMP_PKIMESSAGE_http_perform().
