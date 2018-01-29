@@ -147,11 +147,12 @@ static int add_crl_reason_extension(X509_EXTENSIONS **exts, int reason_code)
 }
 
 static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin /* may be NULL */) {
-    X509_EXTENSIONS *exts = NULL;
+    X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
+
+    if (exts == NULL)
+        goto err;
     if (extin) {
         int i;
-        if ((exts = sk_X509_EXTENSION_new_null()) == NULL)
-            goto err;
         for (i = 0; i < sk_X509_EXTENSION_num(extin); i++)
             if (!sk_X509_EXTENSION_push(exts, X509_EXTENSION_dup(
                                         sk_X509_EXTENSION_value(extin, i))))
