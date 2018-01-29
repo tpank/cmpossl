@@ -856,17 +856,34 @@ int CMP_CTX_set1_subjectName(CMP_CTX *ctx, const X509_NAME *name)
  */
 int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(CMP_F_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_NULL_ARGUMENT);
         goto err;
-    if (exts == NULL)
+    }
+    if (exts != NULL && sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0) {
+        CMPerr(CMP_F_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_MULTIPLE_SAN_SOURCES);
         goto err;
-
+    }
     ctx->reqExtensions = exts;
-
     return 1;
+
  err:
-    CMPerr(CMP_F_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_NULL_ARGUMENT);
     return 0;
+}
+
+/* returns 1 if ctx contains a Subject Alternative Name extension, else 0 */
+int CMP_CTX_reqExtensions_have_SAN(CMP_CTX *ctx)
+{
+    STACK_OF(GENERAL_NAME) *sans;
+    int n;
+
+    if (ctx == NULL)
+        return 0;
+    sans = X509V3_get_d2i(ctx->reqExtensions /* may be NULL */,
+                          NID_subject_alt_name, NULL, NULL);
+    n = sk_GENERAL_NAME_num(sans);
+    sk_GENERAL_NAME_pop_free(sans, GENERAL_NAME_free);
+    return n >= 0;
 }
 
 /*
@@ -876,21 +893,26 @@ int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts)
  */
 int CMP_CTX_subjectAltName_push1(CMP_CTX *ctx, const GENERAL_NAME *name)
 {
-    if (ctx == NULL)
+    if (ctx == NULL || name == NULL) {
+        CMPerr(CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1, CMP_R_NULL_ARGUMENT);
         goto err;
-    if (name == NULL)
+    }
+
+    if (CMP_CTX_reqExtensions_have_SAN(ctx)) {
+        CMPerr(CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1, CMP_R_MULTIPLE_SAN_SOURCES);
         goto err;
+    }
 
     if ((ctx->subjectAltNames == NULL &&
          (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL) ||
          !sk_GENERAL_NAME_push(ctx->subjectAltNames,
          GENERAL_NAME_dup((GENERAL_NAME *)name))) {
         CMPerr(CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1, CMP_R_OUT_OF_MEMORY);
-        return 0;
+        goto err;
     }
     return 1;
+
  err:
-    CMPerr(CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 

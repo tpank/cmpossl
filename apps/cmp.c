@@ -3124,6 +3124,12 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         }
         CMP_CTX_set0_reqExtensions(ctx, exts);
     }
+    if (CMP_CTX_reqExtensions_have_SAN(ctx) &&
+        (opt_san_dns != NULL || opt_san_ip != NULL)) {
+        BIO_printf(bio_err,
+"cannot have Subject Alternative Names both via -reqexts and via -san_dns or -san_ip\n");
+            goto err;
+    }
 
     if (!set_gennames(opt_san_dns, GEN_DNS  , CMP_CTX_subjectAltName_push1, ctx,
                      "DNS Subject Alternative Name") ||

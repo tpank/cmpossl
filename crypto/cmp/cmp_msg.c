@@ -163,17 +163,19 @@ static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin /* may be NULL */) {
     return NULL;
 }
 
-static X509_NAME *determine_subj(CMP_CTX *ctx, X509 *oldcert, int bodytype) {
-    if (ctx->subjectName)
+#define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 || \
+                      CMP_CTX_reqExtensions_have_SAN(ctx))
+static X509_NAME *determine_subj(CMP_CTX *ctx, X509 *prevcert, int bodytype) {
+    if (ctx->subjectName) {
         return ctx->subjectName;
-    else if (oldcert && (bodytype == V_CMP_PKIBODY_KUR ||
-                sk_GENERAL_NAME_num(ctx->subjectAltNames) <= 0))
-    /*
-     * For KUR, copy subjectName from previous certificate.
-     * For IR or CR, get subject name from previous certificate, but only
-     * if there's no subjectAltName.
-     */
-        return X509_get_subject_name(oldcert);
+    }
+    if (prevcert &&
+        (bodytype == V_CMP_PKIBODY_KUR || !HAS_SAN(ctx)))
+        /*
+         * For KUR, copy subjectName from previous certificate.
+         * For IR or CR, do the same only if there is no subjectAltName.
+         */
+        return X509_get_subject_name(prevcert);
     return NULL;
 }
 
@@ -185,9 +187,9 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
                                 long rid, EVP_PKEY *rkey)
 {
     CRMF_CERTREQMSG *crm = NULL;
-    X509 *oldcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
-             /* for KUR, oldcert defaults to current client cert */
-    X509_NAME *subject = determine_subj(ctx, oldcert, bodytype);
+    X509 *prevcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
+       /* prevcert defaults to current client cert */
+    X509_NAME *subject = determine_subj(ctx, prevcert, bodytype);
     X509_EXTENSIONS *exts = NULL;
 
     if ((crm = CRMF_CERTREQMSG_new()) == NULL ||
@@ -215,7 +217,7 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
     if ((exts = exts_dup(ctx->reqExtensions)) == NULL ||
         (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 &&
         /* TODO: for KUR, if <= 0, maybe copy any existing SANs from
-                 oldcert --> Feature Reqest #93  */
+                 prevcert --> Feature Reqest #93  */
         /* RFC5280: subjectAltName MUST be critical if subject is null */
          !add_subjectaltnames_extension(&exts, ctx->subjectAltNames,
                           ctx->setSubjectAltNameCritical ||subject == NULL)) ||
@@ -227,7 +229,7 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
 
     /* for KUR, setting OldCertId according to D.6 */
     if (bodytype == V_CMP_PKIBODY_KUR &&
-        !CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(crm, oldcert))
+        !CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(crm, prevcert))
             goto err;
 
     return crm;
