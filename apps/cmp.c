@@ -249,6 +249,8 @@ static char *opt_recipient = NULL;
 static char *opt_expected_sender = NULL;
 static int opt_popo = -1;
 static char *opt_reqexts = NULL;
+static char *opt_san_dns = NULL;
+static char *opt_san_ip = NULL;
 static int opt_disableConfirm = 0;
 static int opt_implicitConfirm = 0;
 static int opt_unprotectedRequests = 0;
@@ -377,7 +379,7 @@ typedef enum OPTION_choice {
     OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
 
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER,
-    OPT_DAYS, OPT_REQEXTS, OPT_POPO,
+    OPT_DAYS, OPT_REQEXTS, OPT_SAN_DNS, OPT_SAN_IP, OPT_POPO,
     OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
     OPT_CERTOUT, OPT_OUT_TRUSTED,
 
@@ -432,9 +434,9 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nRecipient options:"},
     {"recipient", OPT_RECIPIENT, 's',
-"Distinguished Name of the recipient to use unless the -srvcert option is given."},
+"Distinguished Name (DN) of the recipient to use unless the -srvcert option is given."},
     {"expected_sender", OPT_EXPECTED_SENDER, 's',
-"Distinguished Name of expected response sender. Defaults to recipient determined."},
+"DN of expected response sender. Defaults to recipient that has been determined."},
     {"srvcert", OPT_SRVCERT, 's',
      "Specific CMP server cert to use and trust directly when verifying responses"},
     {"trusted", OPT_TRUSTED, 's',
@@ -485,15 +487,19 @@ OPTIONS cmp_options[] = {
 "Private key for the requested certificate, defaulting to current client's key."},
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
     {"subject", OPT_SUBJECT, 's',
-     "X509 subject name to use in the requested certificate template"},
+"Distinguished Name (DN) of subject to use in the requested certificate template"},
     {"issuer", OPT_ISSUER, 's',
-"Distinguished Name of the issuer, to be put in the requested certificate template."},
+     "DN of the issuer, to be put in the requested certificate template."},
     {OPT_MORE_STR, 0, 0,
      "Also used as recipient if neither -recipient nor -srvcert are given."},
     {"days", OPT_DAYS, 'n',
      "Number of days the new certificate is asked to be valid for"},
     {"reqexts", OPT_REQEXTS, 's',
 "Name of section in OpenSSL config file defining certificate request extensions"},
+    {"san_dns", OPT_SAN_DNS, 's',
+     "DNS Subject Alternative Name(s) to add as certificate request extension"},
+    {"san_ip", OPT_SAN_IP, 's',
+"IP address Subject Alternative Name(s) to add as certificate request extension"},
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method."},
     {OPT_MORE_STR, 0, 0,
      "0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
@@ -637,7 +643,8 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_extracertsout}, {&opt_cacertsout},
 
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
-    {(char **)&opt_days}, {&opt_reqexts}, {(char **)&opt_popo},
+    {(char **)&opt_days}, {&opt_reqexts}, {&opt_san_dns}, {&opt_san_ip},
+    {(char **)&opt_popo},
     {(char **)&opt_implicitConfirm}, {(char **)&opt_disableConfirm},
     {&opt_certout}, {&opt_out_trusted},
 
@@ -821,6 +828,7 @@ static int read_config()
 
 static char *next_item(char *opt) /* in list separated by comma and/or space */
 {
+    /* allows empty item if *opt immediately contains ',' */
     while (*opt != ',' && !isspace(*opt) && *opt != '\0') {
         if (*opt++ == '\\' && *opt != '\0') {
             opt++;
@@ -2422,15 +2430,38 @@ static int set_name(const char *str,
         X509_NAME *n = parse_name((char *)str, MBSTRING_ASC, 0);
 
         if (n == NULL) {
-            BIO_printf(bio_err, "error: unable to parse %s name '%s'\n",
-                       desc, str);
+            BIO_printf(bio_err, "error parsing %s DN '%s'\n", desc, str);
             return 0;
         }
         if (!(*set_fn) (ctx, n)) {
             X509_NAME_free(n);
+            BIO_printf(bio_err, "out of memory\n");
             return 0;
         }
         X509_NAME_free(n);
+    }
+    return 1;
+}
+
+static int set_gennames(char *names, int type,
+                       int (*set_fn) (CMP_CTX *ctx, const GENERAL_NAME *name),
+                       CMP_CTX *ctx, const char *desc)
+{
+    while (names && *names != '\0') {
+        char *next = next_item(names);
+        GENERAL_NAME *n = a2i_GENERAL_NAME(NULL, NULL, NULL, type, names, 0);
+
+        if (n == NULL) {
+            BIO_printf(bio_err, "error parsing %s '%s'\n", desc, names);
+            return 0;
+        }
+        if (!(*set_fn) (ctx, n)) {
+            GENERAL_NAME_free(n);
+            BIO_printf(bio_err, "out of memory\n");
+            return 0;
+        }
+        GENERAL_NAME_free(n);
+        names = next;
     }
     return 1;
 }
@@ -3059,7 +3090,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
 
     if (!set_name(opt_subject, CMP_CTX_set1_subjectName, ctx, "subject") ||
         !set_name(opt_issuer, CMP_CTX_set1_issuer, ctx, "issuer"))
-        goto oom;
+        goto err;
 
     if (opt_newkey) {
         EVP_PKEY *pkey =
@@ -3093,6 +3124,12 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         }
         CMP_CTX_set0_reqExtensions(ctx, exts);
     }
+
+    if (!set_gennames(opt_san_dns, GEN_DNS  , CMP_CTX_subjectAltName_push1, ctx,
+                     "DNS Subject Alternative Name") ||
+        !set_gennames(opt_san_ip , GEN_IPADD, CMP_CTX_subjectAltName_push1, ctx,
+                     "IP address Subject Alternative Name"))
+        goto err;
 
     if (opt_popo < -1 || opt_popo > 3) {
         BIO_printf(bio_err,
@@ -3715,6 +3752,12 @@ int cmp_main(int argc, char **argv)
             break;
         case OPT_SUBJECT:
             opt_subject = opt_str("subject");
+            break;
+        case OPT_SAN_DNS:
+            opt_san_dns = opt_str("san_dns");
+            break;
+        case OPT_SAN_IP:
+            opt_san_ip = opt_str("san_ip");
             break;
         case OPT_ISSUER:
             opt_issuer = opt_str("issuer");

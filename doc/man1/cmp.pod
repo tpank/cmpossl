@@ -45,6 +45,8 @@ B<openssl> B<cmp>
 [B<-issuer name>]
 [B<-days number>]
 [B<-reqexts name>]
+[B<-san_dns names>]
+[B<-san_ip addresses>]
 [B<-popo number>]
 [B<-implicitconfirm>]
 [B<-disableconfirm>]
@@ -409,7 +411,7 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-subject name>
 
-X509 subject Distinguished Name to use in the requested certificate template.
+X509 Distinguished Name (DN) of subject to use in the requested certificate template.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
@@ -435,6 +437,16 @@ Number of days the new certificate is asked to be valid for.
 =item B<-reqexts name>
 
 Name of section in OpenSSL config file defining certificate request extensions.
+
+=item B<-san_dns names>
+
+One or more DNS name(s), separated by commas or whitespace,
+to add as Subject Alternative Name certificate request extension.
+
+=item B<-san_ip addresses>
+
+One or more IP address(es), separated by commas or whitespace,
+to add as Subject Alternative Name certificate request extension.
 
 =item B<-popo number>
 
