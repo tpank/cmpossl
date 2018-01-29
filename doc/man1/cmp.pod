@@ -473,11 +473,23 @@ Trusted certificate(s) to use for verifying the newly enrolled certificate.
 Multiple file names may be given, separated by commas or whitespace.
 Each source may contain multiple certificates.
 
-=item B<-verify_hostname cn>, B<-verify_ip ip>, B<-verify_email email>
+=item B<-verify_hostname name>
 
 When verification of the newly enrolled certificate is enabled (with the
--out_trusted option), check if its Subject DN or any Subject Alternative Name
-matches the given Common Name, IP address, or email address, respectively.
+B<-out_trusted> option), check if any DNS Subject Alternative Name (or if no
+DNS SAN is included, the Common Name in the subject) equals the given B<name>.
+
+B<-verify_ip ip>
+
+When verification of the newly enrolled certificate is enabled (with the
+B<-out_trusted> option), check if there is
+an IP address Subject Alternative Name matching the given IP address.
+
+B<-verify_email email>
+
+When verification of the newly enrolled certificate is enabled (with the
+B<-out_trusted> option), check if there is
+an email address Subject Alternative Name matching the given email address.
 
 =back
 

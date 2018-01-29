@@ -316,7 +316,7 @@ typedef struct options_st {
             "chain authentication security level" }, \
         { "attime", OPT_V_ATTIME, 'M', "verification epoch time" }, \
         { "verify_hostname", OPT_V_VERIFY_HOSTNAME, 's', \
-            "expected peer hostname" }, \
+            "expected DNS Subject Alternative Name or else Common Name" }, \
         { "verify_email", OPT_V_VERIFY_EMAIL, 's', \
             "expected peer email" }, \
         { "verify_ip", OPT_V_VERIFY_IP, 's', \
