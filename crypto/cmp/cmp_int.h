@@ -73,11 +73,12 @@ struct cmp_ctx_st {
     int pbm_mac;
 
     int days; /* Number of days new certificates are asked to be valid for */
+    int setSubjectAltNameCritical;
+    int SubjectAltName_nodefault;
     int digest; /* NID of digest used in MSG_SIG_ALG, defaults to SHA256 */
     int popoMethod;  /* Proof-of-posession mechanism used.
                         Defaults to signature (POPOsigningKey) */
     int revocationReason; /* Revocation reason code to be included in RR */
-    int setSubjectAltNameCritical;
     int permitTAInExtraCertsForIR; /* whether to include root certs from
                      extracerts when validating? Used for 3GPP-style E.7 */
 
