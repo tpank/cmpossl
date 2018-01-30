@@ -156,6 +156,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_IP_NOT_RECEIVED                            144
 # define CMP_R_KUP_NOT_RECEIVED                           145
 # define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  146
+# define CMP_R_MISSING_PROTECTION                         181
 # define CMP_R_MULTIPLE_SAN_SOURCES                       180
 # define CMP_R_NO_TRUSTED_CERTIFICATES_SET                147
 # define CMP_R_NO_VALID_SERVER_CERT_FOUND                 148

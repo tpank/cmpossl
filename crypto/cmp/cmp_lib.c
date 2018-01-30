@@ -1751,14 +1751,14 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
              return -1;
          }
     } else {
-        CMP_printf(ctx, "INFO: received message is not protected");
         /* detect explicitly permitted exceptions */
         if (allow_unprotected == NULL ||
             !(*allow_unprotected)(ctx, callback_arg, msg)) {
             CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
-                   CMP_R_ERROR_VALIDATING_PROTECTION);
+                   CMP_R_MISSING_PROTECTION);
             return -1;
         }
+        CMP_printf(ctx, "INFO: received message is not protected");
     }
 
     /* compare received transactionID with the expected one in previous msg */

@@ -238,6 +238,7 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_KUP_NOT_RECEIVED), "kup not received"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION),
     "missing key input for creating protection"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MISSING_PROTECTION), "missing protection"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MULTIPLE_SAN_SOURCES),
     "multiple san sources"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_TRUSTED_CERTIFICATES_SET),
