@@ -23,21 +23,22 @@ B<openssl> B<cmp>
 [B<-trusted filenames>]
 [B<-untrustedE<nbsp>sources>]
 [B<-ignore_keyusage>]
+[B<-unprotectederrors>]
+[B<-extracertsout filename>]
+[B<-cacertsout filename>]
 
 [B<-ref value>]
 [B<-secret arg>]
 [B<-cert filename>]
 [B<-key filename>]
 [B<-keypass arg>]
+[B<-digest name>]
 [B<-extracerts sources>]
+[B<-unprotectedrequests>]
 
 [B<-cmd ir|cr|kur|p10cr|rr|genm>]
+[B<-infotype name>]
 [B<-geninfo OID:int:N>]
-[B<-digest name>]
-[B<-unprotectedrequests>]
-[B<-unprotectederrors>]
-[B<-extracertsout filename>]
-[B<-cacertsout filename>]
 
 [B<-newkey filename>]
 [B<-newkeypass arg>]
@@ -47,24 +48,25 @@ B<openssl> B<cmp>
 [B<-reqexts name>]
 [B<-san_dns names>]
 [B<-san_ip addresses>]
+[B<-san_critical>]
 [B<-popo number>]
+[B<-csr filename>]
 [B<-implicitconfirm>]
 [B<-disableconfirm>]
-[B<-certout filename>]
 [B<-out_trusted filenames>]
 [B<-verify_hostname cn>]
 [B<-verify_ip ip>]
 [B<-verify_email email>]
+[B<-certout filename>]
 
 [B<-oldcert filename>]
 [B<-revreason number>]
-[B<-infotype name>]
 
 [B<-certpass arg>]
-[B<-storeform DER|PEM|P12>]
 [B<-certform DER|PEM|P12>]
 [B<-keyform DER|PEM|P12>]
 [B<-clrform DER|PEM>]
+[B<-storeform DER|PEM|P12>]
 [B<-engine id>]
 
 [B<-tls_used>]
@@ -142,6 +144,7 @@ In any case, as usual, the [default] section and finally the unnamed section
 
 =back
 
+
 =head2 Message transfer options
 
 =over 4
@@ -172,7 +175,7 @@ certificates on 'waiting' PKIStatus. Default is 0 (infinite).
 =back
 
 
-=head2 Recipient options
+=head2 Server authentication options
 
 =over 4
 
@@ -243,109 +246,6 @@ Each file may contain multiple certificates.
 Ignore key usage restrictions in certificates at CMP level,
 else 'digitalSignature' must be allowed for signature use.
 
-=back
-
-
-=head2 Sender options
-
-=over 4
-
-=item B<-ref value>
-
-Reference value to use when messages are authenticated with pre-shared keys
-(password-based MAC).  Implies that the B<-secret> option is also given.
-
-=item B<-secret arg>
-
-Source for secret value to use when messages are authenticated with
-pre-shared keys (password-based MAC).
-Implies that the B<-ref> option is also given.
-
-For more information about the format of B<arg> see the
-B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
-
-=item B<-cert filename>
-
-The client's currently existing certificate. This will be used for signing
-request messages using an certificate.  Requires for the corresponding key to
-be given with B<-key>.  For IR this can be used for authenticating a request
-message using an external entity certificate as defined in appendix E.7 of RFC
-4210. For KUR this is also used as certificate to be updated if the B<-oldcert>
-option is not given.
-If the file includes further certs, they are appended in the extraCerts field.
-
-=item B<-key filename>
-
-The corresponding private key file for the client's current certificate given in
-the B<-cert> option.
-
-=item B<-keypass arg>
-
-Pass phrase source for the private key given with the B<-key> option.
-If not given here, the password will be prompted for if needed.
-
-For more information about the format of B<arg> see the
-B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
-
-=item B<-extracerts sources>
-
-Certificates to append in the extraCerts field in sent messages.
-
-Multiple file names or URLs may be given, separated by commas or whitespace.
-Each source may contain multiple certificates.
-
-=back
-
-
-=head2 Generic message options
-
-=over 4
-
-=item B<-cmd ir|cr|kur|p10cr|rr|genm>
-
-CMP command to execute. Currently implemented commands are:
-    ir   - Initialization Request
-    cr   - Certificate Request
-    kur  - Key Update Request
-    p10cr - PKCS#10 Certification Request
-    rr   - Revocation Request
-    genm - General Message
-
-B<ir> requests initialization of an End Entity into a PKI hierarchy by means of
-issuance of a first certificate.
-
-B<cr> requests issuance of an additional certificate for an End Entity already
-initialized to the PKI hierarchy.
-
-B<p10cr> requests issuance of an additional certificate similarly to B<cr>
-but uses PKCS#10 CSR format.
-
-B<kur> requests (key) update for an existing, given certificate.
-
-B<rr> requests revocation of an existing, given certificate.
-
-B<genm> requests information using a General Message, where optionally
-included B<InfoTypeAndValue>s may be used to state which info is of interest.
-Upon receipt of the General Response, information about all received
-ITAV B<infoType>s is printed to stdout.
-
-=item B<-geninfo OID:int:N>
-
-Set generalInfo in request PKIHeader with type OID and integer value N,
-e.g., '1.2.3:int:987'.
-
-=item B<-digest name>
-
-Specifies name of supported digest to use in RFC 4210's MSG_SIG_ALG.
-If applicable, this is used for message protection and
-Proof-of-Possession (POPO) signatures.
-To see the list of supported digests, use the command
-I<list --digest-commands>.  Defaults to 'sha256'.
-
-=item B<-unprotectedrequests>
-
-Send messages without CMP-level protection.
-
 =item B<-unprotectederrors>
 
 Accept unprotected messages by the server even if they should have been
@@ -388,6 +288,114 @@ The file where to save any extra certificates received in a response message.
 =item B<-cacertsout filename>
 
 The file where to save any received CA certificates.
+
+=back
+
+
+=head2 Client authentication options
+
+=over 4
+
+=item B<-ref value>
+
+Reference value to use when messages are authenticated with pre-shared keys
+(password-based MAC).  Implies that the B<-secret> option is also given.
+
+=item B<-secret arg>
+
+Source for secret value to use when messages are authenticated with
+pre-shared keys (password-based MAC).
+Implies that the B<-ref> option is also given.
+
+For more information about the format of B<arg> see the
+B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+
+=item B<-cert filename>
+
+The client's currently existing certificate. This will be used for signing
+request messages using an certificate.  Requires for the corresponding key to
+be given with B<-key>.  For IR this can be used for authenticating a request
+message using an external entity certificate as defined in appendix E.7 of RFC
+4210. For KUR this is also used as certificate to be updated if the B<-oldcert>
+option is not given.
+If the file includes further certs, they are appended in the extraCerts field.
+
+=item B<-key filename>
+
+The corresponding private key file for the client's current certificate given in
+the B<-cert> option.
+
+=item B<-keypass arg>
+
+Pass phrase source for the private key given with the B<-key> option.
+If not given here, the password will be prompted for if needed.
+
+For more information about the format of B<arg> see the
+B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+
+=item B<-digest name>
+
+Specifies name of supported digest to use in RFC 4210's MSG_SIG_ALG.
+If applicable, this is used for message protection and
+Proof-of-Possession (POPO) signatures.
+To see the list of supported digests, use the command
+I<list --digest-commands>.  Defaults to 'sha256'.
+
+=item B<-extracerts sources>
+
+Certificates to append in the extraCerts field in sent messages.
+
+Multiple file names or URLs may be given, separated by commas or whitespace.
+Each source may contain multiple certificates.
+
+=item B<-unprotectedrequests>
+
+Send messages without CMP-level protection.
+
+=back
+
+
+=head2 Generic message options
+
+=over 4
+
+=item B<-cmd ir|cr|kur|p10cr|rr|genm>
+
+CMP command to execute. Currently implemented commands are:
+    ir   - Initialization Request
+    cr   - Certificate Request
+    kur  - Key Update Request
+    p10cr - PKCS#10 Certification Request
+    rr   - Revocation Request
+    genm - General Message
+
+B<ir> requests initialization of an End Entity into a PKI hierarchy by means of
+issuance of a first certificate.
+
+B<cr> requests issuance of an additional certificate for an End Entity already
+initialized to the PKI hierarchy.
+
+B<p10cr> requests issuance of an additional certificate similarly to B<cr>
+but uses PKCS#10 CSR format.
+
+B<kur> requests (key) update for an existing, given certificate.
+
+B<rr> requests revocation of an existing, given certificate.
+
+B<genm> requests information using a General Message, where optionally
+included B<InfoTypeAndValue>s may be used to state which info is of interest.
+Upon receipt of the General Response, information about all received
+ITAV B<infoType>s is printed to stdout.
+
+=item B<-infotype name>
+
+Set InfoType name to use for requesting specific info in genm,
+e.g., 'signKeyPairTypes'.
+
+=item B<-geninfo OID:int:N>
+
+Set generalInfo in request PKIHeader with type OID and integer value N,
+e.g., '1.2.3:int:987'.
 
 =back
 
@@ -444,16 +452,27 @@ Name of section in OpenSSL config file defining certificate request extensions.
 
 One or more DNS name(s), separated by commas or whitespace,
 to add as Subject Alternative Name certificate request extension.
+Cannot be used if any Subject Alternative Name extension is set via -reqexts.
 
 =item B<-san_ip addresses>
 
 One or more IP address(es), separated by commas or whitespace,
 to add as Subject Alternative Name certificate request extension.
+Cannot be used if any Subject Alternative Name extension is set via -reqexts.
+
+=item B<-san_critical>
+
+Flag the Subject Alternative Names given with B<-san_dns> or B<-san_ip>
+as critical.
 
 =item B<-popo number>
 
 Set Proof-of-Possession (POPO) method; values: 0..3.
 0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED
+
+=item B<-csr filename>
+
+CSR in PKCS#10 format to use in p10cr. This is for supporting legacy clients.
 
 =item B<-implicitconfirm>
 
@@ -463,10 +482,6 @@ Request implicit confirmation of the newly enrolled certificate.
 
 Do not send certificate confirmation message for newly enrolled certificate to
 cope with broken servers not supporting implicit confirmation correctly.
-
-=item B<-certout filename>
-
-The file where the newly enrolled certificate should be saved.
 
 =item B<-out_trusted filenames>
 
@@ -493,10 +508,14 @@ When verification of the newly enrolled certificate is enabled (with the
 B<-out_trusted> option), check if there is
 an email address Subject Alternative Name matching the given email address.
 
+=item B<-certout filename>
+
+The file where the newly enrolled certificate should be saved.
+
 =back
 
 
-=head2 Misc request options
+=head2 Certificate revocation options
 
 =over 4
 
@@ -529,11 +548,6 @@ Reason numbers defined in RFC 5280 are:
         privilegeWithdrawn      (9),
         aACompromise           (10) }
 
-=item B<-infotype name>
-
-Set InfoType name to use for requesting specific info in genm,
-e.g., 'signKeyPairTypes'.
-
 =back
 
 
@@ -550,12 +564,6 @@ If not given here, the password will be prompted for if needed.
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
-
-=item B<-storeform DER|PEM|P12>
-
-Format to try first when reading and to use for writing certificate store files.
-Default value is PEM.
-
 =item B<-certform DER|PEM|P12>
 
 Format to try first when reading and to use for writing certificate files.
@@ -568,6 +576,11 @@ Format to try first when reading key files. Default value is PEM.
 =item B<-crlform DER|PEM>
 
 Format to try first when reading CRL files. Default value is PEM.
+
+=item B<-storeform DER|PEM|P12>
+
+Format to try first when reading and to use for writing certificate store files.
+Default value is PEM.
 
 =item B<-engine id>
 
@@ -655,8 +668,8 @@ Save sequence of CMP responses to file(s).
 Multiple file names may be given, separated by commas and/or whitespace.
 As many files are written as needed to store the complete transaction.
 
-
 =back
+
 
 =head2 Certificate verification options, for both CMP and TLS
 
@@ -729,6 +742,7 @@ Set various certificate chain validation options.
 See the L<verify(1)> manual page for details.
 
 =back
+
 
 =head1 EXAMPLES
 

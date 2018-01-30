@@ -291,7 +291,7 @@ RFC 4210.
         to validate the certificate chain of an IP message.
 
     CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL
-        Flag demanding that the SubjectAltName extension is critical
+        Flag demanding that the given Subject Alternative Names are critical.
 
     CMP_CTX_OPT_REVOCATION_REASON
         The reason code to be included in revocation request (RR);
@@ -445,11 +445,14 @@ It also could compare the subject DN and other fields of the newly
 enrolled certificate with the certificate template of the request.
 
 CMP_CTX_subjectAltName_push1() adds the given X509 name to the list of
-alternate names on the certificate template request.  If this is done,
-and the subject name is not set with CMP_CTX_set1_subjectName(), then in
-IR and CR, the certificate template will not be filled with the subject
-name from the existing client certificate.  If a subject name is desired
-it needs to be set explicitly with CMP_CTX_set1_subjectName().
+alternate names on the certificate template request. It cannot be used if 
+any Subject Alternative Name extension is set via CMP_CTX_set0_reqExtensions().
+
+If set and the subject DN is not set with CMP_CTX_set1_subjectName(), then the
+certificate template of an IR and CR will not be filled with the default subject
+DN from the reference certificate (see CMP_CTX_set1_oldClCert(). If a subject DN
+is desired it needs to be set explicitly with CMP_CTX_set1_subjectName().
+
 
 =head1 NOTES
 
