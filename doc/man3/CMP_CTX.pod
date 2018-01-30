@@ -260,7 +260,10 @@ RFC 4210.
         from the reference certificate.
 
     CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL
-        Flag demanding that the given Subject Alternative Names are critical.
+        Demand that the given Subject Alternative Names are flagged as critical.
+
+    CMP_CTX_OPT_POLICIES_CRITICAL
+        Demand that the given policies are flagged as critical.
 
     CMP_CTX_OPT_VALIDITYDAYS
         Number of days new certificates are asked to be valid for.
@@ -321,8 +324,8 @@ that it may be accessed later by CMP_CTX_caPubs_num() and
 CMP_CTX_caPubs_pop().
 
 CMP_CTX_policyOID_push1() adds the certificate policy OID given by the
-string to the X509_EXTENSIONS of the certificate template we are
-requesting.
+string to the X509_EXTENSIONS of the requested certificate template.
+Returns -1 on parse error.
 
 CMP_CTX_geninfo_itav_push0() adds B<itav> to the stack in the B<ctx> to be added
 to the GeneralInfo field of the CMP PKIMessage header of a request message sent

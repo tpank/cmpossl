@@ -539,6 +539,7 @@ CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx);
 # define CMP_CTX_OPT_VALIDITYDAYS 11
 # define CMP_CTX_OPT_IGNORE_KEYUSAGE 12
 # define CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT 13
+# define CMP_CTX_OPT_POLICIES_CRITICAL 14
 int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val);
 # if 0
 int CMP_CTX_push_freeText(CMP_CTX *ctx, const char *text);

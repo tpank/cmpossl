@@ -50,6 +50,8 @@ B<openssl> B<cmp>
 [B<-san_ip addresses>]
 [B<-san_nodefault>]
 [B<-san_critical>]
+[B<-policies names>]
+[B<-policies_critical>]
 [B<-popo number>]
 [B<-csr filename>]
 [B<-implicitconfirm>]
@@ -473,6 +475,15 @@ Do not take default Subject Alternative Names from the reference certificate.
 
 Flag the Subject Alternative Names given with B<-san_dns> or B<-san_ip>
 as critical.
+
+=item B<-policies names>
+
+One or more OID(s), separated by commas or whitespace,
+to add as certificate policies request extension.
+
+=item B<-policies_critical>
+
+Flag the policies given with B<-policies> as critical.
 
 =item B<-popo number>
 
