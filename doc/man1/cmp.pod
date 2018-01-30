@@ -411,7 +411,9 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-subject name>
 
-X509 Distinguished Name (DN) of subject to use in the requested certificate template.
+X509 Distinguished Name (DN) of subject to use in the requested certificate
+template. For KUR, it defaults to the subject DN of the reference certificate
+(see -oldcert). This default is used for IR and CR only if no SANs are set.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
@@ -501,11 +503,12 @@ an email address Subject Alternative Name matching the given email address.
 =item B<-oldcert filename>
 
 The certificate to be updated (i.e., renewed or re-keyed) in KUR
-or to be revoked in RR. This defaults to B<-cert> in case of KUR.
+or to be revoked in RR. It must be given for RR, else it defaults to B<-cert>.
 
-If neither B<-srvcert>, B<-recipient>, nor B<-issuer> is available,
-the name of the issuer given in this certificate
-is used as the recipient of the CMP message.
+The reference certificate determined in this way, if any, is also used for
+deriving default subject DN and Subject Alternative Names for IR, CR, and KUR.
+Its isser, if any, is used as default recipient in the CMP message header
+if neither B<-srvcert>, B<-recipient>, nor B<-issuer> is available.
 
 =item B<-revreason number>
 

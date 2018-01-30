@@ -488,6 +488,10 @@ OPTIONS cmp_options[] = {
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
     {"subject", OPT_SUBJECT, 's',
 "Distinguished Name (DN) of subject to use in the requested certificate template"},
+    {OPT_MORE_STR, 0, 0,
+"For KUR, default is the subject DN of the reference certificate (see -oldcert)."},
+    {OPT_MORE_STR, 0, 0,
+    "This default is used for IR and CR only if no Subject Alt Names are set."},
     {"issuer", OPT_ISSUER, 's',
      "DN of the issuer, to be put in the requested certificate template."},
     {OPT_MORE_STR, 0, 0,
@@ -517,10 +521,12 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0, "\nMisc request options:"},
 
     {"oldcert", OPT_OLDCERT, 's',
-"Certificate to be updated in kur (defaulting to -cert) or to be revoked in rr."},
+     "Certificate to be updated (defaulting to -cert) or to be revoked in rr."},
+    {OPT_MORE_STR, 0, 0,
+"Also used as reference (for IR/CR, defaulting to -cert) for subject DN and SANs."},
     {OPT_MORE_STR, 0, 0,
 "Its issuer is used as recipient if neither -srvcert, -recipient, -issuer given."},
-    {"csr", OPT_CSR, 's', "PKCS#10 CSR to use in p10cr"},
+    {"csr", OPT_CSR, 's', "CSR in PKCS#10 format to use in p10cr for legacy support"},
     {"revreason", OPT_REVREASON, 'n',
      "Set reason code to be included in revocation request (rr)."},
     {OPT_MORE_STR, 0, 0,
@@ -3173,24 +3179,16 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
 
     certform = opt_certform;
     if (opt_oldcert) {
-        if (opt_cmd == CMP_KUR || opt_cmd == CMP_RR) {
-            /*
-             * opt_keypass is needed here in case opt_oldcert is an encrypted
-             * PKCS#12 file
-             */
-            X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform,
-                              opt_keypass, "certificate to be updated/revoked");
-            if (oldcert == NULL)
-                goto err;
-            if (!CMP_CTX_set1_oldClCert(ctx, oldcert)) {
-                X509_free(oldcert);
-                goto oom;
-            }
+    /* opt_keypass is needed here if opt_oldcert is an encrypted PKCS#12 file */
+        X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform, opt_keypass,
+                                          "certificate to be updated/revoked");
+        if (oldcert == NULL)
+            goto err;
+        if (!CMP_CTX_set1_oldClCert(ctx, oldcert)) {
             X509_free(oldcert);
-        } else {
-            BIO_printf(bio_c_out,
-    "warning: -oldcert option is ignored for commands other than KUR and RR\n");
+            goto oom;
         }
+        X509_free(oldcert);
     }
     if (opt_keypass) {
         OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));

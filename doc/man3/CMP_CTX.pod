@@ -181,15 +181,20 @@ CMP_CTX structure. The client certificate will then be used by the
 functions to set the "sender" field for outgoing messages and it will be
 included in the extraCerts field.
 
-CMP_CTX_set1_oldClCert() sets the old certificate that we are updating
-in KUR. If this is not set, clCert will be the one being updated.
-This is also used to specify the certificate to be revoked in RR.
+CMP_CTX_set1_oldClCert() sets the old certificate to be updated in KUR or to be
+revoked in RR. It must be given for RR, else it defaults to B<clCert>.
+The reference certificate determined in this way, if any, is also used for
+deriving default subject DN and Subject Alternative Names for IR, CR, and KUR.
+Its issuer, if any, is used as default recipient in the CMP message header.
 
 CMP_CTX_set1_p10CSR() sets the PKCS#10 CSR to be used in P10CR.
 
-CMP_CTX_set1_subjectName() sets the subject name that will be used in
-the CertTemplate structure when requesting a new cert.
-If clCert is not set set (e.g. in case of IR with MSG_MAC_ALG), the subject name
+CMP_CTX_set1_subjectName() sets the subject DN that will be used in
+the CertTemplate structure when requesting a new cert. For KUR, it defaults to
+the subject DN of the reference certificate, see CMP_CTX_set1_oldClCert().
+This default is used for IR and CR only if no SANs are set.
+
+If clCert is not set (e.g. in case of IR with MSG_MAC_ALG), the subject DN
 is also used as sender of the PKI message.
 
 CMP_CTX_set1_issuer() sets the name of the intended issuer that
