@@ -221,7 +221,7 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
                  refcert --> Feature Reqest #93  */
         /* RFC5280: subjectAltName MUST be critical if subject is null */
          !add_subjectaltnames_extension(&exts, ctx->subjectAltNames,
-                          ctx->setSubjectAltNameCritical ||subject == NULL)) ||
+                          ctx->setSubjectAltNameCritical || subject == NULL)) ||
         (ctx->policies && !add_policy_extensions(&exts, ctx->policies)) ||
         !CRMF_CERTREQMSG_set0_extensions(crm, exts))
         goto err;

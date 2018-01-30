@@ -168,41 +168,35 @@ static int server_port = 8080;
 static char *opt_proxy = NULL;
 static int proxy_port = 8080;
 
+static char *opt_path = "/";
 static int opt_msgtimeout = -1;
 static int opt_maxpolltime = -1;
 
-static int opt_use_tls = 0;
+static int opt_tls_used = 0;
 static char *opt_tls_cert = NULL;
 static char *opt_tls_key = NULL;
 static char *opt_tls_keypass = NULL;
 static char *opt_tls_trusted = NULL;
 static char *opt_tls_host = NULL;
 
-static char *opt_path = "/";
-static char *opt_cmd_s = NULL;
-static int opt_cmd = -1;
-
 static char *opt_ref = NULL;
 static char *opt_secret = NULL;
 static char *opt_cert = NULL;
 static char *opt_key = NULL;
 static char *opt_keypass = NULL;
+static char *opt_digest = NULL;
 static char *opt_extracerts = NULL;
+static int opt_unprotectedRequests = 0;
 
-static char *opt_certout = NULL;
-static char *opt_out_trusted = NULL;
-static X509_STORE *out_trusted = NULL;
-
+static char *opt_recipient = NULL;
+static char *opt_expected_sender = NULL;
 static char *opt_srvcert = NULL;
 static char *opt_trusted = NULL;
 static char *opt_untrusted = NULL;
 static int opt_ignore_keyusage = 0;
-
-static int opt_crl_download = 0;
-static char *opt_crls = NULL;
-static int opt_crl_timeout = 10;
-
-static X509_VERIFY_PARAM *vpm = NULL;
+static int opt_unprotectedErrors = 0;
+static char *opt_extracertsout = NULL;
+static char *opt_cacertsout = NULL;
 
 #ifndef NDEBUG
 static char *opt_reqin = NULL;
@@ -210,6 +204,12 @@ static char *opt_reqout = NULL;
 static char *opt_respin = NULL;
 static char *opt_respout = NULL;
 #endif
+
+static int opt_crl_download = 0;
+static char *opt_crls = NULL;
+static int opt_crl_timeout = 10;
+
+static X509_VERIFY_PARAM *vpm = NULL;
 
 #ifndef OPENSSL_NO_OCSP
 # include <openssl/ocsp.h>
@@ -231,44 +231,43 @@ static STACK_OF(X509) *ocsp_untrusted_certs = NULL;
 #endif
 
 static char *opt_certpass = NULL;
-static char *opt_storeform_s = "PEM";
 static char *opt_certform_s = "PEM";
-static char *opt_keyform_s = "PEM";
-static char *opt_crlform_s = "PEM";
-static int opt_storeform = FORMAT_PEM;
 static int opt_certform = FORMAT_PEM;
+static char *opt_keyform_s = "PEM";
 static int opt_keyform = FORMAT_PEM;
+static char *opt_crlform_s = "PEM";
 static int opt_crlform = FORMAT_PEM;
+static char *opt_storeform_s = "PEM";
+static int opt_storeform = FORMAT_PEM;
+#ifndef OPENSSL_NO_ENGINE
+static char *opt_engine = NULL;
+#endif
 
 static char *opt_newkey = NULL;
 static char *opt_newkeypass = NULL;
 static char *opt_subject = NULL;
 static char *opt_issuer = NULL;
 static int opt_days = 0;
-static char *opt_recipient = NULL;
-static char *opt_expected_sender = NULL;
-static int opt_popo = -1;
 static char *opt_reqexts = NULL;
 static char *opt_san_dns = NULL;
 static char *opt_san_ip = NULL;
-static int opt_disableConfirm = 0;
-static int opt_implicitConfirm = 0;
-static int opt_unprotectedRequests = 0;
-static int opt_unprotectedErrors = 0;
-static char *opt_digest = NULL;
-static char *opt_oldcert = NULL;
+static int opt_san_critical = 0;
+static int opt_popo = -1;
 static char *opt_csr = NULL;
+static int opt_implicitConfirm = 0;
+static int opt_disableConfirm = 0;
+static char *opt_out_trusted = NULL;
+static X509_STORE *out_trusted = NULL;
+static char *opt_certout = NULL;
+
+static char *opt_oldcert = NULL;
 static int opt_revreason = CRL_REASON_NONE;
 
-static char *opt_cacertsout = NULL;
-static char *opt_extracertsout = NULL;
-
+static char *opt_cmd_s = NULL;
+static int opt_cmd = -1;
 static char *opt_infotype_s = NULL;
 static int opt_infotype = NID_undef;
 static char *opt_geninfo = NULL;
-#ifndef OPENSSL_NO_ENGINE
-static char *opt_engine = NULL;
-#endif
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 int cmp_main(int argc, char *argv[]);
@@ -370,28 +369,34 @@ typedef enum OPTION_choice {
     OPT_MSGTIMEOUT, OPT_MAXPOLLTIME,
 
     OPT_RECIPIENT, OPT_EXPECTED_SENDER, OPT_SRVCERT,
-    OPT_TRUSTED, OPT_UNTRUSTED, OPT_IGNORE_KEYUSAGE,
-
-    OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS, OPT_EXTRACERTS,
-
-    OPT_CMD, OPT_GENINFO, OPT_DIGEST,
-    OPT_UNPROTECTEDREQUESTS, OPT_UNPROTECTEDERRORS,
+    OPT_TRUSTED, OPT_UNTRUSTED,
+    OPT_IGNORE_KEYUSAGE, OPT_UNPROTECTEDERRORS,
     OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
 
+    OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS,
+    OPT_DIGEST, OPT_EXTRACERTS, OPT_UNPROTECTEDREQUESTS,
+
+    OPT_CMD, OPT_INFOTYPE, OPT_GENINFO,
+
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER,
-    OPT_DAYS, OPT_REQEXTS, OPT_SAN_DNS, OPT_SAN_IP, OPT_POPO,
+    OPT_DAYS, OPT_REQEXTS, OPT_SAN_DNS, OPT_SAN_IP, OPT_SAN_CRITICAL,
+    OPT_POPO, OPT_CSR,
     OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
-    OPT_CERTOUT, OPT_OUT_TRUSTED,
+    OPT_OUT_TRUSTED, OPT_CERTOUT,
 
-    OPT_OLDCERT, OPT_CSR, OPT_REVREASON, OPT_INFOTYPE,
+    OPT_OLDCERT, OPT_REVREASON,
 
-    OPT_CERTPASS, OPT_STOREFORM, OPT_CERTFORM, OPT_KEYFORM, OPT_CRLFORM,
+    OPT_CERTPASS, OPT_CERTFORM, OPT_KEYFORM, OPT_CRLFORM, OPT_STOREFORM,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
 
-    OPT_USETLS, OPT_TLSCERT, OPT_TLSKEY, OPT_TLSKEYPASS,
-    OPT_TLSTRUSTED, OPT_TLSHOST,
+    OPT_TLS_USED, OPT_TLS_CERT, OPT_TLS_KEY, OPT_TLS_KEYPASS,
+    OPT_TLS_TRUSTED, OPT_TLS_HOST,
+
+#ifndef NDEBUG
+    OPT_REQIN, OPT_REQOUT, OPT_RESPOUT, OPT_RESPIN,
+#endif
 
     OPT_CRL_DOWNLOAD, OPT_CRLS, OPT_CRL_TIMEOUT,
 #ifndef OPENSSL_NO_OCSP
@@ -402,9 +407,6 @@ typedef enum OPTION_choice {
 # if OPENSSL_VERSION_NUMBER >= 0x10100000L
     OPT_OCSP_STATUS,
 # endif
-#endif
-#ifndef NDEBUG
-    OPT_REQIN, OPT_REQOUT, OPT_RESPOUT, OPT_RESPIN,
 #endif
     OPT_V_ENUM                  /* OPT_CRLALL etc. */
 } OPTION_CHOICE;
@@ -432,7 +434,7 @@ OPTIONS cmp_options[] = {
     {"maxpolltime", OPT_MAXPOLLTIME, 'n',
 "Maximum total number of seconds to poll for certificates (default: 0 = infinite)"},
 
-    {OPT_MORE_STR, 0, 0, "\nRecipient options:"},
+    {OPT_MORE_STR, 0, 0, "\nServer authentication options:"},
     {"recipient", OPT_RECIPIENT, 's',
 "Distinguished Name (DN) of the recipient to use unless the -srvcert option is given."},
     {"expected_sender", OPT_EXPECTED_SENDER, 's',
@@ -446,31 +448,6 @@ OPTIONS cmp_options[] = {
 "Intermediate certificates for constructing chains for CMP, TLS, and/or CA servers"},
     {"ignore_keyusage", OPT_IGNORE_KEYUSAGE, '-',
 "Ignore CMP-level cert key usage, else 'digitalSignature' needed for signatures"},
-
-    {OPT_MORE_STR, 0, 0, "\nSender options:"},
-    {"ref", OPT_REF, 's',
-     "Reference value for client authentication with a pre-shared key"},
-    {"secret", OPT_SECRET, 's',
-     "Password source for client authentication with a pre-shared key (secret)"},
-    {"cert", OPT_CERT, 's',
-     "Client's current certificate (needed unless using PSK)."},
-    {OPT_MORE_STR, 0, 0,
-     "Any further certs included are appended in extraCerts field."},
-    {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
-    {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
-    {"extracerts", OPT_EXTRACERTS, 's',
-     "Certificates to append in extraCerts field in sent messages"},
-
-    {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
-    {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
-    {"geninfo", OPT_GENINFO, 's',
-     "Set generalInfo in request PKIHeader with type and integer value"},
-    {OPT_MORE_STR, 0, 0,
-     "given in the form <OID>:int:<n>, e.g., '1.2.3:int:987'"},
-    {"digest", OPT_DIGEST, 's',
-   "Digest to use in message protection and POPO signatures. Default 'sha256'"},
-    {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
-     "Send messages without CMP-level protection"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-',
      "Accept unprotected error responses: regular error messages as well as"},
     {OPT_MORE_STR, 0, 0,
@@ -481,6 +458,33 @@ OPTIONS cmp_options[] = {
      "File to save received extra certificates"},
     {"cacertsout", OPT_CACERTSOUT, 's',
      "File to save received CA certificates"},
+
+    {OPT_MORE_STR, 0, 0, "\nClient authentication options:"},
+    {"ref", OPT_REF, 's',
+     "Reference value for client authentication with a pre-shared key"},
+    {"secret", OPT_SECRET, 's',
+    "Password source for client authentication with a pre-shared key (secret)"},
+    {"cert", OPT_CERT, 's',
+     "Client's current certificate (needed unless using PSK)."},
+    {OPT_MORE_STR, 0, 0,
+     "Any further certs included are appended in extraCerts field."},
+    {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
+    {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
+    {"digest", OPT_DIGEST, 's',
+   "Digest to use in message protection and POPO signatures. Default 'sha256'"},
+    {"extracerts", OPT_EXTRACERTS, 's',
+     "Certificates to append in extraCerts field in sent messages"},
+    {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
+     "Send messages without CMP-level protection"},
+
+    {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
+    {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
+    {"infotype", OPT_INFOTYPE, 's',
+"InfoType name for requesting specific info in genm, e.g., 'signKeyPairTypes'"},
+    {"geninfo", OPT_GENINFO, 's',
+     "Set generalInfo in request PKIHeader with type and integer value"},
+    {OPT_MORE_STR, 0, 0,
+     "given in the form <OID>:int:<n>, e.g., '1.2.3:int:987'"},
 
     {OPT_MORE_STR, 0, 0, "\nCertificate request options:"},
     {"newkey", OPT_NEWKEY, 's',
@@ -504,21 +508,24 @@ OPTIONS cmp_options[] = {
      "DNS Subject Alternative Name(s) to add as certificate request extension"},
     {"san_ip", OPT_SAN_IP, 's',
 "IP address Subject Alternative Name(s) to add as certificate request extension"},
+    {"san_critical", OPT_SAN_CRITICAL, '-',
+"Flag the Subject Alternative Names given with -san_dns or -san_ip as critical"},
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method."},
     {OPT_MORE_STR, 0, 0,
      "0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
+    {"csr", OPT_CSR, 's', "CSR in PKCS#10 format to use in p10cr for legacy support"},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-',
      "Request implicit confirmation of newly enrolled certificate"},
     {"disableconfirm", OPT_DISABLECONFIRM, '-',
      "Do not confirm newly enrolled certificate"},
     {OPT_MORE_STR, 0, 0,
      "WARNING: This setting leads to behavior violating RFC 4210."},
-    {"certout", OPT_CERTOUT, 's',
-     "File to save the newly enrolled certificate"},
     {"out_trusted", OPT_OUT_TRUSTED, 's',
     "Trusted certificates to use for verifying the newly enrolled certificate"},
+    {"certout", OPT_CERTOUT, 's',
+     "File to save the newly enrolled certificate"},
 
-    {OPT_MORE_STR, 0, 0, "\nMisc request options:"},
+    {OPT_MORE_STR, 0, 0, "\nCertificate revocation options:"},
 
     {"oldcert", OPT_OLDCERT, 's',
      "Certificate to be updated (defaulting to -cert) or to be revoked in rr."},
@@ -526,19 +533,14 @@ OPTIONS cmp_options[] = {
 "Also used as reference (for IR/CR, defaulting to -cert) for subject DN and SANs."},
     {OPT_MORE_STR, 0, 0,
 "Its issuer is used as recipient if neither -srvcert, -recipient, -issuer given."},
-    {"csr", OPT_CSR, 's', "CSR in PKCS#10 format to use in p10cr for legacy support"},
     {"revreason", OPT_REVREASON, 'n',
      "Set reason code to be included in revocation request (rr)."},
     {OPT_MORE_STR, 0, 0,
      "Values: 0..10 (see RFC5280, 5.3.1) or -1 for none (default)"},
-    {"infotype", OPT_INFOTYPE, 's',
-"InfoType name for requesting specific info in genm, e.g., 'signKeyPairTypes'"},
 
     {OPT_MORE_STR, 0, 0, "\nCredential format options:"},
     {"certpass", OPT_CERTPASS, 's',
 "Pass phrase source potentially needed for loading trusted/untrusted certificates"},
-    {"storeform", OPT_STOREFORM, 's',
-"Format (PEM/DER/P12) to try first when reading certificate store files. Default PEM."},
     {"certform", OPT_CERTFORM, 's',
 "Format (PEM/DER/P12) to try first when reading certificate files. Default PEM."},
                {OPT_MORE_STR, 0, 0,
@@ -547,6 +549,8 @@ OPTIONS cmp_options[] = {
        "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
     {"crlform", OPT_CRLFORM, 's',
        "Format (PEM/DER) to try first when reading CRL files. Default PEM"},
+    {"storeform", OPT_STOREFORM, 's',
+"Format (PEM/DER/P12) to try first when reading certificate store files. Default PEM."},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's',
      "Use crypto engine with given identifier, possibly a hardware device."},
@@ -559,19 +563,28 @@ OPTIONS cmp_options[] = {
 #endif
 
     {OPT_MORE_STR, 0, 0, "\nTLS options:"},
-    {"tls_used", OPT_USETLS, '-',
+    {"tls_used", OPT_TLS_USED, '-',
 "Force using TLS (even when other TLS options are not set) connecting to server"},
-    {"tls_cert", OPT_TLSCERT, 's',
+    {"tls_cert", OPT_TLS_CERT, 's',
 "Client's TLS certificate. May include certificate chain to be provided to server"},
-    {"tls_key", OPT_TLSKEY, 's',
+    {"tls_key", OPT_TLS_KEY, 's',
      "Private key for the client's TLS certificate"},
-    {"tls_keypass", OPT_TLSKEYPASS, 's',
+    {"tls_keypass", OPT_TLS_KEYPASS, 's',
      "Pass phrase source for the client's private TLS key"},
-    {"tls_trusted", OPT_TLSTRUSTED, 's',
+    {"tls_trusted", OPT_TLS_TRUSTED, 's',
      "Trusted certificates to use for verifying the TLS server certificate."},
     {OPT_MORE_STR, 0, 0, "This implies host name validation"},
-    {"tls_host", OPT_TLSHOST, 's',
+    {"tls_host", OPT_TLS_HOST, 's',
  "Address to be checked (rather than -server) during TLS host name validation"},
+
+#ifndef NDEBUG
+    {OPT_MORE_STR, 0, 0, "\nTesting and debugging options:"},
+    {"reqin", OPT_REQIN, 's', "Take sequence of CMP requests from file(s)"},
+    {"reqout", OPT_REQOUT, 's', "Save sequence of CMP requests to file(s)"},
+    {"respin", OPT_RESPIN, 's',
+     "Process sequence of CMP responses provided in file(s), skipping server"},
+    {"respout", OPT_RESPOUT, 's', "Save sequence of CMP responses to file(s)"},
+#endif
 
     {OPT_MORE_STR, 0, 0,
      "\nCertificate verification options, for both CMP and TLS:"},
@@ -607,16 +620,8 @@ OPTIONS cmp_options[] = {
      "Enable certificate status from TLS server via OCSP (not multi-)stapling"},
 # endif
 #endif
-#ifndef NDEBUG
-    {OPT_MORE_STR, 0, 0, "\nTesting and debugging options:"},
-    {"reqin", OPT_REQIN, 's', "Take sequence of CMP requests from file(s)"},
-    {"reqout", OPT_REQOUT, 's', "Save sequence of CMP requests to file(s)"},
-    {"respin", OPT_RESPIN, 's',
-     "Process sequence of CMP responses provided in file(s), skipping server"},
-    {"respout", OPT_RESPOUT, 's', "Save sequence of CMP responses to file(s)"},
-#endif
 
-    {OPT_MORE_STR, 0, 0, "\nVerification options:"},
+    {OPT_MORE_STR, 0, 0, "\nCertificate verification options:"},
  /*
   * subsumes:
   * {"crl_check_all", OPT_CRLALL, '-',
@@ -639,32 +644,36 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {(char **)&opt_msgtimeout}, {(char **)&opt_maxpolltime},
 
     {&opt_recipient}, {&opt_expected_sender}, {&opt_srvcert},
-    {&opt_trusted}, {&opt_untrusted}, {(char **)&opt_ignore_keyusage},
+    {&opt_trusted}, {&opt_untrusted},
+    {(char **)&opt_ignore_keyusage}, {(char **)&opt_unprotectedErrors},
+    {&opt_extracertsout}, {&opt_cacertsout},
 
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass},
-    {&opt_extracerts},
+    {&opt_digest}, {&opt_extracerts}, {(char **)&opt_unprotectedRequests},
 
-    {&opt_cmd_s}, {&opt_geninfo}, {&opt_digest},
-    {(char **)&opt_unprotectedRequests}, {(char **)&opt_unprotectedErrors},
-    {&opt_extracertsout}, {&opt_cacertsout},
+    {&opt_cmd_s}, {&opt_infotype_s}, {&opt_geninfo},
 
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
     {(char **)&opt_days}, {&opt_reqexts}, {&opt_san_dns}, {&opt_san_ip},
-    {(char **)&opt_popo},
+    {(char **)&opt_san_critical}, {(char **)&opt_popo}, {&opt_csr}, 
     {(char **)&opt_implicitConfirm}, {(char **)&opt_disableConfirm},
-    {&opt_certout}, {&opt_out_trusted},
+    {&opt_out_trusted}, {&opt_certout},
 
-    {&opt_oldcert}, {&opt_csr}, {(char **)&opt_revreason}, {&opt_infotype_s},
+    {&opt_oldcert}, {(char **)&opt_revreason},
 
     {&opt_certpass},
-    {&opt_storeform_s}, {&opt_certform_s}, {&opt_keyform_s}, {&opt_crlform_s},
+    {&opt_certform_s}, {&opt_keyform_s}, {&opt_crlform_s}, {&opt_storeform_s},
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
 #endif
 
-    {(char **)&opt_use_tls}, {&opt_tls_cert}, {&opt_tls_key},
+    {(char **)&opt_tls_used}, {&opt_tls_cert}, {&opt_tls_key},
         {&opt_tls_keypass},
     {&opt_tls_trusted}, {&opt_tls_host},
+
+#ifndef NDEBUG
+    {&opt_reqin}, {&opt_reqout}, {&opt_respin}, {&opt_respout},
+#endif
 
     {(char **)&opt_crl_download}, {&opt_crls}, {(char **)&opt_crl_timeout},
 #ifndef OPENSSL_NO_OCSP
@@ -674,9 +683,6 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 # if OPENSSL_VERSION_NUMBER >= 0x10100000L
     {(char **)&opt_ocsp_status},
 # endif
-#endif
-#ifndef NDEBUG
-    {&opt_reqin}, {&opt_reqout}, {&opt_respin}, {&opt_respout},
 #endif
     /* virtually at this point: OPT_CRLALL etc. */
     {NULL}
@@ -2790,11 +2796,11 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
         }
     }
 
-    if (opt_unprotectedErrors)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
-
     if (opt_ignore_keyusage)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IGNORE_KEYUSAGE, 1);
+
+    if (opt_unprotectedErrors)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
 
     if (opt_out_trusted) { /* in preparation for use in certConf_cb() */
         if (!(out_trusted = load_certstore(opt_out_trusted,
@@ -3143,6 +3149,13 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
                      "IP address Subject Alternative Name"))
         goto err;
 
+    if (opt_san_critical) {
+        if (!opt_san_dns && !opt_san_ip)
+            BIO_puts(bio_c_out,
+ "warning: -opt_san_critical is ignored unless -san_dns or -san_ip is given\n");
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL, 1);
+    }
+    
     if (opt_popo < -1 || opt_popo > 3) {
         BIO_printf(bio_err,
         "error: invalid value '%d' for popo method (must be between 0 and 3)\n",
@@ -3286,10 +3299,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
 
     if (opt_tls_trusted || opt_tls_host) {
-        opt_use_tls = 1;
+        opt_tls_used = 1;
     }
     if (opt_tls_cert || opt_tls_key || opt_tls_keypass) {
-        opt_use_tls = 1;
+        opt_tls_used = 1;
         if (!opt_tls_key) {
             BIO_printf(bio_err, "error: missing -tls_key option\n");
             goto err;
@@ -3298,7 +3311,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    if (opt_use_tls) {
+    if (opt_tls_used) {
         BIO *sbio;
         X509_STORE *store;
         SSL_CTX *ssl_ctx = setup_ssl_ctx(e, CMP_CTX_get0_untrusted_certs(ctx),
@@ -3627,6 +3640,9 @@ int cmp_main(int argc, char **argv)
         case OPT_PROXY:
             opt_proxy = opt_str("proxy");
             break;
+        case OPT_PATH:
+            opt_path = opt_str("path");
+            break;
         case OPT_MSGTIMEOUT:
             if ((opt_msgtimeout = opt_nat()) < 0)
                 goto opt_err;
@@ -3636,30 +3652,23 @@ int cmp_main(int argc, char **argv)
                 goto opt_err;
             break;
 
-        case OPT_USETLS:
-            opt_use_tls = 1;
+        case OPT_TLS_USED:
+            opt_tls_used = 1;
             break;
-        case OPT_TLSCERT:
+        case OPT_TLS_CERT:
             opt_tls_cert = opt_str("tls_cert");
             break;
-        case OPT_TLSKEY:
+        case OPT_TLS_KEY:
             opt_tls_key = opt_str("tls_key");
             break;
-        case OPT_TLSKEYPASS:
+        case OPT_TLS_KEYPASS:
             opt_tls_keypass = opt_str("tls_keypass");
             break;
-        case OPT_TLSTRUSTED:
+        case OPT_TLS_TRUSTED:
             opt_tls_trusted = opt_str("tls_trusted");
             break;
-        case OPT_TLSHOST:
+        case OPT_TLS_HOST:
             opt_tls_host = opt_str("tls_host");
-            break;
-
-        case OPT_PATH:
-            opt_path = opt_str("path");
-            break;
-        case OPT_CMD:
-            opt_cmd_s = opt_str("cmd");
             break;
 
         case OPT_REF:
@@ -3677,18 +3686,21 @@ int cmp_main(int argc, char **argv)
         case OPT_KEYPASS:
             opt_keypass = opt_str("keypass");
             break;
+        case OPT_DIGEST:
+            opt_digest = opt_str("digest");
+            break;
+        case OPT_EXTRACERTS:
+            opt_extracerts = opt_str("extracerts");
+            break;
+        case OPT_UNPROTECTEDREQUESTS:
+            opt_unprotectedRequests = 1;
+            break;
 
-        case OPT_CERTOUT:
-            opt_certout = opt_str("certout");
+        case OPT_RECIPIENT:
+            opt_recipient = opt_str("recipient");
             break;
-        case OPT_OUT_TRUSTED:
-            opt_out_trusted = opt_str("out_trusted");
-            break;
-        case OPT_NEWKEY:
-            opt_newkey = opt_str("newkey");
-            break;
-        case OPT_NEWKEYPASS:
-            opt_newkeypass = opt_str("newkeypass");
+        case OPT_EXPECTED_SENDER:
+            opt_expected_sender = opt_str("expected_sender");
             break;
         case OPT_SRVCERT:
             opt_srvcert = opt_str("srvcert");
@@ -3702,6 +3714,16 @@ int cmp_main(int argc, char **argv)
         case OPT_IGNORE_KEYUSAGE:
             opt_ignore_keyusage = 1;
             break;
+        case OPT_UNPROTECTEDERRORS:
+            opt_unprotectedErrors = 1;
+            break;
+        case OPT_EXTRACERTSOUT:
+            opt_extracertsout = opt_str("extracertsout");
+            break;
+        case OPT_CACERTSOUT:
+            opt_cacertsout = opt_str("cacertsout");
+            break;
+
         case OPT_CRL_DOWNLOAD:
             opt_crl_download = 1;
             break;
@@ -3736,11 +3758,75 @@ int cmp_main(int argc, char **argv)
             if (!opt_verify(o, vpm))
                 goto bad_ops;
             break;
+
+        case OPT_CMD:
+            opt_cmd_s = opt_str("cmd");
+            break;
+        case OPT_INFOTYPE:
+            opt_infotype_s = opt_str("infotype");
+            break;
+        case OPT_GENINFO:
+            opt_geninfo = opt_str("geninfo");
+            break;
+
+        case OPT_NEWKEY:
+            opt_newkey = opt_str("newkey");
+            break;
+        case OPT_NEWKEYPASS:
+            opt_newkeypass = opt_str("newkeypass");
+            break;
+        case OPT_SUBJECT:
+            opt_subject = opt_str("subject");
+            break;
+        case OPT_ISSUER:
+            opt_issuer = opt_str("issuer");
+            break;
+        case OPT_DAYS:
+            if (!opt_int(opt_arg(), &opt_days))
+                goto opt_err;
+            break;
+        case OPT_REQEXTS:
+            opt_reqexts = opt_str("reqexts");
+            break;
+        case OPT_SAN_DNS:
+            opt_san_dns = opt_str("san_dns");
+            break;
+        case OPT_SAN_IP:
+            opt_san_ip = opt_str("san_ip");
+            break;
+        case OPT_SAN_CRITICAL:
+            opt_san_critical = 1;
+            break;
+        case OPT_POPO:
+            if ((opt_popo = opt_nat()) < 0)
+                goto opt_err;
+            break;
+        case OPT_CSR:
+            opt_csr = opt_arg();
+            break;
+        case OPT_IMPLICITCONFIRM:
+            opt_implicitConfirm = 1;
+            break;
+        case OPT_DISABLECONFIRM:
+            opt_disableConfirm = 1;
+            break;
+        case OPT_OUT_TRUSTED:
+            opt_out_trusted = opt_str("out_trusted");
+            break;
+        case OPT_CERTOUT:
+            opt_certout = opt_str("certout");
+            break;
+
+        case OPT_OLDCERT:
+            opt_oldcert = opt_str("oldcert");
+            break;
+        case OPT_REVREASON:
+            if (!opt_int(opt_arg(), &opt_revreason))
+                goto opt_err;
+            break;
+
         case OPT_CERTPASS:
             opt_certpass = opt_str("certpass");
-            break;
-        case OPT_STOREFORM:
-            opt_storeform_s = opt_str("storeform");
             break;
         case OPT_CERTFORM:
             opt_certform_s = opt_str("certform");
@@ -3751,78 +3837,15 @@ int cmp_main(int argc, char **argv)
         case OPT_CRLFORM:
             opt_crlform_s = opt_str("crlform");
             break;
-        case OPT_EXTRACERTS:
-            opt_extracerts = opt_str("extracerts");
+        case OPT_STOREFORM:
+            opt_storeform_s = opt_str("storeform");
             break;
-        case OPT_SUBJECT:
-            opt_subject = opt_str("subject");
+# ifndef OPENSSL_NO_ENGINE
+        case OPT_ENGINE:
+            opt_engine = opt_str("engine");
             break;
-        case OPT_SAN_DNS:
-            opt_san_dns = opt_str("san_dns");
-            break;
-        case OPT_SAN_IP:
-            opt_san_ip = opt_str("san_ip");
-            break;
-        case OPT_ISSUER:
-            opt_issuer = opt_str("issuer");
-            break;
-        case OPT_RECIPIENT:
-            opt_recipient = opt_str("recipient");
-            break;
-        case OPT_EXPECTED_SENDER:
-            opt_expected_sender = opt_str("expected_sender");
-            break;
-        case OPT_REQEXTS:
-            opt_reqexts = opt_str("reqexts");
-            break;
+# endif
 
-        case OPT_EXTRACERTSOUT:
-            opt_extracertsout = opt_str("extracertsout");
-            break;
-        case OPT_CACERTSOUT:
-            opt_cacertsout = opt_str("cacertsout");
-            break;
-
-        case OPT_DISABLECONFIRM:
-            opt_disableConfirm = 1;
-            break;
-        case OPT_IMPLICITCONFIRM:
-            opt_implicitConfirm = 1;
-            break;
-        case OPT_UNPROTECTEDREQUESTS:
-            opt_unprotectedRequests = 1;
-            break;
-        case OPT_UNPROTECTEDERRORS:
-            opt_unprotectedErrors = 1;
-            break;
-        case OPT_DAYS:
-            if (!opt_int(opt_arg(), &opt_days))
-                goto opt_err;
-            break;
-        case OPT_POPO:
-            if ((opt_popo = opt_nat()) < 0)
-                goto opt_err;
-            break;
-
-        case OPT_DIGEST:
-            opt_digest = opt_str("digest");
-            break;
-        case OPT_OLDCERT:
-            opt_oldcert = opt_str("oldcert");
-            break;
-        case OPT_CSR:
-            opt_csr = opt_arg();
-            break;
-        case OPT_REVREASON:
-            if (!opt_int(opt_arg(), &opt_revreason))
-                goto opt_err;
-            break;
-        case OPT_INFOTYPE:
-            opt_infotype_s = opt_str("infotype");
-            break;
-        case OPT_GENINFO:
-            opt_geninfo = opt_str("geninfo");
-            break;
 # ifndef NDEBUG
         case OPT_REQIN:
             opt_reqin = opt_str("reqin");
@@ -3835,11 +3858,6 @@ int cmp_main(int argc, char **argv)
             break;
         case OPT_RESPOUT:
             opt_respout = opt_str("respout");
-            break;
-# endif
-# ifndef OPENSSL_NO_ENGINE
-        case OPT_ENGINE:
-            opt_engine = opt_str("engine");
             break;
 # endif
         }

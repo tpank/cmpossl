@@ -851,7 +851,7 @@ int CMP_CTX_set1_subjectName(CMP_CTX *ctx, const X509_NAME *name)
 }
 
 /*
- * sets the X.509v3 extensions to be used in IR/CR/KUR
+ * sets the X.509v3 certificate request extensions to be used in IR/CR/KUR
  * returns 1 on success, 0 on error
  */
 int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts)
@@ -887,7 +887,7 @@ int CMP_CTX_reqExtensions_have_SAN(CMP_CTX *ctx)
 }
 
 /*
- * Push a GENERAL_NAME structure that will be added to the CRMF
+ * Add a GENERAL_NAME structure that will be added to the CRMF
  * request's extensions field to request subject alternative names.
  * returns 1 on success, 0 on error
  */
