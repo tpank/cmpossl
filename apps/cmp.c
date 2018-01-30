@@ -1667,10 +1667,8 @@ static int truststore_set_host(X509_STORE *ts, const char *host)
      */
     if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)host))
         return 0;
-    if (host && isdigit(host[0]))
-        return X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host);
-    else
-        return X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
+    return (host && X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host)) ||
+           X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
 }
 
 #ifndef OPENSSL_NO_OCSP
