@@ -945,7 +945,9 @@ int CMP_CTX_set1_clCert(CMP_CTX *ctx, const X509 *cert)
 
 /*
  * Set the old certificate that we are updating in KUR
- * or the certificate to be revoked in RR, respectively
+ * or the certificate to be revoked in RR, respectively.
+ * Also used as reference cert (defaulting to clCert) for deriving subject DN
+ * and SANs. Its issuer is used as default recipient in the CMP message header.
  * returns 1 on success, 0 on error
  */
 int CMP_CTX_set1_oldClCert(CMP_CTX *ctx, const X509 *cert)
