@@ -693,8 +693,11 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             }
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
-        if ((scrt = ctx->srvCert ? ctx->srvCert : find_srvcert(ctx, msg)))
-            return CMP_verify_signature(ctx, msg, scrt);
+        if ((scrt = ctx->srvCert ? ctx->srvCert : find_srvcert(ctx, msg))) {
+            if (CMP_verify_signature(ctx, msg, scrt))
+                return 1;
+            put_cert_verify_err(CMP_F_CMP_VALIDATE_MSG);
+        }
     }
     return 0;
 }
