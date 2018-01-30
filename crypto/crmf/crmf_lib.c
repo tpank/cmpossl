@@ -351,6 +351,11 @@ int CRMF_CERTREQMSG_set0_extensions( CRMF_CERTREQMSG *crm,
     if (crm == NULL || tmpl(crm) == NULL)
         goto err;
 
+    if (sk_X509_EXTENSION_num(exts) <= 0) {
+        sk_X509_EXTENSION_free(exts);
+        exts = NULL; /* do not include empty extensions list */
+    }
+
     tmpl(crm)->extensions = exts;
     return 1;
 err:

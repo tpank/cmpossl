@@ -48,6 +48,7 @@ B<openssl> B<cmp>
 [B<-reqexts name>]
 [B<-san_dns names>]
 [B<-san_ip addresses>]
+[B<-san_nodefault>]
 [B<-san_critical>]
 [B<-popo number>]
 [B<-csr filename>]
@@ -453,12 +454,20 @@ Name of section in OpenSSL config file defining certificate request extensions.
 One or more DNS name(s), separated by commas or whitespace,
 to add as Subject Alternative Name certificate request extension.
 Cannot be used if any Subject Alternative Name extension is set via -reqexts.
+By default, unless B<-san_nodefault> is set, the Subject Alternative Names
+are copied from the reference certificate (see -oldcert).
 
 =item B<-san_ip addresses>
 
 One or more IP address(es), separated by commas or whitespace,
 to add as Subject Alternative Name certificate request extension.
 Cannot be used if any Subject Alternative Name extension is set via -reqexts.
+By default, unless B<-san_nodefault> is set, the Subject Alternative Names
+are copied from the reference certificate (see -oldcert).
+
+=item B<-san_nodefault>
+
+Do not take default Subject Alternative Names from the reference certificate.
 
 =item B<-san_critical>
 

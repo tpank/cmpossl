@@ -251,6 +251,7 @@ static int opt_days = 0;
 static char *opt_reqexts = NULL;
 static char *opt_san_dns = NULL;
 static char *opt_san_ip = NULL;
+static int opt_san_nodefault = 0;
 static int opt_san_critical = 0;
 static int opt_popo = -1;
 static char *opt_csr = NULL;
@@ -378,8 +379,8 @@ typedef enum OPTION_choice {
 
     OPT_CMD, OPT_INFOTYPE, OPT_GENINFO,
 
-    OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER,
-    OPT_DAYS, OPT_REQEXTS, OPT_SAN_DNS, OPT_SAN_IP, OPT_SAN_CRITICAL,
+    OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, OPT_DAYS,
+    OPT_REQEXTS, OPT_SAN_DNS, OPT_SAN_IP, OPT_SAN_NODEFAULT,  OPT_SAN_CRITICAL,
     OPT_POPO, OPT_CSR,
     OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
     OPT_OUT_TRUSTED, OPT_CERTOUT,
@@ -447,7 +448,7 @@ OPTIONS cmp_options[] = {
     {"untrusted", OPT_UNTRUSTED, 's',
 "Intermediate certificates for constructing chains for CMP, TLS, and/or CA servers"},
     {"ignore_keyusage", OPT_IGNORE_KEYUSAGE, '-',
-"Ignore CMP-level cert key usage, else 'digitalSignature' needed for signatures"},
+"Ignore CMP-level cert key usage, else 'digitalSignature' required for signatures"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-',
      "Accept unprotected error responses: regular error messages as well as"},
     {OPT_MORE_STR, 0, 0,
@@ -508,6 +509,8 @@ OPTIONS cmp_options[] = {
      "DNS Subject Alternative Name(s) to add as certificate request extension"},
     {"san_ip", OPT_SAN_IP, 's',
 "IP address Subject Alternative Name(s) to add as certificate request extension"},
+    {"san_nodefault", OPT_SAN_NODEFAULT, '-',
+     "Do not take default Subject Alternative Names from reference certificate"},
     {"san_critical", OPT_SAN_CRITICAL, '-',
 "Flag the Subject Alternative Names given with -san_dns or -san_ip as critical"},
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method."},
@@ -655,7 +658,8 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
     {(char **)&opt_days}, {&opt_reqexts}, {&opt_san_dns}, {&opt_san_ip},
-    {(char **)&opt_san_critical}, {(char **)&opt_popo}, {&opt_csr}, 
+    {(char **)&opt_san_nodefault}, {(char **)&opt_san_critical},
+    {(char **)&opt_popo}, {&opt_csr},
     {(char **)&opt_implicitConfirm}, {(char **)&opt_disableConfirm},
     {&opt_out_trusted}, {&opt_certout},
 
@@ -668,8 +672,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 #endif
 
     {(char **)&opt_tls_used}, {&opt_tls_cert}, {&opt_tls_key},
-        {&opt_tls_keypass},
-    {&opt_tls_trusted}, {&opt_tls_host},
+    {&opt_tls_keypass}, {&opt_tls_trusted}, {&opt_tls_host},
 
 #ifndef NDEBUG
     {&opt_reqin}, {&opt_reqout}, {&opt_respin}, {&opt_respout},
@@ -678,8 +681,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {(char **)&opt_crl_download}, {&opt_crls}, {(char **)&opt_crl_timeout},
 #ifndef OPENSSL_NO_OCSP
     {(char **)&opt_ocsp_check_all}, {(char **)&opt_ocsp_use_aia},
-        {&opt_ocsp_url},
-    {(char **)&opt_ocsp_timeout},
+    {&opt_ocsp_url}, {(char **)&opt_ocsp_timeout},
 # if OPENSSL_VERSION_NUMBER >= 0x10100000L
     {(char **)&opt_ocsp_status},
 # endif
@@ -3149,6 +3151,13 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
                      "IP address Subject Alternative Name"))
         goto err;
 
+    if (opt_san_nodefault) {
+        if (opt_san_dns || opt_san_ip)
+            BIO_puts(bio_c_out,
+"warning: -opt_san_nodefault has no effect when -san_dns or -san_ip is used\n");
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT, 1);
+    }
+
     if (opt_san_critical) {
         if (!opt_san_dns && !opt_san_ip)
             BIO_puts(bio_c_out,
@@ -3793,6 +3802,9 @@ int cmp_main(int argc, char **argv)
             break;
         case OPT_SAN_IP:
             opt_san_ip = opt_str("san_ip");
+            break;
+        case OPT_SAN_NODEFAULT:
+            opt_san_nodefault = 1;
             break;
         case OPT_SAN_CRITICAL:
             opt_san_critical = 1;

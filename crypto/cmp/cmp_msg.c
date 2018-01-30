@@ -94,7 +94,7 @@ static int add_subjectaltnames_extension(X509_EXTENSIONS **exts,
     if (exts == NULL || sans == NULL)
         goto err;
 
-    if ((ext = X509V3_EXT_i2d(NID_subject_alt_name, 0, sans)) &&
+    if ((ext = X509V3_EXT_i2d(NID_subject_alt_name, critical, sans)) &&
         X509v3_add_ext(exts, ext, 0))
         ret = 1;
  err:
@@ -190,7 +190,10 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
     CRMF_CERTREQMSG *crm = NULL;
     X509 *refcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
        /* refcert defaults to current client cert */
+    STACK_OF(GENERAL_NAME) *default_sans = NULL;
     X509_NAME *subject = determine_subj(ctx, refcert, bodytype);
+    int crit = ctx->setSubjectAltNameCritical || subject == NULL;
+    /* RFC5280: subjectAltName MUST be critical if subject is null */
     X509_EXTENSIONS *exts = NULL;
 
     if ((crm = CRMF_CERTREQMSG_new()) == NULL ||
@@ -214,21 +217,24 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
             goto err;
     }
 
-    /* extensions */ /* exts are copied from ctx to allow reuse */
+    /* extensions */
+    if (refcert && !ctx->SubjectAltName_nodefault)
+        default_sans = X509V3_get_d2i(X509_get0_extensions(refcert),
+                                      NID_subject_alt_name, NULL, NULL);
+    /* exts are copied from ctx to allow reuse */
     if ((exts = exts_dup(ctx->reqExtensions)) == NULL ||
         (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 &&
-        /* TODO: for KUR, if <= 0, maybe copy any existing SANs from
-                 refcert --> Feature Reqest #93  */
-        /* RFC5280: subjectAltName MUST be critical if subject is null */
-         !add_subjectaltnames_extension(&exts, ctx->subjectAltNames,
-                          ctx->setSubjectAltNameCritical || subject == NULL)) ||
+         !add_subjectaltnames_extension(&exts, ctx->subjectAltNames, crit)) ||
+        (!HAS_SAN(ctx) && default_sans != NULL &&
+         !add_subjectaltnames_extension(&exts, default_sans, crit)) ||
         (ctx->policies && !add_policy_extensions(&exts, ctx->policies)) ||
         !CRMF_CERTREQMSG_set0_extensions(crm, exts))
         goto err;
+    sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
     exts = NULL;
     /* end fill certTemplate, now set any controls */
 
-    /* for KUR, setting OldCertId according to D.6 */
+    /* for KUR, set OldCertId according to D.6 */
     if (bodytype == V_CMP_PKIBODY_KUR &&
         !CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(crm, refcert))
             goto err;
@@ -237,6 +243,7 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
 
  err:
     sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
+    sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
     CRMF_CERTREQMSG_free(crm);
     return NULL;
 }

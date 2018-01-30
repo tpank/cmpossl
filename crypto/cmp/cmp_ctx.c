@@ -245,10 +245,11 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->pbm_mac = NID_hmac_sha1;
 
     ctx->days = 0;
+    ctx->SubjectAltName_nodefault = 0;
+    ctx->setSubjectAltNameCritical = 0;
     ctx->digest = NID_sha256;
     ctx->popoMethod = CRMF_POPO_SIGNATURE;
     ctx->revocationReason = CRL_REASON_NONE;
-    ctx->setSubjectAltNameCritical = 0;
     ctx->permitTAInExtraCertsForIR = 0;
     ctx->implicitConfirm = 0;
     ctx->disableConfirm = 0;
@@ -874,16 +875,10 @@ int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts)
 /* returns 1 if ctx contains a Subject Alternative Name extension, else 0 */
 int CMP_CTX_reqExtensions_have_SAN(CMP_CTX *ctx)
 {
-    STACK_OF(GENERAL_NAME) *sans;
-    int n;
-
-    if (ctx == NULL)
+    if (ctx == NULL || ctx->reqExtensions == NULL)
         return 0;
-    sans = X509V3_get_d2i(ctx->reqExtensions /* may be NULL */,
-                          NID_subject_alt_name, NULL, NULL);
-    n = sk_GENERAL_NAME_num(sans);
-    sk_GENERAL_NAME_pop_free(sans, GENERAL_NAME_free);
-    return n >= 0;
+    return X509v3_get_ext_by_NID(ctx->reqExtensions,
+                                 NID_subject_alt_name, -1) >= 0;
 }
 
 /*
@@ -1452,6 +1447,12 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
     case CMP_CTX_OPT_VALIDITYDAYS:
         ctx->days = val;
         break;
+    case CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT:
+        ctx->SubjectAltName_nodefault = val;
+        break;
+    case CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL:
+        ctx->setSubjectAltNameCritical = val;
+        break;
     case CMP_CTX_OPT_IGNORE_KEYUSAGE:
         ctx->ignore_keyusage = val;
         break;
@@ -1469,9 +1470,6 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
         break;
     case CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR:
         ctx->permitTAInExtraCertsForIR = val;
-        break;
-    case CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL:
-        ctx->setSubjectAltNameCritical = val;
         break;
     case CMP_CTX_OPT_REVOCATION_REASON:
         ctx->revocationReason = val;
