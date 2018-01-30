@@ -330,7 +330,7 @@ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
             cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
             cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER ||
             cert_error == X509_V_ERR_STORE_LOOKUP) {
-            BIO_printf(cert_verify_err_bio, "non-trusted store:\n");
+            BIO_printf(cert_verify_err_bio, "non-trusted certs:\n");
             print_certs(cert_verify_err_bio, X509_STORE_CTX_get0_untrusted(ctx));
             BIO_printf(cert_verify_err_bio, "trust store:\n");
             print_store_certs(cert_verify_err_bio,

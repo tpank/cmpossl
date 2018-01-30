@@ -1082,6 +1082,21 @@ static int load_pkcs12(BIO *in, const char *desc,
         pass = tpass;
     }
     ret = PKCS12_parse(p12, pass, pkey, cert, ca);
+    if (ret && *ca != NULL) {
+        int i; /* other certs are for some reason in reverted order */
+        STACK_OF(X509) *certs = sk_X509_new_null();
+        for (i = 0; i < sk_X509_num(*ca); i++)
+            if (!certs || !sk_X509_insert(certs, sk_X509_value(*ca, i), 0)) {
+                sk_X509_pop_free(certs, X509_free);
+                sk_X509_pop_free(*ca, X509_free);
+                X509_free(*cert);
+                EVP_PKEY_free(*pkey);
+                ret = 0;
+                goto die;
+            }
+        sk_X509_free(*ca);
+        *ca = certs;
+    }
  die:
     PKCS12_free(p12);
     return ret;
