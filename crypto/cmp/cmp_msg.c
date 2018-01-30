@@ -109,7 +109,8 @@ static int add_subjectaltnames_extension(X509_EXTENSIONS **exts,
  * returns 1 on success, 0 on error
  */
 static int add_policy_extensions(X509_EXTENSIONS **exts,
-                                 CERTIFICATEPOLICIES *policies)
+                                 CERTIFICATEPOLICIES *policies,
+                                 int critical)
 {
     X509_EXTENSION *ext = NULL;
     int ret = 0;
@@ -117,7 +118,7 @@ static int add_policy_extensions(X509_EXTENSIONS **exts,
     if (exts == NULL || policies == NULL)
         goto err;
 
-    if ((ext = X509V3_EXT_i2d(NID_certificate_policies, 1, policies)) &&
+    if ((ext = X509V3_EXT_i2d(NID_certificate_policies, critical, policies)) &&
         X509v3_add_ext(exts, ext, 0))
         ret = 1;
  err:
@@ -227,7 +228,8 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
          !add_subjectaltnames_extension(&exts, ctx->subjectAltNames, crit)) ||
         (!HAS_SAN(ctx) && default_sans != NULL &&
          !add_subjectaltnames_extension(&exts, default_sans, crit)) ||
-        (ctx->policies && !add_policy_extensions(&exts, ctx->policies)) ||
+        (ctx->policies && !add_policy_extensions(&exts, ctx->policies,
+                                                 ctx->setPoliciesCritical)) ||
         !CRMF_CERTREQMSG_set0_extensions(crm, exts))
         goto err;
     sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);

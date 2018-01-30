@@ -247,6 +247,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->days = 0;
     ctx->SubjectAltName_nodefault = 0;
     ctx->setSubjectAltNameCritical = 0;
+    ctx->setPoliciesCritical = 0;
     ctx->digest = NID_sha256;
     ctx->popoMethod = CRMF_POPO_SIGNATURE;
     ctx->revocationReason = CRL_REASON_NONE;
@@ -592,30 +593,32 @@ int CMP_CTX_set1_extraCertsOut(CMP_CTX *ctx,
 
 /*
  * CMP_CTX_policyOID_push1() adds the certificate policy OID given by the
- * string to the X509_EXTENSIONS of the certificate template we are
- * requesting.
+ * string to the X509_EXTENSIONS of the requested certificate template.
+ * returns 1 on success, -1 on parse error, and 0 on other error.
  */
 int CMP_CTX_policyOID_push1(CMP_CTX *ctx, const char *policyOID)
 {
-    POLICYINFO *pol = NULL;
+    ASN1_OBJECT *policy;
+    POLICYINFO *pinfo = NULL;
 
     if ((ctx == NULL) || (policyOID == NULL))
         goto err;
+
+    if ((policy = OBJ_txt2obj(policyOID, 1)) == 0)
+        return -1; /* parse eror */
 
     if ((ctx->policies == NULL) &&
         ((ctx->policies = CERTIFICATEPOLICIES_new()) == NULL))
         goto err;
 
-    if ((pol = POLICYINFO_new()) == NULL)
+    if ((pinfo = POLICYINFO_new()) == NULL)
         goto err;
+    pinfo->policyid = policy;
 
-    pol->policyid = OBJ_txt2obj(policyOID, 1);
-    sk_POLICYINFO_push(ctx->policies, pol);
-
-    return 1;
+    return sk_POLICYINFO_push(ctx->policies, pinfo);
 
  err:
-    return 0;
+    return 0; /* out of memory */
 }
 
 /*
@@ -1452,6 +1455,9 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
         break;
     case CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL:
         ctx->setSubjectAltNameCritical = val;
+        break;
+    case CMP_CTX_OPT_POLICIES_CRITICAL:
+        ctx->setPoliciesCritical = val;
         break;
     case CMP_CTX_OPT_IGNORE_KEYUSAGE:
         ctx->ignore_keyusage = val;

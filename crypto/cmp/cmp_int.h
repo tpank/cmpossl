@@ -73,8 +73,9 @@ struct cmp_ctx_st {
     int pbm_mac;
 
     int days; /* Number of days new certificates are asked to be valid for */
-    int setSubjectAltNameCritical;
     int SubjectAltName_nodefault;
+    int setSubjectAltNameCritical;
+    int setPoliciesCritical;
     int digest; /* NID of digest used in MSG_SIG_ALG, defaults to SHA256 */
     int popoMethod;  /* Proof-of-posession mechanism used.
                         Defaults to signature (POPOsigningKey) */
