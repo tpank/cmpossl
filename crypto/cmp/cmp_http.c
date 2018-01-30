@@ -264,16 +264,16 @@ static int OCSP_REQ_CTX_i2d_hdr(OCSP_REQ_CTX *rctx, const char *req_hdr,
 
 
 
-static void add_TLS_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
+static void add_conn_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 {
     char buf[200];
+    snprintf(buf, 200, "connecting to '%s' port %d", ctx->serverName,
+             ctx->serverPort);
+    CMP_add_error_data(buf);
     if (errdetail == 0) {
         snprintf(buf, 200, "server has disconnected%s",
                  ctx->tlsBIO ? " violating the protocol" :
                                ", likely because it requires the use of TLS");
-        CMP_add_error_data(buf);
-        snprintf(buf, 200, "connecting to '%s' port %d", ctx->serverName,
-                 ctx->serverPort);
         CMP_add_error_data(buf);
     } else {
 #if 0
@@ -498,8 +498,9 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
         if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
             err = CMP_R_TLS_ERROR;
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, err);
-        if (err == CMP_R_TLS_ERROR || err == CMP_R_SERVER_NOT_REACHABLE)
-            add_TLS_error_hint(ctx, ERR_peek_error());
+        if (err == CMP_R_TLS_ERROR || err == CMP_R_CONNECT_TIMEOUT
+                                   || err == CMP_R_SERVER_NOT_REACHABLE)
+            add_conn_error_hint(ctx, ERR_peek_error());
     }
 
     (void)BIO_reset(cbio); /* notify/alert peer, init for potential next use */
