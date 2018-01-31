@@ -201,8 +201,8 @@ static char *opt_cacertsout = NULL;
 #ifndef NDEBUG
 static char *opt_reqin = NULL;
 static char *opt_reqout = NULL;
-static char *opt_respin = NULL;
-static char *opt_respout = NULL;
+static char *opt_rspin = NULL;
+static char *opt_rspout = NULL;
 #endif
 
 static int opt_crl_download = 0;
@@ -399,7 +399,7 @@ typedef enum OPTION_choice {
     OPT_TLS_TRUSTED, OPT_TLS_HOST,
 
 #ifndef NDEBUG
-    OPT_REQIN, OPT_REQOUT, OPT_RESPOUT, OPT_RESPIN,
+    OPT_REQIN, OPT_REQOUT, OPT_RSPOUT, OPT_RSPIN,
 #endif
 
     OPT_CRL_DOWNLOAD, OPT_CRLS, OPT_CRL_TIMEOUT,
@@ -591,9 +591,9 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0, "\nTesting and debugging options:"},
     {"reqin", OPT_REQIN, 's', "Take sequence of CMP requests from file(s)"},
     {"reqout", OPT_REQOUT, 's', "Save sequence of CMP requests to file(s)"},
-    {"respin", OPT_RESPIN, 's',
+    {"rspin", OPT_RSPIN, 's',
      "Process sequence of CMP responses provided in file(s), skipping server"},
-    {"respout", OPT_RESPOUT, 's', "Save sequence of CMP responses to file(s)"},
+    {"rspout", OPT_RSPOUT, 's', "Save sequence of CMP responses to file(s)"},
 #endif
 
     {OPT_MORE_STR, 0, 0,
@@ -683,7 +683,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_tls_keypass}, {&opt_tls_trusted}, {&opt_tls_host},
 
 #ifndef NDEBUG
-    {&opt_reqin}, {&opt_reqout}, {&opt_respin}, {&opt_respout},
+    {&opt_reqin}, {&opt_reqout}, {&opt_rspin}, {&opt_rspout},
 #endif
 
     {(char **)&opt_crl_download}, {&opt_crls}, {(char **)&opt_crl_timeout},
@@ -982,9 +982,9 @@ static int read_write_req_resp(CMP_CTX *ctx,
         goto err;
 
     if (opt_reqin) {
-        if (opt_respin) {
+        if (opt_rspin) {
             BIO_printf(bio_c_out,
-                       "warning: -reqin is ignored since -respin is present\n");
+                       "warning: -reqin is ignored since -rspin is present\n");
         } else {
             ret = CMP_R_ERROR_TRANSFERRING_IN;
             if ((req_new = read_PKIMESSAGE(&opt_reqin)) == NULL)
@@ -1003,8 +1003,8 @@ static int read_write_req_resp(CMP_CTX *ctx,
     }
 
     ret = CMP_R_ERROR_TRANSFERRING_IN;
-    if (opt_respin) {
-        if ((*res = read_PKIMESSAGE(&opt_respin)))
+    if (opt_rspin) {
+        if ((*res = read_PKIMESSAGE(&opt_rspin)))
             ret = 0;
     } else {
         ret = CMP_PKIMESSAGE_http_perform(ctx, opt_reqin ? req_new : req, res);
@@ -1014,7 +1014,7 @@ static int read_write_req_resp(CMP_CTX *ctx,
         goto err;
     ret = CMP_R_OUT_OF_MEMORY;
     hdr = CMP_PKIMESSAGE_get0_header(*res);
-    if ((opt_reqin || opt_respin) &&
+    if ((opt_reqin || opt_rspin) &&
         /* need to satisfy nonce and transactionID checks */
         (!CMP_CTX_set1_last_senderNonce(ctx, CMP_PKIHEADER_get0_recipNonce(hdr))
          || !CMP_CTX_set1_transactionID(ctx,
@@ -1022,7 +1022,7 @@ static int read_write_req_resp(CMP_CTX *ctx,
         ))
         goto err;
 
-    if (opt_respout && !write_PKIMESSAGE(*res, &opt_respout)) {
+    if (opt_rspout && !write_PKIMESSAGE(*res, &opt_rspout)) {
         ret = CMP_R_ERROR_TRANSFERRING_OUT;
         CMP_PKIMESSAGE_free(*res);
         goto err;
@@ -3456,7 +3456,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MAXPOLLTIME, opt_maxpolltime);
 
 #ifndef NDEBUG
-    if (opt_reqin || opt_reqout || opt_respin || opt_respout)
+    if (opt_reqin || opt_reqout || opt_rspin || opt_rspout)
         (void)CMP_CTX_set_transfer_cb(ctx, read_write_req_resp);
 #endif
 
@@ -3911,11 +3911,11 @@ int cmp_main(int argc, char **argv)
         case OPT_REQOUT:
             opt_reqout = opt_str("reqout");
             break;
-        case OPT_RESPIN:
-            opt_respin = opt_str("respin");
+        case OPT_RSPIN:
+            opt_rspin = opt_str("rspin");
             break;
-        case OPT_RESPOUT:
-            opt_respout = opt_str("respout");
+        case OPT_RSPOUT:
+            opt_rspout = opt_str("rspout");
             break;
 # endif
         }
