@@ -272,7 +272,8 @@ int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
         CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1, CMP_R_NULL_ARGUMENT);
         goto err;
     }
-
+    if (*tgt == src) /* self-assignement */
+        return 1;
     ASN1_OCTET_STRING_free(*tgt);
 
     if (src) {
@@ -393,23 +394,41 @@ int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
  */
 int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
-    ASN1_UTF8STRING *textDup = NULL;
+    if (hdr == NULL || text == NULL)
+        return 0;
 
-    if (hdr == NULL)
-        goto err;
-    if (text == NULL)
-        goto err;
+    hdr->freeText = CMP_PKIFREETEXT_push_str(hdr->freeText, (char *)text->data);
+    return hdr->freeText != NULL;
+}
 
-    if ((textDup = ASN1_UTF8STRING_new()) == NULL)
-        goto err;
-    if (!ASN1_STRING_set(textDup, text->data, text->length))
-        goto err;
+/*
+ * Pushes the given text string (unless it is NULL) to the given ft or to a
+ * newly allocated freeText if ft is NULL.
+ * Returns the new/updated freeText. On error frees ft and returns NULL
+ */
+CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft, const char *text)
+{
+    ASN1_UTF8STRING *utf8string = NULL;
 
-    return CMP_PKIHEADER_push0_freeText(hdr, textDup);
- err:
-    if (textDup)
-        ASN1_UTF8STRING_free(textDup);
-    return 0;
+    if (text == NULL) {
+        return ft;
+    }
+
+    if (ft == NULL && (ft = sk_ASN1_UTF8STRING_new_null()) == NULL)
+        goto oom;
+    if ((utf8string = ASN1_UTF8STRING_new()) == NULL)
+        goto oom;
+    if (!ASN1_STRING_set(utf8string, text, strlen(text)))
+        goto oom;
+    if (!(sk_ASN1_UTF8STRING_push(ft, utf8string)))
+        goto oom;
+    return ft;
+
+ oom:
+    CMPerr(CMP_F_CMP_PKIFREETEXT_PUSH_STR, CMP_R_OUT_OF_MEMORY);
+    sk_ASN1_UTF8STRING_pop_free(ft, ASN1_UTF8STRING_free);
+    ASN1_UTF8STRING_free(utf8string);
+    return NULL;
 }
 
 /*
@@ -684,7 +703,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
         goto err;
     if (msg == NULL)
         goto err;
-    if (ctx->unprotectedRequests)
+    if (ctx->unprotectedSend)
         return 1;
 
     /* use PasswordBasedMac according to 5.1.3.1 if secretValue is given */
@@ -958,10 +977,11 @@ int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg,
 int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
                                    const CMP_INFOTYPEANDVALUE *itav)
 {
+    int bodytype;
     if (msg == NULL)
         goto err;
-
-    if (CMP_PKIMESSAGE_get_bodytype(msg) != V_CMP_PKIBODY_GENM)
+    bodytype = CMP_PKIMESSAGE_get_bodytype(msg);
+    if (bodytype != V_CMP_PKIBODY_GENM && bodytype != V_CMP_PKIBODY_GENP)
         goto err;
 
     if (!CMP_INFOTYPEANDVALUE_stack_item_push0(&msg->body->value.genm, itav))
@@ -1059,10 +1079,12 @@ CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type,
  * note: strongly overlaps with TS_RESP_CTX_set_status_info()
  *       and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
  */
-CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text)
+CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, unsigned long failInfo,
+                                      const char *text)
 {
     CMP_PKISTATUSINFO *si = NULL;
     ASN1_UTF8STRING *utf8_text = NULL;
+    int failure;
 
     if ((si = CMP_PKISTATUSINFO_new()) == NULL)
         goto err;
@@ -1082,12 +1104,14 @@ CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text)
         utf8_text = NULL;
     }
 
-    if (0 <= failure && failure <= CMP_PKIFAILUREINFO_MAX) {
-        if (si->failInfo == NULL &&
-            (si->failInfo = ASN1_BIT_STRING_new()) == NULL)
-            goto err;
-        if (!ASN1_BIT_STRING_set_bit(si->failInfo, failure, 1))
-            goto err;
+    for (failure = 0; failure <= CMP_PKIFAILUREINFO_MAX; failure++) {
+        if (failInfo & (1 << failure)) {
+            if (si->failInfo == NULL &&
+                (si->failInfo = ASN1_BIT_STRING_new()) == NULL)
+                goto err;
+            if (!ASN1_BIT_STRING_set_bit(si->failInfo, failure, 1))
+                goto err;
+        }
     }
     return si;
 
@@ -1112,6 +1136,25 @@ long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *si)
 }
 
 /*
+ * returns the FailureInfo bits of the given PKIStatusInfo
+ * returns -1 on error
+ */
+long CMP_PKISTATUSINFO_PKIFailureinfo_get(CMP_PKISTATUSINFO *si)
+{
+    int i;
+    long res = 0;
+    if (si == NULL || si->failInfo == NULL) {
+        CMPerr(CMP_F_CMP_PKISTATUSINFO_PKIFAILUREINFO_GET,
+               CMP_R_ERROR_PARSING_PKISTATUS);
+        return -1;
+    }
+    for (i = 0; i <= CMP_PKIFAILUREINFO_MAX; i++)
+        if (ASN1_BIT_STRING_get_bit(si->failInfo, i))
+            res |= 1 << i;
+    return res;
+}
+
+/*
  * internal function
  *
  * convert PKIStatus to human-readable string
@@ -1130,7 +1173,7 @@ static char *CMP_PKISTATUSINFO_PKIStatus_get_string(CMP_PKISTATUSINFO *si)
     case CMP_PKISTATUS_accepted:
         return "PKIStatus: accepted";
     case CMP_PKISTATUS_grantedWithMods:
-        return "PKIStatus: granded with mods";
+        return "PKIStatus: granted with mods";
     case CMP_PKISTATUS_rejection:
         return "PKIStatus: rejection";
     case CMP_PKISTATUS_waiting:
@@ -1260,6 +1303,24 @@ int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit)
         return -1;
 
     return ASN1_BIT_STRING_get_bit(failInfo, codeBit);
+}
+
+/*
+ * returns a pointer to the failInfo contained in a PKIStatusInfo
+ * returns NULL on error
+ */
+CMP_PKIFAILUREINFO *CMP_PKISTATUSINFO_failInfo_get0(CMP_PKISTATUSINFO *si)
+{
+    return si == NULL ? NULL : si->failInfo;
+}
+
+/*
+ * returns a pointer to the statusString contained in a PKIStatusInfo
+ * returns NULL on error
+ */
+CMP_PKIFREETEXT *CMP_PKISTATUSINFO_statusString_get0(CMP_PKISTATUSINFO *si)
+{
+    return si == NULL ? NULL : si->statusString;
 }
 
 /*

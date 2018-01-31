@@ -383,7 +383,7 @@ int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
  * send given error and check response
  * returns 1 on success, 0 on error
  */
-int exchange_error(CMP_CTX *ctx, int status, int failure,const char *txt)
+int exchange_error(CMP_CTX *ctx, int status, int failure, const char *txt)
 {
     CMP_PKIMESSAGE *error = NULL;
     CMP_PKISTATUSINFO *si = NULL;
@@ -392,19 +392,18 @@ int exchange_error(CMP_CTX *ctx, int status, int failure,const char *txt)
 
     /* check if all necessary options are set is done in CMP_error_new */
     /* create Error Message - error */
-    if ((si = CMP_statusInfo_new(status, failure, txt)) == NULL)
+    if ((si = CMP_statusInfo_new(status, 1 << failure, txt)) == NULL)
         goto err;
-    if ((error = CMP_error_new(ctx, si, -1, NULL)) == NULL) {
-        CMP_PKISTATUSINFO_free(si);
+    if ((error = CMP_error_new(ctx, si, -1, NULL, 0)) == NULL)
         goto err;
-    }
 
     success = send_receive_check(ctx, error, "error", CMP_F_EXCHANGE_ERROR,
                                  &PKIconf, V_CMP_PKIBODY_PKICONF,
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
  err:
-    CMP_PKIMESSAGE_free(error); /* also frees si if included */
+    CMP_PKIMESSAGE_free(error);
+    CMP_PKISTATUSINFO_free(si);
     CMP_PKIMESSAGE_free(PKIconf);
     return success;
 }

@@ -106,6 +106,7 @@ static ENGINE *try_load_engine(const char *engine)
     return e;
 }
 #endif
+
 #if !defined(OPENSSL_NO_UI) || !defined(OPENSSL_NO_ENGINE)
 static UI_METHOD *ui_method = NULL;
 #endif
@@ -184,9 +185,9 @@ static char *opt_secret = NULL;
 static char *opt_cert = NULL;
 static char *opt_key = NULL;
 static char *opt_keypass = NULL;
+static int opt_unprotectedRequests = 0;
 static char *opt_digest = NULL;
 static char *opt_extracerts = NULL;
-static int opt_unprotectedRequests = 0;
 
 static char *opt_recipient = NULL;
 static char *opt_expected_sender = NULL;
@@ -203,7 +204,36 @@ static char *opt_reqin = NULL;
 static char *opt_reqout = NULL;
 static char *opt_rspin = NULL;
 static char *opt_rspout = NULL;
-#endif
+
+static int opt_mocksrv = 0;
+
+static char *opt_server_ref = NULL;
+static char *opt_server_secret = NULL;
+static char *opt_server_cert = NULL;
+static char *opt_server_key = NULL;
+static char *opt_server_keypass = NULL;
+
+static char *opt_server_trusted = NULL;
+static char *opt_server_untrusted = NULL;
+static char *opt_resp_cert = NULL;
+static char *opt_resp_extracerts = NULL;
+static char *opt_resp_capubs = NULL;
+static int opt_poll_count = 0;
+static int opt_poll_checkafter = 1;
+static int opt_grant_implicitconfirm = 0;
+
+static int opt_pkistatus = CMP_PKISTATUS_accepted;
+static int opt_failure = -1;
+static unsigned long opt_failurebits = 0;
+static char *opt_statusstring = NULL;
+static int opt_send_error = 0;
+static int opt_send_unprotectedresponses = 0;
+static int opt_send_unprotectederrors = 0;
+static int opt_accept_unprotectedrequests = 0;
+static int opt_accept_unprotectederrors = 0;
+
+static CMP_SRV_CTX *srv_ctx = NULL;
+#endif /* NDEBUG */
 
 static int opt_crl_download = 0;
 static char *opt_crls = NULL;
@@ -373,7 +403,7 @@ typedef enum OPTION_choice {
     OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
 
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS,
-    OPT_DIGEST, OPT_EXTRACERTS, OPT_UNPROTECTEDREQUESTS,
+    OPT_UNPROTECTEDREQUESTS, OPT_DIGEST, OPT_EXTRACERTS,
 
     OPT_CMD, OPT_INFOTYPE, OPT_GENINFO,
 
@@ -396,6 +426,17 @@ typedef enum OPTION_choice {
 
 #ifndef NDEBUG
     OPT_REQIN, OPT_REQOUT, OPT_RSPOUT, OPT_RSPIN,
+
+    OPT_MOCKSRV,
+    OPT_SERVER_REF, OPT_SERVER_SECRET,
+    OPT_SERVER_CERT, OPT_SERVER_KEY, OPT_SERVER_KEYPASS,
+    OPT_SERVER_TRUSTED, OPT_SERVER_UNTRUSTED,
+    OPT_RESP_CERT, OPT_RESP_EXTRACERTS, OPT_RESP_CAPUBS,
+    OPT_POLL_COUNT, OPT_POLL_CHECKAFTER, OPT_GRANT_IMPLICITCONFIRM,
+    OPT_PKISTATUS, OPT_FAILURE, OPT_FAILUREBITS, OPT_STATUSSTRING,
+    OPT_SEND_ERROR,
+    OPT_SEND_UNPROTECTEDRESPONSES, OPT_SEND_UNPROTECTEDERRORS,
+    OPT_ACCEPT_UNPROTECTEDREQUESTS, OPT_ACCEPT_UNPROTECTEDERRORS,
 #endif
 
     OPT_CRL_DOWNLOAD, OPT_CRLS, OPT_CRL_TIMEOUT,
@@ -469,13 +510,14 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "Any further certs included are appended in extraCerts field."},
     {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
-    {"keypass", OPT_KEYPASS, 's', "Client private key pass phrase source"},
+    {"keypass", OPT_KEYPASS, 's',
+                       "Client private key (and cert file) pass phrase source"},
+    {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
+     "Send messages without CMP-level protection"},
     {"digest", OPT_DIGEST, 's',
    "Digest to use in message protection and POPO signatures. Default 'sha256'"},
     {"extracerts", OPT_EXTRACERTS, 's',
      "Certificates to append in extraCerts field in sent messages"},
-    {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
-     "Send messages without CMP-level protection"},
 
     {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
     {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
@@ -590,10 +632,59 @@ OPTIONS cmp_options[] = {
     {"rspin", OPT_RSPIN, 's',
      "Process sequence of CMP responses provided in file(s), skipping server"},
     {"rspout", OPT_RSPOUT, 's', "Save sequence of CMP responses to file(s)"},
+
+    {"mocksrv", OPT_MOCKSRV, '-', "Mock the server"},
+    {"server_ref", OPT_SERVER_REF, 's',
+            "Reference value for server authentication with a pre-shared key."},
+    {"server_secret", OPT_SERVER_SECRET, 's',
+    "Password source for server authentication with a pre-shared key (secret)"},
+    {"server_cert", OPT_SERVER_CERT, 's', "Certificate used by the server"},
+    {"server_key", OPT_SERVER_KEY, 's',
+                         "Private key of the server used for signing messages"},
+    {"server_keypass", OPT_SERVER_KEYPASS, 's',
+                       "Server private key (and cert file) pass phrase source"},
+    {"server_trusted", OPT_SERVER_TRUSTED, 's',
+                              "Trusted certificates for client authentication"},
+    {"server_untrusted", OPT_SERVER_UNTRUSTED, 's',
+"Intermediate certificates for constructing chains for CMP protection by client"},
+    {"resp_cert", OPT_RESP_CERT, 's',
+                        "Certificate to be returned as mock enrollment result"},
+    {"resp_extracerts", OPT_RESP_EXTRACERTS, 's',
+           "Extra certificates to be included in mock certification responses"},
+    {"resp_capubs", OPT_RESP_CAPUBS, 's',
+                                  "CA Pubs to be included in mock ip response"},
+    {"poll_count", OPT_POLL_COUNT, 'n',
+          "How many times the client must poll before receiving a certificate"},
+    {"poll_checkafter", OPT_POLL_CHECKAFTER, 'n',
+                "checkAfter value (time to wait) to included in poll response"},
+    {"grant_implicitconfirm", OPT_GRANT_IMPLICITCONFIRM, '-',
+                   "Grant implicit confirmation of newly enrolled certificate"},
+    {"pkistatus", OPT_PKISTATUS, 'n',
+                                 "PKIStatus to be included in server response"},
+    {"failure", OPT_FAILURE, 'n',
+                "A single failure info code to be included in server response"},
+    {"failurebits", OPT_FAILUREBITS, 'n',
+ "Unsigned number representing failure bits to be included in server response"},
+    {"statusstring", OPT_STATUSSTRING, 's',
+                             "Status string to be included in server response"},
+    {"send_error", OPT_SEND_ERROR, '-',
+                                    "Force server to reply with error message"},
+    {"send_unprotectedresponses", OPT_SEND_UNPROTECTEDRESPONSES, '-',
+                         "Send response messages without CMP-level protection"},
+    {"send_unprotectederrors", OPT_SEND_UNPROTECTEDERRORS, '-',
+"In case of negative responses, server shall send unprotected error messages,"},
+    {OPT_MORE_STR, 0, 0,
+           "certificate responses (ip/cp/kup), and revocation responses (rp)."},
+    {OPT_MORE_STR, 0, 0,
+                "WARNING: This setting leads to behaviour violating RFC 4210."},
+    {"accept_unprotectedrequests", OPT_ACCEPT_UNPROTECTEDREQUESTS, '-',
+                                                 "Accept unprotected requests"},
+    {"accept_unprotectederrors", OPT_ACCEPT_UNPROTECTEDERRORS, '-',
+                               "Accept unprotected error messages from client"},
 #endif
 
     {OPT_MORE_STR, 0, 0,
-     "\nCertificate verification options, for both CMP and TLS:"},
+     "\nSpecific certificate verification options, for both CMP and TLS:"},
     {"crl_download", OPT_CRL_DOWNLOAD, '-',
 "Retrieve CRLs from distribution points given in certificates as primary source"},
     {"crls", OPT_CRLS, 's',
@@ -627,7 +718,7 @@ OPTIONS cmp_options[] = {
 # endif
 #endif
 
-    {OPT_MORE_STR, 0, 0, "\nCertificate verification options:"},
+    {OPT_MORE_STR, 0, 0, "\nStandard certificate verification options:"},
  /*
   * subsumes:
   * {"crl_check_all", OPT_CRLALL, '-',
@@ -655,7 +746,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_extracertsout}, {&opt_cacertsout},
 
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass},
-    {&opt_digest}, {&opt_extracerts}, {(char **)&opt_unprotectedRequests},
+    {(char **)&opt_unprotectedRequests}, {&opt_digest}, {&opt_extracerts},
 
     {&opt_cmd_s}, {&opt_infotype_s}, {&opt_geninfo},
 
@@ -680,6 +771,22 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 
 #ifndef NDEBUG
     {&opt_reqin}, {&opt_reqout}, {&opt_rspin}, {&opt_rspout},
+
+    {(char **)&opt_mocksrv},
+    {&opt_server_ref}, {&opt_server_secret},
+    {&opt_server_cert}, {&opt_server_key}, {&opt_server_keypass},
+    {&opt_server_trusted}, {&opt_server_untrusted},
+    {&opt_resp_cert}, {&opt_resp_extracerts},
+    {&opt_resp_capubs},
+    {(char **)&opt_poll_count}, {(char **)&opt_poll_checkafter},
+    {(char **)&opt_grant_implicitconfirm},
+    {(char **)&opt_pkistatus}, {(char **)&opt_failure},
+    {(char **)&opt_failurebits}, {&opt_statusstring},
+    {(char **)&opt_send_error},
+    {(char **)&opt_send_unprotectedresponses},
+    {(char **)&opt_send_unprotectederrors},
+    {(char **)&opt_accept_unprotectedrequests},
+    {(char **)&opt_accept_unprotectederrors},
 #endif
 
     {(char **)&opt_crl_download}, {&opt_crls}, {(char **)&opt_crl_timeout},
@@ -859,7 +966,6 @@ static char *next_item(char *opt) /* in list separated by comma and/or space */
     }
     return opt;
 }
-
 #ifndef NDEBUG
 /*-
  * Writes CMP_PKIMESSAGE DER-encoded to the file specified with outfile
@@ -1003,7 +1109,13 @@ static int read_write_req_resp(CMP_CTX *ctx,
         if ((*res = read_PKIMESSAGE(&opt_rspin)))
             ret = 0;
     } else {
-        ret = CMP_PKIMESSAGE_http_perform(ctx, opt_reqin ? req_new : req, res);
+        const CMP_PKIMESSAGE *actual_req = opt_reqin ? req_new : req;
+        if (opt_mocksrv) {
+            CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
+            ret = CMP_mock_server_perform(ctx, actual_req, res);
+        } else {
+            ret = CMP_PKIMESSAGE_http_perform(ctx, actual_req, res);
+        }
     }
 
     if (ret || (*res) == NULL)
@@ -1030,7 +1142,6 @@ static int read_write_req_resp(CMP_CTX *ctx,
     return ret;
 }
 #endif
-
 /*
  * code for loading certs, keys, and CRLs
  * TODO DvO: the whole Cert, Key and CRL loading logic should be given upstream
@@ -2573,10 +2684,11 @@ static STACK_OF(X509) *load_certs_multifile(char *files, int format,
     return NULL;
 }
 
-static
-int setup_certs(char *files, int format, const char *pass, const char *desc,
-                int (*addn_fn) (CMP_CTX *ctx, const STACK_OF(X509) *certs),
-                int (*add1_fn) (CMP_CTX *ctx, const X509 *cert), CMP_CTX *ctx)
+typedef int (*add_X509_stack_fn_t)(void *ctx, const STACK_OF(X509) *certs);
+typedef int (*add_X509_fn_t      )(void *ctx, const X509 *cert);
+static int setup_certs(char *files, int format, const char *pass,
+                       const char *desc, void *ctx,
+                       add_X509_stack_fn_t addn_fn, add_X509_fn_t add1_fn)
 {
     int ret = 1;
 
@@ -2677,6 +2789,139 @@ static int transform_opts(void) {
     return 1;
 }
 
+#ifndef NDEBUG
+static int setup_server_ctx(ENGINE *e)
+{
+    int certform = 0;
+    CMP_CTX *ctx = NULL;
+    srv_ctx = CMP_SRV_CTX_create();
+
+    if (srv_ctx == NULL)
+        return 0;
+    ctx = CMP_SRV_CTX_get0_ctx(srv_ctx);
+
+    if ((opt_server_ref == NULL) != (opt_server_secret == NULL)) {
+        BIO_puts(bio_err,
+   "error: must give both -server_ref and -server_secret options or neither\n");
+            goto err;
+    }
+    if (opt_server_ref && opt_server_secret) {
+        char *pass_string;
+        if ((pass_string = get_passwd(opt_server_secret, "PBMAC for server"))) {
+            OPENSSL_cleanse(opt_server_secret, strlen(opt_server_secret));
+            opt_server_secret = NULL;
+            CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_server_ref,
+                                        strlen(opt_server_ref));
+            CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
+                                     strlen(pass_string));
+            OPENSSL_clear_free(pass_string, strlen(pass_string));
+        }
+    } else if (opt_server_cert == NULL && opt_server_key == NULL) {
+        BIO_puts(bio_err,
+                 "error: server credentials must be set if -mocksrv is used\n");
+        goto err;
+    }
+
+    if ((opt_server_cert == NULL) != (opt_server_key == NULL)) {
+        BIO_puts(bio_err,
+     "error: must give both -server_cert and -server_key options or neither\n");
+            goto err;
+    }
+    if (opt_server_cert) {
+        X509 *srvcert = load_cert_autofmt(opt_server_cert, &certform,
+                           opt_server_keypass, "CMP certificate of the server");
+        /* from server perspective the server is the client */
+        if (!srvcert || !CMP_CTX_set1_clCert(ctx, srvcert)) {
+            X509_free(srvcert);
+            goto err;
+        }
+        X509_free(srvcert);
+    }
+    if (opt_server_key) {
+        EVP_PKEY *pkey = load_key_autofmt(opt_server_key, opt_keyform,
+               opt_server_keypass, e, "private key for server CMP certificate");
+        if (pkey == NULL || !CMP_CTX_set0_pkey(ctx, pkey)) {
+            EVP_PKEY_free(pkey);
+            goto err;
+        }
+    }
+
+    if (opt_server_trusted) {
+        X509_STORE *ts;
+        STACK_OF(X509_CRL) *all_crls = sk_X509_CRL_new_null();
+        ts = load_certstore(opt_server_trusted,
+                "server trusted certificates");
+        if (!set1_store_parameters_crls(ts/* may be NULL */, all_crls) ||
+            !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
+            !CMP_CTX_set0_trustedStore(ctx, ts)) {
+            X509_STORE_free(ts);
+            sk_X509_CRL_free(all_crls);
+            goto err;
+        }
+        sk_X509_CRL_free(all_crls);
+    }
+    if (!setup_certs(opt_server_untrusted, opt_storeform, opt_certpass,
+                     "untrusted certificates", ctx,
+                     (add_X509_stack_fn_t)CMP_CTX_set1_untrusted_certs, NULL))
+        goto err;
+
+    if (opt_resp_cert) {
+        X509 *cert = load_cert_autofmt(opt_resp_cert, &certform,
+               opt_keypass, "certificate to be returned by the mock server");
+       if (cert == NULL)
+           goto err;
+       /* from server-sight the server is the client */
+       if (!CMP_SRV_CTX_set1_certOut(srv_ctx, cert)) {
+           X509_free(cert);
+           goto err;
+       }
+       X509_free(cert);
+    }
+    /* TODO TPa: find a cleaner solution than this hack with typecasts */
+    if (!setup_certs(opt_resp_extracerts, opt_storeform, opt_certpass,
+                     "extra certificates for mock server", srv_ctx,
+                     (add_X509_stack_fn_t)CMP_SRV_CTX_set1_chainOut, NULL))
+        goto err;
+    if (!setup_certs(opt_resp_capubs, opt_storeform, opt_certpass,
+             "caPubs for mock server", srv_ctx,
+             (add_X509_stack_fn_t)CMP_SRV_CTX_set1_caPubsOut, NULL))
+        goto err;
+    (void)CMP_SRV_CTX_set_pollCount(srv_ctx, opt_poll_count);
+    (void)CMP_SRV_CTX_set_checkAfterTime(srv_ctx, opt_poll_checkafter);
+    if (opt_grant_implicitconfirm)
+        (void)CMP_SRV_CTX_set_grant_implicit_confirm(srv_ctx, 1);
+
+    if (opt_failure >= 0) {
+        if (opt_failurebits)
+            BIO_printf(bio_c_out, "warning: -failurebits overrides -failure\n");
+        else
+            opt_failurebits = 1 << opt_failure;
+    }
+    if (!CMP_SRV_CTX_set_statusInfo(srv_ctx, opt_pkistatus,
+                                    opt_failurebits, opt_statusstring))
+        goto err;
+
+    if (opt_send_error)
+        (void)CMP_SRV_CTX_set_send_error(srv_ctx, 1);
+
+    if (opt_send_unprotectedresponses)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_SEND, 1);
+    if (opt_send_unprotectederrors)
+        (void)CMP_SRV_CTX_set_send_unprotected_errors(srv_ctx, 1);
+    if (opt_accept_unprotectedrequests)
+        (void)CMP_SRV_CTX_set_accept_unprotected(srv_ctx, 1);
+    if (opt_accept_unprotectederrors)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
+
+    return 1;
+
+ err:
+    CMP_SRV_CTX_delete(srv_ctx);
+    srv_ctx = NULL;
+    return 0;
+}
+#endif
+
 /*
  * set up verification aspects of CMP_CTX based on options from config file/CLI.
  * Prints reason for error to bio_err.
@@ -2744,8 +2989,8 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
         }
     }
     if (!setup_certs(opt_untrusted, opt_storeform, opt_certpass,
-                     "untrusted certificates",
-                     CMP_CTX_set1_untrusted_certs, NULL, ctx))
+                     "untrusted certificates", ctx,
+                     (add_X509_stack_fn_t)CMP_CTX_set1_untrusted_certs, NULL))
         goto err;
 
 #ifndef OPENSSL_NO_OCSP
@@ -3014,13 +3259,13 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
     if (!opt_unprotectedRequests &&
         !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
         BIO_puts(bio_err,
-"error: missing -unprotectedrequests, or -ref and -secret, or -cert and -key, for client authentication\n");
+    "error: must give client credentials unless -unprotectedrequests is set\n");
         goto err;
     }
 
     if ((opt_ref == NULL) != (opt_secret == NULL)) {
         BIO_puts(bio_err,
-         "error: must give both -ref and -secret options or neither of them\n");
+                 "error: must give both -ref and -secret options or neither\n");
         goto err;
     }
 
@@ -3036,11 +3281,14 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
                                      strlen(pass_string));
             OPENSSL_clear_free(pass_string, strlen(pass_string));
         }
+        if (opt_cert || opt_key)
+            BIO_puts(bio_c_out,
+     "warning: -cert and -key are not used since -ref and -secret are given\n");
     }
 
     if ((opt_cert == NULL) != (opt_key == NULL)) {
         BIO_puts(bio_err,
-           "error: must give both -cert and -key options or neither of them\n");
+                   "error: must give both -cert and -key options or neither\n");
         goto err;
     }
     if (opt_key) {
@@ -3087,8 +3335,8 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
     /* some extra certs may have already been set from optional additional
        certs in opt_cert, thus using CMP_CTX_extraCertsOut_push1 here */
     if (!setup_certs(opt_extracerts, opt_storeform, opt_certpass,
-                     "extra certificates",
-                     NULL, CMP_CTX_extraCertsOut_push1, ctx))
+                     "extra certificates", ctx,
+                     NULL, (add_X509_fn_t)CMP_CTX_extraCertsOut_push1))
         goto err;
     if (opt_certpass) {
         OPENSSL_cleanse(opt_certpass, strlen(opt_certpass));
@@ -3096,7 +3344,7 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
     }
 
     if (opt_unprotectedRequests)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_REQUESTS, 1);
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_SEND, 1);
 
     if (opt_digest) {
         int digest = OBJ_ln2nid(opt_digest);
@@ -3447,7 +3695,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto oom;
         }
         ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
-
         itav = CMP_ITAV_new(type, val);
         if (itav == NULL) {
             ASN1_TYPE_free(val);
@@ -3466,8 +3713,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MAXPOLLTIME, opt_maxpolltime);
 
 #ifndef NDEBUG
-    if (opt_reqin || opt_reqout || opt_rspin || opt_rspout)
+    if (opt_reqin || opt_reqout || opt_rspin || opt_rspout || opt_mocksrv)
         (void)CMP_CTX_set_transfer_cb(ctx, read_write_req_resp);
+    if (opt_mocksrv && !setup_server_ctx(e))
+        goto err;
 #endif
 
     ret = 1;
@@ -3745,14 +3994,14 @@ int cmp_main(int argc, char **argv)
         case OPT_KEYPASS:
             opt_keypass = opt_str("keypass");
             break;
+        case OPT_UNPROTECTEDREQUESTS:
+            opt_unprotectedRequests = 1;
+            break;
         case OPT_DIGEST:
             opt_digest = opt_str("digest");
             break;
         case OPT_EXTRACERTS:
             opt_extracerts = opt_str("extracerts");
-            break;
-        case OPT_UNPROTECTEDREQUESTS:
-            opt_unprotectedRequests = 1;
             break;
 
         case OPT_RECIPIENT:
@@ -3926,6 +4175,80 @@ int cmp_main(int argc, char **argv)
             break;
         case OPT_RSPOUT:
             opt_rspout = opt_str("rspout");
+            break;
+        case OPT_MOCKSRV:
+            opt_mocksrv = 1;
+            break;
+        case OPT_SERVER_REF:
+            opt_server_ref = opt_str("server_ref");
+            break;
+        case OPT_SERVER_SECRET:
+            opt_server_secret = opt_str("server_secret");
+            break;
+        case OPT_SERVER_CERT:
+            opt_server_cert = opt_str("server_cert");
+            break;
+        case OPT_SERVER_KEY:
+            opt_server_key = opt_str("server_key");
+            break;
+        case OPT_SERVER_KEYPASS:
+            opt_server_keypass = opt_str("server_keypass");
+            break;
+        case OPT_SERVER_TRUSTED:
+            opt_server_trusted = opt_str("server_trusted");
+            break;
+        case OPT_SERVER_UNTRUSTED:
+            opt_server_untrusted = opt_str("server_untrusted");
+            break;
+        case OPT_RESP_CERT:
+            opt_resp_cert = opt_str("resp_cert");
+            break;
+        case OPT_RESP_EXTRACERTS:
+            opt_resp_extracerts = opt_str("resp_extracerts");
+            break;
+        case OPT_RESP_CAPUBS:
+            opt_resp_capubs = opt_str("resp_capubs");
+            break;
+        case OPT_POLL_COUNT:
+            opt_poll_count = opt_nat();
+            break;
+        case OPT_POLL_CHECKAFTER:
+            opt_poll_checkafter = opt_nat();
+            break;
+        case OPT_GRANT_IMPLICITCONFIRM:
+            opt_grant_implicitconfirm = 1;
+            break;
+        case OPT_PKISTATUS:
+            opt_pkistatus = opt_nat();
+            break;
+        case OPT_FAILURE:
+            opt_failure = opt_nat();
+            break;
+        case OPT_FAILUREBITS:
+            if (!opt_ulong(opt_arg(), &opt_failurebits)) {
+                BIO_printf(bio_err,
+                     "Invalid unsigned number '%s' representing failure bits\n",
+                           opt_arg());
+                goto opt_err;
+            }
+            break;
+        case OPT_STATUSSTRING:
+            opt_statusstring = opt_str("statusstring");
+            break;
+        case OPT_SEND_ERROR:
+            opt_send_error = 1;
+            break;
+        case OPT_SEND_UNPROTECTEDRESPONSES:
+            opt_send_unprotectedresponses = 1;
+            break;
+        case OPT_SEND_UNPROTECTEDERRORS:
+            opt_send_unprotectederrors = 1;
+            break;
+        case OPT_ACCEPT_UNPROTECTEDREQUESTS:
+            opt_accept_unprotectedrequests = 1;
+            break;
+        case OPT_ACCEPT_UNPROTECTEDERRORS:
+            opt_accept_unprotectederrors = 1;
             break;
 # endif
         }
@@ -4117,6 +4440,13 @@ int cmp_main(int argc, char **argv)
         ERR_print_errors_fp(stderr);
 
     SSL_CTX_free(CMP_CTX_get_http_cb_arg(cmp_ctx));
+#ifndef NDEBUG
+    CMP_SRV_CTX_delete(srv_ctx);
+    if (opt_server_keypass)
+        OPENSSL_cleanse(opt_server_keypass, strlen(opt_server_keypass));
+    if (opt_server_secret)
+        OPENSSL_cleanse(opt_server_secret, strlen(opt_server_secret));
+#endif
     CMP_CTX_delete(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);
     X509_STORE_free(out_trusted);

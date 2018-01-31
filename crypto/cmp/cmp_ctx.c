@@ -118,33 +118,7 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, geninfo_itavs, CMP_INFOTYPEANDVALUE),
     ASN1_SEQUENCE_OF_OPT(CMP_CTX, genm_itavs, CMP_INFOTYPEANDVALUE),
 } ASN1_SEQUENCE_END(CMP_CTX)
-IMPLEMENT_ASN1_FUNCTIONS(CMP_CTX)
-
-/*
- * For some reason EVP_PKEY_dup() is not implemented via
- * IMPLEMENT_ASN1_DUP_FUNCTION(EVP_PKEY) in OpenSSL X509
- * TODO: remove the following auxiliary declaration once done, e.g., in
- * crypto/evp/evp_pkey.c
- */
-
-/*
- * Creates a copy of the given EVP_PKEY.
- * returns ptr to duplicated EVP_PKEY on success, NULL on error
- */
-static EVP_PKEY *EVP_PKEY_dup(const EVP_PKEY *pkey)
-{
-    EVP_PKEY *pkeyDup = EVP_PKEY_new();
-    if (pkeyDup == NULL)
-        goto err;
-
-    if (EVP_PKEY_copy_parameters(pkeyDup, pkey))
-        return pkeyDup;
-
- err:
-    if (pkeyDup)
-        EVP_PKEY_free(pkeyDup);
-    return NULL;
-}
+IMPLEMENT_STATIC_ASN1_ALLOC_FUNCTIONS(CMP_CTX)
 
 /*
  * Get current certificate store containing trusted root CA certs
@@ -230,7 +204,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->permitTAInExtraCertsForIR = 0;
     ctx->implicitConfirm = 0;
     ctx->disableConfirm = 0;
-    ctx->unprotectedRequests = 0;
+    ctx->unprotectedSend = 0;
     ctx->unprotectedErrors = 0;
     ctx->ignore_keyusage = 0;
     ctx->maxPollTime = 0;
@@ -292,7 +266,6 @@ void CMP_CTX_delete(CMP_CTX *ctx)
         X509_STORE_free(ctx->trusted_store);
     if (ctx->untrusted_certs)
         sk_X509_pop_free(ctx->untrusted_certs, X509_free);
-
     CMP_CTX_free(ctx);
 }
 
@@ -987,11 +960,9 @@ int CMP_CTX_set1_newClCert(CMP_CTX *ctx, const X509 *cert)
         X509_free(ctx->newClCert);
         ctx->newClCert = NULL;
     }
-
-    if ((ctx->newClCert = X509_dup((X509 *)cert)) == NULL) {
-        CMPerr(CMP_F_CMP_CTX_SET1_NEWCLCERT, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
+    if (!X509_up_ref((X509 *)cert))
+        goto err;
+    ctx->newClCert = (X509 *)cert;
     return 1;
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_NEWCLCERT, CMP_R_NULL_ARGUMENT);
@@ -1021,7 +992,12 @@ int CMP_CTX_set1_pkey(CMP_CTX *ctx, const EVP_PKEY *pkey)
     if (pkey == NULL)
         goto err;
 
-    return CMP_CTX_set0_pkey(ctx, EVP_PKEY_dup(pkey));
+    if (!EVP_PKEY_up_ref((EVP_PKEY *)pkey))
+        return 0;
+    if (CMP_CTX_set0_pkey(ctx, pkey))
+        return 1;
+    EVP_PKEY_free((EVP_PKEY *)pkey); /* down ref */
+    return 0;
 
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_PKEY, CMP_R_NULL_ARGUMENT);
@@ -1064,7 +1040,12 @@ int CMP_CTX_set1_newPkey(CMP_CTX *ctx, const EVP_PKEY *pkey)
     if (pkey == NULL)
         goto err;
 
-    return CMP_CTX_set0_newPkey(ctx, EVP_PKEY_dup(pkey));
+    if (!EVP_PKEY_up_ref((EVP_PKEY *)pkey))
+        return 0;
+    if (CMP_CTX_set0_newPkey(ctx, pkey))
+       return 1;
+    EVP_PKEY_free((EVP_PKEY *)pkey); /* down ref */
+    return 0;
 
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_NEWPKEY, CMP_R_NULL_ARGUMENT);
@@ -1111,6 +1092,15 @@ int CMP_CTX_set1_transactionID(CMP_CTX *ctx, const ASN1_OCTET_STRING *id)
 }
 
 /*
+ * gets the transactionID from the context
+ * returns a pointer to the transactionID on success, NULL on error
+ */
+ASN1_OCTET_STRING *CMP_CTX_get0_transactionID(CMP_CTX *ctx)
+{
+    return ctx == NULL ? NULL : ctx->transactionID;
+}
+
+/*
  * sets the given nonce to be used for the recipNonce in the next message to be
  * created.
  * returns 1 on success, 0 on error
@@ -1130,6 +1120,15 @@ int CMP_CTX_set1_recipNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce)
 }
 
 /*
+ * gets the recipNonce of the given context
+ * returns a pointer to the nonce on success, NULL on error
+ */
+ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(CMP_CTX *ctx)
+{
+    return ctx == NULL ? NULL : ctx->recipNonce;
+}
+
+/*
  * stores the given nonce as the last senderNonce sent out
  * returns 1 on success, 0 on error
  */
@@ -1143,6 +1142,15 @@ int CMP_CTX_set1_last_senderNonce(CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce)
  err:
     CMPerr(CMP_F_CMP_CTX_SET1_LAST_SENDERNONCE, CMP_R_NULL_ARGUMENT);
     return 0;
+}
+
+/*
+ * gets the sender nonce of the last message sent
+ * returns a pointer to the nonce on success, NULL on error
+ */
+ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(CMP_CTX *ctx)
+{
+    return ctx == NULL ? NULL : ctx->last_senderNonce;
 }
 
 /*
@@ -1387,27 +1395,14 @@ unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx)
  */
 int CMP_CTX_push_freeText(CMP_CTX *ctx, const char *text)
 {
-    ASN1_UTF8STRING *utf8string = NULL;
-
     if (ctx == NULL)
         goto err;
-    if (text == NULL)
-        goto err;
 
-    if (ctx->freeText == NULL)
-        if ((ctx->freeText = sk_ASN1_UTF8STRING_new()) == NULL)
-            goto err;
-
-    if ((utf8string = ASN1_UTF8STRING_new()) == NULL)
-        goto err;
-    ASN1_UTF8STRING_set(utf8string, text, strlen(text));
-    if (!(sk_ASN1_UTF8STRING_push(ctx->freeText, utf8string)))
-        goto err;
-    return 1;
+    ctx->freeText = CMP_PKIFREETEXT_push_str(ctx->freeText, text);
+    return ctx->freeText != NULL;
 
  err:
     CMP_printf("ERROR in FILE: %s, LINE: %d\n", __FILE__, __LINE__);
-    if (utf8string) ASN1_UTF8STRING_free(utf8string);
     return 0;
 }
 #endif
@@ -1427,8 +1422,8 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
     case CMP_CTX_OPT_DISABLECONFIRM:
         ctx->disableConfirm = val;
         break;
-    case CMP_CTX_OPT_UNPROTECTED_REQUESTS:
-        ctx->unprotectedRequests = val;
+    case CMP_CTX_OPT_UNPROTECTED_SEND:
+        ctx->unprotectedSend = val;
         break;
     case CMP_CTX_OPT_UNPROTECTED_ERRORS:
         ctx->unprotectedErrors = val;

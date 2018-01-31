@@ -15,6 +15,7 @@
   CMP_PKIHEADER_new_senderNonce,
   CMP_PKIHEADER_push0_freeText,
   CMP_PKIHEADER_push1_freeText,
+  CMP_PKIFREETEXT_push_str,
   CMP_PKIMESSAGE_get0_header,
   CMP_PKIHEADER_get0_transactionID,
   CMP_PKIHEADER_get0_senderNonce,
@@ -67,6 +68,7 @@
   int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
   int CMP_PKIHEADER_push0_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
   int CMP_PKIHEADER_push1_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
+  CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft, const char *text);
   CMP_PKIHEADER *CMP_PKIMESSAGE_get0_header(const CMP_PKIMESSAGE *msg);
   ASN1_OCTET_STRING *CMP_PKIHEADER_get0_transactionID(const CMP_PKIHEADER *hdr);
   ASN1_OCTET_STRING *CMP_PKIHEADER_get0_senderNonce(const CMP_PKIHEADER *hdr);
@@ -92,7 +94,8 @@
   int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
-  CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure, const char *text);
+  CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, unsigned long failInfo,
+                                        const char *text);
   long CMP_PKISTATUSINFO_PKIStatus_get( CMP_PKISTATUSINFO *statusInfo);
   X509_ALGOR *CMP_get_protectionAlg_pbmac();
   X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
@@ -160,6 +163,10 @@ hdr->freeText and consumes the given pointer.
 
 CMP_PKIHEADER_push1_freeText() pushes an ASN1_UTF8STRING to
 hdr->freeText and does not consume the pointer.
+
+CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
+to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
+It returns the new/updated freeText. On error it frees ft and returns NULL.
 
 CMP_PKIMESSAGE_get0_header returns the header of the given CMP message.
 

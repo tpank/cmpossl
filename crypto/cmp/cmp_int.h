@@ -49,6 +49,10 @@ struct cmp_ctx_st {
     STACK_OF(X509) *extraCertsOut; /* to be included in PKI messages */
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
     STACK_OF(X509) *caPubs; /* CA certs received from server (in IP message) */
+#if 0
+    CMP_PKIFREETEXT *freeText; /* (this field is intended for human consumption)
+                   this may be used to indicate context-specific instructions */
+#endif
     CMP_PKIFREETEXT *lastStatusString;
     X509 *newClCert; /* *new* CLIENT certificate received from the CA
      * TODO: this should be a stack since there could be more than one */
@@ -86,7 +90,7 @@ struct cmp_ctx_st {
     int implicitConfirm;  /* set implicitConfirm in IR/KUR/CR messages */
     int disableConfirm;  /* disable confirmation messages in IR/KUR/CR
                             message exchanges to cope with broken server */
-    int unprotectedRequests; /* send unprotected PKI messages */
+    int unprotectedSend; /* send unprotected PKI messages */
     int unprotectedErrors; /* accept unprotected error responses */
     int ignore_keyusage; /* ignore key usage entry in certs */
     int maxPollTime; /* maximum number of seconds to poll the server
@@ -116,7 +120,6 @@ struct cmp_ctx_st {
     cmp_transfer_cb_t transfer_cb;
     void *transfer_cb_arg; /* allows to store optional argument to cb */
 } /* CMP_CTX */;
-DECLARE_ASN1_FUNCTIONS(CMP_CTX)
 
 /*-
  *   RevAnnContent ::= SEQUENCE {
@@ -275,6 +278,7 @@ struct cmp_pkistatusinfo_st {
     CMP_PKIFAILUREINFO *failInfo;
 } /* CMP_PKISTATUSINFO */;
 DECLARE_ASN1_FUNCTIONS(CMP_PKISTATUSINFO)
+CMP_PKISTATUSINFO *CMP_PKISTATUSINFO_dup(CMP_PKISTATUSINFO *itav);
 
 /*-
  *  RevReqContent ::= SEQUENCE OF RevDetails

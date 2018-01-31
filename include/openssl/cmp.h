@@ -84,6 +84,10 @@
 #  define OPENSSL_strndup strndup
 # endif
 # if OPENSSL_VERSION_NUMBER < 0x10100007L
+#  define X509_get0_notBefore X509_get_notBefore
+#  define X509_get0_notAfter X509_get_notAfter
+#  define X509_get_issuer_name(x) ((x)->cert_info.issuer)
+#  define X509_get0_serialNumber(x) ((x)->cert_info->serialNumber)
 #  define X509_get0_extensions(x) ((x)->cert_info->extensions)
 # endif
 # if OPENSSL_VERSION_NUMBER < 0x1010001fL
@@ -112,8 +116,6 @@ typedef int (*X509_STORE_CTX_verify_cb)(int, X509_STORE_CTX *);
 #  define X509_VERIFY_PARAM_get_time(param) ((param)->check_time)
 #  define X509_V_FLAG_NO_CHECK_TIME 0x200000
 #  define X509_set_proxy_flag(x) { (x)->ex_flags |= EXFLAG_PROXY; }
-#  define X509_get0_notBefore X509_get_notBefore
-#  define X509_get0_notAfter X509_get_notAfter
 #  define X509_CRL_get0_lastUpdate X509_CRL_get_lastUpdate
 #  define X509_CRL_get0_nextUpdate X509_CRL_get_nextUpdate
 #  define X509_get_key_usage(x) ((X509_check_purpose((x), -1, -1), \
@@ -327,18 +329,44 @@ typedef STACK_OF(ASN1_UTF8STRING) CMP_PKIFREETEXT;
  */
 /* cmp_msg.c */
 
-/* CMP_PKIMESSAGE bodytype ASN.1 choice indices for CMP_certreq_new() */
-# define V_CMP_PKIBODY_IR 0
-# define V_CMP_PKIBODY_CR 2
-# define V_CMP_PKIBODY_P10CR 4
-# define V_CMP_PKIBODY_KUR 7
+/* CMP_PKIMESSAGE bodytype ASN.1 choice indices used in CMP_certreq_new() etc */
+# define V_CMP_PKIBODY_IR        0
+# define V_CMP_PKIBODY_IP        1
+# define V_CMP_PKIBODY_CR        2
+# define V_CMP_PKIBODY_CP        3
+# define V_CMP_PKIBODY_P10CR     4
+# define V_CMP_PKIBODY_POPDECC   5
+# define V_CMP_PKIBODY_POPDECR   6
+# define V_CMP_PKIBODY_KUR       7
+# define V_CMP_PKIBODY_KUP       8
+# define V_CMP_PKIBODY_KRR       9
+# define V_CMP_PKIBODY_KRP      10
+# define V_CMP_PKIBODY_RR       11
+# define V_CMP_PKIBODY_RP       12
+# define V_CMP_PKIBODY_CCR      13
+# define V_CMP_PKIBODY_CCP      14
+# define V_CMP_PKIBODY_CKUANN   15
+# define V_CMP_PKIBODY_CANN     16
+# define V_CMP_PKIBODY_RANN     17
+# define V_CMP_PKIBODY_CRLANN   18
+# define V_CMP_PKIBODY_PKICONF  19
+# define V_CMP_PKIBODY_NESTED   20
+# define V_CMP_PKIBODY_GENM     21
+# define V_CMP_PKIBODY_GENP     22
+# define V_CMP_PKIBODY_ERROR    23
+# define V_CMP_PKIBODY_CERTCONF 24
+# define V_CMP_PKIBODY_POLLREQ  25
+# define V_CMP_PKIBODY_POLLREP  26
+
 CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code);
 CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
 CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx);
 CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
-                              int errorCode, CMP_PKIFREETEXT *errorDetails);
+                              int errorCode, CMP_PKIFREETEXT *errorDetails,
+                              int unprotected);
 CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
+CMP_PKIMESSAGE *CMP_PKIMESSAGE_create(CMP_CTX *ctx, int bodytype);
 
 /* cmp_lib.c */
 void CMP_add_error_txt(const char *separator, const char *txt);
@@ -363,6 +391,7 @@ int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
 int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
+CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft,const char *text);
 int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr,
                                          const CMP_INFOTYPEANDVALUE *itav);
 int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr);
@@ -388,12 +417,14 @@ int CMP_ITAV_stack_item_push0(STACK_OF(CMP_INFOTYPEANDVALUE) **
                               itav_sk_p, const CMP_INFOTYPEANDVALUE *itav);
 CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type,
                                    const ASN1_TYPE *value);
-CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, int failure,
+CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, unsigned long failInfo,
                                       const char *text);
 long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *statusInfo);
-
+long CMP_PKISTATUSINFO_PKIFailureinfo_get(CMP_PKISTATUSINFO *statusInfo);
 X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
 int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit);
+ASN1_BIT_STRING *CMP_PKISTATUSINFO_failInfo_get0(CMP_PKISTATUSINFO *si);
+CMP_PKIFREETEXT *CMP_PKISTATUSINFO_statusString_get0(CMP_PKISTATUSINFO *si);
 CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid);
 CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);
@@ -451,12 +482,36 @@ X509 *CMP_exec_P10CR_ses(CMP_CTX *ctx);
 int CMP_exec_RR_ses(CMP_CTX *ctx);
 STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx);
 
+# ifndef NDEBUG
+/* from cmp_srv.c */
+typedef struct cmp_srv_ctx_st CMP_SRV_CTX;
+int CMP_mock_server_perform(CMP_CTX *cmp_ctx, const CMP_PKIMESSAGE *req,
+                                CMP_PKIMESSAGE **res);
+CMP_SRV_CTX *CMP_SRV_CTX_create(void);
+void CMP_SRV_CTX_delete(CMP_SRV_CTX *srv_ctx);
+CMP_CTX *CMP_SRV_CTX_get0_ctx(CMP_SRV_CTX *srv_ctx);
+int CMP_SRV_CTX_set_grant_implicit_confirm(CMP_SRV_CTX *srv_ctx, int value);
+int CMP_SRV_CTX_set_accept_unprotected(CMP_SRV_CTX *srv_ctx, int value);
+int CMP_SRV_CTX_set_send_unprotected_errors(CMP_SRV_CTX *srv_ctx, int value);
+int CMP_SRV_CTX_set_statusInfo(CMP_SRV_CTX *srv_ctx, int status,
+                               unsigned long failInfo, const char *text);
+int CMP_SRV_CTX_set1_certOut(CMP_SRV_CTX *srv_ctx, X509 *cert);
+int CMP_SRV_CTX_set1_chainOut(CMP_SRV_CTX *srv_ctx, STACK_OF(X509) *chain);
+int CMP_SRV_CTX_set1_caPubsOut(CMP_SRV_CTX *srv_ctx, STACK_OF(X509) *caPubs);
+int CMP_SRV_CTX_set_send_error(CMP_SRV_CTX *srv_ctx, int error);
+int CMP_SRV_CTX_set_checkAfterTime(CMP_SRV_CTX *srv_ctx, long seconds);
+int CMP_SRV_CTX_set_pollCount(CMP_SRV_CTX *srv_ctx, int count);
+int CMP_SRV_CTX_set_accept_raverified(CMP_SRV_CTX *srv_ctx, int raverified);
+# endif /* NDEBUG */
+
 /* from cmp_asn.c */
 void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
                               const ASN1_OBJECT *type,
                               const ASN1_TYPE *value);
 ASN1_OBJECT *CMP_INFOTYPEANDVALUE_get0_type(CMP_INFOTYPEANDVALUE *itav);
 ASN1_TYPE *CMP_INFOTYPEANDVALUE_get0_value(CMP_INFOTYPEANDVALUE *itav);
+void CMP_PKIMESSAGE_free(CMP_PKIMESSAGE *msg);
+void CMP_PKISTATUSINFO_free(CMP_PKISTATUSINFO *si);
 
 /* from cmp_ctx.c */
 CMP_CTX *CMP_CTX_create(void);
@@ -528,6 +583,9 @@ int CMP_CTX_set_failInfoCode(CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo);
 unsigned long CMP_CTX_failInfoCode_get(CMP_CTX *ctx);
 long CMP_CTX_status_get(CMP_CTX *ctx);
 CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx);
+ASN1_OCTET_STRING *CMP_CTX_get0_transactionID(CMP_CTX *ctx);
+ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(CMP_CTX *ctx);
+ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(CMP_CTX *ctx);
 # define CMP_CTX_OPT_MSGTIMEOUT 0
 # define CMP_CTX_OPT_MAXPOLLTIME 1
 # define CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL 2
@@ -538,7 +596,7 @@ CMP_PKIFREETEXT *CMP_CTX_statusString_get(CMP_CTX *ctx);
 # define CMP_CTX_OPT_IMPLICITCONFIRM 7
 # define CMP_CTX_OPT_DISABLECONFIRM 8
 # define CMP_CTX_OPT_UNPROTECTED_ERRORS 9
-# define CMP_CTX_OPT_UNPROTECTED_REQUESTS 10
+# define CMP_CTX_OPT_UNPROTECTED_SEND 10
 # define CMP_CTX_OPT_VALIDITYDAYS 11
 # define CMP_CTX_OPT_IGNORE_KEYUSAGE 12
 # define CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT 13
@@ -565,7 +623,6 @@ void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
 CMP_PKIMESSAGE *d2i_CMP_PKIMESSAGE(CMP_PKIMESSAGE **,
                                    const unsigned char **, long);
 int i2d_CMP_PKIMESSAGE(CMP_PKIMESSAGE *, unsigned char **);
-void CMP_PKIMESSAGE_free(CMP_PKIMESSAGE *msg);
 
 # ifdef  __cplusplus
 }

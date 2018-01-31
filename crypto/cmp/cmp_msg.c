@@ -147,9 +147,106 @@ static int add_crl_reason_extension(X509_EXTENSIONS **exts, int reason_code)
     return ret;
 }
 
-static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin /* may be NULL */) {
-    X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
 
+/*
+ * Creates and initializes a CMP_PKIMESSAGE structure, using ctx for
+ * the header and bodytype for the body.
+ * returns pointer to created CMP_PKIMESSAGE on success, NULL on error
+ */
+CMP_PKIMESSAGE *CMP_PKIMESSAGE_create(CMP_CTX *ctx, int bodytype)
+{
+    CMP_PKIMESSAGE *msg = NULL;
+
+    if (ctx == NULL) {
+        CMPerr(CMP_F_CMP_PKIMESSAGE_CREATE, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+
+    if ((msg = CMP_PKIMESSAGE_new()) == NULL)
+        goto oom;
+    if (!CMP_PKIHEADER_init(ctx, msg->header) ||
+        !CMP_PKIMESSAGE_set_bodytype(msg, bodytype) ||
+        (ctx->geninfo_itavs &&
+         !CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs)))
+        goto err;
+
+    switch (bodytype) {
+    case V_CMP_PKIBODY_IR:
+    case V_CMP_PKIBODY_CR:
+    case V_CMP_PKIBODY_KUR:
+        if ((msg->body->value.ir = CRMF_CERTREQMESSAGES_new()) == NULL)
+            goto oom;
+        return msg;
+
+    case V_CMP_PKIBODY_P10CR:
+        if (ctx->p10CSR == NULL) {
+            CMPerr(CMP_F_CMP_PKIMESSAGE_CREATE, CMP_R_ERROR_CREATING_P10CR);
+            goto err;
+        }
+        if ((msg->body->value.p10cr = X509_REQ_dup(ctx->p10CSR)) == NULL)
+            goto oom;
+        return msg;
+
+    case V_CMP_PKIBODY_IP:
+    case V_CMP_PKIBODY_CP:
+    case V_CMP_PKIBODY_KUP:
+        if ((msg->body->value.ip = CMP_CERTREPMESSAGE_new()) == NULL)
+            goto oom;
+        return msg;
+
+    case V_CMP_PKIBODY_RR:
+        if ((msg->body->value.rr = sk_CMP_REVDETAILS_new_null()) == NULL)
+            goto oom;
+        return msg;
+    case V_CMP_PKIBODY_RP:
+        if ((msg->body->value.rp = CMP_REVREPCONTENT_new()) == NULL)
+            goto oom;
+        return msg;
+
+    case V_CMP_PKIBODY_CERTCONF:
+        if ((msg->body->value.certConf = sk_CMP_CERTSTATUS_new_null()) == NULL)
+            goto oom;
+        return msg;
+    case V_CMP_PKIBODY_PKICONF:
+        if ((msg->body->value.pkiconf = ASN1_TYPE_new()) == NULL)
+            goto oom;
+        ASN1_TYPE_set(msg->body->value.pkiconf, V_ASN1_NULL, NULL);
+        return msg;
+
+    case V_CMP_PKIBODY_POLLREQ:
+        if ((msg->body->value.pollReq = sk_CMP_POLLREQ_new_null()) == NULL)
+            goto oom;
+        return msg;
+    case V_CMP_PKIBODY_POLLREP:
+        if ((msg->body->value.pollRep = sk_CMP_POLLREP_new_null()) == NULL)
+            goto oom;
+        return msg;
+
+    case V_CMP_PKIBODY_GENM:
+    case V_CMP_PKIBODY_GENP:
+        if ((msg->body->value.genm = sk_CMP_INFOTYPEANDVALUE_new_null()) == NULL)
+            goto oom;
+        return msg;
+
+    case V_CMP_PKIBODY_ERROR:
+        if ((msg->body->value.error = CMP_ERRORMSGCONTENT_new()) == NULL)
+            goto oom;
+        return msg;
+
+    default:
+        CMPerr(CMP_F_CMP_PKIMESSAGE_CREATE, CMP_R_UNEXPECTED_PKIBODY);
+        goto err;
+    }
+oom:
+    CMPerr(CMP_F_CMP_PKIMESSAGE_CREATE, CMP_R_OUT_OF_MEMORY);
+err:
+    CMP_PKIMESSAGE_free(msg);
+    return NULL;
+}
+
+static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin /* may be NULL */)
+{
+    X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
     if (exts == NULL)
         goto err;
     if (extin) {
@@ -261,37 +358,30 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
 
     if (ctx == NULL ||
         (bodytype != V_CMP_PKIBODY_P10CR && ctx->pkey == NULL &&
-         ctx->newPkey == NULL)) {
+         ctx->newPkey == NULL) ||
+         (bodytype != V_CMP_PKIBODY_IR && bodytype != V_CMP_PKIBODY_CR &&
+          bodytype != V_CMP_PKIBODY_KUR && bodytype != V_CMP_PKIBODY_P10CR)) {
         CMPerr(CMP_F_CMP_CERTREQ_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
-    if ((msg = CMP_PKIMESSAGE_new()) == NULL)
+    if ((msg = CMP_PKIMESSAGE_create(ctx, bodytype)) == NULL)
         goto err;
-    if (!CMP_PKIHEADER_init(ctx, msg->header))
-        goto err;
+
+    /* header */
     if (ctx->implicitConfirm)
         if (!CMP_PKIMESSAGE_set_implicitConfirm(msg))
             goto err;
 
-    if (ctx->geninfo_itavs)
-        if (!CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs))
-            goto err;
-
     /* body */
-    if (!CMP_PKIMESSAGE_set_bodytype(msg, bodytype))
-        goto err;
-    if (bodytype == V_CMP_PKIBODY_P10CR) {
-        if ((msg->body->value.p10cr = X509_REQ_dup(ctx->p10CSR)) == NULL)
-            goto err;
-    } else {
+    /* For P10CR the content has already been set in CMP_PKIMESSAGE_create */
+     if (bodytype != V_CMP_PKIBODY_P10CR) {
         EVP_PKEY *rkey = ctx->newPkey ? ctx->newPkey
             : ctx->pkey; /* default is currenty client key */
 
         if ((crm = crm_new(ctx, bodytype, CERTREQID, rkey)) == NULL ||
-            (!CRMF_CERTREQMSG_create_popo(crm, rkey, ctx->digest,
-                                         ctx->popoMethod)) ||
-            ((msg->body->value.ir = sk_CRMF_CERTREQMSG_new_null()) == NULL) ||
+            !CRMF_CERTREQMSG_create_popo(crm, rkey, ctx->digest,
+                                         ctx->popoMethod) ||
                       /* value.ir is same for cr and kur */
             !sk_CRMF_CERTREQMSG_push(msg->body->value.ir, crm))
             goto err;
@@ -321,24 +411,25 @@ CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId)
     CMP_POLLREQ *preq = NULL;
 
     if (ctx == NULL ||
-        (msg = CMP_PKIMESSAGE_new()) == NULL ||
-        !CMP_PKIHEADER_init(ctx, msg->header) ||
-        !CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_POLLREQ))
+        (msg = CMP_PKIMESSAGE_create(ctx, V_CMP_PKIBODY_POLLREQ)) == NULL)
         goto err;
 
     /* TODO support multiple cert request IDs to poll */
     if ((preq = CMP_POLLREQ_new()) == NULL ||
         !ASN1_INTEGER_set(preq->certReqId, reqId) ||
-        ((msg->body->value.pollReq = sk_CMP_POLLREQ_new_null()) == NULL) ||
-        !sk_CMP_POLLREQ_push(msg->body->value.pollReq, preq) ||
-        !CMP_PKIMESSAGE_protect(ctx, msg))
+        !sk_CMP_POLLREQ_push(msg->body->value.pollReq, preq))
+        goto err;
+
+    preq = NULL;
+    if (!CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
 
     return msg;
+
  err:
     CMPerr(CMP_F_CMP_POLLREQ_NEW, CMP_R_ERROR_CREATING_POLLREQ);
-    if (msg)
-        CMP_PKIMESSAGE_free(msg);
+    CMP_POLLREQ_free(preq);
+    CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
 
@@ -360,19 +451,9 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
         return NULL;
     }
 
-    if ((msg = CMP_PKIMESSAGE_new()) == NULL)
-        goto err;
-    if (!CMP_PKIHEADER_init(ctx, msg->header))
-        goto err;
-    if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_RR))
+    if ((msg = CMP_PKIMESSAGE_create(ctx, V_CMP_PKIBODY_RR)) == NULL)
         goto err;
 
-    if (ctx->geninfo_itavs)
-        if (!CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs))
-            goto err;
-
-    if ((msg->body->value.rr = sk_CMP_REVDETAILS_new_null()) == NULL)
-        goto err;
     if ((rd = CMP_REVDETAILS_new()) == NULL)
         goto err;
     sk_CMP_REVDETAILS_push(msg->body->value.rr, rd);
@@ -413,8 +494,7 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
 
  err:
     CMPerr(CMP_F_CMP_RR_NEW, CMP_R_ERROR_CREATING_RR);
-    if (msg)
-        CMP_PKIMESSAGE_free(msg);
+    CMP_PKIMESSAGE_free(msg);
 
     return NULL;
 }
@@ -435,13 +515,7 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text)
         return NULL;
     }
 
-    if ((msg = CMP_PKIMESSAGE_new()) == NULL)
-        goto err;
-    if (!CMP_PKIHEADER_init(ctx, msg->header))
-        goto err;
-    if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_CERTCONF))
-        goto err;
-    if ((msg->body->value.certConf = sk_CMP_CERTSTATUS_new_null()) == NULL)
+    if ((msg = CMP_PKIMESSAGE_create(ctx, V_CMP_PKIBODY_CERTCONF)) == NULL)
         goto err;
 
     if ((certStatus = CMP_CERTSTATUS_new()) == NULL)
@@ -465,7 +539,7 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text)
      */
     if (failure >= 0) {
         CMP_PKISTATUSINFO *sinfo;
-        sinfo = CMP_statusInfo_new(CMP_PKISTATUS_rejection, failure, text);
+        sinfo = CMP_statusInfo_new(CMP_PKISTATUS_rejection, 1 << failure, text);
         if (sinfo == NULL)
             goto err;
         certStatus->statusInfo = sinfo;
@@ -479,8 +553,7 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text)
 
  err:
     CMPerr(CMP_F_CMP_CERTCONF_NEW, CMP_R_ERROR_CREATING_CERTCONF);
-    if (msg)
-        CMP_PKIMESSAGE_free(msg);
+    CMP_PKIMESSAGE_free(msg);
 
     return NULL;
 }
@@ -498,18 +571,7 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
         return NULL;
     }
 
-    if ((msg = CMP_PKIMESSAGE_new()) == NULL)
-        goto err;
-    if (!CMP_PKIHEADER_init(ctx, msg->header))
-        goto err;
-    if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_GENM))
-        goto err;
-
-    if (ctx->geninfo_itavs)
-        if (!CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs))
-            goto err;
-
-    if ((msg->body->value.genm = sk_CMP_INFOTYPEANDVALUE_new_null()) == NULL)
+    if ((msg = CMP_PKIMESSAGE_create(ctx, V_CMP_PKIBODY_GENM)) == NULL)
         goto err;
 
     if (ctx->genm_itavs)
@@ -523,44 +585,39 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
 
  err:
     CMPerr(CMP_F_CMP_GENM_NEW, CMP_R_ERROR_CREATING_GENM);
-    if (msg)
-        CMP_PKIMESSAGE_free(msg);
+    CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
 
 /*
- * Creates a new Error Message with the given contents
+ * Creates Error Message with the given contents, copying si and errorDetails
  * returns a pointer to the PKIMessage on success, NULL on error
  */
 CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
-                              int errorCode, CMP_PKIFREETEXT *errorDetails)
+                              int errorCode, CMP_PKIFREETEXT *errorDetails,
+                              int unprotected)
 {
     CMP_PKIMESSAGE *msg = NULL;
 
     if (ctx == NULL || si == NULL) {
-        CMPerr(CMP_F_CMP_ERROR_NEW, CMP_R_INVALID_ARGS);
-        return NULL;
+        CMPerr(CMP_F_CMP_ERROR_NEW, CMP_R_NULL_ARGUMENT);
+        goto err;
     }
-
-    if ((msg = CMP_PKIMESSAGE_new()) == NULL)
-        goto err;
-    if (!CMP_PKIHEADER_init(ctx, msg->header))
-        goto err;
-    if (!CMP_PKIMESSAGE_set_bodytype(msg, V_CMP_PKIBODY_ERROR))
-        goto err;
-    if ((msg->body->value.error = CMP_ERRORMSGCONTENT_new()) == NULL)
+    if ((msg = CMP_PKIMESSAGE_create(ctx, V_CMP_PKIBODY_ERROR)) == NULL)
         goto err;
 
     CMP_PKISTATUSINFO_free(msg->body->value.error->pKIStatusInfo);
-    msg->body->value.error->pKIStatusInfo = si;
+    msg->body->value.error->pKIStatusInfo = CMP_PKISTATUSINFO_dup(si);
     if (errorCode >= 0) {
         msg->body->value.error->errorCode = ASN1_INTEGER_new();
         if (!ASN1_INTEGER_set(msg->body->value.error->errorCode, errorCode))
             goto err;
     }
-    msg->body->value.error->errorDetails = errorDetails;
+    if (errorDetails)
+        msg->body->value.error->errorDetails = sk_ASN1_UTF8STRING_deep_copy(
+                            errorDetails, ASN1_STRING_dup, ASN1_STRING_free);
 
-    if (!CMP_PKIMESSAGE_protect(ctx, msg))
+    if (!unprotected && !CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
     return msg;
 
