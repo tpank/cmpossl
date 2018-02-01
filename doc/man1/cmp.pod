@@ -212,7 +212,7 @@ i.e., the CMP server (usually a CA or RA entity).
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by \E<nbsp>(backslash), no spaces are skipped.
 
-If not given, the recipient name determined as specified above will be used.
+If not given, the subject DN of B<-srvcert>, if provided, will be used.
 
 =item B<-srvcert filename>
 

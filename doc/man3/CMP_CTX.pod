@@ -415,8 +415,7 @@ When a response is received, its sender must match the recipient of the request.
 
 CMP_CTX_set1_expected_sender() sets the sender name that will be expected in
 the PKIHeader of response messages, i.e. the X509 name of the (CA) server.
-If not set, the recipient name determined as specified in
-CMP_CTX_set1_recipient() will be used.
+It defaults to the subject DN of the certificate set via CMP_CTX_set1_srvCert().
 
 CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
