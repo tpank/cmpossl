@@ -2511,7 +2511,6 @@ static X509_STORE *load_certstore(char *input, const char *desc)
 {
     X509_STORE *store = NULL;
     STACK_OF(X509) *certs = NULL;
-    char *pass_string = get_passwd(opt_certpass, desc);
 
     if (input == NULL)
         goto err;
@@ -2521,7 +2520,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
         char *next = next_item(input);           \
 
         if (!load_certs_autofmt(input, &certs, opt_storeform, 1,
-                                pass_string, desc) ||
+                                opt_certpass, desc) ||
             !(store = sk_X509_to_store(store, certs))) {
             /* BIO_puts(bio_err, "error: out of memory\n"); */
             X509_STORE_free(store);
@@ -2533,8 +2532,6 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     }
  err:
     sk_X509_pop_free(certs, X509_free);
-    if (pass_string)
-        OPENSSL_clear_free(pass_string, strlen(pass_string));
     return store;
 }
 
