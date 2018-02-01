@@ -437,8 +437,13 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         goto err;
 
     /* determine recipient entry in PKIHeader */
-    if (ctx->srvCert)
+    if (ctx->srvCert) {
         rcp = X509_get_subject_name(ctx->srvCert);
+        /* take this also as expected_sender of responses unless set explicitly */
+        if (ctx->expected_sender == NULL && rcp != NULL &&
+            !CMP_CTX_set1_expected_sender(ctx, rcp))
+        goto err;
+    }
     else if (ctx->recipient)
         rcp = ctx->recipient;
     else if (ctx->issuer)
@@ -448,10 +453,6 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
     else if (ctx->clCert)
         rcp = X509_get_issuer_name(ctx->clCert);
     if (!CMP_PKIHEADER_set1_recipient(hdr, rcp))
-        goto err;
-    /* take this also as expected_sender of responses unless set explicitly */
-    if (ctx->expected_sender == NULL &&
-        !CMP_CTX_set1_expected_sender(ctx, rcp))
         goto err;
 
     /* set current time as message time */
