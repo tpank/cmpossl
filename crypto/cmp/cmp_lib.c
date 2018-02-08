@@ -439,7 +439,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
     /* determine recipient entry in PKIHeader */
     if (ctx->srvCert) {
         rcp = X509_get_subject_name(ctx->srvCert);
-        /* take this also as expected_sender of responses unless set explicitly */
+        /* set also as expected_sender of responses unless set explicitly */
         if (ctx->expected_sender == NULL && rcp != NULL &&
             !CMP_CTX_set1_expected_sender(ctx, rcp))
         goto err;
