@@ -368,11 +368,6 @@ CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
                                                 long reqId);
 int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
 int CMP_PKIMESSAGE_check_implicitConfirm(CMP_PKIMESSAGE *msg);
-ASN1_BIT_STRING *CMP_calc_protection_pbmac(const CMP_PKIMESSAGE *pkimessage,
-                                           const ASN1_OCTET_STRING
-                                           *secret);
-ASN1_BIT_STRING *CMP_calc_protection_sig(CMP_PKIMESSAGE *pkimessage,
-                                         EVP_PKEY *pkey);
 int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
 int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus,
@@ -398,7 +393,6 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);
 int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type);
 int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
-ASN1_OCTET_STRING *CMP_PKIMESSAGE_get_transactionID(const CMP_PKIMESSAGE *msg);
 # define CMP_PKISTATUSINFO_BUFLEN 1024
 char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
 STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
@@ -451,10 +445,6 @@ X509 *CMP_exec_P10CR_ses(CMP_CTX *ctx);
 int CMP_exec_RR_ses(CMP_CTX *ctx);
 STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx);
 
-/* from cmp_srv.c */
-
-int CMP_PKIMESSAGE_mock_request(const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
-                                CMP_PKIMESSAGE **res);
 /* from cmp_asn.c */
 void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
                               const ASN1_OBJECT *type,
