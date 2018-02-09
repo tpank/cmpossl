@@ -428,9 +428,9 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nMessage transfer options:"},
     {"server", OPT_SERVER, 's',
-     "'address[:port]' of CMP server. Port default 8080"},
+     "address[:port] of CMP server. Port default 8080"},
     {"proxy", OPT_PROXY, 's',
- "'address[:port]' of HTTP proxy, if needed for CMP server. Port default 8080"},
+ "address[:port] of optional HTTP proxy. Port default 8080. TLS not supported here."},
     {"path", OPT_PATH, 's',
      "HTTP path location inside the server (aka CMP alias). Default '/'"},
     {"msgtimeout", OPT_MSGTIMEOUT, 'n',
@@ -3373,8 +3373,13 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_tls_used) {
         X509_STORE *store;
-        SSL_CTX *ssl_ctx = setup_ssl_ctx(e, CMP_CTX_get0_untrusted_certs(ctx),
-                                         all_crls);
+        SSL_CTX *ssl_ctx;
+
+        if (opt_proxy) {
+            BIO_printf(bio_err, "Sorry, TLS not yet supported via proxy\n");
+            goto err;
+        }
+        ssl_ctx = setup_ssl_ctx(e, CMP_CTX_get0_untrusted_certs(ctx), all_crls);
         if (!ssl_ctx)
             goto err;
 
