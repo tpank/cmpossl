@@ -1,48 +1,20 @@
 /*
- * ====================================================================
- * Written by Miikka Viljanen, based on cmpclient by Martin Peylo
- */
-/*
- * ====================================================================
- * Copyright (c) 2007-2010 The OpenSSL Project.  All rights reserved.
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software must
- * display the following acknowledgment: "This product includes software developed
- * by the OpenSSL Project for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
- * endorse or promote products derived from this software without prior written
- * permission. For written permission, please contact openssl-core@openssl.org.
- * 5. Products derived from this software may not be called "OpenSSL" nor may
- * "OpenSSL" appear in their names without prior written permission of the
- * OpenSSL Project.
- * 6. Redistributions of any form whatsoever must retain the
- * following acknowledgment: "This product includes software developed by the
- * OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/)"
- * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY EXPRESSED
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO
- * EVENT SHALL THE OpenSSL PROJECT OR ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
- * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * ====================================================================
- * This product includes cryptographic software written by Eric Young
- * (eay@cryptsoft.com).  This product includes software written by Tim Hudson
- * (tjh@cryptsoft.com).
+ * Copyright 1995-2017 The OpenSSL Project Authors. All Rights Reserved.
+ *
+ * Licensed under the OpenSSL license (the "License").  You may not use
+ * this file except in compliance with the License.  You can obtain a copy
+ * in the file LICENSE in the source distribution or at
+ * https://www.openssl.org/source/license.html
  */
 /*
  * ====================================================================
  * Copyright 2012-2014 Nokia Oy. ALL RIGHTS RESERVED. CMP support in OpenSSL
  * originally developed by Nokia for contribution to the OpenSSL project.
+ */
+/*
+ * ====================================================================
+ * Written by Miikka Viljanen, based on cmpclient by Martin Peylo
+ * Major extensions by David von Oheimb, Siemens AG, Corporate Technology
  */
 
 #include <openssl/opensslconf.h>
@@ -60,8 +32,8 @@
 # define X509_STORE_CTX_set0_verified_chain(ctx, sk) { \
         sk_X509_pop_free((ctx)->chain, X509_free); (ctx)->chain = (sk); }
 # define X509_STORE_CTX_get_check_revocation(ctx) ((ctx)->check_revocation)
-# define X509_STORE_get_check_revocation(store) ((store)->check_revocation)
-# define X509_STORE_set_check_revocation(store,f){(store)->check_revocation=(f);}
+# define X509_STORE_get_check_revocation(st)    ((st)->check_revocation)
+# define X509_STORE_set_check_revocation(st, f) {(st)->check_revocation=(f);}
 #endif
 
 static char *opt_config = NULL;
@@ -513,7 +485,7 @@ OPTIONS cmp_options[] = {
     {"san_ip", OPT_SAN_IP, 's',
 "IP address Subject Alternative Name(s) to add as certificate request extension"},
     {"san_nodefault", OPT_SAN_NODEFAULT, '-',
-     "Do not take default Subject Alternative Names from reference certificate"},
+    "Do not take default Subject Alternative Names from reference certificate"},
     {"san_critical", OPT_SAN_CRITICAL, '-',
 "Flag the Subject Alternative Names given with -san_dns or -san_ip as critical"},
     {"policies", OPT_POLICIES, 's',
@@ -523,7 +495,8 @@ OPTIONS cmp_options[] = {
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method."},
     {OPT_MORE_STR, 0, 0,
      "0 = NONE, 1 = SIGNATURE (default), 2 = ENCRCERT, 3 = RAVERIFIED"},
-    {"csr", OPT_CSR, 's', "CSR in PKCS#10 format to use in p10cr for legacy support"},
+    {"csr", OPT_CSR, 's',
+     "CSR in PKCS#10 format to use in p10cr for legacy support"},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-',
      "Request implicit confirmation of newly enrolled certificate"},
     {"disableconfirm", OPT_DISABLECONFIRM, '-',
@@ -1616,7 +1589,7 @@ static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format,
         if (crls == NULL)
             return NULL;
         crl = load_crl_autofmt(infile, format, desc);
-        /* using load_crl_autofmt because of http capabilities including timeout */
+     /* using load_crl_autofmt because of http capabilities including timeout */
         if (crl == NULL) {
             sk_X509_CRL_free(crls);
             return NULL;
@@ -2729,7 +2702,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
                     char *issuer =
                         X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
                     BIO_printf(bio_c_out,
-                               "warning: CRL from '%s' issued by %s has expired\n",
+                            "warning: CRL from '%s' issued by %s has expired\n",
                                opt_crls, issuer);
                     OPENSSL_free(issuer);
 #if 0
@@ -3279,7 +3252,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_server == NULL) {
         BIO_puts(bio_err, "error: missing server address[:port]\n");
         goto err;
-    } else if (!(server_port = parse_addr(&opt_server, server_port, "server"))) {
+    } else if (!(server_port = parse_addr(&opt_server, server_port, "server"))){
         goto err;
     }
     if (!CMP_CTX_set1_serverName(ctx, opt_server) ||
@@ -4081,7 +4054,7 @@ int cmp_main(int argc, char **argv)
 
     if (opt_extracertsout && CMP_CTX_extraCertsIn_num(cmp_ctx) > 0) {
         STACK_OF(X509) *certs = CMP_CTX_extraCertsIn_get1(cmp_ctx);
-        if (certs == NULL || save_certs(certs, opt_extracertsout, "extra") < 0) {
+        if (certs == NULL || save_certs(certs, opt_extracertsout, "extra") < 0){
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }
