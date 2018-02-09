@@ -111,8 +111,10 @@ struct cmp_ctx_st {
     int msgTimeOut; /* maximum time in seconds to wait for
                        each CMP message round trip to complete */
     BIO *tlsBIO;
+    cmp_http_cb_t http_cb;
+    void *http_cb_arg; /* allows to store optional argument to cb */
     cmp_transfer_cb_t transfer_cb;
-    void *transfer_cb_arg; /* allows to store options individual to cb */
+    void *transfer_cb_arg; /* allows to store optional argument to cb */
 } /* CMP_CTX */;
 DECLARE_ASN1_FUNCTIONS(CMP_CTX)
 

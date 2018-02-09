@@ -1662,7 +1662,7 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format,
  * returns 1 on success, 0 on error.
  */
 #define X509_STORE_EX_DATA_HOST 0
-#define X509_STORE_EX_DATA_SBIO 1
+#define X509_STORE_EX_DATA_CMP 1 /* currently unused */
 static int truststore_set_host(X509_STORE *ts, const char *host)
 {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
@@ -2290,6 +2290,20 @@ static int check_ocsp_crls(X509_STORE_CTX *ctx)
 
 #endif  /* !defined OPENSSL_NO_OCSP */
 
+static int http_connected = 0;
+static BIO *tls_http_cb(CMP_CTX *ctx, BIO *hbio, int connect)
+{
+    http_connected = connect;
+    if (connect) {
+        BIO *sbio = BIO_new_ssl(CMP_CTX_get_http_cb_arg(ctx), 1/* client */);
+        return sbio ? BIO_push(sbio, hbio): NULL;
+    } else {
+        /* as a workaround for OpenSSL double free, do not pop the sbio, but
+           rely on BIO_free_all() done by CMP_PKIMESSAGE_http_perform() */
+        return hbio;
+    }
+}
+
 /*
  * This function is a callback used by OpenSSL's verify_cert function.
  * It's called at the end of a cert verification to allow an opportunity
@@ -2307,10 +2321,10 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
         SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
                                           SSL_get_ex_data_X509_STORE_CTX_idx());
         X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
-        BIO *sbio = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_SBIO);
+      /*CMP_CTX *cmp_ctx = X509_STORE_get_ex_data(ts,X509_STORE_EX_DATA_CMP);*/
         const char *expected = NULL;
 
-        if (sbio && BIO_next(sbio) /* CMP_PKIMESSAGE_http_perform() is active */
+        if (http_connected /* CMP_PKIMESSAGE_http_perform() is active */
             && !ssl) /* ssl_add_cert_chain() is active */
             return ok; /* avoid printing spurious errors */
 
@@ -3358,7 +3372,6 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_tls_used) {
-        BIO *sbio;
         X509_STORE *store;
         SSL_CTX *ssl_ctx = setup_ssl_ctx(e, CMP_CTX_get0_untrusted_certs(ctx),
                                          all_crls);
@@ -3366,14 +3379,14 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto err;
 
         store = SSL_CTX_get_cert_store(ssl_ctx);
-        sbio = BIO_new_ssl(ssl_ctx, 1);
-        SSL_CTX_free(ssl_ctx);
-        if (sbio == NULL || (store &&
-               !X509_STORE_set_ex_data(store, X509_STORE_EX_DATA_SBIO, sbio))) {
-            BIO_printf(bio_err, "error: cannot initialize SSL BIO");
+        if (store &&
+            !X509_STORE_set_ex_data(store, X509_STORE_EX_DATA_CMP, ctx)) {
+            BIO_printf(bio_err, "error: cannot set CMP CTX in SSL store");
+            SSL_CTX_free(ssl_ctx);
             goto err;
         }
-        CMP_CTX_set0_tlsBIO(ctx, sbio);
+        (void)CMP_CTX_set_http_cb(ctx, tls_http_cb);
+        (void)CMP_CTX_set_http_cb_arg(ctx, ssl_ctx);
     }
 
 
@@ -4103,6 +4116,7 @@ int cmp_main(int argc, char **argv)
     if (ret != EXIT_SUCCESS)
         ERR_print_errors_fp(stderr);
 
+    SSL_CTX_free(CMP_CTX_get_http_cb_arg(cmp_ctx));
     CMP_CTX_delete(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);
     X509_STORE_free(out_trusted);

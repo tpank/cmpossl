@@ -27,7 +27,7 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 =head1 RETURN VALUES
 
 CMP_PKIMESSAGE_http_perform() returns 0 on success or else an error reason code.
-It uses ctx->tlsBIO if set and respects ctx->msgTimeOut.
+It uses ctx->http_cb if set and respects ctx->msgTimeOut.
 
 =head1 EXAMPLE
 
