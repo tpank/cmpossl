@@ -83,6 +83,9 @@
        (X509_check_purpose((x), -1, -1),(x)->skid)
 #  define OPENSSL_strndup strndup
 # endif
+# if OPENSSL_VERSION_NUMBER < 0x10100007L
+#  define X509_get0_extensions(x) ((x)->cert_info->extensions)
+# endif
 # if OPENSSL_VERSION_NUMBER < 0x1010001fL
 #  define OPENSSL_zalloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
 #  define X509_up_ref(x)((x)->references++)
