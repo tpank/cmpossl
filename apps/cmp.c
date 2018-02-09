@@ -1840,6 +1840,7 @@ static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
 
 static int check_cert_revocation_stapled_ocsp_crls(X509_STORE_CTX *ctx,
                                                    OCSP_RESPONSE *resp);
+# if OPENSSL_VERSION_NUMBER >= 0x1010001fL
 /*
  * callback function for verifying stapled OCSP responses
  * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error,
@@ -1847,10 +1848,6 @@ static int check_cert_revocation_stapled_ocsp_crls(X509_STORE_CTX *ctx,
  */
 static int ocsp_resp_cb(SSL *ssl, STACK_OF(X509) *untrusted)
 {
-# if OPENSSL_VERSION_NUMBER < 0x1010001fL
-    /* feature seems not available, stapling does not work anyway for <1.1 */
-#  define SSL_get0_verified_chain(ssl) NULL
-# endif
     STACK_OF(X509) *chain = SSL_get0_verified_chain(ssl);
     const unsigned char *resp;
     OCSP_RESPONSE *rsp = NULL;
@@ -1889,6 +1886,7 @@ static int ocsp_resp_cb(SSL *ssl, STACK_OF(X509) *untrusted)
     OCSP_RESPONSE_free(rsp);
     return ret;
 }
+# endif
 
 #endif /* !defined OPENSSL_NO_OCSP */
 
