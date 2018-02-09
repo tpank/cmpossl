@@ -120,32 +120,6 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
 } ASN1_SEQUENCE_END(CMP_CTX)
 IMPLEMENT_ASN1_FUNCTIONS(CMP_CTX)
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-/*
- * Returns a duplicate of the given stack of X509 certificates.
- */
-static STACK_OF(X509) *X509_chain_up_ref(STACK_OF(X509) *stack)
-{
-    STACK_OF(X509) *newsk = NULL;
-    int i;
-
-    if (stack == NULL)
-        goto err;
-    if ((newsk = sk_X509_new_null()) == NULL)
-        goto err;
-
-    for (i = 0; i < sk_X509_num(stack); i++)
-        if (!sk_X509_push(newsk, X509_dup(sk_X509_value(stack, i)))) {
-            sk_X509_free(newsk);
-            goto err;
-        }
-
-    return newsk;
- err:
-    return NULL;
-}
-#endif
-
 /*
  * For some reason EVP_PKEY_dup() is not implemented via
  * IMPLEMENT_ASN1_DUP_FUNCTION(EVP_PKEY) in OpenSSL X509
