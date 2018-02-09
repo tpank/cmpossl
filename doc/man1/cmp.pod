@@ -160,6 +160,7 @@ The IP address or hostname and port (defaults to 8080) of the CMP server to conn
 
 The IP address or hostname and port (defaults to 8080) of the HTTP/S proxy
 server, optionally given if needed for accessing the CMP server.
+TLS is not yet supported via proxy.
 
 =item B<-path remote_path>
 

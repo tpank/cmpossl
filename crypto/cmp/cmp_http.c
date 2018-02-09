@@ -454,9 +454,8 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
      * allowed when using a proxy
      */
     if (ctx->proxyName && ctx->proxyPort)
-        pos = BIO_snprintf(path, pathlen-1, "http%s://%s:%d",
-                           ctx->http_cb ? "s" : "", ctx->serverName,
-                           ctx->serverPort);
+        pos = BIO_snprintf(path, pathlen-1, "http://%s:%d",
+                           ctx->serverName, ctx->serverPort);
 
     /* make sure path includes a forward slash */
     if (ctx->serverPath[0] != '/')
