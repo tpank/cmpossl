@@ -445,7 +445,7 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     rv = bio_connect(cbio, ctx->msgTimeOut);
     /* BIO_do_connect modifies hbio->prev_bio, which was ctx->tlsBIO - why?? */
     if (rv <= 0) {
-        err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_SERVER_NOT_REACHABLE;
+        err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_ERROR_CONNECTING;
         goto err;
     } else
         (void)ERR_pop_to_mark(); /* discard diagnostic info */
@@ -499,7 +499,7 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
             err = CMP_R_TLS_ERROR;
         CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, err);
         if (err == CMP_R_TLS_ERROR || err == CMP_R_CONNECT_TIMEOUT
-                                   || err == CMP_R_SERVER_NOT_REACHABLE)
+                                   || err == CMP_R_ERROR_CONNECTING)
             add_conn_error_hint(ctx, ERR_peek_error());
     }
 
