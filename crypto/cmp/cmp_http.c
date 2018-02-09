@@ -434,6 +434,8 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
         hbio = bio;
     }
 
+    /* TODO: it looks like bio_connect() is superflous except for maybe 
+       better error/timeout handling and reporting? Remove next 9 lines? */
     /* tentatively set error, which allows accumulating diagnostic info */
     (void)ERR_set_mark();
     CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);
