@@ -319,37 +319,32 @@ static void add_conn_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 /*
  * internal function
  * Create a new http connection, with a specified source ip/interface
- * returns 1 on success, 0 on error, returns the created bio inside the *bio
- * argument
+ * returns the created BIO or NULL on failure
  */
-static int CMP_new_http_bio(BIO **bio, const CMP_CTX *ctx)
+static BIO *CMP_new_http_bio(const CMP_CTX *ctx)
 {
+    char *host;
+    int port;
     BIO *cbio = NULL;
+    char buf[32];
 
     if (ctx == NULL)
-        goto err;
+        goto end;
 
-    if (((ctx->proxyName == NULL)) || !ctx->proxyPort) {
-        char buf[32];
-        cbio = BIO_new_connect(ctx->serverName);
-        if (cbio == NULL)
-            goto err;
-        snprintf(buf, sizeof(buf), "%d", ctx->serverPort);
-        BIO_set_conn_port(cbio, buf);
-    } else {
-        char buf[32];
-        cbio = BIO_new_connect(ctx->proxyName);
-        if (cbio == NULL)
-            goto err;
-        snprintf(buf, sizeof(buf), "%d", ctx->proxyPort);
-        BIO_set_conn_port(cbio, buf);
+    host = ctx->proxyName;
+    port = ctx->proxyPort;
+    if (host == NULL || !port) {
+        host = ctx->serverName;
+        port = ctx->serverPort;
     }
+    cbio = BIO_new_connect(host);
+    if (cbio == NULL)
+        goto end;
+    snprintf(buf, sizeof(buf), "%d", port);
+    (void)BIO_set_conn_port(cbio, buf);
 
-    *bio = cbio;
-    return 1;
-
- err:
-    return 0;
+ end:
+    return cbio;
 }
 
 static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
@@ -431,8 +426,7 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
 
     max_time = ctx->msgTimeOut > 0 ? time(NULL) + ctx->msgTimeOut : 0;
 
-    CMP_new_http_bio(&hbio, ctx);
-    if (hbio == NULL)
+    if ((hbio = CMP_new_http_bio(ctx)) == NULL)
         goto err;
     if (ctx->http_cb) {
         if ((bio = (*ctx->http_cb)(ctx, hbio, 1)) == NULL)
