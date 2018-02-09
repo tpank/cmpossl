@@ -303,6 +303,8 @@ void put_cert_verify_err(int func)
  * verify_cert() function at the end of a cert verification as an opportunity
  * to gather and output information regarding a (failing) cert verification,
  * and to possibly change the result of the verification (not done here).
+ * The CLI also calls it on error while cert status checking using OCSP stapling
+ * via a callback function set with SSL_CTX_set_tlsext_status_cb().
  * returns 0 if and only if the cert verification is considered failed.
  */
 int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)

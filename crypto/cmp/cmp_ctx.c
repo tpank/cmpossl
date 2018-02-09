@@ -120,10 +120,11 @@ ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
 } ASN1_SEQUENCE_END(CMP_CTX)
 IMPLEMENT_ASN1_FUNCTIONS(CMP_CTX)
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 /*
  * Returns a duplicate of the given stack of X509 certificates.
  */
-static STACK_OF(X509) *X509_stack_dup(const STACK_OF(X509) *stack)
+static STACK_OF(X509) *X509_chain_up_ref(STACK_OF(X509) *stack)
 {
     STACK_OF(X509) *newsk = NULL;
     int i;
@@ -143,6 +144,7 @@ static STACK_OF(X509) *X509_stack_dup(const STACK_OF(X509) *stack)
  err:
     return NULL;
 }
+#endif
 
 /*
  * For some reason EVP_PKEY_dup() is not implemented via
@@ -457,7 +459,7 @@ STACK_OF(X509) *CMP_CTX_extraCertsIn_get1(CMP_CTX *ctx)
         goto err;
     if (ctx->extraCertsIn == NULL)
         return NULL;
-    return X509_stack_dup(ctx->extraCertsIn);
+    return X509_chain_up_ref(ctx->extraCertsIn);
  err:
     CMPerr(CMP_F_CMP_CTX_EXTRACERTSIN_GET1, CMP_R_INVALID_ARGS);
     return NULL;
@@ -500,7 +502,7 @@ int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  */
 int CMP_CTX_set1_extraCertsIn(CMP_CTX *ctx,
-                              const STACK_OF(X509) *extraCertsIn)
+                              STACK_OF(X509) *extraCertsIn)
 {
     if (ctx == NULL)
         goto err;
@@ -513,7 +515,7 @@ int CMP_CTX_set1_extraCertsIn(CMP_CTX *ctx,
         ctx->extraCertsIn = NULL;
     }
 
-    if ((ctx->extraCertsIn = X509_stack_dup(extraCertsIn)) == NULL) {
+    if ((ctx->extraCertsIn = X509_chain_up_ref(extraCertsIn)) == NULL) {
         CMPerr(CMP_F_CMP_CTX_SET1_EXTRACERTSIN, CMP_R_OUT_OF_MEMORY);
         return 0;
     }
@@ -567,7 +569,7 @@ int CMP_CTX_extraCertsOut_num(CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  */
 int CMP_CTX_set1_extraCertsOut(CMP_CTX *ctx,
-                               const STACK_OF(X509) *extraCertsOut)
+                               STACK_OF(X509) *extraCertsOut)
 {
     if (ctx == NULL)
         goto err;
@@ -579,7 +581,7 @@ int CMP_CTX_set1_extraCertsOut(CMP_CTX *ctx,
         ctx->extraCertsOut = NULL;
     }
 
-    if ((ctx->extraCertsOut = X509_stack_dup(extraCertsOut)) == NULL) {
+    if ((ctx->extraCertsOut = X509_chain_up_ref(extraCertsOut)) == NULL) {
         CMPerr(CMP_F_CMP_CTX_SET1_EXTRACERTSOUT, CMP_R_OUT_OF_MEMORY);
         return 0;
     }
@@ -653,7 +655,7 @@ STACK_OF(X509) *CMP_CTX_caPubs_get1(CMP_CTX *ctx)
         goto err;
     if (ctx->caPubs == NULL)
         return NULL;
-    return X509_stack_dup(ctx->caPubs);
+    return X509_chain_up_ref(ctx->caPubs);
  err:
     CMPerr(CMP_F_CMP_CTX_CAPUBS_GET1, CMP_R_INVALID_ARGS);
     return NULL;
@@ -696,7 +698,7 @@ int CMP_CTX_caPubs_num(CMP_CTX *ctx)
  * CMP_CTX structure so that they may be retrieved later.
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF(X509) *caPubs)
+int CMP_CTX_set1_caPubs(CMP_CTX *ctx, STACK_OF(X509) *caPubs)
 {
     if ((ctx == NULL) || (caPubs == NULL))
         goto err;
@@ -706,7 +708,7 @@ int CMP_CTX_set1_caPubs(CMP_CTX *ctx, const STACK_OF(X509) *caPubs)
         ctx->caPubs = NULL;
     }
 
-    if ((ctx->caPubs = X509_stack_dup(caPubs)) == NULL) {
+    if ((ctx->caPubs = X509_chain_up_ref(caPubs)) == NULL) {
         CMPerr(CMP_F_CMP_CTX_SET1_CAPUBS, CMP_R_OUT_OF_MEMORY);
         return 0;
     }
