@@ -277,7 +277,8 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->proxyName = NULL;
     ctx->proxyPort = 8080;
     ctx->msgTimeOut = 2 * 60;
-    ctx->tlsBIO = NULL;
+    ctx->http_cb = NULL;
+    ctx->http_cb_arg = NULL;
     ctx->transfer_cb =
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
         CMP_PKIMESSAGE_http_perform;
@@ -316,8 +317,6 @@ void CMP_CTX_delete(CMP_CTX *ctx)
     if (ctx->untrusted_certs)
         sk_X509_pop_free(ctx->untrusted_certs, X509_free);
 
-    if (ctx->tlsBIO)
-        BIO_free(ctx->tlsBIO);
     CMP_CTX_free(ctx);
 }
 
@@ -1243,29 +1242,42 @@ int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port)
 }
 
 /*
- * sets the SSL/TLS BIO to be used for HTTPS
+ * sets the http connect/disconnect callback function to be used for HTTP(S)
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio)
+int CMP_CTX_set_http_cb(CMP_CTX *ctx, cmp_http_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
-    ctx->tlsBIO = sbio;
+    ctx->http_cb = cb;
     return 1;
  err:
-    CMPerr(CMP_F_CMP_CTX_SET0_TLSBIO, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 
 /*
- * returns the SSL/TLS BIO to be used for HTTPS, if any, else NULL
+ * Set argument optionally to be used by the http connect/disconnect callback
+ * returns 1 on success, 0 on error
  */
-BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx)
+int CMP_CTX_set_http_cb_arg(CMP_CTX *ctx, void *arg)
 {
-    if (ctx)
-        return ctx->tlsBIO;
-    else
+    if (ctx == NULL)
+        goto err;
+    ctx->http_cb_arg = arg;
+    return 1;
+ err:
+    return 0;
+}
+
+/*
+ * Get argument optionally to be used by the http connect/disconnect callback
+ * returns callback argument set previously (NULL if not set or on error)
+ */
+void *CMP_CTX_get_http_cb_arg(CMP_CTX *ctx)
+{
+    if (ctx == NULL)
         return NULL;
+    return ctx->http_cb_arg;
 }
 
 /*
@@ -1283,11 +1295,10 @@ int CMP_CTX_set_transfer_cb(CMP_CTX *ctx, cmp_transfer_cb_t cb)
 }
 
 /*
- * Set argument, respecively a pointer to a structure containing arguments,
- * optionally to be used by the transfer callback
+ * Set argument optionally to be used by the transfer callback
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set_transfer_cb_arg(CMP_CTX *ctx, void* arg)
+int CMP_CTX_set_transfer_cb_arg(CMP_CTX *ctx, void *arg)
 {
     if (ctx == NULL)
         goto err;
@@ -1298,8 +1309,7 @@ int CMP_CTX_set_transfer_cb_arg(CMP_CTX *ctx, void* arg)
 }
 
 /*
- * Get argument, respecively the pointer to a structure containing arguments,
- * optionally to be used by transfer callback
+ * Get argument optionally to be used by the transfer callback
  * returns callback argument set previously (NULL if not set or on error)
  */
 void *CMP_CTX_get_transfer_cb_arg(CMP_CTX *ctx)

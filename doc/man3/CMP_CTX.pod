@@ -51,8 +51,12 @@
  CMP_CTX_set_popoMethod,
  CMP_CTX_set1_proxyName,
  CMP_CTX_set_proxyPort,
- CMP_CTX_set0_tlsBIO,
- CMP_CTX_get_tlsBIO,
+ CMP_CTX_set_transfer_cb,
+ CMP_CTX_set_transfer_cb_arg,
+ CMP_CTX_get_transfer_cb_arg,
+ CMP_CTX_set_http_cb,
+ CMP_CTX_set_http_cb_arg,
+ CMP_CTX_get_http_cb_arg,
  CMP_CTX_set1_recipient,
  CMP_CTX_set1_expected_sender,
  CMP_CTX_set1_serverName,
@@ -60,9 +64,6 @@
  CMP_CTX_set_serverPort,
  CMP_CTX_set0_reqExtensions,
  CMP_CTX_reqExtensions_have_SAN,
- CMP_CTX_set_transfer_cb,
- CMP_CTX_set_transfer_cb_arg,
- CMP_CTX_get_transfer_cb_arg,
  CMP_CTX_set_certConf_cb,
  CMP_CTX_subjectAltName_push1
 
@@ -131,19 +132,20 @@
  int CMP_CTX_set_popoMethod(CMP_CTX *ctx, int method);
  int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name);
  int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port);
- int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio);
- BIO *CMP_CTX_get_tlsBIO(CMP_CTX *ctx);
+ typedef int (*cmp_transfer_cb_t)(const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
+                                  CMP_PKIMESSAGE **res);
+ int CMP_CTX_set_transfer_cb(CMP_CTX *ctx, cmp_transfer_cb_t cb);
+ int CMP_CTX_set_transfer_cb_arg(CMP_CTX *ctx, void *arg);
+ void *CMP_CTX_get_transfer_cb_arg(CMP_CTX *ctx);
+ typedef BIO *(*cmp_http_cb_t) (CMP_CTX *ctx, BIO *hbio, int connect);
+ int CMP_CTX_set_http_cb(CMP_CTX *ctx, cmp_http_cb_t cb);
+ int CMP_CTX_set_http_cb_arg(CMP_CTX *ctx, void *arg);
+ void *CMP_CTX_get_http_cb_arg(CMP_CTX *ctx);
  int CMP_CTX_set1_recipient(CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_expected_sender(CMP_CTX *ctx, const X509_NAME *name);
  int CMP_CTX_set1_serverPath(CMP_CTX *ctx, const char *path);
  int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
  int CMP_CTX_reqExtensions_have_SAN(CMP_CTX *ctx);
-
- typedef int (*cmp_transfer_cb_t) (const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
-                                   CMP_PKIMESSAGE **res);
- int CMP_CTX_set_transfer_cb(CMP_CTX *ctx, cmp_transfer_cb_t cb);
- int CMP_CTX_set_transfer_cb_arg(CMP_CTX *ctx, void *arg);
- void *CMP_CTX_get_transfer_cb_arg(CMP_CTX *ctx);
 
  typedef int (*cmp_certConf_cb_t) (CMP_CTX *ctx, const X509 *cert, int failure,
                                    const char **txt);
@@ -400,10 +402,42 @@ for connecting to the CA server.
 CMP_CTX_set_proxyPort() sets the port of the HTTP proxy.  Port defaults to 8080
 if not set explicitly.
 
-CMP_CTX_set0_tlsBIO() sets the SSL/TLS BIO to be used for HTTPS.
-The argument value may be NULL for none, which is the default.
+CMP_CTX_set_transfer_cb() sets the message transfer callback function.
+Default is CMP_PKIMESSAGE_http_perform().
+The callback should send the CMP request it obtains via the B<req> parameter
+and on success place the response in the B<*res> output parameter.
+The transfer callback may make use of a custom defined argument stored in
+the ctx by means of CMP_CTX_set_transfer_cb_arg(), which may be retrieved
+again through CMP_CTX_get_transfer_cb_arg().
+On success the cb must return 0, else a CMP error reason code defined in cmp.h.
 
-CMP_CTX_get0_tlsBIO() returns the SSL/TLS BIO used for HTTPS, or NULL.
+CMP_CTX_set_transfer_cb_arg() sets an argument, respecively a pointer to a
+structure containing arguments, optionally to be used by the transfer callback.
+B<arg> is not consumed, and it must therefore explicitly be freed when not
+needed any more. B<arg> may be NULL to clear the entry.
+
+CMP_CTX_get_transfer_cb_arg() gets the argument, respecively the pointer to a
+structure containing arguments, previously set by CMP_CTX_set_transfer_cb_arg().
+
+CMP_CTX_set_http_cb() sets the optional http connect/disconnect callback
+function, which may modify the HTTP BIO given in the B<hbio> argument
+used by CMP_PKIMESSAGE_http_perform().
+On connect, the B<connect> argument is 1, and on disconnect it is 0.
+For instance, on connect a TLS BIO may be prepended to implement HTTPS,
+and on disconnect any cleanup may be done.
+The callback function may return NULL to indicate an error.
+It may make use of a custom defined argument stored in the ctx
+by means of CMP_CTX_set_http_cb_arg(),
+which may be retrieved again through CMP_CTX_get_http_cb_arg().
+
+CMP_CTX_set_http_cb_arg() sets an argument, respecively a pointer to
+a structure containing arguments,
+optionally to be used by the http connect/disconnect callback function.
+B<arg> is not consumed, and it must therefore explicitly be freed when not
+needed any more. B<arg> may be NULL to clear the entry.
+
+CMP_CTX_get_http_cb_arg() gets the argument, respecively the pointer to a
+structure containing arguments, previously set by CMP_CTX_set_http_cb_arg().
 
 CMP_CTX_set1_recipient() sets the recipient name that will be used in the
 PKIHeader of a request message, i.e. the X509 name of the (CA) server.
@@ -423,23 +457,6 @@ CMP_CTX_set0_reqExtensions() sets the X.509v3 extensions to be used in IR/CR/KUR
 
 CMP_CTX_reqExtensions_have_SAN() returns 1 if the context contains
 a Subject Alternative Name extension, in all other cases (including errors) 0.
-
-CMP_CTX_set_transfer_cb() sets the message transfer callback function.
-Default is CMP_PKIMESSAGE_http_perform().
-The callback should send the CMP request it obtains via the B<req> parameter
-and on success place the response in the B<*res> output parameter.
-The transfer callback may make use of a custom defined argument stored in
-the ctx by means of CMP_CTX_set_transfer_cb_arg(), which may be retrieved
-again through CMP_CTX_get_transfer_cb_arg().
-On success the cb must return 0, else a CMP error reason code defined in cmp.h.
-
-CMP_CTX_set_transfer_cb_arg() sets an argument, respecively a pointer to a
-structure containing arguments, optionally to be used by the transfer callback.
-B<arg> is not consumed, and it must therefore explicitly be freed when not
-needed any more. B<arg> may be NULL to clear the entry.
-
-CMP_CTX_get_transfer_cb_arg() gets the argument, respecively the pointer to a
-structure containing arguments, previously set by CMP_CTX_set_transfer_cb_arg().
 
 CMP_CTX_set_certConf_cb() sets the callback used for evaluating the newly
 enrolled certificate before the library sends, depending on its result,
@@ -511,11 +528,11 @@ CertRepMessage or Revocation Response, NULL on error.
 CMP_CTX_get0_newClCert() returns the last received (in IP/KUP/CP) client
 certificate from the context. NULL if there was none as well as on error.
 
-CMP_CTX_get0_tlsBIO() returns the SSL/TLS BIO to be used for HTTPS, NULL if
-none as well as on error.
+CMP_CTX_get_transfer_cb_arg() returns the transfer callback argument set
+previously. NULL if not set or on function parameter error.
 
-CMP_CTX_get_transfer_cb_arg() returns transfer callback argument set previously.
-NULL if not set or on function parameter error.
+CMP_CTX_get_http_cb_arg() returns the http connect/disconnect callback
+argument set previously. NULL if not set or on function parameter error.
 
 CMP_CTX_failInfoCode_get() returns the failinfo error code bits in context as
 returns bitstring in ulong on success, -1 on error.

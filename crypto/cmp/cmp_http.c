@@ -272,7 +272,7 @@ static void add_conn_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
     CMP_add_error_data(buf);
     if (errdetail == 0) {
         snprintf(buf, 200, "server has disconnected%s",
-                 ctx->tlsBIO ? " violating the protocol" :
+                 ctx->http_cb_arg ? " violating the protocol" :
                                ", likely because it requires the use of TLS");
         CMP_add_error_data(buf);
     } else {
@@ -316,15 +316,13 @@ static void add_conn_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
     }
 }
 
-typedef BIO CMPBIO;
-
 /*
  * internal function
  * Create a new http connection, with a specified source ip/interface
  * returns 1 on success, 0 on error, returns the created bio inside the *bio
  * argument
  */
-static int CMP_new_http_bio(CMPBIO **bio, const CMP_CTX *ctx)
+static int CMP_new_http_bio(BIO **bio, const CMP_CTX *ctx)
 {
     BIO *cbio = NULL;
 
@@ -423,8 +421,7 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     int rv;
     char *path = NULL;
     size_t pos = 0, pathlen = 0;
-    CMPBIO *cbio = NULL;
-    CMPBIO *hbio = NULL;
+    BIO *bio, *hbio = NULL;
     int err = CMP_R_OUT_OF_MEMORY;
     time_t max_time;
 
@@ -437,13 +434,16 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     CMP_new_http_bio(&hbio, ctx);
     if (hbio == NULL)
         goto err;
-    cbio = (ctx->tlsBIO) ? BIO_push(ctx->tlsBIO, hbio) : hbio;
+    if (ctx->http_cb) {
+        if ((bio = (*ctx->http_cb)(ctx, hbio, 1)) == NULL)
+            goto err;
+        hbio = bio;
+    }
 
     /* tentatively set error, which allows accumulating diagnostic info */
     (void)ERR_set_mark();
     CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);
-    rv = bio_connect(cbio, ctx->msgTimeOut);
-    /* BIO_do_connect modifies hbio->prev_bio, which was ctx->tlsBIO - why?? */
+    rv = bio_connect(hbio, ctx->msgTimeOut);
     if (rv <= 0) {
         err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_SERVER_NOT_REACHABLE;
         goto err;
@@ -461,7 +461,7 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
      */
     if (ctx->proxyName && ctx->proxyPort)
         pos = BIO_snprintf(path, pathlen-1, "http%s://%s:%d",
-                           ctx->tlsBIO ? "s" : "", ctx->serverName,
+                           ctx->http_cb ? "s" : "", ctx->serverName,
                            ctx->serverPort);
 
     /* make sure path includes a forward slash */
@@ -470,7 +470,7 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
 
     BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
 
-    rv = CMP_sendreq(cbio, path, req, res, max_time);
+    rv = CMP_sendreq(hbio, path, req, res, max_time);
     OPENSSL_free(path);
     if (rv == -3)
         err = CMP_R_FAILED_TO_SEND_REQUEST;
@@ -503,15 +503,10 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
             add_conn_error_hint(ctx, ERR_peek_error());
     }
 
-    (void)BIO_reset(cbio); /* notify/alert peer, init for potential next use */
-    if (ctx->tlsBIO) {
-        /* BIO_set_next(cbio, NULL); workaround for altered forward pointer */
-        /*
-         * Must not pop ctx->tlsBIO or hbio nor do this before reset,
-         * else ssl_free_wbio_buffer() fails on ossl_assert(s->wbio != NULL)
-         */
-    }
-    BIO_free(hbio);
+    (void)BIO_reset(hbio); /* notify/alert peer */
+    if (ctx->http_cb && (*ctx->http_cb)(ctx, hbio, 0) == NULL)
+        err = CMP_R_OUT_OF_MEMORY;
+    BIO_free_all(hbio); /* also frees any BIOs linked with hbio */
 
     return err;
 }

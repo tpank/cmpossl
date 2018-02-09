@@ -314,6 +314,7 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
 typedef void (*cmp_log_cb_t) (const char *msg);
 typedef int (*cmp_certConf_cb_t) (CMP_CTX *ctx, const X509 *cert, int failure,
                                  const char **txt);
+typedef BIO *(*cmp_http_cb_t) (CMP_CTX *ctx, BIO *hbio, int connect);
 typedef int (*cmp_transfer_cb_t) (CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                                   CMP_PKIMESSAGE **res);
 typedef STACK_OF(ASN1_UTF8STRING) CMP_PKIFREETEXT;
@@ -513,10 +514,11 @@ int CMP_CTX_set1_serverName(CMP_CTX *ctx, const char *name);
 int CMP_CTX_set_serverPort(CMP_CTX *ctx, int port);
 int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name);
 int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port);
-int CMP_CTX_set0_tlsBIO(CMP_CTX *ctx, BIO *sbio);
-BIO *CMP_CTX_get0_tlsBIO(CMP_CTX *ctx);
+int CMP_CTX_set_http_cb(CMP_CTX *ctx, cmp_http_cb_t cb);
+int CMP_CTX_set_http_cb_arg(CMP_CTX *ctx, void *arg);
+void *CMP_CTX_get_http_cb_arg(CMP_CTX *ctx);
 int CMP_CTX_set_transfer_cb(CMP_CTX *ctx, cmp_transfer_cb_t cb);
-int CMP_CTX_set_transfer_cb_arg(CMP_CTX *ctx, void *opts);
+int CMP_CTX_set_transfer_cb_arg(CMP_CTX *ctx, void *arg);
 void *CMP_CTX_get_transfer_cb_arg(CMP_CTX *ctx);
 int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts);
 int CMP_CTX_reqExtensions_have_SAN(CMP_CTX *ctx);
