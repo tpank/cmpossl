@@ -346,6 +346,21 @@ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
     return (ok);
 }
 
+/* return 1 if expiration should be checked and the given time has passed */
+int CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm)
+{
+    time_t check_time, *ptime = NULL;
+    unsigned long flags = X509_VERIFY_PARAM_get_flags((X509_VERIFY_PARAM*)vpm);
+
+    if (flags & X509_V_FLAG_USE_CHECK_TIME) {
+        check_time = X509_VERIFY_PARAM_get_time(vpm);
+        ptime = &check_time;
+    }
+
+    return (!(flags & X509_V_FLAG_NO_CHECK_TIME) &&
+            endtime && X509_cmp_time(endtime, ptime) < 0);
+}
+
 /*
  * internal function
  *
@@ -359,21 +374,15 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
     X509_NAME *sender_name = NULL;
     ASN1_OCTET_STRING *kid = NULL;
     X509_VERIFY_PARAM *vpm = NULL;
-    time_t check_time, *ptime = NULL;
 
     vpm = ts ? X509_STORE_get0_param((X509_STORE *)ts) : NULL;
     if (cert == NULL || msg == NULL || ts == NULL || vpm == NULL)
         return 0; /* TODO better flag and handle this as fatal internal error */
 
-    if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_USE_CHECK_TIME) {
-        check_time = X509_VERIFY_PARAM_get_time(vpm);
-        ptime = &check_time;
+    if (CMP_expired(X509_get0_notAfter(cert), vpm)) {
+        CMP_add_error_data(" expired");
+        return 0;
     }
-    if (!(X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_NO_CHECK_TIME))
-        if (X509_cmp_time(X509_get0_notAfter(cert), ptime) < 0) {
-            CMP_add_error_data(" expired");
-            return 0;
-        }
 
     if ((sender_name = msg->header->sender->d.directoryName) != NULL) {
         X509_NAME *name = X509_get_subject_name(cert);

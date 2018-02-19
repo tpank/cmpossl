@@ -1446,6 +1446,7 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
 {
     X509 *cert = NULL;
     int ret = 0;
+    int i;
 
     if (format == FORMAT_PKCS12) {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -1476,10 +1477,24 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
             else
                 X509_free(cert);
         }
-        return ret;
     } else {
-        return load_certs(file, certs, format, pass, desc);
+        ret = load_certs(file, certs, format, pass, desc);
     }
+
+    for (i = 0; ret && i < sk_X509_num(*certs); i++) {
+        cert = sk_X509_value(*certs, i);
+        if (CMP_expired(X509_get0_notAfter(cert), vpm)) {
+            char *s = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
+            BIO_printf(bio_c_out,
+                     "warning: certificate with subject '%s' has expired\n", s);
+            OPENSSL_free(s);
+#if 0
+            sk_X509_pop_free(*certs, X509_free);
+            ret = 0;
+#endif
+        }
+    }
+    return ret;
 }
 
 /*
@@ -1518,21 +1533,6 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
     if (pass_string)
         OPENSSL_clear_free(pass_string, strlen(pass_string));
     return ret;
-}
-
-static int crl_expired(const X509_CRL *crl, const X509_VERIFY_PARAM *vpm0) {
-    time_t check_time, *ptime = NULL;
-    const ASN1_TIME *crl_endtime;
-    unsigned long flags = X509_VERIFY_PARAM_get_flags((X509_VERIFY_PARAM*)vpm0);
-
-    if (flags & X509_V_FLAG_USE_CHECK_TIME) {
-        check_time = X509_VERIFY_PARAM_get_time(vpm0);
-        ptime = &check_time;
-    }
-    crl_endtime = X509_CRL_get0_nextUpdate(crl);
-    /* well, should ignore expiry of base CRL if delta CRL is valid */
-    return (!(flags & X509_V_FLAG_NO_CHECK_TIME) &&
-            crl_endtime && X509_cmp_time(crl_endtime, ptime) < 0);
 }
 
 /*
@@ -2698,11 +2698,12 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
                     sk_X509_CRL_pop_free(crls, X509_CRL_free);
                     goto oom;
                 }
-                if (crl_expired(crl, vpm)) {
+                if (CMP_expired(X509_CRL_get0_nextUpdate(crl), vpm)) {
+              /* well, should ignore expiry of base CRL if delta CRL is valid */
                     char *issuer =
                         X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
                     BIO_printf(bio_c_out,
-                            "warning: CRL from '%s' issued by %s has expired\n",
+                          "warning: CRL from '%s' issued by '%s' has expired\n",
                                opt_crls, issuer);
                     OPENSSL_free(issuer);
 #if 0

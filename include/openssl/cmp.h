@@ -416,6 +416,7 @@ int CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
 STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store);
 
 /* cmp_vfy.c */
+int CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm);
 int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg);
 int CMP_validate_cert_path(const CMP_CTX *ctx, const X509_STORE *trusted_store,
                            const X509 *cert, int defer_errors);
