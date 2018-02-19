@@ -2,6 +2,7 @@
 
 =head1 NAME
 
+ CMP_expired,
  CMP_validate_msg,
  CMP_validate_cert_path,
  CMP_print_cert_verify_cb
@@ -9,6 +10,7 @@
 =head1 SYNOPSIS
 
  #include <openssl/cmp.h>
+ int CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm);
  int CMP_validate_msg(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
  int CMP_validate_cert_path(CMP_CTX *ctx, const X509_STORE *trusted_store,
                             const X509 *cert, int defer_errors);
@@ -19,6 +21,9 @@
 This is the API for validating the protection of CMP messages,
 which includes validating CMP server certificates and their paths
 while optionally checking the revocation status of the certificates(s).
+
+CMP_expired() is a helper function checking if expiration should be checked
+according to the given verification parameters and the given time has passed.
 
 CMP_validate_msg() validates the protection of the given PKIMessage
 using either password-based mac (PBM) or a signature algorithm.
@@ -60,6 +65,9 @@ It returns 0 if and only if the cert verification is considered failed.
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
+
+CMP_expired() returns 1 if expiration should be checked
+and the given time has passed, and 0 otherwise.
 
 CMP_validate_msg() returns 1 on success, 0 on error or validation failed.
 
