@@ -94,7 +94,7 @@
 #  define OPENSSL_zalloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
 #  define X509_up_ref(x)((x)->references++)
 #  define ASN1_STRING_get0_data ASN1_STRING_data
-#  define X509_OBJECT_get0_X509(obj) ((obj)->data.x509)
+#  define X509_OBJECT_get0_X509(obj) ((obj) == NULL || (obj)->type != X509_LU_X509 ? NULL : (obj)->data.x509)
 #  define X509_STORE_get0_objects(store) ((store)->objs)
 #  define X509_STORE_CTX_get0_untrusted(ctx) ((ctx)->untrusted)
 #  define X509_STORE_CTX_get0_chain X509_STORE_CTX_get_chain
