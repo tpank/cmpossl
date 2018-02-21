@@ -2497,6 +2497,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
             !(store = sk_X509_to_store(store, certs))) {
             /* BIO_puts(bio_err, "error: out of memory\n"); */
             X509_STORE_free(store);
+            store = NULL;
             goto err;
         }
         sk_X509_pop_free(certs, X509_free);
