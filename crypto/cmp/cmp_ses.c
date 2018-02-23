@@ -281,7 +281,7 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
  */
 static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
 {
-    int maxTimeLeft = ctx->maxPollTime;
+    time_t end_time = time(NULL) + ctx->maxPollTime;
     CMP_PKIMESSAGE *preq = NULL;
     CMP_PKIMESSAGE *prep = NULL;
     CMP_POLLREP *pollRep = NULL;
@@ -299,7 +299,7 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
 
         /* handle potential pollRep */
         if (CMP_PKIMESSAGE_get_bodytype(prep) == V_CMP_PKIBODY_POLLREP) {
-            int checkAfter;
+            long checkAfter;
             if (!(pollRep = CMP_POLLREPCONTENT_pollRep_get0(
                                                prep->body->value.pollRep, rid)))
                 goto err;
@@ -315,14 +315,12 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
                        "%ld sec before next polling request.", checkAfter);
 
             if (ctx->maxPollTime != 0) { /* timeout is set in context */
-                if (maxTimeLeft == 0)
+                long time_left = end_time - time(NULL);
+                if (time_left <= 0)
                     goto err;   /* timeout reached */
-                if (maxTimeLeft > checkAfter) {
-                    maxTimeLeft -= checkAfter;
-                } else {
-                    checkAfter = maxTimeLeft;
+                if (time_left < checkAfter) {
+                    checkAfter = time_left;
                     /* poll one last time just when timeout was reached */
-                    maxTimeLeft = 0;
                 }
             }
 
