@@ -812,7 +812,8 @@ int CMP_CTX_set0_reqExtensions(CMP_CTX *ctx, X509_EXTENSIONS *exts)
         CMPerr(CMP_F_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_NULL_ARGUMENT);
         goto err;
     }
-    if (exts != NULL && sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0) {
+    if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 && exts != NULL &&
+        X509v3_get_ext_by_NID(exts, NID_subject_alt_name, -1) >= 0) {
         CMPerr(CMP_F_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_MULTIPLE_SAN_SOURCES);
         goto err;
     }
