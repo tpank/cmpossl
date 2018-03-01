@@ -232,7 +232,6 @@ static char *opt_csr = NULL;
 static int opt_implicitConfirm = 0;
 static int opt_disableConfirm = 0;
 static char *opt_out_trusted = NULL;
-static X509_STORE *out_trusted = NULL;
 static char *opt_certout = NULL;
 
 static char *opt_oldcert = NULL;
@@ -2343,6 +2342,8 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 static int certConf_cb(CMP_CTX *ctx, const X509 *cert, int failure,
                        const char **text)
 {
+    X509_STORE *out_trusted = CMP_CTX_get_certConf_cb_arg(ctx);
+
     if (failure >= 0) /* accept any error flagged by library */
         return failure;
 
@@ -2798,12 +2799,15 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
 
     if (opt_out_trusted) { /* in preparation for use in certConf_cb() */
+        X509_STORE *out_trusted;
         if (!(out_trusted = load_certstore(opt_out_trusted,
                             "trusted certs for verifying newly enrolled cert")))
             goto err;
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
         if (!set1_store_parameters_crls(out_trusted, *all_crls))
             goto oom;
+        (void)CMP_CTX_set_certConf_cb_arg(ctx, out_trusted);
+
     }
     return 1;
 
@@ -4078,9 +4082,9 @@ int cmp_main(int argc, char **argv)
     if (ret != EXIT_SUCCESS)
         ERR_print_errors_fp(stderr);
 
+    X509_STORE_free(CMP_CTX_get_certConf_cb_arg(cmp_ctx));
     CMP_CTX_delete(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);
-    X509_STORE_free(out_trusted);
     BIO_free(bio_c_out);
     release_engine(e);
 

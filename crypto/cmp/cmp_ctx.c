@@ -265,6 +265,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->error_cb = NULL;
     ctx->debug_cb = (cmp_log_cb_t) puts;
     ctx->certConf_cb = NULL;
+    ctx->certConf_cb_arg = NULL;
     ctx->trusted_store = X509_STORE_new();
     ctx->untrusted_certs = sk_X509_new_null();
 
@@ -373,6 +374,33 @@ int CMP_CTX_set_certConf_cb(CMP_CTX *ctx, cmp_certConf_cb_t cb)
     return 1;
  err:
     return 0;
+}
+
+/*
+ * Set argument, respecively a pointer to a structure containing arguments,
+ * optionally to be used by the certConf callback
+ * returns 1 on success, 0 on error
+ */
+int CMP_CTX_set_certConf_cb_arg(CMP_CTX *ctx, void* arg)
+{
+    if (ctx == NULL)
+        goto err;
+    ctx->certConf_cb_arg = arg;
+    return 1;
+ err:
+    return 0;
+}
+
+/*
+ * Get argument, respecively the pointer to a structure containing arguments,
+ * optionally to be used by certConf callback
+ * returns callback argument set previously (NULL if not set or on error)
+ */
+void *CMP_CTX_get_certConf_cb_arg(CMP_CTX *ctx)
+{
+    if (ctx == NULL)
+        return NULL;
+    return ctx->certConf_cb_arg;
 }
 
 /*
