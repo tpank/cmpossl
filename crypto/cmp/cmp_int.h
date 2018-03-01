@@ -99,9 +99,10 @@ struct cmp_ctx_st {
     /* TODO: this should be a stack since there could be more than one */
     unsigned long failInfoCode; /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
-    cmp_log_cb_t error_cb, debug_cb;/* log callbacks for error/debug output */
+    cmp_log_cb_t error_cb, debug_cb; /* log callbacks for error/debug output */
     cmp_certConf_cb_t certConf_cb;   /* callback for letting the user check
                            the received certificate and reject if necessary */
+    void *certConf_cb_arg; /* allows to store an argument individual to cb */
     X509_STORE *trusted_store;    /* store for trusted (root) certificates and
                                      possibly CRLs and cert verify callback */
     STACK_OF(X509) *untrusted_certs;  /* untrusted (intermediate) certs */
