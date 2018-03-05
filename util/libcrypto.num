@@ -4708,3 +4708,5 @@ CMP_SRV_CTX_set_send_error              4643	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_create                   4644	1_1_1	EXIST::FUNCTION:
 CMP_SRV_CTX_set_checkAfterTime          4645	1_1_1	EXIST::FUNCTION:
 CMP_SRV_CTX_get0_ctx                    4646	1_1_1	EXIST::FUNCTION:
+CMP_PKIFREETEXT_push_str                4647	1_1_1	EXIST::FUNCTION:
+CMP_PKISTATUSINFO_free                  4648	1_1_1	EXIST::FUNCTION:
