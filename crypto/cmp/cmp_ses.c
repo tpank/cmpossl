@@ -315,7 +315,7 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
                        "%ld sec before next polling request.", checkAfter);
 
             if (ctx->maxPollTime != 0) { /* timeout is set in context */
-                long time_left = end_time - time(NULL);
+                long time_left = (long)(end_time - time(NULL));
                 if (time_left <= 0)
                     goto err;   /* timeout reached */
                 if (time_left < checkAfter) {
