@@ -4419,6 +4419,7 @@ int cmp_main(int argc, char **argv)
         ERR_print_errors_fp(stderr);
 
     SSL_CTX_free(CMP_CTX_get_http_cb_arg(cmp_ctx));
+    X509_STORE_free(CMP_CTX_get_certConf_cb_arg(cmp_ctx));
 #ifndef NDEBUG
     CMP_SRV_CTX_delete(srv_ctx);
     if (opt_server_keypass)
