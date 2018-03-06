@@ -61,10 +61,11 @@ static int test_cmp_ctx_reqextensions_have_san()
 {
     SETUP_TEST_FIXTURE(CMP_CTX_TEST_FIXTURE, set_up);
     const int len = 16;
-    unsigned char str[len];
-    RAND_bytes(str, len);
+    unsigned char str[16/* len */];
     ASN1_OCTET_STRING *data = NULL;
     X509_EXTENSION *ext = NULL;
+
+    RAND_bytes(str, len);
     if (!TEST_ptr(data = ASN1_OCTET_STRING_new()) ||
         !TEST_true(ASN1_OCTET_STRING_set(data, str, len)) ||
         !TEST_ptr(ext =
