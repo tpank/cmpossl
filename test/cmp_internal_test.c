@@ -162,7 +162,7 @@ static int execute_calc_protection_signature_test(CMP_INT_TEST_FIXTURE *
 }
 
 /* TODO TPa: find a way to set protection algorithm */
-static int test_cmp_calc_protection_no_key_no_secret()
+static int test_cmp_calc_protection_no_key_no_secret(void)
 {
     SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -179,7 +179,7 @@ static int test_cmp_calc_protection_no_key_no_secret()
 }
 
 /* TODO TPa: find openssl-independent reference value */
-static int test_cmp_calc_protection_pkey()
+static int test_cmp_calc_protection_pkey(void)
 {
     SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
     fixture->pubkey = loadedpubkey;
@@ -195,7 +195,7 @@ static int test_cmp_calc_protection_pkey()
     return result;
 }
 
-static int test_cmp_calc_protection_pbmac()
+static int test_cmp_calc_protection_pbmac(void)
 {
     SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
     unsigned char sec_insta[] = { 'i', 'n', 's', 't', 'a' };
@@ -212,7 +212,7 @@ static int test_cmp_calc_protection_pbmac()
     return result;
 }
 
-static int test_cmp_pkiheader_init()
+static int test_cmp_pkiheader_init(void)
 {
     SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
     fixture->expected = 1;

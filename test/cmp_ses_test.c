@@ -117,7 +117,7 @@ static int execute_cmp_exec_certrequest_ses_test(CMP_SES_TEST_FIXTURE *fixture)
     return TEST_ptr_null(res = fixture->exec_cert_ses_cb(fixture->cmp_ctx));
 }
 
-static int test_cmp_exec_rr_ses()
+static int test_cmp_exec_rr_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
@@ -125,7 +125,7 @@ static int test_cmp_exec_rr_ses()
     return result;
 }
 
-static int test_cmp_exec_rr_ses_receive_error()
+static int test_cmp_exec_rr_ses_receive_error(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     CMP_SRV_CTX_set_statusInfo(fixture->srv_ctx, CMP_PKISTATUS_rejection,
@@ -137,7 +137,7 @@ static int test_cmp_exec_rr_ses_receive_error()
     return result;
 }
 
-static int test_cmp_exec_ir_ses()
+static int test_cmp_exec_ir_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = CMP_exec_IR_ses;
@@ -151,7 +151,7 @@ static int test_cmp_exec_ir_ses()
     return result;
 }
 
-static int test_cmp_exec_ir_ses_poll()
+static int test_cmp_exec_ir_ses_poll(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     const int pollCount = 2;
@@ -166,7 +166,7 @@ static int test_cmp_exec_ir_ses_poll()
     return result;
 }
 
-static int test_cmp_exec_ir_ses_poll_timeout()
+static int test_cmp_exec_ir_ses_poll_timeout(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     const int pollCount = 3;
@@ -182,7 +182,7 @@ static int test_cmp_exec_ir_ses_poll_timeout()
 }
 
 
-static int test_cmp_exec_cr_ses()
+static int test_cmp_exec_cr_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = CMP_exec_CR_ses;
@@ -191,7 +191,7 @@ static int test_cmp_exec_cr_ses()
     return result;
 }
 
-static int test_cmp_exec_cr_ses_implicit_confirm()
+static int test_cmp_exec_cr_ses_implicit_confirm(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = CMP_exec_CR_ses;
@@ -202,7 +202,7 @@ static int test_cmp_exec_cr_ses_implicit_confirm()
     return result;
 }
 
-static int test_cmp_exec_kur_ses()
+static int test_cmp_exec_kur_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = CMP_exec_KUR_ses;
@@ -211,7 +211,7 @@ static int test_cmp_exec_kur_ses()
     return result;
 }
 
-static int test_cmp_exec_p10cr_ses()
+static int test_cmp_exec_p10cr_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     X509_REQ *req = NULL;
@@ -227,7 +227,7 @@ static int test_cmp_exec_p10cr_ses()
     return result;
 }
 
-static int test_cmp_exec_genm_ses()
+static int test_cmp_exec_genm_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     EXECUTE_TEST(execute_cmp_exec_genm_ses_test, tear_down);
@@ -251,7 +251,7 @@ static int execute_exchange_errors_test(CMP_SES_TEST_FIXTURE *fixture)
                                    "foobar"));
 }
 
-static int test_exchange_certconf()
+static int test_exchange_certconf(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
@@ -263,7 +263,7 @@ static int test_exchange_certconf()
     return result;
 }
 
-static int test_exchange_error()
+static int test_exchange_error(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;

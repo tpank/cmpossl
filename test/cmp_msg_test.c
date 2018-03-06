@@ -118,7 +118,7 @@ static int execute_pkimessage_create_test(CMP_MSG_TEST_FIXTURE *fixture)
                               (fixture->cmp_ctx, fixture->bodytype));
 }
 
-static int test_cmp_create_ir_protection_set()
+static int test_cmp_create_ir_protection_set(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     unsigned char data[16];
@@ -141,7 +141,7 @@ static int test_cmp_create_ir_protection_set()
     return result;
 }
 
-static int test_cmp_create_ir_protection_fails()
+static int test_cmp_create_ir_protection_fails(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->bodytype = V_CMP_PKIBODY_IR;
@@ -158,7 +158,7 @@ static int test_cmp_create_ir_protection_fails()
     return result;
 }
 
-static int test_cmp_create_cr_without_key()
+static int test_cmp_create_cr_without_key(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->bodytype = V_CMP_PKIBODY_CR;
@@ -168,7 +168,7 @@ static int test_cmp_create_cr_without_key()
     return result;
 }
 
-static int test_cmp_create_cr()
+static int test_cmp_create_cr(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->bodytype = V_CMP_PKIBODY_CR;
@@ -182,7 +182,7 @@ static int test_cmp_create_cr()
     return result;
 }
 
-static int test_cmp_create_certreq_with_invalid_bodytype()
+static int test_cmp_create_certreq_with_invalid_bodytype(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->bodytype = V_CMP_PKIBODY_RR;
@@ -196,7 +196,7 @@ static int test_cmp_create_certreq_with_invalid_bodytype()
     return result;
 }
 
-static int test_cmp_create_p10cr()
+static int test_cmp_create_p10cr(void)
 {
     X509_REQ *p10cr = NULL;
 
@@ -215,7 +215,7 @@ static int test_cmp_create_p10cr()
     return result;
 }
 
-static int test_cmp_create_p10cr_null()
+static int test_cmp_create_p10cr_null(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->bodytype = V_CMP_PKIBODY_P10CR;
@@ -229,7 +229,7 @@ static int test_cmp_create_p10cr_null()
     return result;
 }
 
-static int test_cmp_create_kur()
+static int test_cmp_create_kur(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->bodytype = V_CMP_PKIBODY_KUR;
@@ -244,7 +244,7 @@ static int test_cmp_create_kur()
     return result;
 }
 
-static int test_cmp_create_kur_without_oldcert()
+static int test_cmp_create_kur_without_oldcert(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -260,7 +260,7 @@ static int test_cmp_create_kur_without_oldcert()
     return result;
 }
 
-static int test_cmp_create_certconf()
+static int test_cmp_create_certconf(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->err_code = 12345;  /* TODO hardcoded */
@@ -273,7 +273,7 @@ static int test_cmp_create_certconf()
     return result;
 }
 
-static int test_cmp_create_certconf_without_newclcert()
+static int test_cmp_create_certconf_without_newclcert(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->err_code = 12345;  /* TODO hardcoded */
@@ -286,7 +286,7 @@ static int test_cmp_create_certconf_without_newclcert()
     return result;
 }
 
-static int test_cmp_create_error_msg()
+static int test_cmp_create_error_msg(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->si = CMP_statusInfo_new(CMP_PKISTATUS_rejection,
@@ -302,7 +302,7 @@ static int test_cmp_create_error_msg()
     return result;
 }
 
-static int test_cmp_create_error_msg_without_si()
+static int test_cmp_create_error_msg_without_si(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->si = NULL;
@@ -317,7 +317,7 @@ static int test_cmp_create_error_msg_without_si()
     return result;
 }
 
-static int test_cmp_create_pollreq()
+static int test_cmp_create_pollreq(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->expected = 1;
@@ -325,7 +325,7 @@ static int test_cmp_create_pollreq()
     return result;
 }
 
-static int test_cmp_create_rr()
+static int test_cmp_create_rr(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->expected = 1;
@@ -337,7 +337,7 @@ static int test_cmp_create_rr()
     return result;
 }
 
-static int test_cmp_create_rr_without_oldcert()
+static int test_cmp_create_rr_without_oldcert(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->expected = 0;
@@ -345,7 +345,7 @@ static int test_cmp_create_rr_without_oldcert()
     return result;
 }
 
-static int test_cmp_create_genm()
+static int test_cmp_create_genm(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     CMP_INFOTYPEANDVALUE *itv = NULL;

@@ -41,7 +41,7 @@ X509 *load_pem_cert(const char *file)
     return cert;
 }
 
-extern const ASN1_ITEM CMP_PKIMESSAGE_it;/*TODO remove after API consolidation*/
+DECLARE_ASN1_FUNCTIONS(CMP_PKIMESSAGE) /* TODO remove after API consolidation */
 CMP_PKIMESSAGE *load_pkimsg(const char *file)
 {
     CMP_PKIMESSAGE *msg = NULL;
@@ -49,7 +49,7 @@ CMP_PKIMESSAGE *load_pkimsg(const char *file)
 
     if (!TEST_ptr(file) || !TEST_ptr(bio = BIO_new_file(file, "r")))
         return NULL;
-    (void)TEST_ptr(msg = ASN1_item_d2i_bio(ASN1_ITEM_rptr(CMP_PKIMESSAGE), bio,NULL));
+    (void)TEST_ptr(msg = ASN1_item_d2i_bio(ASN1_ITEM_rptr(CMP_PKIMESSAGE), bio, NULL));
     BIO_free(bio);
     return msg;
 }

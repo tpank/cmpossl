@@ -57,7 +57,7 @@ static int execute_cmp_ctx_reqextensions_have_san_test(CMP_CTX_TEST_FIXTURE *
     return good;
 }
 
-static int test_cmp_ctx_reqextensions_have_san()
+static int test_cmp_ctx_reqextensions_have_san(void)
 {
     SETUP_TEST_FIXTURE(CMP_CTX_TEST_FIXTURE, set_up);
     const int len = 16;

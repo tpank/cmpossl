@@ -69,7 +69,7 @@ static int execute_cmp_validate_cert_path_test(CMP_VFY_TEST_FIXTURE *fixture)
                                               0));
 }
 
-static int test_cmp_validate_msg_mac_alg_protection()
+static int test_cmp_validate_msg_mac_alg_protection(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* secret value belonging to cmp-test/CMP_IP_waitingStatus_PBM.der */
@@ -90,7 +90,7 @@ static int test_cmp_validate_msg_mac_alg_protection()
     return result;
 }
 
-static int test_cmp_validate_msg_mac_alg_protection_bad()
+static int test_cmp_validate_msg_mac_alg_protection_bad(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     const unsigned char sec_bad[] =
@@ -110,7 +110,7 @@ static int test_cmp_validate_msg_mac_alg_protection_bad()
     return result;
 }
 
-static int test_cmp_validate_msg_signature()
+static int test_cmp_validate_msg_signature(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -126,7 +126,7 @@ static int test_cmp_validate_msg_signature()
     return result;
 }
 
-static int test_cmp_validate_msg_signature_bad()
+static int test_cmp_validate_msg_signature_bad(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -142,7 +142,7 @@ static int test_cmp_validate_msg_signature_bad()
     return result;
 }
 
-static int test_cmp_validate_msg_signature_expected_sender()
+static int test_cmp_validate_msg_signature_expected_sender(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -161,7 +161,7 @@ static int test_cmp_validate_msg_signature_expected_sender()
     return result;
 }
 
-static int test_cmp_validate_msg_signature_unexpected_sender()
+static int test_cmp_validate_msg_signature_unexpected_sender(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -181,7 +181,7 @@ static int test_cmp_validate_msg_signature_unexpected_sender()
 }
 
 
-static int test_cmp_validate_msg_unprotected_request()
+static int test_cmp_validate_msg_unprotected_request(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -196,7 +196,7 @@ static int test_cmp_validate_msg_unprotected_request()
     return result;
 }
 
-static int test_cmp_validate_cert_path()
+static int test_cmp_validate_cert_path(void)
 {
     STACK_OF(X509) *untrusted = NULL;
     X509_STORE *trusted = NULL;
@@ -218,7 +218,7 @@ static int test_cmp_validate_cert_path()
     return result;
 }
 
-static int test_cmp_validate_cert_path_no_anchor()
+static int test_cmp_validate_cert_path_no_anchor(void)
 {
     STACK_OF(X509) *untrusted = NULL;
     X509_STORE *trusted = NULL;
@@ -241,7 +241,7 @@ static int test_cmp_validate_cert_path_no_anchor()
     return result;
 }
 
-static int test_cmp_validate_cert_path_expired()
+static int test_cmp_validate_cert_path_expired(void)
 {
 
     STACK_OF(X509) *untrusted = NULL;
