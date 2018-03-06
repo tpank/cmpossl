@@ -432,7 +432,7 @@ This MUST be exactly the same value as is contained in the certificate template.
                 if (pubkey == NULL ||
                     sig->poposkInput->publicKey == NULL ||
                     CMP_X509_PUBKEY_cmp(pubkey, sig->poposkInput->publicKey) ||
-                    ASN1_item_verify(&CRMF_POPOSIGNINGKEYINPUT_it,
+                    ASN1_item_verify(ASN1_ITEM_rptr(CRMF_POPOSIGNINGKEYINPUT),
                                      sig->algorithmIdentifier, sig->signature,
                                      sig->poposkInput,
                                      X509_PUBKEY_get0(pubkey)) < 1)
@@ -440,7 +440,7 @@ This MUST be exactly the same value as is contained in the certificate template.
             } else {
                 if (pubkey == NULL ||
                     req->certReq->certTemplate->subject == NULL ||
-                    ASN1_item_verify(&CRMF_CERTREQUEST_it,
+                    ASN1_item_verify(ASN1_ITEM_rptr(CRMF_CERTREQUEST),
                                      sig->algorithmIdentifier, sig->signature,
                                      req->certReq,
                                      X509_PUBKEY_get0(pubkey)) < 1)
