@@ -2994,9 +2994,11 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
                        "internal error: cannot get check_revocation\n");
             goto err;
         }
-    } else if (opt_ocsp_check_all)
-        BIO_printf(bio_c_out,
-     "warning: -ocsp_check_all has no effect without -ocsl-aia or -ocsp_url\n");
+    } else if (opt_ocsp_check_all) {
+        BIO_printf(bio_err,
+    "error: must use -ocsp_use_aia or -ocsp_url if -ocsp_check_all is given\n");
+        goto err;
+    }
 #endif
 
     certform = opt_certform;
