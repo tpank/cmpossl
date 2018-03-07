@@ -18,7 +18,7 @@ S<[B<-msgtimeout seconds>]>
 S<[B<-maxpolltime seconds>]>
 
 S<[B<-recipient name>]>
-S<[B<-expected_sender name>]>
+S<[B<-expect_sender name>]>
 S<[B<-srvcert filename>]>
 S<[B<-trusted filenames>]>
 S<[B<-untrustedE<nbsp>sources>]>
@@ -205,7 +205,7 @@ As last resort it is set to NULL-DN.
 
 When a response is received, its sender must match the recipient of the request.
 
-=item B<-expected_sender name>
+=item B<-expect_sender name>
 
 Distinguished Name (DN) of the expected sender in CMP response messages,
 i.e., the CMP server (usually a CA or RA entity).
