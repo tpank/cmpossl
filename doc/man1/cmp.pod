@@ -240,7 +240,8 @@ Non-trusted intermediate certificate(s) that may be useful for constructing
 certificate chains for
 the CMP server (when verifying signature-based message protection),
 the TLS server (when establishing TLS connections),
-and/or the newly enrolled certificate (when verifying a certificate response).
+and/or the issure of the newly enrolled certificate
+(when verifying a certificate response).
 
 Multiple file names may be given, separated by commas and/or whitespace.
 Each file may contain multiple certificates.
@@ -248,7 +249,7 @@ Each file may contain multiple certificates.
 =item B<-ignore_keyusage>
 
 Ignore key usage restrictions in certificates at CMP level,
-else C<digitalSignature> must be allowed for signature use.
+else C<digitalSignature> must be allowed for signer certificate.
 
 =item B<-unprotectederrors>
 
