@@ -467,7 +467,7 @@ Name of section in OpenSSL config file defining certificate request extensions.
 =item B<-san_dns names>
 
 One or more DNS name(s), separated by commas or whitespace,
-to add as Subject Alternative Name certificate request extension.
+to add as Subject Alternative Name(s) (SAN) certificate request extension.
 Cannot be used if any Subject Alternative Name extension is set via B<-reqexts>.
 By default, unless B<-san_nodefault> is set, the Subject Alternative Names
 are copied from the reference certificate (see B<-oldcert>).
@@ -480,14 +480,14 @@ Cannot be used if any Subject Alternative Name extension is set via B<-reqexts>.
 By default, unless B<-san_nodefault> is set, the Subject Alternative Names
 are copied from the reference certificate (see B<-oldcert>).
 
-=item B<-san_nodefault>
-
-Do not take default Subject Alternative Names from the reference certificate.
-
 =item B<-san_critical>
 
-Flag the Subject Alternative Names given with B<-san_dns> or B<-san_ip>
+Flag the Subject Alternative Name(s) given with B<-san_dns> or B<-san_ip>
 as critical.
+
+=item B<-san_nodefault>
+
+Do not take default Subject Alternative Name(s) from the reference certificate.
 
 =item B<-policies names>
 

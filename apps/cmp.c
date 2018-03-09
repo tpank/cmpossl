@@ -249,8 +249,8 @@ static int opt_days = 0;
 static char *opt_reqexts = NULL;
 static char *opt_san_dns = NULL;
 static char *opt_san_ip = NULL;
-static int opt_san_nodefault = 0;
 static int opt_san_critical = 0;
+static int opt_san_nodefault = 0;
 static char *opt_policies = NULL;
 static int opt_policies_critical = 0;
 static int opt_popo = -1;
@@ -379,7 +379,7 @@ typedef enum OPTION_choice {
     OPT_CMD, OPT_INFOTYPE, OPT_GENINFO,
 
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, OPT_DAYS, OPT_REQEXTS,
-    OPT_SAN_DNS, OPT_SAN_IP, OPT_SAN_NODEFAULT,  OPT_SAN_CRITICAL,
+    OPT_SAN_DNS, OPT_SAN_IP, OPT_SAN_CRITICAL, OPT_SAN_NODEFAULT,
     OPT_POLICIES, OPT_POLICIES_CRITICAL,
     OPT_POPO, OPT_CSR,
     OPT_OUT_TRUSTED, OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
@@ -518,13 +518,13 @@ OPTIONS cmp_options[] = {
     {"reqexts", OPT_REQEXTS, 's',
      "Name of section in config file defining certificate request extensions"},
     {"san_dns", OPT_SAN_DNS, 's',
-     "DNS Subject Alternative Name(s) to add as certificate request extension"},
+     "DNS Subject Alternative Name(s) (SANs) to add as cert request extension"},
     {"san_ip", OPT_SAN_IP, 's',
-     "IP address Subject Alternative Name(s) to add as cert request extension"},
-    {"san_nodefault", OPT_SAN_NODEFAULT, '-',
-    "Do not take default Subject Alternative Names from reference certificate"},
+     "IP address SAN(s) to add as cert request extension"},
     {"san_critical", OPT_SAN_CRITICAL, '-',
-"Set the Subject Alternative Names given with -san_dns or -san_ip as critical"},
+     "Flag the SAN(s) given with -san_dns or -san_ip as critical"},
+    {"san_nodefault", OPT_SAN_NODEFAULT, '-',
+     "Do not take default SANs from reference certificate (see -oldcert)"},
     {"policies", OPT_POLICIES, 's',
      "Policy OID(s) to add as certificate policies request extension"},
     {"policies_critical", OPT_POLICIES_CRITICAL, '-',
@@ -724,7 +724,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
     {(char **)&opt_days}, {&opt_reqexts}, {&opt_san_dns}, {&opt_san_ip},
-    {(char **)&opt_san_nodefault}, {(char **)&opt_san_critical},
+    {(char **)&opt_san_critical}, {(char **)&opt_san_nodefault},
     {&opt_policies}, {(char **)&opt_policies_critical},
     {(char **)&opt_popo}, {&opt_csr},
     {&opt_out_trusted},
@@ -3416,13 +3416,6 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
                      "IP address Subject Alternative Name"))
         goto err;
 
-    if (opt_san_nodefault) {
-        if (opt_san_dns || opt_san_ip)
-            BIO_puts(bio_c_out,
-"warning: -opt_san_nodefault has no effect when -san_dns or -san_ip is used\n");
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT, 1);
-    }
-
     if (opt_san_critical) {
         if (!opt_san_dns && !opt_san_ip)
             BIO_puts(bio_c_out,
@@ -3430,6 +3423,13 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL, 1);
     }
     
+    if (opt_san_nodefault) {
+        if (opt_san_dns || opt_san_ip)
+            BIO_puts(bio_c_out,
+"warning: -opt_san_nodefault has no effect when -san_dns or -san_ip is used\n");
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT, 1);
+    }
+
     while (opt_policies && *opt_policies != '\0') {
         char *next = next_item(opt_policies);
         int res = CMP_CTX_policyOID_push1(ctx, opt_policies);
@@ -4088,11 +4088,11 @@ int cmp_main(int argc, char **argv)
         case OPT_SAN_IP:
             opt_san_ip = opt_str("san_ip");
             break;
-        case OPT_SAN_NODEFAULT:
-            opt_san_nodefault = 1;
-            break;
         case OPT_SAN_CRITICAL:
             opt_san_critical = 1;
+            break;
+        case OPT_SAN_NODEFAULT:
+            opt_san_nodefault = 1;
             break;
         case OPT_POLICIES:
             opt_policies = opt_str("policies");
