@@ -473,11 +473,11 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nClient authentication options:"},
     {"ref", OPT_REF, 's',
-     "Reference value for client authentication with a pre-shared key for PBM"},
+     "Reference value to use as senderKID in case no -cert is given"},
     {"secret", OPT_SECRET, 's',
     "Password source for client authentication with a pre-shared key (secret)"},
     {"cert", OPT_CERT, 's',
-     "Client's current certificate (needed unless using PSK/PBM);"},
+     "Client's current certificate (needed unless using -secret for PBM);"},
     {OPT_MORE_STR, 0, 0,
      "any further certs included are appended in extraCerts field"},
     {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
@@ -607,7 +607,7 @@ OPTIONS cmp_options[] = {
 
     {"mock_srv", OPT_MOCK_SRV, '-', "Mock the server"},
     {"srv_ref", OPT_SRV_REF, 's',
-     "Reference value for server authentication with a pre-shared key"},
+     "Reference value to use as senderKID of server in case no -cert is given"},
     {"srv_secret", OPT_SRV_SECRET, 's',
     "Password source for server authentication with a pre-shared key (secret)"},
     {"srv_cert", OPT_SRV_CERT, 's', "Certificate used by the server"},
@@ -2774,14 +2774,15 @@ static int setup_srv_ctx(ENGINE *e)
         return 0;
     ctx = CMP_SRV_CTX_get0_ctx(srv_ctx);
 
-    if ((opt_srv_ref == NULL) != (opt_srv_secret == NULL)) {
-        BIO_puts(bio_err,
-   "error: must give both -srv_ref and -srv_secret options or neither\n");
-            goto err;
+    if (opt_srv_ref == NULL && opt_srv_cert == NULL) {
+        BIO_puts(bio_err, /* srv_cert should determine the sender */
+                 "error: must give -srv_ref if no -srv_cert given\n");
+        goto err;
     }
-    if (opt_srv_ref && opt_srv_secret) {
+    if (opt_srv_secret) {
         char *pass_string;
-        if ((pass_string = get_passwd(opt_srv_secret, "PBMAC for server"))) {
+        if ((pass_string = get_passwd(opt_srv_secret,
+                                      "PBMAC secret of server"))) {
             OPENSSL_cleanse(opt_srv_secret, strlen(opt_srv_secret));
             opt_srv_secret = NULL;
             CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_srv_ref,
@@ -3236,27 +3237,25 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
  * Returns 1 on success, 0 on error
  */
 static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
-    if (!opt_unprotectedRequests &&
-        !(opt_ref && opt_secret) && !(opt_cert && opt_key)) {
+    if (!opt_unprotectedRequests && !opt_secret && !(opt_cert && opt_key)) {
         BIO_puts(bio_err,
     "error: must give client credentials unless -unprotectedrequests is set\n");
         goto err;
     }
 
-    if ((opt_ref == NULL) != (opt_secret == NULL)) {
-        BIO_puts(bio_err,
-                 "error: must give both -ref and -secret options or neither\n");
+    if (opt_ref == NULL && opt_cert == NULL && opt_subject == NULL) {
+        BIO_puts(bio_err, /* cert or subject should determine the sender */
+                 "error: must give -ref if no -cert and no -subject given\n");
         goto err;
     }
-
-    if (opt_ref && opt_secret) {
+    if (opt_secret) {
         char *pass_string = NULL;
 
         if ((pass_string = get_passwd(opt_secret, "PBMAC"))) {
             OPENSSL_cleanse(opt_secret, strlen(opt_secret));
             opt_secret = NULL;
             CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
-                                        strlen(opt_ref));
+                                        opt_ref ? strlen(opt_ref) : 0);
             CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
                                      strlen(pass_string));
             OPENSSL_clear_free(pass_string, strlen(pass_string));

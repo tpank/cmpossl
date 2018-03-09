@@ -23,6 +23,7 @@ int ERR_load_CMP_strings(void);
  * CMP function codes.
  */
 # define CMP_F_CMP_ASN1_OCTET_STRING_SET1                 100
+# define CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES           199
 # define CMP_F_CMP_CALC_PROTECTION                        101
 # define CMP_F_CMP_CERTCONF_NEW                           102
 # define CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1             103
@@ -84,6 +85,11 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_PKICONF_NEW                            187
 # define CMP_F_CMP_PKIFREETEXT_PUSH_STR                   198
 # define CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0       154
+# define CMP_F_CMP_PKIHEADER_INIT                         200
+# define CMP_F_CMP_PKIHEADER_PUSH0_FREETEXT               201
+# define CMP_F_CMP_PKIHEADER_PUSH1_FREETEXT               202
+# define CMP_F_CMP_PKIHEADER_SET_MESSAGETIME              203
+# define CMP_F_CMP_PKIHEADER_SET_VERSION                  204
 # define CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED              155
 # define CMP_F_CMP_PKIMESSAGE_CREATE                      183
 # define CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1     156
@@ -121,6 +127,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_PROCESS_RR                                 195
 # define CMP_F_SEND_RECEIVE_CHECK                         177
 # define CMP_F_SET1_AOSTR_ELSE_RANDOM                     181
+# define CMP_F_SET1_GENERAL_NAME                          205
 
 /*
  * CMP reason codes.
@@ -186,6 +193,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  147
 # define CMP_R_MISSING_PROTECTION                         181
 # define CMP_R_MULTIPLE_SAN_SOURCES                       180
+# define CMP_R_NO_SENDER_NO_REFERENCE                     195
 # define CMP_R_NO_VALID_SERVER_CERT_FOUND                 148
 # define CMP_R_NULL_ARGUMENT                              149
 # define CMP_R_OUT_OF_MEMORY                              150

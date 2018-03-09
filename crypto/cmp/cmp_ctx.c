@@ -93,7 +93,7 @@
 
 /* OpenSSL ASN.1 macros in CTX struct */
 ASN1_SEQUENCE(CMP_CTX) = {
-ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
+    ASN1_OPT(CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, secretValue, ASN1_OCTET_STRING),
     ASN1_OPT(CMP_CTX, srvCert, X509),
     ASN1_OPT(CMP_CTX, validatedSrvCert, X509),
@@ -380,47 +380,34 @@ int CMP_CTX_set_debug_cb(CMP_CTX *ctx, cmp_log_cb_t cb)
 }
 
 /*
- * Set the reference value to be used for identification (i.e. the
+ * Set or clear the reference value to be used for identification (i.e. the
  * user name) when using PBMAC.
  * returns 1 on success, 0 on error
  */
 int CMP_CTX_set1_referenceValue(CMP_CTX *ctx, const unsigned char *ref,
                                 size_t len)
 {
-    if (ctx == NULL || ref == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_CMP_CTX_SET1_REFERENCEVALUE, CMP_R_INVALID_ARGS);
-        goto err;
+        return 0;
     }
-
-    if (ctx->referenceValue == NULL)
-        ctx->referenceValue = ASN1_OCTET_STRING_new();
-
-    return (ASN1_OCTET_STRING_set(ctx->referenceValue, ref, len));
- err:
-    return 0;
+    return CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->referenceValue, ref, len);
 }
 
 /*
- * Set the password to be used for protecting messages with PBMAC
+ * Set or clear the password to be used for protecting messages with PBMAC
  * returns 1 on success, 0 on error
  */
 int CMP_CTX_set1_secretValue(CMP_CTX *ctx, const unsigned char *sec,
                              const size_t len)
 {
-    if (ctx == NULL)
-        goto err;
-    if (sec == NULL)
-        goto err;
-
+    if (ctx == NULL){
+        CMPerr(CMP_F_CMP_CTX_SET1_SECRETVALUE, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     if (ctx->secretValue)
         OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
-    else
-        ctx->secretValue = ASN1_OCTET_STRING_new();
-
-    return (ASN1_OCTET_STRING_set(ctx->secretValue, sec, len));
- err:
-    CMPerr(CMP_F_CMP_CTX_SET1_SECRETVALUE, CMP_R_NULL_ARGUMENT);
-    return 0;
+    return CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->secretValue, sec, len);
 }
 
 /*

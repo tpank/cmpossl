@@ -169,10 +169,11 @@ HTTP, proof-of-possession method to POPOSigningKey
 CMP_CTX_delete() frees any allocated non-ASN1 fields of CMP_CTX and
 calls the ASN1 defined CMP_CTX_free() function to free the rest.
 
-CMP_CTX_set1_referenceValue() sets the given referenceValue in the given
-CMP_CTX structure.
+CMP_CTX_set1_referenceValue() sets the given referenceValue in the given B<ctx>
+or clears it if the B<ref> argument is NULL.
 
-CMP_CTX_set1_secretValue() sets the B<secret> with the length B<len> in the B<ctx>.
+CMP_CTX_set1_secretValue() sets the B<sec> with the length B<len> in the given
+B<ctx> or clears it if the B<sec> argument is NULL.
 
 CMP_CTX_set1_caCert() sets the given CA Certificate in the given CMP_CTX
 structure.

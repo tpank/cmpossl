@@ -330,7 +330,7 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
             prep = NULL;
             sleep((unsigned int)checkAfter);
         } else {
-            CMP_printf(ctx, "INFO: Got final response after polling.");
+            CMP_printf(ctx, "INFO: Got ip/cp/kup after polling.");
             break;
         }
     }

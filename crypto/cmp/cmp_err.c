@@ -16,6 +16,8 @@
 static const ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_ASN1_OCTET_STRING_SET1, 0),
      "CMP_ASN1_OCTET_STRING_set1"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, 0),
+     "CMP_ASN1_OCTET_STRING_set1_bytes"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CALC_PROTECTION, 0),
      "CMP_calc_protection"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CERTCONF_NEW, 0), "CMP_certConf_new"},
@@ -119,6 +121,15 @@ static const ERR_STRING_DATA CMP_str_functs[] = {
      "CMP_PKIFREETEXT_push_str"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0, 0),
      "CMP_PKIHEADER_generalInfo_item_push0"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_PKIHEADER_INIT, 0), "CMP_PKIHEADER_init"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_PKIHEADER_PUSH0_FREETEXT, 0),
+     "CMP_PKIHEADER_push0_freeText"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_PKIHEADER_PUSH1_FREETEXT, 0),
+     "CMP_PKIHEADER_push1_freeText"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_PKIHEADER_SET_MESSAGETIME, 0),
+     "CMP_PKIHEADER_set_messageTime"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_PKIHEADER_SET_VERSION, 0),
+     "CMP_PKIHEADER_set_version"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED, 0),
      "CMP_PKIMESSAGE_check_received"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_PKIMESSAGE_CREATE, 0),
@@ -173,6 +184,7 @@ static const ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_PACK(ERR_LIB_CMP, CMP_F_SEND_RECEIVE_CHECK, 0), "send_receive_check"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_SET1_AOSTR_ELSE_RANDOM, 0),
      "set1_aostr_else_random"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_SET1_GENERAL_NAME, 0), "set1_general_name"},
     {0, NULL}
 };
 
@@ -283,6 +295,8 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MISSING_PROTECTION), "missing protection"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MULTIPLE_SAN_SOURCES),
     "multiple san sources"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_SENDER_NO_REFERENCE),
+    "no sender no reference"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_VALID_SERVER_CERT_FOUND),
     "no valid server cert found"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NULL_ARGUMENT), "null argument"},

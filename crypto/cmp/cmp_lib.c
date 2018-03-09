@@ -195,42 +195,53 @@ ASN1_OCTET_STRING *CMP_PKIHEADER_get0_recipNonce(const CMP_PKIHEADER *hdr)
  */
 int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version)
 {
-    if (hdr == NULL)
+    if (hdr == NULL) {
+        CMPerr(CMP_F_CMP_PKIHEADER_SET_VERSION, CMP_R_NULL_ARGUMENT);
         goto err;
+    }
 
-    if (!ASN1_INTEGER_set(hdr->pvno, version))
+    if (!ASN1_INTEGER_set(hdr->pvno, version)) {
+        CMPerr(CMP_F_CMP_PKIHEADER_SET_VERSION, CMP_R_OUT_OF_MEMORY);
         goto err;
+    }
 
     return 1;
+
  err:
     return 0;
 }
 
 
-static int set1_gname(GENERAL_NAME **tgt, const X509_NAME *src)
+static int set1_general_name(GENERAL_NAME **tgt, const X509_NAME *src)
 {
     GENERAL_NAME *gen = NULL;
 
-    if (tgt == NULL || (gen = GENERAL_NAME_new()) == NULL)
+    if (tgt == NULL) {
+        CMPerr(CMP_F_SET1_GENERAL_NAME, CMP_R_NULL_ARGUMENT);
         goto err;
+    }
+    if ((gen = GENERAL_NAME_new()) == NULL)
+        goto oom;
 
     gen->type = GEN_DIRNAME;
 
-    if (src == NULL) {
-        gen->d.directoryName = X509_NAME_new();
+    if (src == NULL) { /* NULL DN */
+        if ((gen->d.directoryName = X509_NAME_new()) == NULL)
+            goto oom;
     } else if (!(X509_NAME_set(&gen->d.directoryName, (X509_NAME *)src))) {
+    oom:
+        CMPerr(CMP_F_SET1_GENERAL_NAME, CMP_R_OUT_OF_MEMORY);
         goto err;
     }
 
     if (*tgt)
         GENERAL_NAME_free(*tgt);
-
     *tgt = gen;
 
     return 1;
+
  err:
-    if (gen)
-        GENERAL_NAME_free(gen);
+    GENERAL_NAME_free(gen);
     return 0;
 }
 
@@ -244,7 +255,7 @@ int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm)
     if (hdr == NULL)
         return 0;
 
-    return set1_gname(&hdr->recipient, nm);
+    return set1_general_name(&hdr->recipient, nm);
 }
 
 /*
@@ -257,12 +268,12 @@ int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm)
     if (hdr == NULL)
         return 0;
 
-    return set1_gname(&hdr->sender, nm);
+    return set1_general_name(&hdr->sender, nm);
 }
 
 /*
  * free any previous value of the variable referenced via tgt
- * and assign either a copy of the src string or NULL.
+ * and assign either a copy of the src ASN1_OCTET_STRING or NULL.
  * returns 1 on success, 0 on error.
  */
 int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
@@ -289,32 +300,58 @@ int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
     return 0;
 }
 
+/*
+ * free any previous value of the variable referenced via tgt
+ * and assign either a copy of the byte string (with given length) or NULL.
+ * returns 1 on success, 0 on error.
+ */
+int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
+                                     const unsigned char *bytes, size_t len)
+{
+    ASN1_OCTET_STRING *new = NULL;
+    int res = 0;
+
+    if (tgt == NULL) {
+        CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_NULL_ARGUMENT);
+        goto err;
+    }
+
+    if (bytes != NULL) {
+        if (!(new = ASN1_OCTET_STRING_new()) ||
+            !(ASN1_OCTET_STRING_set(new, bytes, len))) {
+            CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_OUT_OF_MEMORY);
+            goto err;
+        }
+
+    }
+    res = CMP_ASN1_OCTET_STRING_set1(tgt, new);
+
+ err:
+    ASN1_OCTET_STRING_free(new);
+    return res;
+}
+
 static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
                                   const ASN1_OCTET_STRING *src, int len)
 {
     unsigned char *bytes = NULL;
-    ASN1_OCTET_STRING *new = NULL;
     int res = 0;
 
     if (src == NULL) { /* generate a random value if src == NULL */
-        if ((bytes = (unsigned char *)OPENSSL_malloc(len)) == NULL)
-            goto oom;
-        if (RAND_bytes(bytes, len) <= 0) {
-            CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM, CMP_R_FAILURE_OBTAINING_RANDOM);
-            goto err;
-        }
-
-        if (!(new = ASN1_OCTET_STRING_new()) ||
-            !(ASN1_OCTET_STRING_set(new, bytes, len))) {
-        oom:
+        if ((bytes = (unsigned char *)OPENSSL_malloc(len)) == NULL) {
             CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM, CMP_R_OUT_OF_MEMORY);
             goto err;
         }
+        if (RAND_bytes(bytes, len) <= 0) {
+            CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM,CMP_R_FAILURE_OBTAINING_RANDOM);
+            goto err;
+        }
+        res = CMP_ASN1_OCTET_STRING_set1_bytes(tgt, bytes, len);
+    } else {
+        res = CMP_ASN1_OCTET_STRING_set1(tgt, src);
     }
 
-    res = CMP_ASN1_OCTET_STRING_set1(tgt, src ? src : new);
  err:
-    ASN1_OCTET_STRING_free(new);
     OPENSSL_free(bytes);
     return res;
 }
@@ -354,12 +391,15 @@ int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr)
         goto err;
 
     if (hdr->messageTime == NULL)
-        hdr->messageTime = ASN1_GENERALIZEDTIME_new();
+        if ((hdr->messageTime = ASN1_GENERALIZEDTIME_new()) == NULL)
+            goto err;
 
     if (ASN1_GENERALIZEDTIME_set(hdr->messageTime, time(NULL)) == NULL)
         goto err;
     return 1;
+
  err:
+    CMPerr(CMP_F_CMP_PKIHEADER_SET_MESSAGETIME, CMP_R_OUT_OF_MEMORY);
     return 0;
 }
 
@@ -383,7 +423,9 @@ int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
         goto err;
 
     return 1;
+
  err:
+    CMPerr(CMP_F_CMP_PKIHEADER_PUSH0_FREETEXT, CMP_R_OUT_OF_MEMORY);
     return 0;
 }
 
@@ -394,8 +436,10 @@ int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
  */
 int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
-    if (hdr == NULL || text == NULL)
+    if (hdr == NULL || text == NULL) {
+        CMPerr(CMP_F_CMP_PKIHEADER_PUSH1_FREETEXT, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
 
     hdr->freeText = CMP_PKIFREETEXT_push_str(hdr->freeText, (char *)text->data);
     return hdr->freeText != NULL;
@@ -439,20 +483,28 @@ CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft, const char *text)
  */
 int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
 {
+    X509_NAME *sender;
     X509_NAME *rcp = NULL;
 
-    if (ctx == NULL || hdr == NULL)
+    if (ctx == NULL || hdr == NULL) {
+        CMPerr(CMP_F_CMP_PKIHEADER_INIT, CMP_R_NULL_ARGUMENT);
         goto err;
+    }
 
     /* set the CMP version */
-    CMP_PKIHEADER_set_version(hdr, CMP_VERSION);
+    if (!CMP_PKIHEADER_set_version(hdr, CMP_VERSION))
+        goto err;
 
     /*
      * if neither client cert nor subject name given, sender name is not known
      * to the client and in that case set to NULL-DN
      */
-    if (!CMP_PKIHEADER_set1_sender(hdr, ctx->clCert ?
-                         X509_get_subject_name(ctx->clCert) : ctx->subjectName))
+    sender = ctx->clCert? X509_get_subject_name(ctx->clCert) : ctx->subjectName;
+    if (sender == NULL && ctx->referenceValue == NULL) {
+        CMPerr(CMP_F_CMP_PKIHEADER_INIT, CMP_R_NO_SENDER_NO_REFERENCE);
+        goto err;
+    }
+    if (!CMP_PKIHEADER_set1_sender(hdr, sender))
         goto err;
 
     /* determine recipient entry in PKIHeader */
@@ -527,6 +579,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
 #endif
 
     return 1;
+
  err:
     return 0;
 }
@@ -710,7 +763,9 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     if (ctx->secretValue) {
         if ((msg->header->protectionAlg = CMP_create_pbmac_algor(ctx)) == NULL)
             goto err;
-        CMP_PKIHEADER_set1_senderKID(msg->header, ctx->referenceValue);
+        if (ctx->referenceValue &&
+            !CMP_PKIHEADER_set1_senderKID(msg->header, ctx->referenceValue))
+            goto err;
 
         /*
          * add any additional certificates from ctx->extraCertsOut
@@ -757,9 +812,9 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
              * to section 5.1.1
              */
             subjKeyIDStr = X509_get0_subject_key_id(ctx->clCert);
-            if (subjKeyIDStr) {
-                CMP_PKIHEADER_set1_senderKID(msg->header, subjKeyIDStr);
-            }
+            if (subjKeyIDStr &&
+                !CMP_PKIHEADER_set1_senderKID(msg->header, subjKeyIDStr))
+                goto err;
 
             /* Add ctx->extraCertsOut, the ctx->clCert,
              * and the chain upwards build up from ctx->untrusted_certs */
@@ -838,7 +893,7 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
  */
 int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus, const X509 *cert)
 {
-    unsigned int hashLen;
+    unsigned int len;
     unsigned char hash[EVP_MAX_MD_SIZE];
     int md_NID;
     const EVP_MD *md = NULL;
@@ -856,12 +911,9 @@ int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus, const X509 *cert)
      */
     if (OBJ_find_sigid_algs(X509_get_signature_nid(cert), &md_NID, NULL)
         && (md = EVP_get_digestbynid(md_NID))) {
-        if (!X509_digest(cert, md, hash, &hashLen))
+        if (!X509_digest(cert, md, hash, &len))
             goto err;
-        if (certStatus->certHash == NULL)
-            if ((certStatus->certHash = ASN1_OCTET_STRING_new()) == NULL)
-                goto err;
-        if (!ASN1_OCTET_STRING_set(certStatus->certHash, hash, hashLen))
+        if (!CMP_ASN1_OCTET_STRING_set1_bytes(&certStatus->certHash, hash, len))
             goto err;
     } else {
         CMPerr(CMP_F_CMP_CERTSTATUS_SET_CERTHASH,

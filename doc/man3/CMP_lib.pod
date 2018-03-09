@@ -45,6 +45,7 @@
   CMP_build_cert_chain,
   CMP_PKIMESSAGE_check_received,
   CMP_ASN1_OCTET_STRING_set1,
+  CMP_ASN1_OCTET_STRING_set1_bytes,
   CMP_sk_X509_add1_cert,
   CMP_sk_X509_add1_certs,
   CMP_X509_STORE_add1_certs,
@@ -106,6 +107,8 @@
                                     int, const CMP_PKIMESSAGE *));
   int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                  const ASN1_OCTET_STRING *src);
+  int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
+                                       const unsigned char *bytes, size_t len);
   int CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert, int not_duplicate);
   int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
                              int no_self_signed, int no_duplicates);
@@ -264,8 +267,12 @@ If so, learns from the message received the senderNonce
 It returns the body type (which is >= 0) of the message on success, -1 on error.
 
 CMP_ASN1_OCTET_STRING_set1() frees any previous value of the variable referenced
-via the first argument and assigns either a copy of the string given as the
-second argument or NULL. It returns 1 on success, 0 on error.
+via the first argument and assigns either a copy of the src ASN1_OCTET_STRING
+given as the second argument or NULL. It returns 1 on success, 0 on error.
+
+CMP_ASN1_OCTET_STRING_set1_bytes() frees any previous value of the variable
+referenced via the first argument and assigns either a copy of the given byte
+string (with the given length) or NULL. It returns 1 on success, 0 on error.
 
 CMP_sk_X509_add1_cert() adds a certificate to given stack, optionally only if
 not already contained.

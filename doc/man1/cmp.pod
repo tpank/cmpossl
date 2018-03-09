@@ -303,25 +303,26 @@ The file where to save any received CA certificates.
 
 =item B<-ref value>
 
-Reference value to use when messages are authenticated with pre-shared keys
-(password-based MAC).  Implies that the B<-secret> option is also given.
+Reference number/value to use as senderKID; this is required
+if no sender name can be determined from the B<-cert> or <-subject> options
+and is optional when authenticating with pre-shared key (password-based MAC).
 
 =item B<-secret arg>
 
-Source for secret value to use when messages are authenticated with
-pre-shared keys (password-based MAC).
-Implies that the B<-ref> option is also given.
+Source of secret value to use for authenticating with pre-shared keys
+(password-based MAC). This takes precedence over the B<-cert> option.
 
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-cert filename>
 
-The client's currently existing certificate. This will be used for signing
-request messages using an certificate.  Requires for the corresponding key to
-be given with B<-key>.  For IR this can be used for authenticating a request
-message using an external entity certificate as defined in appendix E.7 of RFC
-4210. For KUR this is also used as certificate to be updated if the B<-oldcert>
+The client's currently existing certificate. Unless the B<-secret> option
+indicating PBM is given, this will be used for signature-based message
+protection. Requires for the corresponding key to be given with B<-key>.
+For IR this can be used for authenticating a request message
+using an external entity certificate as defined in appendix E.7 of RFC 4210.
+For KUR this is also used as certificate to be updated if the B<-oldcert>
 option is not given.
 If the file includes further certs, they are appended in the extraCerts field.
 
@@ -441,8 +442,8 @@ template. For KUR, it defaults to the subject DN of the reference certificate
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by C<\>E<nbsp>(backslash), no spaces are skipped.
 
-In case B<-cert> is not set, i.e. when using MSG_MAC_ALG, the subject DN is also
-used as sender of the PKI message.
+In case B<-cert> is not set, for instance when using MSG_MAC_ALG,
+the subject DN is also used as sender of the PKI message.
 
 =item B<-issuer name>
 
