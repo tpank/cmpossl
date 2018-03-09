@@ -271,7 +271,7 @@ static X509_NAME *determine_subj(CMP_CTX *ctx, X509 *refcert, int bodytype) {
     if (refcert &&
         (bodytype == V_CMP_PKIBODY_KUR || !HAS_SAN(ctx)))
         /*
-         * For KUR, copy subjectName from previous certificate.
+         * For KUR, copy subjectName from reference certificate.
          * For IR or CR, do the same only if there is no subjectAltName.
          */
         return X509_get_subject_name(refcert);
