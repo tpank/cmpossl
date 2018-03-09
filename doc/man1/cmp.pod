@@ -54,12 +54,12 @@ S<[B<-policies names>]>
 S<[B<-policies_critical>]>
 S<[B<-popo number>]>
 S<[B<-csr filename>]>
-S<[B<-implicitconfirm>]>
-S<[B<-disableconfirm>]>
 S<[B<-out_trusted filenames>]>
 S<[B<-verify_hostname cn>]>
 S<[B<-verify_ip ip>]>
 S<[B<-verify_email email>]>
+S<[B<-implicitconfirm>]>
+S<[B<-disableconfirm>]>
 S<[B<-certout filename>]>
 
 S<[B<-oldcert filename>]>
@@ -507,15 +507,6 @@ C<0> = NONE, C<1> = SIGNATURE (default), C<2> = ENCRCERT, C<3> = RAVERIFIED.
 
 CSR in PKCS#10 format to use in p10cr. This is for supporting legacy clients.
 
-=item B<-implicitconfirm>
-
-Request implicit confirmation of the newly enrolled certificate.
-
-=item B<-disableconfirm>
-
-Do not send certificate confirmation message for newly enrolled certificate to
-cope with broken servers not supporting implicit confirmation correctly.
-
 =item B<-out_trusted filenames>
 
 Trusted certificate(s) to use for verifying the newly enrolled certificate.
@@ -540,6 +531,15 @@ an IP address Subject Alternative Name matching the given IP address.
 When verification of the newly enrolled certificate is enabled (with the
 B<-out_trusted> option), check if there is
 an email address Subject Alternative Name matching the given email address.
+
+=item B<-implicitconfirm>
+
+Request implicit confirmation of the newly enrolled certificate.
+
+=item B<-disableconfirm>
+
+Do not send certificate confirmation message for newly enrolled certificate to
+cope with broken servers not supporting implicit confirmation correctly.
 
 =item B<-certout filename>
 

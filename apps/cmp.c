@@ -255,9 +255,9 @@ static char *opt_policies = NULL;
 static int opt_policies_critical = 0;
 static int opt_popo = -1;
 static char *opt_csr = NULL;
+static char *opt_out_trusted = NULL;
 static int opt_implicitConfirm = 0;
 static int opt_disableConfirm = 0;
-static char *opt_out_trusted = NULL;
 static char *opt_certout = NULL;
 
 static char *opt_oldcert = NULL;
@@ -382,8 +382,8 @@ typedef enum OPTION_choice {
     OPT_SAN_DNS, OPT_SAN_IP, OPT_SAN_NODEFAULT,  OPT_SAN_CRITICAL,
     OPT_POLICIES, OPT_POLICIES_CRITICAL,
     OPT_POPO, OPT_CSR,
-    OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
-    OPT_OUT_TRUSTED, OPT_CERTOUT,
+    OPT_OUT_TRUSTED, OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
+    OPT_CERTOUT,
 
     OPT_OLDCERT, OPT_REVREASON,
 
@@ -534,14 +534,14 @@ OPTIONS cmp_options[] = {
 "0 = NONE, 1 = SIGNATURE, 2 = ENCRCERT, 3 = RAVERIFIED. Default 1 = SIGNATURE"},
     {"csr", OPT_CSR, 's',
      "CSR in PKCS#10 format to use in p10cr for legacy support"},
+    {"out_trusted", OPT_OUT_TRUSTED, 's',
+    "Trusted certificates to use for verifying the newly enrolled certificate"},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-',
      "Request implicit confirmation of newly enrolled certificate"},
     {"disableconfirm", OPT_DISABLECONFIRM, '-',
      "Do not confirm newly enrolled certificate."},
     {OPT_MORE_STR, 0, 0,
      "WARNING: This setting leads to behavior violating RFC 4210"},
-    {"out_trusted", OPT_OUT_TRUSTED, 's',
-    "Trusted certificates to use for verifying the newly enrolled certificate"},
     {"certout", OPT_CERTOUT, 's',
      "File to save the newly enrolled certificate"},
 
@@ -727,8 +727,9 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {(char **)&opt_san_nodefault}, {(char **)&opt_san_critical},
     {&opt_policies}, {(char **)&opt_policies_critical},
     {(char **)&opt_popo}, {&opt_csr},
+    {&opt_out_trusted},
     {(char **)&opt_implicitConfirm}, {(char **)&opt_disableConfirm},
-    {&opt_out_trusted}, {&opt_certout},
+    {&opt_certout},
 
     {&opt_oldcert}, {(char **)&opt_revreason},
 
@@ -3060,6 +3061,15 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
         (void)CMP_CTX_set_certConf_cb_arg(ctx, out_trusted);
 
     }
+
+    if (opt_disableConfirm)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DISABLECONFIRM, 1);
+
+    if (opt_implicitConfirm)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IMPLICITCONFIRM, 1);
+
+    (void)CMP_CTX_set_certConf_cb(ctx, certConf_cb);
+
     return 1;
 
  oom:
@@ -3464,14 +3474,6 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
             X509_REQ_free(csr);
         }
     }
-
-    if (opt_disableConfirm)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DISABLECONFIRM, 1);
-
-    if (opt_implicitConfirm)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_IMPLICITCONFIRM, 1);
-
-    (void)CMP_CTX_set_certConf_cb(ctx, certConf_cb);
 
     certform = opt_certform;
     if (opt_oldcert) {
@@ -4105,14 +4107,14 @@ int cmp_main(int argc, char **argv)
         case OPT_CSR:
             opt_csr = opt_arg();
             break;
+        case OPT_OUT_TRUSTED:
+            opt_out_trusted = opt_str("out_trusted");
+            break;
         case OPT_IMPLICITCONFIRM:
             opt_implicitConfirm = 1;
             break;
         case OPT_DISABLECONFIRM:
             opt_disableConfirm = 1;
-            break;
-        case OPT_OUT_TRUSTED:
-            opt_out_trusted = opt_str("out_trusted");
             break;
         case OPT_CERTOUT:
             opt_certout = opt_str("certout");
