@@ -3255,20 +3255,25 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
     }
     if (opt_secret) {
         char *pass_string = NULL;
+        int res;
 
         if ((pass_string = get_passwd(opt_secret, "PBMAC"))) {
             OPENSSL_cleanse(opt_secret, strlen(opt_secret));
             opt_secret = NULL;
-            CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
-                                        opt_ref ? strlen(opt_ref) : 0);
-            CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
-                                     strlen(pass_string));
+            res = CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
+                                           strlen(pass_string));
             OPENSSL_clear_free(pass_string, strlen(pass_string));
+            if (!res)
+                goto err;
         }
         if (opt_cert || opt_key)
             BIO_puts(bio_c_out,
         "warning: no signature-based protection used since -secret is given\n");
     }
+    if (opt_ref &&
+        !CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
+                                     strlen(opt_ref)))
+        goto err;
 
     if (opt_key) {
         EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyform, opt_keypass, e,
