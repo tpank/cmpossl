@@ -2799,7 +2799,7 @@ static int setup_srv_ctx(ENGINE *e)
 
     if ((opt_srv_cert == NULL) != (opt_srv_key == NULL)) {
         BIO_puts(bio_err,
-           "error: must give both -srv_cert and -srv_key options or neither\n");
+     "error: must give both -srv_cert and -srv_key options or neither\n");
             goto err;
     }
     if (opt_srv_cert) {
