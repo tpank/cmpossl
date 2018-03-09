@@ -2797,9 +2797,9 @@ static int setup_srv_ctx(ENGINE *e)
         goto err;
     }
 
-    if ((opt_srv_cert == NULL) != (opt_srv_key == NULL)) {
+    if (!opt_srv_secret && ((opt_srv_cert == NULL) != (opt_srv_key == NULL))) {
         BIO_puts(bio_err,
-     "error: must give both -srv_cert and -srv_key options or neither\n");
+           "error: must give both -srv_cert and -srv_key options or neither\n");
             goto err;
     }
     if (opt_srv_cert) {
@@ -3248,6 +3248,11 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
                  "error: must give -ref if no -cert and no -subject given\n");
         goto err;
     }
+    if (!opt_secret && ((opt_cert == NULL) != (opt_key == NULL))) {
+        BIO_puts(bio_err,
+                   "error: must give both -cert and -key options or neither\n");
+        goto err;
+    }
     if (opt_secret) {
         char *pass_string = NULL;
 
@@ -3262,14 +3267,9 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
         }
         if (opt_cert || opt_key)
             BIO_puts(bio_c_out,
-               "warning: -cert and -key are not used since -secret is given\n");
+        "warning: no signature-based protection used since -secret is given\n");
     }
 
-    if ((opt_cert == NULL) != (opt_key == NULL)) {
-        BIO_puts(bio_err,
-                   "error: must give both -cert and -key options or neither\n");
-        goto err;
-    }
     if (opt_key) {
         EVP_PKEY *pkey = load_key_autofmt(opt_key, opt_keyform, opt_keypass, e,
                                       "private key for CMP client certificate");
