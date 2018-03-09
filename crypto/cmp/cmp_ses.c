@@ -548,7 +548,7 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
     if (CMP_PKISTATUSINFO_PKIStatus_get(crep->status) == CMP_PKISTATUS_waiting){
         CMP_PKIMESSAGE_free(*resp);
         if (pollForResponse(ctx, rid, resp)) {
-            goto retry;
+            goto retry; /* got rp/cp/kup which might still indicate 'waiting' */
         } else {
             CMPerr(func, not_received);
             ERR_add_error_data(1,
