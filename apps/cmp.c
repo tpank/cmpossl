@@ -2799,7 +2799,7 @@ static int setup_srv_ctx(ENGINE *e)
 
     if ((opt_srv_cert == NULL) != (opt_srv_key == NULL)) {
         BIO_puts(bio_err,
-     "error: must give both -srv_cert and -srv_key options or neither\n");
+           "error: must give both -srv_cert and -srv_key options or neither\n");
             goto err;
     }
     if (opt_srv_cert) {
@@ -3262,7 +3262,7 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
         }
         if (opt_cert || opt_key)
             BIO_puts(bio_c_out,
-     "warning: -cert and -key are not used since -ref and -secret are given\n");
+               "warning: -cert and -key are not used since -secret is given\n");
     }
 
     if ((opt_cert == NULL) != (opt_key == NULL)) {
