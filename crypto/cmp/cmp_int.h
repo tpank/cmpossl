@@ -93,8 +93,6 @@ struct cmp_ctx_st {
     int unprotectedSend; /* send unprotected PKI messages */
     int unprotectedErrors; /* accept unprotected error responses */
     int ignore_keyusage; /* ignore key usage entry in certs */
-    int maxPollTime; /* maximum number of seconds to poll the server
-                        for a response if a 'waiting' PKIStatus is received */
     long lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP, or -1 */
     /* TODO: this should be a stack since there could be more than one */
     unsigned long failInfoCode; /* failInfoCode of last received IP/CP/KUP */
@@ -113,9 +111,11 @@ struct cmp_ctx_st {
     char *serverPath;
     char *proxyName;
     int proxyPort;
-    int msgTimeOut; /* maximum time in seconds to wait for
+    int msgtimeout; /* maximum time in seconds to wait for
                        each CMP message round trip to complete */
-    BIO *tlsBIO;
+    int totaltimeout; /* maximum number seconds an enrollment may take, incl.
+         attempts polling for a response if a 'waiting' PKIStatus is received */
+    time_t end_time;
     cmp_http_cb_t http_cb;
     void *http_cb_arg; /* allows to store optional argument to cb */
     cmp_transfer_cb_t transfer_cb;

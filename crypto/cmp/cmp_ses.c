@@ -1,4 +1,4 @@
- /* crypto/cmp/cmp_ses.c
+/* crypto/cmp/cmp_ses.c
   * Functions to do CMP (RFC 4210) message sequences for OpenSSL
   */
 /* ====================================================================
@@ -149,6 +149,9 @@ static void message_add_error_data(CMP_PKIMESSAGE *msg)
     }
 }
 
+#define IS_ENOLLMENT(t) \
+    (t == V_CMP_PKIBODY_IP || t == V_CMP_PKIBODY_CP || t == V_CMP_PKIBODY_KUP)
+
 /*
  * evaluate whether there's an standard-violating exception configured for
  * handling unprotected errors
@@ -178,10 +181,7 @@ static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
                "WARN: ignoring missing protection of PKI Confirmation message");
             exception = 1;
         }
-        if (rcvd_type == expected_type &&
-                (rcvd_type == V_CMP_PKIBODY_IP ||
-                 rcvd_type == V_CMP_PKIBODY_CP ||
-                 rcvd_type == V_CMP_PKIBODY_KUP)) {
+        if (rcvd_type == expected_type && IS_ENOLLMENT(rcvd_type)) {
             CMP_CERTRESPONSE *crep =
                 CMP_CERTREPMESSAGE_certResponse_get0(rep->body->value.ip, -1);
             /*
@@ -214,7 +214,19 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
                               CMP_PKIMESSAGE **rep, int expected_type,
                               int not_received)
 {
+    int msgtimeout = ctx->msgtimeout; /* backup original value */
     int err, rcvd_type;
+
+    if ((expected_type == V_CMP_PKIBODY_POLLREP || IS_ENOLLMENT(expected_type))
+        && ctx->totaltimeout != 0) { /* total timeout is not infinite */
+        long time_left = (long)(ctx->end_time - time(NULL));
+        if (time_left <= 0) {
+            CMPerr(CMP_F_SEND_RECEIVE_CHECK, CMP_R_TOTAL_TIMEOUT);
+            return 0;
+        }
+        if (ctx->msgtimeout == 0 || time_left < ctx->msgtimeout)
+            ctx->msgtimeout = time_left;
+    }
 
     CMP_printf(ctx, "INFO: Sending %s", type_string);
     if (ctx->transfer_cb != NULL)
@@ -226,6 +238,8 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
          */
     else
         err = CMP_R_ERROR_SENDING_REQUEST;
+    ctx->msgtimeout = msgtimeout; /* restore original value */
+
     if (err) {
         CMPerr(CMP_F_SEND_RECEIVE_CHECK, err);
         if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
@@ -241,18 +255,14 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     }
 
     CMP_printf(ctx, "INFO: Got response");
-
     if((rcvd_type = CMP_PKIMESSAGE_check_received(ctx, *rep, expected_type,
                                                   unprotected_exception)) < 0)
         return 0;
 
     /* catch if received message type isn't one of expected ones (e.g. error) */
     if (rcvd_type != expected_type &&
-            /* for the final answer to polling, there could be IP/CP/KUP */
-            !(expected_type == V_CMP_PKIBODY_POLLREP &&
-                (rcvd_type == V_CMP_PKIBODY_IP ||
-                 rcvd_type == V_CMP_PKIBODY_CP ||
-                 rcvd_type == V_CMP_PKIBODY_KUP))) {
+        /* as an answer to polling, there could be IP/CP/KUP */
+        !(expected_type == V_CMP_PKIBODY_POLLREP && IS_ENOLLMENT(rcvd_type))) {
         CMPerr(CMP_F_SEND_RECEIVE_CHECK, rcvd_type == V_CMP_PKIBODY_ERROR ?
                 CMP_R_RECEIVED_ERROR :
                 CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
@@ -269,9 +279,9 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
  * When a 'waiting' PKIStatus has been received, this function is used to
  * attempt to poll for a response message.
  *
- * A maxPollTime timeout can be set in the context.  The function will continue
+ * A total timeout may have been set in the context.  The function will continue
  * to poll until the timeout is reached and then poll a last time even when that
- * is before the "checkAfter" sent by the server.  If ctx->maxPollTime is 0, the
+ * is before the "checkAfter" sent by the server. If ctx->totaltimeout is 0, the
  * timeout is disabled.
  *
  * returns 1 on success, returns received PKIMESSAGE in *msg argument
@@ -281,7 +291,6 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
  */
 static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
 {
-    time_t end_time = time(NULL) + ctx->maxPollTime;
     CMP_PKIMESSAGE *preq = NULL;
     CMP_PKIMESSAGE *prep = NULL;
     CMP_POLLREP *pollRep = NULL;
@@ -314,10 +323,13 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
                        "INFO: Received polling response, waiting checkAfter =  "
                        "%ld sec before next polling request.", checkAfter);
 
-            if (ctx->maxPollTime != 0) { /* timeout is set in context */
-                long time_left = (long)(end_time - time(NULL));
-                if (time_left <= 0)
-                    goto err;   /* timeout reached */
+            if (ctx->totaltimeout != 0) { /* total timeout is not infinite */
+                const int exp = 5; /* expected max time per msg round trip */
+                long time_left = (long)(ctx->end_time - exp - time(NULL));
+                if (time_left <= 0) {
+                    CMPerr(CMP_F_POLLFORRESPONSE, CMP_R_TOTAL_TIMEOUT);
+                    goto err;
+                }
                 if (time_left < checkAfter) {
                     checkAfter = time_left;
                     /* poll one last time just when timeout was reached */
@@ -653,6 +665,7 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
     if (ctx == NULL)
         return NULL;
 
+    ctx->end_time = time(NULL) + ctx->totaltimeout;
     ctx->lastPKIStatus = -1;
 
     /* The check if all necessary options are set is done in CMP_certreq_new */

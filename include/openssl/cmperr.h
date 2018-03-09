@@ -193,7 +193,8 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  147
 # define CMP_R_MISSING_PROTECTION                         181
 # define CMP_R_MULTIPLE_SAN_SOURCES                       180
-# define CMP_R_NO_SENDER_NO_REFERENCE                     195
+# define CMP_R_NO_NULL_ARGUMENT                           195
+# define CMP_R_NO_SENDER_NO_REFERENCE                     196
 # define CMP_R_NO_VALID_SERVER_CERT_FOUND                 148
 # define CMP_R_NULL_ARGUMENT                              149
 # define CMP_R_OUT_OF_MEMORY                              150
@@ -211,6 +212,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED      161
 # define CMP_R_SERVER_NOT_REACHABLE                       162
 # define CMP_R_TLS_ERROR                                  163
+# define CMP_R_TOTAL_TIMEOUT                              197
 # define CMP_R_TRANSACTIONID_UNMATCHED                    164
 # define CMP_R_UNEXPECTED_PKIBODY                         165
 # define CMP_R_UNEXPECTED_PKISTATUS                       166

@@ -143,7 +143,7 @@ static int proxy_port = 8080;
 
 static char *opt_path = "/";
 static int opt_msgtimeout = -1;
-static int opt_maxpolltime = -1;
+static int opt_totaltimeout = -1;
 
 static int opt_tls_used = 0;
 static char *opt_tls_cert = NULL;
@@ -366,7 +366,7 @@ typedef enum OPTION_choice {
     OPT_CONFIG, OPT_SECTION,
 
     OPT_SERVER, OPT_PROXY, OPT_PATH,
-    OPT_MSGTIMEOUT, OPT_MAXPOLLTIME,
+    OPT_MSGTIMEOUT, OPT_TOTALTIMEOUT,
 
     OPT_RECIPIENT, OPT_EXPECT_SENDER, OPT_SRVCERT,
     OPT_TRUSTED, OPT_UNTRUSTED,
@@ -443,8 +443,8 @@ OPTIONS cmp_options[] = {
      "HTTP path location inside the server (aka CMP alias). Default '/'"},
     {"msgtimeout", OPT_MSGTIMEOUT, 'n',
      "Timeout per CMP message round trip (or 0 for none). Default 120 seconds"},
-    {"maxpolltime", OPT_MAXPOLLTIME, 'n',
-     "Maximum total number of seconds to poll for certs. Default 0 = infinite"},
+    {"totaltimeout", OPT_TOTALTIMEOUT, 'n',
+     "Overall time an enrollment incl. polling may take. Default 0 = infinite"},
 
     {OPT_MORE_STR, 0, 0, "\nServer authentication options:"},
     {"recipient", OPT_RECIPIENT, 's',
@@ -710,7 +710,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_config}, {&opt_section},
 
     {&opt_server}, {&opt_proxy}, {&opt_path},
-    {(char **)&opt_msgtimeout}, {(char **)&opt_maxpolltime},
+    {(char **)&opt_msgtimeout}, {(char **)&opt_totaltimeout},
 
     {&opt_recipient}, {&opt_expect_sender}, {&opt_srvcert},
     {&opt_trusted}, {&opt_untrusted},
@@ -3695,8 +3695,8 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
 
     if (opt_msgtimeout >= 0)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MSGTIMEOUT, opt_msgtimeout);
-    if (opt_maxpolltime >= 0)
-        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_MAXPOLLTIME, opt_maxpolltime);
+    if (opt_totaltimeout >= 0)
+        (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_TOTALTIMEOUT, opt_totaltimeout);
 
 #ifndef NDEBUG
     if (opt_reqin || opt_reqout || opt_rspin || opt_rspout || opt_mock_srv)
@@ -3941,8 +3941,8 @@ int cmp_main(int argc, char **argv)
             if ((opt_msgtimeout = opt_nat()) < 0)
                 goto opt_err;
             break;
-        case OPT_MAXPOLLTIME:
-            if ((opt_maxpolltime = opt_nat()) < 0)
+        case OPT_TOTALTIMEOUT:
+            if ((opt_totaltimeout = opt_nat()) < 0)
                 goto opt_err;
             break;
 

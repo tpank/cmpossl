@@ -424,7 +424,7 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
         ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort)
         return CMP_R_NULL_ARGUMENT;
 
-    max_time = ctx->msgTimeOut > 0 ? time(NULL) + ctx->msgTimeOut : 0;
+    max_time = ctx->msgtimeout > 0 ? time(NULL) + ctx->msgtimeout : 0;
 
     if ((hbio = CMP_new_http_bio(ctx)) == NULL)
         goto err;
@@ -439,7 +439,7 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     /* tentatively set error, which allows accumulating diagnostic info */
     (void)ERR_set_mark();
     CMPerr(CMP_F_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);
-    rv = bio_connect(hbio, ctx->msgTimeOut);
+    rv = bio_connect(hbio, ctx->msgtimeout);
     if (rv <= 0) {
         err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_ERROR_CONNECTING;
         goto err;

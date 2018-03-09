@@ -207,7 +207,6 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->unprotectedSend = 0;
     ctx->unprotectedErrors = 0;
     ctx->ignore_keyusage = 0;
-    ctx->maxPollTime = 0;
 
     ctx->lastPKIStatus = 0;
     ctx->failInfoCode = 0;
@@ -227,7 +226,9 @@ int CMP_CTX_init(CMP_CTX *ctx)
         goto err;
     ctx->proxyName = NULL;
     ctx->proxyPort = 8080;
-    ctx->msgTimeOut = 2 * 60;
+    ctx->msgtimeout = 2 * 60;
+    ctx->totaltimeout = 0;
+ /* ctx->end_time = */
     ctx->http_cb = NULL;
     ctx->http_cb_arg = NULL;
     ctx->transfer_cb =
@@ -1466,10 +1467,10 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
         ctx->digest = val;
         break;
     case CMP_CTX_OPT_MSGTIMEOUT:
-        ctx->msgTimeOut = val;
+        ctx->msgtimeout = val;
         break;
-    case CMP_CTX_OPT_MAXPOLLTIME:
-        ctx->maxPollTime = val;
+    case CMP_CTX_OPT_TOTALTIMEOUT:
+        ctx->totaltimeout = val;
         break;
     case CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR:
         ctx->permitTAInExtraCertsForIR = val;

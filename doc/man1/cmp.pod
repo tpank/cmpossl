@@ -15,7 +15,7 @@ S<[B<-server address:port>]>
 S<[B<-proxy address:port>]>
 S<[B<-path remote_path>]>
 S<[B<-msgtimeout seconds>]>
-S<[B<-maxpolltime seconds>]>
+S<[B<-totaltimeout seconds>]>
 
 S<[B<-recipient name>]>
 S<[B<-expect_sender name>]>
@@ -171,9 +171,9 @@ HTTP path location to use for the CMP server (aka CMP alias). Defaults to "/".
 Number of seconds (or 0 for infinite) a CMP message round trip is
 allowed to take before a timeout error is returned. Default is 120.
 
-=item B<-maxpolltime seconds>
+=item B<-totaltimeout seconds>
 
-Maximum total number seconds to attempt polling for
+Maximum number seconds an enrollment may take, including attempts polling for
 certificates on C<waiting> PKIStatus. Default is 0 (infinite).
 
 =back

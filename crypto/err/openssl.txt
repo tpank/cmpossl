@@ -1946,6 +1946,7 @@ CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED:161:\
 	sender generalname type not supported
 CMP_R_SERVER_NOT_REACHABLE:162:server not reachable
 CMP_R_TLS_ERROR:163:tls error
+CMP_R_TOTAL_TIMEOUT:197:total timeout
 CMP_R_TRANSACTIONID_UNMATCHED:164:transactionid unmatched
 CMP_R_UNEXPECTED_PKIBODY:165:unexpected pkibody
 CMP_R_UNEXPECTED_PKISTATUS:166:unexpected pkistatus
