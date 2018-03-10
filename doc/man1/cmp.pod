@@ -65,11 +65,11 @@ S<[B<-certout filename>]>
 S<[B<-oldcert filename>]>
 S<[B<-revreason number>]>
 
-S<[B<-certpass arg>]>
 S<[B<-ownform PEM|DER|P12>]>
 S<[B<-keyform PEM|DER|P12>]>
 S<[B<-crlform PEM|DER>]>
 S<[B<-otherform PEM|DER|P12>]>
+S<[B<-otherpass arg>]>
 S<[B<-engine id>]>
 
 S<[B<-tls_used>]>
@@ -590,16 +590,6 @@ Reason numbers defined in RFC 5280 are:
 
 =over 4
 
-=item B<-certpass arg>
-
-Pass phrase source for any certificate stores given with the B<-trusted>,
-B<-untrusted>, B<-out_trusted>, B<-extracerts>, B<-tls_extra>, or
-B<-tls_trusted> options.
-If not given here, the password will be prompted for if needed.
-
-For more information about the format of B<arg> see the
-B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
-
 =item B<-ownform PEM|DER|P12>
 
 Format to try first when reading files and to use for writing files containing
@@ -619,6 +609,15 @@ Format to try first when reading CRL files. Default value is PEM.
 Format to try first when reading files and to use for writing files containing
 certificates of other parties (i.e., the server side).
 Default value is PEM.
+
+=item B<-otherpass arg>
+
+Pass phrase source for certificate given with the B<-trusted>, B<-untrusted>,
+B<-out_trusted>, B<-extracerts>, B<-tls_extra>, or B<-tls_trusted> options.
+If not given here, the password will be prompted for if needed.
+
+For more information about the format of B<arg> see the
+B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-engine id>
 

@@ -229,7 +229,6 @@ X509_STORE_CTX_check_revocation_fn check_revocation = NULL;
 static int opt_ocsp_status = 0;/* unset if OPENSSL_VERSION_NUMBER<0x10100000L */
 #endif
 
-static char *opt_certpass = NULL;
 static char *opt_ownform_s = "PEM";
 static int opt_ownform = FORMAT_PEM;
 static char *opt_keyform_s = "PEM";
@@ -238,6 +237,7 @@ static char *opt_crlform_s = "PEM";
 static int opt_crlform = FORMAT_PEM;
 static char *opt_otherform_s = "PEM";
 static int opt_otherform = FORMAT_PEM;
+static char *opt_otherpass = NULL;
 #ifndef OPENSSL_NO_ENGINE
 static char *opt_engine = NULL;
 #endif
@@ -388,7 +388,7 @@ typedef enum OPTION_choice {
 
     OPT_OLDCERT, OPT_REVREASON,
 
-    OPT_CERTPASS, OPT_OWNFORM, OPT_KEYFORM, OPT_CRLFORM, OPT_OTHERFORM,
+    OPT_OWNFORM, OPT_KEYFORM, OPT_CRLFORM, OPT_OTHERFORM, OPT_OTHERPASS,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
@@ -560,8 +560,6 @@ OPTIONS cmp_options[] = {
      "0..10 (see RFC5280, 5.3.1) or -1 for none. Default -1 = none"},
 
     {OPT_MORE_STR, 0, 0, "\nCredentials format options:"},
-    {"certpass", OPT_CERTPASS, 's',
-   "Pass phrase source potentially needed for loading trusted/untrusted certs"},
     {"ownform", OPT_OWNFORM, 's',
    "Format (PEM/DER/P12) to try first for client-side cert files. Default PEM"},
     {OPT_MORE_STR, 0, 0,
@@ -572,6 +570,8 @@ OPTIONS cmp_options[] = {
      "Format (PEM/DER) to try first when reading CRL files. Default PEM"},
     {"otherform", OPT_OTHERFORM, 's',
  "Format (PEM/DER/P12) to try first reading cert files of others. Default PEM"},
+    {"otherpass", OPT_OTHERPASS, 's',
+    "Pass phrase source potentially needed for loading certificates of others"},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's',
      "Use crypto engine with given identifier, possibly a hardware device."},
@@ -736,8 +736,8 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 
     {&opt_oldcert}, {(char **)&opt_revreason},
 
-    {&opt_certpass},
     {&opt_ownform_s}, {&opt_keyform_s}, {&opt_crlform_s}, {&opt_otherform_s},
+    {&opt_otherpass},
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
 #endif
@@ -2609,7 +2609,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
         char *next = next_item(input);           \
 
         if (!load_certs_autofmt(input, &certs, opt_otherform, 1,
-                                opt_certpass, desc) ||
+                                opt_otherpass, desc) ||
             !(store = sk_X509_to_store(store, certs))) {
             /* BIO_puts(bio_err, "error: out of memory\n"); */
             X509_STORE_free(store);
@@ -2671,7 +2671,7 @@ static int setup_certs(char *files, const char *desc, void *ctx,
 
     if (files) {
         STACK_OF(X509) *certs = load_certs_multifile(files, opt_otherform,
-                                                     opt_certpass, desc);
+                                                     opt_otherpass, desc);
         if (certs == NULL) {
             ret = 0;
         } else {
@@ -3015,8 +3015,8 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
                 opt_recipient = NULL;
             }
             if (!(srvcert = load_cert_autofmt(opt_srvcert, opt_otherform,
-                               opt_certpass, "trusted CMP server certificate")))
-   /* opt_certpass is needed in case opt_srvcert is an encrypted PKCS#12 file */
+                              opt_otherpass, "trusted CMP server certificate")))
+  /* opt_otherpass is needed in case opt_srvcert is an encrypted PKCS#12 file */
                 goto err;
             if (!CMP_CTX_set1_srvCert(ctx, srvcert)) {
                 X509_free(srvcert);
@@ -3202,7 +3202,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         /* If present we append to the list also the certs from opt_tls_extra */
         if (opt_tls_extra) {
             STACK_OF(X509) *tls_extra =
-                load_certs_multifile(opt_tls_extra, opt_ownform, opt_certpass,
+                load_certs_multifile(opt_tls_extra, opt_ownform, opt_otherpass,
                                      "extra certificates for TLS");
             if (!tls_extra ||
                 !SSL_CTX_add_extra_chain_free(ssl_ctx, tls_extra))
@@ -3341,9 +3341,9 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
     if (!setup_certs(opt_extracerts, "extra certificates for CMP", ctx,
                      NULL, (add_X509_fn_t)CMP_CTX_extraCertsOut_push1))
         goto err;
-    if (opt_certpass) {
-        OPENSSL_cleanse(opt_certpass, strlen(opt_certpass));
-        opt_certpass = NULL;
+    if (opt_otherpass) {
+        OPENSSL_cleanse(opt_otherpass, strlen(opt_otherpass));
+        opt_otherpass = NULL;
     }
 
     if (opt_unprotectedRequests)
@@ -4137,9 +4137,6 @@ int cmp_main(int argc, char **argv)
                 goto opt_err;
             break;
 
-        case OPT_CERTPASS:
-            opt_certpass = opt_str("certpass");
-            break;
         case OPT_OWNFORM:
             opt_ownform_s = opt_str("ownform");
             break;
@@ -4151,6 +4148,9 @@ int cmp_main(int argc, char **argv)
             break;
         case OPT_OTHERFORM:
             opt_otherform_s = opt_str("otherform");
+            break;
+        case OPT_OTHERPASS:
+            opt_otherpass = opt_str("otherpass");
             break;
 # ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
@@ -4449,12 +4449,12 @@ int cmp_main(int argc, char **argv)
     release_engine(e);
 
     /* if we ended up here without proper cleaning */
-    if (opt_certpass)
-        OPENSSL_cleanse(opt_certpass, strlen(opt_certpass));
     if (opt_keypass)
         OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
     if (opt_newkeypass)
         OPENSSL_cleanse(opt_newkeypass, strlen(opt_newkeypass));
+    if (opt_otherpass)
+        OPENSSL_cleanse(opt_otherpass, strlen(opt_otherpass));
     if (opt_tls_keypass)
         OPENSSL_cleanse(opt_tls_keypass, strlen(opt_tls_keypass));
     if (opt_secret)
