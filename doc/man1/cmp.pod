@@ -66,10 +66,10 @@ S<[B<-oldcert filename>]>
 S<[B<-revreason number>]>
 
 S<[B<-certpass arg>]>
-S<[B<-certform DER|PEM|P12>]>
-S<[B<-keyform DER|PEM|P12>]>
-S<[B<-clrform DER|PEM>]>
-S<[B<-storeform DER|PEM|P12>]>
+S<[B<-ownform PEM|DER|P12>]>
+S<[B<-keyform PEM|DER|P12>]>
+S<[B<-crlform PEM|DER>]>
+S<[B<-otherform PEM|DER|P12>]>
 S<[B<-engine id>]>
 
 S<[B<-tls_used>]>
@@ -334,6 +334,7 @@ the B<-cert> option.
 =item B<-keypass arg>
 
 Pass phrase source for the private key given with the B<-key> option.
+Also used for B<-cert> and B<-oldcert> in case it is an encrypted PKCS#12 file.
 If not given here, the password will be prompted for if needed.
 
 For more information about the format of B<arg> see the
@@ -585,7 +586,7 @@ Reason numbers defined in RFC 5280 are:
 =back
 
 
-=head2 Credential format options
+=head2 Credentials format options
 
 =over 4
 
@@ -599,22 +600,24 @@ If not given here, the password will be prompted for if needed.
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
-=item B<-certform DER|PEM|P12>
+=item B<-ownform PEM|DER|P12>
 
-Format to try first when reading and to use for writing certificate files.
+Format to try first when reading files and to use for writing files containing
+own (i.e., client-side) certificates.
 Default value is PEM.
 
-=item B<-keyform DER|PEM|P12>
+=item B<-keyform PEM|DER|P12>
 
 Format to try first when reading key files. Default value is PEM.
 
-=item B<-crlform DER|PEM>
+=item B<-crlform PEM|DER>
 
 Format to try first when reading CRL files. Default value is PEM.
 
-=item B<-storeform DER|PEM|P12>
+=item B<-otherform PEM|DER|P12>
 
-Format to try first when reading and to use for writing certificate store files.
+Format to try first when reading files and to use for writing files containing
+certificates of other parties (i.e., the server side).
 Default value is PEM.
 
 =item B<-engine id>
@@ -653,7 +656,8 @@ Private key for the client's TLS certificate.
 
 =item B<-tls_keypass arg>
 
-Pass phrase source for client's private TLS key.
+Pass phrase source for client's private TLS key B<tls_key>.
+Also used for B<-tls_cert> in case it is an encrypted PKCS#12 file.
 If not given here, the password will be prompted for if needed.
 
 For more information about the format of B<arg> see the

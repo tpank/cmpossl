@@ -230,14 +230,14 @@ static int opt_ocsp_status = 0;/* unset if OPENSSL_VERSION_NUMBER<0x10100000L */
 #endif
 
 static char *opt_certpass = NULL;
-static char *opt_certform_s = "PEM";
-static int opt_certform = FORMAT_PEM;
+static char *opt_ownform_s = "PEM";
+static int opt_ownform = FORMAT_PEM;
 static char *opt_keyform_s = "PEM";
 static int opt_keyform = FORMAT_PEM;
 static char *opt_crlform_s = "PEM";
 static int opt_crlform = FORMAT_PEM;
-static char *opt_storeform_s = "PEM";
-static int opt_storeform = FORMAT_PEM;
+static char *opt_otherform_s = "PEM";
+static int opt_otherform = FORMAT_PEM;
 #ifndef OPENSSL_NO_ENGINE
 static char *opt_engine = NULL;
 #endif
@@ -388,7 +388,7 @@ typedef enum OPTION_choice {
 
     OPT_OLDCERT, OPT_REVREASON,
 
-    OPT_CERTPASS, OPT_CERTFORM, OPT_KEYFORM, OPT_CRLFORM, OPT_STOREFORM,
+    OPT_CERTPASS, OPT_OWNFORM, OPT_KEYFORM, OPT_CRLFORM, OPT_OTHERFORM,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
@@ -483,7 +483,7 @@ OPTIONS cmp_options[] = {
      "any further certs included are appended in extraCerts field"},
     {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
     {"keypass", OPT_KEYPASS, 's',
-     "Client private key (and cert file) pass phrase source"},
+     "Client private key (and cert and old cert file) pass phrase source"},
     {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
      "Send messages without CMP-level protection"},
     {"digest", OPT_DIGEST, 's',
@@ -559,19 +559,19 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "0..10 (see RFC5280, 5.3.1) or -1 for none. Default -1 = none"},
 
-    {OPT_MORE_STR, 0, 0, "\nCredential format options:"},
+    {OPT_MORE_STR, 0, 0, "\nCredentials format options:"},
     {"certpass", OPT_CERTPASS, 's',
    "Pass phrase source potentially needed for loading trusted/untrusted certs"},
-    {"certform", OPT_CERTFORM, 's',
-     "Format (PEM/DER/P12) to try first when reading cert files. Default PEM"},
+    {"ownform", OPT_OWNFORM, 's',
+   "Format (PEM/DER/P12) to try first for client-side cert files. Default PEM"},
     {OPT_MORE_STR, 0, 0,
      "This also determines format to use for writing (not supported for P12)"},
     {"keyform", OPT_KEYFORM, 's',
      "Format (PEM/DER/P12) to try first when reading key files. Default PEM"},
     {"crlform", OPT_CRLFORM, 's',
      "Format (PEM/DER) to try first when reading CRL files. Default PEM"},
-    {"storeform", OPT_STOREFORM, 's',
-"Format (PEM/DER/P12) to try first when reading cert store files. Default PEM"},
+    {"otherform", OPT_OTHERFORM, 's',
+ "Format (PEM/DER/P12) to try first reading cert files of others. Default PEM"},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's',
      "Use crypto engine with given identifier, possibly a hardware device."},
@@ -591,7 +591,7 @@ OPTIONS cmp_options[] = {
     {"tls_key", OPT_TLS_KEY, 's',
      "Private key for the client's TLS certificate"},
     {"tls_keypass", OPT_TLS_KEYPASS, 's',
-     "Pass phrase source for the client's private TLS key"},
+     "Pass phrase source for the client's private TLS key (and TLS cert file)"},
     {"tls_extra", OPT_TLS_EXTRA, 's',
      "Extra certificates to provide to TLS server during TLS handshake"},
     {"tls_trusted", OPT_TLS_TRUSTED, 's',
@@ -737,7 +737,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_oldcert}, {(char **)&opt_revreason},
 
     {&opt_certpass},
-    {&opt_certform_s}, {&opt_keyform_s}, {&opt_crlform_s}, {&opt_storeform_s},
+    {&opt_ownform_s}, {&opt_keyform_s}, {&opt_crlform_s}, {&opt_otherform_s},
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
 #endif
@@ -1492,7 +1492,7 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format,
 }
 
 /* TODO DvO: push that separately upstream */
-static X509 *load_cert_autofmt(const char *infile, int *format,
+static X509 *load_cert_autofmt(const char *infile, int format,
                                const char *pass, const char *desc)
 {
     X509 *cert;
@@ -1501,12 +1501,12 @@ static X509 *load_cert_autofmt(const char *infile, int *format,
     BIO *bio_bak = bio_err;
 
     bio_err = NULL;
-    *format = adjust_format(&infile, *format, 0);
-    cert = load_cert_pass(infile, *format, pass_string, desc);
-    if (cert == NULL && *format != FORMAT_HTTP) {
+    format = adjust_format(&infile, format, 0);
+    cert = load_cert_pass(infile, format, pass_string, desc);
+    if (cert == NULL && format != FORMAT_HTTP) {
         ERR_clear_error();
-        *format = (*format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
-        cert = load_cert_pass(infile, *format, pass_string, desc);
+        format = (format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
+        cert = load_cert_pass(infile, format, pass_string, desc);
     }
     bio_err = bio_bak;
     if (cert == NULL) {
@@ -1520,7 +1520,7 @@ static X509 *load_cert_autofmt(const char *infile, int *format,
 }
 
 /* TODO DvO: push that separately upstream */
-static X509_REQ *load_csr_autofmt(const char *infile, int *format,
+static X509_REQ *load_csr_autofmt(const char *infile, int format,
                                   const char *desc)
 {
     X509_REQ *csr;
@@ -1528,12 +1528,12 @@ static X509_REQ *load_csr_autofmt(const char *infile, int *format,
     BIO *bio_bak = bio_err;
 
     bio_err = NULL;
-    *format = adjust_format(&infile, *format, 0);
-    csr = load_csr(infile, *format, desc);
-    if (csr == NULL && (*format == FORMAT_PEM || *format == FORMAT_ASN1)) {
+    format = adjust_format(&infile, format, 0);
+    csr = load_csr(infile, format, desc);
+    if (csr == NULL && (format == FORMAT_PEM || format == FORMAT_ASN1)) {
         ERR_clear_error();
-        *format = (*format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
-        csr = load_csr(infile, *format, desc);
+        format = (format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
+        csr = load_csr(infile, format, desc);
     }
     bio_err = bio_bak;
     if (csr == NULL) {
@@ -2608,7 +2608,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     while (*input != '\0') {
         char *next = next_item(input);           \
 
-        if (!load_certs_autofmt(input, &certs, opt_storeform, 1,
+        if (!load_certs_autofmt(input, &certs, opt_otherform, 1,
                                 opt_certpass, desc) ||
             !(store = sk_X509_to_store(store, certs))) {
             /* BIO_puts(bio_err, "error: out of memory\n"); */
@@ -2664,14 +2664,14 @@ static STACK_OF(X509) *load_certs_multifile(char *files, int format,
 
 typedef int (*add_X509_stack_fn_t)(void *ctx, const STACK_OF(X509) *certs);
 typedef int (*add_X509_fn_t      )(void *ctx, const X509 *cert);
-static int setup_certs(char *files, int format, const char *pass,
-                       const char *desc, void *ctx,
+static int setup_certs(char *files, const char *desc, void *ctx,
                        add_X509_stack_fn_t addn_fn, add_X509_fn_t add1_fn)
 {
     int ret = 1;
 
     if (files) {
-        STACK_OF(X509) *certs = load_certs_multifile(files, format, pass, desc);
+        STACK_OF(X509) *certs = load_certs_multifile(files, opt_otherform,
+                                                     opt_certpass, desc);
         if (certs == NULL) {
             ret = 0;
         } else {
@@ -2729,17 +2729,17 @@ static int transform_opts(void) {
         return 0;
     }
 
-    if (opt_certform_s
-        && !opt_format(opt_certform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
-                       &opt_certform)) {
+    if (opt_ownform_s
+        && !opt_format(opt_ownform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
+                       &opt_ownform)) {
         BIO_puts(bio_err,
-                 "error: unknown option given for certificate format\n");
+                 "error: unknown option given for own certificate format\n");
         return 0;
     }
 
-    if (opt_storeform_s
-        && !opt_format(opt_storeform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
-                       &opt_storeform)) {
+    if (opt_otherform_s
+        && !opt_format(opt_otherform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
+                       &opt_otherform)) {
         BIO_puts(bio_err,
                  "error: unknown option given for certificate store format\n");
         return 0;
@@ -2754,11 +2754,11 @@ static int transform_opts(void) {
     if (opt_keyform_s)
         opt_keyform = str2fmt(opt_keyform_s);
 
-    if (opt_certform_s)
-        opt_certform = str2fmt(opt_certform_s);
+    if (opt_ownform_s)
+        opt_ownform = str2fmt(opt_ownform_s);
 
-    if (opt_storeform_s)
-        opt_storeform = str2fmt(opt_storeform_s);
+    if (opt_otherform_s)
+        opt_otherform = str2fmt(opt_otherform_s);
 
     if (opt_crlform_s)
         opt_crlform = str2fmt(opt_crlform_s);
@@ -2770,7 +2770,6 @@ static int transform_opts(void) {
 #ifndef NDEBUG
 static int setup_srv_ctx(ENGINE *e)
 {
-    int certform = 0;
     CMP_CTX *ctx = NULL;
     srv_ctx = CMP_SRV_CTX_create();
 
@@ -2807,14 +2806,14 @@ static int setup_srv_ctx(ENGINE *e)
             goto err;
     }
     if (opt_srv_cert) {
-        X509 *srvcert = load_cert_autofmt(opt_srv_cert, &certform,
-                           opt_srv_keypass, "CMP certificate of the server");
+        X509 *srv_cert = load_cert_autofmt(opt_srv_cert, opt_ownform,
+                              opt_srv_keypass, "CMP certificate of the server");
         /* from server perspective the server is the client */
-        if (!srvcert || !CMP_CTX_set1_clCert(ctx, srvcert)) {
-            X509_free(srvcert);
+        if (!srv_cert || !CMP_CTX_set1_clCert(ctx, srv_cert)) {
+            X509_free(srv_cert);
             goto err;
         }
-        X509_free(srvcert);
+        X509_free(srv_cert);
     }
     if (opt_srv_key) {
         EVP_PKEY *pkey = load_key_autofmt(opt_srv_key, opt_keyform,
@@ -2839,13 +2838,12 @@ static int setup_srv_ctx(ENGINE *e)
         }
         sk_X509_CRL_free(all_crls);
     }
-    if (!setup_certs(opt_srv_untrusted, opt_storeform, opt_certpass,
-                     "untrusted certificates", ctx,
+    if (!setup_certs(opt_srv_untrusted, "untrusted certificates", ctx,
                      (add_X509_stack_fn_t)CMP_CTX_set1_untrusted_certs, NULL))
         goto err;
 
     if (opt_rsp_cert) {
-        X509 *cert = load_cert_autofmt(opt_rsp_cert, &certform,
+        X509 *cert = load_cert_autofmt(opt_rsp_cert, opt_ownform,
                opt_keypass, "certificate to be returned by the mock server");
        if (cert == NULL)
            goto err;
@@ -2857,12 +2855,11 @@ static int setup_srv_ctx(ENGINE *e)
        X509_free(cert);
     }
     /* TODO TPa: find a cleaner solution than this hack with typecasts */
-    if (!setup_certs(opt_rsp_extracerts, opt_storeform, opt_certpass,
+    if (!setup_certs(opt_rsp_extracerts,
                      "CMP extra certificates for mock server", srv_ctx,
                      (add_X509_stack_fn_t)CMP_SRV_CTX_set1_chainOut, NULL))
         goto err;
-    if (!setup_certs(opt_rsp_capubs, opt_storeform, opt_certpass,
-             "caPubs for mock server", srv_ctx,
+    if (!setup_certs(opt_rsp_capubs, "caPubs for mock server", srv_ctx,
              (add_X509_stack_fn_t)CMP_SRV_CTX_set1_caPubsOut, NULL))
         goto err;
     (void)CMP_SRV_CTX_set_pollCount(srv_ctx, opt_poll_count);
@@ -2907,8 +2904,6 @@ static int setup_srv_ctx(ENGINE *e)
  * Returns pointer on success, NULL on error
  */
 static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
-    int certform;
-
     *all_crls = NULL;
     if (opt_crls || opt_crl_download)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_CRL_CHECK);
@@ -2968,8 +2963,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
             opt_crls = next;
         }
     }
-    if (!setup_certs(opt_untrusted, opt_storeform, opt_certpass,
-                     "untrusted certificates", ctx,
+    if (!setup_certs(opt_untrusted, "untrusted certificates", ctx,
                      (add_X509_stack_fn_t)CMP_CTX_set1_untrusted_certs, NULL))
         goto err;
 
@@ -3005,7 +2999,6 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
     }
 #endif
 
-    certform = opt_certform;
     if (opt_srvcert || opt_trusted) {
         X509_STORE *ts = NULL;
 
@@ -3021,12 +3014,9 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
     "warning: -recipient option is ignored since -srvcert option is present\n");
                 opt_recipient = NULL;
             }
-            /*
-             * opt_keypass is needed here in case opt_srvcert is an encrypted
-             * PKCS#12 file
-             */
-            if (!(srvcert = load_cert_autofmt(opt_srvcert, &certform, NULL,
-                                             "trusted CMP server certificate")))
+            if (!(srvcert = load_cert_autofmt(opt_srvcert, opt_otherform,
+                               opt_certpass, "trusted CMP server certificate")))
+   /* opt_certpass is needed in case opt_srvcert is an encrypted PKCS#12 file */
                 goto err;
             if (!CMP_CTX_set1_srvCert(ctx, srvcert)) {
                 X509_free(srvcert);
@@ -3184,13 +3174,11 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     if (opt_tls_cert && opt_tls_key) {
         X509 *cert = NULL;
         STACK_OF(X509) *certs = NULL;
-        int certform =
-            adjust_format((const char **)&opt_tls_cert, opt_certform, 0);
 
-        if (!load_certs_autofmt(opt_tls_cert, &certs, certform, 1,
-                                opt_tls_keypass, /* is needed here */
-             /* in case opt_tls_cert is an encrypted PKCS#12 file  */
-                          "TLS client certificate (optionally with chain)"))
+        if (!load_certs_autofmt(opt_tls_cert, &certs, opt_ownform, 1,
+                                opt_tls_keypass,
+                              "TLS client certificate (optionally with chain)"))
+/* opt_tls_keypass is needed in case opt_tls_cert is an encrypted PKCS#12 file*/
             goto err;
 
         cert = sk_X509_delete(certs, 0);
@@ -3214,7 +3202,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         /* If present we append to the list also the certs from opt_tls_extra */
         if (opt_tls_extra) {
             STACK_OF(X509) *tls_extra =
-                load_certs_multifile(opt_tls_extra, opt_certform, opt_certpass,
+                load_certs_multifile(opt_tls_extra, opt_ownform, opt_certpass,
                                      "extra certificates for TLS");
             if (!tls_extra ||
                 !SSL_CTX_add_extra_chain_free(ssl_ctx, tls_extra))
@@ -3327,9 +3315,9 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
         STACK_OF(X509) *certs = NULL;
         int ok;
 
-        if (!load_certs_autofmt(opt_cert, &certs, opt_certform, 1,
+        if (!load_certs_autofmt(opt_cert, &certs, opt_ownform, 1,
             opt_keypass, "CMP client certificate (and optionally extra certs)"))
-  /* opt_keypass is needed here in case opt_cert is an encrypted PKCS#12 file */
+       /* opt_keypass is needed in case opt_cert is an encrypted PKCS#12 file */
             goto err;
 
         clcert = sk_X509_delete(certs, 0);
@@ -3350,8 +3338,7 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
 
     /* some extra certs may have already been set from optional additional
        certs in opt_cert, thus using CMP_CTX_extraCertsOut_push1 here */
-    if (!setup_certs(opt_extracerts, opt_storeform, opt_certpass,
-                     "extra certificates for CMP", ctx,
+    if (!setup_certs(opt_extracerts, "extra certificates for CMP", ctx,
                      NULL, (add_X509_fn_t)CMP_CTX_extraCertsOut_push1))
         goto err;
     if (opt_certpass) {
@@ -3387,8 +3374,6 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
  * Returns pointer on success, NULL on error
  */
 static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
-    int certform;
-
     if (!set_name(opt_subject, CMP_CTX_set1_subjectName, ctx, "subject") ||
         !set_name(opt_issuer, CMP_CTX_set1_issuer, ctx, "issuer"))
         goto err;
@@ -3486,7 +3471,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
               "warning: -csr option is ignored for command other than p10cr\n");
         else {
             X509_REQ *csr =
-                load_csr_autofmt(opt_csr, &certform, "PKCS#10 CSR for p10cr");
+                load_csr_autofmt(opt_csr, opt_ownform, "PKCS#10 CSR for p10cr");
             if (csr == NULL)
                 goto err;
             if (!CMP_CTX_set1_p10CSR(ctx, csr)) {
@@ -3497,11 +3482,10 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         }
     }
 
-    certform = opt_certform;
     if (opt_oldcert) {
-    /* opt_keypass is needed here if opt_oldcert is an encrypted PKCS#12 file */
-        X509 *oldcert = load_cert_autofmt(opt_oldcert, &certform, opt_keypass,
+        X509 *oldcert = load_cert_autofmt(opt_oldcert, opt_ownform, opt_keypass,
                                           "certificate to be updated/revoked");
+    /* opt_keypass is needed in case opt_oldcert is an encrypted PKCS#12 file */
         if (oldcert == NULL)
             goto err;
         if (!CMP_CTX_set1_oldClCert(ctx, oldcert)) {
@@ -3744,13 +3728,13 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
  */
 static int write_cert(BIO *bio, X509 *cert)
 {
-    if ((opt_certform == FORMAT_PEM && PEM_write_bio_X509(bio, cert))
-        || (opt_certform == FORMAT_ASN1 && i2d_X509_bio(bio, cert)))
+    if ((opt_ownform == FORMAT_PEM && PEM_write_bio_X509(bio, cert))
+        || (opt_ownform == FORMAT_ASN1 && i2d_X509_bio(bio, cert)))
         return 1;
-    if (opt_certform != FORMAT_PEM && opt_certform != FORMAT_ASN1)
+    if (opt_ownform != FORMAT_PEM && opt_ownform != FORMAT_ASN1)
         BIO_printf(bio_err,
                    "error: unsupported type '%s' for writing certificates\n",
-                   opt_certform_s);
+                   opt_ownform_s);
     return 0;
 }
 
@@ -3768,7 +3752,7 @@ static int save_certs(STACK_OF(X509) *certs, char *destFile, char *desc)
 
     BIO_printf(bio_c_out, "Received %d %s certificate%s, saving to file '%s'\n",
                n, desc, n == 1 ? "" : "s", destFile);
-    if (n > 1 && opt_certform != FORMAT_PEM)
+    if (n > 1 && opt_ownform != FORMAT_PEM)
         BIO_printf(bio_c_out,
                "warning: saving more than one certificate in non-PEM format\n");
 
@@ -4156,8 +4140,8 @@ int cmp_main(int argc, char **argv)
         case OPT_CERTPASS:
             opt_certpass = opt_str("certpass");
             break;
-        case OPT_CERTFORM:
-            opt_certform_s = opt_str("certform");
+        case OPT_OWNFORM:
+            opt_ownform_s = opt_str("ownform");
             break;
         case OPT_KEYFORM:
             opt_keyform_s = opt_str("keyform");
@@ -4165,8 +4149,8 @@ int cmp_main(int argc, char **argv)
         case OPT_CRLFORM:
             opt_crlform_s = opt_str("crlform");
             break;
-        case OPT_STOREFORM:
-            opt_storeform_s = opt_str("storeform");
+        case OPT_OTHERFORM:
+            opt_otherform_s = opt_str("otherform");
             break;
 # ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
