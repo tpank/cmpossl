@@ -76,6 +76,7 @@ S<[B<-tls_used>]>
 S<[B<-tls_cert filename>]>
 S<[B<-tls_key filename>]>
 S<[B<-tls_keypass arg>]>
+S<[B<-tls_extra filenames>]>
 S<[B<-tls_trusted filenames>]>
 S<[B<-tls_host name>]>
 
@@ -236,12 +237,11 @@ Each source may contain multiple certificates.
 
 =item B<-untrusted sources>
 
-Non-trusted intermediate certificate(s) that may be useful for constructing
-certificate chains for
-the CMP server (when verifying signature-based message protection),
+Non-trusted intermediate certificate(s) that may be useful
+for constructing certificate chains when verifying
+the CMP server (when checking signature-based CMP message protection),
 the TLS server (when establishing TLS connections),
-and/or the issure of the newly enrolled certificate
-(when verifying a certificate response).
+and/or the newly enrolled certificate.
 
 Multiple file names may be given, separated by commas and/or whitespace.
 Each file may contain multiple certificates.
@@ -349,7 +349,7 @@ Defaults to C<sha256>.
 
 =item B<-extracerts sources>
 
-Certificates to append in the extraCerts field in sent messages.
+Certificates to append in the extraCerts field when sending messages.
 
 Multiple file names or URLs may be given, separated by commas or whitespace.
 Each source may contain multiple certificates.
@@ -592,7 +592,8 @@ Reason numbers defined in RFC 5280 are:
 =item B<-certpass arg>
 
 Pass phrase source for any certificate stores given with the B<-trusted>,
-B<-untrusted>, B<-out_trusted>, B<-extracerts>, or B<-tls_trusted> options.
+B<-untrusted>, B<-out_trusted>, B<-extracerts>, B<-tls_extra>, or
+B<-tls_trusted> options.
 If not given here, the password will be prompted for if needed.
 
 For more information about the format of B<arg> see the
@@ -644,7 +645,7 @@ when connecting to CMP server.
 =item B<-tls_cert filename>
 
 Client's TLS certificate. If the file includes further certificates,
-they are provided to the server as the client certificate chain.
+they are provided to the TLS server as the client certificate chain.
 
 =item B<-tls_key filename>
 
@@ -657,6 +658,10 @@ If not given here, the password will be prompted for if needed.
 
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+
+=item B<-tls_extra filenames>
+
+Extra certificates to provide to TLS server during TLS handshake
 
 =item B<-tls_trusted filenames>
 

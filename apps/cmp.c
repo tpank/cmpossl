@@ -149,6 +149,7 @@ static int opt_tls_used = 0;
 static char *opt_tls_cert = NULL;
 static char *opt_tls_key = NULL;
 static char *opt_tls_keypass = NULL;
+static char *opt_tls_extra = NULL;
 static char *opt_tls_trusted = NULL;
 static char *opt_tls_host = NULL;
 
@@ -392,7 +393,7 @@ typedef enum OPTION_choice {
     OPT_ENGINE,
 #endif
 
-    OPT_TLS_USED, OPT_TLS_CERT, OPT_TLS_KEY, OPT_TLS_KEYPASS,
+    OPT_TLS_USED, OPT_TLS_CERT, OPT_TLS_KEY, OPT_TLS_KEYPASS, OPT_TLS_EXTRA,
     OPT_TLS_TRUSTED, OPT_TLS_HOST,
 
 #ifndef NDEBUG
@@ -457,7 +458,7 @@ OPTIONS cmp_options[] = {
 "Trusted CA certs used for CMP server authentication when verifying responses"},
     {OPT_MORE_STR, 0, 0, "unless -srvcert is given"},
     {"untrusted", OPT_UNTRUSTED, 's',
-     "Intermediate certs for constructing chains for CMP, TLS, and/or issuer"},
+  "Intermediate certs for chain construction verifying CMP/TLS/enrolled certs"},
     {"ignore_keyusage", OPT_IGNORE_KEYUSAGE, '-',
     "Ignore CMP-level cert key usage, else 'digitalSignature' must be allowed"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-',
@@ -488,7 +489,7 @@ OPTIONS cmp_options[] = {
     {"digest", OPT_DIGEST, 's',
    "Digest to use in message protection and POPO signatures. Default 'sha256'"},
     {"extracerts", OPT_EXTRACERTS, 's',
-     "Certificates to append in extraCerts field in sent messages"},
+     "Certificates to append in extraCerts field when sending messages"},
 
     {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
     {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
@@ -586,11 +587,13 @@ OPTIONS cmp_options[] = {
     {"tls_used", OPT_TLS_USED, '-',
      "Force using TLS (also when other TLS options are not set"},
     {"tls_cert", OPT_TLS_CERT, 's',
-"Client's TLS certificate. May include cert chain to be provided to server"},
+    "Client's TLS certificate. May include chain to be provided to TLS server"},
     {"tls_key", OPT_TLS_KEY, 's',
      "Private key for the client's TLS certificate"},
     {"tls_keypass", OPT_TLS_KEYPASS, 's',
      "Pass phrase source for the client's private TLS key"},
+    {"tls_extra", OPT_TLS_EXTRA, 's',
+     "Extra certificates to provide to TLS server during TLS handshake"},
     {"tls_trusted", OPT_TLS_TRUSTED, 's',
      "Trusted certificates to use for verifying the TLS server certificate;"},
     {OPT_MORE_STR, 0, 0, "this implies host name validation"},
@@ -740,7 +743,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 #endif
 
     {(char **)&opt_tls_used}, {&opt_tls_cert}, {&opt_tls_key},
-    {&opt_tls_keypass}, {&opt_tls_trusted}, {&opt_tls_host},
+    {&opt_tls_keypass}, {&opt_tls_extra}, {&opt_tls_trusted}, {&opt_tls_host},
 
 #ifndef NDEBUG
     {&opt_reqin}, {&opt_reqout}, {&opt_rspin}, {&opt_rspout},
@@ -2855,7 +2858,7 @@ static int setup_srv_ctx(ENGINE *e)
     }
     /* TODO TPa: find a cleaner solution than this hack with typecasts */
     if (!setup_certs(opt_rsp_extracerts, opt_storeform, opt_certpass,
-                     "extra certificates for mock server", srv_ctx,
+                     "CMP extra certificates for mock server", srv_ctx,
                      (add_X509_stack_fn_t)CMP_SRV_CTX_set1_chainOut, NULL))
         goto err;
     if (!setup_certs(opt_rsp_capubs, opt_storeform, opt_certpass,
@@ -3081,6 +3084,21 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
 }
 
 
+static int SSL_CTX_add_extra_chain_free(SSL_CTX *ssl_ctx, STACK_OF(X509) *certs)
+{
+    int i;
+    int res = 1;
+    for (i = 0; i < sk_X509_num(certs); i++) {
+        if (res)
+            res = SSL_CTX_add_extra_chain_cert(ssl_ctx,
+                                               sk_X509_value(certs, i));
+    }
+    sk_X509_free(certs); /* must not free the stack elements */
+    if (!res)
+        BIO_printf(bio_err, "error: unable to use TLS extra certs");
+    return res;
+}
+
 /*
  * set up ssl_ctx for the CMP_CTX based on options from config file/CLI.
  * Prints reason for error to bio_err.
@@ -3166,38 +3184,42 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     if (opt_tls_cert && opt_tls_key) {
         X509 *cert = NULL;
         STACK_OF(X509) *certs = NULL;
-        int i;
         int certform =
             adjust_format((const char **)&opt_tls_cert, opt_certform, 0);
-        int ok = 1;
 
         if (!load_certs_autofmt(opt_tls_cert, &certs, certform, 1,
                                 opt_tls_keypass, /* is needed here */
              /* in case opt_tls_cert is an encrypted PKCS#12 file  */
                           "TLS client certificate (optionally with chain)"))
             goto err;
+
         cert = sk_X509_delete(certs, 0);
+        if (!cert || SSL_CTX_use_certificate(ssl_ctx, cert) <= 0) {
+            BIO_printf(bio_err,
+                      "error: unable to use client TLS certificate file '%s'\n",
+                       opt_tls_cert);
+            X509_free(cert);
+            sk_X509_pop_free(certs, X509_free);
+            goto err;
+        }
+        X509_free(cert); /* we do not need the handle any more */
 
         /*
          * When the list of extra certificates in certs in non-empty,
          * well send them (instead of a chain built from opt_untrusted)
          * along with the TLS end entity certificate.
          */
-        for (i = 0; i < sk_X509_num(certs); i++) {
-            if (ok)
-                ok = SSL_CTX_add_extra_chain_cert(ssl_ctx,
-                                                  sk_X509_value(certs, i));
-        }
-        sk_X509_free(certs); /* must not free the stack elements */
-
-        if (!ok || !cert || SSL_CTX_use_certificate(ssl_ctx, cert) <= 0) {
-            BIO_printf(bio_err,
-                      "error: unable to use client TLS certificate file '%s'\n",
-                       opt_tls_cert);
-            X509_free(cert);
+        if (!SSL_CTX_add_extra_chain_free(ssl_ctx, certs))
             goto err;
+        /* If present we append to the list also the certs from opt_tls_extra */
+        if (opt_tls_extra) {
+            STACK_OF(X509) *tls_extra =
+                load_certs_multifile(opt_tls_extra, opt_certform, opt_certpass,
+                                     "extra certificates for TLS");
+            if (!tls_extra ||
+                !SSL_CTX_add_extra_chain_free(ssl_ctx, tls_extra))
+                goto err;
         }
-        X509_free(cert); /* we don't need the handle any more */
 
         pkey = load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass,
                                 e, "TLS client private key");
@@ -3229,7 +3251,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
             pkey = NULL; /* otherwise, for some reason double free! */
             goto err;
         }
-        EVP_PKEY_free(pkey); /* we don't need the handle any more */
+        EVP_PKEY_free(pkey); /* we do not need the handle any more */
     }
     return ssl_ctx;
 
@@ -3329,7 +3351,7 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
     /* some extra certs may have already been set from optional additional
        certs in opt_cert, thus using CMP_CTX_extraCertsOut_push1 here */
     if (!setup_certs(opt_extracerts, opt_storeform, opt_certpass,
-                     "extra certificates", ctx,
+                     "extra certificates for CMP", ctx,
                      NULL, (add_X509_fn_t)CMP_CTX_extraCertsOut_push1))
         goto err;
     if (opt_certpass) {
@@ -3957,6 +3979,9 @@ int cmp_main(int argc, char **argv)
             break;
         case OPT_TLS_KEYPASS:
             opt_tls_keypass = opt_str("tls_keypass");
+            break;
+        case OPT_TLS_EXTRA:
+            opt_tls_extra = opt_str("tls_extra");
             break;
         case OPT_TLS_TRUSTED:
             opt_tls_trusted = opt_str("tls_trusted");
