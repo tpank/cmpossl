@@ -70,6 +70,7 @@ S<[B<-keyform PEM|DER|P12>]>
 S<[B<-crlform PEM|DER>]>
 S<[B<-otherform PEM|DER|P12>]>
 S<[B<-otherpass arg>]>
+S<[B<-batch>]>
 S<[B<-engine id>]>
 
 S<[B<-tls_used>]>
@@ -618,6 +619,11 @@ If not given here, the password will be prompted for if needed.
 
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+
+=item B<-batch>
+
+Do not interactively prompt for input, for instance when a password is needed.
+This can be useful for batch processing and testing.
 
 =item B<-engine id>
 

@@ -79,7 +79,7 @@ static ENGINE *try_load_engine(const char *engine)
 }
 #endif
 
-#if !defined(OPENSSL_NO_UI) || !defined(OPENSSL_NO_ENGINE)
+#if !defined(OPENSSL_NO_UI_CONSOLE) || !defined(OPENSSL_NO_ENGINE)
 static UI_METHOD *ui_method = NULL;
 #endif
 
@@ -238,6 +238,7 @@ static int opt_crlform = FORMAT_PEM;
 static char *opt_otherform_s = "PEM";
 static int opt_otherform = FORMAT_PEM;
 static char *opt_otherpass = NULL;
+static int opt_batch = 0;
 #ifndef OPENSSL_NO_ENGINE
 static char *opt_engine = NULL;
 #endif
@@ -389,6 +390,7 @@ typedef enum OPTION_choice {
     OPT_OLDCERT, OPT_REVREASON,
 
     OPT_OWNFORM, OPT_KEYFORM, OPT_CRLFORM, OPT_OTHERFORM, OPT_OTHERPASS,
+    OPT_BATCH,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
@@ -572,6 +574,8 @@ OPTIONS cmp_options[] = {
  "Format (PEM/DER/P12) to try first reading cert files of others. Default PEM"},
     {"otherpass", OPT_OTHERPASS, 's',
     "Pass phrase source potentially needed for loading certificates of others"},
+    {"batch", OPT_BATCH, '-',
+     "Do not interactively prompt for input when a password is required etc."},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's',
      "Use crypto engine with given identifier, possibly a hardware device."},
@@ -737,7 +741,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_oldcert}, {(char **)&opt_revreason},
 
     {&opt_ownform_s}, {&opt_keyform_s}, {&opt_crlform_s}, {&opt_otherform_s},
-    {&opt_otherpass},
+    {&opt_otherpass}, {(char **)&opt_batch},
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
 #endif
@@ -3915,6 +3919,8 @@ int cmp_main(int argc, char **argv)
                 goto err;
         }
     }
+    BIO_flush(bio_c_out); /* prevent interference with opt_help() */
+
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     prog = opt_init(argc, argv, cmp_options);
 
@@ -4152,6 +4158,9 @@ int cmp_main(int argc, char **argv)
         case OPT_OTHERPASS:
             opt_otherpass = opt_str("otherpass");
             break;
+        case OPT_BATCH:
+            opt_batch = 1;
+            break;
 # ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
             opt_engine = opt_str("engine");
@@ -4341,6 +4350,16 @@ int cmp_main(int argc, char **argv)
     if (badops) {
         opt_help(cmp_options);
         goto err;
+    }
+
+    if (opt_batch) {
+        UI_METHOD *ui_fallback_method;
+#ifndef OPENSSL_NO_UI_CONSOLE
+        ui_fallback_method = UI_OpenSSL();
+#else
+        ui_fallback_method = UI_null();
+#endif
+        UI_method_set_reader(ui_fallback_method, NULL);
     }
 
     if (opt_engine)
