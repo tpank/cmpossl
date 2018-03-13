@@ -65,8 +65,8 @@ static int test_cmp_ctx_reqextensions_have_san(void)
     ASN1_OCTET_STRING *data = NULL;
     X509_EXTENSION *ext = NULL;
 
-    RAND_bytes(str, len);
-    if (!TEST_ptr(data = ASN1_OCTET_STRING_new()) ||
+    if (!TEST_int_eq(1, RAND_bytes(str, len)) ||
+        !TEST_ptr(data = ASN1_OCTET_STRING_new()) ||
         !TEST_true(ASN1_OCTET_STRING_set(data, str, len)) ||
         !TEST_ptr(ext =
                   X509_EXTENSION_create_by_NID(NULL, NID_subject_alt_name, 0,

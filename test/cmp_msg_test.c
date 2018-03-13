@@ -24,6 +24,8 @@ typedef struct test_fixture {
     CMP_PKIFREETEXT *free_text; /* for error message creation */
 } CMP_MSG_TEST_FIXTURE;
 
+static unsigned char ref[TEST_CMP_REFVALUE_LENGTH];
+
 static CMP_MSG_TEST_FIXTURE *set_up(const char *const test_case_name)
 {
     CMP_MSG_TEST_FIXTURE *fixture;
@@ -35,7 +37,9 @@ static CMP_MSG_TEST_FIXTURE *set_up(const char *const test_case_name)
 
     if (!TEST_ptr(fixture->cmp_ctx = CMP_CTX_create()) ||
         !TEST_true(CMP_CTX_set_option(fixture->cmp_ctx,
-                                      CMP_CTX_OPT_UNPROTECTED_SEND, 1)))
+                                      CMP_CTX_OPT_UNPROTECTED_SEND, 1)) ||
+        !TEST_true(CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
+                                               sizeof(ref))))
         goto err;
 
     setup_ok = 1;
@@ -121,19 +125,16 @@ static int execute_pkimessage_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 static int test_cmp_create_ir_protection_set(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
-    unsigned char data[16];
-    const size_t size = sizeof(data) / 2;
-    unsigned char *ref = data;
-    unsigned char *sec = data + size;
+    unsigned char secret[16];
     fixture->bodytype = V_CMP_PKIBODY_IR;
     fixture->err_code = CMP_R_ERROR_CREATING_IR;
     fixture->expected = 1;
-    if (!TEST_int_gt(RAND_bytes(data, sizeof(data)), 0) ||
+    if (!TEST_int_eq(1, RAND_bytes(secret, sizeof(secret))) ||
         !TEST_true(CMP_CTX_set_option(fixture->cmp_ctx,
                                       CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
         !TEST_true(CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey)) ||
-        !TEST_true(CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref, size)) ||
-        !TEST_true(CMP_CTX_set1_secretValue(fixture->cmp_ctx, sec, size))) {
+        !TEST_true(CMP_CTX_set1_secretValue(fixture->cmp_ctx, secret,
+                                            sizeof(secret)))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -412,7 +413,8 @@ int setup_tests(void)
 
     if (!TEST_ptr(newkey = gen_rsa()) ||
         !TEST_ptr(cert =
-                  load_pem_cert("../cmp-test/openssl_cmp_test_server.crt")))
+                  load_pem_cert("../cmp-test/openssl_cmp_test_server.crt")) ||
+        !TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))))
         return 0;
 
     /* Message creation tests */

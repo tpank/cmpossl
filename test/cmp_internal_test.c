@@ -100,21 +100,25 @@ static int execute_cmp_pkiheader_init_test(CMP_INT_TEST_FIXTURE *fixture)
     if (!TEST_int_eq(fixture->expected,
                      CMP_PKIHEADER_init(fixture->cmp_ctx, header)))
         goto err;
-    if (!TEST_long_eq(ASN1_INTEGER_get(header->pvno), CMP_VERSION) ||
-        !TEST_true(0 == ASN1_OCTET_STRING_cmp(header->senderNonce,
-                                              fixture->
-                                              cmp_ctx->last_senderNonce))
-        || !TEST_true(0 ==
-                      ASN1_OCTET_STRING_cmp(header->transactionID,
-                                            fixture->cmp_ctx->transactionID)))
-        goto err;
-    if (fixture->cmp_ctx->recipNonce != NULL &&
-        (!TEST_ptr(header->recipNonce) ||
-         !TEST_int_eq(0,
-                      ASN1_OCTET_STRING_cmp(header->recipNonce,
-                                            fixture->cmp_ctx->recipNonce))))
-        goto err;
+    if (fixture->expected) {
+        if (!TEST_long_eq(ASN1_INTEGER_get(header->pvno), CMP_VERSION) ||
+            !TEST_true(0 == ASN1_OCTET_STRING_cmp(header->senderNonce,
+                                                  fixture->
+                                                  cmp_ctx->last_senderNonce))
+            || !TEST_true(0 ==
+                          ASN1_OCTET_STRING_cmp(header->transactionID,
+                                                fixture->cmp_ctx->transactionID)))
+            goto err;
+        if (fixture->cmp_ctx->recipNonce != NULL &&
+            (!TEST_ptr(header->recipNonce) ||
+             !TEST_int_eq(0,
+                          ASN1_OCTET_STRING_cmp(header->recipNonce,
+                                                fixture->cmp_ctx->recipNonce))))
+            goto err;
+    }
+
     res = 1;
+
  err:
     CMP_PKIHEADER_free(header);
     return res;
@@ -215,7 +219,39 @@ static int test_cmp_calc_protection_pbmac(void)
 static int test_cmp_pkiheader_init(void)
 {
     SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
+    unsigned char ref[TEST_CMP_REFVALUE_LENGTH];
     fixture->expected = 1;
+    if (!TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))) ||
+        !TEST_true(CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
+                                               sizeof(ref)))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    EXECUTE_TEST(execute_cmp_pkiheader_init_test, tear_down);
+    return result;
+}
+
+static int test_cmp_pkiheader_init_with_subject(void)
+{
+    SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
+    X509_NAME *subject = NULL;
+    fixture->expected = 1;
+    if (!TEST_ptr(subject = X509_NAME_new()) ||
+        !TEST_true(X509_NAME_add_entry_by_txt(subject, "CN", V_ASN1_IA5STRING,
+                                              (unsigned char *)"Common Name", -1, -1, -1)) ||
+        !TEST_true(CMP_CTX_set1_subjectName(fixture->cmp_ctx, subject))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    X509_NAME_free(subject);
+    EXECUTE_TEST(execute_cmp_pkiheader_init_test, tear_down);
+    return result;
+}
+
+static int test_cmp_pkiheader_init_no_ref_no_subject(void)
+{
+    SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
+    fixture->expected = 0;
     EXECUTE_TEST(execute_cmp_pkiheader_init_test, tear_down);
     return result;
 }
@@ -233,6 +269,8 @@ int setup_tests(void)
     ADD_TEST(test_cmp_calc_protection_pbmac);
 
     ADD_TEST(test_cmp_pkiheader_init);
+    ADD_TEST(test_cmp_pkiheader_init_with_subject);
+    ADD_TEST(test_cmp_pkiheader_init_no_ref_no_subject);
     return 1;
 }
 

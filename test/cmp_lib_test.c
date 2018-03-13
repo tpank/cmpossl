@@ -607,7 +607,7 @@ static int test_cmp_x509_store_only_self_signed(void)
 
 int setup_tests(void)
 {
-    if(!TEST_int_gt(RAND_bytes(rand_data, TRANSACTIONID_LENGTH), 0))
+    if(!TEST_int_eq(1, RAND_bytes(rand_data, TRANSACTIONID_LENGTH)))
         return 0;
     if (!TEST_ptr(endentity1 =
                   load_pem_cert("../cmp-test/chain/EndEntity1.crt")) ||

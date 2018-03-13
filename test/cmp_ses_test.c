@@ -25,6 +25,7 @@ typedef struct test_fixture {
 
 static X509 *cert = NULL;
 static EVP_PKEY *key = NULL;
+static unsigned char ref[TEST_CMP_REFVALUE_LENGTH];
 
 /*
  * For these unit tests, the client abandons message protection, and for
@@ -68,7 +69,9 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
                                       CMP_CTX_OPT_UNPROTECTED_ERRORS, 1)) ||
         !TEST_true(CMP_CTX_set1_oldClCert(fixture->cmp_ctx, cert)) ||
         !TEST_true(CMP_CTX_set1_srvCert(fixture->cmp_ctx, cert)) ||
-        !TEST_true(CMP_CTX_set1_pkey(fixture->cmp_ctx, key)))
+        !TEST_true(CMP_CTX_set1_pkey(fixture->cmp_ctx, key)) ||
+        !TEST_true(CMP_CTX_set1_referenceValue(
+                fixture->cmp_ctx, ref, sizeof(ref))))
         goto err;
 
     fixture->exec_cert_ses_cb = NULL;
@@ -171,13 +174,13 @@ static int test_cmp_exec_ir_ses_poll_timeout(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     const int pollCount = 3;
-    const int checkAfter = 4;
-    const int pollTime = 1;
+    const int checkAfter = 1;
+    const int timeout = pollCount * checkAfter;
     fixture->exec_cert_ses_cb = CMP_exec_IR_ses;
     fixture->expected = 0;
-    CMP_SRV_CTX_set_pollCount(fixture->srv_ctx, pollCount);
+    CMP_SRV_CTX_set_pollCount(fixture->srv_ctx, pollCount + 1);
     CMP_SRV_CTX_set_checkAfterTime(fixture->srv_ctx, checkAfter);
-    CMP_CTX_set_option(fixture->cmp_ctx, CMP_CTX_OPT_MAXPOLLTIME, pollTime);
+    CMP_CTX_set_option(fixture->cmp_ctx, CMP_CTX_OPT_TOTALTIMEOUT, timeout);
     EXECUTE_TEST(execute_cmp_exec_certrequest_ses_test, tear_down);
     return result;
 }
@@ -283,8 +286,10 @@ int setup_tests(void)
 {
     if (!TEST_ptr(key = load_pem_key("../cmp-test/server.pem")) ||
         !TEST_ptr(cert =
-                  load_pem_cert("../cmp-test/openssl_cmp_test_server.crt")))
+                  load_pem_cert("../cmp-test/openssl_cmp_test_server.crt")) ||
+        !TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))))
         return 0;
+
     ADD_TEST(test_cmp_exec_rr_ses);
     ADD_TEST(test_cmp_exec_rr_ses_receive_error);
     ADD_TEST(test_cmp_exec_cr_ses);
