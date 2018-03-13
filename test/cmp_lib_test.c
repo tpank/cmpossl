@@ -11,9 +11,6 @@
 
 #include "cmptestlib.h"
 
-/* TODO Remove if this function is in cmp.h */
-CMP_PKIMESSAGE *CMP_PKIMESSAGE_dup(CMP_PKIMESSAGE *msg);
-
 typedef struct test_fixture {
     const char *test_case_name;
     int expected;

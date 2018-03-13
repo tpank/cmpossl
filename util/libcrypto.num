@@ -4709,3 +4709,4 @@ CMP_SRV_CTX_set_pollCount               4646	1_1_1	EXIST::FUNCTION:
 CMP_SRV_CTX_set1_chainOut               4647	1_1_1	EXIST::FUNCTION:
 CMP_CTX_get_certConf_cb_arg             4648	1_1_1	EXIST::FUNCTION:
 CMP_SRV_CTX_set_send_unprotected_errors 4649	1_1_1	EXIST::FUNCTION:
+CMP_PKIMESSAGE_dup                      4650	1_1_1	EXIST::FUNCTION:
