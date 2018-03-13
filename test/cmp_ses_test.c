@@ -9,9 +9,10 @@
  * Originally written by Tobias Pankert, Siemens AG
  */
 
+#include "cmptestlib.h"
+
 #ifndef NDEBUG  /* tests need mock server, which is available only if !NDEBUG */
 
-# include "cmptestlib.h"
 
 typedef struct test_fixture {
     const char *test_case_name;
@@ -271,6 +272,13 @@ static int test_exchange_error(void)
     return result;
 }
 
+void cleanup_tests(void)
+{
+    X509_free(cert);
+    EVP_PKEY_free(key);
+    return;
+}
+
 int setup_tests(void)
 {
     if (!TEST_ptr(key = load_pem_key("../cmp-test/server.pem")) ||
@@ -289,15 +297,15 @@ int setup_tests(void)
     ADD_TEST(test_cmp_exec_genm_ses);
     ADD_TEST(test_exchange_certconf);
     ADD_TEST(test_exchange_error);
-
     return 1;
 }
 
-void cleanup_tests(void)
+#else  /* !defined (NDEBUG) */
+
+int setup_tests(void)
 {
-    X509_free(cert);
-    EVP_PKEY_free(key);
-    return;
+    TEST_note("CMP session tests are disabled in this build.");
+    return 1;
 }
 
-#endif /* !defined (NDEBUG) */
+#endif
