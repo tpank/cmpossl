@@ -3919,7 +3919,7 @@ int cmp_main(int argc, char **argv)
                 goto err;
         }
     }
-    BIO_flush(bio_c_out); /* prevent interference with opt_help() */
+    (void)BIO_flush(bio_c_out); /* prevent interference with opt_help() */
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     prog = opt_init(argc, argv, cmp_options);
