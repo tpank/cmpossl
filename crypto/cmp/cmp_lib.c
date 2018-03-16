@@ -51,6 +51,7 @@
 
 #include "cmp_int.h"
 
+
 /*
  * Appends text to the extra error data field of the last error message in
  * OpenSSL's error queue, after adding the given separator string. Note that,
@@ -1818,7 +1819,7 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
                    CMP_R_MISSING_PROTECTION);
             return -1;
         }
-        CMP_printf(ctx, "INFO: received message is not protected");
+        CMP_printf(ctx, FL_WARN, "received message is not protected");
     }
 
     /* compare received transactionID with the expected one in previous msg */

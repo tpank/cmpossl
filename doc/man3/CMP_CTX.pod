@@ -40,8 +40,8 @@
  CMP_CTX_get0_trustedStore,
  CMP_CTX_set1_untrusted_certs,
  CMP_CTX_get0_untrusted_certs,
- CMP_CTX_set_error_cb,
- CMP_CTX_set_debug_cb,
+ CMP_CTX_set_log_cb,
+ CMP_puts,
  CMP_printf,
 
  CMP_CTX_status_get,
@@ -119,11 +119,16 @@
  int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, const STACK_OF(X509) *store);
  STACK_OF(X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
 
- typedef void (*cmp_log_cb_t) (const char *msg);
- int CMP_CTX_set_error_cb(CMP_CTX *ctx, cmp_log_cb_t cb);
- int CMP_CTX_set_debug_cb(CMP_CTX *ctx, cmp_log_cb_t cb);
+ typedef enum {LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERROR,
+               LOG_WARN, LOG_NOTE, LOG_INFO, LOG_DEBUG} severity;
+ typedef void (*cmp_log_cb_t)(const char *file, int lineno, severity level,
+                             const char *msg);
+ int CMP_CTX_set_log_cb(CMP_CTX *ctx, cmp_log_cb_t cb);
 
- void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
+ int CMP_puts(const char *file, int lineno, severity level, const char *msg);
+
+ int CMP_printf(const CMP_CTX *ctx, const char *file, int lineno,
+                severity level, const char *fmt, ...);
 
  int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val);
 
@@ -378,14 +383,22 @@ in CMP server authentication.
 CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx) returns a pointer to the list of
 untrusted certs.
 
-CMP_CTX_set_error_cb() sets the callback for receiving error messages.
-The callback obtains the error string via the B<msg> parameter.
+CMP_CTX_set_log_cb() sets the log callback for error/warn/info/debug messages.
+It obtains the current source file path name and line number
+(or NULL and 0 if not avaialble),
+the severity level as used also for syslog,
+and the message string.
+It should return 1 on success and 0 on failure.
 
-CMP_CTX_set_debug_cb() sets the callback for receiving debug messages.
-The callback obtains the debug string via the B<msg> parameter.
+CMP_puts() prints errors and warnings to stderr, whereas info and debug messages
+are printed to stdout. In debug mode, the message is preceded by a source file
+path name and line number if available or else by "CMP". It is also proceded by
+a severity indication such as "ERROR", "WARNING", "INFO", or "DEBUG".
 
-CMP_printf() is used for printing debug messages if debug_cb is set
-(CMP_CTX_init defaults to puts()).
+CMP_printf() is used for outputting error/warn/info/debug messages. They can be
+given using a format string with variable number of arguments as with printf.
+The resulting string is handed over to the log callback.
+By default or if the callback is set NULL the function CMP_puts() is used.
 
 CMP_CTX_status_get() returns the PKIstatus from the last
 CertRepMessage or Revocation Response, -1 on error.
@@ -511,7 +524,7 @@ might change every release!
 
 CMP_CTX_create() returns a pointer to an initialized CMP_CTX structure.
 
-CMP_CTX_delete() and CMP_printf() do not return anything.
+CMP_CTX_delete() does not return anything.
 
 CMP_CTX_extraCertsIn_num(), CMP_CTX_extraCertsOut_num(), CMP_CTX_caPubs_num(),
 return the number of relevant certificates, or -1 on error.
@@ -555,8 +568,6 @@ set previously, NULL if not set or on function parameter error.
 
 CMP_CTX_failInfoCode_get() returns the failinfo error code bits in context as
 returns bitstring in ulong on success, -1 on error.
-
-CMP_CTX_error_cb() always returns 1.
 
 All other functions return 1 on success, 0 on error.
 
