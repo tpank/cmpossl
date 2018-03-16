@@ -305,8 +305,8 @@ The file where to save any received CA certificates.
 =item B<-ref value>
 
 Reference number/value to use as senderKID; this is required
-if no sender name can be determined from the B<-cert> or <-subject> options
-and is optional when authenticating with pre-shared key (password-based MAC).
+if no sender name can be determined from the B<-cert> or <-subject> options and
+is typically used when authenticating with pre-shared key (password-based MAC).
 
 =item B<-secret arg>
 
