@@ -1832,10 +1832,10 @@ static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
         return -1;
 
 # if 0 && !defined NDEBUG
-    BIO_puts(bio_c_out, "debug: OCSP response:\n");
-    BIO_puts(bio_c_out, "======================================\n");
-    OCSP_RESPONSE_print(bio_c_out, rsp, 0);
-    BIO_puts(bio_c_out, "======================================\n");
+    BIO_puts(bio_err, "debug: OCSP response:\n");
+    BIO_puts(bio_err, "======================================\n");
+    OCSP_RESPONSE_print(bio_err, rsp, 0);
+    BIO_puts(bio_err, "======================================\n");
 # endif
 
     status = OCSP_response_status(rsp);
@@ -3917,7 +3917,7 @@ int cmp_main(int argc, char **argv)
                 goto err;
         }
     }
-    (void)BIO_flush(bio_c_out); /* prevent interference with opt_help() */
+    (void)BIO_flush(bio_err); /* prevent interference with opt_help() */
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     prog = opt_init(argc, argv, cmp_options);
