@@ -21,7 +21,6 @@
 #include <openssl/pkcs12.h>
 #include <openssl/ssl.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -56,7 +55,7 @@ char *prog = "cmp";
 #include <openssl/x509.h>
 
 static CONF *conf = NULL;       /* OpenSSL config file context structure */
-static BIO *bio_c_out = NULL;   /* OpenSSL BIO for printing to STDOUT */
+static CMP_CTX *cmp_ctx = NULL;
 
 /*
  * a copy from apps.c just for visibility reasons,
@@ -963,7 +962,7 @@ static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
     }
     if (**filenames == '\0') {
         BIO_printf(bio_err,
-              "Not enough file names have been provided for writing message\n");
+              "not enough file names have been provided for writing message\n");
         return 0;
     }
 
@@ -971,7 +970,7 @@ static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
     *filenames = next_item(file);
     f = fopen(file, "wb");
     if (f == NULL)
-        BIO_printf(bio_err, "Error opening file '%s' for writing\n", file);
+        BIO_printf(bio_err, "error opening file '%s' for writing\n", file);
     else {
         unsigned char *out = NULL;
         int len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *) msg, &out);
@@ -980,7 +979,7 @@ static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
             if ((size_t)len == fwrite(out, sizeof(*out), len, f))
                 res = 1;
             else
-                BIO_printf(bio_err, "Error writing file '%s'\n", file);
+                BIO_printf(bio_err, "error writing file '%s'\n", file);
             OPENSSL_free(out);
         }
         fclose(f);
@@ -1008,7 +1007,7 @@ static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
     }
     if (**filenames == '\0') {
         BIO_printf(bio_err,
-              "Not enough file names have been provided for reading message\n");
+              "not enough file names have been provided for reading message\n");
         return 0;
     }
 
@@ -1016,26 +1015,26 @@ static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
     *filenames = next_item(file);
     f = fopen(file, "rb");
     if (f == NULL)
-        BIO_printf(bio_err, "Error opening file '%s' for reading\n", file);
+        BIO_printf(bio_err, "error opening file '%s' for reading\n", file);
     else {
         fseek(f, 0, SEEK_END);
         fsize = ftell(f);
         fseek(f, 0, SEEK_SET);
         if (fsize < 0) {
-            BIO_printf(bio_err, "Error getting size of file '%s'\n", file);
+            BIO_printf(bio_err, "error getting size of file '%s'\n", file);
         } else {
             in = OPENSSL_malloc(fsize);
             if (in == NULL)
-                BIO_printf(bio_err, "Out of memory reading file '%s'\n", file);
+                BIO_printf(bio_err, "out of memory reading file '%s'\n", file);
             else {
                 if ((size_t)fsize != fread(in, 1, fsize, f))
-                    BIO_printf(bio_err, "Error reading file '%s'\n", file);
+                    BIO_printf(bio_err, "error reading file '%s'\n", file);
                 else {
                     const unsigned char *p = in;
                     ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
                     if (ret == NULL)
                         BIO_printf(bio_err,
-                               "Error parsing PKIMessage in file '%s'\n", file);
+                               "error parsing PKIMessage in file '%s'\n", file);
                 }
                 OPENSSL_free(in);
             }
@@ -1064,7 +1063,7 @@ static int read_write_req_resp(CMP_CTX *ctx,
 
     if (opt_reqin) {
         if (opt_rspin) {
-            BIO_printf(bio_c_out,
+            BIO_printf(bio_err,
                        "warning: -reqin is ignored since -rspin is present\n");
         } else {
             ret = CMP_R_ERROR_TRANSFERRING_IN;
@@ -1078,7 +1077,7 @@ static int read_write_req_resp(CMP_CTX *ctx,
            */
             CMP_PKIHEADER_set1_transactionID(CMP_PKIMESSAGE_get0_header
                                              (req_new), NULL);
-            CMP_PKIMESSAGE_protect((CMP_CTX *)ctx, req_new);
+            CMP_PKIMESSAGE_protect(ctx, req_new);
 # endif
         }
     }
@@ -1143,7 +1142,7 @@ static int load_pkcs12(BIO *in, const char *desc,
     PKCS12 *p12 = d2i_PKCS12_bio(in, NULL);
 
     if (p12 == NULL) {
-        BIO_printf(bio_err, "Error loading PKCS12 file for %s\n", desc);
+        BIO_printf(bio_err, "error loading PKCS12 file for %s\n", desc);
         goto die;
     }
     /* See if an empty password will do */
@@ -1154,14 +1153,14 @@ static int load_pkcs12(BIO *in, const char *desc,
             pem_cb = (pem_password_cb *)password_callback;
         len = pem_cb(tpass, PEM_BUFSIZE, 0, cb_data);
         if (len < 0) {
-            BIO_printf(bio_err, "Passphrase callback error for %s\n", desc);
+            BIO_printf(bio_err, "passphrase callback error for %s\n", desc);
             goto die;
         }
         if (len < PEM_BUFSIZE)
             tpass[len] = 0;
         if (!PKCS12_verify_mac(p12, tpass, len)) {
             BIO_printf(bio_err,
-                   "Mac verify error (wrong password?) in PKCS12 file for %s\n",
+                   "mac verify error (wrong password?) in PKCS12 file for %s\n",
                        desc);
             goto die;
         }
@@ -1206,7 +1205,7 @@ static int load_cert_crl_http_timeout(const char *url, int req_timeout,
     if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl))
         goto err;
     if (use_ssl) {
-        BIO_puts(bio_err, "https not supported\n");
+        BIO_puts(bio_err, "https not supported for CRL fetching\n");
         goto err;
     }
     bio = BIO_new_connect(host);
@@ -1237,8 +1236,8 @@ static int load_cert_crl_http_timeout(const char *url, int req_timeout,
     OCSP_REQ_CTX_free(rctx);
     if (rv != 1) {
         BIO_printf(bio_err, "%s loading %s from '%s'\n",
-                   rv == 0 ? "Timeout" : rv == -1 ?
-                           "Parse Error" : "Transfer error",
+                   rv == 0 ? "timeout" : rv == -1 ?
+                           "parse Error" : "transfer error",
                    pcert ? "certificate" : "CRL", url);
         ERR_print_errors(bio_err);
     }
@@ -1289,7 +1288,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
         BIO_set_fp(cert, stdin, BIO_NOCLOSE);
     } else {
         if (BIO_read_filename(cert, file) <= 0) {
-            BIO_printf(bio_err, "Error opening %s '%s'\n", cert_descrip, file);
+            BIO_printf(bio_err, "error opening %s '%s'\n", cert_descrip, file);
             ERR_print_errors(bio_err);
             goto end;
         }
@@ -1431,11 +1430,11 @@ static char *get_passwd(const char *pass, const char *desc)
 #else
     if (!app_passwd((char *)pass, NULL, &result, NULL)) {
 #endif
-        BIO_printf(bio_err, "Error getting password for %s\n", desc);
+        BIO_printf(bio_err, "error getting password for %s\n", desc);
     }
     if (pass != NULL && result == NULL) {
         BIO_printf(bio_err,
-"For compatibility, trying plain input string (better precede with 'pass:')\n");
+"for compatibility, trying plain input string (better precede with 'pass:')\n");
         result = OPENSSL_strdup(pass);
     }
     return result;
@@ -1471,7 +1470,7 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format,
                                   const char *pass, ENGINE *e, const char *desc)
 {
     EVP_PKEY *pkey;
-    /* BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile); */
+    /* BIO_printf(bio_c_out, "loading %s from '%s'\n", desc, infile); */
     char *pass_string = get_passwd(pass, desc);
     BIO *bio_bak = bio_err;
 
@@ -1528,7 +1527,7 @@ static X509_REQ *load_csr_autofmt(const char *infile, int format,
                                   const char *desc)
 {
     X509_REQ *csr;
-    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
+    /* BIO_printf(bio_c_out, "loading %s from file '%s'\n", desc, infile); */
     BIO *bio_bak = bio_err;
 
     bio_err = NULL;
@@ -1598,7 +1597,7 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
         cert = sk_X509_value(*certs, i);
         if (CMP_expired(X509_get0_notAfter(cert), vpm)) {
             char *s = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
-            BIO_printf(bio_c_out,
+            BIO_printf(bio_err,
                      "warning: certificate with subject '%s' has expired\n", s);
             OPENSSL_free(s);
 #if 0
@@ -1622,7 +1621,7 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
     char *pass_string;
     BIO *bio_bak = bio_err;
 
-    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
+    /* BIO_printf(bio_c_out, "loading %s from file '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
     if (exclude_http && format == FORMAT_HTTP) {
         BIO_printf(bio_err, "error: HTTP retrieval not allowed for %s\n", desc);
@@ -1659,7 +1658,7 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
     BIO *bio_bak = bio_err;
 
     bio_err = NULL;
-    /* BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile); */
+    /* BIO_printf(bio_c_out, "loading %s from '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
@@ -1693,7 +1692,7 @@ static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format,
 
     if (format == FORMAT_PEM) {
         STACK_OF(X509_CRL) *crls = NULL;
-        /* BIO_printf(bio_c_out, "Loading %s from '%s'\n", desc, infile); */
+        /* BIO_printf(bio_c_out, "loading %s from '%s'\n", desc, infile); */
         if (!load_crls(infile, &crls, format, NULL, desc))
             return NULL;
         return crls;
@@ -1743,14 +1742,14 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format,
 static void DEBUG_print(const char *msg, const char *s1, const char *s2)
 {
 #if 1 && !defined NDEBUG
-    BIO_printf(bio_c_out, "debug: %s %s %s\n", msg, s1 ? s1 : "", s2 ? s2 : "");
+    BIO_printf(bio_err, "DEBUG: %s %s %s\n", msg, s1 ? s1 : "", s2 ? s2 : "");
 #endif
 }
 
 static void DEBUG_print_cert(const char *msg, const X509 *cert)
 {
     char *s = X509_NAME_oneline(X509_get_subject_name((X509 *)cert), NULL, 0);
-    DEBUG_print(msg, "for cert with subject = ", s);
+    DEBUG_print(msg, "for cert with subject =", s);
     OPENSSL_free(s);
 }
 
@@ -1890,7 +1889,7 @@ static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
     }
 
     if ((id = OCSP_cert_to_id(NULL, cert, issuer)) == NULL) {
-        BIO_puts(bio_err, "Cannot obtain cert ID for OCSP.\n");
+        BIO_puts(bio_err, "cannot obtain cert ID for OCSP\n");
         goto end;
     }
     if (!OCSP_resp_find_status(br, id,
@@ -2430,8 +2429,8 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
              */
             expected = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
             if (expected != NULL)
-                BIO_printf(bio_err, "info: TLS connection expected host = %s\n",
-                           expected);
+                CMP_printf(cmp_ctx, FL_INFO,
+                           "TLS connection expected host = %s", expected);
             break;
         default:
             break;
@@ -2472,8 +2471,8 @@ static int certConf_cb(CMP_CTX *ctx, const X509 *cert, int failure,
         failure = CMP_PKIFAILUREINFO_incorrectData;
 
     if (failure >= 0)
-        BIO_puts(bio_err,
-                 "error: failed to validate newly enrolled certificate\n");
+        CMP_printf(ctx, FL_ERROR,
+                   "failed to validate newly enrolled certificate");
     return failure;
 }
 
@@ -2485,7 +2484,8 @@ static int parse_addr(char **opt_string, int port, const char *name)
         (*opt_string) += strlen(HTTP_HDR);
     }
     if ((port_string = strrchr(*opt_string, ':')) == NULL) {
-        BIO_printf(bio_err, "info: using default %s port '%d'\n", name, port);
+        BIO_printf(bio_err,
+                   "warning: using for '%s' the default port %d\n", name, port);
         return port;
     }
     *(port_string++) = '\0';
@@ -2523,7 +2523,7 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
 
     /* copy vpm to store */
     if (!X509_STORE_set1_param(ts, (X509_VERIFY_PARAM *)vpm)) {
-        BIO_printf(bio_err, "Error setting verify params\n");
+        BIO_printf(bio_err, "error setting verification parameters\n");
         ERR_print_errors(bio_err);
         return 0;
     }
@@ -2608,7 +2608,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     if (input == NULL)
         goto err;
 
-    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, input); */
+    /* BIO_printf(bio_c_out, "loading %s from file '%s'\n", desc, input); */
     while (*input != '\0') {
         char *next = next_item(input);           \
 
@@ -2659,7 +2659,7 @@ static STACK_OF(X509) *load_certs_multifile(char *files, int format,
     return result;
 
  oom:
-    BIO_printf(bio_err, "Error: out of memory\n");
+    BIO_printf(bio_err, "out of memory\n");
  err:
     sk_X509_pop_free(certs, X509_free);
     sk_X509_pop_free(result, X509_free);
@@ -2873,7 +2873,7 @@ static int setup_srv_ctx(ENGINE *e)
 
     if (opt_failure >= 0) {
         if (opt_failurebits)
-            BIO_printf(bio_c_out, "warning: -failurebits overrides -failure\n");
+            BIO_printf(bio_err, "warning: -failurebits overrides -failure\n");
         else
             opt_failurebits = 1 << opt_failure;
     }
@@ -2924,7 +2924,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
         unsigned long flags = X509_VERIFY_PARAM_get_flags(vpm);
         if ((flags & X509_V_FLAG_CRL_CHECK_ALL) &&
             !(flags & X509_V_FLAG_CRL_CHECK))
-            BIO_printf(bio_c_out,
+            BIO_printf(bio_err,
 "warning: -crl_check_all has no effect without -crls, -crl_download, or -crl_check\n");
     }
     if (opt_crl_timeout == 0)
@@ -2953,7 +2953,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
               /* well, should ignore expiry of base CRL if delta CRL is valid */
                     char *issuer =
                         X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
-                    BIO_printf(bio_c_out,
+                    BIO_printf(bio_err,
                           "warning: CRL from '%s' issued by '%s' has expired\n",
                                opt_crls, issuer);
                     OPENSSL_free(issuer);
@@ -2976,8 +2976,8 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
         X509_STORE_CTX *tmp_ctx = X509_STORE_CTX_new();
 
 # if 0 && !defined NDEBUG
-        BIO_printf(bio_c_out,
-                   "info: will try %s%s for certificate status checking\n",
+        CMP_printf(cmp_ctx, FL_INFO,
+                   "Will try %s%s for certificate status checking",
                    (opt_ocsp_use_aia || opt_ocsp_url) && opt_ocsp_status ?
                    "OCSP stapling then OCSP" :
                    opt_ocsp_status ? "OCSP stapling" : "OCSP",
@@ -3291,7 +3291,7 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
                 goto err;
         }
         if (opt_cert || opt_key)
-            BIO_puts(bio_c_out,
+            BIO_puts(bio_err,
         "warning: no signature-based protection used since -secret is given\n");
     }
     if (opt_ref &&
@@ -3429,14 +3429,14 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
 
     if (opt_san_critical) {
         if (!opt_san_dns && !opt_san_ip)
-            BIO_puts(bio_c_out,
+            BIO_puts(bio_err,
 "warning: -opt_san_critical has no effect unless -san_dns or -san_ip is given\n");
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL, 1);
     }
     
     if (opt_san_nodefault) {
         if (opt_san_dns || opt_san_ip)
-            BIO_puts(bio_c_out,
+            BIO_puts(bio_err,
 "warning: -opt_san_nodefault has no effect when -san_dns or -san_ip is used\n");
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT, 1);
     }
@@ -3446,7 +3446,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         int res = CMP_CTX_policyOID_push1(ctx, opt_policies);
 
         if (res <= 0) {
-            BIO_printf(bio_err,"error %s policy OID '%s'\n",
+            BIO_printf(bio_err, "error %s policy OID '%s'\n",
                        res == -1 ? "parsing" : "adding", opt_policies);
             goto err;
         }
@@ -3455,7 +3455,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
 
     if (opt_policies_critical) {
         if (!opt_policies)
-            BIO_puts(bio_c_out,
+            BIO_puts(bio_err,
    "warning: -opt_policies_critical has no effect unless -policies is given\n");
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_POLICIES_CRITICAL, 1);
     }
@@ -3471,7 +3471,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
 
     if (opt_csr) {
         if (opt_cmd != CMP_P10CR)
-            BIO_puts(bio_c_out,
+            BIO_puts(bio_err,
               "warning: -csr option is ignored for command other than p10cr\n");
         else {
             X509_REQ *csr =
@@ -3509,7 +3509,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
     return 1;
 
  oom:
-    BIO_printf(bio_err, "Error: out of memory\n");
+    BIO_printf(bio_err, "out of memory\n");
  err:
     return 0;
 }
@@ -3611,7 +3611,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         SSL_CTX *ssl_ctx;
 
         if (opt_proxy) {
-            BIO_printf(bio_err, "Sorry, TLS not yet supported via proxy\n");
+            BIO_printf(bio_err, "sorry, TLS not yet supported via proxy\n");
             goto err;
         }
         ssl_ctx = setup_ssl_ctx(e, CMP_CTX_get0_untrusted_certs(ctx), all_crls);
@@ -3629,7 +3629,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         (void)CMP_CTX_set_http_cb_arg(ctx, ssl_ctx);
     } else {
         if (opt_ocsp_status)
-            BIO_printf(bio_c_out,
+            BIO_printf(bio_err,
                        "warning: -ocsp_status has no effect without TLS\n");
     }
 
@@ -3721,7 +3721,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     sk_X509_CRL_pop_free(all_crls, X509_CRL_free);
     return ret;
  oom:
-    BIO_printf(bio_err, "Error: out of memory\n");
+    BIO_printf(bio_err, "out of memory\n");
     goto err;
 }
 
@@ -3754,10 +3754,11 @@ static int save_certs(STACK_OF(X509) *certs, char *destFile, char *desc)
     int i;
     int n = sk_X509_num(certs);
 
-    BIO_printf(bio_c_out, "Received %d %s certificate%s, saving to file '%s'\n",
+    CMP_printf(cmp_ctx, FL_INFO,
+               "received %d %s certificate%s, saving to file '%s'",
                n, desc, n == 1 ? "" : "s", destFile);
     if (n > 1 && opt_ownform != FORMAT_PEM)
-        BIO_printf(bio_c_out,
+        BIO_printf(bio_err,
                "warning: saving more than one certificate in non-PEM format\n");
 
     if (destFile == NULL || (bio = BIO_new(BIO_s_file())) == NULL ||
@@ -3790,7 +3791,7 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
     int n = sk_CMP_INFOTYPEANDVALUE_num(itavs); /* itavs == NULL leads to 0 */
 
     if (n == 0) {
-        BIO_printf(bio_c_out, "GenRep contains no ITAV\n");
+        CMP_printf(cmp_ctx, FL_INFO, "genp contains no ITAV");
         return;
     }
 
@@ -3798,7 +3799,7 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
         char buf[128];
         itav = sk_CMP_INFOTYPEANDVALUE_value(itavs, i);
         OBJ_obj2txt(buf, 128, CMP_INFOTYPEANDVALUE_get0_type(itav), 0);
-        BIO_printf(bio_c_out, "GenRep contains ITAV of type: %s\n", buf);
+        CMP_printf(cmp_ctx, FL_INFO, "genp contains ITAV of type: %s", buf);
     }
 }
 
@@ -3807,13 +3808,13 @@ static char *opt_str(char *opt)
 {
     char *arg = opt_arg();
     if (arg[0] == '\0') {
-        BIO_printf(bio_c_out,
-          "Warning: argument of -%s option is empty string, resetting option\n",
+        BIO_printf(bio_err,
+          "warning: argument of -%s option is empty string, resetting option\n",
                    opt);
         arg = NULL;
     } else if (arg[0] == '-') {
-        BIO_printf(bio_c_out,
-                   "Warning: argument of -%s option starts with hyphen\n", opt);
+        BIO_printf(bio_err,
+                   "warning: argument of -%s option starts with hyphen\n", opt);
     }
     return arg;
 }
@@ -3841,7 +3842,6 @@ int cmp_main(int argc, char **argv)
     int badops = 0;
     int i;
     int ret = EXIT_FAILURE;
-    CMP_CTX *cmp_ctx = NULL;
     X509 *newcert = NULL;
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     OPTION_CHOICE o;
@@ -3852,8 +3852,6 @@ int cmp_main(int argc, char **argv)
         badops = 1;
         goto bad_ops;
     }
-
-    bio_c_out = BIO_new_fp(stdout, BIO_NOCLOSE);
 
    /* handle OPT_CONFIG and OPT_SECTION upfront to take effect for other opts */
     for (i = 1; i < argc - 1; i++)
@@ -3869,7 +3867,7 @@ int cmp_main(int argc, char **argv)
 
     vpm = X509_VERIFY_PARAM_new();
     if (vpm == NULL) {
-        BIO_printf(bio_err, "%s: out of memory\n", prog);
+        BIO_printf(bio_err, "out of memory\n");
         goto err;
     }
 
@@ -3898,7 +3896,7 @@ int cmp_main(int argc, char **argv)
      */
     /* TODO DvO: the following would likely go to apps.c app_load_config_() */
     if (configfile && configfile[0] != '\0') { /* non-empty string */
-        BIO_printf(bio_c_out, "Using OpenSSL configuration file '%s'\n",
+        CMP_printf(cmp_ctx, FL_INFO, "using OpenSSL configuration file '%s'",
                    configfile);
         conf = NCONF_new(NULL);
         if (NCONF_load(conf, configfile, &errorline) <= 0) {
@@ -3910,8 +3908,8 @@ int cmp_main(int argc, char **argv)
                            errorline, configfile);
         } else {
             if (!NCONF_get_section(conf, opt_section)) {
-                BIO_printf(bio_c_out,
-                        "Warning: no [%.40s] section found in config file '%s';"
+                BIO_printf(bio_err,
+                        "warning: no [%.40s] section found in config file '%s';"
                " will thus use just [default] and unnamed section if present\n",
                            opt_section, configfile);
             }
@@ -3929,7 +3927,7 @@ int cmp_main(int argc, char **argv)
         case OPT_EOF:
         case OPT_ERR:
  opt_err:
-            BIO_printf(bio_err, "%s: Use -help for summary.\n", prog);
+            BIO_printf(bio_err, "%s: use -help for summary.\n", prog);
             goto err;
         case OPT_HELP:
             ret = EXIT_SUCCESS;
@@ -4231,7 +4229,7 @@ int cmp_main(int argc, char **argv)
         case OPT_FAILUREBITS:
             if (!opt_ulong(opt_arg(), &opt_failurebits)) {
                 BIO_printf(bio_err,
-                     "Invalid unsigned number '%s' representing failure bits\n",
+                     "invalid unsigned number '%s' representing failure bits\n",
                            opt_arg());
                 goto opt_err;
             }
@@ -4260,7 +4258,7 @@ int cmp_main(int argc, char **argv)
     argc = opt_num_rest();
     argv = opt_rest();
     if (argc != 0) {
-        BIO_printf(bio_err, "%s: Unknown parameter %s\n", prog, argv[0]);
+        BIO_printf(bio_err, "%s: unknown parameter %s\n", prog, argv[0]);
         goto opt_err;
     }
 #else /* OPENSSL_VERSION_NUMBER */
@@ -4298,8 +4296,8 @@ int cmp_main(int argc, char **argv)
                 opt += (OPT_V__LAST - 1) - (OPT_V__FIRST + 1);
             if (opt->name && !strcmp(arg, opt->name)) {
                 if (argc <= 1 && opt->valtype != '-') {
-                    BIO_printf(bio_err, "missing argument for '-%s'\n",
-                               opt->name);
+                    BIO_printf(bio_err, "%s: missing argument for '-%s'\n",
+                               prog, opt->name);
                     badops = 1;
                     goto bad_ops;
                 }
@@ -4318,14 +4316,14 @@ int cmp_main(int argc, char **argv)
                 case 's':
                     *cmp_vars[i].txt = *++argv;
                     if (**argv == '\0') {
-                        BIO_printf(bio_c_out,
-          "Warning: argument of -%s option is empty string, resetting option\n",
-                                   opt->name);
+                        BIO_printf(bio_err,
+      "%s: warning: argument of -%s option is empty string, resetting option\n",
+                                   prog, opt->name);
                         *cmp_vars[i].txt = NULL;
                     } else if (**argv == '-') {
-                        BIO_printf(bio_c_out,
-                         "Warning: argument of -%s option starts with hyphen\n",
-                                   opt->name);
+                        BIO_printf(bio_err,
+                     "%s: warning: argument of -%s option starts with hyphen\n",
+                                   prog, opt->name);
                     }
                     argc--;
                     break;
@@ -4338,7 +4336,7 @@ int cmp_main(int argc, char **argv)
         }
 
         if (!found) {
-            BIO_printf(bio_err, "unknown argument: '%s'\n", *argv);
+            BIO_printf(bio_err, "%s: unknown argument: '%s'\n", prog, *argv);
             badops = 1;
             goto bad_ops;
         }
@@ -4464,7 +4462,6 @@ int cmp_main(int argc, char **argv)
 #endif
     CMP_CTX_delete(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);
-    BIO_free(bio_c_out);
     release_engine(e);
 
     /* if we ended up here without proper cleaning */

@@ -74,6 +74,7 @@
 #include <openssl/ssl.h>
 #include <openssl/crypto.h>
 #include <string.h>
+#include <stdio.h>
 #ifndef _WIN32
 #include <dirent.h>
 #endif
@@ -211,8 +212,7 @@ int CMP_CTX_init(CMP_CTX *ctx)
     ctx->lastPKIStatus = 0;
     ctx->failInfoCode = 0;
 
-    ctx->error_cb = NULL;
-    ctx->debug_cb = (cmp_log_cb_t) puts;
+    ctx->log_cb = NULL;
     ctx->certConf_cb = NULL;
     ctx->certConf_cb_arg = NULL;
     ctx->trusted_store = X509_STORE_new();
@@ -353,28 +353,14 @@ void *CMP_CTX_get_certConf_cb_arg(CMP_CTX *ctx)
 }
 
 /*
- * Set a callback function which will receive debug messages.
+ * Set a callback function for log messages.
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set_error_cb(CMP_CTX *ctx, cmp_log_cb_t cb)
+int CMP_CTX_set_log_cb(CMP_CTX *ctx, cmp_log_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
-    ctx->error_cb = cb;
-    return 1;
- err:
-    return 0;
-}
-
-/*
- * Set a callback function which will receive error messages.
- * returns 1 on success, 0 on error
- */
-int CMP_CTX_set_debug_cb(CMP_CTX *ctx, cmp_log_cb_t cb)
-{
-    if (ctx == NULL)
-        goto err;
-    ctx->debug_cb = cb;
+    ctx->log_cb = cb;
     return 1;
  err:
     return 0;
@@ -1419,7 +1405,7 @@ int CMP_CTX_push_freeText(CMP_CTX *ctx, const char *text)
     return ctx->freeText != NULL;
 
  err:
-    CMP_printf("ERROR in FILE: %s, LINE: %d\n", __FILE__, __LINE__);
+    CMPerr(CMP_F_CMP_CTX_PUSH_FREETEXT, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 #endif
@@ -1487,31 +1473,94 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
     return 0;
 }
 
-/*
- * Function used for printing debug messages if debug_cb is set
- * (CMP_CTX_INIT defaults to puts)
- */
-void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...) {
-#ifdef CMP_DEBUG
-    va_list arg_ptr;
-    char buf[1024];
-    if (ctx == NULL || ctx->debug_cb == NULL)
-        return;
-    va_start(arg_ptr, fmt);
-    BIO_vsnprintf(buf, sizeof(buf), fmt, arg_ptr);
-    ctx->debug_cb(buf);
-    va_end(arg_ptr);
+/* prints errors and warnings to stderr, info and debug messages to stdout */
+int CMP_puts(const char *file, int lineno, severity level, const char *msg)
+{
+    char *lvl = NULL;
+    FILE *fd = level <= LOG_WARN ? stderr : stdout;
+    int msg_len = strlen(msg);
+    int msg_nl = msg_len > 0 && msg[msg_len-1] == '\n';
+    int len = 0;
+
+#ifdef NDEBUG
+    if (level == LOG_DEBUG)
+        return 1;
+    file = NULL;
 #endif
+    if (file == NULL)
+        len += fprintf(fd, "CMP");
+    else
+        len += fprintf(fd, "%s:%d", file, lineno);
+
+    switch(level) {
+    case LOG_EMERG: lvl = "EMERGENCY"; break;
+    case LOG_ALERT: lvl = "ALERT"; break;
+    case LOG_CRIT : lvl = "CRITICAL" ; break;
+    case LOG_ERROR: lvl = "ERROR"; break;
+    case LOG_WARN : lvl = "WARNING" ; break;
+    case LOG_NOTE : lvl = "NOTICE" ; break;
+    case LOG_INFO : lvl = "INFO" ; break;
+    case LOG_DEBUG: lvl = "DEBUG"; break;
+    default: break;
+    }
+
+    if (lvl)
+        len += fprintf(fd, "%c%s", file == NULL ? ' ' : ':', lvl);
+    len += fprintf(fd, ": %s%s", msg, msg_nl ? "" : "\n");
+
+    return fflush(fd) != EOF && len >= 0;
 }
 
 /*
- * This callback is used to print out the OpenSSL error queue via'
- * ERR_print_errors_cb() to the ctx->error_cb() function set by the user
- * returns always 1
+ * Function used for outputting error/warn/debug messages depending on callback.
+ * By default or if the callback is set NULL the function CMP_puts() is used.
+ */
+int CMP_printf(const CMP_CTX *ctx, const char *file, int lineno, severity level,
+               const char *fmt, ...)
+{
+    va_list arg_ptr;
+    char buf[1024];
+    int res;
+    cmp_log_cb_t log_fn = ctx == NULL || !ctx->log_cb ? CMP_puts : ctx->log_cb;
+
+    va_start(arg_ptr, fmt);
+    BIO_vsnprintf(buf, sizeof(buf), fmt, arg_ptr);
+    res = (*log_fn)(file, lineno, level, buf);
+    va_end(arg_ptr);
+    return res;
+}
+
+/*
+ * Internal function for error/warn/debug messages, to be used via LOG((args))
+ */
+int log_printf(const char *file, int line, severity level, const char *fmt, ...)
+{
+    va_list arg_ptr;
+    char buf[1024];
+    int res;
+
+    va_start(arg_ptr, fmt);
+    BIO_vsnprintf(buf, sizeof(buf), fmt, arg_ptr);
+    res = CMP_puts(file, line, level, buf);
+    va_end(arg_ptr);
+    return res;
+}
+
+/*
+ * This callback is used to print out the OpenSSL error queue via
+ * ERR_print_errors_cb() to the ctx->log_cb() function set by the user
+ * returns 1 on success, 0 on error
  */
 int CMP_CTX_error_cb(const char *str, size_t len, void *u) {
     CMP_CTX *ctx = (CMP_CTX *)u;
-    if (ctx && ctx->error_cb)
-        ctx->error_cb(str);
-    return 1;
+    cmp_log_cb_t log_fn = ctx == NULL || !ctx->log_cb ? CMP_puts : ctx->log_cb;
+    while (*str && *str != ':') /* skip pid */
+        str++;
+    if (*str) /* skip ':' */
+        str++;
+    while (*str && *str != ':') /* skip 'error' */
+        str++;
+    if (*str) /* skip ':' */
+        str++;
+    return (*log_fn)(NULL, 0, LOG_ERROR, str);
 }

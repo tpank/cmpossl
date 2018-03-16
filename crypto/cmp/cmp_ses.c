@@ -164,21 +164,21 @@ static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
 
     if (ctx->unprotectedErrors) {
         if (rcvd_type == V_CMP_PKIBODY_ERROR) {
-            CMP_printf(ctx,
-                       "WARN: ignoring missing protection of error response");
+            CMP_printf(ctx, FL_WARN,
+                       "ignoring missing protection of error response");
             exception = 1;
         }
         if (rcvd_type == V_CMP_PKIBODY_RP &&
             CMP_PKISTATUSINFO_PKIStatus_get(
             CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp, REVREQSID))
                 == CMP_PKISTATUS_rejection) {
-            CMP_printf(ctx,
-"WARN: ignoring missing protection of revocation response message with rejection status");
+            CMP_printf(ctx, FL_WARN,
+"ignoring missing protection of revocation response message with rejection status");
             exception = 1;
         }
         if (rcvd_type == V_CMP_PKIBODY_PKICONF) {
-            CMP_printf(ctx,
-               "WARN: ignoring missing protection of PKI Confirmation message");
+            CMP_printf(ctx, FL_WARN,
+                     "ignoring missing protection of PKI Confirmation message");
             exception = 1;
         }
         if (rcvd_type == expected_type && IS_ENOLLMENT(rcvd_type)) {
@@ -192,8 +192,8 @@ static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
                 return 0;
             if (CMP_PKISTATUSINFO_PKIStatus_get(crep->status) ==
                 CMP_PKISTATUS_rejection) {
-                CMP_printf(ctx,
-   "WARN: ignoring missing protection of CertRepMessage with rejection status");
+                CMP_printf(ctx, FL_WARN,
+         "ignoring missing protection of CertRepMessage with rejection status");
                 exception = 1;
             }
         }
@@ -228,7 +228,7 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
             ctx->msgtimeout = time_left;
     }
 
-    CMP_printf(ctx, "INFO: Sending %s", type_string);
+    CMP_printf(ctx, FL_INFO, "sending %s", type_string);
     if (ctx->transfer_cb != NULL)
         err = (ctx->transfer_cb)(ctx, req, rep);
         /* may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
@@ -254,7 +254,7 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
         return 0;
     }
 
-    CMP_printf(ctx, "INFO: Got response");
+    CMP_printf(ctx, FL_INFO, "got response");
     if((rcvd_type = CMP_PKIMESSAGE_check_received(ctx, *rep, expected_type,
                                                   unprotected_exception)) < 0)
         return 0;
@@ -295,8 +295,8 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
     CMP_PKIMESSAGE *prep = NULL;
     CMP_POLLREP *pollRep = NULL;
 
-    CMP_printf(ctx,
-          "INFO: Received 'waiting' PKIStatus, starting to poll for response.");
+    CMP_printf(ctx, FL_INFO,
+               "received 'waiting' PKIStatus, starting to poll for response");
     for (;;) {
         if (!(preq = CMP_pollReq_new(ctx, rid)))
             goto err;
@@ -319,9 +319,9 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
                 goto err;
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
-            CMP_printf(ctx,
-                       "INFO: Received polling response, waiting checkAfter =  "
-                       "%ld sec before next polling request.", checkAfter);
+            CMP_printf(ctx, FL_INFO,
+                       "received polling response, waiting checkAfter =  "
+                       "%ld sec before next polling request", checkAfter);
 
             if (ctx->totaltimeout != 0) { /* total timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
@@ -342,7 +342,7 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
             prep = NULL;
             sleep((unsigned int)checkAfter);
         } else {
-            CMP_printf(ctx, "INFO: Got ip/cp/kup after polling.");
+            CMP_printf(ctx, FL_INFO, "got ip/cp/kup after polling");
             break;
         }
     }
@@ -467,31 +467,31 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
 
     switch (CMP_PKISTATUSINFO_PKIStatus_get(crep->status)) {
     case CMP_PKISTATUS_waiting:
-        CMP_printf(ctx,
-"WARN: encountered \"waiting\" status for certificate when actually aiming to extract cert");
-        CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_WAITING);
+        CMP_printf(ctx, FL_ERROR,
+   "received \"waiting\" status for cert when actually aiming to extract cert");
+            CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_WAITING);
         goto err;
     case CMP_PKISTATUS_grantedWithMods:
-        CMP_printf(ctx, "WARN: got \"grantedWithMods\" for certificate");
+        CMP_printf(ctx, FL_WARN,"received \"grantedWithMods\" for certificate");
     case CMP_PKISTATUS_accepted:
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
 
         /* get all information in case of a rejection before going to error */
     case CMP_PKISTATUS_rejection:
-        CMP_printf(ctx,
-                   "WARN: encountered \"rejection\" status for certificate");
+        CMP_printf(ctx, FL_ERROR,
+                   "received \"rejection\" status rather than cert");
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
 
     case CMP_PKISTATUS_revocationWarning:
-        CMP_printf(ctx,
-"WARN: encountered \"revocationWarning\" status for certificate when actually aiming to extract cert");
+        CMP_printf(ctx, FL_WARN,
+       "received \"revocationWarning\" - a revocation of the cert is imminent");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
     case CMP_PKISTATUS_revocationNotification:
-        CMP_printf(ctx,
-"WARN: encountered \"revocationNotification\" status for certificate when actually aiming to extract cert");
+        CMP_printf(ctx, FL_WARN,
+ "received \"revocationNotification\" - a revocation of the cert has occurred");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
     case CMP_PKISTATUS_keyUpdateWarning:
@@ -499,14 +499,13 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
             CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_KEYUPDATEWARNING);
             goto err;
         }
-        CMP_printf(ctx, "WARN: received \"keyUpdateWarning\" for certificate --> update already done for the oldCertId specified in CertReqMsg");
-        puts("warning: certificate has already been updated (superseded)");
-        /* TODO: add proper warning function */
+        CMP_printf(ctx, FL_WARN,
+ "received \"keyUpdateWarning\" - update already done for the given oldCertId");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
     default:
-        CMP_printf(ctx,
-                 "ERROR: encountered unsupported PKIStatus %ld for certificate",
+        CMP_printf(ctx, FL_ERROR,
+                   "received unsupported PKIStatus %ld for certificate",
                    ctx->lastPKIStatus);
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
         goto err;
@@ -683,8 +682,8 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
     CMP_PKIMESSAGE_free(req);
     CMP_PKIMESSAGE_free(rep);
 
-    /* print out openssl and cmp errors to error_cb if it's set */
-    if (result == NULL && ctx->error_cb)
+    /* print out OpenSSL and CMP errors via the log callback or CMP_puts */
+    if (result == NULL)
         ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
     return result;
 }
@@ -734,27 +733,28 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
         goto err;
     switch (CMP_PKISTATUSINFO_PKIStatus_get(si)) {
     case CMP_PKISTATUS_accepted:
-        CMP_printf(ctx, "INFO: revocation accepted (PKIStatus=accepted)");
+        CMP_printf(ctx, FL_INFO, "revocation accepted (PKIStatus=accepted)");
         result = 1;
         break;
     case CMP_PKISTATUS_grantedWithMods:
-        CMP_printf(ctx,"INFO: revocation accepted (PKIStatus=grantedWithMods)");
+        CMP_printf(ctx, FL_INFO,
+                   "revocation accepted (PKIStatus=grantedWithMods)");
         result = 1;
         break;
     case CMP_PKISTATUS_rejection:
         /* interpretation as warning or error depends on CA */
-        CMP_printf(ctx, "WARN: revocation rejected (PKIStatus=rejection)");
+        CMP_printf(ctx, FL_WARN, "revocation rejected (PKIStatus=rejection)");
         CMPerr(CMP_F_CMP_EXEC_RR_SES, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
     case CMP_PKISTATUS_revocationWarning:
-        CMP_printf(ctx,
-                   "INFO: revocation accepted (PKIStatus=revocationWarning)");
+        CMP_printf(ctx, FL_INFO,
+                   "revocation accepted (PKIStatus=revocationWarning)");
         result = 1;
         break;
     case CMP_PKISTATUS_revocationNotification:
         /* interpretation as warning or error depends on CA */
-        CMP_printf(ctx,
-                "INFO: revocation accepted (PKIStatus=revocationNotification)");
+        CMP_printf(ctx, FL_INFO,
+                   "revocation accepted (PKIStatus=revocationNotification)");
         result = 1;
         break;
     case CMP_PKISTATUS_waiting:
@@ -768,7 +768,7 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
 
  err:
 
-    /* print out openssl and cmp errors to error_cb if it's set */
+    /* print out OpenSSL and CMP errors via the log callback or CMP_puts */
     if (!result) {
         char *tempbuf;
         if ((tempbuf = OPENSSL_malloc(CMP_PKISTATUSINFO_BUFLEN))) {
@@ -777,8 +777,7 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
                 ERR_add_error_data(1, tempbuf);
             OPENSSL_free(tempbuf);
         }
-        if (ctx->error_cb)
-            ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
+        ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
     }
     CMP_PKIMESSAGE_free(rr);
     CMP_PKIMESSAGE_free(rp);
@@ -843,9 +842,9 @@ STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx)
     if (genp)
         CMP_PKIMESSAGE_free(genp);
 
-    /* print out openssl and cmp errors to error_cb if it's set */
+    /* print out OpenSSL and CMP errors via the log callback or CMP_puts */
     /* TODO: verify that !recv_itavs is necessarily an error */
-    if (rcvd_itavs == NULL && ctx && ctx->error_cb)
+    if (rcvd_itavs == NULL)
         ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
     return rcvd_itavs;
 }
