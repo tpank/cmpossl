@@ -851,6 +851,8 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
  */
 int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 {
+    int res = 0;
+
     if (ctx == NULL)
         goto err;
     if (msg == NULL)
@@ -858,6 +860,7 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     if (msg->extraCerts == NULL && !(msg->extraCerts = sk_X509_new_null()))
         goto err;
 
+    res = 1;
     if (ctx->clCert) {
         /*
          * if we have untrusted store, try to add all the intermediate certs and
@@ -867,13 +870,13 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
             STACK_OF(X509) *chain =
                 CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
             /* Our own cert will be sent first */
-            CMP_sk_X509_add1_certs(msg->extraCerts, chain,
-                                   1/* no self-signed */, 1);
+            res = CMP_sk_X509_add1_certs(msg->extraCerts, chain,
+                                         1/* no self-signed */, 1);
             sk_X509_pop_free(chain, X509_free);
         } else {
             /* Make sure that at least our own cert gets sent */
             X509_up_ref(ctx->clCert);
-            sk_X509_push(msg->extraCerts, ctx->clCert);
+            res = sk_X509_push(msg->extraCerts, ctx->clCert);
         }
     }
 
@@ -881,10 +884,8 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
                            1/*no dups*/);
 
-    return 1;
-
  err:
-    return 0;
+    return res;
 }
 
 /*
