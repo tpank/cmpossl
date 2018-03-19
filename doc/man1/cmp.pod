@@ -9,7 +9,7 @@ cmp - client for the Certificate Management Protocol (RFC4210)
 B<openssl> B<cmp>
 S<[B<-help>]>
 S<[B<-config filename>]>
-S<[B<-section name>]>
+S<[B<-section names>]>
 
 S<[B<-server address:port>]>
 S<[B<-proxy address:port>]>
@@ -140,12 +140,14 @@ Display a summary of all options
 Configuration file to use. An empty string C<""> means none.
 Default file name is taken from the environment variable C<OPENSSL_CONF>.
 
-=item B<-section name>
+=item B<-section names>
 
-Section to use within config file defining CMP options,
+Section(s) to use within config file defining CMP options.
 An empty string C<""> means no specific section. Default is C<cmp>.
-In any case, as usual, the S<C<[default]>> section and finally the unnamed section
-(as far as present) can provide per-option fallback values.
+Multiple section names may be given, separated by commas or whitespace.
+Contents of sections named later may override contents of sections named before.
+In any case, as usual, the S<C<[default]>> section and finally the unnamed
+section (as far as present) can provide per-option fallback values.
 
 =back
 
