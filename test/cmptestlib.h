@@ -8,8 +8,7 @@
  *
  * SPDX-License-Identifier: OpenSSL
  *
- * CMP implementation by
- * Martin Peylo, Miikka Viljanen, David von Oheimb, and Tobias Pankert.
+ * CMP tests by Martin Peylo, Tobias Pankert, and David von Oheimb.
  */
 
 #ifndef HEADER_CMP_TEST_LIB_H
