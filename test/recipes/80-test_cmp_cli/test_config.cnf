@@ -1,0 +1,126 @@
+[default]
+#proxy = 194.145.60.1:9400
+cmd = ir
+policies = 1.2.3.4 # gets ignored
+policies_critical = 1 # gets ignored
+totaltimeout = 5 # To avoid infinite polling
+subject = "/CN=ECC-EE/OU=For test purposes only/O=CMPforOpenSSL/C=DE"
+batch = 1
+
+[ejbca]
+server = ec2-204-236-244-127.compute-1.amazonaws.com:80
+path = /ejbca/publicweb/cmp/ECCEndEntity
+recipient = /CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL/C=DE
+ignore_keyusage = 0
+trusted =  ../recipes/80-test_cmp_cli/EJBCA_AWS/root.crt
+unprotectederrors = 1 #EJBCA sends error messages and negative responses without protection
+cert =  ../recipes/80-test_cmp_cli/EJBCA_AWS/Signer.crt
+key  =  ../recipes/80-test_cmp_cli/EJBCA_AWS/Signer.p12
+keypass = pass:12345
+newkey =  ../recipes/80-test_cmp_cli/EJBCA_AWS/test.ECC256p.pem
+newkeypass = pass:
+out_trusted =  ../recipes/80-test_cmp_cli/EJBCA_AWS/root.crt
+certout =  ../recipes/80-test_cmp_cli/EJBCA_AWS/test.cert.pem
+
+[insta]
+server = pki.certificate.fi:8700
+path = pkix/
+recipient = /C=FI/O=Insta Demo/CN=Insta Demo CA
+ignore_keyusage = 1
+trusted =  ../recipes/80-test_cmp_cli/INSTA/root.crt
+unprotectederrors = 0
+ref = 3078
+secret = pass:insta
+key =
+cert =
+newkey =  ../recipes/80-test_cmp_cli/INSTA/test.ECC256p.pem
+newkeypass = pass:
+out_trusted =  ../recipes/80-test_cmp_cli/INSTA/root.crt
+certout =  ../recipes/80-test_cmp_cli/INSTA/test.cert.pem
+
+############################# TESTING
+[connection]
+msgtimeout = 10
+totaltimeout =
+tls_used =
+tls_cert =
+tls_key =
+tls_keypass =
+tls_trusted =
+tls_host =
+
+[clientcredentials]
+ref =
+secret =
+certkey =
+keypass =
+extracerts =
+geninfo =
+digest =
+unprotectedrequests =
+cert =
+key =
+
+[server_verification]
+recipient =
+expected_sender =
+srvcert =
+trusted =
+untrusted =
+unprotectederrors =
+extracertsout =
+
+[tlstest]
+server =
+tls_used =
+tls_cert =
+tls_key =
+tls_keypass =
+tls_trusted =
+tls_host =
+
+[commands]
+cmd =
+cacertsout =
+newkey =
+newkeypass =
+subject =
+issuer =
+days =
+reqexts =
+#popo =
+implicitconfirm =
+disableconfirm =
+certout =
+out_trusted =
+oldcert =
+csr =
+revreason =
+infotype =
+
+
+[reqexts]
+basicConstraints = CA:FALSE
+#basicConstraints = critical, CA:TRUE
+keyUsage = critical, digitalSignature # keyAgreement, keyEncipherment, nonRepudiation
+extendedKeyUsage = critical, clientAuth # serverAuth, codeSigning
+#crlDistributionPoints = URI:http:
+# authorityInfoAccess = URI:http:
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.0 = localhost
+IP.0 = 127.0.0.1
+IP.1 = 192.168.1.1
+
+[reqexts_invalidkey]
+subjectAltName = @alt_names_3
+
+[alt_names_3]
+DNS.0 = localhost
+DNS.1 = example.com
+DNS.2 = example2.com
+DNS__3 = example3.com
+
+
+############################ TESTING ENDE
