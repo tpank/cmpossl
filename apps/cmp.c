@@ -54,7 +54,7 @@ static CMP_CTX *cmp_ctx = NULL;
 
 /*
  * a copy from apps.c just for visibility reasons,
- * TODO DvO remove when setup_engine_no_default() has been integrated
+ * TODO DvO remove when setup_engine_no_default() is integrated (PR #4277)
  */
 #ifndef OPENSSL_NO_ENGINE
 /* Try to load an engine in a shareable library */
@@ -78,8 +78,8 @@ static UI_METHOD *ui_method = NULL;
 #endif
 
 /*
- * an adapted copy of setup_engine() from apps.c,
- * TODO DvO integrate there
+ * an adapted copy of setup_engine() from apps.c, TODO DvO replace this by
+ * setup_engine_flags() when merged upstream in apps.c (PR #4277)
  */
 static ENGINE *setup_engine_no_default(const char *engine, int debug)
 {
@@ -983,6 +983,7 @@ static int read_config()
     return 1;
 }
 
+/* TODO DvO push this and related functions upstream (PR #multifile) */
 static char *next_item(char *opt) /* in list separated by comma and/or space */
 {
     /* allows empty item if *opt immediately contains ',' */
@@ -1176,14 +1177,15 @@ static int read_write_req_resp(CMP_CTX *ctx,
 #endif
 /*
  * code for loading certs, keys, and CRLs
- * TODO DvO: the whole Cert, Key and CRL loading logic should be given upstream
- * to be included in apps.c, and then used from here.
+ * TODO DvO the whole Cert, Key and CRL loading logic should be given upstream
+ * to be included in apps.c, and then used from here (PR #4930, PR #4940,
+ * #autofmt, #crls_timeout_local)
  */
 
 /*
- * TODO DvO: when load_cert_pass() from apps.c is available upstream,
- * remove this declaration load_pkcs12(), which has been copied from apps.c
- * just for visibility reasons
+ * TODO DvO when load_cert_pass() from apps.c is merged upstream (PR #4930
+ * and #crls_timeout_local), remove this declaration of load_pkcs12(),
+ * which has been copied from apps.c just for visibility reasons
  */
 static int load_pkcs12(BIO *in, const char *desc,
                        pem_password_cb *pem_cb, void *cb_data,
@@ -1241,7 +1243,7 @@ static int load_pkcs12(BIO *in, const char *desc,
     return ret;
 }
 
-/* TODO DvO: push that separately upstream with the autofmt options */
+/* TODO DvO push that upstream as a separate PR #crls_timeout_local */
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 /* adapted from apps/apps.c to include connection timeout */
 static int load_cert_crl_http_timeout(const char *url, int req_timeout,
@@ -1300,8 +1302,8 @@ static int load_cert_crl_http_timeout(const char *url, int req_timeout,
 #endif
 
 /*
- * TODO DvO: replace this by load_cert_pass() from apps.c when available
- * upstream after generalization w.r.t. timeout
+ * TODO DvO remove when load_cert_pass() is merged upstream in apps.c (PR #4930)
+ * and after generalizing it w.r.t. timeout (PR #crls_timeout_local)
  */
 static X509 *load_cert_pass(const char *file, int format, const char *pass,
                             const char *cert_descrip)
@@ -1374,7 +1376,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     return (x);
 }
 
-/* TODO DvO: replace this by load_csr() from apps.c when available upstream */
+/* TODO DvO remove when load_csr() is merged upstream in apps.c (PR #4940) */
 static X509_REQ *load_csr(const char *file, int format, const char *desc)
 {
     X509_REQ *req = NULL;
@@ -1439,7 +1441,7 @@ static int load_certs_(BIO *err, const char *file, int format,
 # define load_key(  f,    t, i, p, e, d) load_key   (bio_err, f, t, i, p, e, d)
 #endif
 
-/* TODO DvO: push that separately upstream with the autofmt options */
+/* TODO DvO push this and related functions upstream (PR #autofmt) */
 static int adjust_format(const char **infile, int format, int engine_ok)
 {
     if (!strncmp(*infile, "http://", 7) || !strncmp(*infile, "https://", 8))
@@ -1475,6 +1477,7 @@ static int adjust_format(const char **infile, int format, int engine_ok)
     return format;
 }
 
+/* TODO DvO extend app_get_pass() from apps.c this way (PR #app_get_pass) */
 static char *get_passwd(const char *pass, const char *desc)
 {
     char *result = NULL;
@@ -1516,10 +1519,7 @@ static void OPENSSL_clear_free(void *str, size_t num)
 }
 #endif
 
-/*
- * TODO DvO: push that separately upstream
- * in apps.c there is load_key which should be used for CMP upstream submission
- */
+/* TODO DvO: push this and related functions upstream (PR #autofmt) */
 static EVP_PKEY *load_key_autofmt(const char *infile, int format,
                                   const char *pass, ENGINE *e, const char *desc)
 {
@@ -1548,7 +1548,7 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format,
     return pkey;
 }
 
-/* TODO DvO: push that separately upstream */
+/* TODO DvO: push this and related functions upstream (PR #autofmt) */
 static X509 *load_cert_autofmt(const char *infile, int format,
                                const char *pass, const char *desc)
 {
@@ -1576,7 +1576,7 @@ static X509 *load_cert_autofmt(const char *infile, int format,
     return cert;
 }
 
-/* TODO DvO: push that separately upstream */
+/* TODO DvO: push this and related functions upstream (PR #autofmt) */
 static X509_REQ *load_csr_autofmt(const char *infile, int format,
                                   const char *desc)
 {
@@ -1604,7 +1604,7 @@ static X509_REQ *load_csr_autofmt(const char *infile, int format,
 /*
  * Initialize or extend, if *certs != NULL, a certificate stack.
  *
- * TODO DvO: replace this by generalized load_certs() when available upstream
+ * TODO DvO replace by generalized load_certs() when merged upstream (PR #4930)
  */
 static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
                                   int format, const char *pass,
@@ -1663,10 +1663,7 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
     return ret;
 }
 
-/*
- * TODO DvO: push that separately upstream
- * in apps.c is load_certs() which should be used for CMP upstream submission
- */
+/* TODO DvO push this and related functions upstream (PR #autofmt) */
 static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
                               int format, int exclude_http, const char *pass,
                               const char *desc)
@@ -1701,10 +1698,8 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
     return ret;
 }
 
-/*
- * TODO DvO: push that separately upstream
- * this is used by load_crls_fmt and LOCAL_load_crl_crldp
- */
+/* TODO DvO push this and related functions upstream (PR #autofmt) */
+/* this funtion is used by load_crls_fmt and LOCAL_load_crl_crldp */
 static X509_CRL *load_crl_autofmt(const char *infile, int format,
                                   const char *desc)
 {
@@ -1735,10 +1730,8 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
     return crl;
 }
 
-/*
- * TODO DvO: push that separately upstream
- * this is exclusively used by load_crls_autofmt
- */
+/* TODO DvO push this and related functions upstream (PR #autofmt) */
+/* this function is exclusively used by load_crls_autofmt */
 static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format,
                                          const char *desc)
 {
@@ -1765,10 +1758,7 @@ static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format,
     }
 }
 
-/*
- * TODO DvO: push that separately upstream
- * in apps.c there is load_crls which should be used for CMP upstream submission
- */
+/* TODO DvO push this and related functions upstream (PR #autofmt) */
 static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format,
                                              const char *desc)
 {
@@ -2052,7 +2042,7 @@ static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */ ,
 }
 
 /*
- * TODO DvO: push that separately upstream
+ * TODO DvO push this and related functions upstream (PR #crls_timeout_local)
  *
  * code for loading CRL via HTTP or from file, slightly adapted from apps/apps.c
  *
@@ -2084,7 +2074,7 @@ static const char *LOCAL_get_dp_url(DIST_POINT *dp)
 }
 
 /*
- * TODO DvO: push that separately upstream
+ * TODO DvO push this and related functions upstream (PR #crls_timeout_local)
  *
  * THIS IS an extension of load_crl_crldp() FROM AND LOCAL TO apps.c,
  * with support for loading local CRL files,
@@ -2114,7 +2104,7 @@ static X509_CRL *LOCAL_load_crl_crldp(STACK_OF(DIST_POINT) *crldp)
 }
 
 /*
- * TODO DvO: push that separately upstream
+ * TODO DvO push this and related functions upstream (PR #crls_timeout_local)
  *
  * THIS IS crls_http_cb() FROM AND LOCAL TO apps.c,
  * but using LOCAL_load_crl_crldp instead of the one from apps.c
@@ -2155,7 +2145,7 @@ static STACK_OF(X509_CRL) *LOCAL_crls_http_cb(X509_STORE_CTX *ctx,
 }
 
 /*
- * TODO DvO: push that separately upstream
+ * TODO DvO push this and related functions upstream (PR #crls_timeout_local)
  *
  * This allows for local CRLs and remote lookup through the callback.
  * In upstream openssl, X509_STORE_CTX_init() sets up the STORE_CTX
@@ -2591,7 +2581,8 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
         X509_STORE_set_lookup_crls(ts, get_crls_cb);
     /*
      * TODO DvO: to be replaced with "store_setup_crl_download(ts)" from apps.h,
-     * after extended version of crls_http_cb has been pushed upstream
+     * after extended version of crls_http_cb()
+     * has been merged upstream (PR #crls_timeout_local)
      */
 
 #ifndef OPENSSL_NO_OCSP
@@ -2648,9 +2639,8 @@ static int set_gennames(char *names, int type,
     return 1;
 }
 
+/* TODO DvO push this and related functions upstream (PR #multifile) */
 /*
- * TODO DvO: push that separately upstream
- *
  * create cert store structure with certificates read from given file(s)
  * returns pointer to created X509_STORE on success, NULL on error
  */
@@ -2683,7 +2673,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     return store;
 }
 
-/* TODO DvO: push that separately upstream */
+/* TODO DvO push this and related functions upstream (PR #multifile) */
 static STACK_OF(X509) *load_certs_multifile(char *files, int format,
                                             const char *pass, const char *desc)
 {
@@ -2984,7 +2974,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
     if (opt_crl_timeout == 0)
         opt_crl_timeout = -1;
     if (opt_crls) {
-/* TODO DvO: extract load_multiple_crls() and push that separately upstream */
+/* TODO DvO extract load_multiple_crls() and push upstream (PR #multifile) */
         X509_CRL *crl;
         STACK_OF(X509_CRL) *crls;
 
