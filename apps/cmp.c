@@ -3881,8 +3881,6 @@ int cmp_main(int argc, char **argv)
 {
     char *configfile = NULL;
     long errorline = -1;
-    char *tofree = NULL; /* used as getenv returns a direct pointer to
-                          * the environment setting */
     int badops = 0;
     int i;
     int ret = EXIT_FAILURE;
@@ -3915,26 +3913,7 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-    if (opt_config) {
-        configfile = strdup(opt_config);
-        tofree = configfile;
-    }
-    /* TODO DvO: the following likely will go to openssl.c make_config_name() */
-    if (configfile == NULL)
-        configfile = getenv("OPENSSL_CONF");
-    if (configfile == NULL)
-        configfile = getenv("SSLEAY_CONF");
-    if (configfile == NULL) {
-        const char *s = X509_get_default_cert_area();
-        size_t len;
-
-        len = strlen(s) + sizeof(CONFIG_FILE) + 1;
-        tofree = OPENSSL_malloc(len);
-        BUF_strlcpy(tofree, s, len);
-        BUF_strlcat(tofree, "/" CONFIG_FILE, len);
-        configfile = tofree;
-    }
-
+    configfile = opt_config ? opt_config : default_config_file;
     /*
      * read default values for options from openssl.cnf
      */
@@ -4532,7 +4511,6 @@ int cmp_main(int argc, char **argv)
     if (opt_secret)
         OPENSSL_cleanse(opt_secret, strlen(opt_secret));
     NCONF_free(conf); /* must not do as long as opt_... variables are used */
-    OPENSSL_free(tofree);
 
     return ret;
 }
