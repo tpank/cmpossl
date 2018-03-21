@@ -263,7 +263,31 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
 /*
  * context DECLARATIONS
  */
-typedef void (*cmp_log_cb_t) (const char *msg);
+
+/* declarations resemble those from bio/bss_log.c and syslog.h */
+typedef enum {LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERROR,
+              LOG_WARN, LOG_NOTE, LOG_INFO, LOG_DEBUG} severity;
+
+#define FILE_LINE __FILE__, __LINE__
+#define FL_EMERG FILE_LINE, LOG_EMERG
+#define FL_ALERT FILE_LINE, LOG_ALERT
+#define FL_CRIT  FILE_LINE, LOG_CRIT
+#define FL_ERROR FILE_LINE, LOG_ERROR
+#define FL_WARN  FILE_LINE, LOG_WARN
+#define FL_NOTE  FILE_LINE, LOG_NOTE
+#define FL_INFO  FILE_LINE, LOG_INFO
+#define FL_DEBUG FILE_LINE, LOG_DEBUG
+
+int CMP_puts(const char *file, int lineno, severity level, const char *msg);
+int CMP_printf(const CMP_CTX *ctx, const char *file, int lineno, severity level,
+               const char *fmt, ...);
+int CMP_log_fd(const char *file, int lineno, severity level, const char *msg,
+               FILE *dest);
+int  CMP_log_init(void);
+void CMP_log_close(void);
+
+typedef int (*cmp_log_cb_t) (const char *file, int lineno, severity level,
+                             const char *msg);
 typedef int (*cmp_certConf_cb_t) (CMP_CTX *ctx, const X509 *cert, int failure,
                                  const char **txt);
 typedef BIO *(*cmp_http_cb_t) (CMP_CTX *ctx, BIO *hbio, int connect);
@@ -477,8 +501,7 @@ int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
 STACK_OF(X509) *CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx);
 int CMP_CTX_set1_untrusted_certs(CMP_CTX *ctx, const STACK_OF(X509) *certs);
 void CMP_CTX_delete(CMP_CTX *ctx);
-int CMP_CTX_set_error_cb(CMP_CTX *ctx, cmp_log_cb_t cb);
-int CMP_CTX_set_debug_cb(CMP_CTX *ctx, cmp_log_cb_t cb);
+int CMP_CTX_set_log_cb(CMP_CTX *ctx, cmp_log_cb_t cb);
 int CMP_CTX_set_certConf_cb(CMP_CTX *ctx, cmp_certConf_cb_t cb);
 int CMP_CTX_set_certConf_cb_arg(CMP_CTX *ctx, void *arg);
 void *CMP_CTX_get_certConf_cb_arg(CMP_CTX *ctx);
@@ -558,9 +581,6 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val);
 # if 0
 int CMP_CTX_push_freeText(CMP_CTX *ctx, const char *text);
 # endif
-
-int CMP_CTX_error_cb(const char *str, size_t len, void *u);
-void CMP_printf(const CMP_CTX *ctx, const char *fmt, ...);
 
 /* BIO definitions */
 # define d2i_CMP_PKIMESSAGE_bio(bp, p) \

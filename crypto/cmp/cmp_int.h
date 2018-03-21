@@ -109,7 +109,7 @@ struct cmp_ctx_st {
     /* TODO: this should be a stack since there could be more than one */
     unsigned long failInfoCode; /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
-    cmp_log_cb_t error_cb, debug_cb; /* log callbacks for error/debug output */
+    cmp_log_cb_t log_cb; /* log callback for error/debug/etc. output */
     cmp_certConf_cb_t certConf_cb;   /* callback for letting the user check
                            the received certificate and reject if necessary */
     void *certConf_cb_arg; /* allows to store an argument individual to cb */
@@ -719,6 +719,15 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
 /*
  * functions
  */
+
+/* from cmp_ctx.c */
+#define LOG(x)  log_printf x /* poor man's variadic macro for C90;
+   calls need argument(s) in doubly nested parentheses: LOG((args)) */
+/* C99 would allow  #define LOG(...) log_print(__VA_ARGS__)  where
+   the argument(s) could be given in normal parentheses: LOG(args) */
+/* See also, e.g., https://en.wikipedia.org/wiki/Variadic_macro */
+int log_printf(const char *file, int line, severity level, const char *fmt,...);
+int CMP_CTX_error_cb(const char *str, size_t len, void *u);
 
 /* from cmp_vfy.c */
 void put_cert_verify_err(int func);
