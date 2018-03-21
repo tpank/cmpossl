@@ -123,7 +123,7 @@ static ENGINE *setup_engine_no_default(const char *engine, int debug)
         }
 # endif
 
-        BIO_printf(bio_err, "engine \"%s\" set.\n", ENGINE_get_id(e));
+        BIO_printf(bio_err, "engine \"%s\" set\n", ENGINE_get_id(e));
     }
 #endif
     return e;
@@ -178,12 +178,13 @@ static int opt_unprotectedErrors = 0;
 static char *opt_extracertsout = NULL;
 static char *opt_cacertsout = NULL;
 
-#ifndef NDEBUG
+static int opt_batch = 0;
 static char *opt_reqin = NULL;
 static char *opt_reqout = NULL;
 static char *opt_rspin = NULL;
 static char *opt_rspout = NULL;
 
+#ifndef NDEBUG
 static int opt_mock_srv = 0;
 
 static char *opt_srv_ref = NULL;
@@ -246,7 +247,6 @@ static int opt_crlform = FORMAT_PEM;
 static char *opt_otherform_s = "PEM";
 static int opt_otherform = FORMAT_PEM;
 static char *opt_otherpass = NULL;
-static int opt_batch = 0;
 static char *opt_engine = NULL;
 
 static char *opt_newkey = NULL;
@@ -396,7 +396,6 @@ typedef enum OPTION_choice {
     OPT_OLDCERT, OPT_REVREASON,
 
     OPT_OWNFORM, OPT_KEYFORM, OPT_CRLFORM, OPT_OTHERFORM, OPT_OTHERPASS,
-    OPT_BATCH,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
@@ -404,9 +403,10 @@ typedef enum OPTION_choice {
     OPT_TLS_USED, OPT_TLS_CERT, OPT_TLS_KEY, OPT_TLS_KEYPASS, OPT_TLS_EXTRA,
     OPT_TLS_TRUSTED, OPT_TLS_HOST,
 
-#ifndef NDEBUG
+    OPT_BATCH,
     OPT_REQIN, OPT_REQOUT, OPT_RSPOUT, OPT_RSPIN,
 
+#ifndef NDEBUG
     OPT_MOCK_SRV,
     OPT_SRV_REF, OPT_SRV_SECRET,
     OPT_SRV_CERT, OPT_SRV_KEY, OPT_SRV_KEYPASS,
@@ -580,8 +580,6 @@ OPTIONS cmp_options[] = {
  "Format (PEM/DER/P12) to try first reading cert files of others. Default PEM"},
     {"otherpass", OPT_OTHERPASS, 's',
     "Pass phrase source potentially needed for loading certificates of others"},
-    {"batch", OPT_BATCH, '-',
-     "Do not interactively prompt for input when a password is required etc."},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's',
      "Use crypto engine with given identifier, possibly a hardware device."},
@@ -610,14 +608,16 @@ OPTIONS cmp_options[] = {
     {"tls_host", OPT_TLS_HOST, 's',
  "Address to be checked (rather than -server) during TLS host name validation"},
 
-#ifndef NDEBUG
     {OPT_MORE_STR, 0, 0, "\nTesting and debugging options:"},
+    {"batch", OPT_BATCH, '-',
+     "Do not interactively prompt for input when a password is required etc."},
     {"reqin", OPT_REQIN, 's', "Take sequence of CMP requests from file(s)"},
     {"reqout", OPT_REQOUT, 's', "Save sequence of CMP requests to file(s)"},
     {"rspin", OPT_RSPIN, 's',
      "Process sequence of CMP responses provided in file(s), skipping server"},
     {"rspout", OPT_RSPOUT, 's', "Save sequence of CMP responses to file(s)"},
 
+#ifndef NDEBUG
     {"mock_srv", OPT_MOCK_SRV, '-', "Mock the server"},
     {"srv_ref", OPT_SRV_REF, 's',
      "Reference value to use as senderKID of server in case no -cert is given"},
@@ -747,7 +747,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_oldcert}, {(char **)&opt_revreason},
 
     {&opt_ownform_s}, {&opt_keyform_s}, {&opt_crlform_s}, {&opt_otherform_s},
-    {&opt_otherpass}, {(char **)&opt_batch},
+    {&opt_otherpass},
 #ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
 #endif
@@ -755,9 +755,10 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {(char **)&opt_tls_used}, {&opt_tls_cert}, {&opt_tls_key},
     {&opt_tls_keypass}, {&opt_tls_extra}, {&opt_tls_trusted}, {&opt_tls_host},
 
-#ifndef NDEBUG
+    {(char **)&opt_batch},
     {&opt_reqin}, {&opt_reqout}, {&opt_rspin}, {&opt_rspout},
 
+#ifndef NDEBUG
     {(char **)&opt_mock_srv},
     {&opt_srv_ref}, {&opt_srv_secret},
     {&opt_srv_cert}, {&opt_srv_key}, {&opt_srv_keypass},
@@ -1686,7 +1687,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
     }
 
     if ((id = OCSP_cert_to_id(NULL, cert, issuer)) == NULL) {
-        BIO_puts(bio_err, "cannot obtain cert ID for OCSP.\n");
+        BIO_puts(bio_err, "cannot obtain cert ID for OCSP\n");
         goto end;
     }
     if (!OCSP_resp_find_status(br, id,
@@ -1697,7 +1698,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
 
     /* TODO: OCSP_check_validity() should respect -attime: vpm->check_time */
     if (!OCSP_check_validity(thisupd, nextupd, MAX_OCSP_VALIDITY_PERIOD, -1)) {
-        BIO_puts(bio_err, "OCSP status times invalid.\n");
+        BIO_puts(bio_err, "OCSP status times invalid\n");
         ERR_print_errors(bio_err);
         goto end;
     } else {
@@ -2036,7 +2037,6 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
 /* TODO DvO (end) push OCSP-related code upstream (PR #ocsp_stapling_crls) */
 #endif  /* !defined OPENSSL_NO_OCSP */
 
-#ifndef NDEBUG
 /*-
  * Writes CMP_PKIMESSAGE DER-encoded to the file specified with outfile
  *
@@ -2212,7 +2212,6 @@ static int read_write_req_resp(CMP_CTX *ctx,
     CMP_PKIMESSAGE_free(req_new);
     return ret;
 }
-#endif /* !defined(NDEBUG) */
 
 static int http_connected = 0;
 static BIO *tls_http_cb(CMP_CTX *ctx, BIO *hbio, int connect)
@@ -2727,7 +2726,7 @@ static int setup_srv_ctx(ENGINE *e)
     srv_ctx = NULL;
     return 0;
 }
-#endif
+#endif /* !defined(NDEBUG) */
 
 /*
  * set up verification aspects of CMP_CTX based on options from config file/CLI.
@@ -3320,10 +3319,10 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         OPENSSL_cleanse(opt_keypass, strlen(opt_keypass));
         opt_keypass = NULL;
     }
-
     if (opt_revreason > CRL_REASON_NONE)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_REVOCATION_REASON,
                                  opt_revreason);
+
     return 1;
 
  oom:
@@ -3526,9 +3525,13 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_totaltimeout >= 0)
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_TOTALTIMEOUT, opt_totaltimeout);
 
+    if (opt_reqin || opt_reqout || opt_rspin || opt_rspout
 #ifndef NDEBUG
-    if (opt_reqin || opt_reqout || opt_rspin || opt_rspout || opt_mock_srv)
+        || opt_mock_srv
+#endif
+        )
         (void)CMP_CTX_set_transfer_cb(ctx, read_write_req_resp);
+#ifndef NDEBUG
     if (opt_mock_srv && !setup_srv_ctx(e))
         goto err;
 #endif
@@ -4043,8 +4046,11 @@ static int get_opts(int argc, char **argv)
             opt_issuer = opt_str("issuer");
             break;
         case OPT_DAYS:
-            if (!opt_int(opt_arg(), &opt_days))
+            if (!opt_int(opt_arg(), &opt_days) || opt_days < 0) {
+                BIO_printf(bio_err,
+                           "error: days must be a non-negative integer\n");
                 goto opt_err;
+            }
             break;
         case OPT_REQEXTS:
             opt_reqexts = opt_str("reqexts");
@@ -4091,8 +4097,14 @@ static int get_opts(int argc, char **argv)
             opt_oldcert = opt_str("oldcert");
             break;
         case OPT_REVREASON:
-            if (!opt_int(opt_arg(), &opt_revreason))
+            if (!opt_int(opt_arg(), &opt_revreason) ||
+                    opt_revreason < CRL_REASON_NONE ||
+                    opt_revreason > CRL_REASON_AA_COMPROMISE ||
+                    opt_revreason == 7) {
+                BIO_printf(bio_err,
+                           "error: invalid revreason. Valid values are -1..6, 8..10.");
                 goto opt_err;
+            }
             break;
 
         case OPT_OWNFORM:
@@ -4110,16 +4122,15 @@ static int get_opts(int argc, char **argv)
         case OPT_OTHERPASS:
             opt_otherpass = opt_str("otherpass");
             break;
-        case OPT_BATCH:
-            opt_batch = 1;
-            break;
 # ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
             opt_engine = opt_str("engine");
             break;
 # endif
 
-# ifndef NDEBUG
+        case OPT_BATCH:
+            opt_batch = 1;
+            break;
         case OPT_REQIN:
             opt_reqin = opt_str("reqin");
             break;
@@ -4132,6 +4143,7 @@ static int get_opts(int argc, char **argv)
         case OPT_RSPOUT:
             opt_rspout = opt_str("rspout");
             break;
+# ifndef NDEBUG
         case OPT_MOCK_SRV:
             opt_mock_srv = 1;
             break;
