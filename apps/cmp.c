@@ -266,6 +266,22 @@ static int opt_infotype = NID_undef;
 static char *opt_geninfo = NULL;
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
+CONF *app_load_config(const char *filename)
+{
+    long errorline = -1;
+    CONF *conf = NCONF_new(NULL);
+    if (conf && NCONF_load(conf, filename, &errorline) > 0)
+        return conf;
+
+    if (errorline <= 0)
+        BIO_printf(bio_err, "error loading the config file '%s'\n", filename);
+    else
+        BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
+                   errorline, filename);
+    NCONF_free(conf);
+    return NULL;
+}
+
 int cmp_main(int argc, char *argv[]);
 const char OPT_HELP_STR[] = "--";
 const char OPT_MORE_STR[] = "---";
@@ -3880,7 +3896,6 @@ static int opt_nat()
 int cmp_main(int argc, char **argv)
 {
     char *configfile = NULL;
-    long errorline = -1;
     int badops = 0;
     int i;
     int ret = EXIT_FAILURE;
@@ -3913,22 +3928,16 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-    configfile = opt_config ? opt_config : default_config_file;
     /*
-     * read default values for options from openssl.cnf
+     * read default values for options from configfile
      */
-    /* TODO DvO: the following would likely go to apps.c app_load_config_() */
+    configfile = opt_config ? opt_config : default_config_file;
     if (configfile && configfile[0] != '\0') { /* non-empty string */
         CMP_printf(cmp_ctx, FL_INFO, "using OpenSSL configuration file '%s'",
                    configfile);
-        conf = NCONF_new(NULL);
-        if (NCONF_load(conf, configfile, &errorline) <= 0) {
-            if (errorline <= 0)
-                BIO_printf(bio_err, "error loading the config file '%s'\n",
-                           configfile);
-            else
-                BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
-                           errorline, configfile);
+        conf = app_load_config(configfile);
+        if (conf == NULL) {
+            goto err;
         } else {
             if (strcmp(opt_section, CMP_SECTION) == 0) { /* default */
                 if (!NCONF_get_section(conf, opt_section)) {
