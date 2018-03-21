@@ -1,20 +1,14 @@
 /*
- * Copyright 1995-2017 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright OpenSSL 2007-2018
+ * Copyright Nokia 2007-2018
+ * Copyright Siemens AG 2015-2018
  *
- * Licensed under the OpenSSL license (the "License").  You may not use
- * this file except in compliance with the License.  You can obtain a copy
- * in the file LICENSE in the source distribution or at
- * https://www.openssl.org/source/license.html
- */
-/*
- * ====================================================================
- * Copyright 2012-2014 Nokia Oy. ALL RIGHTS RESERVED. CMP support in OpenSSL
- * originally developed by Nokia for contribution to the OpenSSL project.
- */
-/*
- * ====================================================================
- * Written by Miikka Viljanen, based on cmpclient by Martin Peylo
- * Major extensions by David von Oheimb, Siemens AG, Corporate Technology
+ * Contents licensed under the terms of the OpenSSL license
+ * See https://www.openssl.org/source/license.html for details
+ *
+ * SPDX-License-Identifier: OpenSSL
+ *
+ * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
 #include <openssl/opensslconf.h>

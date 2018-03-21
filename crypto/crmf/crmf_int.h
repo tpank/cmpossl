@@ -1,3 +1,15 @@
+/*
+ * Copyright OpenSSL 2007-2018
+ * Copyright Nokia 2007-2018
+ * Copyright Siemens AG 2015-2018
+ *
+ * Contents licensed under the terms of the OpenSSL license
+ * See https://www.openssl.org/source/license.html for details
+ *
+ * SPDX-License-Identifier: OpenSSL
+ *
+ * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
+ */
 
 #ifndef HEADER_CRMF_INT_H
 # define HEADER_CRMF_INT_H
