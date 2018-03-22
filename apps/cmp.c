@@ -790,182 +790,7 @@ static char *next_item(char *opt) /* in list separated by comma and/or space */
     }
     return opt;
 }
-#ifndef NDEBUG
-/*-
- * Writes CMP_PKIMESSAGE DER-encoded to the file specified with outfile
- *
- * returns 1 on success, 0 on error
- */
-static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
-{
-    char *file;
-    FILE *f;
-    int res = 0;
 
-    if (msg == NULL || filenames == NULL) {
-        BIO_printf(bio_err, "NULL arg to write_PKIMESSAGE\n");
-        return 0;
-    }
-    if (**filenames == '\0') {
-        BIO_printf(bio_err,
-              "not enough file names have been provided for writing message\n");
-        return 0;
-    }
-
-    file = *filenames;
-    *filenames = next_item(file);
-    f = fopen(file, "wb");
-    if (f == NULL)
-        BIO_printf(bio_err, "error opening file '%s' for writing\n", file);
-    else {
-        unsigned char *out = NULL;
-        int len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *) msg, &out);
-
-        if (len >= 0) {
-            if ((size_t)len == fwrite(out, sizeof(*out), len, f))
-                res = 1;
-            else
-                BIO_printf(bio_err, "error writing file '%s'\n", file);
-            OPENSSL_free(out);
-        }
-        fclose(f);
-    }
-    return res;
-}
-
-/*-
- * Reads a DER-encoded CMP_PKIMESSAGE from the file specified in infile
- * The CMP_MESSAGE must be freed by the caller
- *
- * returns a pointer to the parsed CMP_PKIMESSAGE, null on error
- */
-static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
-{
-    char *file;
-    FILE *f;
-    long fsize;
-    unsigned char *in;
-    CMP_PKIMESSAGE *ret = NULL;
-
-    if (filenames == NULL) {
-        BIO_printf(bio_err, "NULL arg to read_PKIMESSAGE\n");
-        return 0;
-    }
-    if (**filenames == '\0') {
-        BIO_printf(bio_err,
-              "not enough file names have been provided for reading message\n");
-        return 0;
-    }
-
-    file = *filenames;
-    *filenames = next_item(file);
-    f = fopen(file, "rb");
-    if (f == NULL)
-        BIO_printf(bio_err, "error opening file '%s' for reading\n", file);
-    else {
-        fseek(f, 0, SEEK_END);
-        fsize = ftell(f);
-        fseek(f, 0, SEEK_SET);
-        if (fsize < 0) {
-            BIO_printf(bio_err, "error getting size of file '%s'\n", file);
-        } else {
-            in = OPENSSL_malloc(fsize);
-            if (in == NULL)
-                BIO_printf(bio_err, "out of memory reading file '%s'\n", file);
-            else {
-                if ((size_t)fsize != fread(in, 1, fsize, f))
-                    BIO_printf(bio_err, "error reading file '%s'\n", file);
-                else {
-                    const unsigned char *p = in;
-                    ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
-                    if (ret == NULL)
-                        BIO_printf(bio_err,
-                               "error parsing PKIMessage in file '%s'\n", file);
-                }
-                OPENSSL_free(in);
-            }
-        }
-        fclose(f);
-    }
-    return ret;
-}
-
-/*-
- * Sends the PKIMessage req and on success place the response in *res
- * basically like CMP_PKIMESSAGE_http_perform(), but in addition allows
- * to dump the sequence of requests and responses to files and/or
- * to take the sequence of requests and responses from files.
- */
-static int read_write_req_resp(CMP_CTX *ctx,
-                               const CMP_PKIMESSAGE *req,
-                               CMP_PKIMESSAGE **res)
-{
-    CMP_PKIMESSAGE *req_new = NULL;
-    CMP_PKIHEADER *hdr;
-    int ret = CMP_R_ERROR_TRANSFERRING_OUT;
-
-    if (req && opt_reqout && !write_PKIMESSAGE(req, &opt_reqout))
-        goto err;
-
-    if (opt_reqin) {
-        if (opt_rspin) {
-            BIO_printf(bio_err,
-                       "warning: -reqin is ignored since -rspin is present\n");
-        } else {
-            ret = CMP_R_ERROR_TRANSFERRING_IN;
-            if ((req_new = read_PKIMESSAGE(&opt_reqin)) == NULL)
-                goto err;
-# if 0
-          /*
-           * The transaction ID in req_new may not be fresh. In this case the
-           * Insta Demo CA correctly complains: "Transaction id already in use."
-           * The following workaround unfortunately requires re-protection.
-           */
-            CMP_PKIHEADER_set1_transactionID(CMP_PKIMESSAGE_get0_header
-                                             (req_new), NULL);
-            CMP_PKIMESSAGE_protect(ctx, req_new);
-# endif
-        }
-    }
-
-    ret = CMP_R_ERROR_TRANSFERRING_IN;
-    if (opt_rspin) {
-        if ((*res = read_PKIMESSAGE(&opt_rspin)))
-            ret = 0;
-    } else {
-        const CMP_PKIMESSAGE *actual_req = opt_reqin ? req_new : req;
-        if (opt_mock_srv) {
-            CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
-            ret = CMP_mock_server_perform(ctx, actual_req, res);
-        } else {
-            ret = CMP_PKIMESSAGE_http_perform(ctx, actual_req, res);
-        }
-    }
-
-    if (ret || (*res) == NULL)
-        goto err;
-    ret = CMP_R_OUT_OF_MEMORY;
-    hdr = CMP_PKIMESSAGE_get0_header(*res);
-    if ((opt_reqin || opt_rspin) &&
-        /* need to satisfy nonce and transactionID checks */
-        (!CMP_CTX_set1_last_senderNonce(ctx, CMP_PKIHEADER_get0_recipNonce(hdr))
-         || !CMP_CTX_set1_transactionID(ctx,
-                                        CMP_PKIHEADER_get0_transactionID(hdr))
-        ))
-        goto err;
-
-    if (opt_rspout && !write_PKIMESSAGE(*res, &opt_rspout)) {
-        ret = CMP_R_ERROR_TRANSFERRING_OUT;
-        CMP_PKIMESSAGE_free(*res);
-        goto err;
-    }
-
-    ret = 0;
- err:
-    CMP_PKIMESSAGE_free(req_new);
-    return ret;
-}
-#endif
 /*
  * code for loading certs, keys, and CRLs
  * TODO DvO the whole Cert, Key and CRL loading logic should be given upstream
@@ -2214,6 +2039,183 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
     return 1;
 }
 #endif  /* !defined OPENSSL_NO_OCSP */
+
+#ifndef NDEBUG
+/*-
+ * Writes CMP_PKIMESSAGE DER-encoded to the file specified with outfile
+ *
+ * returns 1 on success, 0 on error
+ */
+static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
+{
+    char *file;
+    FILE *f;
+    int res = 0;
+
+    if (msg == NULL || filenames == NULL) {
+        BIO_printf(bio_err, "NULL arg to write_PKIMESSAGE\n");
+        return 0;
+    }
+    if (**filenames == '\0') {
+        BIO_printf(bio_err,
+              "Not enough file names have been provided for writing message\n");
+        return 0;
+    }
+
+    file = *filenames;
+    *filenames = next_item(file);
+    f = fopen(file, "wb");
+    if (f == NULL)
+        BIO_printf(bio_err, "Error opening file '%s' for writing\n", file);
+    else {
+        unsigned char *out = NULL;
+        int len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *) msg, &out);
+
+        if (len >= 0) {
+            if ((size_t)len == fwrite(out, sizeof(*out), len, f))
+                res = 1;
+            else
+                BIO_printf(bio_err, "Error writing file '%s'\n", file);
+            OPENSSL_free(out);
+        }
+        fclose(f);
+    }
+    return res;
+}
+
+/*-
+ * Reads a DER-encoded CMP_PKIMESSAGE from the file specified in infile
+ * The CMP_MESSAGE must be freed by the caller
+ *
+ * returns a pointer to the parsed CMP_PKIMESSAGE, null on error
+ */
+static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
+{
+    char *file;
+    FILE *f;
+    long fsize;
+    unsigned char *in;
+    CMP_PKIMESSAGE *ret = NULL;
+
+    if (filenames == NULL) {
+        BIO_printf(bio_err, "NULL arg to read_PKIMESSAGE\n");
+        return 0;
+    }
+    if (**filenames == '\0') {
+        BIO_printf(bio_err,
+              "Not enough file names have been provided for reading message\n");
+        return 0;
+    }
+
+    file = *filenames;
+    *filenames = next_item(file);
+    f = fopen(file, "rb");
+    if (f == NULL)
+        BIO_printf(bio_err, "Error opening file '%s' for reading\n", file);
+    else {
+        fseek(f, 0, SEEK_END);
+        fsize = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        if (fsize < 0) {
+            BIO_printf(bio_err, "Error getting size of file '%s'\n", file);
+        } else {
+            in = OPENSSL_malloc(fsize);
+            if (in == NULL)
+                BIO_printf(bio_err, "Out of memory reading file '%s'\n", file);
+            else {
+                if ((size_t)fsize != fread(in, 1, fsize, f))
+                    BIO_printf(bio_err, "Error reading file '%s'\n", file);
+                else {
+                    const unsigned char *p = in;
+                    ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
+                    if (ret == NULL)
+                        BIO_printf(bio_err,
+                               "Error parsing PKIMessage in file '%s'\n", file);
+                }
+                OPENSSL_free(in);
+            }
+        }
+        fclose(f);
+    }
+    return ret;
+}
+
+/*-
+ * Sends the PKIMessage req and on success place the response in *res
+ * basically like CMP_PKIMESSAGE_http_perform(), but in addition allows
+ * to dump the sequence of requests and responses to files and/or
+ * to take the sequence of requests and responses from files.
+ */
+static int read_write_req_resp(CMP_CTX *ctx,
+                               const CMP_PKIMESSAGE *req,
+                               CMP_PKIMESSAGE **res)
+{
+    CMP_PKIMESSAGE *req_new = NULL;
+    CMP_PKIHEADER *hdr;
+    int ret = CMP_R_ERROR_TRANSFERRING_OUT;
+
+    if (req && opt_reqout && !write_PKIMESSAGE(req, &opt_reqout))
+        goto err;
+
+    if (opt_reqin) {
+        if (opt_rspin) {
+            BIO_printf(bio_err,
+                       "warning: -reqin is ignored since -rspin is present\n");
+        } else {
+            ret = CMP_R_ERROR_TRANSFERRING_IN;
+            if ((req_new = read_PKIMESSAGE(&opt_reqin)) == NULL)
+                goto err;
+# if 0
+          /*
+           * The transaction ID in req_new may not be fresh. In this case the
+           * Insta Demo CA correctly complains: "Transaction id already in use."
+           * The following workaround unfortunately requires re-protection.
+           */
+            CMP_PKIHEADER_set1_transactionID(CMP_PKIMESSAGE_get0_header
+                                             (req_new), NULL);
+            CMP_PKIMESSAGE_protect((CMP_CTX *)ctx, req_new);
+# endif
+        }
+    }
+
+    ret = CMP_R_ERROR_TRANSFERRING_IN;
+    if (opt_rspin) {
+        if ((*res = read_PKIMESSAGE(&opt_rspin)))
+            ret = 0;
+    } else {
+        const CMP_PKIMESSAGE *actual_req = opt_reqin ? req_new : req;
+        if (opt_mock_srv) {
+            CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
+            ret = CMP_mock_server_perform(ctx, actual_req, res);
+        } else {
+            ret = CMP_PKIMESSAGE_http_perform(ctx, actual_req, res);
+        }
+    }
+
+    if (ret || (*res) == NULL)
+        goto err;
+    ret = CMP_R_OUT_OF_MEMORY;
+    hdr = CMP_PKIMESSAGE_get0_header(*res);
+    if ((opt_reqin || opt_rspin) &&
+        /* need to satisfy nonce and transactionID checks */
+        (!CMP_CTX_set1_last_senderNonce(ctx, CMP_PKIHEADER_get0_recipNonce(hdr))
+         || !CMP_CTX_set1_transactionID(ctx,
+                                        CMP_PKIHEADER_get0_transactionID(hdr))
+        ))
+        goto err;
+
+    if (opt_rspout && !write_PKIMESSAGE(*res, &opt_rspout)) {
+        ret = CMP_R_ERROR_TRANSFERRING_OUT;
+        CMP_PKIMESSAGE_free(*res);
+        goto err;
+    }
+
+    ret = 0;
+ err:
+    CMP_PKIMESSAGE_free(req_new);
+    return ret;
+}
+#endif /* !defined(NDEBUG) */
 
 static int http_connected = 0;
 static BIO *tls_http_cb(CMP_CTX *ctx, BIO *hbio, int connect)
