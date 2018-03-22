@@ -266,22 +266,6 @@ static int opt_infotype = NID_undef;
 static char *opt_geninfo = NULL;
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-CONF *app_load_config(const char *filename)
-{
-    long errorline = -1;
-    CONF *conf = NCONF_new(NULL);
-    if (conf && NCONF_load(conf, filename, &errorline) > 0)
-        return conf;
-
-    if (errorline <= 0)
-        BIO_printf(bio_err, "error loading the config file '%s'\n", filename);
-    else
-        BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
-                   errorline, filename);
-    NCONF_free(conf);
-    return NULL;
-}
-
 int cmp_main(int argc, char *argv[]);
 const char OPT_HELP_STR[] = "--";
 const char OPT_MORE_STR[] = "---";
@@ -789,215 +773,6 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     /* virtually at this point: OPT_CRLALL etc. */
     {NULL}
 };
-
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-static void opt_help(const OPTIONS *unused_arg)
-{
-    const int ALIGN_COL = 22;
-    const OPTIONS *opt;
-    int i = 0;
-    int j = 0;
-    int initlen;
-
-    BIO_printf(bio_err, "\nusage: openssl %s args\n", prog);
-    for (i = 0, opt = cmp_options; opt->name; i++, opt++) {
-        if (!strcmp(opt->name, OPT_MORE_STR))
-            initlen = 0;
-        else {
-            BIO_printf(bio_err, " -%s", opt->name);
-            initlen = 2 + strlen(opt->name);
-        }
-        for (j = ALIGN_COL - initlen; j > 0; j--)
-            BIO_puts(bio_err, " ");
-        BIO_printf(bio_err, " %s\n", opt->helpstr);
-    }
-    BIO_puts(bio_err, "\n");
-}
-#endif
-
-static char opt_item[SECTION_NAME_MAX+1];
-/* get previous name from a comma-separated list of names */
-static char *prev_item(const char *opt, const char *end)
-{
-    const char *beg;
-    int len;
-
-    if (end == opt)
-        return NULL;
-    beg = end;
-    while (beg != opt && beg[-1] != ',' && !isspace(beg[-1]))
-        beg--;
-    len = end - beg;
-    if (len > SECTION_NAME_MAX)
-        len = SECTION_NAME_MAX;
-    strncpy(opt_item, beg, len);
-    opt_item[len] = '\0';
-    if (end - beg > SECTION_NAME_MAX) {
-        BIO_printf(bio_err,
-                   "warning: using only first %d"
-                   " characters of section name starting with \"%s\"\n",
-                   SECTION_NAME_MAX, opt_item);
-    }
-    while (beg != opt && (beg[-1] == ',' || isspace(beg[-1])))
-        beg--;
-    return (char *)beg;
-}
-
-/* get str value for name from a comma-separated hierarchy of config sections */
-static char *conf_get_string(const CONF *conf_, const char *groups,
-                            const char *name)
-{
-    char *res = NULL;
-    char *end = (char *)groups + strlen(groups);
-
-    while ((end = prev_item(groups, end)) != NULL) {
-        if ((res = NCONF_get_string(conf_, opt_item, name)) != NULL)
-            return res;
-    }
-    return res;
-}
-
-/* get long val for name from a comma-separated hierarchy of config sections */
-static int conf_get_number_e(const CONF *conf_, const char *groups,
-                             const char *name, long *result)
-{
-    char *str = conf_get_string(conf_, groups, name);
-
-    if (str == NULL || result == NULL)
-        return 0;
-
-    for (*result = 0; conf_->meth->is_number(conf_, *str);) {
-        *result = (*result) * 10 + conf_->meth->to_int(conf_, *str);
-        str++;
-    }
-
-    return 1;
-}
-
-/*
- * use the command line option table to read values from the CMP section
- * of openssl.cnf.  Defaults are taken from the config file, they can be
- * overwritten on the command line.
- */
-static int read_config()
-{
-    unsigned int i;
-    long num = 0;
-    char *txt = NULL;
-    const OPTIONS *opt;
-    int verification_option;
-
-    /*
-     * starting with offset OPT_SECTION because OPT_CONFIG and OPT_SECTION would
-     * not make sense within the config file. They have already been handled.
-     */
-    for (i = OPT_SECTION - OPT_HELP, opt = &cmp_options[OPT_SECTION];
-         opt->name; i++, opt++) {
-        if (!strcmp(opt->name, OPT_HELP_STR) ||
-            !strcmp(opt->name, OPT_MORE_STR)) {
-            i--;
-            continue;
-        }
-        /* OPT_CRLALL etc. */
-        verification_option = (OPT_V__FIRST <= opt->retval &&
-                               opt->retval < OPT_V__LAST);
-        if (verification_option)
-            i--;
-        if (cmp_vars[i].txt == NULL) {
-            BIO_printf(bio_err,
-                       "internal error: cmp_vars array too short, i=%d\n", i);
-            return 0;
-        }
-        switch (opt->valtype) {
-        case '-':
-        case 'n':
-        case 'l':
-            if (!conf_get_number_e(conf, opt_section, opt->name, &num)) {
-                ERR_clear_error();
-                continue; /* option not provided */
-            }
-            break;
-        /*
-         * do not use '<' in cmp_options. Incorrect treatment
-         * somewhere in args_verify() can wrongly set badops = 1
-         */
-        case '<':
-        case 's':
-        case 'M':
-            txt = conf_get_string(conf, opt_section, opt->name);
-            if (txt == NULL) {
-                ERR_clear_error();
-                continue; /* option not provided */
-            }
-            break;
-        default:
-            BIO_printf(bio_err,
-                      "internal error: unsupported type '%c' for option '%s'\n",
-                       opt->valtype, opt->name);
-            return 0;
-            break;
-        }
-        if (verification_option) {
-            int conf_argc = 1;
-            char *conf_argv[3];
-            char arg1[82];
-
-            BIO_snprintf(arg1, 81, "-%s", (char *)opt->name);
-            conf_argv[0] = ""; /* dummy prog name */
-            conf_argv[1] = arg1;
-            if (opt->valtype == '-') {
-                if (num != 0)
-                    conf_argc = 2;
-            } else {
-                conf_argc = 3;
-                conf_argv[2] = conf_get_string(conf, opt_section, opt->name);
-                /* not NULL */
-            }
-            if (conf_argc > 1) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-                (void)opt_init(conf_argc, conf_argv, cmp_options);
-                if (!opt_verify(opt_next(), vpm))
-#else
-                char **conf_argvp = conf_argv + 1;
-                int badops = 0;
-
-                (void)args_verify(&conf_argvp, &conf_argc, &badops, bio_err,
-                                  &vpm);
-                if (badops)
-#endif
-                {
-                    BIO_printf(bio_err,
-                          "error for option '%s' in config file section '%s'\n",
-                               opt->name, opt_section);
-                    return 0;
-                }
-            }
-        } else {
-            switch (opt->valtype) {
-            case '-':
-            case 'n':
-                if (num < INT_MIN || INT_MAX < num) {
-                    BIO_printf(bio_err,
-                               "integer value out of range for option '%s'\n",
-                               opt->name);
-                    return 0;
-                }
-                *cmp_vars[i].num = (int)num;
-                break;
-            case 'l':
-                *cmp_vars[i].num_long = num;
-                break;
-            default:
-                if (txt != NULL && txt[0] == '\0')
-                    txt = NULL; /* reset option on empty string input */
-                *cmp_vars[i].txt = txt;
-                break;
-            }
-        }
-    }
-
-    return 1;
-}
 
 /* TODO DvO push this and related functions upstream (PR #multifile) */
 static char *next_item(char *opt) /* in list separated by comma and/or space */
@@ -3862,6 +3637,231 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
         CMP_printf(cmp_ctx, FL_INFO, "genp contains ITAV of type: %s", buf);
     }
 }
+
+static char opt_item[SECTION_NAME_MAX+1];
+/* get previous name from a comma-separated list of names */
+static char *prev_item(const char *opt, const char *end)
+{
+    const char *beg;
+    int len;
+
+    if (end == opt)
+        return NULL;
+    beg = end;
+    while (beg != opt && beg[-1] != ',' && !isspace(beg[-1]))
+        beg--;
+    len = end - beg;
+    if (len > SECTION_NAME_MAX)
+        len = SECTION_NAME_MAX;
+    strncpy(opt_item, beg, len);
+    opt_item[len] = '\0';
+    if (end - beg > SECTION_NAME_MAX) {
+        BIO_printf(bio_err,
+                   "warning: using only first %d"
+                   " characters of section name starting with \"%s\"\n",
+                   SECTION_NAME_MAX, opt_item);
+    }
+    while (beg != opt && (beg[-1] == ',' || isspace(beg[-1])))
+        beg--;
+    return (char *)beg;
+}
+
+/* get str value for name from a comma-separated hierarchy of config sections */
+static char *conf_get_string(const CONF *conf_, const char *groups,
+                            const char *name)
+{
+    char *res = NULL;
+    char *end = (char *)groups + strlen(groups);
+
+    while ((end = prev_item(groups, end)) != NULL) {
+        if ((res = NCONF_get_string(conf_, opt_item, name)) != NULL)
+            return res;
+    }
+    return res;
+}
+
+/* get long val for name from a comma-separated hierarchy of config sections */
+static int conf_get_number_e(const CONF *conf_, const char *groups,
+                             const char *name, long *result)
+{
+    char *str = conf_get_string(conf_, groups, name);
+
+    if (str == NULL || result == NULL)
+        return 0;
+
+    for (*result = 0; conf_->meth->is_number(conf_, *str);) {
+        *result = (*result) * 10 + conf_->meth->to_int(conf_, *str);
+        str++;
+    }
+
+    return 1;
+}
+
+/*
+ * use the command line option table to read values from the CMP section
+ * of openssl.cnf.  Defaults are taken from the config file, they can be
+ * overwritten on the command line.
+ */
+static int read_config()
+{
+    unsigned int i;
+    long num = 0;
+    char *txt = NULL;
+    const OPTIONS *opt;
+    int verification_option;
+
+    /*
+     * starting with offset OPT_SECTION because OPT_CONFIG and OPT_SECTION would
+     * not make sense within the config file. They have already been handled.
+     */
+    for (i = OPT_SECTION - OPT_HELP, opt = &cmp_options[OPT_SECTION];
+         opt->name; i++, opt++) {
+        if (!strcmp(opt->name, OPT_HELP_STR) ||
+            !strcmp(opt->name, OPT_MORE_STR)) {
+            i--;
+            continue;
+        }
+        /* OPT_CRLALL etc. */
+        verification_option = (OPT_V__FIRST <= opt->retval &&
+                               opt->retval < OPT_V__LAST);
+        if (verification_option)
+            i--;
+        if (cmp_vars[i].txt == NULL) {
+            BIO_printf(bio_err,
+                       "internal error: cmp_vars array too short, i=%d\n", i);
+            return 0;
+        }
+        switch (opt->valtype) {
+        case '-':
+        case 'n':
+        case 'l':
+            if (!conf_get_number_e(conf, opt_section, opt->name, &num)) {
+                ERR_clear_error();
+                continue; /* option not provided */
+            }
+            break;
+        /*
+         * do not use '<' in cmp_options. Incorrect treatment
+         * somewhere in args_verify() can wrongly set badops = 1
+         */
+        case '<':
+        case 's':
+        case 'M':
+            txt = conf_get_string(conf, opt_section, opt->name);
+            if (txt == NULL) {
+                ERR_clear_error();
+                continue; /* option not provided */
+            }
+            break;
+        default:
+            BIO_printf(bio_err,
+                      "internal error: unsupported type '%c' for option '%s'\n",
+                       opt->valtype, opt->name);
+            return 0;
+            break;
+        }
+        if (verification_option) {
+            int conf_argc = 1;
+            char *conf_argv[3];
+            char arg1[82];
+
+            BIO_snprintf(arg1, 81, "-%s", (char *)opt->name);
+            conf_argv[0] = ""; /* dummy prog name */
+            conf_argv[1] = arg1;
+            if (opt->valtype == '-') {
+                if (num != 0)
+                    conf_argc = 2;
+            } else {
+                conf_argc = 3;
+                conf_argv[2] = conf_get_string(conf, opt_section, opt->name);
+                /* not NULL */
+            }
+            if (conf_argc > 1) {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+                (void)opt_init(conf_argc, conf_argv, cmp_options);
+                if (!opt_verify(opt_next(), vpm))
+#else
+                char **conf_argvp = conf_argv + 1;
+                int badops = 0;
+
+                (void)args_verify(&conf_argvp, &conf_argc, &badops, bio_err,
+                                  &vpm);
+                if (badops)
+#endif
+                {
+                    BIO_printf(bio_err,
+                          "error for option '%s' in config file section '%s'\n",
+                               opt->name, opt_section);
+                    return 0;
+                }
+            }
+        } else {
+            switch (opt->valtype) {
+            case '-':
+            case 'n':
+                if (num < INT_MIN || INT_MAX < num) {
+                    BIO_printf(bio_err,
+                               "integer value out of range for option '%s'\n",
+                               opt->name);
+                    return 0;
+                }
+                *cmp_vars[i].num = (int)num;
+                break;
+            case 'l':
+                *cmp_vars[i].num_long = num;
+                break;
+            default:
+                if (txt != NULL && txt[0] == '\0')
+                    txt = NULL; /* reset option on empty string input */
+                *cmp_vars[i].txt = txt;
+                break;
+            }
+        }
+    }
+
+    return 1;
+}
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+CONF *app_load_config(const char *filename)
+{
+    long errorline = -1;
+    CONF *conf = NCONF_new(NULL);
+    if (conf && NCONF_load(conf, filename, &errorline) > 0)
+        return conf;
+
+    if (errorline <= 0)
+        BIO_printf(bio_err, "error loading the config file '%s'\n", filename);
+    else
+        BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
+                   errorline, filename);
+    NCONF_free(conf);
+    return NULL;
+}
+
+static void opt_help(const OPTIONS *unused_arg)
+{
+    const int ALIGN_COL = 22;
+    const OPTIONS *opt;
+    int i = 0;
+    int j = 0;
+    int initlen;
+
+    BIO_printf(bio_err, "\nusage: openssl %s args\n", prog);
+    for (i = 0, opt = cmp_options; opt->name; i++, opt++) {
+        if (!strcmp(opt->name, OPT_MORE_STR))
+            initlen = 0;
+        else {
+            BIO_printf(bio_err, " -%s", opt->name);
+            initlen = 2 + strlen(opt->name);
+        }
+        for (j = ALIGN_COL - initlen; j > 0; j--)
+            BIO_puts(bio_err, " ");
+        BIO_printf(bio_err, " %s\n", opt->helpstr);
+    }
+    BIO_puts(bio_err, "\n");
+}
+#endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
 static char *opt_str(char *opt)
