@@ -3742,7 +3742,7 @@ static int read_config()
             break;
         /*
          * do not use '<' in cmp_options. Incorrect treatment
-         * somewhere in args_verify() can wrongly set badops = 1
+         * somewhere in args_verify() can wrongly set badarg = 1
          */
         case '<':
         case 's':
@@ -3782,11 +3782,11 @@ static int read_config()
                 if (!opt_verify(opt_next(), vpm))
 #else
                 char **conf_argvp = conf_argv + 1;
-                int badops = 0;
+                int badarg = 0;
 
-                (void)args_verify(&conf_argvp, &conf_argc, &badops, bio_err,
+                (void)args_verify(&conf_argvp, &conf_argc, &badarg, bio_err,
                                   &vpm);
-                if (badops)
+                if (badarg)
 #endif
                 {
                     BIO_printf(bio_err,
@@ -3859,7 +3859,6 @@ static void opt_help(const OPTIONS *unused_arg)
             BIO_puts(bio_err, " ");
         BIO_printf(bio_err, " %s\n", opt->helpstr);
     }
-    BIO_puts(bio_err, "\n");
 }
 #endif
 
@@ -3890,93 +3889,22 @@ static int opt_nat()
 }
 #endif
 
-/*
- *
- */
-int cmp_main(int argc, char **argv)
+/* returns 0 on success, 1 on error, -1 on -help (i.e., stop with success) */
+static int get_opts(int argc, char **argv)
 {
-    char *configfile = NULL;
-    int badops = 0;
-    int i;
-    int ret = EXIT_FAILURE;
-    X509 *newcert = NULL;
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     OPTION_CHOICE o;
-#endif
-    ENGINE *e = NULL;
 
-    if (argc <= 1) {
-        badops = 1;
-        goto bad_ops;
-    }
-
-   /* handle OPT_CONFIG and OPT_SECTION upfront to take effect for other opts */
-    for (i = 1; i < argc - 1; i++)
-        if (*argv[i] == '-') {
-            if (!strcmp(argv[i] + 1, cmp_options[OPT_CONFIG - OPT_HELP].name))
-                opt_config = argv[i + 1];
-            else if (!strcmp(argv[i] + 1,
-                             cmp_options[OPT_SECTION - OPT_HELP].name))
-                opt_section = argv[i + 1];
-        }
-    if (opt_section[0] == '\0') /* empty string */
-        opt_section = DEFAULT_SECTION;
-
-    vpm = X509_VERIFY_PARAM_new();
-    if (vpm == NULL) {
-        BIO_printf(bio_err, "out of memory\n");
-        goto err;
-    }
-
-    /*
-     * read default values for options from configfile
-     */
-    configfile = opt_config ? opt_config : default_config_file;
-    if (configfile && configfile[0] != '\0') { /* non-empty string */
-        CMP_printf(cmp_ctx, FL_INFO, "using OpenSSL configuration file '%s'",
-                   configfile);
-        conf = app_load_config(configfile);
-        if (conf == NULL) {
-            goto err;
-        } else {
-            if (strcmp(opt_section, CMP_SECTION) == 0) { /* default */
-                if (!NCONF_get_section(conf, opt_section)) {
-                    BIO_printf(bio_err,
-                        "warning: no [%s section found in config file '%s';"
-               " will thus use just [default] and unnamed section if present\n",
-                               opt_section, configfile);
-                }
-            } else {
-                char *end = opt_section + strlen(opt_section);
-                while ((end = prev_item(opt_section, end)) != NULL) {
-                    if (!NCONF_get_section(conf, opt_item)) {
-                        BIO_printf(bio_err,
-                           "error: no [%s] section found in config file '%s'\n",
-                                   opt_item, configfile);
-                        goto err;
-                    }
-                }
-            }
-            if (!read_config())
-                goto err;
-        }
-    }
-    (void)BIO_flush(bio_err); /* prevent interference with opt_help() */
-
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     prog = opt_init(argc, argv, cmp_options);
 
     while ((o = opt_next()) != OPT_EOF) {
         switch (o) {
         case OPT_EOF:
         case OPT_ERR:
- opt_err:
-            BIO_printf(bio_err, "%s: use -help for summary.\n", prog);
-            goto err;
+            goto opt_err;
         case OPT_HELP:
-            ret = EXIT_SUCCESS;
             opt_help(cmp_options);
-            goto err;
+            return -1;
         case OPT_CONFIG: /* has already been handled */
             break;
         case OPT_SECTION: /* has already been handled */
@@ -4107,7 +4035,7 @@ int cmp_main(int argc, char **argv)
 # endif
         case OPT_V_CASES /* OPT_CRLALL etc. */ :
             if (!opt_verify(o, vpm))
-                goto bad_ops;
+                goto opt_err;
             break;
 
         case OPT_CMD:
@@ -4309,22 +4237,26 @@ int cmp_main(int argc, char **argv)
     /* parse commandline options */
     ++argv;
     while (--argc > 0) {
+        int i;
+        int badarg = 0;
         int found = 0;
         const OPTIONS *opt;
         char *arg;
 
-        if (args_verify(&argv, &argc, &badops, bio_err, &vpm)) {
+        if (args_verify(&argv, &argc, &badarg, bio_err, &vpm)) {
             /* OPT_CRLALL etc. */
-            if (badops)
-                goto bad_ops;
+            if (badarg)
+                goto opt_err;
             continue;
         }
         arg = *argv;
 
         if (*arg == 0 || *arg++ != '-') {
-            badops = 1;
-            break;
+            BIO_printf(bio_err, "option '%.40s' must start with: '-'\n", *argv);
+            goto opt_err;
         }
+        if (*arg == '-')
+            arg++;
 
         /*
          * starting with index 0 to consume also OPT_CONFIG and OPT_SECTION,
@@ -4340,10 +4272,9 @@ int cmp_main(int argc, char **argv)
                 opt += (OPT_V__LAST - 1) - (OPT_V__FIRST + 1);
             if (opt->name && !strcmp(arg, opt->name)) {
                 if (argc <= 1 && opt->valtype != '-') {
-                    BIO_printf(bio_err, "%s: missing argument for '-%s'\n",
-                               prog, opt->name);
-                    badops = 1;
-                    goto bad_ops;
+                    BIO_printf(bio_err, "missing argument for '-%s'\n",
+                               opt->name);
+                    goto opt_err;
                 }
                 switch (opt->valtype) {
                 case '-':
@@ -4372,27 +4303,104 @@ int cmp_main(int argc, char **argv)
                     argc--;
                     break;
                 default:
-                    badops = 1;
-                    break;
+                    BIO_printf(bio_err, "internal error parsing arguments\n");
+                    goto opt_err;
                 }
                 found = 1;
             }
         }
 
         if (!found) {
-            BIO_printf(bio_err, "%s: unknown argument: '%s'\n", prog, *argv);
-            badops = 1;
-            goto bad_ops;
+            if (strcmp(arg, "help") == 0) {
+                opt_help(cmp_options);
+                return -1;
+            }
+            BIO_printf(bio_err, "unknown argument: '%s'\n", *argv);
+            goto opt_err;
         }
         ++argv;
     }
 #endif /* OPENSSL_VERSION_NUMBER */
+    return 0;
 
- bad_ops:
-    if (badops) {
+ opt_err:
+    BIO_printf(bio_err, "%s: Use -help for summary.\n", prog);
+    return 1;
+}
+
+/*
+ *
+ */
+int cmp_main(int argc, char **argv)
+{
+    char *configfile = NULL;
+    int i;
+    int ret = 1; /* default: failure */
+    X509 *newcert = NULL;
+    ENGINE *e = NULL;
+
+    if (argc <= 1) {
         opt_help(cmp_options);
         goto err;
     }
+
+   /* handle OPT_CONFIG and OPT_SECTION upfront to take effect for other opts */
+    for (i = 1; i < argc - 1; i++)
+        if (*argv[i] == '-') {
+            if (!strcmp(argv[i] + 1, cmp_options[OPT_CONFIG - OPT_HELP].name))
+                opt_config = argv[i + 1];
+            else if (!strcmp(argv[i] + 1,
+                             cmp_options[OPT_SECTION - OPT_HELP].name))
+                opt_section = argv[i + 1];
+        }
+    if (opt_section[0] == '\0') /* empty string */
+        opt_section = DEFAULT_SECTION;
+
+    vpm = X509_VERIFY_PARAM_new();
+    if (vpm == NULL) {
+        BIO_printf(bio_err, "%s: out of memory\n", prog);
+        goto err;
+    }
+
+    /*
+     * read default values for options from configfile
+     */
+    configfile = opt_config ? opt_config : default_config_file;
+    if (configfile && configfile[0] != '\0') { /* non-empty string */
+        CMP_printf(cmp_ctx, FL_INFO, "using OpenSSL configuration file '%s'",
+                   configfile);
+        conf = app_load_config(configfile);
+        if (conf == NULL) {
+            goto err;
+        } else {
+            if (strcmp(opt_section, CMP_SECTION) == 0) { /* default */
+                if (!NCONF_get_section(conf, opt_section)) {
+                    BIO_printf(bio_err,
+                        "warning: no [%s section found in config file '%s';"
+               " will thus use just [default] and unnamed section if present\n",
+                               opt_section, configfile);
+                }
+            } else {
+                char *end = opt_section + strlen(opt_section);
+                while ((end = prev_item(opt_section, end)) != NULL) {
+                    if (!NCONF_get_section(conf, opt_item)) {
+                        BIO_printf(bio_err,
+                           "error: no [%s] section found in config file '%s'\n",
+                                   opt_item, configfile);
+                        goto err;
+                    }
+                }
+            }
+            if (!read_config())
+                goto err;
+        }
+    }
+    (void)BIO_flush(bio_err); /* prevent interference with opt_help() */
+
+    ret = get_opts(argc, argv);
+    if (ret != 0)
+        goto err;
+    ret = 1;
 
     if (opt_batch) {
         UI_METHOD *ui_fallback_method;
@@ -4490,9 +4498,9 @@ int cmp_main(int argc, char **argv)
         sk_X509_pop_free(certs, X509_free);
     }
 
-    ret = EXIT_SUCCESS;
+    ret = 0;
  err:
-    if (ret != EXIT_SUCCESS)
+    if (ret > 0)
         ERR_print_errors_fp(stderr);
 
     SSL_CTX_free(CMP_CTX_get_http_cb_arg(cmp_ctx));
@@ -4521,5 +4529,5 @@ int cmp_main(int argc, char **argv)
         OPENSSL_cleanse(opt_secret, strlen(opt_secret));
     NCONF_free(conf); /* must not do as long as opt_... variables are used */
 
-    return ret;
+    return ret > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
