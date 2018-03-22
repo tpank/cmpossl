@@ -1433,7 +1433,6 @@ static X509 *CMP_CERTORENCCERT_encCert_get1(CMP_CERTORENCCERT *coec,
                    CMP_R_ERROR_DECRYPTING_SYMMETRIC_KEY);
             goto err;
         }
-        EVP_PKEY_CTX_free(pkctx);
     } else {
         CMPerr(CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1,
                CMP_R_ERROR_DECRYPTING_KEY);
@@ -1481,6 +1480,7 @@ static X509 *CMP_CERTORENCCERT_encCert_get1(CMP_CERTORENCCERT *coec,
         goto err;
     }
 
+    EVP_PKEY_CTX_free(pkctx);
     OPENSSL_free(outbuf);
     EVP_CIPHER_CTX_free(evp_ctx);
     OPENSSL_free(ek);
@@ -1489,14 +1489,11 @@ static X509 *CMP_CERTORENCCERT_encCert_get1(CMP_CERTORENCCERT *coec,
  err:
     CMPerr(CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1,
            CMP_R_ERROR_DECRYPTING_ENCCERT);
-    if (outbuf)
-        OPENSSL_free(outbuf);
-    if (evp_ctx)
-        EVP_CIPHER_CTX_free(evp_ctx);
-    if (ek)
-        OPENSSL_free(ek);
-    if (iv)
-        OPENSSL_free(iv);
+    EVP_PKEY_CTX_free(pkctx);
+    OPENSSL_free(outbuf);
+    EVP_CIPHER_CTX_free(evp_ctx);
+    OPENSSL_free(ek);
+    OPENSSL_free(iv);
     return NULL;
 }
 
