@@ -1589,6 +1589,7 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
     return crls;
 }
 
+/* TODO DvO (begin) push all these OCCP-related functions upstream (PR #ocsp) */
 #ifndef OPENSSL_NO_OCSP
 /*
  * code implementing OCSP support
@@ -1876,11 +1877,10 @@ static int check_cert(X509_STORE_CTX *ctx)
 
 /*
  * Check the revocation status of the certificate as specified in given ctx
- * using any stapled OCSP response, else OCSP or CRLs as far as required.
+ * using any stapled OCSP response resp, else OCSP or CRLs as far as required.
  * Returns 1 on success, 0 on rejection or error
  */
-static int check_cert_revocation_stapled_ocsp_crls(X509_STORE_CTX *ctx,
-                                                   OCSP_RESPONSE *resp)
+static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
 {
     X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
     STACK_OF(X509) *chain = X509_STORE_CTX_get0_chain(ctx);
@@ -1930,7 +1930,7 @@ static int check_cert_revocation_stapled_ocsp_crls(X509_STORE_CTX *ctx,
  * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error,
  * -2 if no stapled OCSP response available
  */
-static int ocsp_resp_cb(SSL *ssl, STACK_OF(X509) *untrusted)
+static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
 {
     STACK_OF(X509) *chain = SSL_get0_verified_chain(ssl);
     const unsigned char *resp;
@@ -1962,7 +1962,7 @@ static int ocsp_resp_cb(SSL *ssl, STACK_OF(X509) *untrusted)
         goto end;
     X509_STORE_CTX_set0_verified_chain(ctx, X509_chain_up_ref(chain));
     X509_STORE_CTX_set_error_depth(ctx, 0);
-    ret = check_cert_revocation_stapled_ocsp_crls(ctx, rsp);
+    ret = check_cert_revocation(ctx, rsp);
 
  end:
     /* must not: sk_X509_free(untrusted); */
@@ -1975,7 +1975,7 @@ static int ocsp_resp_cb(SSL *ssl, STACK_OF(X509) *untrusted)
 /*
  * Check revocation status on each cert in ctx->chain. As a generalization of
  * check_revocation() in crypto/x509/x509_vfy.c, do not only consider CRLs:
- * for each cert, check based on OCSP stapling is deferred  if enabled,
+ * for each cert, check based on OCSP stapling is deferred if enabled,
  * else OCSP is considered if enabled, then CRLs are considered if enabled.
  */
 static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
@@ -2018,11 +2018,11 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
         if (ssl && i == 0 && opt_ocsp_status) { /* OCSP (not multi-)stapling */
         /* We were called from ssl_verify_cert_chain() at state TLS_ST_CR_CERT.
            Stapled OCSP response becomes available only at TLS_ST_CR_CERT_STATUS
-           and ocsp_resp_cb() is called even later, at TLS_ST_CR_SRVR_DONE. The
-           best we can do here is to defer status checking of the first cert. */
+           and ocsp_stapling_cb() is called even later, at TLS_ST_CR_SRVR_DONE.
+           Best we can do here is to defer status checking of the first cert. */
                 continue;
         }
-        if (!check_cert_revocation_stapled_ocsp_crls(ctx, NULL))
+        if (!check_cert_revocation(ctx, NULL))
             return 0;
         chain = X509_STORE_CTX_get0_chain(ctx); /* for some reason need again */
 
@@ -2030,6 +2030,7 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
     return 1;
 }
 #endif  /* !defined OPENSSL_NO_OCSP */
+/* TODO DvO (end) push all these OCCP-related functions upstream (PR #ocsp) */
 
 #ifndef NDEBUG
 /*-
@@ -2963,7 +2964,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         goto err;
 # else
         SSL_CTX_set_tlsext_status_type(ssl_ctx, TLSEXT_STATUSTYPE_ocsp);
-        SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_resp_cb);
+        SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_stapling_cb);
 /*
  * help cert chain building with untrusted certs when list of certs is
  * insufficient from SSL_get0_verified_chain(ssl) and OCSP_resp_get0_certs(br):
