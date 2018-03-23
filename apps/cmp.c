@@ -1896,6 +1896,9 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     int crl_check = flags & X509_V_FLAG_CRL_CHECK;
     int ok = 0;
 
+    if (opt_ocsp_status && resp == NULL && (!ocsp_check && !crl_check))
+        return 0; /* OCSP stapling is the only revocation check enabled
+                     but no response has been stapled, thus fail */
     if (resp) { /* implies opt_ocsp_status */
         ok = check_ocsp_response(ts, chain, cert, issuer, resp);
         if (ok == 1)        /* cert status ok */
@@ -1905,6 +1908,7 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
             (ok < 0 && !ocsp_check && !crl_check))
             return verify_cb_cert(ctx, cert, OCSP_err(ok));
     }
+
     if (ocsp_check) {
         resp = get_ocsp_resp(cert, issuer);
         ok = check_ocsp_response(ts, untrusted, cert, issuer, resp);
@@ -1918,6 +1922,7 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
             return verify_cb_cert(ctx, cert, OCSP_err(ok));
         }
     }
+
     /* OCSP disabled or not positive */
     if (crl_check && (!ocsp_check || ok <= 0))
         return check_cert(ctx);
@@ -1927,8 +1932,7 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
 # if OPENSSL_VERSION_NUMBER >= 0x1010001fL
 /*
  * callback function for verifying stapled OCSP responses
- * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error,
- * -2 if no stapled OCSP response available
+ * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
  */
 static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
 {
@@ -1942,15 +1946,15 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
 
     if (resp == NULL) {
         BIO_puts(bio_err, "no OCSP response has been stapled\n");
-        return -2;
-    }
-    DEBUG_print_cert("OCSP rsp stapled", sk_X509_value(chain, 0));
-    rsp = d2i_OCSP_RESPONSE(NULL, &resp, len);
-    if (rsp == NULL) {
-        BIO_puts(bio_err, "error parsing stapled OCSP response\n");
-        BIO_dump_indent(bio_err, (char *)resp, len, 4);
-        /* well, this is likely not an internal error (malloc failure) */
-        goto end;
+    } else {
+        DEBUG_print_cert("OCSP rsp stapled", sk_X509_value(chain, 0));
+        rsp = d2i_OCSP_RESPONSE(NULL, &resp, len);
+        if (rsp == NULL) {
+            BIO_puts(bio_err, "error parsing stapled OCSP response\n");
+            BIO_dump_indent(bio_err, (char *)resp, len, 4);
+            /* well, this is likely not an internal error (malloc failure) */
+            goto end;
+        }
     }
 
     ctx = X509_STORE_CTX_new();/* ctx needed for CRL checking and diagnostics */
