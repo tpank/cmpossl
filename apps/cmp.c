@@ -1445,200 +1445,6 @@ static int truststore_set_host(X509_STORE *ts, const char *host)
            X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
 }
 
-#ifndef OPENSSL_NO_OCSP
-/*
- * code needed for OCSP support
- */
-
-static int backup_vpm(X509_STORE *ts, X509_VERIFY_PARAM **bak_vpm,
-                      const char **bak_host)
-{
-    /*
-     * Unfortunately there is no OpenSSL API function for retrieving the
-     * hosts/ip entries in X509_VERIFY_PARAM. So we use ts->ex_data.
-     */
-    *bak_host = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
-    return (*bak_vpm = X509_VERIFY_PARAM_new()) &&
-           X509_VERIFY_PARAM_inherit(*bak_vpm, X509_STORE_get0_param(ts));
-}
-
-static int restore_vpm(X509_STORE *ts, X509_VERIFY_PARAM *bak_vpm,
-                       const char *bak_host)
-{
-    return X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)bak_host)
-        && X509_STORE_set1_param(ts, bak_vpm);
-}
-
-/* Maximum leeway in validity period: default 5 minutes */
-# define MAX_OCSP_VALIDITY_PERIOD (5 * 60)
-
-/* adapted from main() of ocsp.c */
-/*
- * Verify an OCSP response rsp obtained via a OCSP request or OCSP stapling.
- * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
- */
-static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
-                               X509 *cert, X509 *issuer, OCSP_RESPONSE *rsp)
-{
-    X509_VERIFY_PARAM *bak_vpm = NULL;
-    OCSP_BASICRESP *br = NULL;
-    OCSP_CERTID *id = NULL;
-    int res = -1, status, reason;
-    ASN1_GENERALIZEDTIME *rev;
-    ASN1_GENERALIZEDTIME *thisupd;
-    ASN1_GENERALIZEDTIME *nextupd;
-
-    if (rsp == NULL)
-        return -1;
-
-# if 0 && !defined NDEBUG
-    BIO_puts(bio_err, "debug: OCSP response:\n");
-    BIO_puts(bio_err, "======================================\n");
-    OCSP_RESPONSE_print(bio_err, rsp, 0);
-    BIO_puts(bio_err, "======================================\n");
-# endif
-
-    status = OCSP_response_status(rsp);
-    if (status != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
-        BIO_printf(bio_err, "OCSP responder error: %s (code %d)\n",
-                   OCSP_response_status_str(status), status);
-        return -1;
-    }
-
-    if ((br = OCSP_response_get1_basic(rsp)) == NULL) {
-        BIO_printf(bio_err, "error getting OCSP basic response\n");
-        return -1;
-    }
-
-# if OPENSSL_VERSION_NUMBER < 0x100020d0L
-    {   /*
-         * workaround for a meanwhile fixed bug in OCSP_basic_verify()
-         * neglecting the certs argument if br->certs is NULL
-         */
-        X509 *dummy = X509_new();
-        if (dummy)
-            (void)OCSP_basic_add1_cert(br, dummy);
-        X509_free(dummy);
-    }
-# endif
-    {
-        int bak_opt_ocsp_use_aia   = opt_ocsp_use_aia;
-        int bak_opt_ocsp_check_all = opt_ocsp_check_all;
-        char *bak_opt_ocsp_url     = opt_ocsp_url;
-        const char *bak_host;
-
-        if (!backup_vpm(ts, &bak_vpm, &bak_host) ||
-            !truststore_set_host(ts, NULL/* must not check host here */))
-            goto end;
-        /* no OCSP-based revocation checking on OCSP responder cert chain */
-        (void)X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts),
-                                            X509_V_FLAG_CRL_CHECK);
-        opt_ocsp_use_aia = opt_ocsp_check_all = 0;
-        opt_ocsp_url = NULL;
-        res = OCSP_basic_verify(br, untrusted, ts, OCSP_TRUSTOTHER);
-        opt_ocsp_use_aia   = bak_opt_ocsp_use_aia;
-        opt_ocsp_check_all = bak_opt_ocsp_check_all;
-        opt_ocsp_url       = bak_opt_ocsp_url;
-        if (!restore_vpm(ts, bak_vpm, bak_host))
-            goto end;
-    }
-    if (res <= 0) {
-        BIO_printf(bio_err, "OCSP response verify failure\n");
-        ERR_print_errors(bio_err);
-        goto end;
-    }
-
-    if ((id = OCSP_cert_to_id(NULL, cert, issuer)) == NULL) {
-        BIO_puts(bio_err, "cannot obtain cert ID for OCSP\n");
-        goto end;
-    }
-    if (!OCSP_resp_find_status(br, id,
-                               &status, &reason, &rev, &thisupd, &nextupd)) {
-        BIO_puts(bio_err, "OCSP status not found\n");
-        goto end;
-    }
-    /* TODO: OCSP_check_validity() should respect -attime: vpm->check_time */
-    if (!OCSP_check_validity(thisupd, nextupd, MAX_OCSP_VALIDITY_PERIOD, -1)) {
-        BIO_puts(bio_err, "OCSP status times invalid.\n");
-        ERR_print_errors(bio_err);
-        goto end;
-    } else {
-        switch (status) {
-        case V_OCSP_CERTSTATUS_GOOD:
-            DEBUG_print_cert("OCSP status good", cert);
-            res = 1;
-            break;
-        case V_OCSP_CERTSTATUS_REVOKED:
-            BIO_printf(bio_err, "OCSP status: revoked, reason=%s\n",
-                       reason != -1 ? OCSP_crl_reason_str(reason) : "");
-            res = 0;
-            break;
-        case V_OCSP_CERTSTATUS_UNKNOWN:
-        default:
-            BIO_printf(bio_err, "OCSP status unknown (value %d)\n", status);
-            break;
-        }
-    }
-
- end:
-    OCSP_CERTID_free(id);
-    OCSP_BASICRESP_free(br);
-    X509_VERIFY_PARAM_free(bak_vpm);
-    return res;
-}
-
-static int check_cert_revocation_stapled_ocsp_crls(X509_STORE_CTX *ctx,
-                                                   OCSP_RESPONSE *resp);
-# if OPENSSL_VERSION_NUMBER >= 0x1010001fL
-/*
- * callback function for verifying stapled OCSP responses
- * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error,
- * -2 if no stapled OCSP response available
- */
-static int ocsp_resp_cb(SSL *ssl, STACK_OF(X509) *untrusted)
-{
-    STACK_OF(X509) *chain = SSL_get0_verified_chain(ssl);
-    const unsigned char *resp;
-    OCSP_RESPONSE *rsp = NULL;
-    X509_STORE_CTX *ctx = NULL;
-    int ret = -1; /* tls_process_initial_server_flight reports
-                     return code < 0 as internal error: malloc failure */
-    int len = SSL_get_tlsext_status_ocsp_resp(ssl, &resp);
-
-    if (resp == NULL) {
-        BIO_puts(bio_err, "no OCSP response has been stapled\n");
-        return -2;
-    }
-    DEBUG_print_cert("OCSP rsp stapled", sk_X509_value(chain, 0));
-    rsp = d2i_OCSP_RESPONSE(NULL, &resp, len);
-    if (rsp == NULL) {
-        BIO_puts(bio_err, "error parsing stapled OCSP response\n");
-        BIO_dump_indent(bio_err, (char *)resp, len, 4);
-        /* well, this is likely not an internal error (malloc failure) */
-        goto end;
-    }
-
-    ctx = X509_STORE_CTX_new();/* ctx needed for CRL checking and diagnostics */
-    if (ctx == NULL)
-        goto end;
-    if (!X509_STORE_CTX_init(ctx,
-                             SSL_CTX_get_cert_store(SSL_get_SSL_CTX(ssl)),
-                             NULL/* cert */, untrusted))
-        goto end;
-    X509_STORE_CTX_set0_verified_chain(ctx, X509_chain_up_ref(chain));
-    X509_STORE_CTX_set_error_depth(ctx, 0);
-    ret = check_cert_revocation_stapled_ocsp_crls(ctx, rsp);
-
- end:
-    /* must not: sk_X509_free(untrusted); */
-    X509_STORE_CTX_free(ctx);
-    OCSP_RESPONSE_free(rsp);
-    return ret;
-}
-# endif
-
-#endif /* !defined OPENSSL_NO_OCSP */
-
 static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */ ,
                                   const STACK_OF(X509) *certs /* may be NULL */)
 {
@@ -1787,6 +1593,143 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
 /*
  * code implementing OCSP support
  */
+
+static int backup_vpm(X509_STORE *ts, X509_VERIFY_PARAM **bak_vpm,
+                      const char **bak_host)
+{
+    /*
+     * Unfortunately there is no OpenSSL API function for retrieving the
+     * hosts/ip entries in X509_VERIFY_PARAM. So we use ts->ex_data.
+     */
+    *bak_host = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
+    return (*bak_vpm = X509_VERIFY_PARAM_new()) &&
+           X509_VERIFY_PARAM_inherit(*bak_vpm, X509_STORE_get0_param(ts));
+}
+
+static int restore_vpm(X509_STORE *ts, X509_VERIFY_PARAM *bak_vpm,
+                       const char *bak_host)
+{
+    return X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)bak_host)
+        && X509_STORE_set1_param(ts, bak_vpm);
+}
+
+/* Maximum leeway in validity period: default 5 minutes */
+# define MAX_OCSP_VALIDITY_PERIOD (5 * 60)
+
+/* adapted from main() of ocsp.c */
+/*
+ * Verify an OCSP response rsp obtained via an OCSP request or OCSP stapling.
+ * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
+ */
+static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
+                               X509 *cert, X509 *issuer, OCSP_RESPONSE *rsp)
+{
+    X509_VERIFY_PARAM *bak_vpm = NULL;
+    OCSP_BASICRESP *br = NULL;
+    OCSP_CERTID *id = NULL;
+    int res = -1, status, reason;
+    ASN1_GENERALIZEDTIME *rev;
+    ASN1_GENERALIZEDTIME *thisupd;
+    ASN1_GENERALIZEDTIME *nextupd;
+
+    if (rsp == NULL)
+        return -1;
+
+# if 0 && !defined NDEBUG
+    BIO_puts(bio_c_out, "debug: OCSP response:\n");
+    BIO_puts(bio_c_out, "======================================\n");
+    OCSP_RESPONSE_print(bio_c_out, rsp, 0);
+    BIO_puts(bio_c_out, "======================================\n");
+# endif
+
+    status = OCSP_response_status(rsp);
+    if (status != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
+        BIO_printf(bio_err, "OCSP responder error: %s (code %d)\n",
+                   OCSP_response_status_str(status), status);
+        return -1;
+    }
+
+    if ((br = OCSP_response_get1_basic(rsp)) == NULL) {
+        BIO_printf(bio_err, "error getting OCSP basic response\n");
+        return -1;
+    }
+
+# if OPENSSL_VERSION_NUMBER < 0x100020d0L
+    {   /*
+         * workaround for a meanwhile fixed bug in OCSP_basic_verify()
+         * neglecting the certs argument if br->certs is NULL
+         */
+        X509 *dummy = X509_new();
+        if (dummy)
+            (void)OCSP_basic_add1_cert(br, dummy);
+        X509_free(dummy);
+    }
+# endif
+    {
+        int bak_opt_ocsp_use_aia   = opt_ocsp_use_aia;
+        int bak_opt_ocsp_check_all = opt_ocsp_check_all;
+        char *bak_opt_ocsp_url     = opt_ocsp_url;
+        const char *bak_host;
+
+        if (!backup_vpm(ts, &bak_vpm, &bak_host) ||
+            !truststore_set_host(ts, NULL/* must not check host here */))
+            goto end;
+        /* no OCSP-based revocation checking on OCSP responder cert chain */
+        (void)X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts),
+                                            X509_V_FLAG_CRL_CHECK);
+        opt_ocsp_use_aia = opt_ocsp_check_all = 0;
+        opt_ocsp_url = NULL;
+        res = OCSP_basic_verify(br, untrusted, ts, OCSP_TRUSTOTHER);
+        opt_ocsp_use_aia   = bak_opt_ocsp_use_aia;
+        opt_ocsp_check_all = bak_opt_ocsp_check_all;
+        opt_ocsp_url       = bak_opt_ocsp_url;
+        if (!restore_vpm(ts, bak_vpm, bak_host))
+            goto end;
+    }
+    if (res <= 0) {
+        BIO_printf(bio_err, "OCSP response verify failure\n");
+        ERR_print_errors(bio_err);
+        goto end;
+    }
+
+    if ((id = OCSP_cert_to_id(NULL, cert, issuer)) == NULL) {
+        BIO_puts(bio_err, "Cannot obtain cert ID for OCSP.\n");
+        goto end;
+    }
+    if (!OCSP_resp_find_status(br, id,
+                               &status, &reason, &rev, &thisupd, &nextupd)) {
+        BIO_puts(bio_err, "OCSP status not found\n");
+        goto end;
+    }
+    /* TODO: OCSP_check_validity() should respect -attime: vpm->check_time */
+    if (!OCSP_check_validity(thisupd, nextupd, MAX_OCSP_VALIDITY_PERIOD, -1)) {
+        BIO_puts(bio_err, "OCSP status times invalid.\n");
+        ERR_print_errors(bio_err);
+        goto end;
+    } else {
+        switch (status) {
+        case V_OCSP_CERTSTATUS_GOOD:
+            DEBUG_print_cert("OCSP status good", cert);
+            res = 1;
+            break;
+        case V_OCSP_CERTSTATUS_REVOKED:
+            BIO_printf(bio_err, "OCSP status: revoked, reason=%s\n",
+                       reason != -1 ? OCSP_crl_reason_str(reason) : "");
+            res = 0;
+            break;
+        case V_OCSP_CERTSTATUS_UNKNOWN:
+        default:
+            BIO_printf(bio_err, "OCSP status unknown (value %d)\n", status);
+            break;
+        }
+    }
+
+ end:
+    OCSP_CERTID_free(id);
+    OCSP_BASICRESP_free(br);
+    X509_VERIFY_PARAM_free(bak_vpm);
+    return res;
+}
 
 # define OCSP_err(ok) \
     (ok == -2 ? X509_V_ERR_OCSP_VERIFY_NEEDED : /* no OCSP response available*/\
@@ -1980,6 +1923,54 @@ static int check_cert_revocation_stapled_ocsp_crls(X509_STORE_CTX *ctx,
         return check_cert(ctx);
     return 1;
 }
+
+# if OPENSSL_VERSION_NUMBER >= 0x1010001fL
+/*
+ * callback function for verifying stapled OCSP responses
+ * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error,
+ * -2 if no stapled OCSP response available
+ */
+static int ocsp_resp_cb(SSL *ssl, STACK_OF(X509) *untrusted)
+{
+    STACK_OF(X509) *chain = SSL_get0_verified_chain(ssl);
+    const unsigned char *resp;
+    OCSP_RESPONSE *rsp = NULL;
+    X509_STORE_CTX *ctx = NULL;
+    int ret = -1; /* tls_process_initial_server_flight reports
+                     return code < 0 as internal error: malloc failure */
+    int len = SSL_get_tlsext_status_ocsp_resp(ssl, &resp);
+
+    if (resp == NULL) {
+        BIO_puts(bio_err, "no OCSP response has been stapled\n");
+        return -2;
+    }
+    DEBUG_print_cert("OCSP rsp stapled", sk_X509_value(chain, 0));
+    rsp = d2i_OCSP_RESPONSE(NULL, &resp, len);
+    if (rsp == NULL) {
+        BIO_puts(bio_err, "error parsing stapled OCSP response\n");
+        BIO_dump_indent(bio_err, (char *)resp, len, 4);
+        /* well, this is likely not an internal error (malloc failure) */
+        goto end;
+    }
+
+    ctx = X509_STORE_CTX_new();/* ctx needed for CRL checking and diagnostics */
+    if (ctx == NULL)
+        goto end;
+    if (!X509_STORE_CTX_init(ctx,
+                             SSL_CTX_get_cert_store(SSL_get_SSL_CTX(ssl)),
+                             NULL/* cert */, untrusted))
+        goto end;
+    X509_STORE_CTX_set0_verified_chain(ctx, X509_chain_up_ref(chain));
+    X509_STORE_CTX_set_error_depth(ctx, 0);
+    ret = check_cert_revocation_stapled_ocsp_crls(ctx, rsp);
+
+ end:
+    /* must not: sk_X509_free(untrusted); */
+    X509_STORE_CTX_free(ctx);
+    OCSP_RESPONSE_free(rsp);
+    return ret;
+}
+# endif
 
 /*
  * Check revocation status on each cert in ctx->chain. As a generalization of
