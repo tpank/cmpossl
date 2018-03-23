@@ -33,6 +33,7 @@
 static char *opt_config = NULL;
 #define CONFIG_FILE "openssl.cnf"
 #define CMP_SECTION "cmp"
+#define SECTION_NAME_MAX 40 /* max length of section name */
 #define DEFAULT_SECTION "default"
 static char *opt_section = CMP_SECTION;
 #define HTTP_HDR "http://"
@@ -429,7 +430,7 @@ OPTIONS cmp_options[] = {
     {"config", OPT_CONFIG, 's',
 "Configuration file to use. \"\" = none. Default from env variable OPENSSL_CONF"},
     {"section", OPT_SECTION, 's',
-"Section in config file defining CMP options. \"\" = 'default'. Default 'cmp'"},
+"Section(s) in config file defining CMP options. \"\" = 'default'. Default 'cmp'"},
 
     {OPT_MORE_STR, 0, 0, "\nMessage transfer options:"},
     {"server", OPT_SERVER, 's',
@@ -799,6 +800,65 @@ static void opt_help(const OPTIONS *unused_arg)
 }
 #endif
 
+static char opt_item[SECTION_NAME_MAX+1];
+/* get previous name from a comma-separated list of names */
+static char *prev_item(const char *opt, const char *end)
+{
+    const char *beg;
+    int len;
+
+    if (end == opt)
+        return NULL;
+    beg = end;
+    while (beg != opt && beg[-1] != ',' && !isspace(beg[-1]))
+        beg--;
+    len = end - beg;
+    if (len > SECTION_NAME_MAX)
+        len = SECTION_NAME_MAX;
+    strncpy(opt_item, beg, len);
+    opt_item[len] = '\0';
+    if (end - beg > SECTION_NAME_MAX) {
+        BIO_printf(bio_err,
+                   "warning: using only first %d"
+                   " characters of section name starting with \"%s\"\n",
+                   SECTION_NAME_MAX, opt_item);
+    }
+    while (beg != opt && (beg[-1] == ',' || isspace(beg[-1])))
+        beg--;
+    return (char *)beg;
+}
+
+/* get str value for name from a comma-separated hierarchy of config sections */
+static char *conf_get_string(const CONF *conf_, const char *groups,
+                            const char *name)
+{
+    char *res = NULL;
+    char *end = (char *)groups + strlen(groups);
+
+    while ((end = prev_item(groups, end)) != NULL) {
+        if ((res = NCONF_get_string(conf_, opt_item, name)) != NULL)
+            return res;
+    }
+    return res;
+}
+
+/* get long val for name from a comma-separated hierarchy of config sections */
+static int conf_get_number_e(const CONF *conf_, const char *groups,
+                             const char *name, long *result)
+{
+    char *str = conf_get_string(conf_, groups, name);
+
+    if (str == NULL || result == NULL)
+        return 0;
+
+    for (*result = 0; conf_->meth->is_number(conf_, *str);) {
+        *result = (*result) * 10 + conf_->meth->to_int(conf_, *str);
+        str++;
+    }
+
+    return 1;
+}
+
 /*
  * use the command line option table to read values from the CMP section
  * of openssl.cnf.  Defaults are taken from the config file, they can be
@@ -837,7 +897,7 @@ static int read_config()
         case '-':
         case 'n':
         case 'l':
-            if (!NCONF_get_number_e(conf, opt_section, opt->name, &num)) {
+            if (!conf_get_number_e(conf, opt_section, opt->name, &num)) {
                 ERR_clear_error();
                 continue; /* option not provided */
             }
@@ -849,7 +909,7 @@ static int read_config()
         case '<':
         case 's':
         case 'M':
-            txt = NCONF_get_string(conf, opt_section, opt->name);
+            txt = conf_get_string(conf, opt_section, opt->name);
             if (txt == NULL) {
                 ERR_clear_error();
                 continue; /* option not provided */
@@ -875,7 +935,7 @@ static int read_config()
                     conf_argc = 2;
             } else {
                 conf_argc = 3;
-                conf_argv[2] = NCONF_get_string(conf, opt_section, opt->name);
+                conf_argv[2] = conf_get_string(conf, opt_section, opt->name);
                 /* not NULL */
             }
             if (conf_argc > 1) {
@@ -3903,11 +3963,23 @@ int cmp_main(int argc, char **argv)
                 BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
                            errorline, configfile);
         } else {
-            if (!NCONF_get_section(conf, opt_section)) {
-                BIO_printf(bio_c_out,
-                        "Warning: no [%.40s] section found in config file '%s';"
+            if (strcmp(opt_section, CMP_SECTION) == 0) { /* default */
+                if (!NCONF_get_section(conf, opt_section)) {
+                    BIO_printf(bio_err,
+                        "warning: no [%s section found in config file '%s';"
                " will thus use just [default] and unnamed section if present\n",
-                           opt_section, configfile);
+                               opt_section, configfile);
+                }
+            } else {
+                char *end = opt_section + strlen(opt_section);
+                while ((end = prev_item(opt_section, end)) != NULL) {
+                    if (!NCONF_get_section(conf, opt_item)) {
+                        BIO_printf(bio_err,
+                           "error: no [%s] section found in config file '%s'\n",
+                                   opt_item, configfile);
+                        goto err;
+                    }
+                }
             }
             if (!read_config())
                 goto err;
