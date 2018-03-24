@@ -1588,22 +1588,23 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
     return crls;
 }
 
-/* TODO DvO (begin) push all these OCCP-related functions upstream (PR #ocsp) */
 #ifndef OPENSSL_NO_OCSP
 /*
  * code implementing OCSP support
  */
+
+/* TODO DvO push this function upstream & use in ocsp.c (PR #check_ocsp_resp) */
 
 /* Maximum leeway in validity period: default 5 minutes */
 # define MAX_OCSP_VALIDITY_PERIOD (5 * 60)
 
 /* adapted from main() of ocsp.c */
 /*
- * Verify an OCSP response rsp obtained via an OCSP request or OCSP stapling.
+ * Verify an OCSP response resp obtained via an OCSP request or OCSP stapling.
  * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
  */
-static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
-                               X509 *cert, X509 *issuer, OCSP_RESPONSE *rsp)
+static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
+                           X509 *cert, X509 *issuer, OCSP_RESPONSE *resp)
 {
     X509_VERIFY_PARAM *bak_vpm = NULL;
     OCSP_BASICRESP *br = NULL;
@@ -1613,24 +1614,24 @@ static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
     ASN1_GENERALIZEDTIME *thisupd;
     ASN1_GENERALIZEDTIME *nextupd;
 
-    if (rsp == NULL)
+    if (resp == NULL)
         return -1;
 
 # if 0 && !defined NDEBUG
     BIO_puts(bio_c_out, "debug: OCSP response:\n");
     BIO_puts(bio_c_out, "======================================\n");
-    OCSP_RESPONSE_print(bio_c_out, rsp, 0);
+    OCSP_RESPONSE_print(bio_c_out, resp, 0);
     BIO_puts(bio_c_out, "======================================\n");
 # endif
 
-    status = OCSP_response_status(rsp);
+    status = OCSP_response_status(resp);
     if (status != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
         BIO_printf(bio_err, "OCSP responder error: %s (code %d)\n",
                    OCSP_response_status_str(status), status);
         return -1;
     }
 
-    if ((br = OCSP_response_get1_basic(rsp)) == NULL) {
+    if ((br = OCSP_response_get1_basic(resp)) == NULL) {
         BIO_printf(bio_err, "error getting OCSP basic response\n");
         return -1;
     }
@@ -1681,6 +1682,7 @@ static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
         BIO_puts(bio_err, "OCSP status not found\n");
         goto end;
     }
+
     /* TODO: OCSP_check_validity() should respect -attime: vpm->check_time */
     if (!OCSP_check_validity(thisupd, nextupd, MAX_OCSP_VALIDITY_PERIOD, -1)) {
         BIO_puts(bio_err, "OCSP status times invalid.\n");
@@ -1711,21 +1713,7 @@ static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
     return res;
 }
 
-# define OCSP_err(ok) \
-    (ok == -2 ? X509_V_ERR_OCSP_VERIFY_NEEDED : /* no OCSP response available*/\
-     ok !=  0 ? X509_V_ERR_OCSP_VERIFY_FAILED : X509_V_ERR_CERT_REVOKED)
-/*
- * emulate the internal verify_cb_cert() of crypto/cmp/x509_vfy.c;
- * depth already set
- */
-static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
-{
-    X509_STORE_CTX_verify_cb verify_cb = X509_STORE_CTX_get_verify_cb(ctx);
-
-    X509_STORE_CTX_set_error(ctx, err);
-    X509_STORE_CTX_set_current_cert(ctx, (X509 *)cert);
-    return verify_cb && (*verify_cb) (0, ctx);
-}
+/* TODO DvO push this funct upstream & use in s_server.c (PR #get_ocsp_resp) */
 
 /* adapted from get_ocsp_resp_from_responder() of s_server.c */
 /*
@@ -1735,7 +1723,8 @@ static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
  * such as the OCSP certificate IDs and minimise the number of OCSP responses
  * by caching them until they were considered "expired".
  */
-static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer)
+static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
+                                    char *url, int use_aia, int timeout)
 {
     char *host = NULL;
     char *path = NULL;
@@ -1745,12 +1734,11 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer)
     OCSP_REQUEST *req = NULL;
     OCSP_CERTID *id_copy, *id = NULL;
     int res;
-    char *url = opt_ocsp_url;
     OCSP_RESPONSE *resp = NULL;
     OCSP_BASICRESP *br = NULL;
 
     aia = X509_get1_ocsp((X509 *)cert);
-    if (aia && opt_ocsp_use_aia)
+    if (aia && use_aia)
         url = sk_OPENSSL_STRING_value(aia, 0);
     if (url == NULL) {
         BIO_puts(bio_err,
@@ -1790,8 +1778,7 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer)
 # if OPENSSL_VERSION_NUMBER < 0x1010001fL
                              bio_err,
 # endif
-                             req, host, path, port, use_ssl, NULL,
-                             opt_ocsp_timeout == 0 ? -1 : opt_ocsp_timeout);
+                             req, host, path, port, use_ssl, NULL, timeout);
     if (resp == NULL) {
         BIO_puts(bio_err, "cert_status: error querying OCSP responder\n");
         goto end;
@@ -1827,6 +1814,9 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer)
     return resp;
 }
 
+/* TODO DvO (begin) push OCSP-related code upstream (PR #ocsp_stapling_crls) */
+
+/* TODO DvO remove this function when the ones using it are merged upstream */
 /*
  * check revocation status of cert at current error depth in ctx using CRLs.
  * Emulates the internal check_cert() function from crypto/x509/x509_vfy.c
@@ -1854,11 +1844,28 @@ static int check_cert(X509_STORE_CTX *ctx)
     return ok;
 }
 
+/* TODO DvO remove this function when the ones using it are merged upstream */
+/*
+ * emulate the internal verify_cb_cert() of crypto/cmp/x509_vfy.c;
+ * depth already set
+ */
+static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
+{
+    X509_STORE_CTX_verify_cb verify_cb = X509_STORE_CTX_get_verify_cb(ctx);
+
+    X509_STORE_CTX_set_error(ctx, err);
+    X509_STORE_CTX_set_current_cert(ctx, (X509 *)cert);
+    return verify_cb && (*verify_cb) (0, ctx);
+}
+
 /*
  * Check the revocation status of the certificate as specified in given ctx
  * using any stapled OCSP response resp, else OCSP or CRLs as far as required.
  * Returns 1 on success, 0 on rejection or error
  */
+# define OCSP_err(ok) \
+    (ok == -2 ? X509_V_ERR_OCSP_VERIFY_NEEDED/* no OCSP response available*/ : \
+     ok !=  0 ? X509_V_ERR_OCSP_VERIFY_FAILED : X509_V_ERR_CERT_REVOKED)
 static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
 {
     X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
@@ -1875,22 +1882,24 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     int crl_check = flags & X509_V_FLAG_CRL_CHECK;
     int ok = 0;
 
-    if (opt_ocsp_status && resp == NULL && (!ocsp_check && !crl_check))
-        return 0; /* OCSP stapling is the only revocation check enabled
-                     but no response has been stapled, thus fail */
-    if (resp) { /* implies opt_ocsp_status */
-        ok = check_ocsp_response(ts, chain, cert, issuer, resp);
-        if (ok == 1)        /* cert status ok */
+    if (opt_ocsp_status) {
+        if (resp) /* (stapled) response is available */
+            ok = check_ocsp_resp(ts, chain, cert, issuer, resp);
+        else
+            ok = -2; /* inconclusive */
+        if (ok == 1) /* cert status ok */
             return 1;
-        if (ok == 0 ||      /* cert revoked, thus clear failure */
-            /* OCSP stapling is the only check and was inconclusive: ok < 0 */
+        if (ok == 0  /* cert revoked, thus clear failure or */ ||
+            /* OCSP stapling was inconclusive: ok < 0 and is the only check */
             (ok < 0 && !ocsp_check && !crl_check))
             return verify_cb_cert(ctx, cert, OCSP_err(ok));
     }
+    /* OCSP stapling is disabled or inconclusive */
 
     if (ocsp_check) {
-        resp = get_ocsp_resp(cert, issuer);
-        ok = check_ocsp_response(ts, untrusted, cert, issuer, resp);
+        resp = get_ocsp_resp(cert, issuer, opt_ocsp_url, opt_ocsp_use_aia,
+                             opt_ocsp_timeout == 0 ? -1 : opt_ocsp_timeout);
+        ok = check_ocsp_resp(ts, untrusted, cert, issuer, resp);
         OCSP_RESPONSE_free(resp);
 
         if (ok == 1)        /* cert status ok */
@@ -1901,9 +1910,9 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
             return verify_cb_cert(ctx, cert, OCSP_err(ok));
         }
     }
+    /* OCSP (including stapling) is disabled or inconclusive */
 
-    /* OCSP disabled or not positive */
-    if (crl_check && (!ocsp_check || ok <= 0))
+    if (crl_check)
         return check_cert(ctx);
     return 1;
 }
@@ -1958,8 +1967,7 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
 /*
  * Check revocation status on each cert in ctx->chain. As a generalization of
  * check_revocation() in crypto/x509/x509_vfy.c, do not only consider CRLs:
- * for each cert, defer check based on OCSP stapling if enabled,
- * else consider OCSP if enabled, then consider CRLs if enabled.
+ * use any stapled OCSP response resp, else OCSP or CRLs as far as required.
  */
 static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
 {
@@ -2002,7 +2010,8 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
         /* We were called from ssl_verify_cert_chain() at state TLS_ST_CR_CERT.
            Stapled OCSP response becomes available only at TLS_ST_CR_CERT_STATUS
            and ocsp_stapling_cb() is called even later, at TLS_ST_CR_SRVR_DONE.
-           Best we can do here is to defer status checking of the first cert. */
+           What we can do here is to defer status checking of the first cert.
+           This will then be performed by ocsp_stapling_cb(). */
                 continue;
         }
         if (!check_cert_revocation(ctx, NULL))
@@ -2012,8 +2021,8 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
     }
     return 1;
 }
+/* TODO DvO (end) push OCSP-related code upstream (PR #ocsp_stapling_crls) */
 #endif  /* !defined OPENSSL_NO_OCSP */
-/* TODO DvO (end) push all these OCCP-related functions upstream (PR #ocsp) */
 
 #ifndef NDEBUG
 /*-
