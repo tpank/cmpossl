@@ -1437,7 +1437,7 @@ static int truststore_set_host(X509_STORE *ts, const char *host)
     /*
      * Unfortunately there is no OpenSSL API function for retrieving the hosts/
      * ip entries in X509_VERIFY_PARAM. So we store the host value in ex_data
-     * for use in cert_verify_cb() and backup/restore functions below.
+     * for use in cert_verify_cb() below.
      */
     if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)host))
         return 0;
@@ -1595,25 +1595,6 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
  * code implementing OCSP support
  */
 
-static int backup_vpm(X509_STORE *ts, X509_VERIFY_PARAM **bak_vpm,
-                      const char **bak_host)
-{
-    /*
-     * Unfortunately there is no OpenSSL API function for retrieving the
-     * hosts/ip entries in X509_VERIFY_PARAM. So we use ts->ex_data.
-     */
-    *bak_host = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
-    return (*bak_vpm = X509_VERIFY_PARAM_new()) &&
-           X509_VERIFY_PARAM_inherit(*bak_vpm, X509_STORE_get0_param(ts));
-}
-
-static int restore_vpm(X509_STORE *ts, X509_VERIFY_PARAM *bak_vpm,
-                       const char *bak_host)
-{
-    return X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)bak_host)
-        && X509_STORE_set1_param(ts, bak_vpm);
-}
-
 /* Maximum leeway in validity period: default 5 minutes */
 # define MAX_OCSP_VALIDITY_PERIOD (5 * 60)
 
@@ -1667,24 +1648,23 @@ static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
     }
 # endif
     {
-        int bak_opt_ocsp_use_aia   = opt_ocsp_use_aia;
-        int bak_opt_ocsp_check_all = opt_ocsp_check_all;
-        char *bak_opt_ocsp_url     = opt_ocsp_url;
-        const char *bak_host;
-
-        if (!backup_vpm(ts, &bak_vpm, &bak_host) ||
-            !truststore_set_host(ts, NULL/* must not check host here */))
-            goto end;
-        /* no OCSP-based revocation checking on OCSP responder cert chain */
+        /* must not do revocation checking on OCSP responder cert chain */
+        const X509_STORE_CTX_check_revocation_fn bak_fn =
+            X509_STORE_get_check_revocation(ts);
         (void)X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts),
                                             X509_V_FLAG_CRL_CHECK);
-        opt_ocsp_use_aia = opt_ocsp_check_all = 0;
-        opt_ocsp_url = NULL;
+        X509_STORE_set_check_revocation(ts, NULL);
+
+        /* must not do host or ip addr checking on OCSP responder cert chain */
+        if ((!(bak_vpm = X509_VERIFY_PARAM_new()) && /* copy vpm: */
+             X509_VERIFY_PARAM_inherit(bak_vpm, X509_STORE_get0_param(ts))) ||
+            !truststore_set_host(ts, NULL))
+            goto end;
+
         res = OCSP_basic_verify(br, untrusted, ts, OCSP_TRUSTOTHER);
-        opt_ocsp_use_aia   = bak_opt_ocsp_use_aia;
-        opt_ocsp_check_all = bak_opt_ocsp_check_all;
-        opt_ocsp_url       = bak_opt_ocsp_url;
-        if (!restore_vpm(ts, bak_vpm, bak_host))
+
+        X509_STORE_set_check_revocation(ts, bak_fn);
+        if (!X509_STORE_set1_param(ts, bak_vpm))
             goto end;
     }
     if (res <= 0) {
@@ -1979,8 +1959,8 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
 /*
  * Check revocation status on each cert in ctx->chain. As a generalization of
  * check_revocation() in crypto/x509/x509_vfy.c, do not only consider CRLs:
- * for each cert, check based on OCSP stapling is deferred if enabled,
- * else OCSP is considered if enabled, then CRLs are considered if enabled.
+ * for each cert, defer check based on OCSP stapling if enabled,
+ * else consider OCSP if enabled, then consider CRLs if enabled.
  */
 static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
 {
