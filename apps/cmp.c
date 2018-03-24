@@ -1414,21 +1414,20 @@ static void DEBUG_print_cert(const char *msg, const X509 *cert)
 }
 
 /*
- * set the expected host name or IP address in the given cert store.
+ * set the expected host name/IP addr and clears the email addr in the given ts.
  * The string must not be freed as long as cert_verify_cb() may use it.
- * set the expected host name or IP address in the given cert store.
- * The string must not be freed as long as print_cert_verify_cb() may use it.
  * returns 1 on success, 0 on error.
  */
 #define X509_STORE_EX_DATA_HOST 0
 #define X509_STORE_EX_DATA_CMP 1 /* currently unused */
-static int truststore_set_host(X509_STORE *ts, const char *host)
+static int truststore_set_host_etc(X509_STORE *ts, const char *host)
 {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
 
-    /* first clear any host names and IP addresses */
+    /* first clear any host names, IP, and email addresses */
     if (!X509_VERIFY_PARAM_set1_host(ts_vpm, NULL, 0) ||
-        !X509_VERIFY_PARAM_set1_ip(ts_vpm, NULL, 0)) {
+        !X509_VERIFY_PARAM_set1_ip(ts_vpm, NULL, 0) ||
+        !X509_VERIFY_PARAM_set1_email(ts_vpm, NULL, 0)) {
         return 0;
     }
     X509_VERIFY_PARAM_set_hostflags(ts_vpm,
@@ -1655,10 +1654,10 @@ static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
                                             X509_V_FLAG_CRL_CHECK);
         X509_STORE_set_check_revocation(ts, NULL);
 
-        /* must not do host or ip addr checking on OCSP responder cert chain */
+        /* must not do host/ip/email checking on OCSP responder cert chain */
         if ((!(bak_vpm = X509_VERIFY_PARAM_new()) && /* copy vpm: */
              X509_VERIFY_PARAM_inherit(bak_vpm, X509_STORE_get0_param(ts))) ||
-            !truststore_set_host(ts, NULL))
+            !truststore_set_host_etc(ts, NULL))
             goto end;
 
         res = OCSP_basic_verify(br, untrusted, ts, OCSP_TRUSTOTHER);
@@ -2642,18 +2641,14 @@ static int setup_srv_ctx(ENGINE *e)
     }
 
     if (opt_srv_trusted) {
-        X509_STORE *ts;
-        STACK_OF(X509_CRL) *all_crls = sk_X509_CRL_new_null();
-        ts = load_certstore(opt_srv_trusted,
-                "server trusted certificates");
-        if (!set1_store_parameters_crls(ts/* may be NULL */, all_crls) ||
-            !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
+        X509_STORE *ts =
+            load_certstore(opt_srv_trusted, "server trusted certificates");
+        if (!set1_store_parameters_crls(ts/* may be NULL */, NULL/*no CRLs*/) ||
+            !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
             !CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
-            sk_X509_CRL_free(all_crls);
             goto err;
         }
-        sk_X509_CRL_free(all_crls);
     }
     if (!setup_certs(opt_srv_untrusted, "untrusted certificates", ctx,
                      (add_X509_stack_fn_t)CMP_CTX_set1_untrusted_certs, NULL))
@@ -2847,7 +2842,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
             !(ts = load_certstore(opt_trusted, "trusted certificates")))
             goto err;
         if (!set1_store_parameters_crls(ts, *all_crls) ||
-            !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
+            !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
             !CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
             goto oom;
@@ -2969,8 +2964,8 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
             goto oom;
 #if OPENSSL_VERSION_NUMBER >= 0x10002000
         /* enable and parameterize server hostname/IP address check */
-        if (!truststore_set_host(store, opt_tls_host ?
-                                 opt_tls_host : opt_server))
+        if (!truststore_set_host_etc(store, opt_tls_host ?
+                                            opt_tls_host : opt_server))
             /* TODO: is the server host name correct for TLS via proxy? */
             goto oom;
 #endif
