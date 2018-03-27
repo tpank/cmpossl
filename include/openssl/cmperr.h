@@ -44,6 +44,7 @@ int ERR_load_CMP_strings(void);
 # define CMP_F_CMP_CTX_EXTRACERTSOUT_NUM                  115
 # define CMP_F_CMP_CTX_EXTRACERTSOUT_PUSH1                116
 # define CMP_F_CMP_CTX_INIT                               117
+# define CMP_F_CMP_CTX_PUSH_FREETEXT                      206
 # define CMP_F_CMP_CTX_SET0_NEWPKEY                       118
 # define CMP_F_CMP_CTX_SET0_PKEY                          119
 # define CMP_F_CMP_CTX_SET0_REQEXTENSIONS                 120

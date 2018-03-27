@@ -51,6 +51,8 @@ static const ERR_STRING_DATA CMP_str_functs[] = {
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CTX_EXTRACERTSOUT_PUSH1, 0),
      "CMP_CTX_extraCertsOut_push1"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CTX_INIT, 0), "CMP_CTX_init"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CTX_PUSH_FREETEXT, 0),
+     "CMP_CTX_push_freeText"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CTX_SET0_NEWPKEY, 0),
      "CMP_CTX_set0_newPkey"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_CMP_CTX_SET0_PKEY, 0), "CMP_CTX_set0_pkey"},
