@@ -1426,8 +1426,8 @@ static X509 *CMP_CERTORENCCERT_encCert_get1(CMP_CERTORENCCERT *coec,
         if (encKey == NULL)
             goto err;
 
-        if (EVP_PKEY_decrypt
-            (pkctx, NULL, &eksize, encKey->data, encKey->length) <= 0
+        if (EVP_PKEY_decrypt(pkctx, NULL, &eksize, encKey->data, encKey->length)
+                <= 0
             || (ek = OPENSSL_malloc(eksize)) == NULL
             || EVP_PKEY_decrypt(pkctx, ek, &eksize, encKey->data,
                                 encKey->length) <= 0) {
