@@ -2608,16 +2608,19 @@ static int setup_srv_ctx(ENGINE *e)
         goto err;
     }
     if (opt_srv_secret) {
+        int res;
         char *pass_string;
         if ((pass_string = get_passwd(opt_srv_secret,
                                       "PBMAC secret of server"))) {
             OPENSSL_cleanse(opt_srv_secret, strlen(opt_srv_secret));
             opt_srv_secret = NULL;
-            CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_srv_ref,
-                                        strlen(opt_srv_ref));
-            CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
-                                     strlen(pass_string));
+            res = CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_srv_ref,
+                                              strlen(opt_srv_ref)) &&
+                  CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_string,
+                                           strlen(pass_string));
             OPENSSL_clear_free(pass_string, strlen(pass_string));
+            if (!res)
+                goto err;
         }
     } else if (opt_srv_cert == NULL && opt_srv_key == NULL) {
         BIO_puts(bio_err,
