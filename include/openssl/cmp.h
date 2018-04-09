@@ -30,10 +30,17 @@
        (X509_check_purpose((x), -1, -1),(x)->skid)
 #  define OPENSSL_strndup strndup
 # endif
+# if OPENSSL_VERSION_NUMBER < 0x10100005L
+#  define X509_PUBKEY_get0(x)((x)->pkey)
+#  define X509_REQ_get0_pubkey(x) X509_PUBKEY_get0((x)->req_info->pubkey)
+# endif
+# if OPENSSL_VERSION_NUMBER < 0x10100006L
+#  define EVP_PKEY_up_ref(x)((x)->references++)
+# endif
 # if OPENSSL_VERSION_NUMBER < 0x10100007L
 #  define X509_get0_notBefore X509_get_notBefore
 #  define X509_get0_notAfter X509_get_notAfter
-#  define X509_get_issuer_name(x) ((x)->cert_info.issuer)
+#  define X509_get_issuer_name(x) ((x)->cert_info->issuer)
 #  define X509_get0_serialNumber(x) ((x)->cert_info->serialNumber)
 #  define X509_get0_extensions(x) ((x)->cert_info->extensions)
 # endif

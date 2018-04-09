@@ -54,7 +54,7 @@ static CMP_CTX *cmp_ctx = NULL;
 
 /*
  * a copy from apps.c just for visibility reasons,
- * TODO DvO remove when setup_engine_no_default() has been integrated
+ * TODO DvO remove when setup_engine_no_default() is integrated (PR #4277)
  */
 #ifndef OPENSSL_NO_ENGINE
 /* Try to load an engine in a shareable library */
@@ -78,8 +78,8 @@ static UI_METHOD *ui_method = NULL;
 #endif
 
 /*
- * an adapted copy of setup_engine() from apps.c,
- * TODO DvO integrate there
+ * an adapted copy of setup_engine() from apps.c, TODO DvO replace this by
+ * setup_engine_flags() when merged upstream in apps.c (PR #4277)
  */
 static ENGINE *setup_engine_no_default(const char *engine, int debug)
 {
@@ -774,215 +774,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {NULL}
 };
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-static void opt_help(const OPTIONS *unused_arg)
-{
-    const int ALIGN_COL = 22;
-    const OPTIONS *opt;
-    int i = 0;
-    int j = 0;
-    int initlen;
-
-    BIO_printf(bio_err, "\nusage: openssl %s args\n", prog);
-    for (i = 0, opt = cmp_options; opt->name; i++, opt++) {
-        if (!strcmp(opt->name, OPT_MORE_STR))
-            initlen = 0;
-        else {
-            BIO_printf(bio_err, " -%s", opt->name);
-            initlen = 2 + strlen(opt->name);
-        }
-        for (j = ALIGN_COL - initlen; j > 0; j--)
-            BIO_puts(bio_err, " ");
-        BIO_printf(bio_err, " %s\n", opt->helpstr);
-    }
-    BIO_puts(bio_err, "\n");
-}
-#endif
-
-static char opt_item[SECTION_NAME_MAX+1];
-/* get previous name from a comma-separated list of names */
-static char *prev_item(const char *opt, const char *end)
-{
-    const char *beg;
-    int len;
-
-    if (end == opt)
-        return NULL;
-    beg = end;
-    while (beg != opt && beg[-1] != ',' && !isspace(beg[-1]))
-        beg--;
-    len = end - beg;
-    if (len > SECTION_NAME_MAX)
-        len = SECTION_NAME_MAX;
-    strncpy(opt_item, beg, len);
-    opt_item[len] = '\0';
-    if (end - beg > SECTION_NAME_MAX) {
-        BIO_printf(bio_err,
-                   "warning: using only first %d"
-                   " characters of section name starting with \"%s\"\n",
-                   SECTION_NAME_MAX, opt_item);
-    }
-    while (beg != opt && (beg[-1] == ',' || isspace(beg[-1])))
-        beg--;
-    return (char *)beg;
-}
-
-/* get str value for name from a comma-separated hierarchy of config sections */
-static char *conf_get_string(const CONF *conf_, const char *groups,
-                            const char *name)
-{
-    char *res = NULL;
-    char *end = (char *)groups + strlen(groups);
-
-    while ((end = prev_item(groups, end)) != NULL) {
-        if ((res = NCONF_get_string(conf_, opt_item, name)) != NULL)
-            return res;
-    }
-    return res;
-}
-
-/* get long val for name from a comma-separated hierarchy of config sections */
-static int conf_get_number_e(const CONF *conf_, const char *groups,
-                             const char *name, long *result)
-{
-    char *str = conf_get_string(conf_, groups, name);
-
-    if (str == NULL || result == NULL)
-        return 0;
-
-    for (*result = 0; conf_->meth->is_number(conf_, *str);) {
-        *result = (*result) * 10 + conf_->meth->to_int(conf_, *str);
-        str++;
-    }
-
-    return 1;
-}
-
-/*
- * use the command line option table to read values from the CMP section
- * of openssl.cnf.  Defaults are taken from the config file, they can be
- * overwritten on the command line.
- */
-static int read_config()
-{
-    unsigned int i;
-    long num = 0;
-    char *txt = NULL;
-    const OPTIONS *opt;
-    int verification_option;
-
-    /*
-     * starting with offset OPT_SECTION because OPT_CONFIG and OPT_SECTION would
-     * not make sense within the config file. They have already been handled.
-     */
-    for (i = OPT_SECTION - OPT_HELP, opt = &cmp_options[OPT_SECTION];
-         opt->name; i++, opt++) {
-        if (!strcmp(opt->name, OPT_HELP_STR) ||
-            !strcmp(opt->name, OPT_MORE_STR)) {
-            i--;
-            continue;
-        }
-        /* OPT_CRLALL etc. */
-        verification_option = (OPT_V__FIRST <= opt->retval &&
-                               opt->retval < OPT_V__LAST);
-        if (verification_option)
-            i--;
-        if (cmp_vars[i].txt == NULL) {
-            BIO_printf(bio_err,
-                       "internal error: cmp_vars array too short, i=%d\n", i);
-            return 0;
-        }
-        switch (opt->valtype) {
-        case '-':
-        case 'n':
-        case 'l':
-            if (!conf_get_number_e(conf, opt_section, opt->name, &num)) {
-                ERR_clear_error();
-                continue; /* option not provided */
-            }
-            break;
-        /*
-         * do not use '<' in cmp_options. Incorrect treatment
-         * somewhere in args_verify() can wrongly set badops = 1
-         */
-        case '<':
-        case 's':
-        case 'M':
-            txt = conf_get_string(conf, opt_section, opt->name);
-            if (txt == NULL) {
-                ERR_clear_error();
-                continue; /* option not provided */
-            }
-            break;
-        default:
-            BIO_printf(bio_err,
-                      "internal error: unsupported type '%c' for option '%s'\n",
-                       opt->valtype, opt->name);
-            return 0;
-            break;
-        }
-        if (verification_option) {
-            int conf_argc = 1;
-            char *conf_argv[3];
-            char arg1[82];
-
-            BIO_snprintf(arg1, 81, "-%s", (char *)opt->name);
-            conf_argv[0] = ""; /* dummy prog name */
-            conf_argv[1] = arg1;
-            if (opt->valtype == '-') {
-                if (num != 0)
-                    conf_argc = 2;
-            } else {
-                conf_argc = 3;
-                conf_argv[2] = conf_get_string(conf, opt_section, opt->name);
-                /* not NULL */
-            }
-            if (conf_argc > 1) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-                (void)opt_init(conf_argc, conf_argv, cmp_options);
-                if (!opt_verify(opt_next(), vpm))
-#else
-                char **conf_argvp = conf_argv + 1;
-                int badops = 0;
-
-                (void)args_verify(&conf_argvp, &conf_argc, &badops, bio_err,
-                                  &vpm);
-                if (badops)
-#endif
-                {
-                    BIO_printf(bio_err,
-                          "error for option '%s' in config file section '%s'\n",
-                               opt->name, opt_section);
-                    return 0;
-                }
-            }
-        } else {
-            switch (opt->valtype) {
-            case '-':
-            case 'n':
-                if (num < INT_MIN || INT_MAX < num) {
-                    BIO_printf(bio_err,
-                               "integer value out of range for option '%s'\n",
-                               opt->name);
-                    return 0;
-                }
-                *cmp_vars[i].num = (int)num;
-                break;
-            case 'l':
-                *cmp_vars[i].num_long = num;
-                break;
-            default:
-                if (txt != NULL && txt[0] == '\0')
-                    txt = NULL; /* reset option on empty string input */
-                *cmp_vars[i].txt = txt;
-                break;
-            }
-        }
-    }
-
-    return 1;
-}
-
+/* TODO DvO push this and related functions upstream (PR #multifile) */
 static char *next_item(char *opt) /* in list separated by comma and/or space */
 {
     /* allows empty item if *opt immediately contains ',' */
@@ -998,192 +790,18 @@ static char *next_item(char *opt) /* in list separated by comma and/or space */
     }
     return opt;
 }
-#ifndef NDEBUG
-/*-
- * Writes CMP_PKIMESSAGE DER-encoded to the file specified with outfile
- *
- * returns 1 on success, 0 on error
- */
-static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
-{
-    char *file;
-    FILE *f;
-    int res = 0;
 
-    if (msg == NULL || filenames == NULL) {
-        BIO_printf(bio_err, "NULL arg to write_PKIMESSAGE\n");
-        return 0;
-    }
-    if (**filenames == '\0') {
-        BIO_printf(bio_err,
-              "not enough file names have been provided for writing message\n");
-        return 0;
-    }
-
-    file = *filenames;
-    *filenames = next_item(file);
-    f = fopen(file, "wb");
-    if (f == NULL)
-        BIO_printf(bio_err, "error opening file '%s' for writing\n", file);
-    else {
-        unsigned char *out = NULL;
-        int len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *) msg, &out);
-
-        if (len >= 0) {
-            if ((size_t)len == fwrite(out, sizeof(*out), len, f))
-                res = 1;
-            else
-                BIO_printf(bio_err, "error writing file '%s'\n", file);
-            OPENSSL_free(out);
-        }
-        fclose(f);
-    }
-    return res;
-}
-
-/*-
- * Reads a DER-encoded CMP_PKIMESSAGE from the file specified in infile
- * The CMP_MESSAGE must be freed by the caller
- *
- * returns a pointer to the parsed CMP_PKIMESSAGE, null on error
- */
-static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
-{
-    char *file;
-    FILE *f;
-    long fsize;
-    unsigned char *in;
-    CMP_PKIMESSAGE *ret = NULL;
-
-    if (filenames == NULL) {
-        BIO_printf(bio_err, "NULL arg to read_PKIMESSAGE\n");
-        return 0;
-    }
-    if (**filenames == '\0') {
-        BIO_printf(bio_err,
-              "not enough file names have been provided for reading message\n");
-        return 0;
-    }
-
-    file = *filenames;
-    *filenames = next_item(file);
-    f = fopen(file, "rb");
-    if (f == NULL)
-        BIO_printf(bio_err, "error opening file '%s' for reading\n", file);
-    else {
-        fseek(f, 0, SEEK_END);
-        fsize = ftell(f);
-        fseek(f, 0, SEEK_SET);
-        if (fsize < 0) {
-            BIO_printf(bio_err, "error getting size of file '%s'\n", file);
-        } else {
-            in = OPENSSL_malloc(fsize);
-            if (in == NULL)
-                BIO_printf(bio_err, "out of memory reading file '%s'\n", file);
-            else {
-                if ((size_t)fsize != fread(in, 1, fsize, f))
-                    BIO_printf(bio_err, "error reading file '%s'\n", file);
-                else {
-                    const unsigned char *p = in;
-                    ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
-                    if (ret == NULL)
-                        BIO_printf(bio_err,
-                               "error parsing PKIMessage in file '%s'\n", file);
-                }
-                OPENSSL_free(in);
-            }
-        }
-        fclose(f);
-    }
-    return ret;
-}
-
-/*-
- * Sends the PKIMessage req and on success place the response in *res
- * basically like CMP_PKIMESSAGE_http_perform(), but in addition allows
- * to dump the sequence of requests and responses to files and/or
- * to take the sequence of requests and responses from files.
- */
-static int read_write_req_resp(CMP_CTX *ctx,
-                               const CMP_PKIMESSAGE *req,
-                               CMP_PKIMESSAGE **res)
-{
-    CMP_PKIMESSAGE *req_new = NULL;
-    CMP_PKIHEADER *hdr;
-    int ret = CMP_R_ERROR_TRANSFERRING_OUT;
-
-    if (req && opt_reqout && !write_PKIMESSAGE(req, &opt_reqout))
-        goto err;
-
-    if (opt_reqin) {
-        if (opt_rspin) {
-            BIO_printf(bio_err,
-                       "warning: -reqin is ignored since -rspin is present\n");
-        } else {
-            ret = CMP_R_ERROR_TRANSFERRING_IN;
-            if ((req_new = read_PKIMESSAGE(&opt_reqin)) == NULL)
-                goto err;
-# if 0
-          /*
-           * The transaction ID in req_new may not be fresh. In this case the
-           * Insta Demo CA correctly complains: "Transaction id already in use."
-           * The following workaround unfortunately requires re-protection.
-           */
-            CMP_PKIHEADER_set1_transactionID(CMP_PKIMESSAGE_get0_header
-                                             (req_new), NULL);
-            CMP_PKIMESSAGE_protect(ctx, req_new);
-# endif
-        }
-    }
-
-    ret = CMP_R_ERROR_TRANSFERRING_IN;
-    if (opt_rspin) {
-        if ((*res = read_PKIMESSAGE(&opt_rspin)))
-            ret = 0;
-    } else {
-        const CMP_PKIMESSAGE *actual_req = opt_reqin ? req_new : req;
-        if (opt_mock_srv) {
-            CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
-            ret = CMP_mock_server_perform(ctx, actual_req, res);
-        } else {
-            ret = CMP_PKIMESSAGE_http_perform(ctx, actual_req, res);
-        }
-    }
-
-    if (ret || (*res) == NULL)
-        goto err;
-    ret = CMP_R_OUT_OF_MEMORY;
-    hdr = CMP_PKIMESSAGE_get0_header(*res);
-    if ((opt_reqin || opt_rspin) &&
-        /* need to satisfy nonce and transactionID checks */
-        (!CMP_CTX_set1_last_senderNonce(ctx, CMP_PKIHEADER_get0_recipNonce(hdr))
-         || !CMP_CTX_set1_transactionID(ctx,
-                                        CMP_PKIHEADER_get0_transactionID(hdr))
-        ))
-        goto err;
-
-    if (opt_rspout && !write_PKIMESSAGE(*res, &opt_rspout)) {
-        ret = CMP_R_ERROR_TRANSFERRING_OUT;
-        CMP_PKIMESSAGE_free(*res);
-        goto err;
-    }
-
-    ret = 0;
- err:
-    CMP_PKIMESSAGE_free(req_new);
-    return ret;
-}
-#endif
 /*
  * code for loading certs, keys, and CRLs
- * TODO DvO: the whole Cert, Key and CRL loading logic should be given upstream
- * to be included in apps.c, and then used from here.
+ * TODO DvO the whole Cert, Key and CRL loading logic should be given upstream
+ * to be included in apps.c, and then used from here (PR #4930, PR #4940,
+ * #autofmt, #crls_timeout_local)
  */
 
 /*
- * TODO DvO: when load_cert_pass() from apps.c is available upstream,
- * remove this declaration load_pkcs12(), which has been copied from apps.c
- * just for visibility reasons
+ * TODO DvO when load_cert_pass() from apps.c is merged upstream (PR #4930
+ * and #crls_timeout_local), remove this declaration of load_pkcs12(),
+ * which has been copied from apps.c just for visibility reasons
  */
 static int load_pkcs12(BIO *in, const char *desc,
                        pem_password_cb *pem_cb, void *cb_data,
@@ -1241,7 +859,7 @@ static int load_pkcs12(BIO *in, const char *desc,
     return ret;
 }
 
-/* TODO DvO: push that separately upstream with the autofmt options */
+/* TODO DvO push that upstream as a separate PR #crls_timeout_local */
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 /* adapted from apps/apps.c to include connection timeout */
 static int load_cert_crl_http_timeout(const char *url, int req_timeout,
@@ -1300,8 +918,8 @@ static int load_cert_crl_http_timeout(const char *url, int req_timeout,
 #endif
 
 /*
- * TODO DvO: replace this by load_cert_pass() from apps.c when available
- * upstream after generalization w.r.t. timeout
+ * TODO DvO remove when load_cert_pass() is merged upstream in apps.c (PR #4930)
+ * and after generalizing it w.r.t. timeout (PR #crls_timeout_local)
  */
 static X509 *load_cert_pass(const char *file, int format, const char *pass,
                             const char *cert_descrip)
@@ -1374,7 +992,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     return (x);
 }
 
-/* TODO DvO: replace this by load_csr() from apps.c when available upstream */
+/* TODO DvO remove when load_csr() is merged upstream in apps.c (PR #4940) */
 static X509_REQ *load_csr(const char *file, int format, const char *desc)
 {
     X509_REQ *req = NULL;
@@ -1439,7 +1057,7 @@ static int load_certs_(BIO *err, const char *file, int format,
 # define load_key(  f,    t, i, p, e, d) load_key   (bio_err, f, t, i, p, e, d)
 #endif
 
-/* TODO DvO: push that separately upstream with the autofmt options */
+/* TODO DvO push this and related functions upstream (PR #autofmt) */
 static int adjust_format(const char **infile, int format, int engine_ok)
 {
     if (!strncmp(*infile, "http://", 7) || !strncmp(*infile, "https://", 8))
@@ -1475,6 +1093,7 @@ static int adjust_format(const char **infile, int format, int engine_ok)
     return format;
 }
 
+/* TODO DvO extend app_get_pass() from apps.c this way (PR #app_get_pass) */
 static char *get_passwd(const char *pass, const char *desc)
 {
     char *result = NULL;
@@ -1516,10 +1135,7 @@ static void OPENSSL_clear_free(void *str, size_t num)
 }
 #endif
 
-/*
- * TODO DvO: push that separately upstream
- * in apps.c there is load_key which should be used for CMP upstream submission
- */
+/* TODO DvO: push this and related functions upstream (PR #autofmt) */
 static EVP_PKEY *load_key_autofmt(const char *infile, int format,
                                   const char *pass, ENGINE *e, const char *desc)
 {
@@ -1548,7 +1164,7 @@ static EVP_PKEY *load_key_autofmt(const char *infile, int format,
     return pkey;
 }
 
-/* TODO DvO: push that separately upstream */
+/* TODO DvO: push this and related functions upstream (PR #autofmt) */
 static X509 *load_cert_autofmt(const char *infile, int format,
                                const char *pass, const char *desc)
 {
@@ -1576,7 +1192,7 @@ static X509 *load_cert_autofmt(const char *infile, int format,
     return cert;
 }
 
-/* TODO DvO: push that separately upstream */
+/* TODO DvO: push this and related functions upstream (PR #autofmt) */
 static X509_REQ *load_csr_autofmt(const char *infile, int format,
                                   const char *desc)
 {
@@ -1604,7 +1220,7 @@ static X509_REQ *load_csr_autofmt(const char *infile, int format,
 /*
  * Initialize or extend, if *certs != NULL, a certificate stack.
  *
- * TODO DvO: replace this by generalized load_certs() when available upstream
+ * TODO DvO replace by generalized load_certs() when merged upstream (PR #4930)
  */
 static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
                                   int format, const char *pass,
@@ -1663,10 +1279,7 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
     return ret;
 }
 
-/*
- * TODO DvO: push that separately upstream
- * in apps.c is load_certs() which should be used for CMP upstream submission
- */
+/* TODO DvO push this and related functions upstream (PR #autofmt) */
 static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
                               int format, int exclude_http, const char *pass,
                               const char *desc)
@@ -1701,10 +1314,8 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
     return ret;
 }
 
-/*
- * TODO DvO: push that separately upstream
- * this is used by load_crls_fmt and LOCAL_load_crl_crldp
- */
+/* TODO DvO push this and related functions upstream (PR #autofmt) */
+/* this funtion is used by load_crls_fmt and LOCAL_load_crl_crldp */
 static X509_CRL *load_crl_autofmt(const char *infile, int format,
                                   const char *desc)
 {
@@ -1735,10 +1346,8 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
     return crl;
 }
 
-/*
- * TODO DvO: push that separately upstream
- * this is exclusively used by load_crls_autofmt
- */
+/* TODO DvO push this and related functions upstream (PR #autofmt) */
+/* this function is exclusively used by load_crls_autofmt */
 static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format,
                                          const char *desc)
 {
@@ -1765,10 +1374,7 @@ static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format,
     }
 }
 
-/*
- * TODO DvO: push that separately upstream
- * in apps.c there is load_crls which should be used for CMP upstream submission
- */
+/* TODO DvO push this and related functions upstream (PR #autofmt) */
 static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format,
                                              const char *desc)
 {
@@ -1808,21 +1414,20 @@ static void DEBUG_print_cert(const char *msg, const X509 *cert)
 }
 
 /*
- * set the expected host name or IP address in the given cert store.
+ * set the expected host name/IP addr and clears the email addr in the given ts.
  * The string must not be freed as long as cert_verify_cb() may use it.
- * set the expected host name or IP address in the given cert store.
- * The string must not be freed as long as print_cert_verify_cb() may use it.
  * returns 1 on success, 0 on error.
  */
 #define X509_STORE_EX_DATA_HOST 0
 #define X509_STORE_EX_DATA_CMP 1 /* currently unused */
-static int truststore_set_host(X509_STORE *ts, const char *host)
+static int truststore_set_host_etc(X509_STORE *ts, const char *host)
 {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
 
-    /* first clear any host names and IP addresses */
+    /* first clear any host names, IP, and email addresses */
     if (!X509_VERIFY_PARAM_set1_host(ts_vpm, NULL, 0) ||
-        !X509_VERIFY_PARAM_set1_ip(ts_vpm, NULL, 0)) {
+        !X509_VERIFY_PARAM_set1_ip(ts_vpm, NULL, 0) ||
+        !X509_VERIFY_PARAM_set1_email(ts_vpm, NULL, 0)) {
         return 0;
     }
     X509_VERIFY_PARAM_set_hostflags(ts_vpm,
@@ -1831,207 +1436,13 @@ static int truststore_set_host(X509_STORE *ts, const char *host)
     /*
      * Unfortunately there is no OpenSSL API function for retrieving the hosts/
      * ip entries in X509_VERIFY_PARAM. So we store the host value in ex_data
-     * for use in cert_verify_cb() and backup/restore functions below.
+     * for use in cert_verify_cb() below.
      */
     if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)host))
         return 0;
     return (host && X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host)) ||
            X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
 }
-
-#ifndef OPENSSL_NO_OCSP
-/*
- * code needed for OCSP support
- */
-
-static int backup_vpm(X509_STORE *ts, X509_VERIFY_PARAM **bak_vpm,
-                      const char **bak_host)
-{
-    /*
-     * Unfortunately there is no OpenSSL API function for retrieving the
-     * hosts/ip entries in X509_VERIFY_PARAM. So we use ts->ex_data.
-     */
-    *bak_host = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
-    return (*bak_vpm = X509_VERIFY_PARAM_new()) &&
-           X509_VERIFY_PARAM_inherit(*bak_vpm, X509_STORE_get0_param(ts));
-}
-
-static int restore_vpm(X509_STORE *ts, X509_VERIFY_PARAM *bak_vpm,
-                       const char *bak_host)
-{
-    return X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)bak_host)
-        && X509_STORE_set1_param(ts, bak_vpm);
-}
-
-/* Maximum leeway in validity period: default 5 minutes */
-# define MAX_OCSP_VALIDITY_PERIOD (5 * 60)
-
-/* adapted from main() of ocsp.c */
-/*
- * Verify an OCSP response rsp obtained via a OCSP request or OCSP stapling.
- * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
- */
-static int check_ocsp_response(X509_STORE *ts, STACK_OF(X509) *untrusted,
-                               X509 *cert, X509 *issuer, OCSP_RESPONSE *rsp)
-{
-    X509_VERIFY_PARAM *bak_vpm = NULL;
-    OCSP_BASICRESP *br = NULL;
-    OCSP_CERTID *id = NULL;
-    int res = -1, status, reason;
-    ASN1_GENERALIZEDTIME *rev;
-    ASN1_GENERALIZEDTIME *thisupd;
-    ASN1_GENERALIZEDTIME *nextupd;
-
-    if (rsp == NULL)
-        return -1;
-
-# if 0 && !defined NDEBUG
-    BIO_puts(bio_err, "debug: OCSP response:\n");
-    BIO_puts(bio_err, "======================================\n");
-    OCSP_RESPONSE_print(bio_err, rsp, 0);
-    BIO_puts(bio_err, "======================================\n");
-# endif
-
-    status = OCSP_response_status(rsp);
-    if (status != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
-        BIO_printf(bio_err, "OCSP responder error: %s (code %d)\n",
-                   OCSP_response_status_str(status), status);
-        return -1;
-    }
-
-    if ((br = OCSP_response_get1_basic(rsp)) == NULL) {
-        BIO_printf(bio_err, "error getting OCSP basic response\n");
-        return -1;
-    }
-
-# if OPENSSL_VERSION_NUMBER < 0x100020d0L
-    {   /*
-         * workaround for a meanwhile fixed bug in OCSP_basic_verify()
-         * neglecting the certs argument if br->certs is NULL
-         */
-        X509 *dummy = X509_new();
-        if (dummy)
-            (void)OCSP_basic_add1_cert(br, dummy);
-        X509_free(dummy);
-    }
-# endif
-    {
-        int bak_opt_ocsp_use_aia   = opt_ocsp_use_aia;
-        int bak_opt_ocsp_check_all = opt_ocsp_check_all;
-        char *bak_opt_ocsp_url     = opt_ocsp_url;
-        const char *bak_host;
-
-        if (!backup_vpm(ts, &bak_vpm, &bak_host) ||
-            !truststore_set_host(ts, NULL/* must not check host here */))
-            goto end;
-        /* no OCSP-based revocation checking on OCSP responder cert chain */
-        (void)X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts),
-                                            X509_V_FLAG_CRL_CHECK);
-        opt_ocsp_use_aia = opt_ocsp_check_all = 0;
-        opt_ocsp_url = NULL;
-        res = OCSP_basic_verify(br, untrusted, ts, OCSP_TRUSTOTHER);
-        opt_ocsp_use_aia   = bak_opt_ocsp_use_aia;
-        opt_ocsp_check_all = bak_opt_ocsp_check_all;
-        opt_ocsp_url       = bak_opt_ocsp_url;
-        if (!restore_vpm(ts, bak_vpm, bak_host))
-            goto end;
-    }
-    if (res <= 0) {
-        BIO_printf(bio_err, "OCSP response verify failure\n");
-        ERR_print_errors(bio_err);
-        goto end;
-    }
-
-    if ((id = OCSP_cert_to_id(NULL, cert, issuer)) == NULL) {
-        BIO_puts(bio_err, "cannot obtain cert ID for OCSP\n");
-        goto end;
-    }
-    if (!OCSP_resp_find_status(br, id,
-                               &status, &reason, &rev, &thisupd, &nextupd)) {
-        BIO_puts(bio_err, "OCSP status not found\n");
-        goto end;
-    }
-    /* TODO: OCSP_check_validity() should respect -attime: vpm->check_time */
-    if (!OCSP_check_validity(thisupd, nextupd, MAX_OCSP_VALIDITY_PERIOD, -1)) {
-        BIO_puts(bio_err, "OCSP status times invalid.\n");
-        ERR_print_errors(bio_err);
-        goto end;
-    } else {
-        switch (status) {
-        case V_OCSP_CERTSTATUS_GOOD:
-            DEBUG_print_cert("OCSP status good", cert);
-            res = 1;
-            break;
-        case V_OCSP_CERTSTATUS_REVOKED:
-            BIO_printf(bio_err, "OCSP status: revoked, reason=%s\n",
-                       reason != -1 ? OCSP_crl_reason_str(reason) : "");
-            res = 0;
-            break;
-        case V_OCSP_CERTSTATUS_UNKNOWN:
-        default:
-            BIO_printf(bio_err, "OCSP status unknown (value %d)\n", status);
-            break;
-        }
-    }
-
- end:
-    OCSP_CERTID_free(id);
-    OCSP_BASICRESP_free(br);
-    X509_VERIFY_PARAM_free(bak_vpm);
-    return res;
-}
-
-static int check_cert_revocation_stapled_ocsp_crls(X509_STORE_CTX *ctx,
-                                                   OCSP_RESPONSE *resp);
-# if OPENSSL_VERSION_NUMBER >= 0x1010001fL
-/*
- * callback function for verifying stapled OCSP responses
- * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error,
- * -2 if no stapled OCSP response available
- */
-static int ocsp_resp_cb(SSL *ssl, STACK_OF(X509) *untrusted)
-{
-    STACK_OF(X509) *chain = SSL_get0_verified_chain(ssl);
-    const unsigned char *resp;
-    OCSP_RESPONSE *rsp = NULL;
-    X509_STORE_CTX *ctx = NULL;
-    int ret = -1; /* tls_process_initial_server_flight reports
-                     return code < 0 as internal error: malloc failure */
-    int len = SSL_get_tlsext_status_ocsp_resp(ssl, &resp);
-
-    if (resp == NULL) {
-        BIO_puts(bio_err, "no OCSP response has been stapled\n");
-        return -2;
-    }
-    DEBUG_print_cert("OCSP rsp stapled", sk_X509_value(chain, 0));
-    rsp = d2i_OCSP_RESPONSE(NULL, &resp, len);
-    if (rsp == NULL) {
-        BIO_puts(bio_err, "error parsing stapled OCSP response\n");
-        BIO_dump_indent(bio_err, (char *)resp, len, 4);
-        /* well, this is likely not an internal error (malloc failure) */
-        goto end;
-    }
-
-    ctx = X509_STORE_CTX_new();/* ctx needed for CRL checking and diagnostics */
-    if (ctx == NULL)
-        goto end;
-    if (!X509_STORE_CTX_init(ctx,
-                             SSL_CTX_get_cert_store(SSL_get_SSL_CTX(ssl)),
-                             NULL/* cert */, untrusted))
-        goto end;
-    X509_STORE_CTX_set0_verified_chain(ctx, X509_chain_up_ref(chain));
-    X509_STORE_CTX_set_error_depth(ctx, 0);
-    ret = check_cert_revocation_stapled_ocsp_crls(ctx, rsp);
-
- end:
-    /* must not: sk_X509_free(untrusted); */
-    X509_STORE_CTX_free(ctx);
-    OCSP_RESPONSE_free(rsp);
-    return ret;
-}
-# endif
-
-#endif /* !defined OPENSSL_NO_OCSP */
 
 static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */ ,
                                   const STACK_OF(X509) *certs /* may be NULL */)
@@ -2052,7 +1463,7 @@ static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */ ,
 }
 
 /*
- * TODO DvO: push that separately upstream
+ * TODO DvO push this and related functions upstream (PR #crls_timeout_local)
  *
  * code for loading CRL via HTTP or from file, slightly adapted from apps/apps.c
  *
@@ -2084,7 +1495,7 @@ static const char *LOCAL_get_dp_url(DIST_POINT *dp)
 }
 
 /*
- * TODO DvO: push that separately upstream
+ * TODO DvO push this and related functions upstream (PR #crls_timeout_local)
  *
  * THIS IS an extension of load_crl_crldp() FROM AND LOCAL TO apps.c,
  * with support for loading local CRL files,
@@ -2114,7 +1525,7 @@ static X509_CRL *LOCAL_load_crl_crldp(STACK_OF(DIST_POINT) *crldp)
 }
 
 /*
- * TODO DvO: push that separately upstream
+ * TODO DvO push this and related functions upstream (PR #crls_timeout_local)
  *
  * THIS IS crls_http_cb() FROM AND LOCAL TO apps.c,
  * but using LOCAL_load_crl_crldp instead of the one from apps.c
@@ -2155,7 +1566,7 @@ static STACK_OF(X509_CRL) *LOCAL_crls_http_cb(X509_STORE_CTX *ctx,
 }
 
 /*
- * TODO DvO: push that separately upstream
+ * TODO DvO push this and related functions upstream (PR #crls_timeout_local)
  *
  * This allows for local CRLs and remote lookup through the callback.
  * In upstream openssl, X509_STORE_CTX_init() sets up the STORE_CTX
@@ -2182,21 +1593,127 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
  * code implementing OCSP support
  */
 
-# define OCSP_err(ok) \
-    (ok == -2 ? X509_V_ERR_OCSP_VERIFY_NEEDED : /* no OCSP response available*/\
-     ok !=  0 ? X509_V_ERR_OCSP_VERIFY_FAILED : X509_V_ERR_CERT_REVOKED)
-/*
- * emulate the internal verify_cb_cert() of crypto/cmp/x509_vfy.c;
- * depth already set
- */
-static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
-{
-    X509_STORE_CTX_verify_cb verify_cb = X509_STORE_CTX_get_verify_cb(ctx);
+/* TODO DvO push this function upstream & use in ocsp.c (PR #check_ocsp_resp) */
 
-    X509_STORE_CTX_set_error(ctx, err);
-    X509_STORE_CTX_set_current_cert(ctx, (X509 *)cert);
-    return verify_cb && (*verify_cb) (0, ctx);
+/* Maximum leeway in validity period: default 5 minutes */
+# define MAX_OCSP_VALIDITY_PERIOD (5 * 60)
+
+/* adapted from main() of ocsp.c */
+/*
+ * Verify an OCSP response resp obtained via an OCSP request or OCSP stapling.
+ * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
+ */
+static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
+                           X509 *cert, X509 *issuer, OCSP_RESPONSE *resp)
+{
+    X509_VERIFY_PARAM *bak_vpm = NULL;
+    OCSP_BASICRESP *br = NULL;
+    OCSP_CERTID *id = NULL;
+    int res = -1, status, reason;
+    ASN1_GENERALIZEDTIME *rev;
+    ASN1_GENERALIZEDTIME *thisupd;
+    ASN1_GENERALIZEDTIME *nextupd;
+
+    if (resp == NULL)
+        return -1;
+
+# if 0 && !defined NDEBUG
+    BIO_puts(bio_c_out, "debug: OCSP response:\n");
+    BIO_puts(bio_c_out, "======================================\n");
+    OCSP_RESPONSE_print(bio_c_out, resp, 0);
+    BIO_puts(bio_c_out, "======================================\n");
+# endif
+
+    status = OCSP_response_status(resp);
+    if (status != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
+        BIO_printf(bio_err, "OCSP responder error: %s (code %d)\n",
+                   OCSP_response_status_str(status), status);
+        return -1;
+    }
+
+    if ((br = OCSP_response_get1_basic(resp)) == NULL) {
+        BIO_printf(bio_err, "error getting OCSP basic response\n");
+        return -1;
+    }
+
+# if OPENSSL_VERSION_NUMBER < 0x100020d0L
+    {   /*
+         * workaround for a meanwhile fixed bug in OCSP_basic_verify()
+         * neglecting the certs argument if br->certs is NULL
+         */
+        X509 *dummy = X509_new();
+        if (dummy)
+            (void)OCSP_basic_add1_cert(br, dummy);
+        X509_free(dummy);
+    }
+# endif
+    {
+        /* must not do revocation checking on OCSP responder cert chain */
+        const X509_STORE_CTX_check_revocation_fn bak_fn =
+            X509_STORE_get_check_revocation(ts);
+        (void)X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts),
+                                            X509_V_FLAG_CRL_CHECK);
+        X509_STORE_set_check_revocation(ts, NULL);
+
+        /* must not do host/ip/email checking on OCSP responder cert chain */
+        if ((!(bak_vpm = X509_VERIFY_PARAM_new()) && /* copy vpm: */
+             X509_VERIFY_PARAM_inherit(bak_vpm, X509_STORE_get0_param(ts))) ||
+            !truststore_set_host_etc(ts, NULL))
+            goto end;
+
+        res = OCSP_basic_verify(br, untrusted, ts, OCSP_TRUSTOTHER);
+
+        X509_STORE_set_check_revocation(ts, bak_fn);
+        if (!X509_STORE_set1_param(ts, bak_vpm))
+            goto end;
+    }
+    if (res <= 0) {
+        BIO_printf(bio_err, "OCSP response verify failure\n");
+        ERR_print_errors(bio_err);
+        goto end;
+    }
+
+    if ((id = OCSP_cert_to_id(NULL, cert, issuer)) == NULL) {
+        BIO_puts(bio_err, "Cannot obtain cert ID for OCSP.\n");
+        goto end;
+    }
+    if (!OCSP_resp_find_status(br, id,
+                               &status, &reason, &rev, &thisupd, &nextupd)) {
+        BIO_puts(bio_err, "OCSP status not found\n");
+        goto end;
+    }
+
+    /* TODO: OCSP_check_validity() should respect -attime: vpm->check_time */
+    if (!OCSP_check_validity(thisupd, nextupd, MAX_OCSP_VALIDITY_PERIOD, -1)) {
+        BIO_puts(bio_err, "OCSP status times invalid.\n");
+        ERR_print_errors(bio_err);
+        goto end;
+    } else {
+        switch (status) {
+        case V_OCSP_CERTSTATUS_GOOD:
+            DEBUG_print_cert("OCSP status good", cert);
+            res = 1;
+            break;
+        case V_OCSP_CERTSTATUS_REVOKED:
+            BIO_printf(bio_err, "OCSP status: revoked, reason=%s\n",
+                       reason != -1 ? OCSP_crl_reason_str(reason) : "");
+            res = 0;
+            break;
+        case V_OCSP_CERTSTATUS_UNKNOWN:
+        default:
+            BIO_printf(bio_err, "OCSP status unknown (value %d)\n", status);
+            break;
+        }
+    }
+
+ end:
+    OCSP_CERTID_free(id);
+    OCSP_BASICRESP_free(br);
+    X509_VERIFY_PARAM_free(bak_vpm);
+    return res;
 }
+
+/* TODO DvO push this funct upstream & use in s_server.c (PR #get_ocsp_resp) */
 
 /* adapted from get_ocsp_resp_from_responder() of s_server.c */
 /*
@@ -2206,7 +1723,8 @@ static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
  * such as the OCSP certificate IDs and minimise the number of OCSP responses
  * by caching them until they were considered "expired".
  */
-static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer)
+static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
+                                    char *url, int use_aia, int timeout)
 {
     char *host = NULL;
     char *path = NULL;
@@ -2216,12 +1734,11 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer)
     OCSP_REQUEST *req = NULL;
     OCSP_CERTID *id_copy, *id = NULL;
     int res;
-    char *url = opt_ocsp_url;
     OCSP_RESPONSE *resp = NULL;
     OCSP_BASICRESP *br = NULL;
 
     aia = X509_get1_ocsp((X509 *)cert);
-    if (aia && opt_ocsp_use_aia)
+    if (aia && use_aia)
         url = sk_OPENSSL_STRING_value(aia, 0);
     if (url == NULL) {
         BIO_puts(bio_err,
@@ -2261,8 +1778,7 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer)
 # if OPENSSL_VERSION_NUMBER < 0x1010001fL
                              bio_err,
 # endif
-                             req, host, path, port, use_ssl, NULL,
-                             opt_ocsp_timeout == 0 ? -1 : opt_ocsp_timeout);
+                             req, host, path, port, use_ssl, NULL, timeout);
     if (resp == NULL) {
         BIO_puts(bio_err, "cert_status: error querying OCSP responder\n");
         goto end;
@@ -2298,6 +1814,9 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer)
     return resp;
 }
 
+/* TODO DvO (begin) push OCSP-related code upstream (PR #ocsp_stapling_crls) */
+
+/* TODO DvO remove this function when the ones using it are merged upstream */
 /*
  * check revocation status of cert at current error depth in ctx using CRLs.
  * Emulates the internal check_cert() function from crypto/x509/x509_vfy.c
@@ -2325,13 +1844,29 @@ static int check_cert(X509_STORE_CTX *ctx)
     return ok;
 }
 
+/* TODO DvO remove this function when the ones using it are merged upstream */
+/*
+ * emulate the internal verify_cb_cert() of crypto/cmp/x509_vfy.c;
+ * depth already set
+ */
+static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
+{
+    X509_STORE_CTX_verify_cb verify_cb = X509_STORE_CTX_get_verify_cb(ctx);
+
+    X509_STORE_CTX_set_error(ctx, err);
+    X509_STORE_CTX_set_current_cert(ctx, (X509 *)cert);
+    return verify_cb && (*verify_cb) (0, ctx);
+}
+
 /*
  * Check the revocation status of the certificate as specified in given ctx
- * using any stapled OCSP response, else OCSP or CRLs as far as required.
+ * using any stapled OCSP response resp, else OCSP or CRLs as far as required.
  * Returns 1 on success, 0 on rejection or error
  */
-static int check_cert_revocation_stapled_ocsp_crls(X509_STORE_CTX *ctx,
-                                                   OCSP_RESPONSE *resp)
+# define OCSP_err(ok) \
+    (ok == -2 ? X509_V_ERR_OCSP_VERIFY_NEEDED/* no OCSP response available*/ : \
+     ok !=  0 ? X509_V_ERR_OCSP_VERIFY_FAILED : X509_V_ERR_CERT_REVOKED)
+static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
 {
     X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
     STACK_OF(X509) *chain = X509_STORE_CTX_get0_chain(ctx);
@@ -2347,18 +1882,24 @@ static int check_cert_revocation_stapled_ocsp_crls(X509_STORE_CTX *ctx,
     int crl_check = flags & X509_V_FLAG_CRL_CHECK;
     int ok = 0;
 
-    if (resp) { /* implies opt_ocsp_status */
-        ok = check_ocsp_response(ts, chain, cert, issuer, resp);
-        if (ok == 1)        /* cert status ok */
+    if (opt_ocsp_status) {
+        if (resp) /* (stapled) response is available */
+            ok = check_ocsp_resp(ts, chain, cert, issuer, resp);
+        else
+            ok = -2; /* inconclusive */
+        if (ok == 1) /* cert status ok */
             return 1;
-        if (ok == 0 ||      /* cert revoked, thus clear failure */
-            /* OCSP stapling is the only check and was inconclusive: ok < 0 */
+        if (ok == 0  /* cert revoked, thus clear failure or */ ||
+            /* OCSP stapling was inconclusive: ok < 0 and is the only check */
             (ok < 0 && !ocsp_check && !crl_check))
             return verify_cb_cert(ctx, cert, OCSP_err(ok));
     }
+    /* OCSP stapling is disabled or inconclusive */
+
     if (ocsp_check) {
-        resp = get_ocsp_resp(cert, issuer);
-        ok = check_ocsp_response(ts, untrusted, cert, issuer, resp);
+        resp = get_ocsp_resp(cert, issuer, opt_ocsp_url, opt_ocsp_use_aia,
+                             opt_ocsp_timeout == 0 ? -1 : opt_ocsp_timeout);
+        ok = check_ocsp_resp(ts, untrusted, cert, issuer, resp);
         OCSP_RESPONSE_free(resp);
 
         if (ok == 1)        /* cert status ok */
@@ -2369,17 +1910,64 @@ static int check_cert_revocation_stapled_ocsp_crls(X509_STORE_CTX *ctx,
             return verify_cb_cert(ctx, cert, OCSP_err(ok));
         }
     }
-    /* OCSP disabled or not positive */
-    if (crl_check && (!ocsp_check || ok <= 0))
+    /* OCSP (including stapling) is disabled or inconclusive */
+
+    if (crl_check)
         return check_cert(ctx);
     return 1;
 }
 
+# if OPENSSL_VERSION_NUMBER >= 0x1010001fL
+/*
+ * callback function for verifying stapled OCSP responses
+ * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
+ */
+static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
+{
+    STACK_OF(X509) *chain = SSL_get0_verified_chain(ssl);
+    const unsigned char *resp;
+    OCSP_RESPONSE *rsp = NULL;
+    X509_STORE_CTX *ctx = NULL;
+    int ret = -1; /* tls_process_initial_server_flight reports
+                     return code < 0 as internal error: malloc failure */
+    int len = SSL_get_tlsext_status_ocsp_resp(ssl, &resp);
+
+    if (resp == NULL) {
+        BIO_puts(bio_err, "no OCSP response has been stapled\n");
+    } else {
+        DEBUG_print_cert("OCSP rsp stapled", sk_X509_value(chain, 0));
+        rsp = d2i_OCSP_RESPONSE(NULL, &resp, len);
+        if (rsp == NULL) {
+            BIO_puts(bio_err, "error parsing stapled OCSP response\n");
+            BIO_dump_indent(bio_err, (char *)resp, len, 4);
+            /* well, this is likely not an internal error (malloc failure) */
+            goto end;
+        }
+    }
+
+    ctx = X509_STORE_CTX_new();/* ctx needed for CRL checking and diagnostics */
+    if (ctx == NULL)
+        goto end;
+    if (!X509_STORE_CTX_init(ctx,
+                             SSL_CTX_get_cert_store(SSL_get_SSL_CTX(ssl)),
+                             NULL/* cert */, untrusted))
+        goto end;
+    X509_STORE_CTX_set0_verified_chain(ctx, X509_chain_up_ref(chain));
+    X509_STORE_CTX_set_error_depth(ctx, 0);
+    ret = check_cert_revocation(ctx, rsp);
+
+ end:
+    /* must not: sk_X509_free(untrusted); */
+    X509_STORE_CTX_free(ctx);
+    OCSP_RESPONSE_free(rsp);
+    return ret;
+}
+# endif
+
 /*
  * Check revocation status on each cert in ctx->chain. As a generalization of
  * check_revocation() in crypto/x509/x509_vfy.c, do not only consider CRLs:
- * for each cert, check based on OCSP stapling is deferred  if enabled,
- * else OCSP is considered if enabled, then CRLs are considered if enabled.
+ * use any stapled OCSP response resp, else OCSP or CRLs as far as required.
  */
 static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
 {
@@ -2421,18 +2009,197 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
         if (ssl && i == 0 && opt_ocsp_status) { /* OCSP (not multi-)stapling */
         /* We were called from ssl_verify_cert_chain() at state TLS_ST_CR_CERT.
            Stapled OCSP response becomes available only at TLS_ST_CR_CERT_STATUS
-           and ocsp_resp_cb() is called even later, at TLS_ST_CR_SRVR_DONE. The
-           best we can do here is to defer status checking of the first cert. */
+           and ocsp_stapling_cb() is called even later, at TLS_ST_CR_SRVR_DONE.
+           What we can do here is to defer status checking of the first cert.
+           This will then be performed by ocsp_stapling_cb(). */
                 continue;
         }
-        if (!check_cert_revocation_stapled_ocsp_crls(ctx, NULL))
+        if (!check_cert_revocation(ctx, NULL))
             return 0;
         chain = X509_STORE_CTX_get0_chain(ctx); /* for some reason need again */
 
     }
     return 1;
 }
+/* TODO DvO (end) push OCSP-related code upstream (PR #ocsp_stapling_crls) */
 #endif  /* !defined OPENSSL_NO_OCSP */
+
+#ifndef NDEBUG
+/*-
+ * Writes CMP_PKIMESSAGE DER-encoded to the file specified with outfile
+ *
+ * returns 1 on success, 0 on error
+ */
+static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
+{
+    char *file;
+    FILE *f;
+    int res = 0;
+
+    if (msg == NULL || filenames == NULL) {
+        BIO_printf(bio_err, "NULL arg to write_PKIMESSAGE\n");
+        return 0;
+    }
+    if (**filenames == '\0') {
+        BIO_printf(bio_err,
+              "Not enough file names have been provided for writing message\n");
+        return 0;
+    }
+
+    file = *filenames;
+    *filenames = next_item(file);
+    f = fopen(file, "wb");
+    if (f == NULL)
+        BIO_printf(bio_err, "Error opening file '%s' for writing\n", file);
+    else {
+        unsigned char *out = NULL;
+        int len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *) msg, &out);
+
+        if (len >= 0) {
+            if ((size_t)len == fwrite(out, sizeof(*out), len, f))
+                res = 1;
+            else
+                BIO_printf(bio_err, "Error writing file '%s'\n", file);
+            OPENSSL_free(out);
+        }
+        fclose(f);
+    }
+    return res;
+}
+
+/*-
+ * Reads a DER-encoded CMP_PKIMESSAGE from the file specified in infile
+ * The CMP_MESSAGE must be freed by the caller
+ *
+ * returns a pointer to the parsed CMP_PKIMESSAGE, null on error
+ */
+static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
+{
+    char *file;
+    FILE *f;
+    long fsize;
+    unsigned char *in;
+    CMP_PKIMESSAGE *ret = NULL;
+
+    if (filenames == NULL) {
+        BIO_printf(bio_err, "NULL arg to read_PKIMESSAGE\n");
+        return 0;
+    }
+    if (**filenames == '\0') {
+        BIO_printf(bio_err,
+              "Not enough file names have been provided for reading message\n");
+        return 0;
+    }
+
+    file = *filenames;
+    *filenames = next_item(file);
+    f = fopen(file, "rb");
+    if (f == NULL)
+        BIO_printf(bio_err, "Error opening file '%s' for reading\n", file);
+    else {
+        fseek(f, 0, SEEK_END);
+        fsize = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        if (fsize < 0) {
+            BIO_printf(bio_err, "Error getting size of file '%s'\n", file);
+        } else {
+            in = OPENSSL_malloc(fsize);
+            if (in == NULL)
+                BIO_printf(bio_err, "Out of memory reading file '%s'\n", file);
+            else {
+                if ((size_t)fsize != fread(in, 1, fsize, f))
+                    BIO_printf(bio_err, "Error reading file '%s'\n", file);
+                else {
+                    const unsigned char *p = in;
+                    ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
+                    if (ret == NULL)
+                        BIO_printf(bio_err,
+                               "Error parsing PKIMessage in file '%s'\n", file);
+                }
+                OPENSSL_free(in);
+            }
+        }
+        fclose(f);
+    }
+    return ret;
+}
+
+/*-
+ * Sends the PKIMessage req and on success place the response in *res
+ * basically like CMP_PKIMESSAGE_http_perform(), but in addition allows
+ * to dump the sequence of requests and responses to files and/or
+ * to take the sequence of requests and responses from files.
+ */
+static int read_write_req_resp(CMP_CTX *ctx,
+                               const CMP_PKIMESSAGE *req,
+                               CMP_PKIMESSAGE **res)
+{
+    CMP_PKIMESSAGE *req_new = NULL;
+    CMP_PKIHEADER *hdr;
+    int ret = CMP_R_ERROR_TRANSFERRING_OUT;
+
+    if (req && opt_reqout && !write_PKIMESSAGE(req, &opt_reqout))
+        goto err;
+
+    if (opt_reqin) {
+        if (opt_rspin) {
+            BIO_printf(bio_err,
+                       "warning: -reqin is ignored since -rspin is present\n");
+        } else {
+            ret = CMP_R_ERROR_TRANSFERRING_IN;
+            if ((req_new = read_PKIMESSAGE(&opt_reqin)) == NULL)
+                goto err;
+# if 0
+          /*
+           * The transaction ID in req_new may not be fresh. In this case the
+           * Insta Demo CA correctly complains: "Transaction id already in use."
+           * The following workaround unfortunately requires re-protection.
+           */
+            CMP_PKIHEADER_set1_transactionID(CMP_PKIMESSAGE_get0_header
+                                             (req_new), NULL);
+            CMP_PKIMESSAGE_protect((CMP_CTX *)ctx, req_new);
+# endif
+        }
+    }
+
+    ret = CMP_R_ERROR_TRANSFERRING_IN;
+    if (opt_rspin) {
+        if ((*res = read_PKIMESSAGE(&opt_rspin)))
+            ret = 0;
+    } else {
+        const CMP_PKIMESSAGE *actual_req = opt_reqin ? req_new : req;
+        if (opt_mock_srv) {
+            CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
+            ret = CMP_mock_server_perform(ctx, actual_req, res);
+        } else {
+            ret = CMP_PKIMESSAGE_http_perform(ctx, actual_req, res);
+        }
+    }
+
+    if (ret || (*res) == NULL)
+        goto err;
+    ret = CMP_R_OUT_OF_MEMORY;
+    hdr = CMP_PKIMESSAGE_get0_header(*res);
+    if ((opt_reqin || opt_rspin) &&
+        /* need to satisfy nonce and transactionID checks */
+        (!CMP_CTX_set1_last_senderNonce(ctx, CMP_PKIHEADER_get0_recipNonce(hdr))
+         || !CMP_CTX_set1_transactionID(ctx,
+                                        CMP_PKIHEADER_get0_transactionID(hdr))
+        ))
+        goto err;
+
+    if (opt_rspout && !write_PKIMESSAGE(*res, &opt_rspout)) {
+        ret = CMP_R_ERROR_TRANSFERRING_OUT;
+        CMP_PKIMESSAGE_free(*res);
+        goto err;
+    }
+
+    ret = 0;
+ err:
+    CMP_PKIMESSAGE_free(req_new);
+    return ret;
+}
+#endif /* !defined(NDEBUG) */
 
 static int http_connected = 0;
 static BIO *tls_http_cb(CMP_CTX *ctx, BIO *hbio, int connect)
@@ -2591,7 +2358,8 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
         X509_STORE_set_lookup_crls(ts, get_crls_cb);
     /*
      * TODO DvO: to be replaced with "store_setup_crl_download(ts)" from apps.h,
-     * after extended version of crls_http_cb has been pushed upstream
+     * after extended version of crls_http_cb()
+     * has been merged upstream (PR #crls_timeout_local)
      */
 
 #ifndef OPENSSL_NO_OCSP
@@ -2648,9 +2416,8 @@ static int set_gennames(char *names, int type,
     return 1;
 }
 
+/* TODO DvO push this and related functions upstream (PR #multifile) */
 /*
- * TODO DvO: push that separately upstream
- *
  * create cert store structure with certificates read from given file(s)
  * returns pointer to created X509_STORE on success, NULL on error
  */
@@ -2683,7 +2450,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     return store;
 }
 
-/* TODO DvO: push that separately upstream */
+/* TODO DvO push this and related functions upstream (PR #multifile) */
 static STACK_OF(X509) *load_certs_multifile(char *files, int format,
                                             const char *pass, const char *desc)
 {
@@ -2883,18 +2650,14 @@ static int setup_srv_ctx(ENGINE *e)
     }
 
     if (opt_srv_trusted) {
-        X509_STORE *ts;
-        STACK_OF(X509_CRL) *all_crls = sk_X509_CRL_new_null();
-        ts = load_certstore(opt_srv_trusted,
-                "server trusted certificates");
-        if (!set1_store_parameters_crls(ts/* may be NULL */, all_crls) ||
-            !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
+        X509_STORE *ts =
+            load_certstore(opt_srv_trusted, "server trusted certificates");
+        if (!set1_store_parameters_crls(ts/* may be NULL */, NULL/*no CRLs*/) ||
+            !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
             !CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
-            sk_X509_CRL_free(all_crls);
             goto err;
         }
-        sk_X509_CRL_free(all_crls);
     }
     if (!setup_certs(opt_srv_untrusted, "untrusted certificates", ctx,
                      (add_X509_stack_fn_t)CMP_CTX_set1_untrusted_certs, NULL))
@@ -2984,7 +2747,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
     if (opt_crl_timeout == 0)
         opt_crl_timeout = -1;
     if (opt_crls) {
-/* TODO DvO: extract load_multiple_crls() and push that separately upstream */
+/* TODO DvO extract load_multiple_crls() and push upstream (PR #multifile) */
         X509_CRL *crl;
         STACK_OF(X509_CRL) *crls;
 
@@ -3088,7 +2851,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
             !(ts = load_certstore(opt_trusted, "trusted certificates")))
             goto err;
         if (!set1_store_parameters_crls(ts, *all_crls) ||
-            !truststore_set_host(ts, NULL/* for CMP level, no host */) ||
+            !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
             !CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
             goto oom;
@@ -3189,7 +2952,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         goto err;
 # else
         SSL_CTX_set_tlsext_status_type(ssl_ctx, TLSEXT_STATUSTYPE_ocsp);
-        SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_resp_cb);
+        SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_stapling_cb);
 /*
  * help cert chain building with untrusted certs when list of certs is
  * insufficient from SSL_get0_verified_chain(ssl) and OCSP_resp_get0_certs(br):
@@ -3210,8 +2973,8 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
             goto oom;
 #if OPENSSL_VERSION_NUMBER >= 0x10002000
         /* enable and parameterize server hostname/IP address check */
-        if (!truststore_set_host(store, opt_tls_host ?
-                                 opt_tls_host : opt_server))
+        if (!truststore_set_host_etc(store, opt_tls_host ?
+                                            opt_tls_host : opt_server))
             /* TODO: is the server host name correct for TLS via proxy? */
             goto oom;
 #endif
@@ -3857,6 +3620,230 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
     }
 }
 
+static char opt_item[SECTION_NAME_MAX+1];
+/* get previous name from a comma-separated list of names */
+static char *prev_item(const char *opt, const char *end)
+{
+    const char *beg;
+    int len;
+
+    if (end == opt)
+        return NULL;
+    beg = end;
+    while (beg != opt && beg[-1] != ',' && !isspace(beg[-1]))
+        beg--;
+    len = end - beg;
+    if (len > SECTION_NAME_MAX)
+        len = SECTION_NAME_MAX;
+    strncpy(opt_item, beg, len);
+    opt_item[len] = '\0';
+    if (end - beg > SECTION_NAME_MAX) {
+        BIO_printf(bio_err,
+                   "warning: using only first %d"
+                   " characters of section name starting with \"%s\"\n",
+                   SECTION_NAME_MAX, opt_item);
+    }
+    while (beg != opt && (beg[-1] == ',' || isspace(beg[-1])))
+        beg--;
+    return (char *)beg;
+}
+
+/* get str value for name from a comma-separated hierarchy of config sections */
+static char *conf_get_string(const CONF *conf_, const char *groups,
+                            const char *name)
+{
+    char *res = NULL;
+    char *end = (char *)groups + strlen(groups);
+
+    while ((end = prev_item(groups, end)) != NULL) {
+        if ((res = NCONF_get_string(conf_, opt_item, name)) != NULL)
+            return res;
+    }
+    return res;
+}
+
+/* get long val for name from a comma-separated hierarchy of config sections */
+static int conf_get_number_e(const CONF *conf_, const char *groups,
+                             const char *name, long *result)
+{
+    char *str = conf_get_string(conf_, groups, name);
+
+    if (str == NULL || result == NULL)
+        return 0;
+
+    for (*result = 0; conf_->meth->is_number(conf_, *str);) {
+        *result = (*result) * 10 + conf_->meth->to_int(conf_, *str);
+        str++;
+    }
+
+    return 1;
+}
+
+/*
+ * use the command line option table to read values from the CMP section
+ * of openssl.cnf.  Defaults are taken from the config file, they can be
+ * overwritten on the command line.
+ */
+static int read_config()
+{
+    unsigned int i;
+    long num = 0;
+    char *txt = NULL;
+    const OPTIONS *opt;
+    int verification_option;
+
+    /*
+     * starting with offset OPT_SECTION because OPT_CONFIG and OPT_SECTION would
+     * not make sense within the config file. They have already been handled.
+     */
+    for (i = OPT_SECTION - OPT_HELP, opt = &cmp_options[OPT_SECTION];
+         opt->name; i++, opt++) {
+        if (!strcmp(opt->name, OPT_HELP_STR) ||
+            !strcmp(opt->name, OPT_MORE_STR)) {
+            i--;
+            continue;
+        }
+        /* OPT_CRLALL etc. */
+        verification_option = (OPT_V__FIRST <= opt->retval &&
+                               opt->retval < OPT_V__LAST);
+        if (verification_option)
+            i--;
+        if (cmp_vars[i].txt == NULL) {
+            BIO_printf(bio_err,
+                       "internal error: cmp_vars array too short, i=%d\n", i);
+            return 0;
+        }
+        switch (opt->valtype) {
+        case '-':
+        case 'n':
+        case 'l':
+            if (!conf_get_number_e(conf, opt_section, opt->name, &num)) {
+                ERR_clear_error();
+                continue; /* option not provided */
+            }
+            break;
+        /*
+         * do not use '<' in cmp_options. Incorrect treatment
+         * somewhere in args_verify() can wrongly set badarg = 1
+         */
+        case '<':
+        case 's':
+        case 'M':
+            txt = conf_get_string(conf, opt_section, opt->name);
+            if (txt == NULL) {
+                ERR_clear_error();
+                continue; /* option not provided */
+            }
+            break;
+        default:
+            BIO_printf(bio_err,
+                      "internal error: unsupported type '%c' for option '%s'\n",
+                       opt->valtype, opt->name);
+            return 0;
+            break;
+        }
+        if (verification_option) {
+            int conf_argc = 1;
+            char *conf_argv[3];
+            char arg1[82];
+
+            BIO_snprintf(arg1, 81, "-%s", (char *)opt->name);
+            conf_argv[0] = ""; /* dummy prog name */
+            conf_argv[1] = arg1;
+            if (opt->valtype == '-') {
+                if (num != 0)
+                    conf_argc = 2;
+            } else {
+                conf_argc = 3;
+                conf_argv[2] = conf_get_string(conf, opt_section, opt->name);
+                /* not NULL */
+            }
+            if (conf_argc > 1) {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+                (void)opt_init(conf_argc, conf_argv, cmp_options);
+                if (!opt_verify(opt_next(), vpm))
+#else
+                char **conf_argvp = conf_argv + 1;
+                int badarg = 0;
+
+                (void)args_verify(&conf_argvp, &conf_argc, &badarg, bio_err,
+                                  &vpm);
+                if (badarg)
+#endif
+                {
+                    BIO_printf(bio_err,
+                          "error for option '%s' in config file section '%s'\n",
+                               opt->name, opt_section);
+                    return 0;
+                }
+            }
+        } else {
+            switch (opt->valtype) {
+            case '-':
+            case 'n':
+                if (num < INT_MIN || INT_MAX < num) {
+                    BIO_printf(bio_err,
+                               "integer value out of range for option '%s'\n",
+                               opt->name);
+                    return 0;
+                }
+                *cmp_vars[i].num = (int)num;
+                break;
+            case 'l':
+                *cmp_vars[i].num_long = num;
+                break;
+            default:
+                if (txt != NULL && txt[0] == '\0')
+                    txt = NULL; /* reset option on empty string input */
+                *cmp_vars[i].txt = txt;
+                break;
+            }
+        }
+    }
+
+    return 1;
+}
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+CONF *app_load_config(const char *filename)
+{
+    long errorline = -1;
+    CONF *conf = NCONF_new(NULL);
+    if (conf && NCONF_load(conf, filename, &errorline) > 0)
+        return conf;
+
+    if (errorline <= 0)
+        BIO_printf(bio_err, "error loading the config file '%s'\n", filename);
+    else
+        BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
+                   errorline, filename);
+    NCONF_free(conf);
+    return NULL;
+}
+
+static void opt_help(const OPTIONS *unused_arg)
+{
+    const int ALIGN_COL = 22;
+    const OPTIONS *opt;
+    int i = 0;
+    int j = 0;
+    int initlen;
+
+    BIO_printf(bio_err, "\nusage: openssl %s args\n", prog);
+    for (i = 0, opt = cmp_options; opt->name; i++, opt++) {
+        if (!strcmp(opt->name, OPT_MORE_STR))
+            initlen = 0;
+        else {
+            BIO_printf(bio_err, " -%s", opt->name);
+            initlen = 2 + strlen(opt->name);
+        }
+        for (j = ALIGN_COL - initlen; j > 0; j--)
+            BIO_puts(bio_err, " ");
+        BIO_printf(bio_err, " %s\n", opt->helpstr);
+    }
+}
+#endif
+
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
 static char *opt_str(char *opt)
 {
@@ -3884,121 +3871,22 @@ static int opt_nat()
 }
 #endif
 
-/*
- *
- */
-int cmp_main(int argc, char **argv)
+/* returns 0 on success, 1 on error, -1 on -help (i.e., stop with success) */
+static int get_opts(int argc, char **argv)
 {
-    char *configfile = NULL;
-    long errorline = -1;
-    char *tofree = NULL; /* used as getenv returns a direct pointer to
-                          * the environment setting */
-    int badops = 0;
-    int i;
-    int ret = EXIT_FAILURE;
-    X509 *newcert = NULL;
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     OPTION_CHOICE o;
-#endif
-    ENGINE *e = NULL;
 
-    if (argc <= 1) {
-        badops = 1;
-        goto bad_ops;
-    }
-
-   /* handle OPT_CONFIG and OPT_SECTION upfront to take effect for other opts */
-    for (i = 1; i < argc - 1; i++)
-        if (*argv[i] == '-') {
-            if (!strcmp(argv[i] + 1, cmp_options[OPT_CONFIG - OPT_HELP].name))
-                opt_config = argv[i + 1];
-            else if (!strcmp(argv[i] + 1,
-                             cmp_options[OPT_SECTION - OPT_HELP].name))
-                opt_section = argv[i + 1];
-        }
-    if (opt_section[0] == '\0') /* empty string */
-        opt_section = DEFAULT_SECTION;
-
-    vpm = X509_VERIFY_PARAM_new();
-    if (vpm == NULL) {
-        BIO_printf(bio_err, "out of memory\n");
-        goto err;
-    }
-
-    if (opt_config) {
-        configfile = strdup(opt_config);
-        tofree = configfile;
-    }
-    /* TODO DvO: the following likely will go to openssl.c make_config_name() */
-    if (configfile == NULL)
-        configfile = getenv("OPENSSL_CONF");
-    if (configfile == NULL)
-        configfile = getenv("SSLEAY_CONF");
-    if (configfile == NULL) {
-        const char *s = X509_get_default_cert_area();
-        size_t len;
-
-        len = strlen(s) + sizeof(CONFIG_FILE) + 1;
-        tofree = OPENSSL_malloc(len);
-        BUF_strlcpy(tofree, s, len);
-        BUF_strlcat(tofree, "/" CONFIG_FILE, len);
-        configfile = tofree;
-    }
-
-    /*
-     * read default values for options from openssl.cnf
-     */
-    /* TODO DvO: the following would likely go to apps.c app_load_config_() */
-    if (configfile && configfile[0] != '\0') { /* non-empty string */
-        CMP_printf(cmp_ctx, FL_INFO, "using OpenSSL configuration file '%s'",
-                   configfile);
-        conf = NCONF_new(NULL);
-        if (NCONF_load(conf, configfile, &errorline) <= 0) {
-            if (errorline <= 0)
-                BIO_printf(bio_err, "error loading the config file '%s'\n",
-                           configfile);
-            else
-                BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
-                           errorline, configfile);
-        } else {
-            if (strcmp(opt_section, CMP_SECTION) == 0) { /* default */
-                if (!NCONF_get_section(conf, opt_section)) {
-                    BIO_printf(bio_err,
-                        "warning: no [%s section found in config file '%s';"
-               " will thus use just [default] and unnamed section if present\n",
-                               opt_section, configfile);
-                }
-            } else {
-                char *end = opt_section + strlen(opt_section);
-                while ((end = prev_item(opt_section, end)) != NULL) {
-                    if (!NCONF_get_section(conf, opt_item)) {
-                        BIO_printf(bio_err,
-                           "error: no [%s] section found in config file '%s'\n",
-                                   opt_item, configfile);
-                        goto err;
-                    }
-                }
-            }
-            if (!read_config())
-                goto err;
-        }
-    }
-    (void)BIO_flush(bio_err); /* prevent interference with opt_help() */
-
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     prog = opt_init(argc, argv, cmp_options);
 
     while ((o = opt_next()) != OPT_EOF) {
         switch (o) {
         case OPT_EOF:
         case OPT_ERR:
- opt_err:
-            BIO_printf(bio_err, "%s: use -help for summary.\n", prog);
-            goto err;
+            goto opt_err;
         case OPT_HELP:
-            ret = EXIT_SUCCESS;
             opt_help(cmp_options);
-            goto err;
+            return -1;
         case OPT_CONFIG: /* has already been handled */
             break;
         case OPT_SECTION: /* has already been handled */
@@ -4129,7 +4017,7 @@ int cmp_main(int argc, char **argv)
 # endif
         case OPT_V_CASES /* OPT_CRLALL etc. */ :
             if (!opt_verify(o, vpm))
-                goto bad_ops;
+                goto opt_err;
             break;
 
         case OPT_CMD:
@@ -4331,22 +4219,26 @@ int cmp_main(int argc, char **argv)
     /* parse commandline options */
     ++argv;
     while (--argc > 0) {
+        int i;
+        int badarg = 0;
         int found = 0;
         const OPTIONS *opt;
         char *arg;
 
-        if (args_verify(&argv, &argc, &badops, bio_err, &vpm)) {
+        if (args_verify(&argv, &argc, &badarg, bio_err, &vpm)) {
             /* OPT_CRLALL etc. */
-            if (badops)
-                goto bad_ops;
+            if (badarg)
+                goto opt_err;
             continue;
         }
         arg = *argv;
 
         if (*arg == 0 || *arg++ != '-') {
-            badops = 1;
-            break;
+            BIO_printf(bio_err, "option '%.40s' must start with: '-'\n", *argv);
+            goto opt_err;
         }
+        if (*arg == '-')
+            arg++;
 
         /*
          * starting with index 0 to consume also OPT_CONFIG and OPT_SECTION,
@@ -4362,10 +4254,9 @@ int cmp_main(int argc, char **argv)
                 opt += (OPT_V__LAST - 1) - (OPT_V__FIRST + 1);
             if (opt->name && !strcmp(arg, opt->name)) {
                 if (argc <= 1 && opt->valtype != '-') {
-                    BIO_printf(bio_err, "%s: missing argument for '-%s'\n",
-                               prog, opt->name);
-                    badops = 1;
-                    goto bad_ops;
+                    BIO_printf(bio_err, "missing argument for '-%s'\n",
+                               opt->name);
+                    goto opt_err;
                 }
                 switch (opt->valtype) {
                 case '-':
@@ -4394,27 +4285,104 @@ int cmp_main(int argc, char **argv)
                     argc--;
                     break;
                 default:
-                    badops = 1;
-                    break;
+                    BIO_printf(bio_err, "internal error parsing arguments\n");
+                    goto opt_err;
                 }
                 found = 1;
             }
         }
 
         if (!found) {
-            BIO_printf(bio_err, "%s: unknown argument: '%s'\n", prog, *argv);
-            badops = 1;
-            goto bad_ops;
+            if (strcmp(arg, "help") == 0) {
+                opt_help(cmp_options);
+                return -1;
+            }
+            BIO_printf(bio_err, "unknown argument: '%s'\n", *argv);
+            goto opt_err;
         }
         ++argv;
     }
 #endif /* OPENSSL_VERSION_NUMBER */
+    return 0;
 
- bad_ops:
-    if (badops) {
+ opt_err:
+    BIO_printf(bio_err, "%s: Use -help for summary.\n", prog);
+    return 1;
+}
+
+/*
+ *
+ */
+int cmp_main(int argc, char **argv)
+{
+    char *configfile = NULL;
+    int i;
+    int ret = 1; /* default: failure */
+    X509 *newcert = NULL;
+    ENGINE *e = NULL;
+
+    if (argc <= 1) {
         opt_help(cmp_options);
         goto err;
     }
+
+   /* handle OPT_CONFIG and OPT_SECTION upfront to take effect for other opts */
+    for (i = 1; i < argc - 1; i++)
+        if (*argv[i] == '-') {
+            if (!strcmp(argv[i] + 1, cmp_options[OPT_CONFIG - OPT_HELP].name))
+                opt_config = argv[i + 1];
+            else if (!strcmp(argv[i] + 1,
+                             cmp_options[OPT_SECTION - OPT_HELP].name))
+                opt_section = argv[i + 1];
+        }
+    if (opt_section[0] == '\0') /* empty string */
+        opt_section = DEFAULT_SECTION;
+
+    vpm = X509_VERIFY_PARAM_new();
+    if (vpm == NULL) {
+        BIO_printf(bio_err, "%s: out of memory\n", prog);
+        goto err;
+    }
+
+    /*
+     * read default values for options from configfile
+     */
+    configfile = opt_config ? opt_config : default_config_file;
+    if (configfile && configfile[0] != '\0') { /* non-empty string */
+        CMP_printf(cmp_ctx, FL_INFO, "using OpenSSL configuration file '%s'",
+                   configfile);
+        conf = app_load_config(configfile);
+        if (conf == NULL) {
+            goto err;
+        } else {
+            if (strcmp(opt_section, CMP_SECTION) == 0) { /* default */
+                if (!NCONF_get_section(conf, opt_section)) {
+                    BIO_printf(bio_err,
+                        "warning: no [%s section found in config file '%s';"
+               " will thus use just [default] and unnamed section if present\n",
+                               opt_section, configfile);
+                }
+            } else {
+                char *end = opt_section + strlen(opt_section);
+                while ((end = prev_item(opt_section, end)) != NULL) {
+                    if (!NCONF_get_section(conf, opt_item)) {
+                        BIO_printf(bio_err,
+                           "error: no [%s] section found in config file '%s'\n",
+                                   opt_item, configfile);
+                        goto err;
+                    }
+                }
+            }
+            if (!read_config())
+                goto err;
+        }
+    }
+    (void)BIO_flush(bio_err); /* prevent interference with opt_help() */
+
+    ret = get_opts(argc, argv);
+    if (ret != 0)
+        goto err;
+    ret = 1;
 
     if (opt_batch) {
         UI_METHOD *ui_fallback_method;
@@ -4512,9 +4480,9 @@ int cmp_main(int argc, char **argv)
         sk_X509_pop_free(certs, X509_free);
     }
 
-    ret = EXIT_SUCCESS;
+    ret = 0;
  err:
-    if (ret != EXIT_SUCCESS)
+    if (ret > 0)
         ERR_print_errors_fp(stderr);
 
     SSL_CTX_free(CMP_CTX_get_http_cb_arg(cmp_ctx));
@@ -4542,7 +4510,6 @@ int cmp_main(int argc, char **argv)
     if (opt_secret)
         OPENSSL_cleanse(opt_secret, strlen(opt_secret));
     NCONF_free(conf); /* must not do as long as opt_... variables are used */
-    OPENSSL_free(tofree);
 
-    return ret;
+    return ret > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
