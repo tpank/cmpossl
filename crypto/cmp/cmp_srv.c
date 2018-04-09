@@ -603,7 +603,7 @@ static CMP_PKIMESSAGE *process_certConf(CMP_SRV_CTX *srv_ctx,
     CMP_PKIMESSAGE *msg = NULL;
     CMP_CERTSTATUS *status = NULL;
     ASN1_OCTET_STRING *tmp = NULL;
-    int res;
+    int res = -1;
     int num = sk_CMP_CERTSTATUS_num(req->body->value.certConf);
 
     if (num == 0) {
@@ -625,10 +625,12 @@ static CMP_PKIMESSAGE *process_certConf(CMP_SRV_CTX *srv_ctx,
         /* check cert hash by recalculating it in place */
         tmp = status->certHash;
         status->certHash = NULL;
-        res = CMP_CERTSTATUS_set_certHash(status, srv_ctx->certOut) &&
-            ASN1_OCTET_STRING_cmp(tmp, status->certHash) == 0;
+        if (CMP_CERTSTATUS_set_certHash(status, srv_ctx->certOut))
+            res = ASN1_OCTET_STRING_cmp(tmp, status->certHash) == 0;
         ASN1_OCTET_STRING_free(status->certHash);
         status->certHash = tmp;
+        if (res == -1)
+            return NULL;
         if (!res) {
             CMPerr(CMP_F_PROCESS_CERTCONF, CMP_R_WRONG_CERT_HASH);
             return NULL;
