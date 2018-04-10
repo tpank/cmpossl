@@ -1420,11 +1420,21 @@ int CMP_CTX_set_option(CMP_CTX *ctx, const int opt, const int val) {
     return 0;
 }
 
-/* prints errors and warnings to stderr, info and debug messages to stdout */
-int CMP_puts(const char *file, int lineno, severity level, const char *msg)
+int CMP_log_init(void)
+{
+    return 1;
+}
+
+void CMP_log_close(void)
+{
+    ;
+}
+
+/* prints log messages to given stream fd */
+int CMP_log_fd(const char *file, int lineno, severity level, const char *msg,
+               FILE *fd)
 {
     char *lvl = NULL;
-    FILE *fd = level <= LOG_WARN ? stderr : stdout;
     int msg_len = strlen(msg);
     int msg_nl = msg_len > 0 && msg[msg_len-1] == '\n';
     int len = 0;
@@ -1456,6 +1466,13 @@ int CMP_puts(const char *file, int lineno, severity level, const char *msg)
     len += fprintf(fd, ": %s%s", msg, msg_nl ? "" : "\n");
 
     return fflush(fd) != EOF && len >= 0;
+}
+
+/* prints errors and warnings to stderr, info and debug messages to stdout */
+int CMP_puts(const char *file, int lineno, severity level, const char *msg)
+{
+    FILE *fd = level <= LOG_WARN ? stderr : stdout;
+    return CMP_log_fd(file, lineno, level, msg, fd);
 }
 
 /*
