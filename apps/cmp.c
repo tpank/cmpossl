@@ -1599,7 +1599,7 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
 /* Maximum leeway in validity period: default 5 minutes */
 # define MAX_OCSP_VALIDITY_PERIOD (5 * 60)
 
-/* adapted from main() of ocsp.c */
+/* adapted from ocsp_main() of ocsp.c */
 /*
  * Verify an OCSP response resp obtained via an OCSP request or OCSP stapling.
  * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
@@ -1657,8 +1657,8 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
         X509_STORE_set_check_revocation(ts, NULL);
 
         /* must not do host/ip/email checking on OCSP responder cert chain */
-        if ((!(bak_vpm = X509_VERIFY_PARAM_new()) && /* copy vpm: */
-             X509_VERIFY_PARAM_inherit(bak_vpm, X509_STORE_get0_param(ts))) ||
+        if (!(bak_vpm = X509_VERIFY_PARAM_new()) || /* copy vpm: */
+            !X509_VERIFY_PARAM_inherit(bak_vpm, X509_STORE_get0_param(ts)) ||
             !truststore_set_host_etc(ts, NULL))
             goto end;
 
