@@ -230,7 +230,7 @@ int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
         CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1, CMP_R_NULL_ARGUMENT);
         goto err;
     }
-    if (*tgt == src) /* self-assignement */
+    if (*tgt == src) /* self-assignment */
         return 1;
     ASN1_OCTET_STRING_free(*tgt);
 
@@ -764,7 +764,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
                 goto err;
 
             /* Add ctx->extraCertsOut, the ctx->clCert,
-             * and the chain upwards build up from ctx->untrusted_certs */
+             * and the chain built upwards from ctx->untrusted_certs */
             CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
 
             if ((msg->protection =
@@ -1627,7 +1627,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
  *
  * returns a pointer to a stack of (up_ref'ed) X509 certificates containing:
  *      - the EE certificate given in the function arguments (cert)
- *      - all intermediate certificates up the chain towards the trust anchor
+ *      - all intermediate certificates up the chain toward the trust anchor
  *      - the (self-signed) trust anchor is not included
  *      returns NULL on error
  */
