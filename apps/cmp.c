@@ -31,7 +31,6 @@
 #endif
 
 static char *opt_config = NULL;
-#define CONFIG_FILE "openssl.cnf"
 #define CMP_SECTION "cmp"
 #define SECTION_NAME_MAX 40 /* max length of section name */
 #define DEFAULT_SECTION "default"
@@ -4349,10 +4348,11 @@ int cmp_main(int argc, char **argv)
     }
 
     /*
-     * read default values for options from configfile
+     * read default values for options from config file
      */
     configfile = opt_config ? opt_config : default_config_file;
-    if (configfile && configfile[0] != '\0') { /* non-empty string */
+    if (configfile && configfile[0] != '\0' /* non-empty string */ &&
+        (configfile != default_config_file || access(configfile, F_OK) != -1)) {
         CMP_printf(cmp_ctx, FL_INFO, "using OpenSSL configuration file '%s'",
                    configfile);
         conf = app_load_config(configfile);
