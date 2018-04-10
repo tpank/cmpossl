@@ -626,7 +626,8 @@ static CMP_PKIMESSAGE *process_certConf(CMP_SRV_CTX *srv_ctx,
         tmp = status->certHash;
         status->certHash = NULL;
         if (CMP_CERTSTATUS_set_certHash(status, srv_ctx->certOut))
-            res = ASN1_OCTET_STRING_cmp(tmp, status->certHash) == 0;
+            res = status->certHash == NULL ? 0 /* avoiding SCA false positive */
+                  : ASN1_OCTET_STRING_cmp(tmp, status->certHash) == 0;
         ASN1_OCTET_STRING_free(status->certHash);
         status->certHash = tmp;
         if (res == -1)
