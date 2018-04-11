@@ -75,7 +75,7 @@ static ENGINE *try_load_engine(const char *engine)
 }
 #endif
 
-#if !defined(OPENSSL_NO_UI_CONSOLE) || !defined(OPENSSL_NO_ENGINE)
+#ifndef OPENSSL_NO_ENGINE
 static UI_METHOD *ui_method = NULL;
 #endif
 
@@ -235,9 +235,7 @@ static char *opt_otherform_s = "PEM";
 static int opt_otherform = FORMAT_PEM;
 static char *opt_otherpass = NULL;
 static int opt_batch = 0;
-#ifndef OPENSSL_NO_ENGINE
 static char *opt_engine = NULL;
-#endif
 
 static char *opt_newkey = NULL;
 static char *opt_newkeypass = NULL;
@@ -4395,13 +4393,15 @@ int cmp_main(int argc, char **argv)
     ret = 1;
 
     if (opt_batch) {
+#ifndef OPENSSL_NO_ENGINE
         UI_METHOD *ui_fallback_method;
-#ifndef OPENSSL_NO_UI_CONSOLE
+# ifndef OPENSSL_NO_UI_CONSOLE
         ui_fallback_method = UI_OpenSSL();
-#else
-        ui_fallback_method = UI_null();
-#endif
+# else
+        ui_fallback_method = (UI_METHOD *)UI_null();
+# endif
         UI_method_set_reader(ui_fallback_method, NULL);
+#endif
     }
 
     if (opt_engine)
