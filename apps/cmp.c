@@ -1408,13 +1408,6 @@ static void DEBUG_print(const char *msg, const char *s1, const char *s2)
 #endif
 }
 
-static void DEBUG_print_cert(const char *msg, const X509 *cert)
-{
-    char *s = X509_NAME_oneline(X509_get_subject_name((X509 *)cert), NULL, 0);
-    DEBUG_print(msg, "for cert with subject =", s);
-    OPENSSL_free(s);
-}
-
 /*
  * set the expected host name/IP addr and clears the email addr in the given ts.
  * The string must not be freed as long as cert_verify_cb() may use it.
@@ -1591,6 +1584,13 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
 }
 
 #ifndef OPENSSL_NO_OCSP
+static void DEBUG_print_cert(const char *msg, const X509 *cert)
+{
+    char *s = X509_NAME_oneline(X509_get_subject_name((X509 *)cert), NULL, 0);
+    DEBUG_print(msg, "for cert with subject =", s);
+    OPENSSL_free(s);
+}
+
 /*
  * code implementing OCSP support
  */
@@ -2174,7 +2174,9 @@ static int read_write_req_resp(CMP_CTX *ctx,
             CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
             ret = CMP_mock_server_perform(ctx, actual_req, res);
         } else {
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
             ret = CMP_PKIMESSAGE_http_perform(ctx, actual_req, res);
+#endif
         }
     }
 
@@ -3450,9 +3452,11 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         (void)CMP_CTX_set_http_cb(ctx, tls_http_cb);
         (void)CMP_CTX_set_http_cb_arg(ctx, ssl_ctx);
     } else {
+#ifndef OPENSSL_NO_OCSP
         if (opt_ocsp_status)
             BIO_printf(bio_err,
                        "warning: -ocsp_status has no effect without TLS\n");
+#endif
     }
 
 
