@@ -13,6 +13,8 @@
 
 #include "cmptestlib.h"
 
+#ifndef OPENSSL_NO_CMP
+
 typedef struct test_fixture {
     const char *test_case_name;
     int expected;
@@ -607,8 +609,26 @@ static int test_cmp_x509_store_only_self_signed(void)
     return result;
 }
 
+
+void cleanup_tests(void)
+{
+    EVP_PKEY_free(loadedkey);
+    X509_free(cert);
+    X509_free(endentity1);
+    X509_free(endentity2);
+    X509_free(root);
+    X509_free(intermediate);
+    CMP_PKIMESSAGE_free(ir_protected);
+    CMP_PKIMESSAGE_free(ir_unprotected);
+    CMP_PKIMESSAGE_free(insta_unprotected);
+
+    return;
+}
+#endif
+
 int setup_tests(void)
 {
+#ifndef OPENSSL_NO_CMP
     if(!TEST_int_eq(1, RAND_bytes(rand_data, TRANSACTIONID_LENGTH)))
         return 0;
     if (!TEST_ptr(endentity1 =
@@ -658,20 +678,7 @@ int setup_tests(void)
     ADD_TEST(test_cmp_x509_store_only_self_signed);
     /* TODO make sure that total number of tests (here currently 24) is shown,
      also for other cmp_*text.c. Currently the test drivers always show 1. */
+
+#endif
     return 1;
-}
-
-void cleanup_tests(void)
-{
-    EVP_PKEY_free(loadedkey);
-    X509_free(cert);
-    X509_free(endentity1);
-    X509_free(endentity2);
-    X509_free(root);
-    X509_free(intermediate);
-    CMP_PKIMESSAGE_free(ir_protected);
-    CMP_PKIMESSAGE_free(ir_unprotected);
-    CMP_PKIMESSAGE_free(insta_unprotected);
-
-    return;
 }

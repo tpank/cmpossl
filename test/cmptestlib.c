@@ -13,6 +13,8 @@
 
 #include "cmptestlib.h"
 
+#ifndef OPENSSL_NO_CMP
+
 EVP_PKEY *load_pem_key(const char *file)
 {
     EVP_PKEY *key = NULL;
@@ -132,3 +134,5 @@ int STACK_OF_X509_push1(STACK_OF(X509) *sk, X509 *cert)
         X509_free(cert); /* down-ref */
     return res;
 }
+
+#endif

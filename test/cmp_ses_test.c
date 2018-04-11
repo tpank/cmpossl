@@ -13,8 +13,8 @@
 
 #include "cmptestlib.h"
 
-#ifndef NDEBUG  /* tests need mock server, which is available only if !NDEBUG */
-
+#ifndef OPENSSL_NO_CMP
+# ifndef NDEBUG /* tests need mock server, which is available only if !NDEBUG */
 
 typedef struct test_fixture {
     const char *test_case_name;
@@ -307,12 +307,19 @@ int setup_tests(void)
     return 1;
 }
 
-#else  /* !defined (NDEBUG) */
+# else /* !defined (NDEBUG) */
 
 int setup_tests(void)
 {
-    TEST_note("CMP session tests are disabled in this build.");
+    TEST_note("CMP session tests are disabled in this build (NDEBUG).");
     return 1;
 }
 
+# endif
+
+#else /* !defined (OPENSSL_NO_CMP) */
+int setup_tests(void)
+{
+    return 1;
+}
 #endif

@@ -20,6 +20,7 @@
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
+# ifndef OPENSSL_NO_CMP
 # if OPENSSL_VERSION_NUMBER >= 0x10101000L
 #  include <openssl/cmperr.h>
 # endif
@@ -606,6 +607,7 @@ int i2d_CMP_PKIMESSAGE(CMP_PKIMESSAGE *, unsigned char **);
 
 # ifdef  __cplusplus
 }
+#  endif
 # endif
 #endif /* fndef HEADER_CMP_H */
 

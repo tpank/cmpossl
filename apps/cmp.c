@@ -11,10 +11,6 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#include <openssl/opensslconf.h>
-#include <openssl/pkcs12.h>
-#include <openssl/ssl.h>
-
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -23,6 +19,12 @@
 #include "progs.h"
 #endif
 #include "s_apps.h"
+
+#ifndef OPENSSL_NO_CMP
+
+#include <openssl/opensslconf.h>
+#include <openssl/pkcs12.h>
+#include <openssl/ssl.h>
 
 #if OPENSSL_VERSION_NUMBER < 0x1010001fL
 # define X509_STORE_CTX_set0_verified_chain(ctx, sk) { \
@@ -4523,3 +4525,5 @@ int cmp_main(int argc, char **argv)
 
     return ret > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
+
+#endif

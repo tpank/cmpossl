@@ -12,7 +12,10 @@
  */
 
 #include "cmptestlib.h"
-#include <crypto/cmp/cmp_int.h>
+
+#ifndef OPENSSL_NO_CMP
+
+# include <crypto/cmp/cmp_int.h>
 
 /* Add test code as per
  * http://wiki.openssl.org/index.php/How_To_Write_Unit_Tests_For_OpenSSL#Style
@@ -257,8 +260,16 @@ static int test_cmp_pkiheader_init_no_ref_no_subject(void)
     return result;
 }
 
+void cleanup_tests(void)
+{
+    EVP_PKEY_free(loadedprivkey);
+    EVP_PKEY_free(loadedpubkey);
+}
+#endif
+
 int setup_tests(void)
 {
+#ifndef OPENSSL_NO_CMP
     if (!TEST_ptr(loadedprivkey = load_pem_key("../cmp-test/server.pem")))
         return 0;
     if (TEST_true(EVP_PKEY_up_ref(loadedprivkey)))
@@ -272,11 +283,7 @@ int setup_tests(void)
     ADD_TEST(test_cmp_pkiheader_init);
     ADD_TEST(test_cmp_pkiheader_init_with_subject);
     ADD_TEST(test_cmp_pkiheader_init_no_ref_no_subject);
-    return 1;
-}
+#endif
 
-void cleanup_tests(void)
-{
-    EVP_PKEY_free(loadedprivkey);
-    EVP_PKEY_free(loadedpubkey);
+    return 1;
 }
