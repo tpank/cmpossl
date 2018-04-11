@@ -19,7 +19,9 @@
 #include <string.h>
 #include <ctype.h>
 #include "apps.h"
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 #include "progs.h"
+#endif
 #include "s_apps.h"
 
 #if OPENSSL_VERSION_NUMBER < 0x1010001fL
@@ -3808,19 +3810,19 @@ static int read_config()
 }
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-CONF *app_load_config(const char *filename)
+static CONF *app_load_config(const char *filename)
 {
     long errorline = -1;
-    CONF *conf = NCONF_new(NULL);
-    if (conf && NCONF_load(conf, filename, &errorline) > 0)
-        return conf;
+    CONF *conf_ = NCONF_new(NULL);
+    if (conf_ && NCONF_load(conf_, filename, &errorline) > 0)
+        return conf_;
 
     if (errorline <= 0)
         BIO_printf(bio_err, "error loading the config file '%s'\n", filename);
     else
         BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
                    errorline, filename);
-    NCONF_free(conf);
+    NCONF_free(conf_);
     return NULL;
 }
 
