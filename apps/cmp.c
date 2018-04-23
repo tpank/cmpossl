@@ -20,6 +20,14 @@
 #endif
 #include "s_apps.h"
 
+/* tweaks needed due to missing unistd.h on Windows */
+#ifdef _WIN32
+#define access _access
+#endif
+#ifndef F_OK
+# define F_OK 0
+#endif
+
 #ifndef OPENSSL_NO_CMP
 
 #include <openssl/opensslconf.h>
