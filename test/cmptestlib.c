@@ -57,9 +57,9 @@ X509_REQ *load_csr(const char *file)
     X509_REQ *csr = NULL;
     BIO *bio = NULL;
 
-    if (!TEST_ptr(file) || !TEST_ptr(bio = BIO_new_file(file, "r")))
+    if (!TEST_ptr(file) || !TEST_ptr(bio = BIO_new_file(file, "rb")))
         return NULL;
-    (void)TEST_ptr(csr = ASN1_item_d2i_bio(ASN1_ITEM_rptr(X509_REQ), bio, NULL));
+    (void)TEST_ptr(csr = d2i_X509_REQ_bio(bio, NULL));
     BIO_free(bio);
     return csr;
 }

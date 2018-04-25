@@ -578,9 +578,9 @@ CMP_PKIMESSAGE *CMP_PKIMESSAGE_load(const char *file)
     CMP_PKIMESSAGE *msg = NULL;
     BIO *bio = NULL;
 
-    if (!file || !(bio = BIO_new_file(file, "r")))
+    if (!file || !(bio = BIO_new_file(file, "rb")))
         return NULL;
-    msg = ASN1_item_d2i_bio(ASN1_ITEM_rptr(CMP_PKIMESSAGE), bio, NULL);
+    msg = d2i_CMP_PKIMESSAGE_bio(bio, NULL);
     BIO_free(bio);
     return msg;
 }
