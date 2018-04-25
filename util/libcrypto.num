@@ -4748,3 +4748,4 @@ RSA_meth_set_multi_prime_keygen         4679	1_1_1	EXIST::FUNCTION:RSA
 ERR_load_strings_const                  4680	1_1_1	EXIST::FUNCTION:
 X509_get0_authority_key_id              4681	1_1_1	EXIST::FUNCTION:
 CMP_PKIHEADER_set1_sender               4682	1_1_1	EXIST::FUNCTION:CMP
+CMP_PKIMESSAGE_load                     4683	1_1_1	EXIST::FUNCTION:CMP

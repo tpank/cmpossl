@@ -248,6 +248,7 @@ struct cmp_infotypeandvalue_st {
     } infoValue;
 } /* CMP_INFOTYPEANDVALUE */;
 CMP_INFOTYPEANDVALUE *CMP_INFOTYPEANDVALUE_dup(CMP_INFOTYPEANDVALUE *itav);
+DECLARE_ASN1_FUNCTIONS(CMP_INFOTYPEANDVALUE)
 
 int CMP_INFOTYPEANDVALUE_stack_item_push0(
                               STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,

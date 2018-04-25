@@ -572,3 +572,15 @@ CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
     CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
+
+CMP_PKIMESSAGE *CMP_PKIMESSAGE_load(const char *file)
+{
+    CMP_PKIMESSAGE *msg = NULL;
+    BIO *bio = NULL;
+
+    if (!file || !(bio = BIO_new_file(file, "r")))
+        return NULL;
+    msg = ASN1_item_d2i_bio(ASN1_ITEM_rptr(CMP_PKIMESSAGE), bio, NULL);
+    BIO_free(bio);
+    return msg;
+}
