@@ -464,7 +464,6 @@ X509 *CMP_exec_P10CR_ses(CMP_CTX *ctx);
 int CMP_exec_RR_ses(CMP_CTX *ctx);
 STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx);
 
-# ifndef NDEBUG
 /* from cmp_srv.c */
 typedef struct cmp_srv_ctx_st CMP_SRV_CTX;
 int CMP_mock_server_perform(CMP_CTX *cmp_ctx, const CMP_PKIMESSAGE *req,
@@ -484,7 +483,6 @@ int CMP_SRV_CTX_set_send_error(CMP_SRV_CTX *srv_ctx, int error);
 int CMP_SRV_CTX_set_checkAfterTime(CMP_SRV_CTX *srv_ctx, long seconds);
 int CMP_SRV_CTX_set_pollCount(CMP_SRV_CTX *srv_ctx, int count);
 int CMP_SRV_CTX_set_accept_raverified(CMP_SRV_CTX *srv_ctx, int raverified);
-# endif /* NDEBUG */
 
 /* from cmp_asn.c */
 void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,

@@ -19,7 +19,6 @@
 #include <openssl/asn1.h>
 #include <openssl/asn1t.h>
 #include <string.h>
-#ifndef NDEBUG
 
 typedef CMP_PKIMESSAGE *(*cmp_srv_process_cb_t)
  (CMP_SRV_CTX *ctx, const CMP_PKIMESSAGE *msg);
@@ -913,4 +912,3 @@ CMP_SRV_CTX *CMP_SRV_CTX_create(void)
     CMP_SRV_CTX_free(ctx);
     return NULL;
 }
-#endif                          /* NDEBUG */
