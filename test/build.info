@@ -397,6 +397,26 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
   INCLUDE[conf_include_test]=../include
   DEPEND[conf_include_test]=../libcrypto libtestutil.a
 
+  SOURCE[cmp_msg_test]=cmp_msg_test.c cmptestlib.c
+  INCLUDE[cmp_msg_test]=.. ../include
+  DEPEND[cmp_msg_test]=../libcrypto.a libtestutil.a
+
+  SOURCE[cmp_vfy_test]=cmp_vfy_test.c cmptestlib.c
+  INCLUDE[cmp_vfy_test]=.. ../include
+  DEPEND[cmp_vfy_test]=../libcrypto.a libtestutil.a
+
+  SOURCE[cmp_lib_test]=cmp_lib_test.c cmptestlib.c
+  INCLUDE[cmp_lib_test]=.. ../include
+  DEPEND[cmp_lib_test]=../libcrypto.a libtestutil.a
+
+  SOURCE[cmp_ctx_test]=cmp_ctx_test.c cmptestlib.c
+  INCLUDE[cmp_ctx_test]=.. ../include
+  DEPEND[cmp_ctx_test]=../libcrypto.a libtestutil.a
+
+  SOURCE[cmp_ses_test]=cmp_ses_test.c cmptestlib.c
+  INCLUDE[cmp_ses_test]=.. ../include
+  DEPEND[cmp_ses_test]=../libcrypto.a libtestutil.a
+
   # Internal test programs.  These are essentially a collection of internal
   # test routines.  Some of them need to reach internal symbols that aren't
   # available through the shared library (at least on Linux, Solaris, Windows
@@ -460,26 +480,6 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
     SOURCE[cmp_internal_test]=cmp_internal_test.c cmptestlib.c
     INCLUDE[cmp_internal_test]=.. ../include
     DEPEND[cmp_internal_test]=../libcrypto.a libtestutil.a
-
-    SOURCE[cmp_msg_test]=cmp_msg_test.c cmptestlib.c
-    INCLUDE[cmp_msg_test]=.. ../include
-    DEPEND[cmp_msg_test]=../libcrypto.a libtestutil.a
-
-    SOURCE[cmp_vfy_test]=cmp_vfy_test.c cmptestlib.c
-    INCLUDE[cmp_vfy_test]=.. ../include
-    DEPEND[cmp_vfy_test]=../libcrypto.a libtestutil.a
-
-    SOURCE[cmp_lib_test]=cmp_lib_test.c cmptestlib.c
-    INCLUDE[cmp_lib_test]=.. ../include
-    DEPEND[cmp_lib_test]=../libcrypto.a libtestutil.a
-
-    SOURCE[cmp_ctx_test]=cmp_ctx_test.c cmptestlib.c
-    INCLUDE[cmp_ctx_test]=.. ../include
-    DEPEND[cmp_ctx_test]=../libcrypto.a libtestutil.a
-
-    SOURCE[cmp_ses_test]=cmp_ses_test.c cmptestlib.c
-    INCLUDE[cmp_ses_test]=.. ../include
-    DEPEND[cmp_ses_test]=../libcrypto.a libtestutil.a
 
     SOURCE[siphash_internal_test]=siphash_internal_test.c
     INCLUDE[siphash_internal_test]=.. ../include ../crypto/include
