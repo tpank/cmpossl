@@ -4360,7 +4360,7 @@ CMP_PKIMESSAGE_set_implicitConfirm      4303	1_1_1	EXIST::FUNCTION:CMP
 OSSL_STORE_INFO_get1_PARAMS             4304	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_set1_regCtrl_authenticator 4305	1_1_1	EXIST::FUNCTION:
 OSSL_STORE_LOADER_set_close             4306	1_1_1	EXIST::FUNCTION:
-d2i_CMP_INFOTYPEANDVALUE                4307	1_1_1	EXIST::FUNCTION:CMP
+d2i_CMP_INFOTYPEANDVALUE                4307	1_1_1	NOEXIST::FUNCTION:
 CMP_CTX_get0_recipNonce                 4308	1_1_1	EXIST::FUNCTION:CMP
 EVP_sha3_512                            4309	1_1_1	EXIST::FUNCTION:
 EVP_PKEY_asn1_set_check                 4310	1_1_1	EXIST::FUNCTION:
@@ -4391,7 +4391,7 @@ CMP_CTX_caPubs_get1                     4333	1_1_1	EXIST::FUNCTION:CMP
 ERR_clear_last_mark                     4334	1_1_1	EXIST::FUNCTION:
 RAND_POOL_acquire_entropy               4335	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_genm_items_push1         4336	1_1_1	EXIST::FUNCTION:CMP
-CMP_INFOTYPEANDVALUE_new                4337	1_1_1	EXIST::FUNCTION:CMP
+CMP_INFOTYPEANDVALUE_new                4337	1_1_1	NOEXIST::FUNCTION:
 RAND_POOL_add                           4338	1_1_1	EXIST::FUNCTION:
 EVP_PKEY_asn1_set_param_check           4339	1_1_1	EXIST::FUNCTION:
 CMP_PKIMESSAGE_check_received           4340	1_1_1	EXIST::FUNCTION:CMP
@@ -4611,8 +4611,8 @@ OSSL_STORE_INFO_get0_CRL                4548	1_1_1	EXIST::FUNCTION:
 OSSL_STORE_SEARCH_get0_bytes            4549	1_1_1	EXIST::FUNCTION:
 RAND_DRBG_set_reseed_defaults           4550	1_1_1	EXIST::FUNCTION:
 CMP_CTX_set_http_cb                     4551	1_1_1	EXIST::FUNCTION:CMP
-CMP_INFOTYPEANDVALUE_it                 4552	1_1_1	EXIST:!EXPORT_VAR_AS_FUNCTION:VARIABLE:CMP
-CMP_INFOTYPEANDVALUE_it                 4552	1_1_1	EXIST:EXPORT_VAR_AS_FUNCTION:FUNCTION:CMP
+CMP_INFOTYPEANDVALUE_it                 4552	1_1_1	NOEXIST::FUNCTION:
+CMP_INFOTYPEANDVALUE_it                 4552	1_1_1	NOEXIST::FUNCTION:
 CRMF_PKIPUBLICATIONINFO_free            4553	1_1_1	EXIST::FUNCTION:
 CRMF_CERTREQMSG_set1_issuer             4554	1_1_1	EXIST::FUNCTION:
 RAND_DRBG_set                           4555	1_1_1	EXIST::FUNCTION:
@@ -4644,7 +4644,7 @@ CMP_CTX_get_certConf_cb_arg             4579	1_1_1	EXIST::FUNCTION:CMP
 RAND_POOL_free                          4580	1_1_1	EXIST::FUNCTION:
 CMP_calc_protection                     4581	1_1_1	EXIST::FUNCTION:CMP
 CMP_X509_STORE_get1_certs               4582	1_1_1	EXIST::FUNCTION:CMP
-i2d_CMP_INFOTYPEANDVALUE                4583	1_1_1	EXIST::FUNCTION:CMP
+i2d_CMP_INFOTYPEANDVALUE                4583	1_1_1	NOEXIST::FUNCTION:
 CRMF_CERTREQMSG_set1_regCtrl_pkiPublicationInfo 4584	1_1_1	EXIST::FUNCTION:
 EVP_PKEY_meth_remove                    4585	1_1_1	EXIST::FUNCTION:
 CMP_CTX_caPubs_num                      4586	1_1_1	EXIST::FUNCTION:CMP
