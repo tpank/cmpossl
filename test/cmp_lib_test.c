@@ -13,8 +13,6 @@
 
 #include "cmptestlib.h"
 
-#ifndef OPENSSL_NO_CMP
-
 typedef struct test_fixture {
     const char *test_case_name;
     int expected;
@@ -624,11 +622,9 @@ void cleanup_tests(void)
 
     return;
 }
-#endif
 
 int setup_tests(void)
 {
-#ifndef OPENSSL_NO_CMP
     if(!TEST_int_eq(1, RAND_bytes(rand_data, TRANSACTIONID_LENGTH)))
         return 0;
     if (!TEST_ptr(endentity1 =
@@ -679,6 +675,5 @@ int setup_tests(void)
     /* TODO make sure that total number of tests (here currently 24) is shown,
      also for other cmp_*text.c. Currently the test drivers always show 1. */
 
-#endif
     return 1;
 }

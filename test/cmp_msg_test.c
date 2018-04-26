@@ -13,8 +13,6 @@
 
 #include "cmptestlib.h"
 
-#ifndef OPENSSL_NO_CMP
-
 typedef struct test_fixture {
     const char *test_case_name;
     CMP_CTX *cmp_ctx;
@@ -417,11 +415,9 @@ void cleanup_tests(void)
     EVP_PKEY_free(newkey);
     X509_free(cert);
 }
-#endif
 
 int setup_tests(void)
 {
-#ifndef OPENSSL_NO_CMP
     if (!TEST_ptr(newkey = gen_rsa()) ||
         !TEST_ptr(cert =
                   load_pem_cert("../cmp-test/openssl_cmp_test_server.crt")) ||
@@ -448,7 +444,6 @@ int setup_tests(void)
     ADD_TEST(test_cmp_create_genm);
     ADD_ALL_TESTS_NOSUBTEST(test_cmp_pkimessage_create,
                             V_CMP_PKIBODY_POLLREP + 1);
-#endif
 
     return 1;
 }

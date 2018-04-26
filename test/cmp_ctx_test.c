@@ -13,8 +13,6 @@
 
 #include "cmptestlib.h"
 
-#ifndef OPENSSL_NO_CMP
-
 typedef struct test_fixture {
     const char *test_case_name;
     X509_EXTENSIONS *exts;
@@ -89,13 +87,10 @@ void cleanup_tests(void)
 {
     return;
 }
-#endif
 
 int setup_tests(void)
 {
-#ifndef OPENSSL_NO_CMP
     ADD_TEST(test_cmp_ctx_reqextensions_have_san);
-#endif
 
     return 1;
 }

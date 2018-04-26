@@ -13,8 +13,6 @@
 
 #include "cmptestlib.h"
 
-#ifndef OPENSSL_NO_CMP
-
 typedef struct test_fixture {
     const char *test_case_name;
     int expected;
@@ -278,11 +276,9 @@ void cleanup_tests(void)
     X509_free(root);
     return;
 }
-#endif
 
 int setup_tests(void)
 {
-#ifndef OPENSSL_NO_CMP
     /* Set test time stamps */
     struct tm ts = { 0 };
     ts.tm_year = 2018 - 1900;
@@ -322,7 +318,6 @@ int setup_tests(void)
     ADD_TEST(test_cmp_validate_cert_path);
     ADD_TEST(test_cmp_validate_cert_path_expired);
     ADD_TEST(test_cmp_validate_cert_path_no_anchor);
-#endif
 
     return 1;
 }

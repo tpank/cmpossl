@@ -396,6 +396,7 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
   INCLUDE[conf_include_test]=../include
   DEPEND[conf_include_test]=../libcrypto libtestutil.a
 
+  IF[{- !$disabled{cmp} -}]
     # As workaround for at least cmp_ses_test currently using internal symbols,
     # we use below ../libcrypto.a rather than ../libcrypto while on the other hand
     # using ../libcrypto.a would lead to config error for Windows VC shared lib builds
@@ -403,6 +404,7 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
     IF[{- $disabled{shared} || $target{build_scheme}->[1] ne 'windows' -}]
       PROGRAMS_NO_INST=cmp_ctx_test cmp_lib_test cmp_msg_test cmp_ses_test cmp_vfy_test
     ENDIF
+  ENDIF
 
   SOURCE[cmp_msg_test]=cmp_msg_test.c cmptestlib.c
   INCLUDE[cmp_msg_test]=.. ../include
@@ -435,7 +437,7 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
   IF[{- $disabled{shared} || $target{build_scheme}->[1] ne 'windows' -}]
     PROGRAMS_NO_INST=asn1_internal_test modes_internal_test x509_internal_test \
                      tls13encryptiontest wpackettest ctype_internal_test \
-                     rdrand_sanitytest cmp_internal_test
+                     rdrand_sanitytest
     IF[{- !$disabled{poly1305} -}]
       PROGRAMS_NO_INST=poly1305_internal_test
     ENDIF
@@ -450,6 +452,9 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=MAIN
     ENDIF
     IF[{- !$disabled{ec} -}]
       PROGRAMS_NO_INST=curve448_internal_test
+    ENDIF
+    IF[{- !$disabled{cmp} -}]
+      PROGRAMS_NO_INST=cmp_internal_test
     ENDIF
 
     SOURCE[poly1305_internal_test]=poly1305_internal_test.c

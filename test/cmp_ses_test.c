@@ -13,8 +13,7 @@
 
 #include "cmptestlib.h"
 
-#ifndef OPENSSL_NO_CMP
-# ifndef NDEBUG /* tests need mock server, which is available only if !NDEBUG */
+#ifndef NDEBUG /* tests need mock server, which is available only if !NDEBUG */
 
 typedef struct test_fixture {
     const char *test_case_name;
@@ -240,7 +239,7 @@ static int test_cmp_exec_genm_ses(void)
     return result;
 }
 
-# include <crypto/cmp/cmp_int.h>
+#include <crypto/cmp/cmp_int.h>
 static int execute_exchange_certconf_test(CMP_SES_TEST_FIXTURE *fixture)
 {
     return TEST_int_eq(fixture->expected,
@@ -307,7 +306,7 @@ int setup_tests(void)
     return 1;
 }
 
-# else /* !defined (NDEBUG) */
+#else /* !defined (NDEBUG) */
 
 int setup_tests(void)
 {
@@ -315,11 +314,4 @@ int setup_tests(void)
     return 1;
 }
 
-# endif
-
-#else /* !defined (OPENSSL_NO_CMP) */
-int setup_tests(void)
-{
-    return 1;
-}
 #endif
