@@ -306,7 +306,7 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
 }
 
 /*
- * internal function
+ * internal function, but exported just for testing
  *
  * send certConf for IR, CR or KUR sequences and check response
  * returns 1 on success, 0 on error
@@ -334,7 +334,8 @@ int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
 }
 
 /*
- * internal function, currently unused
+ * internal function, but exported just for testing
+ * icurrently unused
  *
  * send given error and check response
  * returns 1 on success, 0 on error

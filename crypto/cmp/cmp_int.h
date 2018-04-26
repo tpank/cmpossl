@@ -734,9 +734,10 @@ int CMP_CTX_error_cb(const char *str, size_t len, void *u);
 void put_cert_verify_err(int func);
 
 /* from cmp_ses.c */
+/* exported just for testing:
 int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt);
 int exchange_error(CMP_CTX *ctx, int status, int failure,const char *txt);
-
+*/
 
 # ifdef  __cplusplus
 }

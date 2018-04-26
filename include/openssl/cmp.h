@@ -463,6 +463,9 @@ X509 *CMP_exec_KUR_ses(CMP_CTX *ctx);
 X509 *CMP_exec_P10CR_ses(CMP_CTX *ctx);
 int CMP_exec_RR_ses(CMP_CTX *ctx);
 STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx);
+/* exported just for testing: */
+int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt);
+int exchange_error(CMP_CTX *ctx, int status, int failure, const char *txt);
 
 /* from cmp_srv.c */
 typedef struct cmp_srv_ctx_st CMP_SRV_CTX;

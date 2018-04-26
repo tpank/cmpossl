@@ -239,7 +239,6 @@ static int test_cmp_exec_genm_ses(void)
     return result;
 }
 
-#include <crypto/cmp/cmp_int.h>
 static int execute_exchange_certconf_test(CMP_SES_TEST_FIXTURE *fixture)
 {
     return TEST_int_eq(fixture->expected,
