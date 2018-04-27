@@ -153,11 +153,11 @@ int CMP_SRV_CTX_set_send_error(CMP_SRV_CTX *srv_ctx, int error)
     return 1;
 }
 
-int CMP_SRV_CTX_set_checkAfterTime(CMP_SRV_CTX *srv_ctx, long time)
+int CMP_SRV_CTX_set_checkAfterTime(CMP_SRV_CTX *srv_ctx, long tim)
 {
     if (srv_ctx == NULL)
         return 0;
-    srv_ctx->checkAfterTime = time;
+    srv_ctx->checkAfterTime = tim;
     return 1;
 }
 
