@@ -311,7 +311,7 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
  * send certConf for IR, CR or KUR sequences and check response
  * returns 1 on success, 0 on error
  */
-int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
+int CMP_exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
 {
     CMP_PKIMESSAGE *certConf = NULL;
     CMP_PKIMESSAGE *PKIconf = NULL;
@@ -340,7 +340,7 @@ int exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
  * send given error and check response
  * returns 1 on success, 0 on error
  */
-int exchange_error(CMP_CTX *ctx, int status, int failure, const char *txt)
+int CMP_exchange_error(CMP_CTX *ctx, int status, int failure, const char *txt)
 {
     CMP_PKIMESSAGE *error = NULL;
     CMP_PKISTATUSINFO *si = NULL;
@@ -548,7 +548,7 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
         failure = CMP_PKIFAILUREINFO_incorrectData;
         txt = "public key in new certificate does not match our private key";
 #if 0 /* better leave this for any ctx->certConf_cb to decide */
-        (void)exchange_error(ctx, CMP_PKISTATUS_rejection, failure, txt);
+        (void)CMP_exchange_error(ctx, CMP_PKISTATUS_rejection, failure, txt);
         /*
          * cannot flag failure earlier as send_receive_check() indirectly calls
          * ERR_clear_error()
@@ -571,7 +571,7 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
     }
 
     if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(*resp))
-        if (!exchange_certConf(ctx, failure, txt))
+        if (!CMP_exchange_certConf(ctx, failure, txt))
             ret = 0;
 
     if (failure >= 0) {

@@ -4749,5 +4749,7 @@ ERR_load_strings_const                  4680	1_1_1	EXIST::FUNCTION:
 X509_get0_authority_key_id              4681	1_1_1	EXIST::FUNCTION:
 CMP_PKIHEADER_set1_sender               4682	1_1_1	EXIST::FUNCTION:CMP
 CMP_PKIMESSAGE_load                     4683	1_1_1	EXIST::FUNCTION:CMP
-exchange_certConf                       4684	1_1_1	EXIST::FUNCTION:CMP
-exchange_error                          4685	1_1_1	EXIST::FUNCTION:CMP
+exchange_certConf                       4684	1_1_1	NOEXIST::FUNCTION:
+exchange_error                          4685	1_1_1	NOEXIST::FUNCTION:
+CMP_exchange_error                      4686	1_1_1	EXIST::FUNCTION:CMP
+CMP_exchange_certConf                   4687	1_1_1	EXIST::FUNCTION:CMP
