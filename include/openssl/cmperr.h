@@ -119,8 +119,8 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_VERIFY_PBMAC                           172
 #  define CMP_F_CMP_VERIFY_POPO                            196
 #  define CMP_F_CMP_VERIFY_SIGNATURE                       170
-#  define CMP_F_EXCHANGE_CERTCONF                          171
-#  define CMP_F_EXCHANGE_ERROR                             175
+#  define CMP_F_CMP_EXCHANGE_CERTCONF                      171
+#  define CMP_F_CMP_EXCHANGE_ERROR                         175
 #  define CMP_F_FIND_SRVCERT                               173
 #  define CMP_F_GET_CERT_STATUS                            174
 #  define CMP_F_POLLFORRESPONSE                            178

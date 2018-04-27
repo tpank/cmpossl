@@ -323,7 +323,7 @@ int CMP_exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
         goto err;
 
     success = send_receive_check(ctx, certConf, "certConf",
-                                 CMP_F_EXCHANGE_CERTCONF, &PKIconf,
+                                 CMP_F_CMP_EXCHANGE_CERTCONF, &PKIconf,
                                  V_CMP_PKIBODY_PKICONF,
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
@@ -354,7 +354,7 @@ int CMP_exchange_error(CMP_CTX *ctx, int status, int failure, const char *txt)
     if ((error = CMP_error_new(ctx, si, -1, NULL, 0)) == NULL)
         goto err;
 
-    success = send_receive_check(ctx, error, "error", CMP_F_EXCHANGE_ERROR,
+    success = send_receive_check(ctx, error, "error", CMP_F_CMP_EXCHANGE_ERROR,
                                  &PKIconf, V_CMP_PKIBODY_PKICONF,
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
