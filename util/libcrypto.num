@@ -4431,7 +4431,7 @@ RAND_POOL_bytes_needed                  4373	1_1_1	EXIST::FUNCTION:
 RAND_POOL_length                        4374	1_1_1	EXIST::FUNCTION:
 OSSL_STORE_LOADER_set_expect            4375	1_1_1	EXIST::FUNCTION:
 CMP_PKISTATUSINFO_failInfo_get0         4376	1_1_1	EXIST::FUNCTION:CMP
-ERR_load_CMP_strings                    4377	1_1_1	EXIST::FUNCTION:
+ERR_load_CMP_strings                    4377	1_1_1	EXIST::FUNCTION:CMP
 d2i_CRMF_PKIPUBLICATIONINFO             4378	1_1_1	EXIST::FUNCTION:
 CMP_REVREPCONTENT_PKIStatusInfo_get     4379	1_1_1	EXIST::FUNCTION:CMP
 CMP_CTX_extraCertsIn_num                4380	1_1_1	EXIST::FUNCTION:CMP
