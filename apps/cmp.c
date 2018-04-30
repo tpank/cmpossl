@@ -3649,7 +3649,7 @@ static char *prev_item(const char *opt, const char *end)
     beg = end;
     while (beg != opt && beg[-1] != ',' && !isspace(beg[-1]))
         beg--;
-    len = end - beg;
+    len = (int)(end - beg);
     if (len > SECTION_NAME_MAX)
         len = SECTION_NAME_MAX;
     strncpy(opt_item, beg, len);

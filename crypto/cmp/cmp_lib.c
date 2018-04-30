@@ -78,7 +78,7 @@ void CMP_add_error_txt(const char *separator, const char *txt)
         ERR_peek_last_error_line_data(&file, &line, &data, &flags);
         if (!(flags & ERR_TXT_STRING))
             data = "";
-        len = strlen(data);
+        len = (int)strlen(data);
         curr = next = txt;
         while (*next && len + strlen(separator) + (next - txt) < MAX_DATA_LEN) {
             curr = next;
@@ -265,7 +265,7 @@ int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
 
     if (bytes != NULL) {
         if (!(new = ASN1_OCTET_STRING_new()) ||
-            !(ASN1_OCTET_STRING_set(new, bytes, len))) {
+            !(ASN1_OCTET_STRING_set(new, bytes, (int)len))) {
             CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_OUT_OF_MEMORY);
             goto err;
         }
@@ -409,7 +409,7 @@ CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft, const char *text)
         goto oom;
     if ((utf8string = ASN1_UTF8STRING_new()) == NULL)
         goto oom;
-    if (!ASN1_STRING_set(utf8string, text, strlen(text)))
+    if (!ASN1_STRING_set(utf8string, text, (int)strlen(text)))
         goto oom;
     if (!(sk_ASN1_UTF8STRING_push(ft, utf8string)))
         goto oom;
@@ -1093,7 +1093,7 @@ CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, unsigned long failInfo,
 
     if (text) {
         if ((utf8_text = ASN1_UTF8STRING_new()) == NULL ||
-            !ASN1_STRING_set(utf8_text, text, strlen(text)))
+            !ASN1_STRING_set(utf8_text, text, (int)strlen(text)))
             goto err;
         if (si->statusString == NULL &&
             (si->statusString = sk_ASN1_UTF8STRING_new_null()) == NULL)
@@ -1549,7 +1549,7 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
             if (failure[0] != '\0')
                 BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "%s%s",
                              n > 0 ? ", " : "", failure);
-            n += strlen(failure);
+            n += (int)strlen(failure);
         }
     }
     if (n == 0)
