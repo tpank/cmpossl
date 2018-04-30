@@ -83,8 +83,8 @@ S<[B<-tls_host name>]>
 
 S<[B<-reqin>]>
 S<[B<-reqout>]>
-S<[B<-respin>]>
-S<[B<-respout>]>
+S<[B<-rspin>]>
+S<[B<-rspout>]>
 
 S<[B<-crl_check>]>
 S<[B<-crl_check_all>]>
@@ -706,13 +706,13 @@ Save sequence of CMP requests to file(s).
 Multiple file names may be given, separated by commas and/or whitespace.
 As many files are written as needed to store the complete transaction.
 
-=item B<-respin>
+=item B<-rspin>
 
 Process sequence of CMP responses provided in file(s), skipping server.
 Multiple file names may be given, separated by commas and/or whitespace.
 As many files are read as needed for the complete transaction.
 
-=item B<-respout>
+=item B<-rspout>
 
 Save sequence of CMP responses to file(s).
 Multiple file names may be given, separated by commas and/or whitespace.
