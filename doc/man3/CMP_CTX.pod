@@ -294,9 +294,9 @@ RFC 4210.
         if applicable used for message protection and Proof-of-Possession.
 
     CMP_CTX_OPT_IGNORE_KEYUSAGE
-        Ignore CMP-level certificate key usage extension in certificate used for
-        validating signature protecting received CMP messages, if present.
-        Else, 'digitalSignature' is asserted.
+        Ignore key usage restrictions in signer certificate when
+        validating signature-based protection in received CMP messages.
+        Else, 'digitalSignature' must be allowed by CMP signer certificates.
 
     CMP_CTX_OPT_UNPROTECTED_ERRORS
         Accept unprotected error responses: regular error messages as well as
