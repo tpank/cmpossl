@@ -677,12 +677,16 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             STACK_OF(X509) *sk = msg->extraCerts;
             if (!check_kid(scrt, msg->header->senderKID, CMP_F_CMP_VALIDATE_MSG))
                 return 0;
-            /* if there are extraCerts, srvCert must be among them */
+            /* if there are extraCerts, srvCert should be among them */
             if (sk_X509_num(sk) > 0 &&
                 !X509_find_by_issuer_and_serial(sk, X509_get_issuer_name(scrt),
                                   (ASN1_INTEGER *)X509_get0_serialNumber(scrt))) {
+#if 0
                 CMPerr(CMP_F_CMP_VALIDATE_MSG,CMP_R_NO_EXTRACERT_MATCHES_SRVCERT);
                 return 0;
+#else
+                CMP_printf(ctx, FL_WARN, "none of the extraCerts matches the srvCert");
+#endif
             }
         } else {
             scrt = find_srvcert(ctx, msg);
