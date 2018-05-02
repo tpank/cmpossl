@@ -324,6 +324,39 @@ static add_name_mismatch_data(const char *error_prefix,
     OPENSSL_free(actual);
 }
 
+static int check_kid(X509 *cert, const ASN1_OCTET_STRING *kid, int fn)
+{
+    if (kid != NULL) {
+        const ASN1_OCTET_STRING *ckid = X509_get0_subject_key_id(cert);
+
+        /* enforce that the right subject key id is there */
+        if (ckid == NULL) {
+            if (fn)
+                CMPerr(fn, CMP_R_UNEXPECTED_SENDER);
+            CMP_add_error_data(" missing subject key ID");
+            return 0;
+        }
+        if (ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
+            if (fn)
+                CMPerr(fn, CMP_R_UNEXPECTED_SENDER);
+#if OPENSSL_VERSION_NUMBER >= 0x10100005L
+            char *str;
+#endif
+            CMP_add_error_data(" wrong subject key");
+#if OPENSSL_VERSION_NUMBER >= 0x10100005L
+            str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
+            CMP_add_error_txt("\n    ID = ", str);
+            OPENSSL_free(str);
+            str = OPENSSL_buf2hexstr(kid->data, kid->length);
+            CMP_add_error_txt("\n    vs.  ", str);
+            OPENSSL_free(str);
+#endif
+            return 0;
+        }
+    }
+    return 1;
+}
+
 /*
  * internal function
  *
@@ -335,7 +368,6 @@ static add_name_mismatch_data(const char *error_prefix,
 static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
                            const X509_STORE *ts) {
     X509_NAME *sender_name = NULL;
-    ASN1_OCTET_STRING *kid = NULL;
     X509_VERIFY_PARAM *vpm = NULL;
 
     vpm = ts ? X509_STORE_get0_param((X509_STORE *)ts) : NULL;
@@ -362,30 +394,8 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
         }
     }
 
-    if ((kid = msg->header->senderKID) != NULL) {
-        const ASN1_OCTET_STRING *ckid = X509_get0_subject_key_id(cert);
-
-        /* enforce that the right subject key id is there */
-        if (ckid == NULL) {
-            CMP_add_error_data(" missing subject key ID");
-            return 0;
-        }
-        if (ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100005L
-            char *str;
-#endif
-            CMP_add_error_data(" wrong subject key");
-#if OPENSSL_VERSION_NUMBER >= 0x10100005L
-            str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
-            CMP_add_error_txt("\n    ID = ", str);
-            OPENSSL_free(str);
-            str = OPENSSL_buf2hexstr(kid->data, kid->length);
-            CMP_add_error_txt("\n    vs.  ", str);
-            OPENSSL_free(str);
-#endif
-            return 0;
-        }
-    }
+    if (!check_kid(cert, msg->header->senderKID, 0))
+        return 0;
 
     return 1; /* acceptable also if there is no identifier in msg header */
 }
@@ -660,6 +670,10 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                 return 0;
             }
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
+
+        if (ctx->srvCert && !check_kid(ctx->srvCert, msg->header->senderKID,
+                                       CMP_F_CMP_VALIDATE_MSG))
+            return 0;
 
         if ((scrt = ctx->srvCert ? ctx->srvCert : find_srvcert(ctx, msg))) {
             if (CMP_verify_signature(ctx, msg, scrt))
