@@ -310,6 +310,20 @@ int CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm)
             endtime && X509_cmp_time(endtime, ptime) < 0);
 }
 
+static add_name_mismatch_data(const char *error_prefix,
+                              const X509_NAME *expected_name,
+                              const X509_NAME *actual_name)
+{
+    char *expected = X509_NAME_oneline(expected_name, NULL, 0);
+    char *actual = actual_name ? X509_NAME_oneline(actual_name, NULL, 0)
+                               : "(none)";
+    ERR_add_error_data(5, error_prefix,
+                          "\n expected = ", expected,
+                          "\n   actual = ", actual);
+    OPENSSL_free(expected);
+    OPENSSL_free(actual);
+}
+
 /*
  * internal function
  *
@@ -342,7 +356,8 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
             return 0;
         }
         if (X509_NAME_cmp(name, sender_name) != 0) {
-            CMP_add_error_data(" wrong subject");
+            add_name_mismatch_data(" subject does not match sender",
+                                   name, sender_name);
             return 0;
         }
     }
@@ -639,14 +654,9 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
          */
         if (ctx->expected_sender) { /* set explicitly or subj of ctx->srvCert */
             X509_NAME *sender_name = msg->header->sender->d.directoryName;
-            if (X509_NAME_cmp(sender_name, ctx->expected_sender) != 0) {
-                char *expected = X509_NAME_oneline(ctx->expected_sender,NULL,0);
-                char *actual   = X509_NAME_oneline(sender_name, NULL, 0);
+            if (X509_NAME_cmp(ctx->expected_sender, sender_name) != 0) {
                 CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
-                ERR_add_error_data(4, "\n expected = ", expected,
-                                  "\n   actual = ", actual ? actual : "(none)");
-                OPENSSL_free(expected);
-                OPENSSL_free(actual);
+                add_name_mismatch_data("", ctx->expected_sender, sender_name);
                 return 0;
             }
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
