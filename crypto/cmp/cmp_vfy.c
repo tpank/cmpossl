@@ -310,9 +310,9 @@ int CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm)
             endtime && X509_cmp_time(endtime, ptime) < 0);
 }
 
-static add_name_mismatch_data(const char *error_prefix,
-                              const X509_NAME *expected_name,
-                              const X509_NAME *actual_name)
+static void add_name_mismatch_data(const char *error_prefix,
+                                   const X509_NAME *expected_name,
+                                   const X509_NAME *actual_name)
 {
     char *expected = X509_NAME_oneline(expected_name, NULL, 0);
     char *actual = actual_name ? X509_NAME_oneline(actual_name, NULL, 0)
@@ -337,11 +337,11 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *kid, int fn)
             return 0;
         }
         if (ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
-            if (fn)
-                CMPerr(fn, CMP_R_UNEXPECTED_SENDER);
 #if OPENSSL_VERSION_NUMBER >= 0x10100005L
             char *str;
 #endif
+            if (fn)
+                CMPerr(fn, CMP_R_UNEXPECTED_SENDER);
             CMP_add_error_data(" wrong subject key");
 #if OPENSSL_VERSION_NUMBER >= 0x10100005L
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
