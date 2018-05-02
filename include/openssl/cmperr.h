@@ -79,6 +79,8 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_CTX_SET_SERVERPORT                     144
 #  define CMP_F_CMP_CTX_SUBJECTALTNAME_PUSH1               145
 #  define CMP_F_CMP_ERROR_NEW                              146
+#  define CMP_F_CMP_EXCHANGE_CERTCONF                      171
+#  define CMP_F_CMP_EXCHANGE_ERROR                         175
 #  define CMP_F_CMP_EXEC_CR_SES                            147
 #  define CMP_F_CMP_EXEC_GENM_SES                          148
 #  define CMP_F_CMP_EXEC_IR_SES                            149
@@ -119,8 +121,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_VERIFY_PBMAC                           172
 #  define CMP_F_CMP_VERIFY_POPO                            196
 #  define CMP_F_CMP_VERIFY_SIGNATURE                       170
-#  define CMP_F_CMP_EXCHANGE_CERTCONF                      171
-#  define CMP_F_CMP_EXCHANGE_ERROR                         175
 #  define CMP_F_FIND_SRVCERT                               173
 #  define CMP_F_GET_CERT_STATUS                            174
 #  define CMP_F_POLLFORRESPONSE                            178
@@ -196,8 +196,10 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_IP_NOT_RECEIVED                            145
 #  define CMP_R_KUP_NOT_RECEIVED                           146
 #  define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  147
+#  define CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATUE          176
 #  define CMP_R_MISSING_PROTECTION                         181
 #  define CMP_R_MULTIPLE_SAN_SOURCES                       180
+#  define CMP_R_NO_EXTRACERT_MATCHES_SRVCERT               198
 #  define CMP_R_NO_NULL_ARGUMENT                           195
 #  define CMP_R_NO_SENDER_NO_REFERENCE                     196
 #  define CMP_R_NO_VALID_SERVER_CERT_FOUND                 148
@@ -233,7 +235,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC      174
 #  define CMP_R_WRONG_ALGORITHM_OID                        175
 #  define CMP_R_WRONG_CERT_HASH                            193
-#  define CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATUE          176
 #  define CMP_R_WRONG_PBM_VALUE                            177
 
 # endif

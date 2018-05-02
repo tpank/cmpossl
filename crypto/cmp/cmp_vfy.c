@@ -671,11 +671,23 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             }
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
-        if (ctx->srvCert && !check_kid(ctx->srvCert, msg->header->senderKID,
-                                       CMP_F_CMP_VALIDATE_MSG))
-            return 0;
-
-        if ((scrt = ctx->srvCert ? ctx->srvCert : find_srvcert(ctx, msg))) {
+        scrt = ctx->srvCert;
+        if (scrt != NULL) {
+            /* srvCert must match msg header (sender and, if present, senderKID */
+            STACK_OF(X509) *sk = msg->extraCerts;
+            if (!check_kid(scrt, msg->header->senderKID, CMP_F_CMP_VALIDATE_MSG))
+                return 0;
+            /* if there are extraCerts, srvCert must be among them */
+            if (sk_X509_num(sk) > 0 &&
+                !X509_find_by_issuer_and_serial(sk, X509_get_issuer_name(scrt),
+                                  (ASN1_INTEGER *)X509_get0_serialNumber(scrt))) {
+                CMPerr(CMP_F_CMP_VALIDATE_MSG,CMP_R_NO_EXTRACERT_MATCHES_SRVCERT);
+                return 0;
+            }
+        } else {
+            scrt = find_srvcert(ctx, msg);
+        }
+        if (scrt != NULL) {
             if (CMP_verify_signature(ctx, msg, scrt))
                 return 1;
             put_cert_verify_err(CMP_F_CMP_VALIDATE_MSG);
