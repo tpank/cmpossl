@@ -47,8 +47,9 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     /* verify that keyUsage, if present, contains digitalSignature */
     if (!cmp_ctx->ignore_keyusage &&
         !(X509_get_key_usage((X509 *)cert) & X509v3_KU_DIGITAL_SIGNATURE)) {
-        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_WRONG_KEY_USAGE);
-            goto cert_err;
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE,
+               CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATUE);
+        goto cert_err;
     }
 
     pubkey = X509_get_pubkey((X509 *)cert);

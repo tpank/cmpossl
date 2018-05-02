@@ -2004,7 +2004,7 @@ CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC:174:\
 	unsupported protection alg dhbasedmac
 CMP_R_WRONG_ALGORITHM_OID:175:wrong algorithm oid
 CMP_R_WRONG_CERT_HASH:193:wrong cert hash
-CMP_R_WRONG_KEY_USAGE:176:wrong key usage
+CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATUE:176:missing key usage digitalsignature
 CMP_R_WRONG_PBM_VALUE:177:wrong pbm value
 CMS_R_ADD_SIGNER_ERROR:99:add signer error
 CMS_R_CERTIFICATE_ALREADY_PRESENT:175:certificate already present

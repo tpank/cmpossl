@@ -233,7 +233,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC      174
 #  define CMP_R_WRONG_ALGORITHM_OID                        175
 #  define CMP_R_WRONG_CERT_HASH                            193
-#  define CMP_R_WRONG_KEY_USAGE                            176
+#  define CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATUE          176
 #  define CMP_R_WRONG_PBM_VALUE                            177
 
 # endif
