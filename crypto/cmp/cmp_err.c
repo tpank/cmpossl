@@ -300,8 +300,6 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MISSING_PROTECTION), "missing protection"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MULTIPLE_SAN_SOURCES),
     "multiple san sources"},
-    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_EXTRACERT_MATCHES_SRVCERT),
-    "no extracert matches srvcert"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_NULL_ARGUMENT), "no null argument"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_SENDER_NO_REFERENCE),
     "no sender no reference"},
