@@ -671,6 +671,9 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             }
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
+        if (msg->header->senderKID == NULL)
+            CMP_add_error_line("cannot uniquely identify signer certificate since senderKID in CMP header is absent");
+
         scrt = ctx->srvCert;
         if (scrt != NULL) {
             /* srvCert must match msg header (sender and, if present, senderKID */
