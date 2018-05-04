@@ -127,6 +127,8 @@ typedef struct err_state_st {
 # define ECDHerr(f,r)  ERR_PUT_error(ERR_LIB_ECDH,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define OSSL_STOREerr(f,r) ERR_PUT_error(ERR_LIB_OSSL_STORE,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define FIPSerr(f,r) ERR_PUT_error(ERR_LIB_FIPS,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+# define CMPerr(f,r) ERR_PUT_error(ERR_LIB_CMP,(f),(r),__FILE__,__LINE__)
+# define CRMFerr(f,r) ERR_PUT_error(ERR_LIB_CRMF,(f),(r),__FILE__,__LINE__)
 # define CMSerr(f,r) ERR_PUT_error(ERR_LIB_CMS,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define TSerr(f,r) ERR_PUT_error(ERR_LIB_TS,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define HMACerr(f,r) ERR_PUT_error(ERR_LIB_HMAC,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
@@ -134,8 +136,6 @@ typedef struct err_state_st {
 # define ASYNCerr(f,r) ERR_PUT_error(ERR_LIB_ASYNC,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define KDFerr(f,r) ERR_PUT_error(ERR_LIB_KDF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define OSSL_STOREerr(f,r) ERR_PUT_error(ERR_LIB_OSSL_STORE,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-# define CMPerr(f,r) ERR_PUT_error(ERR_LIB_CMP,(f),(r),__FILE__,__LINE__)
-# define CRMFerr(f,r) ERR_PUT_error(ERR_LIB_CRMF,(f),(r),__FILE__,__LINE__)
 
 # define ERR_PACK(l,f,r) ( \
         (((unsigned int)(l) & 0x0FF) << 24L) | \
@@ -186,14 +186,14 @@ typedef struct err_state_st {
 # define ERR_R_ASN1_LIB  ERR_LIB_ASN1/* 13 */
 # define ERR_R_EC_LIB    ERR_LIB_EC/* 16 */
 # define ERR_R_BIO_LIB   ERR_LIB_BIO/* 32 */
+# define ERR_R_CMP_LIB   ERR_LIB_CMP/* 53 */
+# define ERR_R_CRMF_LIB  ERR_LIB_CRMF/* 54 */
 # define ERR_R_PKCS7_LIB ERR_LIB_PKCS7/* 33 */
 # define ERR_R_X509V3_LIB ERR_LIB_X509V3/* 34 */
 # define ERR_R_ENGINE_LIB ERR_LIB_ENGINE/* 38 */
 # define ERR_R_UI_LIB    ERR_LIB_UI/* 40 */
 # define ERR_R_ECDSA_LIB ERR_LIB_ECDSA/* 42 */
 # define ERR_R_OSSL_STORE_LIB ERR_LIB_OSSL_STORE/* 44 */
-# define ERR_R_CMP_LIB   ERR_LIB_CMP/* 53 */
-# define ERR_R_CRMF_LIB  ERR_LIB_CRMF/* 54 */
 
 # define ERR_R_NESTED_ASN1_ERROR                 58
 # define ERR_R_MISSING_ASN1_EOS                  63

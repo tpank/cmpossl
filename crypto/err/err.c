@@ -54,14 +54,14 @@ static ERR_STRING_DATA ERR_str_libraries[] = {
     {ERR_PACK(ERR_LIB_OCSP, 0, 0), "OCSP routines"},
     {ERR_PACK(ERR_LIB_UI, 0, 0), "UI routines"},
     {ERR_PACK(ERR_LIB_FIPS, 0, 0), "FIPS routines"},
+    {ERR_PACK(ERR_LIB_CMP, 0, 0), "CMP routines"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, 0), "CRMF routines"},
     {ERR_PACK(ERR_LIB_CMS, 0, 0), "CMS routines"},
     {ERR_PACK(ERR_LIB_HMAC, 0, 0), "HMAC routines"},
     {ERR_PACK(ERR_LIB_CT, 0, 0), "CT routines"},
     {ERR_PACK(ERR_LIB_ASYNC, 0, 0), "ASYNC routines"},
     {ERR_PACK(ERR_LIB_KDF, 0, 0), "KDF routines"},
     {ERR_PACK(ERR_LIB_OSSL_STORE, 0, 0), "STORE routines"},
-    {ERR_PACK(ERR_LIB_CMP, 0, 0), "CMP routines"},
-    {ERR_PACK(ERR_LIB_CRMF, 0, 0), "CRMF routines"},
     {0, NULL},
 };
 
