@@ -15,7 +15,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "apps.h"
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
 #include "progs.h"
 #endif
 #include "s_apps.h"
@@ -226,8 +226,10 @@ static int opt_ocsp_check_all = 0;
 static int opt_ocsp_use_aia = 0;
 static char *opt_ocsp_url = NULL;
 static int opt_ocsp_timeout = 10;
-# if OPENSSL_VERSION_NUMBER < 0x1010001fL
+# if OPENSSL_VERSION_NUMBER < 0x10100006L
 typedef int (*X509_STORE_CTX_check_revocation_fn) (X509_STORE_CTX *ctx);
+# endif
+# if OPENSSL_VERSION_NUMBER < 0x10101000L
 #  define X509_V_ERR_OCSP_VERIFY_NEEDED 73 /* Need OCSP verification */
 #  define X509_V_ERR_OCSP_VERIFY_FAILED 74 /* Could not verify cert via OCSP */
 # endif
@@ -430,7 +432,7 @@ typedef enum OPTION_choice {
     OPT_V_ENUM                  /* OPT_CRLALL etc. */
 } OPTION_CHOICE;
 
-#if OPENSSL_VERSION_NUMBER >= 0x1010001fL
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
 const
 #endif
 OPTIONS cmp_options[] = {
