@@ -311,8 +311,14 @@ int CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm)
 }
 
 static void add_name_mismatch_data(const char *error_prefix,
-                                   const X509_NAME *expected_name,
-                                   const X509_NAME *actual_name)
+#if OPENSSL_VERSION_NUMBER >= 0x10100007L
+                                   const
+#endif
+                                         X509_NAME *expected_name,
+#if OPENSSL_VERSION_NUMBER >= 0x10100007L
+                                   const
+#endif
+                                         X509_NAME *actual_name)
 {
     char *expected = X509_NAME_oneline(expected_name, NULL, 0);
     char *actual = actual_name ? X509_NAME_oneline(actual_name, NULL, 0)
