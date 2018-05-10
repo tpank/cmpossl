@@ -418,13 +418,6 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
     else if (rv == -1)
         err = CMP_R_ERROR_DECODING_MESSAGE;
     else if (rv == 0) { /* timeout */
-        /* We should notify/alert the peer when we abort;
-         * TODO: does the below BIO_reset suffice?
-         * We cannot do one of the following because ssl is not available here:
-         * SSL_shutdown(ssl);
-         * or more directly sth like
-         * ssl3_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_CLOSE_NOTIFY);
-         */
         err = CMP_R_READ_TIMEOUT;
     } else
         err = 0;
@@ -442,10 +435,10 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
             add_conn_error_hint(ctx, ERR_peek_error());
     }
 
-    (void)BIO_reset(hbio); /* notify/alert peer */
     if (ctx->http_cb && (*ctx->http_cb)(ctx, hbio, 0) == NULL)
         err = CMP_R_OUT_OF_MEMORY;
-    BIO_free_all(hbio); /* also frees any BIOs linked with hbio */
+    BIO_free_all(hbio); /* also frees any BIOs linked with hbio
+       and, like BIO_reset(hbio), calls SSL_shutdown() to notify/alert peer */
 
     return err;
 }
