@@ -681,7 +681,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         if (scrt != NULL) {
             /* srvCert must match msg header (sender and, if present, senderKID */
             if (!check_kid(scrt, msg->header->senderKID, CMP_F_CMP_VALIDATE_MSG))
-                return 0;
+                CMP_add_error_line("senderKID in CMP header does not match given server certificate's subject key identifier");
         } else {
             scrt = find_srvcert(ctx, msg);
         }
