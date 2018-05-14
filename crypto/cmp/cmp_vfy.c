@@ -41,8 +41,10 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     size_t prot_part_der_len = 0;
     unsigned char *prot_part_der = NULL;
 
-    if (msg == NULL || cert == NULL)
-        goto param_err;
+    if (cmp_ctx == NULL || msg == NULL || cert == NULL) {
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
 
     /* verify that keyUsage, if present, contains digitalSignature */
     if (!cmp_ctx->ignore_keyusage &&
@@ -54,8 +56,7 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
 
     pubkey = X509_get_pubkey((X509 *)cert);
     if (pubkey == NULL) {
-    param_err:
-        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_INVALID_KEY);
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_FAILED_EXTRACTING_PUBKEY);
         return 0;
     }
 

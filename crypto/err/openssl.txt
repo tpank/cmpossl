@@ -1950,6 +1950,7 @@ CMP_R_ERROR_SETTING_CERTHASH:133:error setting certhash
 CMP_R_ERROR_TRANSFERRING_IN:134:error transferring in
 CMP_R_ERROR_TRANSFERRING_OUT:135:error transferring out
 CMP_R_ERROR_VALIDATING_PROTECTION:136:error validating protection
+CMP_R_FAILED_EXTRACTING_PUBKEY:198:failed extracting pubkey
 CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE:137:failed to receive pkimessage
 CMP_R_FAILED_TO_SEND_REQUEST:138:failed to send request
 CMP_R_FAILED_TO_VERIFY_REQUEST:190:failed to verify request

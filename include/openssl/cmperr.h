@@ -16,12 +16,9 @@
 # ifndef OPENSSL_NO_CMP
 
 #  ifdef  __cplusplus
-extern "C" {
+extern "C"
 #  endif
 int ERR_load_CMP_strings(void);
-#  ifdef  __cplusplus
-}
-#  endif
 
 /*
  * CMP function codes.
@@ -183,6 +180,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_ERROR_TRANSFERRING_IN                      134
 #  define CMP_R_ERROR_TRANSFERRING_OUT                     135
 #  define CMP_R_ERROR_VALIDATING_PROTECTION                136
+#  define CMP_R_FAILED_EXTRACTING_PUBKEY                   198
 #  define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               137
 #  define CMP_R_FAILED_TO_SEND_REQUEST                     138
 #  define CMP_R_FAILED_TO_VERIFY_REQUEST                   190
