@@ -2320,7 +2320,7 @@ static int parse_addr(char **opt_string, int port, const char *name)
     }
     if ((port_string = strrchr(*opt_string, ':')) == NULL) {
         BIO_printf(bio_err,
-                   "warning: using for '%s' the default port %d\n", name, port);
+                   "info: using default port %d for %s\n", port, name);
         return port;
     }
     *(port_string++) = '\0';
@@ -3267,7 +3267,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
 "warning: -opt_san_critical has no effect unless -san_dns or -san_ip is given\n");
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL, 1);
     }
-    
+
     if (opt_san_nodefault) {
         if (opt_san_dns || opt_san_ip)
             BIO_puts(bio_err,
@@ -4378,7 +4378,7 @@ int cmp_main(int argc, char **argv)
             if (strcmp(opt_section, CMP_SECTION) == 0) { /* default */
                 if (!NCONF_get_section(conf, opt_section)) {
                     BIO_printf(bio_err,
-                        "warning: no [%s section found in config file '%s';"
+                        "info: no [%s section found in config file '%s';"
                " will thus use just [default] and unnamed section if present\n",
                                opt_section, configfile);
                 }
