@@ -677,21 +677,11 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             }
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
-        if (msg->header->senderKID == NULL)
-            CMP_add_error_line("cannot uniquely identify signer certificate since senderKID in CMP header is absent");
-
         scrt = ctx->srvCert;
         if (scrt != NULL) {
             /* srvCert must match msg header (sender and, if present, senderKID */
-            STACK_OF(X509) *sk = msg->extraCerts;
             if (!check_kid(scrt, msg->header->senderKID, CMP_F_CMP_VALIDATE_MSG))
                 return 0;
-            /* if there are extraCerts, srvCert should be among them */
-            if (sk_X509_num(sk) > 0 &&
-                !X509_find_by_issuer_and_serial(sk, X509_get_issuer_name(scrt),
-                                  (ASN1_INTEGER *)X509_get0_serialNumber(scrt))) {
-                CMP_add_error_line("none of the extraCerts matches the srvCert");
-            }
         } else {
             scrt = find_srvcert(ctx, msg);
         }
@@ -699,6 +689,22 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             if (CMP_verify_signature(ctx, msg, scrt))
                 return 1;
             put_cert_verify_err(CMP_F_CMP_VALIDATE_MSG);
+
+            /* potentially the server cert finding algorithm took an old
+             * certificate and the server certificate is not having a subject
+             * key identifier (including such in EE certs is only "SHOULD" in
+             * RFC 5280, section 4.2.1.2) or the CMP server is not conforming
+             * with RFC 4210 and is failing to set senderKID although having
+             * several keys associated with its name
+             */
+            if (!X509_find_by_issuer_and_serial(msg->extraCerts,
+                                X509_get_issuer_name(scrt),
+                                (ASN1_INTEGER *)X509_get0_serialNumber(scrt))) {
+                CMP_add_error_line("server cert used for verification attempt was not taken from extraCerts");
+            }
+
+            if (msg->header->senderKID == NULL)
+                CMP_add_error_line("senderKID in CMP header absent; risk that correct server cert could not be identified");
         }
     }
     return 0;
