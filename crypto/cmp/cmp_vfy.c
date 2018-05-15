@@ -708,9 +708,10 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             else /* server cert should match senderKID in header */
                 if (!check_kid(scrt, msg->header->senderKID, 0))
                     /* here this can only happen if ctx->srvCert has been set */
-                    CMP_add_error_line("for senderKID in CMP header there is no matching subject key identifier in given srvCert");
+                    CMP_add_error_line("subject key identifier in context-provided server certificate does not match senderKID in CMP header");
         } else {
-
+            CMPerr(CMP_F_CMP_VALIDATE_MSG,
+                   CMP_R_NO_SUITABLE_SERVER_CERT_OR_UNSUPPORTED_PROTECTION_ALG);
         }
     }
     return 0;

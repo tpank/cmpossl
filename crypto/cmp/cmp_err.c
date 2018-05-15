@@ -303,6 +303,8 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_NULL_ARGUMENT), "no null argument"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_SENDER_NO_REFERENCE),
     "no sender no reference"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_SUITABLE_SERVER_CERT_OR_UNSUPPORTED_PROTECTION_ALG),
+    "no suitable server cert or unsupported protection alg"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_VALID_SERVER_CERT_FOUND),
     "no valid server cert found"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NULL_ARGUMENT), "null argument"},

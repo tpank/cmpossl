@@ -198,6 +198,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_MULTIPLE_SAN_SOURCES                       180
 #  define CMP_R_NO_NULL_ARGUMENT                           195
 #  define CMP_R_NO_SENDER_NO_REFERENCE                     196
+#  define CMP_R_NO_SUITABLE_SERVER_CERT_OR_UNSUPPORTED_PROTECTION_ALG 199
 #  define CMP_R_NO_VALID_SERVER_CERT_FOUND                 148
 #  define CMP_R_NULL_ARGUMENT                              149
 #  define CMP_R_OUT_OF_MEMORY                              150
