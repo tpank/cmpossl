@@ -168,11 +168,11 @@ static int opt_unprotectedRequests = 0;
 static char *opt_digest = NULL;
 static char *opt_extracerts = NULL;
 
-static char *opt_recipient = NULL;
-static char *opt_expect_sender = NULL;
-static char *opt_srvcert = NULL;
 static char *opt_trusted = NULL;
 static char *opt_untrusted = NULL;
+static char *opt_srvcert = NULL;
+static char *opt_recipient = NULL;
+static char *opt_expect_sender = NULL;
 static int opt_ignore_keyusage = 0;
 static int opt_unprotectedErrors = 0;
 static char *opt_extracertsout = NULL;
@@ -376,8 +376,8 @@ typedef enum OPTION_choice {
     OPT_SERVER, OPT_PROXY, OPT_PATH,
     OPT_MSGTIMEOUT, OPT_TOTALTIMEOUT,
 
-    OPT_RECIPIENT, OPT_EXPECT_SENDER, OPT_SRVCERT,
-    OPT_TRUSTED, OPT_UNTRUSTED,
+    OPT_TRUSTED, OPT_UNTRUSTED, OPT_SRVCERT,
+    OPT_RECIPIENT, OPT_EXPECT_SENDER,
     OPT_IGNORE_KEYUSAGE, OPT_UNPROTECTEDERRORS,
     OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
 
@@ -456,17 +456,17 @@ OPTIONS cmp_options[] = {
      "Overall time an enrollment incl. polling may take. Default 0 = infinite"},
 
     {OPT_MORE_STR, 0, 0, "\nServer authentication options:"},
-    {"recipient", OPT_RECIPIENT, 's',
-    "Distinguished Name (DN) of the recipient to use unless -srvcert is given"},
-    {"expect_sender", OPT_EXPECT_SENDER, 's',
-     "DN of expected response sender. Defaults to DN of -srvcert, if provided"},
-    {"srvcert", OPT_SRVCERT, 's',
- "Specific CMP server cert to use and trust directly when verifying responses"},
     {"trusted", OPT_TRUSTED, 's',
 "Trusted CA certs used for CMP server authentication when verifying responses"},
     {OPT_MORE_STR, 0, 0, "unless -srvcert is given"},
     {"untrusted", OPT_UNTRUSTED, 's',
   "Intermediate certs for chain construction verifying CMP/TLS/enrolled certs"},
+    {"srvcert", OPT_SRVCERT, 's',
+ "Specific CMP server cert to use and trust directly when verifying responses"},
+    {"recipient", OPT_RECIPIENT, 's',
+    "Distinguished Name (DN) of the recipient to use unless -srvcert is given"},
+    {"expect_sender", OPT_EXPECT_SENDER, 's',
+     "DN of expected response sender. Defaults to DN of -srvcert, if provided"},
     {"ignore_keyusage", OPT_IGNORE_KEYUSAGE, '-',
    "Ignore CMP signer cert key usage, else 'digitalSignature' must be allowed"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-',
@@ -725,8 +725,8 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_server}, {&opt_proxy}, {&opt_path},
     {(char **)&opt_msgtimeout}, {(char **)&opt_totaltimeout},
 
-    {&opt_recipient}, {&opt_expect_sender}, {&opt_srvcert},
-    {&opt_trusted}, {&opt_untrusted},
+    {&opt_trusted}, {&opt_untrusted}, {&opt_srvcert},
+    {&opt_recipient}, {&opt_expect_sender},
     {(char **)&opt_ignore_keyusage}, {(char **)&opt_unprotectedErrors},
     {&opt_extracertsout}, {&opt_cacertsout},
 
@@ -3976,20 +3976,20 @@ static int get_opts(int argc, char **argv)
             opt_extracerts = opt_str("extracerts");
             break;
 
-        case OPT_RECIPIENT:
-            opt_recipient = opt_str("recipient");
-            break;
-        case OPT_EXPECT_SENDER:
-            opt_expect_sender = opt_str("expect_sender");
-            break;
-        case OPT_SRVCERT:
-            opt_srvcert = opt_str("srvcert");
-            break;
         case OPT_TRUSTED:
             opt_trusted = opt_str("trusted");
             break;
         case OPT_UNTRUSTED:
             opt_untrusted = opt_str("untrusted");
+            break;
+        case OPT_SRVCERT:
+            opt_srvcert = opt_str("srvcert");
+            break;
+        case OPT_RECIPIENT:
+            opt_recipient = opt_str("recipient");
+            break;
+        case OPT_EXPECT_SENDER:
+            opt_expect_sender = opt_str("expect_sender");
             break;
         case OPT_IGNORE_KEYUSAGE:
             opt_ignore_keyusage = 1;

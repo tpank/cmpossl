@@ -17,11 +17,11 @@ S<[B<-path remote_path>]>
 S<[B<-msgtimeout seconds>]>
 S<[B<-totaltimeout seconds>]>
 
-S<[B<-recipient name>]>
-S<[B<-expect_sender name>]>
-S<[B<-srvcert filename>]>
 S<[B<-trusted filenames>]>
 S<[B<-untrustedE<nbsp>sources>]>
+S<[B<-srvcert filename>]>
+S<[B<-recipient name>]>
+S<[B<-expect_sender name>]>
 S<[B<-ignore_keyusage>]>
 S<[B<-unprotectederrors>]>
 S<[B<-extracertsout filename>]>
@@ -187,6 +187,39 @@ certificates on C<waiting> PKIStatus. Default is 0 (infinite).
 
 =over 4
 
+=item B<-trusted filenames>
+
+When verifying signature-based protection of CMP response messages,
+these are the CA certificate(s) to trust while checking certificate chains
+during CMP server authentication.
+This option gives more flexibility than the B<-srvcert> option because
+it does not pin down the expected CMP server by allowing only one certificate.
+
+Multiple file names may be given, separated by commas or whitespace.
+Each source may contain multiple certificates.
+
+=item B<-untrusted sources>
+
+Non-trusted intermediate certificate(s) that may be useful
+for constructing certificate chains when verifying
+the CMP server (when checking signature-based CMP message protection),
+the TLS server (when establishing TLS connections),
+and/or the newly enrolled certificate.
+
+Multiple file names may be given, separated by commas and/or whitespace.
+Each file may contain multiple certificates.
+
+=item B<-srvcert filename>
+
+The specific CMP server certificate to use and trust directly
+when verifying signature-based protection of CMP response messages.
+May be set alternatively to the B<-trusted> option
+if the certificate is available and only this one shall be accepted.
+
+If set, the issuer of the certificate is also used as the recipient of the CMP
+request and as the expected sender of the CMP response,
+overriding any potential B<-recipient> option.
+
 =item B<-recipient name>
 
 Distinguished Name (DN) of the CMP message recipient,
@@ -218,39 +251,6 @@ The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by C<\>E<nbsp>(backslash), no spaces are skipped.
 
 If not given, the subject DN of B<-srvcert>, if provided, will be used.
-
-=item B<-srvcert filename>
-
-The specific CMP server certificate to use and trust directly
-when verifying signature-based protection of CMP response messages.
-May be set alternatively to the B<-trusted> option
-if the certificate is available and only this one shall be accepted.
-
-If set, the issuer of the certificate is also used as the recipient of the CMP
-request and as the expected sender of the CMP response,
-overriding any potential B<-recipient> option.
-
-=item B<-trusted filenames>
-
-When verifying signature-based protection of CMP response messages,
-these are the CA certificate(s) to trust while checking certificate chains
-during CMP server authentication.
-This option gives more flexibility than the B<-srvcert> option because
-it does not pin down the expected CMP server by allowing only one certificate.
-
-Multiple file names may be given, separated by commas or whitespace.
-Each source may contain multiple certificates.
-
-=item B<-untrusted sources>
-
-Non-trusted intermediate certificate(s) that may be useful
-for constructing certificate chains when verifying
-the CMP server (when checking signature-based CMP message protection),
-the TLS server (when establishing TLS connections),
-and/or the newly enrolled certificate.
-
-Multiple file names may be given, separated by commas and/or whitespace.
-Each file may contain multiple certificates.
 
 =item B<-ignore_keyusage>
 
