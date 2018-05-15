@@ -606,11 +606,11 @@ static CMP_PKIMESSAGE *process_certConf(CMP_SRV_CTX *srv_ctx,
     int num = sk_CMP_CERTSTATUS_num(req->body->value.certConf);
 
     if (num == 0) {
-        CMP_printf(srv_ctx->ctx, FL_ERROR, "Certificate rejected by client");
+        CMP_err(srv_ctx->ctx, "certificate rejected by client");
     } else {
         if (num > 1)
-            CMP_printf(srv_ctx->ctx, FL_WARN,
-                       "All CertStatus but the first will be ignored");
+            CMP_warn(srv_ctx->ctx,
+                     "All CertStatus but the first will be ignored");
         status = sk_CMP_CERTSTATUS_value(req->body->value.certConf, CERTREQID);
     }
 
@@ -640,11 +640,10 @@ static CMP_PKIMESSAGE *process_certConf(CMP_SRV_CTX *srv_ctx,
             char *tmpbuf = OPENSSL_malloc(CMP_PKISTATUSINFO_BUFLEN);
             if (tmpbuf == NULL)
                 goto oom;
-            CMP_printf(srv_ctx->ctx, FL_INFO,
-                       "Certificate rejected by client:");
+            CMP_info(srv_ctx->ctx, "certificate rejected by client:");
             if (CMP_PKISTATUSINFO_snprint(status->statusInfo, tmpbuf,
                                           CMP_PKISTATUSINFO_BUFLEN) != NULL)
-                CMP_printf(srv_ctx->ctx, FL_INFO, "%s", tmpbuf);
+                CMP_info(srv_ctx->ctx, tmpbuf);
             OPENSSL_free(tmpbuf);
         }
     }
@@ -726,12 +725,11 @@ static int unprotected_exception(const CMP_CTX *ctx,
                                  const CMP_PKIMESSAGE *req)
 {
     if (accept_unprotected_requests) {
-        CMP_printf(ctx, FL_WARN,
-                   "ignoring missing protection of request message");
+        CMP_warn(ctx, "ignoring missing protection of request message");
         return 1;
     }
     if (req->body->type == V_CMP_PKIBODY_ERROR && ctx->unprotectedErrors) {
-        CMP_printf(ctx, FL_WARN,"ignoring missing protection of error message");
+        CMP_warn(ctx, "ignoring missing protection of error message");
         return 1;
     }
     return 0;

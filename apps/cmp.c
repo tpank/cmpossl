@@ -1686,7 +1686,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
     }
 
     if ((id = OCSP_cert_to_id(NULL, cert, issuer)) == NULL) {
-        BIO_puts(bio_err, "Cannot obtain cert ID for OCSP.\n");
+        BIO_puts(bio_err, "cannot obtain cert ID for OCSP.\n");
         goto end;
     }
     if (!OCSP_resp_find_status(br, id,
@@ -2042,19 +2042,20 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
  *
  * returns 1 on success, 0 on error
  */
-static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
+static int write_PKIMESSAGE(CMP_CTX *ctx,
+                            const CMP_PKIMESSAGE *msg, char **filenames)
 {
     char *file;
     FILE *f;
     int res = 0;
 
     if (msg == NULL || filenames == NULL) {
-        BIO_printf(bio_err, "NULL arg to write_PKIMESSAGE\n");
+        CMP_err(ctx, "NULL arg to write_PKIMESSAGE");
         return 0;
     }
     if (**filenames == '\0') {
-        BIO_printf(bio_err,
-              "Not enough file names have been provided for writing message\n");
+        CMP_err(ctx,
+                "not enough file names have been provided for writing message");
         return 0;
     }
 
@@ -2062,16 +2063,16 @@ static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
     *filenames = next_item(file);
     f = fopen(file, "wb");
     if (f == NULL)
-        BIO_printf(bio_err, "Error opening file '%s' for writing\n", file);
+        CMP_printf(ctx, FL_ERR, "cannot open file '%s' for writing", file);
     else {
         unsigned char *out = NULL;
-        int len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *) msg, &out);
+        int len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *)msg, &out);
 
         if (len >= 0) {
             if ((size_t)len == fwrite(out, sizeof(*out), len, f))
                 res = 1;
             else
-                BIO_printf(bio_err, "Error writing file '%s'\n", file);
+                CMP_printf(ctx, FL_ERR, "cannot write file '%s'", file);
             OPENSSL_free(out);
         }
         fclose(f);
@@ -2085,7 +2086,7 @@ static int write_PKIMESSAGE(const CMP_PKIMESSAGE *msg, char **filenames)
  *
  * returns a pointer to the parsed CMP_PKIMESSAGE, null on error
  */
-static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
+static CMP_PKIMESSAGE *read_PKIMESSAGE(CMP_CTX *ctx, char **filenames)
 {
     char *file;
     FILE *f;
@@ -2094,12 +2095,11 @@ static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
     CMP_PKIMESSAGE *ret = NULL;
 
     if (filenames == NULL) {
-        BIO_printf(bio_err, "NULL arg to read_PKIMESSAGE\n");
+        CMP_err(ctx, "NULL arg to read_PKIMESSAGE");
         return 0;
     }
     if (**filenames == '\0') {
-        BIO_printf(bio_err,
-              "Not enough file names have been provided for reading message\n");
+        CMP_err(ctx, "Not enough file names have been provided for reading message");
         return 0;
     }
 
@@ -2107,26 +2107,26 @@ static CMP_PKIMESSAGE *read_PKIMESSAGE(char **filenames)
     *filenames = next_item(file);
     f = fopen(file, "rb");
     if (f == NULL)
-        BIO_printf(bio_err, "Error opening file '%s' for reading\n", file);
+        CMP_printf(ctx, FL_ERR, "cannot open file '%s' for reading", file);
     else {
         fseek(f, 0, SEEK_END);
         fsize = ftell(f);
         fseek(f, 0, SEEK_SET);
         if (fsize < 0) {
-            BIO_printf(bio_err, "Error getting size of file '%s'\n", file);
+            CMP_printf(ctx, FL_ERR, "cannot get size of file '%s'", file);
         } else {
             in = OPENSSL_malloc(fsize);
             if (in == NULL)
-                BIO_printf(bio_err, "Out of memory reading file '%s'\n", file);
+                CMP_printf(ctx, FL_ERR, "Out of memory reading file '%s'", file);
             else {
                 if ((size_t)fsize != fread(in, 1, fsize, f))
-                    BIO_printf(bio_err, "Error reading file '%s'\n", file);
+                    CMP_printf(ctx, FL_ERR, "cannot read file '%s'", file);
                 else {
                     const unsigned char *p = in;
                     ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
                     if (ret == NULL)
-                        BIO_printf(bio_err,
-                               "Error parsing PKIMessage in file '%s'\n", file);
+                        CMP_printf(ctx, FL_ERR,
+                               "cannot parse PKIMessage in file '%s'", file);
                 }
                 OPENSSL_free(in);
             }
@@ -2150,16 +2150,15 @@ static int read_write_req_resp(CMP_CTX *ctx,
     CMP_PKIHEADER *hdr;
     int ret = CMP_R_ERROR_TRANSFERRING_OUT;
 
-    if (req && opt_reqout && !write_PKIMESSAGE(req, &opt_reqout))
+    if (req && opt_reqout && !write_PKIMESSAGE(ctx, req, &opt_reqout))
         goto err;
 
     if (opt_reqin) {
         if (opt_rspin) {
-            BIO_printf(bio_err,
-                       "warning: -reqin is ignored since -rspin is present\n");
+            CMP_warn(ctx, "-reqin is ignored since -rspin is present");
         } else {
             ret = CMP_R_ERROR_TRANSFERRING_IN;
-            if ((req_new = read_PKIMESSAGE(&opt_reqin)) == NULL)
+            if ((req_new = read_PKIMESSAGE(ctx, &opt_reqin)) == NULL)
                 goto err;
 # if 0
           /*
@@ -2176,7 +2175,7 @@ static int read_write_req_resp(CMP_CTX *ctx,
 
     ret = CMP_R_ERROR_TRANSFERRING_IN;
     if (opt_rspin) {
-        if ((*res = read_PKIMESSAGE(&opt_rspin)))
+        if ((*res = read_PKIMESSAGE(ctx, &opt_rspin)))
             ret = 0;
     } else {
         const CMP_PKIMESSAGE *actual_req = opt_reqin ? req_new : req;
@@ -2202,7 +2201,7 @@ static int read_write_req_resp(CMP_CTX *ctx,
         ))
         goto err;
 
-    if (opt_rspout && !write_PKIMESSAGE(*res, &opt_rspout)) {
+    if (opt_rspout && !write_PKIMESSAGE(ctx, *res, &opt_rspout)) {
         ret = CMP_R_ERROR_TRANSFERRING_OUT;
         CMP_PKIMESSAGE_free(*res);
         goto err;
@@ -2306,12 +2305,12 @@ static int certConf_cb(CMP_CTX *ctx, const X509 *cert, int failure,
         failure = CMP_PKIFAILUREINFO_incorrectData;
 
     if (failure >= 0)
-        CMP_printf(ctx, FL_ERROR,
-                   "failed to validate newly enrolled certificate");
+        CMP_err(ctx, "failed to validate newly enrolled certificate");
     return failure;
 }
 
-static int parse_addr(char **opt_string, int port, const char *name)
+static int parse_addr(CMP_CTX *ctx,
+                      char **opt_string, int port, const char *name)
 {
     char *port_string;
 
@@ -2319,15 +2318,14 @@ static int parse_addr(char **opt_string, int port, const char *name)
         (*opt_string) += strlen(HTTP_HDR);
     }
     if ((port_string = strrchr(*opt_string, ':')) == NULL) {
-        BIO_printf(bio_err,
-                   "info: using default port %d for %s\n", port, name);
+        CMP_printf(ctx, FL_INFO, "using default port %d for %s", port, name);
         return port;
     }
     *(port_string++) = '\0';
     port = atoi(port_string);
     if ((port <= 0) || (port > 65535)) {
-        BIO_printf(bio_err,
-                   "error: invalid %s port '%s' given, sane range 1-65535\n",
+        CMP_printf(ctx, FL_ERR,
+                   "invalid %s port '%s' given, sane range 1-65535",
                    name, port_string);
         return 0;
     }
@@ -2394,12 +2392,12 @@ static int set_name(const char *str,
         X509_NAME *n = parse_name((char *)str, MBSTRING_ASC, 0);
 
         if (n == NULL) {
-            BIO_printf(bio_err, "error parsing %s DN '%s'\n", desc, str);
+            CMP_printf(ctx, FL_ERR, "cannot parse %s DN '%s'", desc, str);
             return 0;
         }
         if (!(*set_fn) (ctx, n)) {
             X509_NAME_free(n);
-            BIO_printf(bio_err, "out of memory\n");
+            CMP_err(ctx, "out of memory");
             return 0;
         }
         X509_NAME_free(n);
@@ -2416,12 +2414,12 @@ static int set_gennames(char *names, int type,
         GENERAL_NAME *n = a2i_GENERAL_NAME(NULL, NULL, NULL, type, names, 0);
 
         if (n == NULL) {
-            BIO_printf(bio_err, "error parsing %s '%s'\n", desc, names);
+            CMP_printf(ctx, FL_ERR, "cannot parse %s '%s'", desc, names);
             return 0;
         }
         if (!(*set_fn) (ctx, n)) {
             GENERAL_NAME_free(n);
-            BIO_printf(bio_err, "out of memory\n");
+            CMP_err(ctx, "out of memory\n");
             return 0;
         }
         GENERAL_NAME_free(n);
@@ -2531,10 +2529,9 @@ static int setup_certs(char *files, const char *desc, void *ctx,
 
 /*
  * parse and tranform some options, checking their syntax.
- * Prints reason for error to bio_err.
  * Returns 1 on success, 0 on error
  */
-static int transform_opts(void) {
+static int transform_opts(CMP_CTX *ctx) {
     if (opt_cmd_s) {
         if (!strcmp(opt_cmd_s, "ir"))
             opt_cmd = CMP_IR;
@@ -2549,11 +2546,11 @@ static int transform_opts(void) {
         else if (!strcmp(opt_cmd_s, "genm"))
             opt_cmd = CMP_GENM;
         else {
-            BIO_printf(bio_err, "error: unknown cmp command '%s'\n", opt_cmd_s);
+            CMP_printf(ctx, FL_ERR, "unknown cmp command '%s'", opt_cmd_s);
             return 0;
         }
     } else {
-        BIO_puts(bio_err, "error: no cmp command to execute\n");
+        CMP_err(ctx, "no cmp command to execute");
         return 0;
     }
 
@@ -2564,29 +2561,27 @@ static int transform_opts(void) {
                                     | OPT_FMT_ENGINE
 # endif
         , &opt_keyform)) {
-        BIO_puts(bio_err, "error: unknown option given for key format\n");
+        CMP_err(ctx, "unknown option given for key format");
         return 0;
     }
 
     if (opt_ownform_s
         && !opt_format(opt_ownform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
                        &opt_ownform)) {
-        BIO_puts(bio_err,
-                 "error: unknown option given for own certificate format\n");
+        CMP_err(ctx, "unknown option given for own certificate format");
         return 0;
     }
 
     if (opt_otherform_s
         && !opt_format(opt_otherform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
                        &opt_otherform)) {
-        BIO_puts(bio_err,
-                 "error: unknown option given for certificate store format\n");
+        CMP_err(ctx, "unknown option given for certificate store format");
         return 0;
     }
 
     if (opt_crlform_s
         && !opt_format(opt_crlform_s, OPT_FMT_PEMDER, &opt_crlform)) {
-        BIO_puts(bio_err, "error: unknown option given for CRL format\n");
+        CMP_err(ctx, "unknown option given for CRL format");
         return 0;
     }
 #else
@@ -2617,8 +2612,8 @@ static int setup_srv_ctx(ENGINE *e)
     ctx = CMP_SRV_CTX_get0_ctx(srv_ctx);
 
     if (opt_srv_ref == NULL && opt_srv_cert == NULL) {
-        BIO_puts(bio_err, /* srv_cert should determine the sender */
-                 "error: must give -srv_ref if no -srv_cert given\n");
+        /* srv_cert should determine the sender */
+        CMP_err(ctx, "must give -srv_ref if no -srv_cert given");
         goto err;
     }
     if (opt_srv_secret) {
@@ -2637,14 +2632,12 @@ static int setup_srv_ctx(ENGINE *e)
                 goto err;
         }
     } else if (opt_srv_cert == NULL && opt_srv_key == NULL) {
-        BIO_puts(bio_err,
-                "error: server credentials must be set if -mock_srv is used\n");
+        CMP_err(ctx, "server credentials must be set if -mock_srv is used");
         goto err;
     }
 
     if (!opt_srv_secret && ((opt_srv_cert == NULL) != (opt_srv_key == NULL))) {
-        BIO_puts(bio_err,
-           "error: must give both -srv_cert and -srv_key options or neither\n");
+        CMP_err(ctx, "must give both -srv_cert and -srv_key options or neither");
             goto err;
     }
     if (opt_srv_cert) {
@@ -2707,7 +2700,7 @@ static int setup_srv_ctx(ENGINE *e)
 
     if (opt_failure >= 0) {
         if (opt_failurebits)
-            BIO_printf(bio_err, "warning: -failurebits overrides -failure\n");
+            CMP_printf(ctx, FL_WARN, "-failurebits overrides -failure");
         else
             opt_failurebits = 1 << opt_failure;
     }
@@ -2738,7 +2731,6 @@ static int setup_srv_ctx(ENGINE *e)
 
 /*
  * set up verification aspects of CMP_CTX based on options from config file/CLI.
- * Prints reason for error to bio_err.
  * Returns pointer on success, NULL on error
  */
 static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
@@ -2746,8 +2738,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
     if (opt_crls || opt_crl_download)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_CRL_CHECK);
     else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
-        BIO_printf(bio_err,
-           "error: must use -crl_download or -crls when -crl_check is given\n");
+        CMP_err(ctx, "must use -crl_download or -crls when -crl_check is given");
 #if 0
         X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK);
 #else
@@ -2758,8 +2749,8 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
         unsigned long flags = X509_VERIFY_PARAM_get_flags(vpm);
         if ((flags & X509_V_FLAG_CRL_CHECK_ALL) &&
             !(flags & X509_V_FLAG_CRL_CHECK))
-            BIO_printf(bio_err,
-"warning: -crl_check_all has no effect without -crls, -crl_download, or -crl_check\n");
+            CMP_warn(ctx,
+                     "-crl_check_all has no effect without -crls, -crl_download, or -crl_check");
     }
     if (opt_crl_timeout == 0)
         opt_crl_timeout = -1;
@@ -2787,8 +2778,8 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
               /* well, should ignore expiry of base CRL if delta CRL is valid */
                     char *issuer =
                         X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
-                    BIO_printf(bio_err,
-                          "warning: CRL from '%s' issued by '%s' has expired\n",
+                    CMP_printf(ctx, FL_WARN,
+                               "CRL from '%s' issued by '%s' has expired",
                                opt_crls, issuer);
                     OPENSSL_free(issuer);
 #if 0
@@ -2826,13 +2817,12 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
             check_revocation = X509_STORE_CTX_get_check_revocation(tmp_ctx);
         X509_STORE_CTX_free(tmp_ctx);
         if (!check_revocation) {
-            BIO_printf(bio_err,
-                       "internal error: cannot get check_revocation\n");
+            CMP_err(ctx, "internal issue: cannot get check_revocation");
             goto err;
         }
     } else if (opt_ocsp_check_all) {
-        BIO_printf(bio_err,
-    "error: must use -ocsp_use_aia or -ocsp_url if -ocsp_check_all is given\n");
+        CMP_err(ctx,
+                "must use -ocsp_use_aia or -ocsp_url if -ocsp_check_all is given");
         goto err;
     }
 #endif
@@ -2843,13 +2833,13 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
         if (opt_srvcert) {
             X509 *srvcert;
             if (opt_trusted) {
-                BIO_puts(bio_err,
-      "warning: -trusted option is ignored since -srvcert option is present\n");
+                CMP_warn(ctx,
+                        "-trusted option is ignored since -srvcert option is present");
                 opt_trusted = NULL;
             }
             if (opt_recipient) {
-                BIO_puts(bio_err,
-    "warning: -recipient option is ignored since -srvcert option is present\n");
+                CMP_warn(ctx,
+                        "-recipient option is ignored since -srvcert option is present");
                 opt_recipient = NULL;
             }
             if (!(srvcert = load_cert_autofmt(opt_srvcert, opt_otherform,
@@ -2904,7 +2894,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
     return 1;
 
  oom:
-    BIO_printf(bio_err, "out of memory\n");
+    CMP_err(ctx, "out of memory");
  err:
     sk_X509_CRL_pop_free(*all_crls, X509_CRL_free);
     *all_crls = NULL;
@@ -2923,13 +2913,12 @@ static int SSL_CTX_add_extra_chain_free(SSL_CTX *ssl_ctx, STACK_OF(X509) *certs)
     }
     sk_X509_free(certs); /* must not free the stack elements */
     if (!res)
-        BIO_printf(bio_err, "error: unable to use TLS extra certs");
+        BIO_printf(bio_err, "error: unable to use TLS extra certs\n");
     return res;
 }
 
 /*
  * set up ssl_ctx for the CMP_CTX based on options from config file/CLI.
- * Prints reason for error to bio_err.
  * Returns pointer on success, NULL on error
  */
 static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
@@ -3022,7 +3011,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         cert = sk_X509_delete(certs, 0);
         if (!cert || SSL_CTX_use_certificate(ssl_ctx, cert) <= 0) {
             BIO_printf(bio_err,
-                      "error: unable to use client TLS certificate file '%s'\n",
+                       "error: unable to use client TLS certificate file '%s'\n",
                        opt_tls_cert);
             X509_free(cert);
             sk_X509_pop_free(certs, X509_free);
@@ -3063,7 +3052,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         if (!X509_check_private_key(SSL_CTX_get0_certificate(ssl_ctx),
                                     pkey)) {
             BIO_printf(bio_err,
-        "error: TLS private key '%s' does not match the TLS certificate '%s'\n",
+                       "error: TLS private key '%s' does not match the TLS certificate '%s'\n",
                        opt_tls_key, opt_tls_cert);
             EVP_PKEY_free(pkey);
             pkey = NULL;    /* otherwise, for some reason double free! */
@@ -3091,24 +3080,22 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
 /*
  * set up protection aspects of CMP_CTX based on options from config file/CLI
  * while parsing options and checking their consistency.
- * Prints reason for error to bio_err.
  * Returns 1 on success, 0 on error
  */
 static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
     if (!opt_unprotectedRequests && !opt_secret && !(opt_cert && opt_key)) {
-        BIO_puts(bio_err,
-    "error: must give client credentials unless -unprotectedrequests is set\n");
+        CMP_err(ctx,
+                "must give client credentials unless -unprotectedrequests is set");
         goto err;
     }
 
     if (opt_ref == NULL && opt_cert == NULL && opt_subject == NULL) {
-        BIO_puts(bio_err, /* cert or subject should determine the sender */
-                 "error: must give -ref if no -cert and no -subject given\n");
+        /* cert or subject should determine the sender */
+        CMP_err(ctx, "must give -ref if no -cert and no -subject given");
         goto err;
     }
     if (!opt_secret && ((opt_cert == NULL) != (opt_key == NULL))) {
-        BIO_puts(bio_err,
-                   "error: must give both -cert and -key options or neither\n");
+        CMP_err(ctx, "must give both -cert and -key options or neither");
         goto err;
     }
     if (opt_secret) {
@@ -3125,8 +3112,8 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
                 goto err;
         }
         if (opt_cert || opt_key)
-            BIO_puts(bio_err,
-        "warning: no signature-based protection used since -secret is given\n");
+            CMP_warn(ctx,
+                     "no signature-based protection used since -secret is given");
     }
     if (opt_ref &&
         !CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
@@ -3143,8 +3130,7 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
         }
     }
     if ((opt_cert || opt_unprotectedRequests) && !(opt_srvcert || opt_trusted)){
-        BIO_puts(bio_err,
-                 "error: no server certificate or trusted certificates set\n");
+        CMP_err(ctx, "no server certificate or trusted certificates set");
         goto err;
     }
 
@@ -3160,7 +3146,7 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
 
         clcert = sk_X509_delete(certs, 0);
         if (clcert == NULL) {
-            BIO_puts(bio_err, "error: no client certificate found\n");
+            CMP_err(ctx, "no client certificate found");
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }
@@ -3190,9 +3176,8 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
     if (opt_digest) {
         int digest = OBJ_ln2nid(opt_digest);
         if (digest == NID_undef) {
-            BIO_printf(bio_err,
-                       "error: digest algorithm name not recognized: '%s'\n",
-                       opt_digest);
+            CMP_printf(ctx, FL_ERR,
+                       "digest algorithm name not recognized: '%s'", opt_digest);
             goto err;
         }
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_DIGEST_ALGNID, digest);
@@ -3200,7 +3185,7 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
     return 1;
 
  oom:
-    BIO_printf(bio_err, "out of memory\n");
+    CMP_err(ctx, "out of memory");
  err:
     return 0;
 }
@@ -3208,7 +3193,6 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
 /*
  * set up IR/CR/KUR/CertConf/RR specific parts of the CMP_CTX
  * based on options from config file/CLI.
- * Prints reason for error to bio_err.
  * Returns pointer on success, NULL on error
  */
 static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
@@ -3241,7 +3225,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         X509V3_set_ctx(&ext_ctx, NULL, NULL, NULL, NULL, 0);
         X509V3_set_nconf(&ext_ctx, conf);
         if (!X509V3_EXT_add_nconf_sk(conf, &ext_ctx, opt_reqexts, &exts)) {
-            BIO_printf(bio_err, "error loading extension section '%s'\n",
+            CMP_printf(ctx, FL_ERR, "cannot load extension section '%s'",
                        opt_reqexts);
             sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
             goto err;
@@ -3250,8 +3234,8 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
     }
     if (CMP_CTX_reqExtensions_have_SAN(ctx) &&
         (opt_san_dns != NULL || opt_san_ip != NULL)) {
-        BIO_printf(bio_err,
-"cannot have Subject Alternative Names both via -reqexts and via -san_dns or -san_ip\n");
+        CMP_err(ctx,
+                "cannot have Subject Alternative Names both via -reqexts and via -san_dns or -san_ip");
             goto err;
     }
 
@@ -3263,15 +3247,15 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
 
     if (opt_san_critical) {
         if (!opt_san_dns && !opt_san_ip)
-            BIO_puts(bio_err,
-"warning: -opt_san_critical has no effect unless -san_dns or -san_ip is given\n");
+            CMP_warn(ctx,
+                     "-opt_san_critical has no effect unless -san_dns or -san_ip is given");
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL, 1);
     }
 
     if (opt_san_nodefault) {
         if (opt_san_dns || opt_san_ip)
-            BIO_puts(bio_err,
-"warning: -opt_san_nodefault has no effect when -san_dns or -san_ip is used\n");
+            CMP_warn(ctx,
+                     "-opt_san_nodefault has no effect when -san_dns or -san_ip is used");
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT, 1);
     }
 
@@ -3280,8 +3264,8 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         int res = CMP_CTX_policyOID_push1(ctx, opt_policies);
 
         if (res <= 0) {
-            BIO_printf(bio_err, "error %s policy OID '%s'\n",
-                       res == -1 ? "parsing" : "adding", opt_policies);
+            CMP_printf(ctx, FL_ERR, "cannot %s policy OID '%s'",
+                       res == -1 ? "parse" : "add", opt_policies);
             goto err;
         }
         opt_policies = next;
@@ -3289,14 +3273,14 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
 
     if (opt_policies_critical) {
         if (!opt_policies)
-            BIO_puts(bio_err,
-   "warning: -opt_policies_critical has no effect unless -policies is given\n");
+            CMP_warn(ctx,
+                     "-opt_policies_critical has no effect unless -policies is given");
         (void)CMP_CTX_set_option(ctx, CMP_CTX_OPT_POLICIES_CRITICAL, 1);
     }
 
     if (opt_popo < -1 || opt_popo > 3) {
-        BIO_printf(bio_err,
-        "error: invalid value '%d' for popo method (must be between 0 and 3)\n",
+        CMP_printf(ctx, FL_ERR,
+                   "invalid value '%d' for popo method (must be between 0 and 3)",
                    opt_popo);
         goto err;
     }
@@ -3305,8 +3289,8 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
 
     if (opt_csr) {
         if (opt_cmd != CMP_P10CR)
-            BIO_puts(bio_err,
-              "warning: -csr option is ignored for command other than p10cr\n");
+            CMP_warn(ctx,
+                     "-csr option is ignored for command other than p10cr");
         else {
             X509_REQ *csr =
                 load_csr_autofmt(opt_csr, opt_ownform, "PKCS#10 CSR for p10cr");
@@ -3343,7 +3327,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
     return 1;
 
  oom:
-    BIO_printf(bio_err, "out of memory\n");
+    CMP_err(ctx, "out of memory");
  err:
     return 0;
 }
@@ -3360,9 +3344,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     int ret = 0;
 
     if (opt_server == NULL) {
-        BIO_puts(bio_err, "error: missing server address[:port]\n");
+        CMP_err(ctx, "missing server address[:port]");
         goto err;
-    } else if (!(server_port = parse_addr(&opt_server, server_port, "server"))){
+    } else if (!(server_port =
+                 parse_addr(ctx, &opt_server, server_port, "server"))) {
         goto err;
     }
     if (!CMP_CTX_set1_serverName(ctx, opt_server) ||
@@ -3371,7 +3356,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         goto oom;
 
     if (opt_proxy) {
-        if (!(proxy_port = parse_addr(&opt_proxy, proxy_port, "proxy"))) {
+        if (!(proxy_port = parse_addr(ctx, &opt_proxy, proxy_port, "proxy"))) {
             goto err;
         }
         if (!CMP_CTX_set1_proxyName(ctx, opt_proxy) ||
@@ -3379,45 +3364,43 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
             goto oom;
     }
 
-    if (!transform_opts())
+    if (!transform_opts(ctx))
         goto err;
 
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
         if (opt_newkey == NULL && opt_key == NULL) {
-            BIO_puts(bio_err,
-                     "error: missing -key or -newkey to be certified\n");
+            CMP_err(ctx, "missing -key or -newkey to be certified");
             goto err;
         }
         if (opt_certout == NULL) {
-            BIO_puts(bio_err,
-                    "error: -certout not given, nowhere to save certificate\n");
+            CMP_err(ctx, "-certout not given, nowhere to save certificate");
             goto err;
         }
     }
     if (opt_cmd == CMP_KUR && opt_cert == NULL && opt_oldcert == NULL) {
-        BIO_puts(bio_err, "error: missing certificate to be updated\n");
+        CMP_err(ctx, "missing certificate to be updated");
         goto err;
     }
     if (opt_cmd == CMP_RR && opt_oldcert == NULL) {
-        BIO_puts(bio_err, "error: missing certificate to be revoked\n");
+        CMP_err(ctx, "missing certificate to be revoked");
         goto err;
     }
     if (opt_cmd == CMP_P10CR && opt_csr == NULL) {
-        BIO_puts(bio_err, "error: missing PKCS#10 CSR for p10cr\n");
+        CMP_err(ctx, "missing PKCS#10 CSR for p10cr");
         goto err;
     }
 
     if (opt_recipient == NULL && opt_srvcert == NULL && opt_issuer == NULL &&
         opt_oldcert == NULL && opt_cert == NULL) {
-        BIO_puts(bio_err,
-"warning: missing -recipient, -srvcert, -issuer, -oldcert or -cert; recipient will be set to \"NULL-DN\"\n");
+        CMP_warn(ctx,
+                 "missing -recipient, -srvcert, -issuer, -oldcert or -cert; recipient will be set to \"NULL-DN\"");
     }
 
     if (opt_infotype_s) {
         char id_buf[87] = "id-it-";
         strncat(id_buf, opt_infotype_s, 80);
         if ((opt_infotype = OBJ_sn2nid(id_buf)) == NID_undef) {
-            BIO_puts(bio_err, "error: unknown OID name in -infotype option\n");
+            CMP_err(ctx, "unknown OID name in -infotype option");
             goto err;
         }
     }
@@ -3433,10 +3416,10 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     if (opt_tls_cert || opt_tls_key || opt_tls_keypass) {
         opt_tls_used = 1;
         if (!opt_tls_key) {
-            BIO_printf(bio_err, "error: missing -tls_key option\n");
+            CMP_err(ctx, "missing -tls_key option");
             goto err;
         } else if (!opt_tls_cert) {
-            BIO_printf(bio_err, "error: missing -tls_cert option\n");
+            CMP_err(ctx, "missing -tls_cert option");
         }
     }
 
@@ -3445,7 +3428,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         SSL_CTX *ssl_ctx;
 
         if (opt_proxy) {
-            BIO_printf(bio_err, "sorry, TLS not yet supported via proxy\n");
+            CMP_err(ctx, "sorry, TLS not yet supported via proxy");
             goto err;
         }
         ssl_ctx = setup_ssl_ctx(e, CMP_CTX_get0_untrusted_certs(ctx), all_crls);
@@ -3455,7 +3438,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         store = SSL_CTX_get_cert_store(ssl_ctx);
         if (store &&
             !X509_STORE_set_ex_data(store, X509_STORE_EX_DATA_CMP, ctx)) {
-            BIO_printf(bio_err, "error: cannot set CMP CTX in SSL store");
+            CMP_err(ctx, "cannot set CMP CTX in SSL store");
             SSL_CTX_free(ssl_ctx);
             goto err;
         }
@@ -3464,8 +3447,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     } else {
 #ifndef OPENSSL_NO_OCSP
         if (opt_ocsp_status)
-            BIO_printf(bio_err,
-                       "warning: -ocsp_status has no effect without TLS\n");
+            CMP_warn(ctx, "-ocsp_status has no effect without TLS");
 #endif
     }
 
@@ -3492,27 +3474,27 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
         char *valptr = strchr(opt_geninfo, ':');
 
         if (valptr == NULL) {
-            BIO_puts(bio_err, "error: missing ':' in -geninfo option\n");
+            CMP_err(ctx, "missing ':' in -geninfo option");
             goto err;
         }
         valptr[0] = '\0';
         valptr++;
 
         if (strncmp(valptr, "int:", 4) != 0) {
-            BIO_puts(bio_err, "error: missing 'int:' in -geninfo option\n");
+            CMP_err(ctx, "missing 'int:' in -geninfo option");
             goto err;
         }
         valptr += 4;
 
         value = strtol(valptr, &endstr, 10);
         if (endstr == valptr || *endstr) {
-            BIO_puts(bio_err, "error: cannot parse int in -geninfo option\n");
+            CMP_err(ctx, "cannot parse int in -geninfo option");
             goto err;
         }
 
         type = OBJ_txt2obj(opt_geninfo, 1);
         if (type == NULL) {
-            BIO_puts(bio_err, "error: cannot parse OID in -geninfo option\n");
+            CMP_err(ctx, "cannot parse OID in -geninfo option");
             goto err;
         }
 
@@ -3557,7 +3539,7 @@ static int setup_ctx(CMP_CTX *ctx, ENGINE *e)
     sk_X509_CRL_pop_free(all_crls, X509_CRL_free);
     return ret;
  oom:
-    BIO_printf(bio_err, "out of memory\n");
+    CMP_err(ctx, "out of memory");
     goto err;
 }
 
@@ -3584,7 +3566,8 @@ static int write_cert(BIO *bio, X509 *cert)
  * where DER does not make much sense for writing more than one cert!
  * Returns number of written certificates on success, 0 on error.
  */
-static int save_certs(STACK_OF(X509) *certs, char *destFile, char *desc)
+static int save_certs(CMP_CTX *ctx,
+                      STACK_OF(X509) *certs, char *destFile, char *desc)
 {
     BIO *bio = NULL;
     int i;
@@ -3594,12 +3577,11 @@ static int save_certs(STACK_OF(X509) *certs, char *destFile, char *desc)
                "received %d %s certificate%s, saving to file '%s'",
                n, desc, n == 1 ? "" : "s", destFile);
     if (n > 1 && opt_ownform != FORMAT_PEM)
-        BIO_printf(bio_err,
-               "warning: saving more than one certificate in non-PEM format\n");
+        CMP_warn(cmp_ctx, "saving more than one certificate in non-PEM format");
 
     if (destFile == NULL || (bio = BIO_new(BIO_s_file())) == NULL ||
         !BIO_write_filename(bio, (char *)destFile)) {
-        BIO_printf(bio_err, "error: could not open file '%s' for writing\n",
+        CMP_printf(ctx, FL_ERR, "could not open file '%s' for writing",
                    destFile);
         n = -1;
         goto err;
@@ -3607,8 +3589,8 @@ static int save_certs(STACK_OF(X509) *certs, char *destFile, char *desc)
 
     for (i = 0; i < n; i++) {
         if (!write_cert(bio, sk_X509_value(certs, i))) {
-            BIO_printf(bio_err, "error writing certificate to file '%s'\n",
-                       destFile);
+            CMP_printf(ctx, FL_ERR,
+                       "cannot write certificate to file '%s'", destFile);
             n = -1;
             goto err;
         }
@@ -3627,7 +3609,7 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
     int n = sk_CMP_INFOTYPEANDVALUE_num(itavs); /* itavs == NULL leads to 0 */
 
     if (n == 0) {
-        CMP_printf(cmp_ctx, FL_INFO, "genp contains no ITAV");
+        CMP_info(cmp_ctx, "genp contains no ITAV");
         return;
     }
 
@@ -3658,8 +3640,7 @@ static char *prev_item(const char *opt, const char *end)
     opt_item[len] = '\0';
     if (end - beg > SECTION_NAME_MAX) {
         BIO_printf(bio_err,
-                   "warning: using only first %d"
-                   " characters of section name starting with \"%s\"\n",
+                   "warning: using only first %d characters of section name starting with \"%s\"\n",
                    SECTION_NAME_MAX, opt_item);
     }
     while (beg != opt && (beg[-1] == ',' || isspace(beg[-1])))
@@ -4357,8 +4338,9 @@ int cmp_main(int argc, char **argv)
     if (opt_section[0] == '\0') /* empty string */
         opt_section = DEFAULT_SECTION;
 
+    cmp_ctx = CMP_CTX_create();
     vpm = X509_VERIFY_PARAM_new();
-    if (vpm == NULL) {
+    if (cmp_ctx == NULL || vpm == NULL) {
         BIO_printf(bio_err, "%s: out of memory\n", prog);
         goto err;
     }
@@ -4369,25 +4351,24 @@ int cmp_main(int argc, char **argv)
     configfile = opt_config ? opt_config : default_config_file;
     if (configfile && configfile[0] != '\0' /* non-empty string */ &&
         (configfile != default_config_file || access(configfile, F_OK) != -1)) {
-        CMP_printf(cmp_ctx, FL_INFO, "using OpenSSL configuration file '%s'",
-                   configfile);
+        CMP_printf(cmp_ctx, FL_INFO,
+                   "using OpenSSL configuration file '%s'", configfile);
         conf = app_load_config(configfile);
         if (conf == NULL) {
             goto err;
         } else {
             if (strcmp(opt_section, CMP_SECTION) == 0) { /* default */
                 if (!NCONF_get_section(conf, opt_section)) {
-                    BIO_printf(bio_err,
-                        "info: no [%s section found in config file '%s';"
-               " will thus use just [default] and unnamed section if present\n",
+                    CMP_printf(cmp_ctx, FL_INFO,
+                               "no [%s] section found in config file '%s'; will thus use just [default] and unnamed section if present",
                                opt_section, configfile);
                 }
             } else {
                 char *end = opt_section + strlen(opt_section);
                 while ((end = prev_item(opt_section, end)) != NULL) {
                     if (!NCONF_get_section(conf, opt_item)) {
-                        BIO_printf(bio_err,
-                           "error: no [%s] section found in config file '%s'\n",
+                        CMP_printf(cmp_ctx, FL_ERR,
+                                   "no [%s] section found in config file '%s'",
                                    opt_item, configfile);
                         goto err;
                     }
@@ -4418,9 +4399,8 @@ int cmp_main(int argc, char **argv)
 
     if (opt_engine)
         e = setup_engine_no_default(opt_engine, 0);
-    cmp_ctx = CMP_CTX_create();
-    if (cmp_ctx == NULL || !setup_ctx(cmp_ctx, e)) {
-        BIO_puts(bio_err, "error setting up CMP context\n");
+    if (!setup_ctx(cmp_ctx, e)) {
+        CMP_err(cmp_ctx, "cannot set up CMP context");
         goto err;
     }
 
@@ -4476,7 +4456,8 @@ int cmp_main(int argc, char **argv)
 
     if (opt_cacertsout && CMP_CTX_caPubs_num(cmp_ctx) > 0) {
         STACK_OF(X509) *certs = CMP_CTX_caPubs_get1(cmp_ctx);
-        if (certs == NULL || save_certs(certs, opt_cacertsout, "CA") < 0) {
+        if (certs == NULL ||
+            save_certs(cmp_ctx, certs, opt_cacertsout, "CA") < 0) {
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }
@@ -4485,7 +4466,8 @@ int cmp_main(int argc, char **argv)
 
     if (opt_extracertsout && CMP_CTX_extraCertsIn_num(cmp_ctx) > 0) {
         STACK_OF(X509) *certs = CMP_CTX_extraCertsIn_get1(cmp_ctx);
-        if (certs == NULL || save_certs(certs, opt_extracertsout, "extra") < 0){
+        if (certs == NULL ||
+            save_certs(cmp_ctx, certs, opt_extracertsout, "extra") < 0) {
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }
@@ -4495,7 +4477,7 @@ int cmp_main(int argc, char **argv)
     if (opt_certout && newcert) {
         STACK_OF(X509) *certs = sk_X509_new_null();
         if (certs == NULL || !sk_X509_push(certs, X509_dup(newcert)) ||
-            save_certs(certs, opt_certout, "enrolled") < 0) {
+            save_certs(cmp_ctx, certs, opt_certout, "enrolled") < 0) {
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }
