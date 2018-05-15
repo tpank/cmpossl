@@ -235,7 +235,7 @@ void put_cert_verify_err(int func)
     if (cert_verify_err_bio != NULL) { /* cert verify error in callback */
         char *str;
         long len = BIO_get_mem_data(cert_verify_err_bio, &str);
-        CMPerr(func, CMP_R_INVALID_CERTIFICATE);
+        CMPerr(func, CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
         if (len > 0) {
             str[len-1] = '\0'; /* replace last '\n', terminating str */
             CMP_add_error_line(str);
@@ -265,12 +265,14 @@ int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
         if (cert_verify_err_bio == NULL) {
             cert_verify_err_bio = BIO_new(BIO_s_mem()); /* may result in NULL */
         }
-        BIO_printf(cert_verify_err_bio, "%s at depth=%d error=%d (%s)\n",
-                   depth < 0 ? "signature verification" :
-                   X509_STORE_CTX_get0_parent_ctx(ctx) ?
-                   "CRL path validation" : "certificate verification",
-                   depth, cert_error,
-                   X509_verify_cert_error_string(cert_error));
+        if (depth < 0)
+            BIO_printf(cert_verify_err_bio, "signature verification ");
+        else
+            BIO_printf(cert_verify_err_bio, "%s at depth=%d error=%d (%s)\n",
+                       X509_STORE_CTX_get0_parent_ctx(ctx) ?
+                       "CRL path validation" : "certificate verification",
+                       depth, cert_error,
+                       X509_verify_cert_error_string(cert_error));
         BIO_printf(cert_verify_err_bio, "failure for:\n");
         print_cert(cert_verify_err_bio, cert, X509_FLAG_NO_EXTENSIONS);
         if (cert_error == X509_V_ERR_CERT_UNTRUSTED ||

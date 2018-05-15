@@ -187,7 +187,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_FAILURE_OBTAINING_RANDOM                   178
 #  define CMP_R_GENP_NOT_RECEIVED                          139
 #  define CMP_R_INVALID_ARGS                               140
-#  define CMP_R_INVALID_CERTIFICATE                        142
 #  define CMP_R_INVALID_CONTEXT                            141
 #  define CMP_R_INVALID_KEY                                144
 #  define CMP_R_INVALID_PARAMETERS                         143
@@ -206,6 +205,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_PKICONF_NOT_RECEIVED                       152
 #  define CMP_R_PKISTATUSINFO_NOT_FOUND                    153
 #  define CMP_R_POLLREP_NOT_RECEIVED                       154
+#  define CMP_R_POTENTIALLY_INVALID_CERTIFICATE            142
 #  define CMP_R_READ_TIMEOUT                               155
 #  define CMP_R_RECEIVED_ERROR                             156
 #  define CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP    157

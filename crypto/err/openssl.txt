@@ -1957,7 +1957,7 @@ CMP_R_FAILED_TO_VERIFY_REQUEST:190:failed to verify request
 CMP_R_FAILURE_OBTAINING_RANDOM:178:failure obtaining random
 CMP_R_GENP_NOT_RECEIVED:139:genp not received
 CMP_R_INVALID_ARGS:140:invalid args
-CMP_R_INVALID_CERTIFICATE:142:invalid certificate
+CMP_R_POTENTIALLY_INVALID_CERTIFICATE:142:potentially invalid certificate
 CMP_R_INVALID_CONTEXT:141:invalid context
 CMP_R_INVALID_KEY:144:invalid key
 CMP_R_INVALID_PARAMETERS:143:invalid parameters
