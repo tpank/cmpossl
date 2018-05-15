@@ -333,6 +333,7 @@ static void add_name_mismatch_data(const char *error_prefix,
     OPENSSL_free(actual);
 }
 
+/* return 0 if kid != NULL and there is no matching subject key ID in cert */
 static int check_kid(X509 *cert, const ASN1_OCTET_STRING *kid, int fn)
 {
     if (kid != NULL) {
@@ -342,7 +343,7 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *kid, int fn)
         if (ckid == NULL) {
             if (fn)
                 CMPerr(fn, CMP_R_UNEXPECTED_SENDER);
-            CMP_add_error_data(" missing subject key ID");
+            CMP_add_error_data(" missing subject key ID in certificate");
             return 0;
         }
         if (ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
@@ -393,7 +394,7 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
 
         /* enforce that the right subject DN is there */
         if (name == NULL) {
-            CMP_add_error_data(" missing subject");
+            CMP_add_error_data(" missing subject in certificate");
             return 0;
         }
         if (X509_NAME_cmp(name, sender_name) != 0) {
@@ -405,8 +406,9 @@ static int cert_acceptable(X509 *cert, const CMP_PKIMESSAGE *msg,
 
     if (!check_kid(cert, msg->header->senderKID, 0))
         return 0;
+    /* acceptable also if there is no senderKID in msg header */
 
-    return 1; /* acceptable also if there is no identifier in msg header */
+    return 1;
 }
 
 /*
@@ -681,21 +683,16 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
         scrt = ctx->srvCert;
-        if (scrt != NULL) {
-            /* srvCert must match msg header (sender and, if present, senderKID */
-            if (!check_kid(scrt, msg->header->senderKID, CMP_F_CMP_VALIDATE_MSG))
-                CMP_add_error_line("senderKID in CMP header does not match given server certificate's subject key identifier");
-        } else {
+        if (scrt == NULL)
             scrt = find_srvcert(ctx, msg);
-        }
         if (scrt != NULL) {
             if (CMP_verify_signature(ctx, msg, scrt))
                 return 1;
             put_cert_verify_err(CMP_F_CMP_VALIDATE_MSG);
 
-            /* potentially the server cert finding algorithm took an old
-             * certificate and the server certificate is not having a subject
-             * key identifier (including such in EE certs is only "SHOULD" in
+            /* potentially the server cert finding algorithm took wrong cert:
+             * the server certificate may not have a subject key identifier
+             * (including such in EE certs is only a "SHOULD" requirement in
              * RFC 5280, section 4.2.1.2) or the CMP server is not conforming
              * with RFC 4210 and is failing to set senderKID although having
              * several keys associated with its name
@@ -703,11 +700,17 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             if (!X509_find_by_issuer_and_serial(msg->extraCerts,
                                 X509_get_issuer_name(scrt),
                                 (ASN1_INTEGER *)X509_get0_serialNumber(scrt))) {
-                CMP_add_error_line("server cert used for verification attempt was not taken from extraCerts");
+                CMP_add_error_line("cert used for signature verification attempt was not found in extraCerts");
             }
 
             if (msg->header->senderKID == NULL)
-                CMP_add_error_line("senderKID in CMP header absent; risk that correct server cert could not be identified");
+                CMP_add_error_line("no senderKID in CMP header; risk that correct server cert could not be identified");
+            else /* server cert should match senderKID in header */
+                if (!check_kid(scrt, msg->header->senderKID, 0))
+                    /* here this can only happen if ctx->srvCert has been set */
+                    CMP_add_error_line("for senderKID in CMP header there is no matching subject key identifier in given srvCert");
+        } else {
+
         }
     }
     return 0;
