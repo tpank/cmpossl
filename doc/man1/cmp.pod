@@ -222,9 +222,9 @@ If not given, the subject DN of B<-srvcert>, if provided, will be used.
 =item B<-srvcert filename>
 
 The specific CMP server certificate to use and trust directly
-for verifying the protection of response messages.
+when verifying signature-based protection of CMP response messages.
 May be set alternatively to the B<-trusted> option
-if the certificate is available and should be directly trusted.
+if the certificate is available and only this one shall be accepted.
 
 If set, the issuer of the certificate is also used as the recipient of the CMP
 request and as the expected sender of the CMP response,
@@ -232,8 +232,11 @@ overriding any potential B<-recipient> option.
 
 =item B<-trusted filenames>
 
-Trusted CA certificate(s) to use for CMP server authentication
-when verifying responses, unless the B<-srvcert> option is given.
+When verifying signature-based protection of CMP response messages,
+these are the CA certificate(s) to trust while checking certificate chains
+during CMP server authentication.
+This option gives more flexibility than the B<-srvcert> option because
+it does not pin down the expected CMP server by allowing only one certificate.
 
 Multiple file names may be given, separated by commas or whitespace.
 Each source may contain multiple certificates.
@@ -251,7 +254,8 @@ Each file may contain multiple certificates.
 
 =item B<-ignore_keyusage>
 
-Ignore key usage restrictions in certificates at CMP level,
+Ignore key usage restrictions in CMP signer certificates when verifying
+signature-based protection of incoming CMP messages,
 else C<digitalSignature> must be allowed for signer certificate.
 
 =item B<-unprotectederrors>

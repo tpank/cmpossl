@@ -468,7 +468,7 @@ OPTIONS cmp_options[] = {
     {"untrusted", OPT_UNTRUSTED, 's',
   "Intermediate certs for chain construction verifying CMP/TLS/enrolled certs"},
     {"ignore_keyusage", OPT_IGNORE_KEYUSAGE, '-',
-    "Ignore CMP-level cert key usage, else 'digitalSignature' must be allowed"},
+   "Ignore CMP signer cert key usage, else 'digitalSignature' must be allowed"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-',
      "Accept unprotected error responses: regular error messages as well as"},
     {OPT_MORE_STR, 0, 0,
