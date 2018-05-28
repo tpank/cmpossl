@@ -1434,6 +1434,7 @@ void CMP_log_close(void)
 int CMP_log_fd(const char *file, int lineno, severity level, const char *msg,
                FILE *fd)
 {
+    char sep;
     char *lvl = NULL;
     int msg_len = strlen(msg);
     int msg_nl = msg_len > 0 && msg[msg_len-1] == '\n';
@@ -1442,12 +1443,17 @@ int CMP_log_fd(const char *file, int lineno, severity level, const char *msg,
 #ifdef NDEBUG
     if (level == LOG_DEBUG)
         return 1;
-    file = NULL;
+#else
+    if (file == NULL) {
 #endif
-    if (file == NULL)
         len += fprintf(fd, "CMP");
-    else
+        sep = ' ';
+#ifndef NDEBUG
+    } else {
         len += fprintf(fd, "%s:%d", file, lineno);
+        sep = ':';
+    }
+#endif
 
     switch(level) {
     case LOG_EMERG: lvl = "EMERGENCY"; break;
@@ -1457,12 +1463,14 @@ int CMP_log_fd(const char *file, int lineno, severity level, const char *msg,
     case LOG_WARN : lvl = "WARNING" ; break;
     case LOG_NOTE : lvl = "NOTICE" ; break;
     case LOG_INFO : lvl = "INFO" ; break;
+#ifndef NDEBUG
     case LOG_DEBUG: lvl = "DEBUG"; break;
+#endif
     default: break;
     }
 
     if (lvl)
-        len += fprintf(fd, "%c%s", file == NULL ? ' ' : ':', lvl);
+        len += fprintf(fd, "%c%s", sep, lvl);
     len += fprintf(fd, ": %s%s", msg, msg_nl ? "" : "\n");
 
     return fflush(fd) != EOF && len >= 0;
