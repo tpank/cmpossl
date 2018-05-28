@@ -66,7 +66,7 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
 
     l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
     if (l < 0 || prot_part_der == NULL)
-        return 0;
+        goto end;
     prot_part_der_len = (size_t) l;
 
     /* verify signature of protected part */
@@ -76,24 +76,25 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
         pk_nid == NID_undef ||
         (digest = (EVP_MD *)EVP_get_digestbynid(digest_nid)) == NULL) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ALGORITHM_NOT_SUPPORTED);
-        return 0;
+        goto end;
     }
 
     /* check msg->header->protectionAlg is consistent with public key type */
     if (EVP_PKEY_type(pk_nid) != EVP_PKEY_base_id(pubkey)) {
-        ASN1err(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_WRONG_ALGORITHM_OID);
-        return 0;
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_WRONG_ALGORITHM_OID);
+        goto end;
     }
 
     if ((ctx = EVP_MD_CTX_create()) == NULL) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_OUT_OF_MEMORY);
-        return 0;
+        goto end;
     }
     ret = EVP_VerifyInit_ex(ctx, digest, NULL) &&
           EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len) &&
           EVP_VerifyFinal(ctx, msg->protection->data,
                           msg->protection->length, pubkey) == 1;
 
+ end:
     /* cleanup */
     EVP_MD_CTX_destroy(ctx);
     OPENSSL_free(prot_part_der);
