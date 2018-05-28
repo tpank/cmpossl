@@ -418,6 +418,8 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
         goto err;
     case CMP_PKISTATUS_grantedWithMods:
         CMP_warn(ctx, "received \"grantedWithMods\" for certificate");
+        crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
+        break;
     case CMP_PKISTATUS_accepted:
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
