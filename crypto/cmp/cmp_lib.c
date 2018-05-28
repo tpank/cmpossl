@@ -38,8 +38,6 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/rand.h>
-/* for bio_err */
-#include <openssl/err.h>
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 # include "crypto/cryptlib.h" /* for DECIMAL_SIZE */
 #else
