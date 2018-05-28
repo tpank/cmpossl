@@ -619,7 +619,7 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
     X509_ALGOR *alg;
-    int nid = 0, pk_nid = NID_undef;
+    int nid = NID_undef, pk_nid = NID_undef;
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
     const
 #endif
@@ -726,7 +726,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             else /* server cert should match senderKID in header */
                 if (!check_kid(scrt, msg->header->senderKID, 0))
                     /* here this can only happen if ctx->srvCert has been set */
-                    CMP_add_error_line("subject key identifier in context-provided server certificate does not match senderKID in CMP header");
+                    CMP_add_error_line("for senderKID in CMP header there is no matching subject key identifier in context-provided server cert");
         } else {
             CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_NO_SUITABLE_SERVER_CERT);
         }
