@@ -4326,7 +4326,7 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-   /* handle OPT_CONFIG and OPT_SECTION upfront to take effect for other opts */
+    /* handle OPT_CONFIG and OPT_SECTION upfront to take effect for other opts */
     for (i = 1; i < argc - 1; i++)
         if (*argv[i] == '-') {
             if (!strcmp(argv[i] + 1, cmp_options[OPT_CONFIG - OPT_HELP].name))
@@ -4337,6 +4337,11 @@ int cmp_main(int argc, char **argv)
         }
     if (opt_section[0] == '\0') /* empty string */
         opt_section = DEFAULT_SECTION;
+
+    if (!CMP_log_init()) {
+        BIO_printf(bio_err, "%s: cannot initialize logging\n", prog);
+        goto err;
+    }
 
     cmp_ctx = CMP_CTX_create();
     vpm = X509_VERIFY_PARAM_new();
@@ -4514,6 +4519,7 @@ int cmp_main(int argc, char **argv)
     if (opt_secret)
         OPENSSL_cleanse(opt_secret, strlen(opt_secret));
     NCONF_free(conf); /* must not do as long as opt_... variables are used */
+    CMP_log_close();
 
     return ret > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
