@@ -33,7 +33,7 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART prot_part;
     int ret = 0;
-    int digest_NID;
+    int digest_nid, pk_nid;
     EVP_MD *digest = NULL;
     EVP_PKEY *pubkey = NULL;
 
@@ -69,11 +69,19 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
         return 0;
     prot_part_der_len = (size_t) l;
 
-    /* verify protection of protected part */
+    /* verify signature of protected part */
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),
-                                         &digest_NID, NULL) ||
-        (digest = (EVP_MD *)EVP_get_digestbynid(digest_NID)) == NULL) {
+                                         &digest_nid, &pk_nid) ||
+        digest_nid == NID_undef ||
+        pk_nid == NID_undef ||
+        (digest = (EVP_MD *)EVP_get_digestbynid(digest_nid)) == NULL) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ALGORITHM_NOT_SUPPORTED);
+        return 0;
+    }
+
+    /* check msg->header->protectionAlg is consistent with public key type */
+    if (EVP_PKEY_type(pk_nid) != EVP_PKEY_base_id(pubkey)) {
+        ASN1err(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_WRONG_ALGORITHM_OID);
         return 0;
     }
 
@@ -610,19 +618,25 @@ static X509 *find_srvcert(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
  */
 int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
 {
-    int nid = 0;
+    X509_ALGOR *alg;
+    int nid = 0, pk_nid = NID_undef;
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
     const
 #endif
     ASN1_OBJECT *algorOID = NULL;
     X509 *scrt = NULL;
 
-    if (ctx == NULL || msg == NULL || msg->header == NULL ||
-        msg->header->protectionAlg == NULL) /* unprotected message */
+    if (ctx == NULL || msg == NULL || msg->header == NULL) {
+        CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
+    if ((alg = msg->header->protectionAlg) == NULL) { /* unprotected message */
+        CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_MISSING_PROTECTION);
+        return 0;
+    }
 
     /* determine the nid for the used protection algorithm */
-    X509_ALGOR_get0(&algorOID, NULL, NULL, msg->header->protectionAlg);
+    X509_ALGOR_get0(&algorOID, NULL, NULL, alg);
     nid = OBJ_obj2nid(algorOID);
 
     switch (nid) {
@@ -643,11 +657,11 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                 if (!CMP_X509_STORE_add1_certs(ctx->trusted_store,
                         msg->body->value.ip->caPubs, /* same for cp, kup, ccp */
                                                0/* allow self-signed or not */))
-                    return 0;
+                    break;
             }
             return 1;
         }
-        return 0;
+        break;
 
         /* TODO: 5.1.3.2.  DH Key Pairs --> feature request #33 */
     case NID_id_DHBasedMac:
@@ -661,12 +675,16 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
          * -> check all possible options from OpenSSL, should there be macro?
          */
     default:
-
+        if (!OBJ_find_sigid_algs(OBJ_obj2nid(alg->algorithm), NULL, &pk_nid) ||
+            pk_nid == NID_undef) {
+            CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_UNKNOWN_ALGORITHM_ID);
+            break;
+        }
         /* validate sender name of received msg */
         if (msg->header->sender->type != GEN_DIRNAME) {
             CMPerr(CMP_F_CMP_VALIDATE_MSG,
                    CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
-            return 0; /* FR#42: support for more than X509_NAME */
+            break; /* FR#42: support for more than X509_NAME */
         }
         /*
          * Compare actual sender name of response with expected sender name.
@@ -678,7 +696,7 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
             if (X509_NAME_cmp(ctx->expected_sender, sender_name) != 0) {
                 CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
                 add_name_mismatch_data("", ctx->expected_sender, sender_name);
-                return 0;
+                break;
             }
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
@@ -710,9 +728,9 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
                     /* here this can only happen if ctx->srvCert has been set */
                     CMP_add_error_line("subject key identifier in context-provided server certificate does not match senderKID in CMP header");
         } else {
-            CMPerr(CMP_F_CMP_VALIDATE_MSG,
-                   CMP_R_NO_SUITABLE_SERVER_CERT_OR_UNSUPPORTED_PROTECTION_ALG);
+            CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_NO_SUITABLE_SERVER_CERT);
         }
+        break;
     }
     return 0;
 }
