@@ -2308,6 +2308,24 @@ static int certConf_cb(CMP_CTX *ctx, const X509 *cert, int failure,
     return failure;
 }
 
+/*!*****************************************************************************
+* @brief parse string as integer value, not allowing trailing garbage
+*
+* @note see also https://www.gnu.org/software/libc/manual/html_node/Parsing-of-Integers.html
+* @param str input string
+* @return integer value, or INT_MIN on error
+*******************************************************************************/
+static int atoint(const char *str)
+{
+    char *tailptr;
+    long res = strtol(str, &tailptr, 10);
+    if  ((*tailptr != '\0') || (res < INT_MIN) || (res > INT_MAX)) {
+        return INT_MIN;
+    } else {
+        return (int)res;
+    }
+}
+
 static int parse_addr(CMP_CTX *ctx,
                       char **opt_string, int port, const char *name)
 {
@@ -2321,7 +2339,7 @@ static int parse_addr(CMP_CTX *ctx,
         return port;
     }
     *(port_string++) = '\0';
-    port = atoi(port_string);
+    port = atoint(port_string);
     if ((port <= 0) || (port > 65535)) {
         CMP_printf(ctx, FL_ERR,
                    "invalid %s port '%s' given, sane range 1-65535",
@@ -4275,7 +4293,11 @@ static int get_opts(int argc, char **argv)
                     *cmp_vars[i].num = 1;
                     break;
                 case 'n':
-                    *cmp_vars[i].num = atoi(*++argv);
+                    if (*cmp_vars[i].num = atoint(*++argv) == INT_MIN) {
+                        BIO_printf(bio_err, "Can't parse %s as integer argument for '-%s'\n",
+                                   *argv, opt->name);
+                        goto opt_err;
+                    }
                     argc--;
                     break;
                 case 'l':
