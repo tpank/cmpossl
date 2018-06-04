@@ -53,12 +53,15 @@ my $ejbca_section = "ejbca";
 my @ejbca_credentials = ($ejbca_certdir, $ejbca_commonname, $ejbca_section, $config_file, 0, 0);
 my @all_credentials = (\@ejbca_credentials, \@insta_credentials);
 sub test_cmp_cli {
-    print Dumper @_; # for debugging purposes only
+    my @args = @_;
     my $title = shift;
     my $params = shift;
     my $expected_exit = shift;
     my $config = shift;
-    with({ exit_checker => sub { return shift == $expected_exit; } },
+    with({ exit_checker => sub {
+        my $OK = shift == $expected_exit;
+        print Dumper @args if !($ENV{HARNESS_VERBOSE} == 2 && $OK); # for debugging purposes only
+        return $OK; } },
          sub { indir data_file(".") =>
          sub { ok(run(app(["openssl", "cmp", @$params,])),
                   $title); }});
