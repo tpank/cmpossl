@@ -1,44 +1,60 @@
 [default]
 batch = 1
 #proxy = 194.145.60.1:9400
+totaltimeout = 5 # To avoid infinite polling
+trusted = root.crt
+cert = signer.crt
+key  = signer.p12
+keypass = pass:12345
+newkey = test.ECC256p.pem
+newkeypass = pass:
 cmd = ir
+out_trusted = root.crt
+certout = test.cert.pem
 policies = 1.2.3.4 # gets ignored
 policies_critical = 1 # gets ignored
-totaltimeout = 5 # To avoid infinite polling
-subject = "/CN=ECC-EE/OU=For test purposes only/O=CMPforOpenSSL/C=DE"
+
+############################# CA configurations
 
 [EJBCA]
 server = ec2-204-236-244-127.compute-1.amazonaws.com:80
 path = /ejbca/publicweb/cmp/ECCEndEntity
 recipient = /CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL/C=DE
+subject = "/CN=ECC-EE/OU=For test purposes only/O=CMPforOpenSSL/C=DE"
+pbm_secret = pass:SecretCmp
 ignore_keyusage = 0
-trusted =  EJBCA/root.crt
-unprotectederrors = 1 #EJBCA sends error messages and negative responses without protection
-cert =  EJBCA/signer.crt
-key  =  EJBCA/signer.p12
-keypass = pass:12345
-newkey =  EJBCA/test.ECC256p.pem
-newkeypass = pass:
-out_trusted =  EJBCA/root.crt
-certout =  EJBCA/test.cert.pem
+unprotectederrors = 1 # EJBCA sends error messages and negative responses without protection
+column = 0
+sleep = 0
 
 [Insta]
 server = pki.certificate.fi:8700
 path = pkix/
 recipient = /C=FI/O=Insta Demo/CN=Insta Demo CA
-ignore_keyusage = 1
-trusted =  Insta/root.crt
-unprotectederrors = 0
+subject = /C=FI/O=Insta Demo/CN=ECC-EE
+pbm_secret = pass:insta
 ref = 3078
-secret = pass:insta
+secret = $pbm_secret
 key =
 cert =
-newkey =  Insta/test.ECC256p.pem
-newkeypass = pass:
-out_trusted =  Insta/root.crt
-certout =  Insta/test.cert.pem
+ignore_keyusage = 1
+unprotectederrors = 0
+column = 1
+sleep = 2
 
-############################# TESTING
+[CmpWsRa] # this is a Siemens-only test configuration
+server = localhost:9080
+path = cmp/PlaygroundECC/
+recipient = /CN=PPKI Playground ECC Issuing CA/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
+subject = /CN=ECC-EE/OU=PPKI Playground/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
+pbm_secret = pass:SecretCmp
+ignore_keyusage = 0
+unprotectederrors = 1 # EJBCA sends error messages and negative responses without protection
+column = 0
+sleep = 0
+
+############################# aspects
+
 [connection]
 msgtimeout = 10
 totaltimeout =
@@ -49,7 +65,7 @@ tls_keypass =
 tls_trusted =
 tls_host =
 
-[clientcredentials]
+[credentials]
 ref =
 secret =
 certkey =
@@ -61,7 +77,7 @@ unprotectedrequests =
 cert =
 key =
 
-[server_verification]
+[verification]
 recipient =
 expected_sender =
 srvcert =
@@ -70,7 +86,7 @@ untrusted =
 unprotectederrors =
 extracertsout =
 
-[tlstest]
+[tls]
 server =
 tls_used =
 tls_cert =
@@ -98,6 +114,7 @@ csr =
 revreason =
 infotype =
 
+############################# extra cert template contents
 
 [reqexts]
 basicConstraints = CA:FALSE
@@ -121,6 +138,3 @@ DNS.0 = localhost
 DNS.1 = example.com
 DNS.2 = example2.com
 DNS__3 = example3.com
-
-
-############################ TESTING ENDE
