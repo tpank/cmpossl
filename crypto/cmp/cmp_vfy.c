@@ -618,8 +618,29 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
     X509 *scrt = NULL;
 
     if (ctx == NULL || msg == NULL || msg->header == NULL ||
-        msg->header->protectionAlg == NULL) /* unprotected message */
+        msg->header->protectionAlg == NULL) { /* unprotected message */
+        CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
+
+    /* validate sender name of received msg */
+    if (msg->header->sender->type != GEN_DIRNAME) {
+        CMPerr(CMP_F_CMP_VALIDATE_MSG,
+               CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
+        return 0; /* FR#42: support for more than X509_NAME */
+    }
+    /*
+     * Compare actual sender name of response with expected sender name, if available.
+     * Mitigates risk to accept misused credential by an unauthorized entity
+     */
+    if (ctx->expected_sender) { /* set explicitly or subj of ctx->srvCert */
+        X509_NAME *sender_name = msg->header->sender->d.directoryName;
+        if (X509_NAME_cmp(ctx->expected_sender, sender_name) != 0) {
+            CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
+            add_name_mismatch_data("", ctx->expected_sender, sender_name);
+            return 0;
+        }
+    }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
     /* determine the nid for the used protection algorithm */
     X509_ALGOR_get0(&algorOID, NULL, NULL, msg->header->protectionAlg);
@@ -660,28 +681,8 @@ int CMP_validate_msg(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg)
         /* TODO: should that better white-list DSA/RSA etc.?
          * -> check all possible options from OpenSSL, should there be macro?
          */
+
     default:
-
-        /* validate sender name of received msg */
-        if (msg->header->sender->type != GEN_DIRNAME) {
-            CMPerr(CMP_F_CMP_VALIDATE_MSG,
-                   CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
-            return 0; /* FR#42: support for more than X509_NAME */
-        }
-        /*
-         * Compare actual sender name of response with expected sender name.
-         * Mitigates risk to accept misused certificate of an unauthorized
-         * entity of a trusted hierarchy.
-         */
-        if (ctx->expected_sender) { /* set explicitly or subj of ctx->srvCert */
-            X509_NAME *sender_name = msg->header->sender->d.directoryName;
-            if (X509_NAME_cmp(ctx->expected_sender, sender_name) != 0) {
-                CMPerr(CMP_F_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
-                add_name_mismatch_data("", ctx->expected_sender, sender_name);
-                return 0;
-            }
-        }/* Note: if recipient was NULL-DN it could be learned here if needed */
-
         scrt = ctx->srvCert;
         if (scrt == NULL)
             scrt = find_srvcert(ctx, msg);
