@@ -11,8 +11,8 @@ S<[B<-help>]>
 S<[B<-config filename>]>
 S<[B<-section names>]>
 
-S<[B<-server address:port>]>
-S<[B<-proxy address:port>]>
+S<[B<-server address[:port]>]>
+S<[B<-proxy address[:port]>]>
 S<[B<-path remote_path>]>
 S<[B<-msgtimeout seconds>]>
 S<[B<-totaltimeout seconds>]>
@@ -158,13 +158,15 @@ section (as far as present) can provide per-option fallback values.
 
 =item B<-server address[:port]>
 
-The IP address or hostname and port (defaults to 8080) of the CMP server to connect to using HTTP/S transport.
+The IP address or hostname and port (defaults to 8080) 
+of the CMP server to connect to using HTTP/S transport.
 
 =item B<-proxy address[:port]>
 
-The IP address or hostname and port (defaults to 8080) of the HTTP/S proxy
-server, optionally given if needed for accessing the CMP server.
-TLS is not yet supported via proxy.
+The IP address or hostname and port (defaults to 8080) of the HTTP proxy server,
+which can be given if needed for accessing the CMP server.
+TLS is not yet supported via proxy. 
+The environment variable C<no_proxy> (or else C<NO_PROXY>) is respected.
 
 =item B<-path remote_path>
 
