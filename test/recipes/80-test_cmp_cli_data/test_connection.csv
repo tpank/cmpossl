@@ -27,7 +27,8 @@
 1;-;proxy no port;-section;;-server;ec2-204-236-244-127.compute-1.amazonaws.com:80;-proxy;127.0.0.1;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
 1;-;proxy empty;-section;;-server;ec2-204-236-244-127.compute-1.amazonaws.com:80;-proxy;;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
-0;TODO;path includes additional '/'s;-section;;;;;;-path;/ejbca/publicweb/cmp/////ECCEndEntity;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
+0;-;path includes additional '/'s;-section;;;;;;-path;/ejbca/publicweb/cmp/////ECCEndEntity;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
+-;0;path includes additional '/'s;-section;;;;;;-path;/pkix////;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 1;TODO;path lower case;-section;;;;;;-path;/ejbca/publicweb/cmp/eccendentity;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
 1;TODO;path upper case;-section;;;;;;-path;/EJBCA/PUBLICWEB/CMP/ECCENDENTITY;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;

@@ -38,7 +38,7 @@ TODO;TODO;unknown attributes in expected sender;-section;;-recipient;_ISSUINGCAC
 ;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;
 0;0;config default with server cert;-section;;-recipient;_ISSUINGCACN;BLANK;;-srvcert;issuing.crt;-trusted;root.crt;BLANK;;-ignore_keyusage;-unprotectederrors;BLANK;;
-0;-;big server cert file;-section;;-recipient;_ISSUINGCACN;BLANK;;-srvcert;ECCIssuingCAv10_big.crt;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
+0;0;big server cert file;-section;;-recipient;_ISSUINGCACN;BLANK;;-srvcert;issuing_big.crt;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 ;;;;;;;;;;;;;;;;;;;
 1;1;srvcert empty;-section;;-recipient;_ISSUINGCACN;BLANK;;-srvcert;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;1;wrong servercert;-section;;-recipient;_ISSUINGCACN;BLANK;;-srvcert;EJBCAInfrastructureIssuingCAv10.crt;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;

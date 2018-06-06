@@ -45,7 +45,7 @@ sleep = 2
 [CmpWsRa] # this is a Siemens-only test configuration
 server = localhost:9080
 path = cmp/PlaygroundECC/
-recipient = /CN=PPKI Playground ECC Issuing CA/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
+recipient = /CN=PPKI Playground ECC Issuing CA v1.0/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
 subject = /CN=ECC-EE/OU=PPKI Playground/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
 pbm_secret = pass:SecretCmp
 ignore_keyusage = 0
