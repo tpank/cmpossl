@@ -90,7 +90,7 @@ sub load_config {
 }
 
 my @ca_configurations = (); # ("EJBCA", "Insta", "CmpWsRa");
-@ca_configurations = ( $ENV{CMP_TESTS} ) if $ENV{CMP_TESTS};
+@ca_configurations = split /\s+/, $ENV{CMP_TESTS} if $ENV{CMP_TESTS};
 # set env variable, e.g., "CMP_TESTS = EJBCA Insta" to include certain CAs
 
 my @all_aspects = ("connection", "verification", "credentials", "commands");
@@ -103,7 +103,7 @@ sub test_cmp_cli {
     my $expected_exit = shift;
     with({ exit_checker => sub {
         my $OK = shift == $expected_exit;
-        print Dumper @args if !($ENV{HARNESS_VERBOSE} == 2 && $OK); # for debugging purposes only
+        print Dumper @args if !($ENV{HARNESS_VERBOSE} eq 2 && $OK); # for debugging purposes only
         return $OK; } },
          sub { ok(run(app(["openssl", "cmp", @$params,])),
                   $title); });
