@@ -245,10 +245,12 @@ When a response is received, its sender must match the recipient of the request.
 =item B<-expect_sender name>
 
 Distinguished Name (DN) of the expected sender of CMP response messages when
-MSG_SIG_ALG is used for protection. This can be used to ensure that only
-particular entities are accepted to act as CMP server, and attackers are not
+MSG_SIG_ALG is used for protection. This can be used to ensure that only a
+particular entity is accepted to act as CMP server, and attackers are not
 able to use arbitrary certificates of a trusted PKI hieararchy to fraudulently
-pose as server.
+pose as CMP server. Note that this option gives slightly more freedom than
+B<-srvcert> which pins down the server to a particular certificate, while
+B<-expect_sender name> will continue to match after updates of the server cert.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by C<\>E<nbsp>(backslash), no spaces are skipped.

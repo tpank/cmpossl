@@ -466,16 +466,16 @@ determined in the following order: issuer, issuer of old cert (oldClCert),
 issuer of client cert (clCert), else NULL-DN.
 When a response is received, its sender must match the recipient of the request.
 
-CMP_CTX_set1_expected_sender() sets the distinguished name expected to be the
-used by the sender response for messages proteced with MSG_SIG_ALG. During
-validation of received messages, it gets enforced that this DN matches the
-server name field of the PKIMessage header, which in turn is used to find the
+CMP_CTX_set1_expected_sender() sets the Distinguished Name (DN) expected to be
+given in the sender response for messages proteced with MSG_SIG_ALG. This may be
+used to enforce that during validation of received messages the given DN matches
+the sender field of the PKIMessage header, which in turn is used to identify the
 server certificate.
-This can be used to ensure that only particular entities are accepted to act as
+This can be used to ensure that only a particular entity is accepted to act as
 CMP server, and attackers are not able to use arbitrary certificates of a
 trusted PKI hieararchy to fraudulently pose as server.
-If applicable, this defaults to the subject DN of the certificate set via
-CMP_CTX_set1_srvCert().
+This defaults to the subject DN of the certificate set via
+CMP_CTX_set1_srvCert(), if any.
 
 CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
