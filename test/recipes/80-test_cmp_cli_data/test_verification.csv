@@ -3,7 +3,7 @@ y;;;;-recipient;val;-expect_sender;val;-srvcert;val;-trusted;val;-untrusted;val;
 ;;;;;;;;;;;;;;;;;;;
 0;0;default test;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 TODO;TODO;different order in recipient field;-section;;-recipient;/C=DE/CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL;BLANK;;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;-extracertsout;test.extracerts.pem;
-1;1;order of sender and expected sender do not match;-section;;;;-expect_sender;/C=DE/CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL;BLANK;;-trusted;root.crt;BLANK;;BLANK;;;;
+1;TODO Insta uses PBM;order of sender and expected sender do not match;-section;;;;-expect_sender;/C=DE/CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL;BLANK;;-trusted;root.crt;BLANK;;BLANK;;;;
 ;;;;;;;;;;;;;;;;;;;
 1;1;recipient empty;-section;;-recipient;;BLANK;;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 ;;;;;;;;;;;;;;;;;;;
@@ -27,7 +27,7 @@ TODO;-;expected sender all lower case;-section;;-recipient;_CA_DN;-expect_sender
 0;-;expected sender upper case;-section;;-recipient;_CA_DN;-expect_sender;/CN=ECC ISSUING CA V10/OU=FOR TEST PURPOSE ONLY/O=CMPFOROPENSSL/C=DE;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;-;wrong expected sender;-section;;-recipient;_CA_DN;-expect_sender;/CN=Sample Cert/OU=R&D/O=Company Ltd./L=Dublin 4/C=IE;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 TODO;TODO;unknown attributes in expected sender;-section;;-recipient;_CA_DN;-expect_sender;_SERVER_DN/ABC=123;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
-1;1;extra attributes in expected sender;-section;;-recipient;_CA_DN;-expect_sender;_SERVER_DN/serialNumber=123;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
+1;TODO Insta uses PBM;extra attributes in expected sender;-section;;-recipient;_CA_DN;-expect_sender;_SERVER_DN/serialNumber=123;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;-;double attributes in expected sender;-section;;-recipient;_CA_DN;-expect_sender;/CN=ECC Issuing CA v10_SERVER_DN;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;-;missing attributes in expected sender;-section;;-recipient;_CA_DN;-expect_sender;/CN=ECC Issuing CA v10/OU=For test purpose only/C=DE;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;-;bad syntax in expected sender name: double '/';-section;;-recipient;_CA_DN;-expect_sender;/CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL//C=DE;BLANK;;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
