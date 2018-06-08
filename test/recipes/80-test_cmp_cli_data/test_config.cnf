@@ -1,7 +1,7 @@
 [default]
 batch = 1
 #proxy = 194.145.60.1:9400
-totaltimeout = 5 # To avoid infinite polling
+totaltimeout = 6 # prevent, e.g., infinite polling due to error
 trusted = root.crt
 cert = signer.crt
 key  = signer.p12
@@ -17,7 +17,11 @@ policies_critical = 1 # gets ignored
 ############################# CA configurations
 
 [EJBCA]
-server = ec2-204-236-244-127.compute-1.amazonaws.com:80
+server_cn = ec2-204-236-244-127.compute-1.amazonaws.com
+server_ip = 204.236.244.127
+server_port = 80
+server_cert = issuing.crt
+server = $server_cn:$server_port
 path = /ejbca/publicweb/cmp/ECCEndEntity
 recipient = /CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL/C=DE
 subject = "/CN=ECC-EE/OU=For test purposes only/O=CMPforOpenSSL/C=DE"
@@ -28,7 +32,11 @@ column = 0
 sleep = 0
 
 [Insta]
-server = pki.certificate.fi:8700
+server_cn = pki.certificate.fi
+server_ip = 91.213.161.196
+server_port = 8700
+server_cert = issuing.crt
+server = $server_cn:$server_port
 path = pkix/
 recipient = /C=FI/O=Insta Demo/CN=Insta Demo CA
 subject = /C=FI/O=Insta Demo/CN=ECC-EE
@@ -43,9 +51,15 @@ column = 1
 sleep = 2
 
 [CmpWsRa] # this is a Siemens-only test configuration
-server = localhost:9080
+server_cn = localhost
+server_ip = 127.0.0.1
+server_port = 9080
+server_cert = signer.crt
+server = $server_cn:$server_port
+server_cert = signer.crt
 path = cmp/PlaygroundECC/
 recipient = /CN=PPKI Playground ECC Issuing CA v1.0/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
+ra = /CN=Product PKI Playground CMP Signer/OU=PPKI Playground/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
 subject = /CN=ECC-EE/OU=PPKI Playground/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
 pbm_secret = pass:SecretCmp
 ignore_keyusage = 0
@@ -56,7 +70,7 @@ sleep = 0
 ############################# aspects
 
 [connection]
-msgtimeout = 10
+msgtimeout = 15
 totaltimeout =
 tls_used =
 tls_cert =
@@ -68,14 +82,13 @@ tls_host =
 [credentials]
 ref =
 secret =
-certkey =
-keypass =
-extracerts =
-geninfo =
-digest =
-unprotectedrequests =
 cert =
 key =
+keypass =
+extracerts =
+geninfo = # TODO move geninfo tests to commands section
+digest =
+unprotectedrequests =
 
 [verification]
 recipient =

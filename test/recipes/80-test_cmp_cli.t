@@ -19,8 +19,10 @@ use OpenSSL::Test::Utils;
 use Data::Dumper; # for debugging purposes only
 
 my $proxy = '""';
+$proxy = $ENV{HTTP_PROXY} if $ENV{HTTP_PROXY};
 $proxy = $ENV{http_proxy} if $ENV{http_proxy};
 $proxy =~ s{http://}{};
+my $no_proxy = $ENV{no_proxy} // $ENV{NO_PROXY};
 
 setup("test_cmp_cli");
 
@@ -40,7 +42,12 @@ my $test_config = "test_config.cnf";
 
 # the CA server configuration consists of:
                 # The CA name (implies directoy with certs etc. and CA-specific section in config file)
-my $ca_cn;      # The CA common name
+my $ca_dn;      # The CA's Distinguished Name
+my $server_dn;  # The server's Distinguished Name
+my $server_cn;  # The server's domain name
+my $server_ip;  # The server's IP address
+my $server_port;# The server's port
+my $server_cert;# The server's cert
 my $secret;     # The secret for PBM
 my $column;     # The column number of the expected result
 my $sleep = 0;  # The time to sleep between two requests
@@ -48,7 +55,12 @@ my $sleep = 0;  # The time to sleep between two requests
 sub load_config {
     my $name = shift;
     open (CH, $test_config) or die "Can't open $test_config: $!";
-    $ca_cn = undef;
+    $ca_dn = undef;
+    $server_dn = undef;
+    $server_cn = undef;
+    $server_ip = undef;
+    $server_port = undef;
+    $server_cert = undef;
     $secret = undef;
     $column = undef;
     $sleep = undef;
@@ -59,7 +71,12 @@ sub load_config {
             } elsif (m/\[\s*.*?\s*\]/) {
                 $active = 0;
         } elsif ($active) {
-            $ca_cn = $1 if m/\s*recipient\s*=\s*(.*)?\s*$/;
+            $ca_dn = $1 if m/\s*recipient\s*=\s*(.*)?\s*$/;
+            $server_dn = $1 if m/\s*ra\s*=\s*(.*)?\s*$/;
+            $server_cn = $1 if m/\s*server_cn\s*=\s*(.*)?\s*$/;
+            $server_ip = $1 if m/\s*server_ip\s*=\s*(.*)?\s*$/;
+            $server_port = $1 if m/\s*server_port\s*=\s*(.*)?\s*$/;
+            $server_cert = $1 if m/\s*server_cert\s*=\s*(.*)?\s*$/;
             $secret = $1 if m/\s*pbm_secret\s*=\s*(.*)?\s*$/;
             $column = $1 if m/\s*column\s*=\s*(.*)?\s*$/;
                 $sleep = $1 if m/\s*sleep\s*=\s*(.*)?\s*$/;
@@ -67,7 +84,9 @@ sub load_config {
     }
     close CH;
     die "Can't find all CA config values in $test_config section [$name]\n"
-        if !defined $ca_cn || !defined $secret || !defined $column || !defined $sleep;
+        if !defined $ca_dn || !defined $server_cn || !defined $server_ip || !defined $server_port ||
+           !defined $server_cert || !defined $secret || !defined $column || !defined $sleep;
+    $server_dn = $server_dn // $ca_dn;
 }
 
 my @ca_configurations = ("EJBCA", "Insta");
@@ -132,9 +151,16 @@ sub load_tests {
 		chomp $line;
 		next LOOP if $line =~ m/TLS/i; # skip tests requiring TLS
 		$line =~ s{\r\n}{\n}g; # adjust line endings
-		$line =~ s{_ISSUINGCACN}{$ca_cn}g;
+		$line =~ s{_CA_DN}{$ca_dn}g;
+		$line =~ s{_SERVER_DN}{$server_dn}g;
+		$line =~ s{_SERVER_CN}{$server_cn}g;
+		$line =~ s{_SERVER_IP}{$server_ip}g;
+		$line =~ s{_SERVER_PORT}{$server_port}g;
+		$line =~ s{_SRVCERT}{$server_cert}g;
 		$line =~ s{_SECRET}{$secret}g;
-		$line =~ s{-section;;}{-proxy;$proxy;-config;../$test_config;-section;$name,$aspect;};
+		next LOOP if $no_proxy =~ $server_cn && $line =~ m/;-proxy;/;
+		$line =~ s{-section;;}{-section;;-proxy;$proxy;} unless $line =~ m/;-proxy;/;
+		$line =~ s{-section;;}{-config;../$test_config;-section;$name,$aspect;};
 		my @fields = grep /\S/, split ";", $line;
 		my $expected_exit = $fields[$column];
 		my $title = $fields[2];

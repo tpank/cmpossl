@@ -3,7 +3,7 @@ EJBCA;INSTA CA;;;-cmd;val;;-cacertsout;val;;-newkey;val;;-newkeypass;val;-subjec
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 0;0;config default;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
-TBD;TBD;config default all set;-section;;-cmd;ir;;-cacertsout;test.cacerts.crt;;;;;;;;;-issuer;_ISSUINGCACN;-days;30;-reqexts;reqexts;-popo;1;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;-oldcert;test.cert.pem;-csr;test.csr.pem;BLANK;;-infotype;signKeyPairTypes;
+TBD;TBD;config default all set;-section;;-cmd;ir;;-cacertsout;test.cacerts.crt;;;;;;;;;-issuer;_CA_DN;-days;30;-reqexts;reqexts;-popo;1;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;-oldcert;test.cert.pem;-csr;test.csr.pem;BLANK;;-infotype;signKeyPairTypes;
 ;;;;;-cmd;kur;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-oldcert;test.cert.pem;;;;;;;
 ;;;;;-cmd;rr;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-oldcert;test.cert.pem;;;-revreason;5;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -55,7 +55,7 @@ TBD;TBD;colon missing and no pw;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p_
 1;TBD;subject incorrect data;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;-subject;/CN=TEST1/OU=TEST2/O=TEST3/C=DE;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
 1;TBD;subject bad syntax: missing '=';-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;-subject;/CN=ECC-EE/OUFor test purposes only/O=CMPforOpenSSL/C=DE;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-0;0;issuer;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;-issuer;_ISSUINGCACN;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
+0;0;issuer;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;-issuer;_CA_DN;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 TBD 1;TBD 1;issuer empty;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;-issuer;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
 TBD 1;TBD 1;issuer country missing;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;-issuer;/CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
