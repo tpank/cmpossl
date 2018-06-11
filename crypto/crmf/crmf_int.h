@@ -344,6 +344,36 @@ struct crmf_optionalvalidity_st {
 } /* CRMF_OPTIONALVALIDITY */;
 DECLARE_ASN1_FUNCTIONS(CRMF_OPTIONALVALIDITY)
 
+/*
+ * CertTemplate ::= SEQUENCE {
+ * version          [0] Version                   OPTIONAL,
+ * serialNumber [1] INTEGER                       OPTIONAL,
+ * signingAlg   [2] AlgorithmIdentifier           OPTIONAL,
+ * issuer           [3] Name                      OPTIONAL,
+ * validity         [4] OptionalValidity          OPTIONAL,
+ * subject          [5] Name                      OPTIONAL,
+ * publicKey        [6] SubjectPublicKeyInfo      OPTIONAL,
+ * issuerUID        [7] UniqueIdentifier          OPTIONAL,
+ * subjectUID   [8] UniqueIdentifier              OPTIONAL,
+ * extensions   [9] Extensions                    OPTIONAL }
+ */
+struct crmf_certtemplate_st {
+    ASN1_INTEGER *version;           /* 0 */
+    ASN1_INTEGER *serialNumber;      /* 1 */ /* serialNumber MUST be omitted  */
+             /* This field is assigned by the CA during certificate creation  */
+    X509_ALGOR *signingAlg;          /* 2 */  /* signingAlg MUST be omitted   */
+             /* This field is assigned by the CA during certificate creation  */
+    X509_NAME *issuer;               /* 3 */
+    CRMF_OPTIONALVALIDITY *validity; /* 4 */
+    X509_NAME *subject;              /* 5 */
+    X509_PUBKEY *publicKey;          /* 6 */
+    ASN1_BIT_STRING *issuerUID;      /* 7 */  /* deprecated in version 2      */
+                  /* According to rfc 3280: UniqueIdentifier  ::=  BIT STRING */
+    ASN1_BIT_STRING *subjectUID;     /* 8 */  /* deprecated in version 2      */
+                      /* Could be X509_EXTENSION*S*, but that's only cosmetic */
+    STACK_OF(X509_EXTENSION) *extensions; /* 9 */
+} /* CRMF_CERTTEMPLATE */;
+
 /*-
  * CertRequest ::= SEQUENCE {
  * certReqId         INTEGER,   -- ID for matching request and reply
