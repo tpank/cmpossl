@@ -722,12 +722,16 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  */
 
 /* from cmp_ctx.c */
-#define LOG(x)  log_printf x /* poor man's variadic macro for C90;
+#ifdef OSSL_CMP_POOR_LOG
+#define CMP_LOG(x)  CMP_log_printf x /* poor man's variadic macro for C90;
    calls need argument(s) in doubly nested parentheses: LOG((args)) */
 /* C99 would allow  #define LOG(...) log_print(__VA_ARGS__)  where
    the argument(s) could be given in normal parentheses: LOG(args) */
 /* See also, e.g., https://en.wikipedia.org/wiki/Variadic_macro */
-int log_printf(const char *file, int line, severity level, const char *fmt,...);
+int CMP_log_printf(const char *file, int line, OSSL_CMP_severity level,
+                   const char *fmt,...);
+#endif
+
 int CMP_CTX_error_cb(const char *str, size_t len, void *u);
 
 /* from cmp_vfy.c */

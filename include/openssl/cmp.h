@@ -273,7 +273,7 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
 
 /* declarations resemble those from bio/bss_log.c and syslog.h */
 typedef enum {LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERROR,
-              LOG_WARN, LOG_NOTE, LOG_INFO, LOG_DEBUG} severity;
+              LOG_WARN, LOG_NOTE, LOG_INFO, LOG_DEBUG} OSSL_CMP_severity;
 
 #define FILE_LINE __FILE__, __LINE__
 #define FL_EMERG FILE_LINE, LOG_EMERG
@@ -285,20 +285,21 @@ typedef enum {LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERROR,
 #define FL_INFO  FILE_LINE, LOG_INFO
 #define FL_DEBUG FILE_LINE, LOG_DEBUG
 
-int CMP_puts(const char *file, int lineno, severity level, const char *msg);
-int CMP_printf(const CMP_CTX *ctx, const char *file, int lineno, severity level,
-               const char *fmt, ...);
+int CMP_puts(const char *file, int lineno,
+             OSSL_CMP_severity level, const char *msg);
+int CMP_printf(const CMP_CTX *ctx, const char *file, int lineno,
+               OSSL_CMP_severity level, const char *fmt, ...);
 #define CMP_err(ctx, msg)   CMP_printf(ctx, FL_ERR  , msg)
 #define CMP_warn(ctx, msg)  CMP_printf(ctx, FL_WARN , msg)
 #define CMP_info(ctx, msg)  CMP_printf(ctx, FL_INFO , msg)
 #define CMP_debug(ctx, msg) CMP_printf(ctx, FL_DEBUG, msg)
-int CMP_log_fd(const char *file, int lineno, severity level, const char *msg,
-               FILE *dest);
+int CMP_log_fd(const char *file, int lineno,
+               OSSL_CMP_severity level, const char *msg, FILE *dest);
 int  CMP_log_init(void);
 void CMP_log_close(void);
 
-typedef int (*cmp_log_cb_t) (const char *file, int lineno, severity level,
-                             const char *msg);
+typedef int (*cmp_log_cb_t) (const char *file, int lineno,
+                             OSSL_CMP_severity level, const char *msg);
 typedef int (*cmp_certConf_cb_t) (CMP_CTX *ctx, const X509 *cert, int failure,
                                  const char **txt);
 typedef BIO *(*cmp_http_cb_t) (CMP_CTX *ctx, BIO *hbio, int connect);

@@ -1431,8 +1431,8 @@ void CMP_log_close(void)
 }
 
 /* prints log messages to given stream fd */
-int CMP_log_fd(const char *file, int lineno, severity level, const char *msg,
-               FILE *fd)
+int CMP_log_fd(const char *file, int lineno,
+               OSSL_CMP_severity level, const char *msg, FILE *fd)
 {
     char sep;
     char *lvl = NULL;
@@ -1477,7 +1477,8 @@ int CMP_log_fd(const char *file, int lineno, severity level, const char *msg,
 }
 
 /* prints errors and warnings to stderr, info and debug messages to stdout */
-int CMP_puts(const char *file, int lineno, severity level, const char *msg)
+int CMP_puts(const char *file, int lineno,
+             OSSL_CMP_severity level, const char *msg)
 {
     FILE *fd = level <= LOG_WARN ? stderr : stdout;
     return CMP_log_fd(file, lineno, level, msg, fd);
@@ -1487,8 +1488,8 @@ int CMP_puts(const char *file, int lineno, severity level, const char *msg)
  * Function used for outputting error/warn/debug messages depending on callback.
  * By default or if the callback is set NULL the function CMP_puts() is used.
  */
-int CMP_printf(const CMP_CTX *ctx, const char *file, int lineno, severity level,
-               const char *fmt, ...)
+int CMP_printf(const CMP_CTX *ctx, const char *file, int lineno,
+               OSSL_CMP_severity level, const char *fmt, ...)
 {
     va_list arg_ptr;
     char buf[1024];
@@ -1502,10 +1503,12 @@ int CMP_printf(const CMP_CTX *ctx, const char *file, int lineno, severity level,
     return res;
 }
 
+#ifdef OSSL_CMP_POOR_LOG
 /*
- * Internal function for error/warn/debug messages, to be used via LOG((args))
+ * simple function for error/warn/debug messages, to be used via CMP_LOG((args))
  */
-int log_printf(const char *file, int line, severity level, const char *fmt, ...)
+int CMP_log_printf(const char *file, int line,
+                   OSSL_CMP_severity level, const char *fmt, ...)
 {
     va_list arg_ptr;
     char buf[1024];
@@ -1517,6 +1520,7 @@ int log_printf(const char *file, int line, severity level, const char *fmt, ...)
     va_end(arg_ptr);
     return res;
 }
+#endif
 
 /*
  * This callback is used to print out the OpenSSL error queue via
