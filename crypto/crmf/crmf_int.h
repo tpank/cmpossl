@@ -24,6 +24,32 @@
 extern "C" {
 # endif
 
+/*
+ * EncryptedValue ::= SEQUENCE {
+ * intendedAlg   [0] AlgorithmIdentifier  OPTIONAL,
+ *                   -- the intended algorithm for which the value will be used
+ * symmAlg       [1] AlgorithmIdentifier  OPTIONAL,
+ *                   -- the symmetric algorithm used to encrypt the value
+ * encSymmKey    [2] BIT STRING           OPTIONAL,
+ * -- the (encrypted) symmetric key used to encrypt the value
+ * keyAlg        [3] AlgorithmIdentifier  OPTIONAL,
+ *                   -- algorithm used to encrypt the symmetric key
+ * valueHint     [4] OCTET STRING         OPTIONAL,
+ *                  -- a brief description or identifier of the encValue content
+ *                  -- (may be meaningful only to the sending entity, and
+ *                  --  used only if EncryptedValue might be re-examined
+ *                  --  by the sending entity in the future)
+ * encValue            BIT STRING }
+ * -- the encrypted value itself
+ */
+struct crmf_encrypetedvalue_st {
+    X509_ALGOR *intendedAlg;      /* 0 */
+    X509_ALGOR *symmAlg;          /* 1 */
+    ASN1_BIT_STRING *encSymmKey;  /* 2 */
+    X509_ALGOR *keyAlg;           /* 3 */
+    ASN1_OCTET_STRING *valueHint; /* 4 */
+    ASN1_BIT_STRING *encValue;
+};
 
 /*-
  *  Attributes ::= SET OF Attribute

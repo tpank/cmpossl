@@ -34,24 +34,31 @@ int ERR_load_CRMF_strings(void);
 # define CRMF_F_CRMF_CERTREQMSG_SET_CERTREQID             109
 # define CRMF_F_CRMF_CERTREQMSG_SET_VALIDITY              110
 # define CRMF_F_CRMF_CERTREQMSG_SET_VERSION2              111
-# define CRMF_F_CRMF_PASSWORDBASEDMAC_NEW                 112
-# define CRMF_F_CRMF_PBMP_NEW                             113
-# define CRMF_F_POPOSIGKEY_NEW                            114
+# define CRMF_F_CRMF_ENCRYPTEDVALUE_ENCCERT_GET1          112
+# define CRMF_F_CRMF_PASSWORDBASEDMAC_NEW                 113
+# define CRMF_F_CRMF_PBMP_NEW                             114
+# define CRMF_F_POPOSIGKEY_NEW                            115
 
 /*
  * CRMF reason codes.
  */
-# define CRMF_R_BAD_PBM_ITERATIONCOUNT                    110
-# define CRMF_R_CRMFERROR                                 100
-# define CRMF_R_ERROR                                     101
-# define CRMF_R_FAILURE_OBTAINING_RANDOM                  111
-# define CRMF_R_ITERATIONCOUNT_BELOW_100                  102
-# define CRMF_R_MALLOC_FAILURE                            103
-# define CRMF_R_NULL_ARGUMENT                             104
-# define CRMF_R_SETTING_MAC_ALRGOR_FAILURE                105
-# define CRMF_R_SETTING_OWF_ALRGOR_FAILURE                106
-# define CRMF_R_UNSUPPORTED_ALGORITHM                     107
-# define CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY         108
-# define CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO      109
+# define CRMF_R_BAD_PBM_ITERATIONCOUNT                    100
+# define CRMF_R_CRMFERROR                                 101
+# define CRMF_R_ERROR                                     102
+# define CRMF_R_ERROR_DECODING_CERTIFICATE                103
+# define CRMF_R_ERROR_DECRYPTING_CERTIFICATE              104
+# define CRMF_R_ERROR_DECRYPTING_ENCCERT                  105
+# define CRMF_R_ERROR_DECRYPTING_KEY                      106
+# define CRMF_R_ERROR_DECRYPTING_SYMMETRIC_KEY            107
+# define CRMF_R_FAILURE_OBTAINING_RANDOM                  108
+# define CRMF_R_ITERATIONCOUNT_BELOW_100                  109
+# define CRMF_R_MALLOC_FAILURE                            110
+# define CRMF_R_NULL_ARGUMENT                             111
+# define CRMF_R_SETTING_MAC_ALRGOR_FAILURE                112
+# define CRMF_R_SETTING_OWF_ALRGOR_FAILURE                113
+# define CRMF_R_UNSUPPORTED_ALGORITHM                     114
+# define CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY         115
+# define CRMF_R_UNSUPPORTED_CIPHER                        116
+# define CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO      117
 
 #endif

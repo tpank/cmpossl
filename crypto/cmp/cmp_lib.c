@@ -1384,120 +1384,6 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
 }
 
 /*
- * internal function
- *
- * Decrypts the certificate in the given CertOrEncCert
- * this is needed for the indirect PoP method as in section 5.2.8.2
- *
- * returns a pointer to the decrypted certificate
- * returns NULL on error or if no Certificate available
- */
-static X509 *CMP_CERTORENCCERT_encCert_get1(CMP_CERTORENCCERT *coec,
-                                            EVP_PKEY *pkey)
-{
-    CRMF_ENCRYPTEDVALUE *ecert;
-    X509 *cert = NULL; /* decrypted certificate */
-    EVP_CIPHER_CTX *evp_ctx = NULL; /* context for symmetric encryption */
-    unsigned char *ek = NULL; /* decrypted symmetric encryption key */
-    const EVP_CIPHER *cipher = NULL; /* used cipher */
-    unsigned char *iv = NULL; /* initial vector for symmetric encryption */
-    unsigned char *outbuf = NULL; /* decryption output buffer */
-    const unsigned char *p = NULL; /* needed for decoding ASN1 */
-    int symmAlg = 0; /* NIDs for symmetric algorithm */
-    int n, outlen = 0;
-    EVP_PKEY_CTX *pkctx = NULL; /* private key context */
-
-    if (coec == NULL)
-        goto err;
-    if ((ecert = coec->value.encryptedCert) == NULL)
-        goto err;
-    if (ecert->symmAlg == NULL)
-        goto err;
-    if (!(symmAlg = OBJ_obj2nid(ecert->symmAlg->algorithm)))
-        goto err;
-
-    /* first the symmetric key needs to be decrypted */
-    if ((pkctx = EVP_PKEY_CTX_new(pkey, NULL)) && EVP_PKEY_decrypt_init(pkctx)){
-        ASN1_BIT_STRING *encKey = ecert->encSymmKey;
-        size_t eksize = 0;
-
-        if (encKey == NULL)
-            goto err;
-
-        if (EVP_PKEY_decrypt(pkctx, NULL, &eksize, encKey->data, encKey->length)
-                <= 0
-            || (ek = OPENSSL_malloc(eksize)) == NULL
-            || EVP_PKEY_decrypt(pkctx, ek, &eksize, encKey->data,
-                                encKey->length) <= 0) {
-            CMPerr(CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1,
-                   CMP_R_ERROR_DECRYPTING_SYMMETRIC_KEY);
-            goto err;
-        }
-    } else {
-        CMPerr(CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1,
-               CMP_R_ERROR_DECRYPTING_KEY);
-        goto err;
-    }
-
-    /* select symmetric cipher based on algorithm given in message */
-    if ((cipher = EVP_get_cipherbynid(symmAlg)) == NULL) {
-        CMPerr(CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1,
-               CMP_R_UNSUPPORTED_CIPHER);
-        goto err;
-    }
-    if ((iv = OPENSSL_malloc(EVP_CIPHER_iv_length(cipher))) == NULL)
-        goto err;
-    ASN1_TYPE_get_octetstring(ecert->symmAlg->parameter, iv,
-                              EVP_CIPHER_iv_length(cipher));
-
-    /*
-     * d2i_X509 changes the given pointer, so use p for decoding the message and
-     * keep the original pointer in outbuf so the memory can be freed later
-     */
-    if (ecert->encValue == NULL)
-        goto err;
-    if ((p = outbuf = OPENSSL_malloc(ecert->encValue->length +
-                                     EVP_CIPHER_block_size(cipher))) == NULL)
-        goto err;
-    evp_ctx = EVP_CIPHER_CTX_new();
-    EVP_CIPHER_CTX_set_padding(evp_ctx, 0);
-
-    if (!EVP_DecryptInit(evp_ctx, cipher, ek, iv)
-        || !EVP_DecryptUpdate(evp_ctx, outbuf, &outlen,
-                              ecert->encValue->data,
-                              ecert->encValue->length)
-        || !EVP_DecryptFinal(evp_ctx, outbuf + outlen, &n)) {
-        CMPerr(CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1,
-               CMP_R_ERROR_DECRYPTING_CERTIFICATE);
-        goto err;
-    }
-    outlen += n;
-
-    /* convert decrypted certificate from DER to internal ASN.1 structure */
-    if ((cert = d2i_X509(NULL, &p, outlen)) == NULL) {
-        CMPerr(CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1,
-               CMP_R_ERROR_DECODING_CERTIFICATE);
-        goto err;
-    }
-
-    EVP_PKEY_CTX_free(pkctx);
-    OPENSSL_free(outbuf);
-    EVP_CIPHER_CTX_free(evp_ctx);
-    OPENSSL_free(ek);
-    OPENSSL_free(iv);
-    return cert;
- err:
-    CMPerr(CMP_F_CMP_CERTORENCCERT_ENCCERT_GET1,
-           CMP_R_ERROR_DECRYPTING_ENCCERT);
-    EVP_PKEY_CTX_free(pkctx);
-    OPENSSL_free(outbuf);
-    EVP_CIPHER_CTX_free(evp_ctx);
-    OPENSSL_free(ek);
-    OPENSSL_free(iv);
-    return NULL;
-}
-
-/*
  * returns 1 on success
  * returns 0 on error
  */
@@ -1589,7 +1475,8 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
             break;
         case CMP_CERTORENCCERT_ENCRYPTEDCERT:
         /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
-            crt = CMP_CERTORENCCERT_encCert_get1(coec, ctx->newPkey);
+            crt = CRMF_ENCRYPTEDVALUE_encCert_get1(coec->value.encryptedCert,
+                                                   ctx->newPkey);
             break;
         default:
             CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
