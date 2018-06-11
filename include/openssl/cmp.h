@@ -275,24 +275,23 @@ DEFINE_STACK_OF(CMP_CERTRESPONSE)
 typedef enum {LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERROR,
               LOG_WARN, LOG_NOTE, LOG_INFO, LOG_DEBUG} OSSL_CMP_severity;
 
-#define FILE_LINE __FILE__, __LINE__
-#define FL_EMERG FILE_LINE, LOG_EMERG
-#define FL_ALERT FILE_LINE, LOG_ALERT
-#define FL_CRIT  FILE_LINE, LOG_CRIT
-#define FL_ERR   FILE_LINE, LOG_ERROR
-#define FL_WARN  FILE_LINE, LOG_WARN
-#define FL_NOTE  FILE_LINE, LOG_NOTE
-#define FL_INFO  FILE_LINE, LOG_INFO
-#define FL_DEBUG FILE_LINE, LOG_DEBUG
+#define OSSL_CMP_FL_EMERG __FILE__, __LINE__, LOG_EMERG
+#define OSSL_CMP_FL_ALERT __FILE__, __LINE__, LOG_ALERT
+#define OSSL_CMP_FL_CRIT  __FILE__, __LINE__, LOG_CRIT
+#define OSSL_CMP_FL_ERR   __FILE__, __LINE__, LOG_ERROR
+#define OSSL_CMP_FL_WARN  __FILE__, __LINE__, LOG_WARN
+#define OSSL_CMP_FL_NOTE  __FILE__, __LINE__, LOG_NOTE
+#define OSSL_CMP_FL_INFO  __FILE__, __LINE__, LOG_INFO
+#define OSSL_CMP_FL_DEBUG __FILE__, __LINE__, LOG_DEBUG
 
 int CMP_puts(const char *file, int lineno,
              OSSL_CMP_severity level, const char *msg);
 int CMP_printf(const CMP_CTX *ctx, const char *file, int lineno,
                OSSL_CMP_severity level, const char *fmt, ...);
-#define CMP_err(ctx, msg)   CMP_printf(ctx, FL_ERR  , msg)
-#define CMP_warn(ctx, msg)  CMP_printf(ctx, FL_WARN , msg)
-#define CMP_info(ctx, msg)  CMP_printf(ctx, FL_INFO , msg)
-#define CMP_debug(ctx, msg) CMP_printf(ctx, FL_DEBUG, msg)
+#define CMP_err(ctx, msg)   CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)
+#define CMP_warn(ctx, msg)  CMP_printf(ctx, OSSL_CMP_FL_WARN , msg)
+#define CMP_info(ctx, msg)  CMP_printf(ctx, OSSL_CMP_FL_INFO , msg)
+#define CMP_debug(ctx, msg) CMP_printf(ctx, OSSL_CMP_FL_DEBUG, msg)
 int CMP_log_fd(const char *file, int lineno,
                OSSL_CMP_severity level, const char *msg, FILE *dest);
 int  CMP_log_init(void);

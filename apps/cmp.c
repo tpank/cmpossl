@@ -2064,7 +2064,7 @@ static int write_PKIMESSAGE(CMP_CTX *ctx,
     *filenames = next_item(file);
     f = fopen(file, "wb");
     if (f == NULL)
-        CMP_printf(ctx, FL_ERR, "cannot open file '%s' for writing", file);
+        CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot open file '%s' for writing", file);
     else {
         unsigned char *out = NULL;
         int len = i2d_CMP_PKIMESSAGE((CMP_PKIMESSAGE *)msg, &out);
@@ -2073,7 +2073,7 @@ static int write_PKIMESSAGE(CMP_CTX *ctx,
             if ((size_t)len == fwrite(out, sizeof(*out), len, f))
                 res = 1;
             else
-                CMP_printf(ctx, FL_ERR, "cannot write file '%s'", file);
+                CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot write file '%s'", file);
             OPENSSL_free(out);
         }
         fclose(f);
@@ -2108,25 +2108,25 @@ static CMP_PKIMESSAGE *read_PKIMESSAGE(CMP_CTX *ctx, char **filenames)
     *filenames = next_item(file);
     f = fopen(file, "rb");
     if (f == NULL)
-        CMP_printf(ctx, FL_ERR, "cannot open file '%s' for reading", file);
+        CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot open file '%s' for reading", file);
     else {
         fseek(f, 0, SEEK_END);
         fsize = ftell(f);
         fseek(f, 0, SEEK_SET);
         if (fsize < 0) {
-            CMP_printf(ctx, FL_ERR, "cannot get size of file '%s'", file);
+            CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot get size of file '%s'", file);
         } else {
             in = OPENSSL_malloc(fsize);
             if (in == NULL)
-                CMP_printf(ctx, FL_ERR, "Out of memory reading file '%s'", file);
+                CMP_printf(ctx, OSSL_CMP_FL_ERR, "Out of memory reading '%s'", file);
             else {
                 if ((size_t)fsize != fread(in, 1, fsize, f))
-                    CMP_printf(ctx, FL_ERR, "cannot read file '%s'", file);
+                    CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot read file '%s'", file);
                 else {
                     const unsigned char *p = in;
                     ret = d2i_CMP_PKIMESSAGE(NULL, &p, fsize);
                     if (ret == NULL)
-                        CMP_printf(ctx, FL_ERR,
+                        CMP_printf(ctx, OSSL_CMP_FL_ERR,
                                "cannot parse PKIMessage in file '%s'", file);
                 }
                 OPENSSL_free(in);
@@ -2263,7 +2263,7 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
              */
             expected = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
             if (expected != NULL)
-                CMP_printf(cmp_ctx, FL_INFO,
+                CMP_printf(cmp_ctx, OSSL_CMP_FL_INFO,
                            "TLS connection expected host = %s", expected);
             break;
         default:
@@ -2336,13 +2336,13 @@ static int parse_addr(CMP_CTX *ctx,
         (*opt_string) += strlen(HTTP_HDR);
     }
     if ((port_string = strrchr(*opt_string, ':')) == NULL) {
-        CMP_printf(ctx, FL_INFO, "using default port %d for %s", port, name);
+        CMP_printf(ctx, OSSL_CMP_FL_INFO, "using default port %d for %s", port, name);
         return port;
     }
     *(port_string++) = '\0';
     port = atoint(port_string);
     if ((port <= 0) || (port > 65535)) {
-        CMP_printf(ctx, FL_ERR,
+        CMP_printf(ctx, OSSL_CMP_FL_ERR,
                    "invalid %s port '%s' given, sane range 1-65535",
                    name, port_string);
         return 0;
@@ -2410,7 +2410,7 @@ static int set_name(const char *str,
         X509_NAME *n = parse_name((char *)str, MBSTRING_ASC, 0);
 
         if (n == NULL) {
-            CMP_printf(ctx, FL_ERR, "cannot parse %s DN '%s'", desc, str);
+            CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot parse %s DN '%s'", desc, str);
             return 0;
         }
         if (!(*set_fn) (ctx, n)) {
@@ -2432,7 +2432,7 @@ static int set_gennames(char *names, int type,
         GENERAL_NAME *n = a2i_GENERAL_NAME(NULL, NULL, NULL, type, names, 0);
 
         if (n == NULL) {
-            CMP_printf(ctx, FL_ERR, "cannot parse %s '%s'", desc, names);
+            CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot parse %s '%s'", desc, names);
             return 0;
         }
         if (!(*set_fn) (ctx, n)) {
@@ -2564,7 +2564,7 @@ static int transform_opts(CMP_CTX *ctx) {
         else if (!strcmp(opt_cmd_s, "genm"))
             opt_cmd = CMP_GENM;
         else {
-            CMP_printf(ctx, FL_ERR, "unknown cmp command '%s'", opt_cmd_s);
+            CMP_printf(ctx, OSSL_CMP_FL_ERR, "unknown cmp command '%s'", opt_cmd_s);
             return 0;
         }
     } else {
@@ -2718,7 +2718,7 @@ static int setup_srv_ctx(ENGINE *e)
 
     if (opt_failure >= 0) {
         if (opt_failurebits)
-            CMP_printf(ctx, FL_WARN, "-failurebits overrides -failure");
+            CMP_warn(ctx, "-failurebits overrides -failure");
         else
             opt_failurebits = 1 << opt_failure;
     }
@@ -2796,7 +2796,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
               /* well, should ignore expiry of base CRL if delta CRL is valid */
                     char *issuer =
                         X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
-                    CMP_printf(ctx, FL_WARN,
+                    CMP_printf(ctx, OSSL_CMP_FL_WARN,
                                "CRL from '%s' issued by '%s' has expired",
                                opt_crls, issuer);
                     OPENSSL_free(issuer);
@@ -2819,7 +2819,7 @@ static int setup_verification_ctx(CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
         X509_STORE_CTX *tmp_ctx = X509_STORE_CTX_new();
 
 # if 0 && !defined NDEBUG
-        CMP_printf(cmp_ctx, FL_INFO,
+        CMP_printf(cmp_ctx, OSSL_CMP_FL_INFO,
                    "Will try %s%s for certificate status checking",
                    (opt_ocsp_use_aia || opt_ocsp_url) && opt_ocsp_status ?
                    "OCSP stapling then OCSP" :
@@ -3194,7 +3194,7 @@ static int setup_protection_ctx(CMP_CTX *ctx, ENGINE *e) {
     if (opt_digest) {
         int digest = OBJ_ln2nid(opt_digest);
         if (digest == NID_undef) {
-            CMP_printf(ctx, FL_ERR,
+            CMP_printf(ctx, OSSL_CMP_FL_ERR,
                        "digest algorithm name not recognized: '%s'", opt_digest);
             goto err;
         }
@@ -3243,7 +3243,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         X509V3_set_ctx(&ext_ctx, NULL, NULL, NULL, NULL, 0);
         X509V3_set_nconf(&ext_ctx, conf);
         if (!X509V3_EXT_add_nconf_sk(conf, &ext_ctx, opt_reqexts, &exts)) {
-            CMP_printf(ctx, FL_ERR, "cannot load extension section '%s'",
+            CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot load extension section '%s'",
                        opt_reqexts);
             sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
             goto err;
@@ -3282,7 +3282,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
         int res = CMP_CTX_policyOID_push1(ctx, opt_policies);
 
         if (res <= 0) {
-            CMP_printf(ctx, FL_ERR, "cannot %s policy OID '%s'",
+            CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot %s policy OID '%s'",
                        res == -1 ? "parse" : "add", opt_policies);
             goto err;
         }
@@ -3297,7 +3297,7 @@ static int setup_request_ctx(CMP_CTX *ctx, ENGINE *e) {
     }
 
     if (opt_popo < -1 || opt_popo > 3) {
-        CMP_printf(ctx, FL_ERR,
+        CMP_printf(ctx, OSSL_CMP_FL_ERR,
                    "invalid value '%d' for popo method (must be between 0 and 3)",
                    opt_popo);
         goto err;
@@ -3599,7 +3599,7 @@ static int save_certs(CMP_CTX *ctx,
     int i;
     int n = sk_X509_num(certs);
 
-    CMP_printf(cmp_ctx, FL_INFO,
+    CMP_printf(cmp_ctx, OSSL_CMP_FL_INFO,
                "received %d %s certificate%s, saving to file '%s'",
                n, desc, n == 1 ? "" : "s", destFile);
     if (n > 1 && opt_ownform != FORMAT_PEM)
@@ -3607,7 +3607,7 @@ static int save_certs(CMP_CTX *ctx,
 
     if (destFile == NULL || (bio = BIO_new(BIO_s_file())) == NULL ||
         !BIO_write_filename(bio, (char *)destFile)) {
-        CMP_printf(ctx, FL_ERR, "could not open file '%s' for writing",
+        CMP_printf(ctx, OSSL_CMP_FL_ERR, "could not open file '%s' for writing",
                    destFile);
         n = -1;
         goto err;
@@ -3615,7 +3615,7 @@ static int save_certs(CMP_CTX *ctx,
 
     for (i = 0; i < n; i++) {
         if (!write_cert(bio, sk_X509_value(certs, i))) {
-            CMP_printf(ctx, FL_ERR,
+            CMP_printf(ctx, OSSL_CMP_FL_ERR,
                        "cannot write certificate to file '%s'", destFile);
             n = -1;
             goto err;
@@ -3643,7 +3643,7 @@ static void print_itavs(STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
         char buf[128];
         itav = sk_CMP_INFOTYPEANDVALUE_value(itavs, i);
         OBJ_obj2txt(buf, 128, CMP_INFOTYPEANDVALUE_get0_type(itav), 0);
-        CMP_printf(cmp_ctx, FL_INFO, "genp contains ITAV of type: %s", buf);
+        CMP_printf(cmp_ctx, OSSL_CMP_FL_INFO, "genp contains ITAV of type: %s", buf);
     }
 }
 
@@ -4395,7 +4395,7 @@ int cmp_main(int argc, char **argv)
     configfile = opt_config ? opt_config : default_config_file;
     if (configfile && configfile[0] != '\0' /* non-empty string */ &&
         (configfile != default_config_file || access(configfile, F_OK) != -1)) {
-        CMP_printf(cmp_ctx, FL_INFO,
+        CMP_printf(cmp_ctx, OSSL_CMP_FL_INFO,
                    "using OpenSSL configuration file '%s'", configfile);
         conf = app_load_config(configfile);
         if (conf == NULL) {
@@ -4403,7 +4403,7 @@ int cmp_main(int argc, char **argv)
         } else {
             if (strcmp(opt_section, CMP_SECTION) == 0) { /* default */
                 if (!NCONF_get_section(conf, opt_section)) {
-                    CMP_printf(cmp_ctx, FL_INFO,
+                    CMP_printf(cmp_ctx, OSSL_CMP_FL_INFO,
                                "no [%s] section found in config file '%s'; will thus use just [default] and unnamed section if present",
                                opt_section, configfile);
                 }
@@ -4411,7 +4411,7 @@ int cmp_main(int argc, char **argv)
                 char *end = opt_section + strlen(opt_section);
                 while ((end = prev_item(opt_section, end)) != NULL) {
                     if (!NCONF_get_section(conf, opt_item)) {
-                        CMP_printf(cmp_ctx, FL_ERR,
+                        CMP_printf(cmp_ctx, OSSL_CMP_FL_ERR,
                                    "no [%s] section found in config file '%s'",
                                    opt_item, configfile);
                         goto err;

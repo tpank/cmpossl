@@ -173,7 +173,7 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
             ctx->msgtimeout = time_left;
     }
 
-    CMP_printf(ctx, FL_INFO, "sending %s", type_string);
+    CMP_printf(ctx, OSSL_CMP_FL_INFO, "sending %s", type_string);
     if (ctx->transfer_cb != NULL)
         err = (ctx->transfer_cb)(ctx, req, rep);
         /* may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
@@ -263,7 +263,7 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
                 goto err;
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
-            CMP_printf(ctx, FL_INFO,
+            CMP_printf(ctx, OSSL_CMP_FL_INFO,
                        "received polling response, waiting checkAfter =  "
                        "%ld sec before next polling request", checkAfter);
 
@@ -450,7 +450,7 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
     default:
-        CMP_printf(ctx, FL_ERR,
+        CMP_printf(ctx, OSSL_CMP_FL_ERR,
                    "received unsupported PKIStatus %ld for certificate",
                    ctx->lastPKIStatus);
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
