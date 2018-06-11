@@ -95,98 +95,98 @@ static int add_crl_reason_extension(X509_EXTENSIONS **exts, int reason_code)
 
 
 /*
- * Creates and initializes a CMP_PKIMESSAGE structure, using ctx for
+ * Creates and initializes a OSSL_CMP_PKIMESSAGE structure, using ctx for
  * the header and bodytype for the body.
- * returns pointer to created CMP_PKIMESSAGE on success, NULL on error
+ * returns pointer to created OSSL_CMP_PKIMESSAGE on success, NULL on error
  */
-CMP_PKIMESSAGE *CMP_PKIMESSAGE_create(CMP_CTX *ctx, int bodytype)
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_PKIMESSAGE_create(OSSL_CMP_CTX *ctx, int bodytype)
 {
-    CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_PKIMESSAGE *msg = NULL;
 
     if (ctx == NULL) {
-        CMPerr(CMP_F_CMP_PKIMESSAGE_CREATE, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CREATE, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
 
-    if ((msg = CMP_PKIMESSAGE_new()) == NULL)
+    if ((msg = OSSL_CMP_PKIMESSAGE_new()) == NULL)
         goto oom;
-    if (!CMP_PKIHEADER_init(ctx, msg->header) ||
-        !CMP_PKIMESSAGE_set_bodytype(msg, bodytype) ||
+    if (!OSSL_CMP_PKIHEADER_init(ctx, msg->header) ||
+        !OSSL_CMP_PKIMESSAGE_set_bodytype(msg, bodytype) ||
         (ctx->geninfo_itavs &&
-         !CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs)))
+         !OSSL_CMP_PKIMESSAGE_generalInfo_items_push1(msg, ctx->geninfo_itavs)))
         goto err;
 
     switch (bodytype) {
-    case V_CMP_PKIBODY_IR:
-    case V_CMP_PKIBODY_CR:
-    case V_CMP_PKIBODY_KUR:
+    case OSSL_CMP_PKIBODY_IR:
+    case OSSL_CMP_PKIBODY_CR:
+    case OSSL_CMP_PKIBODY_KUR:
         if ((msg->body->value.ir = CRMF_CERTREQMESSAGES_new()) == NULL)
             goto oom;
         return msg;
 
-    case V_CMP_PKIBODY_P10CR:
+    case OSSL_CMP_PKIBODY_P10CR:
         if (ctx->p10CSR == NULL) {
-            CMPerr(CMP_F_CMP_PKIMESSAGE_CREATE, CMP_R_ERROR_CREATING_P10CR);
+            CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CREATE, CMP_R_ERROR_CREATING_P10CR);
             goto err;
         }
         if ((msg->body->value.p10cr = X509_REQ_dup(ctx->p10CSR)) == NULL)
             goto oom;
         return msg;
 
-    case V_CMP_PKIBODY_IP:
-    case V_CMP_PKIBODY_CP:
-    case V_CMP_PKIBODY_KUP:
+    case OSSL_CMP_PKIBODY_IP:
+    case OSSL_CMP_PKIBODY_CP:
+    case OSSL_CMP_PKIBODY_KUP:
         if ((msg->body->value.ip = CMP_CERTREPMESSAGE_new()) == NULL)
             goto oom;
         return msg;
 
-    case V_CMP_PKIBODY_RR:
+    case OSSL_CMP_PKIBODY_RR:
         if ((msg->body->value.rr = sk_CMP_REVDETAILS_new_null()) == NULL)
             goto oom;
         return msg;
-    case V_CMP_PKIBODY_RP:
+    case OSSL_CMP_PKIBODY_RP:
         if ((msg->body->value.rp = CMP_REVREPCONTENT_new()) == NULL)
             goto oom;
         return msg;
 
-    case V_CMP_PKIBODY_CERTCONF:
+    case OSSL_CMP_PKIBODY_CERTCONF:
         if ((msg->body->value.certConf = sk_CMP_CERTSTATUS_new_null()) == NULL)
             goto oom;
         return msg;
-    case V_CMP_PKIBODY_PKICONF:
+    case OSSL_CMP_PKIBODY_PKICONF:
         if ((msg->body->value.pkiconf = ASN1_TYPE_new()) == NULL)
             goto oom;
         ASN1_TYPE_set(msg->body->value.pkiconf, V_ASN1_NULL, NULL);
         return msg;
 
-    case V_CMP_PKIBODY_POLLREQ:
+    case OSSL_CMP_PKIBODY_POLLREQ:
         if ((msg->body->value.pollReq = sk_CMP_POLLREQ_new_null()) == NULL)
             goto oom;
         return msg;
-    case V_CMP_PKIBODY_POLLREP:
+    case OSSL_CMP_PKIBODY_POLLREP:
         if ((msg->body->value.pollRep = sk_CMP_POLLREP_new_null()) == NULL)
             goto oom;
         return msg;
 
-    case V_CMP_PKIBODY_GENM:
-    case V_CMP_PKIBODY_GENP:
-        if ((msg->body->value.genm = sk_CMP_INFOTYPEANDVALUE_new_null()) == NULL)
+    case OSSL_CMP_PKIBODY_GENM:
+    case OSSL_CMP_PKIBODY_GENP:
+        if ((msg->body->value.genm = sk_OSSL_CMP_INFOTYPEANDVALUE_new_null()) == NULL)
             goto oom;
         return msg;
 
-    case V_CMP_PKIBODY_ERROR:
+    case OSSL_CMP_PKIBODY_ERROR:
         if ((msg->body->value.error = CMP_ERRORMSGCONTENT_new()) == NULL)
             goto oom;
         return msg;
 
     default:
-        CMPerr(CMP_F_CMP_PKIMESSAGE_CREATE, CMP_R_UNEXPECTED_PKIBODY);
+        CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CREATE, CMP_R_UNEXPECTED_PKIBODY);
         goto err;
     }
 oom:
-    CMPerr(CMP_F_CMP_PKIMESSAGE_CREATE, CMP_R_OUT_OF_MEMORY);
+    CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CREATE, CMP_R_OUT_OF_MEMORY);
 err:
-    CMP_PKIMESSAGE_free(msg);
+    OSSL_CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
 
@@ -209,13 +209,13 @@ static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin /* may be NULL */)
 }
 
 #define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 || \
-                      CMP_CTX_reqExtensions_have_SAN(ctx))
-static X509_NAME *determine_subj(CMP_CTX *ctx, X509 *refcert, int bodytype) {
+                      OSSL_CMP_CTX_reqExtensions_have_SAN(ctx))
+static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert, int bodytype) {
     if (ctx->subjectName) {
         return ctx->subjectName;
     }
     if (refcert &&
-        (bodytype == V_CMP_PKIBODY_KUR || !HAS_SAN(ctx)))
+        (bodytype == OSSL_CMP_PKIBODY_KUR || !HAS_SAN(ctx)))
         /*
          * For KUR, copy subjectName from reference certificate.
          * For IR or CR, do the same only if there is no subjectAltName.
@@ -228,7 +228,7 @@ static X509_NAME *determine_subj(CMP_CTX *ctx, X509 *refcert, int bodytype) {
  * Create CRMF certificate request message for IR/CR/KUR
  * returns a pointer to the CRMF_CERTREQMSG on success, NULL on error
  */
-static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
+static CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
                                 long rid, EVP_PKEY *rkey)
 {
     CRMF_CERTREQMSG *crm = NULL;
@@ -280,7 +280,7 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
     /* end fill certTemplate, now set any controls */
 
     /* for KUR, set OldCertId according to D.6 */
-    if (bodytype == V_CMP_PKIBODY_KUR &&
+    if (bodytype == OSSL_CMP_PKIBODY_KUR &&
         !CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(crm, refcert))
             goto err;
 
@@ -297,31 +297,31 @@ static CRMF_CERTREQMSG *crm_new(CMP_CTX *ctx, int bodytype,
  * Create certificate request PKIMessage for IR/CR/KUR/P10CR
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype, int err_code)
 {
-    CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_PKIMESSAGE *msg = NULL;
     CRMF_CERTREQMSG *crm = NULL;
 
     if (ctx == NULL ||
-        (bodytype != V_CMP_PKIBODY_P10CR && ctx->pkey == NULL &&
+        (bodytype != OSSL_CMP_PKIBODY_P10CR && ctx->pkey == NULL &&
          ctx->newPkey == NULL) ||
-         (bodytype != V_CMP_PKIBODY_IR && bodytype != V_CMP_PKIBODY_CR &&
-          bodytype != V_CMP_PKIBODY_KUR && bodytype != V_CMP_PKIBODY_P10CR)) {
-        CMPerr(CMP_F_CMP_CERTREQ_NEW, CMP_R_INVALID_ARGS);
+         (bodytype != OSSL_CMP_PKIBODY_IR && bodytype != OSSL_CMP_PKIBODY_CR &&
+          bodytype != OSSL_CMP_PKIBODY_KUR && bodytype != OSSL_CMP_PKIBODY_P10CR)) {
+        CMPerr(CMP_F_OSSL_CMP_CERTREQ_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
-    if ((msg = CMP_PKIMESSAGE_create(ctx, bodytype)) == NULL)
+    if ((msg = OSSL_CMP_PKIMESSAGE_create(ctx, bodytype)) == NULL)
         goto err;
 
     /* header */
     if (ctx->implicitConfirm)
-        if (!CMP_PKIMESSAGE_set_implicitConfirm(msg))
+        if (!OSSL_CMP_PKIMESSAGE_set_implicitConfirm(msg))
             goto err;
 
     /* body */
-    /* For P10CR the content has already been set in CMP_PKIMESSAGE_create */
-     if (bodytype != V_CMP_PKIBODY_P10CR) {
+    /* For P10CR the content has already been set in OSSL_CMP_PKIMESSAGE_create */
+     if (bodytype != OSSL_CMP_PKIBODY_P10CR) {
         EVP_PKEY *rkey = ctx->newPkey ? ctx->newPkey
             : ctx->pkey; /* default is currenty client key */
 
@@ -335,15 +335,15 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
         /* TODO: here optional 2nd certreqmsg could be pushed to the stack */
     }
 
-    if (!CMP_PKIMESSAGE_protect(ctx, msg))
+    if (!OSSL_CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
 
     return msg;
 
  err:
-    CMPerr(CMP_F_CMP_CERTREQ_NEW, err_code);
+    CMPerr(CMP_F_OSSL_CMP_CERTREQ_NEW, err_code);
     CRMF_CERTREQMSG_free(crm);
-    CMP_PKIMESSAGE_free(msg);
+    OSSL_CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
 
@@ -351,13 +351,13 @@ CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code)
  * Creates a new polling request PKIMessage for the given request ID
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId)
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int reqId)
 {
-    CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_PKIMESSAGE *msg = NULL;
     CMP_POLLREQ *preq = NULL;
 
     if (ctx == NULL ||
-        (msg = CMP_PKIMESSAGE_create(ctx, V_CMP_PKIBODY_POLLREQ)) == NULL)
+        (msg = OSSL_CMP_PKIMESSAGE_create(ctx, OSSL_CMP_PKIBODY_POLLREQ)) == NULL)
         goto err;
 
     /* TODO support multiple cert request IDs to poll */
@@ -367,15 +367,15 @@ CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId)
         goto err;
 
     preq = NULL;
-    if (!CMP_PKIMESSAGE_protect(ctx, msg))
+    if (!OSSL_CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
 
     return msg;
 
  err:
-    CMPerr(CMP_F_CMP_POLLREQ_NEW, CMP_R_ERROR_CREATING_POLLREQ);
+    CMPerr(CMP_F_OSSL_CMP_POLLREQ_NEW, CMP_R_ERROR_CREATING_POLLREQ);
     CMP_POLLREQ_free(preq);
-    CMP_PKIMESSAGE_free(msg);
+    OSSL_CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
 
@@ -384,20 +384,20 @@ CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId)
  * the settings in ctx.
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
 {
-    CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_PKIMESSAGE *msg = NULL;
     CRMF_CERTTEMPLATE *certTpl = NULL;
     X509_NAME *subject = NULL;
     EVP_PKEY *pubkey = NULL;
     CMP_REVDETAILS *rd = NULL;
 
     if (ctx == NULL || ctx->oldClCert == NULL) {
-        CMPerr(CMP_F_CMP_RR_NEW, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_OSSL_CMP_RR_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
-    if ((msg = CMP_PKIMESSAGE_create(ctx, V_CMP_PKIBODY_RR)) == NULL)
+    if ((msg = OSSL_CMP_PKIMESSAGE_create(ctx, OSSL_CMP_PKIBODY_RR)) == NULL)
         goto err;
 
     if ((rd = CMP_REVDETAILS_new()) == NULL)
@@ -433,14 +433,14 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
      *       set here if set in ctx
      */
 
-    if (!CMP_PKIMESSAGE_protect(ctx, msg))
+    if (!OSSL_CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
 
     return msg;
 
  err:
-    CMPerr(CMP_F_CMP_RR_NEW, CMP_R_ERROR_CREATING_RR);
-    CMP_PKIMESSAGE_free(msg);
+    CMPerr(CMP_F_OSSL_CMP_RR_NEW, CMP_R_ERROR_CREATING_RR);
+    OSSL_CMP_PKIMESSAGE_free(msg);
 
     return NULL;
 }
@@ -451,17 +451,17 @@ CMP_PKIMESSAGE *CMP_rr_new(CMP_CTX *ctx)
  * TODO: handle both possible certificates when signing and encrypting
  * certificates have been requested/received
  */
-CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text)
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure, const char *text)
 {
-    CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_PKIMESSAGE *msg = NULL;
     CMP_CERTSTATUS *certStatus = NULL;
 
     if (ctx == NULL || ctx->newClCert == NULL) {
-        CMPerr(CMP_F_CMP_CERTCONF_NEW, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_OSSL_CMP_CERTCONF_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
-    if ((msg = CMP_PKIMESSAGE_create(ctx, V_CMP_PKIBODY_CERTCONF)) == NULL)
+    if ((msg = OSSL_CMP_PKIMESSAGE_create(ctx, OSSL_CMP_PKIBODY_CERTCONF)) == NULL)
         goto err;
 
     if ((certStatus = CMP_CERTSTATUS_new()) == NULL)
@@ -484,22 +484,22 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text)
      * the CA/RA.
      */
     if (failure >= 0) {
-        CMP_PKISTATUSINFO *sinfo;
-        sinfo = CMP_statusInfo_new(CMP_PKISTATUS_rejection, 1 << failure, text);
+        OSSL_CMP_PKISTATUSINFO *sinfo;
+        sinfo = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection, 1 << failure, text);
         if (sinfo == NULL)
             goto err;
         certStatus->statusInfo = sinfo;
-        CMP_info(ctx, "rejecting newly enrolled certificate");
+        OSSL_CMP_info(ctx, "rejecting newly enrolled certificate");
     }
 
-    if (!CMP_PKIMESSAGE_protect(ctx, msg))
+    if (!OSSL_CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
 
     return msg;
 
  err:
-    CMPerr(CMP_F_CMP_CERTCONF_NEW, CMP_R_ERROR_CREATING_CERTCONF);
-    CMP_PKIMESSAGE_free(msg);
+    CMPerr(CMP_F_OSSL_CMP_CERTCONF_NEW, CMP_R_ERROR_CREATING_CERTCONF);
+    OSSL_CMP_PKIMESSAGE_free(msg);
 
     return NULL;
 }
@@ -508,30 +508,30 @@ CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text)
  * Creates a new General Message with an empty itav stack
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_genm_new(OSSL_CMP_CTX *ctx)
 {
-    CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_PKIMESSAGE *msg = NULL;
 
     if (ctx == NULL) {
-        CMPerr(CMP_F_CMP_GENM_NEW, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_OSSL_CMP_GENM_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
-    if ((msg = CMP_PKIMESSAGE_create(ctx, V_CMP_PKIBODY_GENM)) == NULL)
+    if ((msg = OSSL_CMP_PKIMESSAGE_create(ctx, OSSL_CMP_PKIBODY_GENM)) == NULL)
         goto err;
 
     if (ctx->genm_itavs)
-        if (!CMP_PKIMESSAGE_genm_items_push1(msg, ctx->genm_itavs))
+        if (!OSSL_CMP_PKIMESSAGE_genm_items_push1(msg, ctx->genm_itavs))
             goto err;
 
-    if (!CMP_PKIMESSAGE_protect(ctx, msg))
+    if (!OSSL_CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
 
     return msg;
 
  err:
-    CMPerr(CMP_F_CMP_GENM_NEW, CMP_R_ERROR_CREATING_GENM);
-    CMP_PKIMESSAGE_free(msg);
+    CMPerr(CMP_F_OSSL_CMP_GENM_NEW, CMP_R_ERROR_CREATING_GENM);
+    OSSL_CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
 
@@ -539,21 +539,21 @@ CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx)
  * Creates Error Message with the given contents, copying si and errorDetails
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si,
                               int errorCode, CMP_PKIFREETEXT *errorDetails,
                               int unprotected)
 {
-    CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_PKIMESSAGE *msg = NULL;
 
     if (ctx == NULL || si == NULL) {
-        CMPerr(CMP_F_CMP_ERROR_NEW, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_OSSL_CMP_ERROR_NEW, CMP_R_NULL_ARGUMENT);
         goto err;
     }
-    if ((msg = CMP_PKIMESSAGE_create(ctx, V_CMP_PKIBODY_ERROR)) == NULL)
+    if ((msg = OSSL_CMP_PKIMESSAGE_create(ctx, OSSL_CMP_PKIBODY_ERROR)) == NULL)
         goto err;
 
-    CMP_PKISTATUSINFO_free(msg->body->value.error->pKIStatusInfo);
-    msg->body->value.error->pKIStatusInfo = CMP_PKISTATUSINFO_dup(si);
+    OSSL_CMP_PKISTATUSINFO_free(msg->body->value.error->pKIStatusInfo);
+    msg->body->value.error->pKIStatusInfo = OSSL_CMP_PKISTATUSINFO_dup(si);
     if (errorCode >= 0) {
         msg->body->value.error->errorCode = ASN1_INTEGER_new();
         if (!ASN1_INTEGER_set(msg->body->value.error->errorCode, errorCode))
@@ -563,24 +563,24 @@ CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
         msg->body->value.error->errorDetails = sk_ASN1_UTF8STRING_deep_copy(
                             errorDetails, ASN1_STRING_dup, ASN1_STRING_free);
 
-    if (!unprotected && !CMP_PKIMESSAGE_protect(ctx, msg))
+    if (!unprotected && !OSSL_CMP_PKIMESSAGE_protect(ctx, msg))
         goto err;
     return msg;
 
  err:
-    CMPerr(CMP_F_CMP_ERROR_NEW, CMP_R_ERROR_CREATING_ERROR);
-    CMP_PKIMESSAGE_free(msg);
+    CMPerr(CMP_F_OSSL_CMP_ERROR_NEW, CMP_R_ERROR_CREATING_ERROR);
+    OSSL_CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
 
-CMP_PKIMESSAGE *CMP_PKIMESSAGE_load(const char *file)
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_PKIMESSAGE_load(const char *file)
 {
-    CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_PKIMESSAGE *msg = NULL;
     BIO *bio = NULL;
 
     if (!file || !(bio = BIO_new_file(file, "rb")))
         return NULL;
-    msg = d2i_CMP_PKIMESSAGE_bio(bio, NULL);
+    msg = OSSL_d2i_CMP_PKIMESSAGE_bio(bio, NULL);
     BIO_free(bio);
     return msg;
 }

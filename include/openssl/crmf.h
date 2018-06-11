@@ -41,26 +41,26 @@ extern "C" {
 # define CRMF_SUBSEQUENTMESSAGE_CHALLENGERESP  1
 
 
-typedef struct crmf_encrypetedvalue_st CRMF_ENCRYPTEDVALUE;
+typedef struct OSSL_crmf_encrypetedvalue_st CRMF_ENCRYPTEDVALUE;
 DECLARE_ASN1_FUNCTIONS(CRMF_ENCRYPTEDVALUE)
-typedef struct crmf_certreqmsg_st CRMF_CERTREQMSG;
+typedef struct OSSL_crmf_certreqmsg_st CRMF_CERTREQMSG;
 DEFINE_STACK_OF(CRMF_CERTREQMSG)
-typedef struct crmf_attributetypeandvalue_st CRMF_ATTRIBUTETYPEANDVALUE;
-typedef struct crmf_pbmparameter_st CRMF_PBMPARAMETER;
+typedef struct OSSL_crmf_attributetypeandvalue_st CRMF_ATTRIBUTETYPEANDVALUE;
+typedef struct OSSL_crmf_pbmparameter_st CRMF_PBMPARAMETER;
 DECLARE_ASN1_FUNCTIONS(CRMF_PBMPARAMETER)
-typedef struct crmf_poposigningkey_st CRMF_POPOSIGNINGKEY;
-typedef struct crmf_certrequest_st CRMF_CERTREQUEST;
-typedef struct crmf_certid_st CRMF_CERTID;
+typedef struct OSSL_crmf_poposigningkey_st CRMF_POPOSIGNINGKEY;
+typedef struct OSSL_crmf_certrequest_st CRMF_CERTREQUEST;
+typedef struct OSSL_crmf_certid_st CRMF_CERTID;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTID)
-typedef struct crmf_pkipublicationinfo_st CRMF_PKIPUBLICATIONINFO;
+typedef struct OSSL_crmf_pkipublicationinfo_st CRMF_PKIPUBLICATIONINFO;
 DECLARE_ASN1_FUNCTIONS(CRMF_PKIPUBLICATIONINFO)
-typedef struct crmf_pkiarchiveoptions_st CRMF_PKIARCHIVEOPTIONS;
-typedef struct crmf_certtemplate_st CRMF_CERTTEMPLATE;
+typedef struct OSSL_crmf_pkiarchiveoptions_st CRMF_PKIARCHIVEOPTIONS;
+typedef struct OSSL_crmf_certtemplate_st CRMF_CERTTEMPLATE;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTTEMPLATE)
 typedef STACK_OF(CRMF_CERTREQMSG) CRMF_CERTREQMESSAGES;
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTREQMESSAGES)
 
-typedef struct crmf_optionalvalidity_st CRMF_OPTIONALVALIDITY;
+typedef struct OSSL_crmf_optionalvalidity_st CRMF_OPTIONALVALIDITY;
 
 DECLARE_ASN1_FUNCTIONS(CRMF_CERTTEMPLATE)
 

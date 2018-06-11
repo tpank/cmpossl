@@ -20,10 +20,10 @@
  */
 typedef struct test_fixture {
     const char *test_case_name;
-    CMP_CTX *cmp_ctx;
+    OSSL_CMP_CTX *cmp_ctx;
     /* for protection tests */
-    CMP_PKIMESSAGE *msg;
-    CMP_PKISTATUSINFO *si;      /* for error and response messages */
+    OSSL_CMP_PKIMESSAGE *msg;
+    OSSL_CMP_PKISTATUSINFO *si;      /* for error and response messages */
     ASN1_OCTET_STRING *secret;
     EVP_PKEY *privkey;
     EVP_PKEY *pubkey;
@@ -41,7 +41,7 @@ static CMP_INT_TEST_FIXTURE *set_up(const char *const test_case_name)
         goto err;
     fixture->test_case_name = test_case_name;
 
-    if (!TEST_ptr(fixture->cmp_ctx = CMP_CTX_create()))
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create()))
         goto err;
 
     setup_ok = 1;
@@ -57,12 +57,12 @@ static void tear_down(CMP_INT_TEST_FIXTURE *fixture)
 {
     /* ERR_print_errors_fp(stderr);
        Free any memory owned by the fixture, etc. */
-    CMP_CTX_delete(fixture->cmp_ctx);
-    CMP_PKIMESSAGE_free(fixture->msg);
+    OSSL_CMP_CTX_delete(fixture->cmp_ctx);
+    OSSL_CMP_PKIMESSAGE_free(fixture->msg);
     ASN1_OCTET_STRING_free(fixture->secret);
     EVP_PKEY_free(fixture->privkey);
     EVP_PKEY_free(fixture->pubkey);
-    CMP_PKISTATUSINFO_free(fixture->si);
+    OSSL_CMP_PKISTATUSINFO_free(fixture->si);
 
     OPENSSL_free(fixture->mem);
     OPENSSL_free(fixture);
@@ -95,12 +95,12 @@ static int execute_calc_protection_test(CMP_INT_TEST_FIXTURE *fixture)
 
 static int execute_cmp_pkiheader_init_test(CMP_INT_TEST_FIXTURE *fixture)
 {
-    CMP_PKIHEADER *header = NULL;
+    OSSL_CMP_PKIHEADER *header = NULL;
     int res = 0;
-    if (!TEST_ptr(header = CMP_PKIHEADER_new()))
+    if (!TEST_ptr(header = OSSL_CMP_PKIHEADER_new()))
         return 0;
     if (!TEST_int_eq(fixture->expected,
-                     CMP_PKIHEADER_init(fixture->cmp_ctx, header)))
+                     OSSL_CMP_PKIHEADER_init(fixture->cmp_ctx, header)))
         goto err;
     if (fixture->expected) {
         if (!TEST_long_eq(ASN1_INTEGER_get(header->pvno), CMP_VERSION) ||
@@ -122,13 +122,13 @@ static int execute_cmp_pkiheader_init_test(CMP_INT_TEST_FIXTURE *fixture)
     res = 1;
 
  err:
-    CMP_PKIHEADER_free(header);
+    OSSL_CMP_PKIHEADER_free(header);
     return res;
 }
 
 /* This function works similar to parts of CMP_verify_signature in cmp_vfy.c,
- * but without the need for a CMP_CTX or a X509 certificate */
-static int verify_signature(CMP_PKIMESSAGE *msg, EVP_PKEY *pkey,
+ * but without the need for a OSSL_CMP_CTX or a X509 certificate */
+static int verify_signature(OSSL_CMP_PKIMESSAGE *msg, EVP_PKEY *pkey,
                             int digest_nid)
 {
     ASN1_BIT_STRING *protection = msg->protection;
@@ -224,7 +224,7 @@ static int test_cmp_pkiheader_init(void)
     unsigned char ref[TEST_CMP_REFVALUE_LENGTH];
     fixture->expected = 1;
     if (!TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))) ||
-        !TEST_true(CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
+        !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
                                                sizeof(ref)))) {
         tear_down(fixture);
         fixture = NULL;
@@ -241,7 +241,7 @@ static int test_cmp_pkiheader_init_with_subject(void)
     if (!TEST_ptr(subject = X509_NAME_new()) ||
         !TEST_true(X509_NAME_add_entry_by_txt(subject, "CN", V_ASN1_IA5STRING,
                                               (unsigned char *)"Common Name", -1, -1, -1)) ||
-        !TEST_true(CMP_CTX_set1_subjectName(fixture->cmp_ctx, subject))) {
+        !TEST_true(OSSL_CMP_CTX_set1_subjectName(fixture->cmp_ctx, subject))) {
         tear_down(fixture);
         fixture = NULL;
     }

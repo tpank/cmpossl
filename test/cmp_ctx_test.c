@@ -16,11 +16,11 @@
 typedef struct test_fixture {
     const char *test_case_name;
     X509_EXTENSIONS *exts;
-} CMP_CTX_TEST_FIXTURE;
+} OSSL_CMP_CTX_TEST_FIXTURE;
 
-static CMP_CTX_TEST_FIXTURE *set_up(const char *const test_case_name)
+static OSSL_CMP_CTX_TEST_FIXTURE *set_up(const char *const test_case_name)
 {
-    CMP_CTX_TEST_FIXTURE *fixture;
+    OSSL_CMP_CTX_TEST_FIXTURE *fixture;
     int setup_ok = 0;
     /* Allocate memory owned by the fixture, exit on error */
     if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))) ||
@@ -37,31 +37,31 @@ static CMP_CTX_TEST_FIXTURE *set_up(const char *const test_case_name)
     return fixture;
 }
 
-static void tear_down(CMP_CTX_TEST_FIXTURE *fixture)
+static void tear_down(OSSL_CMP_CTX_TEST_FIXTURE *fixture)
 {
     sk_X509_EXTENSION_pop(fixture->exts);
     OPENSSL_free(fixture);
 }
 
-static int execute_cmp_ctx_reqextensions_have_san_test(CMP_CTX_TEST_FIXTURE *
+static int execute_cmp_ctx_reqextensions_have_san_test(OSSL_CMP_CTX_TEST_FIXTURE *
                                                        fixture)
 {
     int good = 0;
-    CMP_CTX *ctx = NULL;
-    if (!TEST_ptr(ctx = CMP_CTX_create()))
+    OSSL_CMP_CTX *ctx = NULL;
+    if (!TEST_ptr(ctx = OSSL_CMP_CTX_create()))
         return good;
-    if (TEST_false(CMP_CTX_reqExtensions_have_SAN(ctx)))
-        if (TEST_true(CMP_CTX_set0_reqExtensions(ctx, fixture->exts))) {
+    if (TEST_false(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx)))
+        if (TEST_true(OSSL_CMP_CTX_set0_reqExtensions(ctx, fixture->exts))) {
             fixture->exts = NULL;
-            good = TEST_true(CMP_CTX_reqExtensions_have_SAN(ctx));
+            good = TEST_true(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx));
         }
-    CMP_CTX_delete(ctx);
+    OSSL_CMP_CTX_delete(ctx);
     return good;
 }
 
 static int test_cmp_ctx_reqextensions_have_san(void)
 {
-    SETUP_TEST_FIXTURE(CMP_CTX_TEST_FIXTURE, set_up);
+    SETUP_TEST_FIXTURE(OSSL_CMP_CTX_TEST_FIXTURE, set_up);
     const int len = 16;
     unsigned char str[16/* len */];
     ASN1_OCTET_STRING *data = NULL;

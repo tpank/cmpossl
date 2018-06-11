@@ -108,7 +108,7 @@ void CMP_add_error_txt(const char *separator, const char *txt)
  * returns the header of the given CMP message
  * returns NULL on error
  */
-CMP_PKIHEADER *CMP_PKIMESSAGE_get0_header(const CMP_PKIMESSAGE *msg)
+OSSL_CMP_PKIHEADER *OSSL_CMP_PKIMESSAGE_get0_header(const OSSL_CMP_PKIMESSAGE *msg)
 {
     if (!msg)
         return NULL;
@@ -117,19 +117,19 @@ CMP_PKIHEADER *CMP_PKIMESSAGE_get0_header(const CMP_PKIMESSAGE *msg)
 }
 
 /* returns the transactionID of the given PKIHeader or NULL on error */
-ASN1_OCTET_STRING *CMP_PKIHEADER_get0_transactionID(const CMP_PKIHEADER *hdr)
+ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr)
 {
     return hdr == NULL ? NULL : hdr->transactionID;
 }
 
 /* returns the senderNonce of the given PKIHeader or NULL on error */
-ASN1_OCTET_STRING *CMP_PKIHEADER_get0_senderNonce(const CMP_PKIHEADER *hdr)
+ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr)
 {
     return hdr == NULL ? NULL : hdr->senderNonce;
 }
 
 /* returns the recipNonce of the given PKIHeader or NULL on error */
-ASN1_OCTET_STRING *CMP_PKIHEADER_get0_recipNonce(const CMP_PKIHEADER *hdr)
+ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr)
 {
     return hdr == NULL ? NULL : hdr->recipNonce;
 }
@@ -138,15 +138,15 @@ ASN1_OCTET_STRING *CMP_PKIHEADER_get0_recipNonce(const CMP_PKIHEADER *hdr)
  * Sets the protocol version number in PKIHeader.
  * returns 1 on success, 0 on error
  */
-int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version)
+int OSSL_CMP_PKIHEADER_set_version(OSSL_CMP_PKIHEADER *hdr, int version)
 {
     if (hdr == NULL) {
-        CMPerr(CMP_F_CMP_PKIHEADER_SET_VERSION, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_OSSL_CMP_PKIHEADER_SET_VERSION, CMP_R_NULL_ARGUMENT);
         goto err;
     }
 
     if (!ASN1_INTEGER_set(hdr->pvno, version)) {
-        CMPerr(CMP_F_CMP_PKIHEADER_SET_VERSION, CMP_R_OUT_OF_MEMORY);
+        CMPerr(CMP_F_OSSL_CMP_PKIHEADER_SET_VERSION, CMP_R_OUT_OF_MEMORY);
         goto err;
     }
 
@@ -195,7 +195,7 @@ static int set1_general_name(GENERAL_NAME **tgt, const X509_NAME *src)
  * when nm is NULL, recipient is set to an empty string
  * returns 1 on success, 0 on error
  */
-int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm)
+int OSSL_CMP_PKIHEADER_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
 {
     if (hdr == NULL)
         return 0;
@@ -208,7 +208,7 @@ int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm)
  * when nm is NULL, sender is set to an empty string
  * returns 1 on success, 0 on error
  */
-int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm)
+int OSSL_CMP_PKIHEADER_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
 {
     if (hdr == NULL)
         return 0;
@@ -221,11 +221,11 @@ int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm)
  * and assign either a copy of the src ASN1_OCTET_STRING or NULL.
  * returns 1 on success, 0 on error.
  */
-int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                const ASN1_OCTET_STRING *src)
 {
     if (tgt == NULL) {
-        CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1, CMP_R_NULL_ARGUMENT);
         goto err;
     }
     if (*tgt == src) /* self-assignment */
@@ -234,7 +234,7 @@ int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
 
     if (src) {
         if (!(*tgt = ASN1_OCTET_STRING_dup((ASN1_OCTET_STRING *)src))) {
-            CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1, CMP_R_OUT_OF_MEMORY);
+            CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1, CMP_R_OUT_OF_MEMORY);
             goto err;
         }
     } else
@@ -250,26 +250,26 @@ int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
  * and assign either a copy of the byte string (with given length) or NULL.
  * returns 1 on success, 0 on error.
  */
-int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
+int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
                                      const unsigned char *bytes, size_t len)
 {
     ASN1_OCTET_STRING *new = NULL;
     int res = 0;
 
     if (tgt == NULL) {
-        CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_NULL_ARGUMENT);
         goto err;
     }
 
     if (bytes != NULL) {
         if (!(new = ASN1_OCTET_STRING_new()) ||
             !(ASN1_OCTET_STRING_set(new, bytes, (int)len))) {
-            CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_OUT_OF_MEMORY);
+            CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_OUT_OF_MEMORY);
             goto err;
         }
 
     }
-    res = CMP_ASN1_OCTET_STRING_set1(tgt, new);
+    res = OSSL_CMP_ASN1_OCTET_STRING_set1(tgt, new);
 
  err:
     ASN1_OCTET_STRING_free(new);
@@ -291,9 +291,9 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
             CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM,CMP_R_FAILURE_OBTAINING_RANDOM);
             goto err;
         }
-        res = CMP_ASN1_OCTET_STRING_set1_bytes(tgt, bytes, len);
+        res = OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(tgt, bytes, len);
     } else {
-        res = CMP_ASN1_OCTET_STRING_set1(tgt, src);
+        res = OSSL_CMP_ASN1_OCTET_STRING_set1(tgt, src);
     }
 
  err:
@@ -310,12 +310,12 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIHEADER_set1_senderKID(CMP_PKIHEADER *hdr,
+int OSSL_CMP_PKIHEADER_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
                                  const ASN1_OCTET_STRING *senderKID)
 {
     if (hdr == NULL)
         return 0;
-    return CMP_ASN1_OCTET_STRING_set1(&hdr->senderKID, senderKID);
+    return OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->senderKID, senderKID);
 }
 
 /*
@@ -330,7 +330,7 @@ int CMP_PKIHEADER_set1_senderKID(CMP_PKIHEADER *hdr,
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr)
+int OSSL_CMP_PKIHEADER_set_messageTime(OSSL_CMP_PKIHEADER *hdr)
 {
     if (hdr == NULL)
         goto err;
@@ -344,7 +344,7 @@ int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr)
     return 1;
 
  err:
-    CMPerr(CMP_F_CMP_PKIHEADER_SET_MESSAGETIME, CMP_R_OUT_OF_MEMORY);
+    CMPerr(CMP_F_OSSL_CMP_PKIHEADER_SET_MESSAGETIME, CMP_R_OUT_OF_MEMORY);
     return 0;
 }
 
@@ -353,7 +353,7 @@ int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr)
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
+int OSSL_CMP_PKIHEADER_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
     if (hdr == NULL)
         goto err;
@@ -370,7 +370,7 @@ int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
     return 1;
 
  err:
-    CMPerr(CMP_F_CMP_PKIHEADER_PUSH0_FREETEXT, CMP_R_OUT_OF_MEMORY);
+    CMPerr(CMP_F_OSSL_CMP_PKIHEADER_PUSH0_FREETEXT, CMP_R_OUT_OF_MEMORY);
     return 0;
 }
 
@@ -379,10 +379,10 @@ int CMP_PKIHEADER_push0_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIHEADER_push1_freeText(CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
+int OSSL_CMP_PKIHEADER_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
     if (hdr == NULL || text == NULL) {
-        CMPerr(CMP_F_CMP_PKIHEADER_PUSH1_FREETEXT, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_OSSL_CMP_PKIHEADER_PUSH1_FREETEXT, CMP_R_NULL_ARGUMENT);
         return 0;
     }
 
@@ -421,23 +421,23 @@ CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft, const char *text)
 }
 
 /*
- * Initialize the given PkiHeader structure with values set in the CMP_CTX
+ * Initialize the given PkiHeader structure with values set in the OSSL_CMP_CTX
  * This starts a new transaction in case ctx->transactionID is NULL.
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
+int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
 {
     X509_NAME *sender;
     X509_NAME *rcp = NULL;
 
     if (ctx == NULL || hdr == NULL) {
-        CMPerr(CMP_F_CMP_PKIHEADER_INIT, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_OSSL_CMP_PKIHEADER_INIT, CMP_R_NULL_ARGUMENT);
         goto err;
     }
 
     /* set the CMP version */
-    if (!CMP_PKIHEADER_set_version(hdr, CMP_VERSION))
+    if (!OSSL_CMP_PKIHEADER_set_version(hdr, CMP_VERSION))
         goto err;
 
     /*
@@ -446,10 +446,10 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
      */
     sender = ctx->clCert? X509_get_subject_name(ctx->clCert) : ctx->subjectName;
     if (sender == NULL && ctx->referenceValue == NULL) {
-        CMPerr(CMP_F_CMP_PKIHEADER_INIT, CMP_R_NO_SENDER_NO_REFERENCE);
+        CMPerr(CMP_F_OSSL_CMP_PKIHEADER_INIT, CMP_R_NO_SENDER_NO_REFERENCE);
         goto err;
     }
-    if (!CMP_PKIHEADER_set1_sender(hdr, sender))
+    if (!OSSL_CMP_PKIHEADER_set1_sender(hdr, sender))
         goto err;
 
     /* determine recipient entry in PKIHeader */
@@ -457,7 +457,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         rcp = X509_get_subject_name(ctx->srvCert);
         /* set also as expected_sender of responses unless set explicitly */
         if (ctx->expected_sender == NULL && rcp != NULL &&
-            !CMP_CTX_set1_expected_sender(ctx, rcp))
+            !OSSL_CMP_CTX_set1_expected_sender(ctx, rcp))
         goto err;
     }
     else if (ctx->recipient)
@@ -468,15 +468,15 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         rcp = X509_get_issuer_name(ctx->oldClCert);
     else if (ctx->clCert)
         rcp = X509_get_issuer_name(ctx->clCert);
-    if (!CMP_PKIHEADER_set1_recipient(hdr, rcp))
+    if (!OSSL_CMP_PKIHEADER_set1_recipient(hdr, rcp))
         goto err;
 
     /* set current time as message time */
-    if (!CMP_PKIHEADER_set_messageTime(hdr))
+    if (!OSSL_CMP_PKIHEADER_set_messageTime(hdr))
         goto err;
 
     if (ctx->recipNonce)
-        if (!CMP_ASN1_OCTET_STRING_set1(&hdr->recipNonce, ctx->recipNonce))
+        if (!OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->recipNonce, ctx->recipNonce))
             goto err;
 
     /*
@@ -491,7 +491,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
     if (!ctx->transactionID &&
         !set1_aostr_else_random(&ctx->transactionID,NULL, TRANSACTIONID_LENGTH))
         goto err;
-    if (!CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID, ctx->transactionID))
+    if (!OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID, ctx->transactionID))
         goto err;
 
     /*
@@ -510,7 +510,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
         goto err;
 
     /* store senderNonce - for cmp with recipNonce in next outgoing msg */
-    CMP_CTX_set1_last_senderNonce(ctx, hdr->senderNonce);
+    OSSL_CMP_CTX_set1_last_senderNonce(ctx, hdr->senderNonce);
 
 #if 0
     /*
@@ -519,7 +519,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
        -- (this field is intended for human consumption)
      */
     if (ctx->freeText)
-        if (!CMP_PKIHEADER_push1_freeText(hdr, ctx->freeText))
+        if (!OSSL_CMP_PKIHEADER_push1_freeText(hdr, ctx->freeText))
             goto err;
 #endif
 
@@ -542,7 +542,7 @@ int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr)
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
  * error
  */
-ASN1_BIT_STRING *CMP_calc_protection(const CMP_PKIMESSAGE *msg,
+ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
                                      const ASN1_OCTET_STRING *secret,
                                      const EVP_PKEY *pkey)
 {
@@ -654,7 +654,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const CMP_PKIMESSAGE *msg,
  * the pbm settings in the context
  * returns pointer to X509_ALGOR on success, NULL on error
  */
-static X509_ALGOR *CMP_create_pbmac_algor(CMP_CTX *ctx)
+static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
 {
     X509_ALGOR *alg = NULL;
     CRMF_PBMPARAMETER *pbm = NULL;
@@ -695,7 +695,7 @@ static X509_ALGOR *CMP_create_pbmac_algor(CMP_CTX *ctx)
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
+int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
 {
     if (ctx == NULL)
         goto err;
@@ -709,7 +709,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
         if ((msg->header->protectionAlg = CMP_create_pbmac_algor(ctx)) == NULL)
             goto err;
         if (ctx->referenceValue &&
-            !CMP_PKIHEADER_set1_senderKID(msg->header, ctx->referenceValue))
+            !OSSL_CMP_PKIHEADER_set1_senderKID(msg->header, ctx->referenceValue))
             goto err;
 
         /*
@@ -717,7 +717,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
          * while not needed to validate the signing cert, the option to do
          * this might be handy for certain use cases
          */
-        CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
+        OSSL_CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
 
         if ((msg->protection =
               CMP_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
@@ -735,7 +735,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
             /* make sure that key and certificate match */
             if (!X509_check_private_key(ctx->clCert, ctx->pkey)) {
-                CMPerr(CMP_F_CMP_PKIMESSAGE_PROTECT,
+                CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT,
                         CMP_R_CERT_AND_KEY_DO_NOT_MATCH);
                 goto err;
             }
@@ -745,7 +745,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
             if (!OBJ_find_sigid_by_algs(&algNID, ctx->digest,
                         EVP_PKEY_id(ctx->pkey))) {
-                CMPerr(CMP_F_CMP_PKIMESSAGE_PROTECT,
+                CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT,
                         CMP_R_UNSUPPORTED_KEY_TYPE);
                 goto err;
             }
@@ -758,18 +758,18 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
              */
             subjKeyIDStr = X509_get0_subject_key_id(ctx->clCert);
             if (subjKeyIDStr &&
-                !CMP_PKIHEADER_set1_senderKID(msg->header, subjKeyIDStr))
+                !OSSL_CMP_PKIHEADER_set1_senderKID(msg->header, subjKeyIDStr))
                 goto err;
 
             /* Add ctx->extraCertsOut, the ctx->clCert,
              * and the chain built upwards from ctx->untrusted_certs */
-            CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
+            OSSL_CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
 
             if ((msg->protection =
                  CMP_calc_protection(msg, NULL, ctx->pkey)) == NULL)
                 goto err;
         } else {
-            CMPerr(CMP_F_CMP_PKIMESSAGE_PROTECT,
+            CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT,
                    CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION);
             goto err;
         }
@@ -777,7 +777,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
 
     return 1;
  err:
-    CMPerr(CMP_F_CMP_PKIMESSAGE_PROTECT, CMP_R_ERROR_PROTECTING_MESSAGE);
+    CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT, CMP_R_ERROR_PROTECTING_MESSAGE);
     return 0;
 }
 
@@ -793,7 +793,7 @@ int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
+int OSSL_CMP_PKIMESSAGE_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
 {
     int res = 0;
 
@@ -812,9 +812,9 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
          */
         if (ctx->untrusted_certs) {
             STACK_OF(X509) *chain =
-                CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
+                OSSL_CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
             /* Our own cert will be sent first */
-            res = CMP_sk_X509_add1_certs(msg->extraCerts, chain,
+            res = OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain,
                                          1/* no self-signed */, 1);
             sk_X509_pop_free(chain, X509_free);
         } else {
@@ -825,7 +825,7 @@ int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg)
     }
 
     /* add any additional certificates from ctx->extraCertsOut */
-    CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
+    OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
                            1/*no dups*/);
 
  err:
@@ -859,7 +859,7 @@ int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus, const X509 *cert)
         && (md = EVP_get_digestbynid(md_NID))) {
         if (!X509_digest(cert, md, hash, &len))
             goto err;
-        if (!CMP_ASN1_OCTET_STRING_set1_bytes(&certStatus->certHash, hash, len))
+        if (!OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&certStatus->certHash, hash, len))
             goto err;
     } else {
         CMPerr(CMP_F_CMP_CERTSTATUS_SET_CERTHASH,
@@ -878,22 +878,22 @@ int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus, const X509 *cert)
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg)
+int OSSL_CMP_PKIMESSAGE_set_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg)
 {
-    CMP_INFOTYPEANDVALUE *itav = NULL;
+    OSSL_CMP_INFOTYPEANDVALUE *itav = NULL;
 
     if (msg == NULL)
         goto err;
 
-    if ((itav = CMP_ITAV_new(OBJ_nid2obj(NID_id_it_implicitConfirm),
+    if ((itav = OSSL_CMP_ITAV_new(OBJ_nid2obj(NID_id_it_implicitConfirm),
                              (const ASN1_TYPE *)ASN1_NULL_new())) == NULL)
         goto err;
-    if (!CMP_PKIHEADER_generalInfo_item_push0(msg->header, itav))
+    if (!OSSL_CMP_PKIHEADER_generalInfo_item_push0(msg->header, itav))
         goto err;
     return 1;
  err:
     if (itav)
-        CMP_INFOTYPEANDVALUE_free(itav);
+        OSSL_CMP_INFOTYPEANDVALUE_free(itav);
     return 0;
 }
 
@@ -902,19 +902,19 @@ int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg)
  *
  * returns 1 if it is set, 0 if not
  */
-int CMP_PKIMESSAGE_check_implicitConfirm(CMP_PKIMESSAGE *msg)
+int OSSL_CMP_PKIMESSAGE_check_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg)
 {
     int itavCount;
     int i;
-    CMP_INFOTYPEANDVALUE *itav = NULL;
+    OSSL_CMP_INFOTYPEANDVALUE *itav = NULL;
 
     if (msg == NULL)
         return 0;
 
-    itavCount = sk_CMP_INFOTYPEANDVALUE_num(msg->header->generalInfo);
+    itavCount = sk_OSSL_CMP_INFOTYPEANDVALUE_num(msg->header->generalInfo);
 
     for (i = 0; i < itavCount; i++) {
-        itav = sk_CMP_INFOTYPEANDVALUE_value(msg->header->generalInfo, i);
+        itav = sk_OSSL_CMP_INFOTYPEANDVALUE_value(msg->header->generalInfo, i);
         if (OBJ_obj2nid(itav->infoType) == NID_id_it_implicitConfirm)
             return 1;
     }
@@ -927,42 +927,42 @@ int CMP_PKIMESSAGE_check_implicitConfirm(CMP_PKIMESSAGE *msg)
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr,
-                                         const CMP_INFOTYPEANDVALUE *itav)
+int OSSL_CMP_PKIHEADER_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
+                                         const OSSL_CMP_INFOTYPEANDVALUE *itav)
 {
     if (hdr == NULL)
         goto err;
 
-    if (!CMP_INFOTYPEANDVALUE_stack_item_push0(&hdr->generalInfo, itav))
+    if (!OSSL_CMP_INFOTYPEANDVALUE_stack_item_push0(&hdr->generalInfo, itav))
         goto err;
     return 1;
  err:
-    CMPerr(CMP_F_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0,
+    CMPerr(CMP_F_OSSL_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0,
            CMP_R_ERROR_PUSHING_GENERALINFO_ITEM);
     return 0;
 }
 
 
-int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg,
-                                          STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
+int OSSL_CMP_PKIMESSAGE_generalInfo_items_push1(OSSL_CMP_PKIMESSAGE *msg,
+                                          STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *itavs)
 {
     int i;
-    CMP_INFOTYPEANDVALUE *itav = NULL;
+    OSSL_CMP_INFOTYPEANDVALUE *itav = NULL;
 
     if (msg == NULL)
         goto err;
 
-    for (i = 0; i < sk_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
-        itav = CMP_INFOTYPEANDVALUE_dup(sk_CMP_INFOTYPEANDVALUE_value(itavs,i));
-        if (!CMP_PKIHEADER_generalInfo_item_push0(msg->header, itav)) {
-            CMP_INFOTYPEANDVALUE_free(itav);
+    for (i = 0; i < sk_OSSL_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
+        itav = OSSL_CMP_INFOTYPEANDVALUE_dup(sk_OSSL_CMP_INFOTYPEANDVALUE_value(itavs,i));
+        if (!OSSL_CMP_PKIHEADER_generalInfo_item_push0(msg->header, itav)) {
+            OSSL_CMP_INFOTYPEANDVALUE_free(itav);
             goto err;
         }
     }
 
     return 1;
  err:
-    CMPerr(CMP_F_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1,
+    CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1,
            CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS);
     return 0;
 }
@@ -972,21 +972,21 @@ int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg,
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
-                                   const CMP_INFOTYPEANDVALUE *itav)
+int OSSL_CMP_PKIMESSAGE_genm_item_push0(OSSL_CMP_PKIMESSAGE *msg,
+                                   const OSSL_CMP_INFOTYPEANDVALUE *itav)
 {
     int bodytype;
     if (msg == NULL)
         goto err;
-    bodytype = CMP_PKIMESSAGE_get_bodytype(msg);
-    if (bodytype != V_CMP_PKIBODY_GENM && bodytype != V_CMP_PKIBODY_GENP)
+    bodytype = OSSL_CMP_PKIMESSAGE_get_bodytype(msg);
+    if (bodytype != OSSL_CMP_PKIBODY_GENM && bodytype != OSSL_CMP_PKIBODY_GENP)
         goto err;
 
-    if (!CMP_INFOTYPEANDVALUE_stack_item_push0(&msg->body->value.genm, itav))
+    if (!OSSL_CMP_INFOTYPEANDVALUE_stack_item_push0(&msg->body->value.genm, itav))
         goto err;
     return 1;
  err:
-    CMPerr(CMP_F_CMP_PKIMESSAGE_GENM_ITEM_PUSH0,
+    CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_GENM_ITEM_PUSH0,
            CMP_R_ERROR_PUSHING_GENERALINFO_ITEM);
     return 0;
 }
@@ -996,25 +996,25 @@ int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg,
  *
  * returns 1 on success, 0 on error
  */
-int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg,
-                                    STACK_OF(CMP_INFOTYPEANDVALUE) *itavs)
+int OSSL_CMP_PKIMESSAGE_genm_items_push1(OSSL_CMP_PKIMESSAGE *msg,
+                                    STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *itavs)
 {
     int i;
-    CMP_INFOTYPEANDVALUE *itav = NULL;
+    OSSL_CMP_INFOTYPEANDVALUE *itav = NULL;
 
     if (msg == NULL)
         goto err;
 
-    for (i = 0; i < sk_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
-        itav = CMP_INFOTYPEANDVALUE_dup(sk_CMP_INFOTYPEANDVALUE_value(itavs,i));
-        if (!CMP_PKIMESSAGE_genm_item_push0(msg, itav)) {
-            CMP_INFOTYPEANDVALUE_free(itav);
+    for (i = 0; i < sk_OSSL_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
+        itav = OSSL_CMP_INFOTYPEANDVALUE_dup(sk_OSSL_CMP_INFOTYPEANDVALUE_value(itavs,i));
+        if (!OSSL_CMP_PKIMESSAGE_genm_item_push0(msg, itav)) {
+            OSSL_CMP_INFOTYPEANDVALUE_free(itav);
             goto err;
         }
     }
     return 1;
  err:
-    CMPerr(CMP_F_CMP_PKIMESSAGE_GENM_ITEMS_PUSH1,
+    CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_GENM_ITEMS_PUSH1,
            CMP_R_ERROR_PUSHING_GENM_ITEMS);
     return 0;
 }
@@ -1028,8 +1028,8 @@ int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg,
  *
  * returns 1 on success, 0 on error
  */
-int CMP_ITAV_stack_item_push0(STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,
-                              const CMP_INFOTYPEANDVALUE *itav)
+int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) **itav_sk_p,
+                              const OSSL_CMP_INFOTYPEANDVALUE *itav)
 {
     int created = 0;
 
@@ -1038,19 +1038,19 @@ int CMP_ITAV_stack_item_push0(STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,
 
     if (*itav_sk_p == NULL) {
         /* not yet created */
-        if ((*itav_sk_p = sk_CMP_INFOTYPEANDVALUE_new_null()) == NULL)
+        if ((*itav_sk_p = sk_OSSL_CMP_INFOTYPEANDVALUE_new_null()) == NULL)
             goto err;
         created = 1;
     }
     if (itav) {
-        if (!sk_CMP_INFOTYPEANDVALUE_push(*itav_sk_p,
-                    (CMP_INFOTYPEANDVALUE *)itav))
+        if (!sk_OSSL_CMP_INFOTYPEANDVALUE_push(*itav_sk_p,
+                    (OSSL_CMP_INFOTYPEANDVALUE *)itav))
             goto err;
     }
     return 1;
  err:
     if (created) {
-        sk_CMP_INFOTYPEANDVALUE_pop_free(*itav_sk_p, CMP_INFOTYPEANDVALUE_free);
+        sk_OSSL_CMP_INFOTYPEANDVALUE_pop_free(*itav_sk_p, OSSL_CMP_INFOTYPEANDVALUE_free);
         *itav_sk_p = NULL;
     }
     return 0;
@@ -1058,16 +1058,16 @@ int CMP_ITAV_stack_item_push0(STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,
 
 
 /*
- * Creates a new CMP_INFOTYPEANDVALUE structure and fills it in
+ * Creates a new OSSL_CMP_INFOTYPEANDVALUE structure and fills it in
  * returns a pointer to the structure on success, NULL on error
  */
-CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type,
+OSSL_CMP_INFOTYPEANDVALUE *OSSL_CMP_ITAV_new(const ASN1_OBJECT *type,
                                    const ASN1_TYPE *value)
 {
-    CMP_INFOTYPEANDVALUE *itav;
-    if (type == NULL || (itav = CMP_INFOTYPEANDVALUE_new()) == NULL)
+    OSSL_CMP_INFOTYPEANDVALUE *itav;
+    if (type == NULL || (itav = OSSL_CMP_INFOTYPEANDVALUE_new()) == NULL)
         return NULL;
-    CMP_INFOTYPEANDVALUE_set(itav, type, value);
+    OSSL_CMP_INFOTYPEANDVALUE_set(itav, type, value);
     return itav;
 }
 
@@ -1077,14 +1077,14 @@ CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type,
  * note: strongly overlaps with TS_RESP_CTX_set_status_info()
  *       and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
  */
-CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, unsigned long failInfo,
+OSSL_CMP_PKISTATUSINFO *OSSL_CMP_statusInfo_new(int status, unsigned long failInfo,
                                       const char *text)
 {
-    CMP_PKISTATUSINFO *si = NULL;
+    OSSL_CMP_PKISTATUSINFO *si = NULL;
     ASN1_UTF8STRING *utf8_text = NULL;
     int failure;
 
-    if ((si = CMP_PKISTATUSINFO_new()) == NULL)
+    if ((si = OSSL_CMP_PKISTATUSINFO_new()) == NULL)
         goto err;
     if (!ASN1_INTEGER_set(si->status, status))
         goto err;
@@ -1102,7 +1102,7 @@ CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, unsigned long failInfo,
         utf8_text = NULL;
     }
 
-    for (failure = 0; failure <= CMP_PKIFAILUREINFO_MAX; failure++) {
+    for (failure = 0; failure <= OSSL_CMP_PKIFAILUREINFO_MAX; failure++) {
         if (failInfo & (1 << failure)) {
             if (si->failInfo == NULL &&
                 (si->failInfo = ASN1_BIT_STRING_new()) == NULL)
@@ -1114,7 +1114,7 @@ CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, unsigned long failInfo,
     return si;
 
  err:
-    CMP_PKISTATUSINFO_free(si);
+    OSSL_CMP_PKISTATUSINFO_free(si);
     ASN1_UTF8STRING_free(utf8_text);
     return NULL;
 }
@@ -1123,10 +1123,10 @@ CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, unsigned long failInfo,
  * returns the PKIStatus of the given PKIStatusInfo
  * returns -1 on error
  */
-long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *si)
+long OSSL_CMP_PKISTATUSINFO_PKIStatus_get(OSSL_CMP_PKISTATUSINFO *si)
 {
     if (si == NULL || si->status == NULL) {
-        CMPerr(CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET,
+        CMPerr(CMP_F_OSSL_CMP_PKISTATUSINFO_PKISTATUS_GET,
                CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
     }
@@ -1137,16 +1137,16 @@ long CMP_PKISTATUSINFO_PKIStatus_get(CMP_PKISTATUSINFO *si)
  * returns the FailureInfo bits of the given PKIStatusInfo
  * returns -1 on error
  */
-long CMP_PKISTATUSINFO_PKIFailureinfo_get(CMP_PKISTATUSINFO *si)
+long OSSL_CMP_PKISTATUSINFO_PKIFailureinfo_get(OSSL_CMP_PKISTATUSINFO *si)
 {
     int i;
     long res = 0;
     if (si == NULL || si->failInfo == NULL) {
-        CMPerr(CMP_F_CMP_PKISTATUSINFO_PKIFAILUREINFO_GET,
+        CMPerr(CMP_F_OSSL_CMP_PKISTATUSINFO_PKIFAILUREINFO_GET,
                CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
     }
-    for (i = 0; i <= CMP_PKIFAILUREINFO_MAX; i++)
+    for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
         if (ASN1_BIT_STRING_get_bit(si->failInfo, i))
             res |= 1 << i;
     return res;
@@ -1161,24 +1161,24 @@ long CMP_PKISTATUSINFO_PKIFailureinfo_get(CMP_PKISTATUSINFO *si)
  * PKIStatus of the given PKIStatusInfo
  * returns NULL on error
  */
-static char *CMP_PKISTATUSINFO_PKIStatus_get_string(CMP_PKISTATUSINFO *si)
+static char *CMP_PKISTATUSINFO_PKIStatus_get_string(OSSL_CMP_PKISTATUSINFO *si)
 {
     long PKIStatus;
 
-    if ((PKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(si)) < 0)
+    if ((PKIStatus = OSSL_CMP_PKISTATUSINFO_PKIStatus_get(si)) < 0)
         return NULL;
     switch (PKIStatus) {
-    case CMP_PKISTATUS_accepted:
+    case OSSL_CMP_PKISTATUS_accepted:
         return "PKIStatus: accepted";
     case CMP_PKISTATUS_grantedWithMods:
         return "PKIStatus: granted with mods";
-    case CMP_PKISTATUS_rejection:
+    case OSSL_CMP_PKISTATUS_rejection:
         return "PKIStatus: rejection";
     case CMP_PKISTATUS_waiting:
         return "PKIStatus: waiting";
     case CMP_PKISTATUS_revocationWarning:
         return "PKIStatus: revocation warning";
-    case CMP_PKISTATUS_revocationNotification:
+    case OSSL_CMP_PKISTATUS_revocationNotification:
         return "PKIStatus: revocation notification";
     case CMP_PKISTATUS_keyUpdateWarning:
         return "PKIStatus: key update warning";
@@ -1200,7 +1200,7 @@ static char *CMP_PKIFAILUREINFO_get_string(CMP_PKIFAILUREINFO *fi, int i)
 {
     if (fi == NULL)
         return NULL;
-    if (0 <= i && i <= CMP_PKIFAILUREINFO_MAX) {
+    if (0 <= i && i <= OSSL_CMP_PKIFAILUREINFO_MAX) {
         if (ASN1_BIT_STRING_get_bit(fi, i)) {
             switch (i) {
             case CMP_PKIFAILUREINFO_badAlg:
@@ -1217,7 +1217,7 @@ static char *CMP_PKIFAILUREINFO_get_string(CMP_PKIFAILUREINFO *fi, int i)
                 return "PKIFailureInfo: badDataFormat";
             case CMP_PKIFAILUREINFO_wrongAuthority:
                 return "PKIFailureInfo: wrongAuthority";
-            case CMP_PKIFAILUREINFO_incorrectData:
+            case OSSL_CMP_PKIFAILUREINFO_incorrectData:
                 return "PKIFailureInfo: incorrectData";
             case CMP_PKIFAILUREINFO_missingTimeStamp:
                 return "PKIFailureInfo: missingTimeStamp";
@@ -1237,7 +1237,7 @@ static char *CMP_PKIFAILUREINFO_get_string(CMP_PKIFAILUREINFO *fi, int i)
                 return "PKIFailureInfo: unacceptedPolicy";
             case CMP_PKIFAILUREINFO_unacceptedExtension:
                 return "PKIFailureInfo: unacceptedExtension";
-            case CMP_PKIFAILUREINFO_addInfoNotAvailable:
+            case OSSL_CMP_PKIFAILUREINFO_addInfoNotAvailable:
                 return "PKIFailureInfo: addInfoNotAvailable";
             case CMP_PKIFAILUREINFO_badSenderNonce:
                 return "PKIFailureInfo: badSenderNonce";
@@ -1247,13 +1247,13 @@ static char *CMP_PKIFAILUREINFO_get_string(CMP_PKIFAILUREINFO *fi, int i)
                 return "PKIFailureInfo: signerNotTrusted";
             case CMP_PKIFAILUREINFO_transactionIdInUse:
                 return "PKIFailureInfo: transactionIdInUse";
-            case CMP_PKIFAILUREINFO_unsupportedVersion:
+            case OSSL_CMP_PKIFAILUREINFO_unsupportedVersion:
                 return "PKIFailureInfo: unsupportedVersion";
             case CMP_PKIFAILUREINFO_notAuthorized:
                 return "PKIFailureInfo: notAuthorized";
             case CMP_PKIFAILUREINFO_systemUnavail:
                 return "PKIFailureInfo: systemUnavail";
-            case CMP_PKIFAILUREINFO_systemFailure:
+            case OSSL_CMP_PKIFAILUREINFO_systemFailure:
                 return "PKIFailureInfo: systemFailure";
             case CMP_PKIFAILUREINFO_duplicateCertReq:
                 return "PKIFailureInfo: duplicateCertReq";
@@ -1272,14 +1272,14 @@ static char *CMP_PKIFAILUREINFO_get_string(CMP_PKIFAILUREINFO *fi, int i)
  * RevReqContent.
  * returns NULL on error
  */
-CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
+OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
                                                        long rsid)
 {
-    CMP_PKISTATUSINFO *status = NULL;
+    OSSL_CMP_PKISTATUSINFO *status = NULL;
     if (rrep == NULL)
         return NULL;
 
-    if ((status = sk_CMP_PKISTATUSINFO_value(rrep->status, rsid))) {
+    if ((status = sk_OSSL_CMP_PKISTATUSINFO_value(rrep->status, rsid))) {
         return status;
     }
 
@@ -1293,11 +1293,11 @@ CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
  * returns 1 if a given bit is set in a PKIFailureInfo, 0 if not, -1 on error
  * PKIFailureInfo ::= ASN1_BIT_STRING
  */
-int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit)
+int OSSL_CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit)
 {
     if (failInfo == NULL)
         return -1;
-    if ((codeBit < 0) || (codeBit > CMP_PKIFAILUREINFO_MAX))
+    if ((codeBit < 0) || (codeBit > OSSL_CMP_PKIFAILUREINFO_MAX))
         return -1;
 
     return ASN1_BIT_STRING_get_bit(failInfo, codeBit);
@@ -1307,7 +1307,7 @@ int CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit)
  * returns a pointer to the failInfo contained in a PKIStatusInfo
  * returns NULL on error
  */
-CMP_PKIFAILUREINFO *CMP_PKISTATUSINFO_failInfo_get0(CMP_PKISTATUSINFO *si)
+CMP_PKIFAILUREINFO *OSSL_CMP_PKISTATUSINFO_failInfo_get0(OSSL_CMP_PKISTATUSINFO *si)
 {
     return si == NULL ? NULL : si->failInfo;
 }
@@ -1316,7 +1316,7 @@ CMP_PKIFAILUREINFO *CMP_PKISTATUSINFO_failInfo_get0(CMP_PKISTATUSINFO *si)
  * returns a pointer to the statusString contained in a PKIStatusInfo
  * returns NULL on error
  */
-CMP_PKIFREETEXT *CMP_PKISTATUSINFO_statusString_get0(CMP_PKISTATUSINFO *si)
+CMP_PKIFREETEXT *OSSL_CMP_PKISTATUSINFO_statusString_get0(OSSL_CMP_PKISTATUSINFO *si)
 {
     return si == NULL ? NULL : si->statusString;
 }
@@ -1387,7 +1387,7 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
  * returns 1 on success
  * returns 0 on error
  */
-int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type)
+int OSSL_CMP_PKIMESSAGE_set_bodytype(OSSL_CMP_PKIMESSAGE *msg, int type)
 {
     if (msg == NULL || msg->body == NULL)
         return 0;
@@ -1401,7 +1401,7 @@ int CMP_PKIMESSAGE_set_bodytype(CMP_PKIMESSAGE *msg, int type)
  * returns the body type of the given CMP message
  * returns -1 on error
  */
-int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg)
+int OSSL_CMP_PKIMESSAGE_get_bodytype(const OSSL_CMP_PKIMESSAGE *msg)
 {
     if (msg == NULL || msg->body == NULL)
         return -1;
@@ -1413,7 +1413,7 @@ int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg)
  * place human-readable error string created from PKIStatusInfo in given buffer
  * returns pointer to the same buffer containing the string, or NULL on error
  */
-char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
+char *OSSL_CMP_PKISTATUSINFO_snprint(OSSL_CMP_PKISTATUSINFO *si, char *buf, int bufsize)
 {
     const char *status, *failure;
     int i;
@@ -1426,7 +1426,7 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
 
     /* PKIFailure is optional and may be empty */
     if (si->failInfo != NULL) {
-        for (i = 0; i <= CMP_PKIFAILUREINFO_MAX; i++) {
+        for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++) {
             failure = CMP_PKIFAILUREINFO_get_string(si->failInfo, i);
             if (failure == NULL)
                 return NULL;
@@ -1457,7 +1457,7 @@ char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize)
  * Retrieve a copy of the certificate, if any, from the given CertResponse.
  * returns NULL if not found or on error
  */
-X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
+X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
 {
     CMP_CERTORENCCERT *coec;
     X509 *crt = NULL;
@@ -1516,7 +1516,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
  *      - the (self-signed) trust anchor is not included
  *      returns NULL on error
  */
-STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
+STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
                                      const X509 *cert)
 {
     STACK_OF(X509) *chain = NULL, *result = NULL;
@@ -1530,7 +1530,7 @@ STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
     if (csc == NULL)
         goto err;
 
-    CMP_X509_STORE_add1_certs(store, (STACK_OF(X509) *)certs, 0);
+    OSSL_CMP_X509_STORE_add1_certs(store, (STACK_OF(X509) *)certs, 0);
     if (!X509_STORE_CTX_init(csc, store, (X509 *)cert, NULL))
         goto err;
 
@@ -1548,7 +1548,7 @@ STACK_OF(X509) *CMP_build_cert_chain(const STACK_OF(X509) *certs,
     /* result list to store the up_ref'ed not self-signed certificates */
     if ((result = sk_X509_new_null()) == NULL)
         goto err;
-    CMP_sk_X509_add1_certs(result, chain, 1/* no self-signed */,
+    OSSL_CMP_sk_X509_add1_certs(result, chain, 1/* no self-signed */,
                            1/* no dups */);
 
  err:
@@ -1566,7 +1566,7 @@ static int X509_cmp_from_ptrs(const struct x509_st *const *a,
 {
     return X509_cmp(*a, *b);
 }
-int CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert, int not_duplicate)
+int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert, int not_duplicate)
 {
     if (not_duplicate) {
         sk_X509_set_cmp_func(sk, &X509_cmp_from_ptrs);
@@ -1584,7 +1584,7 @@ int CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert, int not_duplicate)
  * optionally only if not already contained* certs parameter may be NULL.
  * returns 1 on success, 0 on error
  */
-int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
+int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
                       int no_self_signed, int no_duplicates)
 {
     int i;
@@ -1597,7 +1597,7 @@ int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
     for (i = 0; i < sk_X509_num(certs); i++) {
         X509 *cert = sk_X509_value(certs, i);
         if (!no_self_signed || X509_check_issued(cert, cert) != X509_V_OK) {
-            if (!CMP_sk_X509_add1_cert(sk, cert, no_duplicates))
+            if (!OSSL_CMP_sk_X509_add1_cert(sk, cert, no_duplicates))
                 return 0;
         }
     }
@@ -1609,7 +1609,7 @@ int CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
  * certs parameter may be NULL.
  * returns 1 on success, 0 on error
  */
-int CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
+int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                               int only_self_signed)
 {
     int i;
@@ -1632,7 +1632,7 @@ int CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
  * Retrieves a copy of all certificates in the given store.
  * returns NULL on error
  */
-STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store)
+STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store)
 {
     int i;
     STACK_OF(X509) *sk;
@@ -1672,25 +1672,25 @@ STACK_OF(X509) *CMP_X509_STORE_get1_certs(const X509_STORE *store)
  *
  * returns body type (which is >= 0) of the message on success, -1 on error
  */
-int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
+int OSSL_CMP_PKIMESSAGE_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg,
          int callback_arg,
-         int (*allow_unprotected)(const CMP_CTX *, int, const CMP_PKIMESSAGE *))
+         int (*allow_unprotected)(const OSSL_CMP_CTX *, int, const OSSL_CMP_PKIMESSAGE *))
 {
     int rcvd_type;
 
     if (ctx == NULL || msg == NULL)
         return -1;
 
-    if ((rcvd_type = CMP_PKIMESSAGE_get_bodytype(msg)) < 0) {
-        CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED, CMP_R_PKIBODY_ERROR);
+    if ((rcvd_type = OSSL_CMP_PKIMESSAGE_get_bodytype(msg)) < 0) {
+        CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CHECK_RECEIVED, CMP_R_PKIBODY_ERROR);
         return -1;
     }
 
     /* validate message protection */
     if (msg->header->protectionAlg) {
-        if (!CMP_validate_msg(ctx, msg)) {
+        if (!OSSL_CMP_validate_msg(ctx, msg)) {
             /* validation failed */
-             CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
+             CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CHECK_RECEIVED,
                     CMP_R_ERROR_VALIDATING_PROTECTION);
              return -1;
          }
@@ -1698,11 +1698,11 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
         /* detect explicitly permitted exceptions */
         if (allow_unprotected == NULL ||
             !(*allow_unprotected)(ctx, callback_arg, msg)) {
-            CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
+            CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CHECK_RECEIVED,
                    CMP_R_MISSING_PROTECTION);
             return -1;
         }
-        CMP_warn(ctx, "received message is not protected");
+        OSSL_CMP_warn(ctx, "received message is not protected");
     }
 
     /* compare received transactionID with the expected one in previous msg */
@@ -1710,7 +1710,7 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
         (msg->header->transactionID == NULL ||
             ASN1_OCTET_STRING_cmp(ctx->transactionID,
                                   msg->header->transactionID) != 0)) {
-        CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
+        CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CHECK_RECEIVED,
                CMP_R_TRANSACTIONID_UNMATCHED);
         return -1;
     }
@@ -1720,7 +1720,7 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
         (msg->header->recipNonce == NULL ||
          ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
                                msg->header->recipNonce) != 0)) {
-        CMPerr(CMP_F_CMP_PKIMESSAGE_CHECK_RECEIVED,
+        CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CHECK_RECEIVED,
                CMP_R_RECIPNONCE_UNMATCHED);
         return -1;
     }
@@ -1728,12 +1728,12 @@ int CMP_PKIMESSAGE_check_received(CMP_CTX *ctx, const CMP_PKIMESSAGE *msg,
      * RFC 4210 section 5.1.1 states: the recipNonce is copied from
      * the senderNonce of the previous message in the transaction.
      * --> Store for setting in next message */
-    if (!CMP_CTX_set1_recipNonce(ctx, msg->header->senderNonce))
+    if (!OSSL_CMP_CTX_set1_recipNonce(ctx, msg->header->senderNonce))
         return -1;
 
     /* if not yet present, learn transactionID */
     if (ctx->transactionID == NULL &&
-        !CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
+        !OSSL_CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
         return -1;
 
     return rcvd_type;

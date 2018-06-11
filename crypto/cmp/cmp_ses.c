@@ -65,18 +65,18 @@ static char *V_CMP_TABLE[] = {
 /*
  * internal function
  *
- * adds error data of the given CMP_PKIMESSAGE
+ * adds error data of the given OSSL_CMP_PKIMESSAGE
  */
-static void message_add_error_data(CMP_PKIMESSAGE *msg)
+static void message_add_error_data(OSSL_CMP_PKIMESSAGE *msg)
 {
     char *buf;
-    int bt = CMP_PKIMESSAGE_get_bodytype(msg);
+    int bt = OSSL_CMP_PKIMESSAGE_get_bodytype(msg);
 
     switch (bt) {
-    case V_CMP_PKIBODY_ERROR:
-        if ((buf = OPENSSL_malloc(CMP_PKISTATUSINFO_BUFLEN))) {
-            if (CMP_PKISTATUSINFO_snprint(msg->body->value.error->
-                   pKIStatusInfo, buf, CMP_PKISTATUSINFO_BUFLEN))
+    case OSSL_CMP_PKIBODY_ERROR:
+        if ((buf = OPENSSL_malloc(OSSL_CMP_PKISTATUSINFO_BUFLEN))) {
+            if (OSSL_CMP_PKISTATUSINFO_snprint(msg->body->value.error->
+                   pKIStatusInfo, buf, OSSL_CMP_PKISTATUSINFO_BUFLEN))
                 ERR_add_error_data(1, buf);
             OPENSSL_free(buf);
         }
@@ -96,33 +96,33 @@ static void message_add_error_data(CMP_PKIMESSAGE *msg)
 }
 
 #define IS_ENOLLMENT(t) \
-    (t == V_CMP_PKIBODY_IP || t == V_CMP_PKIBODY_CP || t == V_CMP_PKIBODY_KUP)
+    (t == OSSL_CMP_PKIBODY_IP || t == OSSL_CMP_PKIBODY_CP || t == OSSL_CMP_PKIBODY_KUP)
 
 /*
  * evaluate whether there's an standard-violating exception configured for
  * handling unprotected errors
  */
-static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
-                                 const CMP_PKIMESSAGE *rep)
+static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
+                                 const OSSL_CMP_PKIMESSAGE *rep)
 {
     int exception = 0;
-    int rcvd_type = CMP_PKIMESSAGE_get_bodytype(rep);
+    int rcvd_type = OSSL_CMP_PKIMESSAGE_get_bodytype(rep);
 
     if (ctx->unprotectedErrors) {
-        if (rcvd_type == V_CMP_PKIBODY_ERROR) {
-            CMP_warn(ctx, "ignoring missing protection of error response");
+        if (rcvd_type == OSSL_CMP_PKIBODY_ERROR) {
+            OSSL_CMP_warn(ctx, "ignoring missing protection of error response");
             exception = 1;
         }
-        if (rcvd_type == V_CMP_PKIBODY_RP &&
-            CMP_PKISTATUSINFO_PKIStatus_get(
+        if (rcvd_type == OSSL_CMP_PKIBODY_RP &&
+            OSSL_CMP_PKISTATUSINFO_PKIStatus_get(
             CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp, REVREQSID))
-                == CMP_PKISTATUS_rejection) {
-            CMP_warn(ctx,
+                == OSSL_CMP_PKISTATUS_rejection) {
+            OSSL_CMP_warn(ctx,
                      "ignoring missing protection of revocation response message with rejection status");
             exception = 1;
         }
-        if (rcvd_type == V_CMP_PKIBODY_PKICONF) {
-            CMP_warn(ctx,
+        if (rcvd_type == OSSL_CMP_PKIBODY_PKICONF) {
+            OSSL_CMP_warn(ctx,
                      "ignoring missing protection of PKI Confirmation message");
             exception = 1;
         }
@@ -135,9 +135,9 @@ static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
              */
             if (!crep)
                 return 0;
-            if (CMP_PKISTATUSINFO_PKIStatus_get(crep->status) ==
-                CMP_PKISTATUS_rejection) {
-                CMP_warn(ctx,
+            if (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(crep->status) ==
+                OSSL_CMP_PKISTATUS_rejection) {
+                OSSL_CMP_warn(ctx,
                          "ignoring missing protection of CertRepMessage with rejection status");
                 exception = 1;
             }
@@ -154,15 +154,15 @@ static int unprotected_exception(const CMP_CTX *ctx, int expected_type,
  * returns 1 on success, 0 on error
  * Regardless of success, caller is responsible for freeing *rep (unless NULL).
  */
-static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
+static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *req,
                               const char *type_string, int func,
-                              CMP_PKIMESSAGE **rep, int expected_type,
+                              OSSL_CMP_PKIMESSAGE **rep, int expected_type,
                               int not_received)
 {
     int msgtimeout = ctx->msgtimeout; /* backup original value */
     int err, rcvd_type;
 
-    if ((expected_type == V_CMP_PKIBODY_POLLREP || IS_ENOLLMENT(expected_type))
+    if ((expected_type == OSSL_CMP_PKIBODY_POLLREP || IS_ENOLLMENT(expected_type))
         && ctx->totaltimeout != 0) { /* total timeout is not infinite */
         long time_left = (long)(ctx->end_time - time(NULL));
         if (time_left <= 0) {
@@ -173,7 +173,7 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
             ctx->msgtimeout = time_left;
     }
 
-    CMP_printf(ctx, OSSL_CMP_FL_INFO, "sending %s", type_string);
+    OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO, "sending %s", type_string);
     if (ctx->transfer_cb != NULL)
         err = (ctx->transfer_cb)(ctx, req, rep);
         /* may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
@@ -199,16 +199,16 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
         return 0;
     }
 
-    CMP_info(ctx, "got response");
-    if((rcvd_type = CMP_PKIMESSAGE_check_received(ctx, *rep, expected_type,
+    OSSL_CMP_info(ctx, "got response");
+    if((rcvd_type = OSSL_CMP_PKIMESSAGE_check_received(ctx, *rep, expected_type,
                                                   unprotected_exception)) < 0)
         return 0;
 
     /* catch if received message type isn't one of expected ones (e.g. error) */
     if (rcvd_type != expected_type &&
         /* as an answer to polling, there could be IP/CP/KUP */
-        !(expected_type == V_CMP_PKIBODY_POLLREP && IS_ENOLLMENT(rcvd_type))) {
-        CMPerr(CMP_F_SEND_RECEIVE_CHECK, rcvd_type == V_CMP_PKIBODY_ERROR ?
+        !(expected_type == OSSL_CMP_PKIBODY_POLLREP && IS_ENOLLMENT(rcvd_type))) {
+        CMPerr(CMP_F_SEND_RECEIVE_CHECK, rcvd_type == OSSL_CMP_PKIBODY_ERROR ?
                 CMP_R_RECEIVED_ERROR :
                 CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
         message_add_error_data(*rep);
@@ -234,24 +234,24 @@ static int send_receive_check(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
  *
  * TODO: handle multiple poll requests for multiple certificates --> FR #13
  */
-static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
+static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **out)
 {
-    CMP_PKIMESSAGE *preq = NULL;
-    CMP_PKIMESSAGE *prep = NULL;
+    OSSL_CMP_PKIMESSAGE *preq = NULL;
+    OSSL_CMP_PKIMESSAGE *prep = NULL;
     CMP_POLLREP *pollRep = NULL;
 
-    CMP_info(ctx, "received 'waiting' PKIStatus, starting to poll for response");
+    OSSL_CMP_info(ctx, "received 'waiting' PKIStatus, starting to poll for response");
     for (;;) {
-        if (!(preq = CMP_pollReq_new(ctx, rid)))
+        if (!(preq = OSSL_CMP_pollReq_new(ctx, rid)))
             goto err;
 
         if (!send_receive_check(ctx, preq, "pollReq", CMP_F_POLLFORRESPONSE,
-                                &prep, V_CMP_PKIBODY_POLLREP,
+                                &prep, OSSL_CMP_PKIBODY_POLLREP,
                                 CMP_R_POLLREP_NOT_RECEIVED))
              goto err;
 
         /* handle potential pollRep */
-        if (CMP_PKIMESSAGE_get_bodytype(prep) == V_CMP_PKIBODY_POLLREP) {
+        if (OSSL_CMP_PKIMESSAGE_get_bodytype(prep) == OSSL_CMP_PKIBODY_POLLREP) {
             long checkAfter;
             if (!(pollRep = CMP_POLLREPCONTENT_pollRep_get0(
                                                prep->body->value.pollRep, rid)))
@@ -263,7 +263,7 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
                 goto err;
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
-            CMP_printf(ctx, OSSL_CMP_FL_INFO,
+            OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO,
                        "received polling response, waiting checkAfter =  "
                        "%ld sec before next polling request", checkAfter);
 
@@ -280,26 +280,26 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
                 }
             }
 
-            CMP_PKIMESSAGE_free(preq);
+            OSSL_CMP_PKIMESSAGE_free(preq);
             preq = NULL;
-            CMP_PKIMESSAGE_free(prep);
+            OSSL_CMP_PKIMESSAGE_free(prep);
             prep = NULL;
             sleep((unsigned int)checkAfter);
         } else {
-            CMP_info(ctx, "got ip/cp/kup after polling");
+            OSSL_CMP_info(ctx, "got ip/cp/kup after polling");
             break;
         }
     }
     if (!prep)
         goto err;
 
-    CMP_PKIMESSAGE_free(preq);
+    OSSL_CMP_PKIMESSAGE_free(preq);
     *out = prep;
 
     return 1;
  err:
-    CMP_PKIMESSAGE_free(preq);
-    CMP_PKIMESSAGE_free(prep);
+    OSSL_CMP_PKIMESSAGE_free(preq);
+    OSSL_CMP_PKIMESSAGE_free(prep);
     return 0;
 }
 
@@ -309,25 +309,25 @@ static int pollForResponse(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **out)
  * send certConf for IR, CR or KUR sequences and check response
  * returns 1 on success, 0 on error
  */
-int CMP_exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
+int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int failure, const char *txt)
 {
-    CMP_PKIMESSAGE *certConf = NULL;
-    CMP_PKIMESSAGE *PKIconf = NULL;
+    OSSL_CMP_PKIMESSAGE *certConf = NULL;
+    OSSL_CMP_PKIMESSAGE *PKIconf = NULL;
     int success = 0;
 
-    /* check if all necessary options are set is done in CMP_certConf_new */
+    /* check if all necessary options are set is done in OSSL_CMP_certConf_new */
     /* create Certificate Confirmation - certConf */
-    if ((certConf = CMP_certConf_new(ctx, failure, txt)) == NULL)
+    if ((certConf = OSSL_CMP_certConf_new(ctx, failure, txt)) == NULL)
         goto err;
 
     success = send_receive_check(ctx, certConf, "certConf",
-                                 CMP_F_CMP_EXCHANGE_CERTCONF, &PKIconf,
-                                 V_CMP_PKIBODY_PKICONF,
+                                 CMP_F_OSSL_CMP_EXCHANGE_CERTCONF, &PKIconf,
+                                 OSSL_CMP_PKIBODY_PKICONF,
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
  err:
-    CMP_PKIMESSAGE_free(certConf);
-    CMP_PKIMESSAGE_free(PKIconf);
+    OSSL_CMP_PKIMESSAGE_free(certConf);
+    OSSL_CMP_PKIMESSAGE_free(PKIconf);
     return success;
 }
 
@@ -338,28 +338,28 @@ int CMP_exchange_certConf(CMP_CTX *ctx, int failure, const char *txt)
  * send given error and check response
  * returns 1 on success, 0 on error
  */
-int CMP_exchange_error(CMP_CTX *ctx, int status, int failure, const char *txt)
+int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int failure, const char *txt)
 {
-    CMP_PKIMESSAGE *error = NULL;
-    CMP_PKISTATUSINFO *si = NULL;
-    CMP_PKIMESSAGE *PKIconf = NULL;
+    OSSL_CMP_PKIMESSAGE *error = NULL;
+    OSSL_CMP_PKISTATUSINFO *si = NULL;
+    OSSL_CMP_PKIMESSAGE *PKIconf = NULL;
     int success = 0;
 
-    /* check if all necessary options are set is done in CMP_error_new */
+    /* check if all necessary options are set is done in OSSL_CMP_error_new */
     /* create Error Message - error */
-    if ((si = CMP_statusInfo_new(status, 1 << failure, txt)) == NULL)
+    if ((si = OSSL_CMP_statusInfo_new(status, 1 << failure, txt)) == NULL)
         goto err;
-    if ((error = CMP_error_new(ctx, si, -1, NULL, 0)) == NULL)
+    if ((error = OSSL_CMP_error_new(ctx, si, -1, NULL, 0)) == NULL)
         goto err;
 
-    success = send_receive_check(ctx, error, "error", CMP_F_CMP_EXCHANGE_ERROR,
-                                 &PKIconf, V_CMP_PKIBODY_PKICONF,
+    success = send_receive_check(ctx, error, "error", CMP_F_OSSL_CMP_EXCHANGE_ERROR,
+                                 &PKIconf, OSSL_CMP_PKIBODY_PKICONF,
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
  err:
-    CMP_PKIMESSAGE_free(error);
-    CMP_PKISTATUSINFO_free(si);
-    CMP_PKIMESSAGE_free(PKIconf);
+    OSSL_CMP_PKIMESSAGE_free(error);
+    OSSL_CMP_PKISTATUSINFO_free(si);
+    OSSL_CMP_PKIMESSAGE_free(PKIconf);
     return success;
 }
 
@@ -368,7 +368,7 @@ int CMP_exchange_error(CMP_CTX *ctx, int status, int failure, const char *txt)
  *
  * saves error information from PKIStatusInfo field of a certresponse into ctx
  */
-static int save_statusInfo(CMP_CTX *ctx, CMP_PKISTATUSINFO *si)
+static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si)
 {
     int i;
     CMP_PKIFREETEXT *ss;
@@ -376,10 +376,10 @@ static int save_statusInfo(CMP_CTX *ctx, CMP_PKISTATUSINFO *si)
     if (si == NULL)
         return 0;
 
-    if ((ctx->lastPKIStatus = CMP_PKISTATUSINFO_PKIStatus_get(si) < 0))
+    if ((ctx->lastPKIStatus = OSSL_CMP_PKISTATUSINFO_PKIStatus_get(si) < 0))
         return 0;
 
-    if (!CMP_CTX_set_failInfoCode(ctx, si->failInfo))
+    if (!OSSL_CMP_CTX_set_failInfoCode(ctx, si->failInfo))
         return 0;
 
     if (ctx->lastStatusString) {
@@ -403,54 +403,54 @@ static int save_statusInfo(CMP_CTX *ctx, CMP_PKISTATUSINFO *si)
  * Take into account PKIStatusInfo of CertResponse and report it on error.
  * returns NULL if not found or on error
  */
-static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
+static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
 {
     char *tempbuf;
     X509 *crt = NULL;
     if (ctx == NULL || crep == NULL)
         return NULL;
 
-    switch (CMP_PKISTATUSINFO_PKIStatus_get(crep->status)) {
+    switch (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(crep->status)) {
     case CMP_PKISTATUS_waiting:
-        CMP_err(ctx,
+        OSSL_CMP_err(ctx,
                 "received \"waiting\" status for cert when actually aiming to extract cert");
             CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_WAITING);
         goto err;
     case CMP_PKISTATUS_grantedWithMods:
-        CMP_warn(ctx, "received \"grantedWithMods\" for certificate");
+        OSSL_CMP_warn(ctx, "received \"grantedWithMods\" for certificate");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
-    case CMP_PKISTATUS_accepted:
+    case OSSL_CMP_PKISTATUS_accepted:
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
 
         /* get all information in case of a rejection before going to error */
-    case CMP_PKISTATUS_rejection:
-        CMP_err(ctx, "received \"rejection\" status rather than cert");
+    case OSSL_CMP_PKISTATUS_rejection:
+        OSSL_CMP_err(ctx, "received \"rejection\" status rather than cert");
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
 
     case CMP_PKISTATUS_revocationWarning:
-        CMP_warn(ctx,
+        OSSL_CMP_warn(ctx,
        "received \"revocationWarning\" - a revocation of the cert is imminent");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
-    case CMP_PKISTATUS_revocationNotification:
-        CMP_warn(ctx,
+    case OSSL_CMP_PKISTATUS_revocationNotification:
+        OSSL_CMP_warn(ctx,
  "received \"revocationNotification\" - a revocation of the cert has occurred");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
     case CMP_PKISTATUS_keyUpdateWarning:
-        if (bodytype != V_CMP_PKIBODY_KUR) {
+        if (bodytype != OSSL_CMP_PKIBODY_KUR) {
             CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_KEYUPDATEWARNING);
             goto err;
         }
-        CMP_warn(ctx,
+        OSSL_CMP_warn(ctx,
  "received \"keyUpdateWarning\" - update already done for the given oldCertId");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
     default:
-        CMP_printf(ctx, OSSL_CMP_FL_ERR,
+        OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
                    "received unsupported PKIStatus %ld for certificate",
                    ctx->lastPKIStatus);
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
@@ -463,9 +463,9 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
     return crt;
 
  err:
-    if ((tempbuf = OPENSSL_malloc(CMP_PKISTATUSINFO_BUFLEN))) {
-        if (CMP_PKISTATUSINFO_snprint(crep->status, tempbuf,
-                                      CMP_PKISTATUSINFO_BUFLEN))
+    if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISTATUSINFO_BUFLEN))) {
+        if (OSSL_CMP_PKISTATUSINFO_snprint(crep->status, tempbuf,
+                                      OSSL_CMP_PKISTATUSINFO_BUFLEN))
             ERR_add_error_data(1, tempbuf);
         OPENSSL_free(tempbuf);
     }
@@ -479,7 +479,7 @@ static X509 *get_cert_status(CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
  * returns 1 on success, 0 on error
  * Regardless of success, caller is responsible for freeing *resp (unless NULL).
  */
-static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
+static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **resp,
                          int func, int not_received)
 {
     int failure = -1; /* no failure */
@@ -499,11 +499,11 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
     crep = CMP_CERTREPMESSAGE_certResponse_get0(body, rid);
     if (crep == NULL)
         return 0;
-    if (rid == -1) /* for V_CMP_PKIBODY_P10CR, learn CertReqId from response */
+    if (rid == -1) /* for OSSL_CMP_PKIBODY_P10CR, learn CertReqId from response */
         rid = ASN1_INTEGER_get(crep->certReqId);
 
-    if (CMP_PKISTATUSINFO_PKIStatus_get(crep->status) == CMP_PKISTATUS_waiting){
-        CMP_PKIMESSAGE_free(*resp);
+    if (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(crep->status) == CMP_PKISTATUS_waiting){
+        OSSL_CMP_PKIMESSAGE_free(*resp);
         if (pollForResponse(ctx, rid, resp)) {
             goto retry; /* got rp/cp/kup which might still indicate 'waiting' */
         } else {
@@ -528,26 +528,26 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
      * to the context so that they can be retrieved if necessary
      */
     if (body->caPubs)
-        CMP_CTX_set1_caPubs(ctx, body->caPubs);
+        OSSL_CMP_CTX_set1_caPubs(ctx, body->caPubs);
 
     /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
     if ((extracerts = (*resp)->extraCerts)) {
-        if (!CMP_CTX_set1_extraCertsIn(ctx, extracerts) ||
+        if (!OSSL_CMP_CTX_set1_extraCertsIn(ctx, extracerts) ||
         /*
          * merge them also into the untrusted certs, such that the peer does
          * not need to send them again (in this and any further transaction)
          */
-            !CMP_sk_X509_add1_certs(ctx->untrusted_certs, extracerts,
+            !OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, extracerts,
                                     0, 1/* no dups */))
             return 0;
     }
 
     if (!(X509_check_private_key(ctx->newClCert,
                                  ctx->newPkey ? ctx->newPkey : ctx->pkey))) {
-        failure = CMP_PKIFAILUREINFO_incorrectData;
+        failure = OSSL_CMP_PKIFAILUREINFO_incorrectData;
         txt = "public key in new certificate does not match our private key";
 #if 0 /* better leave this for any ctx->certConf_cb to decide */
-        (void)CMP_exchange_error(ctx, CMP_PKISTATUS_rejection, failure, txt);
+        (void)OSSL_CMP_exchange_error(ctx, OSSL_CMP_PKISTATUS_rejection, failure, txt);
         /*
          * cannot flag failure earlier as send_receive_check() indirectly calls
          * ERR_clear_error()
@@ -569,8 +569,8 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
             txt = "CMP client application did not accept newly enrolled certificate";
     }
 
-    if (!ctx->disableConfirm && !CMP_PKIMESSAGE_check_implicitConfirm(*resp))
-        if (!CMP_exchange_certConf(ctx, failure, txt))
+    if (!ctx->disableConfirm && !OSSL_CMP_PKIMESSAGE_check_implicitConfirm(*resp))
+        if (!OSSL_CMP_exchange_certConf(ctx, failure, txt))
             ret = 0;
 
     if (failure >= 0) {
@@ -599,12 +599,12 @@ static int cert_response(CMP_CTX *ctx, long rid, CMP_PKIMESSAGE **resp,
  *
  * returns pointer to received certificate, or NULL if none was received
  */
-static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
+static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
                            int req_type, int req_err, int rep_type, int rep_err)
 {
-    CMP_PKIMESSAGE *req = NULL;
-    CMP_PKIMESSAGE *rep = NULL;
-    long rid = (req_type == V_CMP_PKIBODY_P10CR) ? -1 : CERTREQID;
+    OSSL_CMP_PKIMESSAGE *req = NULL;
+    OSSL_CMP_PKIMESSAGE *rep = NULL;
+    long rid = (req_type == OSSL_CMP_PKIBODY_P10CR) ? -1 : CERTREQID;
     X509 *result = NULL;
 
     if (ctx == NULL)
@@ -613,8 +613,8 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
     ctx->end_time = time(NULL) + ctx->totaltimeout;
     ctx->lastPKIStatus = -1;
 
-    /* The check if all necessary options are set is done in CMP_certreq_new */
-    if ((req = CMP_certreq_new(ctx, req_type, req_err)) == NULL)
+    /* The check if all necessary options are set is done in OSSL_CMP_certreq_new */
+    if ((req = OSSL_CMP_certreq_new(ctx, req_type, req_err)) == NULL)
         goto err;
 
     if (!send_receive_check(ctx, req, type_string, fn, &rep, rep_type, rep_err))
@@ -625,12 +625,12 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
 
     result = ctx->newClCert;
  err:
-    CMP_PKIMESSAGE_free(req);
-    CMP_PKIMESSAGE_free(rep);
+    OSSL_CMP_PKIMESSAGE_free(req);
+    OSSL_CMP_PKIMESSAGE_free(rep);
 
     /* print out OpenSSL and CMP errors via the log callback or CMP_puts */
     if (result == NULL)
-        ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
+        ERR_print_errors_cb(OSSL_CMP_CTX_error_cb, (void *)ctx);
     return result;
 }
 
@@ -652,11 +652,11 @@ static X509 *do_certreq_seq(CMP_CTX *ctx, const char *type_string, int fn,
  *
  * returns 1 on success, 0 on error
  */
-int CMP_exec_RR_ses(CMP_CTX *ctx)
+int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 {
-    CMP_PKIMESSAGE *rr = NULL;
-    CMP_PKIMESSAGE *rp = NULL;
-    CMP_PKISTATUSINFO *si = NULL;
+    OSSL_CMP_PKIMESSAGE *rr = NULL;
+    OSSL_CMP_PKIMESSAGE *rp = NULL;
+    OSSL_CMP_PKISTATUSINFO *si = NULL;
     int result = 0;
 
     if (ctx == NULL)
@@ -664,48 +664,48 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
 
     ctx->lastPKIStatus = -1;
 
-    /* check if all necessary options are set is done in CMP_rr_new */
+    /* check if all necessary options are set is done in OSSL_CMP_rr_new */
     /* create Revocation Request - ir */
-    if ((rr = CMP_rr_new(ctx)) == NULL)
+    if ((rr = OSSL_CMP_rr_new(ctx)) == NULL)
         goto err;
 
-    if (!send_receive_check(ctx, rr, "rr", CMP_F_CMP_EXEC_RR_SES,
-                            &rp, V_CMP_PKIBODY_RP, CMP_R_RP_NOT_RECEIVED))
+    if (!send_receive_check(ctx, rr, "rr", CMP_F_OSSL_CMP_EXEC_RR_SES,
+                            &rp, OSSL_CMP_PKIBODY_RP, CMP_R_RP_NOT_RECEIVED))
         goto err;
 
     /* evaluate PKIStatus field */
     si = CMP_REVREPCONTENT_PKIStatusInfo_get(rp->body->value.rp, REVREQSID);
     if (!save_statusInfo(ctx, si))
         goto err;
-    switch (CMP_PKISTATUSINFO_PKIStatus_get(si)) {
-    case CMP_PKISTATUS_accepted:
-        CMP_info(ctx, "revocation accepted (PKIStatus=accepted)");
+    switch (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(si)) {
+    case OSSL_CMP_PKISTATUS_accepted:
+        OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=accepted)");
         result = 1;
         break;
     case CMP_PKISTATUS_grantedWithMods:
-        CMP_info(ctx, "revocation accepted (PKIStatus=grantedWithMods)");
+        OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=grantedWithMods)");
         result = 1;
         break;
-    case CMP_PKISTATUS_rejection:
+    case OSSL_CMP_PKISTATUS_rejection:
         /* interpretation as warning or error depends on CA */
-        CMP_warn(ctx, "revocation rejected (PKIStatus=rejection)");
-        CMPerr(CMP_F_CMP_EXEC_RR_SES, CMP_R_REQUEST_REJECTED_BY_CA);
+        OSSL_CMP_warn(ctx, "revocation rejected (PKIStatus=rejection)");
+        CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
     case CMP_PKISTATUS_revocationWarning:
-        CMP_info(ctx, "revocation accepted (PKIStatus=revocationWarning)");
+        OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=revocationWarning)");
         result = 1;
         break;
-    case CMP_PKISTATUS_revocationNotification:
+    case OSSL_CMP_PKISTATUS_revocationNotification:
         /* interpretation as warning or error depends on CA */
-        CMP_info(ctx, "revocation accepted (PKIStatus=revocationNotification)");
+        OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=revocationNotification)");
         result = 1;
         break;
     case CMP_PKISTATUS_waiting:
     case CMP_PKISTATUS_keyUpdateWarning:
-        CMPerr(CMP_F_CMP_EXEC_RR_SES, CMP_R_UNEXPECTED_PKISTATUS);
+        CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_UNEXPECTED_PKISTATUS);
         goto err;
     default:
-        CMPerr(CMP_F_CMP_EXEC_RR_SES, CMP_R_UNKNOWN_PKISTATUS);
+        CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_UNKNOWN_PKISTATUS);
         goto err;
     }
 
@@ -714,45 +714,45 @@ int CMP_exec_RR_ses(CMP_CTX *ctx)
     /* print out OpenSSL and CMP errors via the log callback or CMP_puts */
     if (!result) {
         char *tempbuf;
-        if ((tempbuf = OPENSSL_malloc(CMP_PKISTATUSINFO_BUFLEN))) {
-            if (CMP_PKISTATUSINFO_snprint(si, tempbuf,
-                                          CMP_PKISTATUSINFO_BUFLEN))
+        if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISTATUSINFO_BUFLEN))) {
+            if (OSSL_CMP_PKISTATUSINFO_snprint(si, tempbuf,
+                                          OSSL_CMP_PKISTATUSINFO_BUFLEN))
                 ERR_add_error_data(1, tempbuf);
             OPENSSL_free(tempbuf);
         }
-        ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
+        ERR_print_errors_cb(OSSL_CMP_CTX_error_cb, (void *)ctx);
     }
-    CMP_PKIMESSAGE_free(rr);
-    CMP_PKIMESSAGE_free(rp);
+    OSSL_CMP_PKIMESSAGE_free(rr);
+    OSSL_CMP_PKIMESSAGE_free(rp);
     return result;
 }
 
-X509 *CMP_exec_IR_ses(CMP_CTX *ctx)
+X509 *OSSL_CMP_exec_IR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "ir", CMP_F_CMP_EXEC_IR_SES,
-                          V_CMP_PKIBODY_IR, CMP_R_ERROR_CREATING_IR,
-                          V_CMP_PKIBODY_IP, CMP_R_IP_NOT_RECEIVED);
+    return do_certreq_seq(ctx, "ir", CMP_F_OSSL_CMP_EXEC_IR_SES,
+                          OSSL_CMP_PKIBODY_IR, CMP_R_ERROR_CREATING_IR,
+                          OSSL_CMP_PKIBODY_IP, CMP_R_IP_NOT_RECEIVED);
 }
 
-X509 *CMP_exec_CR_ses(CMP_CTX *ctx)
+X509 *OSSL_CMP_exec_CR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "cr", CMP_F_CMP_EXEC_CR_SES,
-                          V_CMP_PKIBODY_CR, CMP_R_ERROR_CREATING_CR,
-                          V_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED);
+    return do_certreq_seq(ctx, "cr", CMP_F_OSSL_CMP_EXEC_CR_SES,
+                          OSSL_CMP_PKIBODY_CR, CMP_R_ERROR_CREATING_CR,
+                          OSSL_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED);
 }
 
-X509 *CMP_exec_KUR_ses(CMP_CTX *ctx)
+X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "kur", CMP_F_CMP_EXEC_KUR_SES,
-                          V_CMP_PKIBODY_KUR, CMP_R_ERROR_CREATING_KUR,
-                          V_CMP_PKIBODY_KUP, CMP_R_KUP_NOT_RECEIVED);
+    return do_certreq_seq(ctx, "kur", CMP_F_OSSL_CMP_EXEC_KUR_SES,
+                          OSSL_CMP_PKIBODY_KUR, CMP_R_ERROR_CREATING_KUR,
+                          OSSL_CMP_PKIBODY_KUP, CMP_R_KUP_NOT_RECEIVED);
 }
 
-X509 *CMP_exec_P10CR_ses(CMP_CTX *ctx)
+X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "p10cr", CMP_F_CMP_EXEC_P10CR_SES,
-                          V_CMP_PKIBODY_P10CR, CMP_R_ERROR_CREATING_P10CR,
-                          V_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED);
+    return do_certreq_seq(ctx, "p10cr", CMP_F_OSSL_CMP_EXEC_P10CR_SES,
+                          OSSL_CMP_PKIBODY_P10CR, CMP_R_ERROR_CREATING_P10CR,
+                          OSSL_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED);
 }
 
 /*
@@ -762,17 +762,17 @@ X509 *CMP_exec_P10CR_ses(CMP_CTX *ctx)
  *
  * returns pointer to stack of ITAVs received in the answer or NULL on error
  */
-STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx)
+STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
 {
-    CMP_PKIMESSAGE *genm = NULL;
-    CMP_PKIMESSAGE *genp = NULL;
-    STACK_OF(CMP_INFOTYPEANDVALUE) *rcvd_itavs = NULL;
+    OSSL_CMP_PKIMESSAGE *genm = NULL;
+    OSSL_CMP_PKIMESSAGE *genp = NULL;
+    STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *rcvd_itavs = NULL;
 
-    if ((genm = CMP_genm_new(ctx)) == NULL)
+    if ((genm = OSSL_CMP_genm_new(ctx)) == NULL)
         goto err;
 
-    if (!send_receive_check(ctx, genm, "genm", CMP_F_CMP_EXEC_GENM_SES, &genp,
-                            V_CMP_PKIBODY_GENP, CMP_R_GENP_NOT_RECEIVED))
+    if (!send_receive_check(ctx, genm, "genm", CMP_F_OSSL_CMP_EXEC_GENM_SES, &genp,
+                            OSSL_CMP_PKIBODY_GENP, CMP_R_GENP_NOT_RECEIVED))
          goto err;
 
     /* received stack of itavs not to be freed with the genp */
@@ -781,13 +781,13 @@ STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx)
 
  err:
     if (genm)
-        CMP_PKIMESSAGE_free(genm);
+        OSSL_CMP_PKIMESSAGE_free(genm);
     if (genp)
-        CMP_PKIMESSAGE_free(genp);
+        OSSL_CMP_PKIMESSAGE_free(genp);
 
     /* print out OpenSSL and CMP errors via the log callback or CMP_puts */
     /* TODO: verify that !recv_itavs is necessarily an error */
     if (rcvd_itavs == NULL)
-        ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
+        ERR_print_errors_cb(OSSL_CMP_CTX_error_cb, (void *)ctx);
     return rcvd_itavs;
 }
