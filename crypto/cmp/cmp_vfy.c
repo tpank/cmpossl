@@ -50,7 +50,7 @@ static int CMP_verify_signature(const CMP_CTX *cmp_ctx,
     if (!cmp_ctx->ignore_keyusage &&
         !(X509_get_key_usage((X509 *)cert) & X509v3_KU_DIGITAL_SIGNATURE)) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE,
-               CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATUE);
+               CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE);
         goto cert_err;
     }
 
