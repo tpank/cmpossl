@@ -45,12 +45,17 @@
 # endif
 
 /*
+ * TODO dvo: push generic defs upstream with extended load_cert_crl_http(),
+ * simplifying also other uses, e.g., in query_responder() in apps/ocsp.c
+ */
+
+/*
  * TODO dvo: push that upstream with extended load_cert_crl_http(),
  * simplifying also other uses of select(), e.g., in query_responder()
  * in apps/ocsp.c
  */
 /* returns < 0 on error, 0 on timeout, > 0 on success */
-int socket_wait(int fd, int for_read, int timeout)
+static int socket_wait(int fd, int for_read, int timeout)
 {
     fd_set confds;
     struct timeval tv;
@@ -72,7 +77,7 @@ int socket_wait(int fd, int for_read, int timeout)
  * in apps/ocsp.c
  */
 /* returns < 0 on error, 0 on timeout, > 0 on success */
-int bio_wait(BIO *bio, int timeout) {
+static int bio_wait(BIO *bio, int timeout) {
     int fd;
     if (BIO_get_fd(bio, &fd) <= 0)
         return -1;
@@ -85,7 +90,7 @@ int bio_wait(BIO *bio, int timeout) {
  * in apps/ocsp.c
  */
 /* returns -1 on error, 0 on timeout, 1 on success */
-int bio_connect(BIO *bio, int timeout) {
+static int bio_connect(BIO *bio, int timeout) {
     int blocking;
     time_t max_time;
     int rv;
@@ -119,7 +124,7 @@ int bio_connect(BIO *bio, int timeout) {
     return rv;
 }
 
-# endif /* OPENSSL_NO_SOCK */
+#endif /* OPENSSL_NO_SOCK */
 
 
 
@@ -130,6 +135,7 @@ int bio_connect(BIO *bio, int timeout) {
  * simplifying also other uses of XXX_sendreq_nbio, e.g., in query_responder()
  * in apps/ocsp.c
  */
+typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
 /*
  * Even better would be to extend OCSP_REQ_CTX_nbio() and
  * thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior */
@@ -138,8 +144,8 @@ int bio_connect(BIO *bio, int timeout) {
  * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
  * 1: success and then provides the received message via the *resp argument
  */
-int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
-             OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time)
+static int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
+                    OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time)
 {
     int rv = -4, rc, sending = 1;
     int blocking = max_time == 0;
@@ -187,8 +193,8 @@ struct ocsp_req_ctx_st {
     BIO *io;                    /* BIO to perform I/O with */
     BIO *mem;                   /* Memory BIO response is built into */
 };
-#define OHS_NOREAD              0x1000
-#define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
+# define OHS_NOREAD              0x1000
+# define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
 
 /*
  * adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c -
@@ -220,11 +226,11 @@ static void add_conn_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
                                ", likely because it requires the use of TLS");
         CMP_add_error_data(buf);
     } else {
-#if 0
+# if 0
         CMP_add_error_data(ERR_lib_error_string(errdetail));
         CMP_add_error_data(ERR_func_error_string(errdetail));
         CMP_add_error_data(ERR_reason_error_string(errdetail));
-#endif
+# endif
         switch(ERR_GET_REASON(errdetail)) {
     /*  case 0x1408F10B: */ /* xSL_F_SSL3_GET_RECORD */
         case SSL_R_WRONG_VERSION_NUMBER:
@@ -242,11 +248,11 @@ static void add_conn_error_hint(const CMP_CTX *ctx, unsigned long errdetail)
 "Cannot authenticate server via its TLS certificate, likely due to mismatch with our trusted TLS certs or missing revocation status");
             break;
     /*  case 0x14094418: */ /* xSL_F_SSL3_READ_BYTES */
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
         case SSL_R_TLSV1_ALERT_UNKNOWN_CA:
-#else
+# else
         case SSL_AD_REASON_OFFSET+TLS1_AD_UNKNOWN_CA:
-#endif
+# endif
             CMP_add_error_data(
 "Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor or missing revocation status");
             break;
@@ -441,6 +447,62 @@ int CMP_PKIMESSAGE_http_perform(CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
        and, like BIO_reset(hbio), calls SSL_shutdown() to notify/alert peer */
 
     return err;
+}
+
+/* TODO DvO push that upstream as a separate PR #crls_timeout_local */
+/* adapted from apps/apps.c to include connection timeout */
+int CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
+                                   X509 **pcert, X509_CRL **pcrl, BIO *bio_err)
+{
+    char *host = NULL;
+    char *port = NULL;
+    char *path = NULL;
+    BIO *bio = NULL;
+    OCSP_REQ_CTX *rctx = NULL;
+    int use_ssl;
+    int rv = 0;
+    time_t max_time = req_timeout > 0 ? time(NULL) + req_timeout : 0;
+
+    if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl))
+        goto err;
+    if (use_ssl) {
+        BIO_puts(bio_err, "https not supported for CRL fetching\n");
+        goto err;
+    }
+    bio = BIO_new_connect(host);
+    if (bio == NULL || !BIO_set_conn_port(bio, port))
+        goto err;
+
+    if (bio_connect(bio, req_timeout) <= 0)
+        goto err;
+
+    rctx = OCSP_REQ_CTX_new(bio, 1024);
+    if (rctx == NULL)
+        goto err;
+    if (!OCSP_REQ_CTX_http(rctx, "GET", path))
+        goto err;
+    if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
+        goto err;
+
+    rv = bio_http(bio, rctx,
+                  pcert ? (http_fn)X509_http_nbio : (http_fn)X509_CRL_http_nbio,
+                  pcert ? (ASN1_VALUE **)pcert : (ASN1_VALUE **)pcrl, max_time);
+
+ err:
+    OPENSSL_free(host);
+    OPENSSL_free(path);
+    OPENSSL_free(port);
+    if (bio)
+        BIO_free_all(bio);
+    OCSP_REQ_CTX_free(rctx);
+    if (rv != 1) {
+        BIO_printf(bio_err, "%s loading %s from '%s'\n",
+                   rv == 0 ? "timeout" : rv == -1 ?
+                           "parse Error" : "transfer error",
+                   pcert ? "certificate" : "CRL", url);
+        ERR_print_errors(bio_err);
+    }
+    return rv;
 }
 
 #endif /* !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK) */

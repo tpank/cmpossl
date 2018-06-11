@@ -873,64 +873,6 @@ static int load_pkcs12(BIO *in, const char *desc,
     return ret;
 }
 
-/* TODO DvO push that upstream as a separate PR #crls_timeout_local */
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-/* adapted from apps/apps.c to include connection timeout */
-static int load_cert_crl_http_timeout(const char *url, int req_timeout,
-                                      X509 **pcert, X509_CRL **pcrl)
-{
-    char *host = NULL;
-    char *port = NULL;
-    char *path = NULL;
-    BIO *bio = NULL;
-    OCSP_REQ_CTX *rctx = NULL;
-    int use_ssl;
-    int rv = 0;
-    time_t max_time = req_timeout > 0 ? time(NULL) + req_timeout : 0;
-
-    if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl))
-        goto err;
-    if (use_ssl) {
-        BIO_puts(bio_err, "https not supported for CRL fetching\n");
-        goto err;
-    }
-    bio = BIO_new_connect(host);
-    if (bio == NULL || !BIO_set_conn_port(bio, port))
-        goto err;
-
-    if (bio_connect(bio, req_timeout) <= 0)
-        goto err;
-
-    rctx = OCSP_REQ_CTX_new(bio, 1024);
-    if (rctx == NULL)
-        goto err;
-    if (!OCSP_REQ_CTX_http(rctx, "GET", path))
-        goto err;
-    if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
-        goto err;
-
-    rv = bio_http(bio, rctx,
-                  pcert ? (http_fn)X509_http_nbio : (http_fn)X509_CRL_http_nbio,
-                  pcert ? (ASN1_VALUE **)pcert : (ASN1_VALUE **)pcrl, max_time);
-
- err:
-    OPENSSL_free(host);
-    OPENSSL_free(path);
-    OPENSSL_free(port);
-    if (bio)
-        BIO_free_all(bio);
-    OCSP_REQ_CTX_free(rctx);
-    if (rv != 1) {
-        BIO_printf(bio_err, "%s loading %s from '%s'\n",
-                   rv == 0 ? "timeout" : rv == -1 ?
-                           "parse Error" : "transfer error",
-                   pcert ? "certificate" : "CRL", url);
-        ERR_print_errors(bio_err);
-    }
-    return rv;
-}
-#endif
-
 /*
  * TODO DvO remove when load_cert_pass() is merged upstream in apps.c (PR #4930)
  * and after generalizing it w.r.t. timeout (PR #crls_timeout_local)
@@ -947,7 +889,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
 
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        load_cert_crl_http_timeout(file, opt_crl_timeout, &x, NULL);
+        CMP_load_cert_crl_http_timeout(file, opt_crl_timeout, &x, NULL, bio_err);
 #endif
         goto end;
     }
@@ -1341,7 +1283,7 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
     format = adjust_format(&infile, format, 0);
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        load_cert_crl_http_timeout(infile, opt_crl_timeout, NULL, &crl);
+        CMP_load_cert_crl_http_timeout(infile, opt_crl_timeout, NULL, &crl, bio_err);
 #endif
         goto end;
     }
