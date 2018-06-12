@@ -23,21 +23,21 @@
 #include "crmf_int.h"
 
 /*
- * creates and initializes CRMF_PBMPARAMETER (section 4.4)
+ * creates and initializes OSSL_CRMF_PBMPARAMETER (section 4.4)
  * slen SHOULD be > 8    (16 is common)
  * owfnid e.g. NID_sha256
  * itercnt MUST be > 100 (500 is common)
  * macnid e.g. NID_hmac_sha1
- * returns pointer to CRMF_PBMPARAMETER on success, NULL on error
+ * returns pointer to OSSL_CRMF_PBMPARAMETER on success, NULL on error
  */
-CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
+OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
                                  long itercnt, int macnid)
 {
-    CRMF_PBMPARAMETER *pbm = NULL;
+    OSSL_CRMF_PBMPARAMETER *pbm = NULL;
     unsigned char *salt = NULL;
     int error = CRMF_R_CRMFERROR;
 
-    if ((pbm = CRMF_PBMPARAMETER_new()) == NULL) {
+    if ((pbm = OSSL_CRMF_PBMPARAMETER_new()) == NULL) {
         error = CRMF_R_MALLOC_FAILURE;
         goto err;
     }
@@ -103,13 +103,13 @@ CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
     if (salt)
         OPENSSL_free(salt);
     if (pbm)
-        CRMF_PBMPARAMETER_free(pbm);
-    CRMFerr(CRMF_F_CRMF_PBMP_NEW, error);
+        OSSL_CRMF_PBMPARAMETER_free(pbm);
+    CRMFerr(CRMF_F_OSSL_CRMF_PBMP_NEW, error);
     return NULL;
 }
 
 /*
- * calculates the PBM based on the settings of the given CRMF_PBMPARAMETER
+ * calculates the PBM based on the settings of the given OSSL_CRMF_PBMPARAMETER
  * @pbm identifies the algorithms to use
  * @msg message to apply the PBM for
  * @msgLen length of the message
@@ -121,7 +121,7 @@ CRMF_PBMPARAMETER *CRMF_pbmp_new(size_t slen, int owfnid,
  *
  * returns 1 at success, 0 at error
  */
-int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
+int OSSL_CRMF_passwordBasedMac_new(const OSSL_CRMF_PBMPARAMETER *pbm,
                               const unsigned char *msg, size_t msgLen,
                               const unsigned char *secret, size_t secretLen,
                               unsigned char **mac, unsigned int *macLen)
@@ -243,7 +243,7 @@ int CRMF_passwordBasedMac_new(const CRMF_PBMPARAMETER *pbm,
         OPENSSL_free(*mac);
         *mac = NULL;
     }
-    CRMFerr(CRMF_F_CRMF_PASSWORDBASEDMAC_NEW, error);
+    CRMFerr(CRMF_F_OSSL_CRMF_PASSWORDBASEDMAC_NEW, error);
     if (pbm && pbm->mac) {
         char buf[128];
         if (OBJ_obj2txt(buf, sizeof(buf), pbm->mac->algorithm, 0))

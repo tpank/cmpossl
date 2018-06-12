@@ -200,7 +200,7 @@ static OSSL_CMP_PKIMESSAGE *CMP_pkiconf_new(OSSL_CMP_CTX *ctx)
  * Only handles the first given request. Consumes certId.
  */
 static OSSL_CMP_PKIMESSAGE *CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si,
-                                  CRMF_CERTID *certId, int unprotectedErrors)
+                                  OSSL_CRMF_CERTID *certId, int unprotectedErrors)
 {
     CMP_REVREPCONTENT *rep = NULL;
     OSSL_CMP_PKISTATUSINFO *si1 = NULL;
@@ -214,9 +214,9 @@ static OSSL_CMP_PKIMESSAGE *CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO
         goto oom;
     sk_OSSL_CMP_PKISTATUSINFO_push(rep->status, si1);
 
-    if ((rep->certId = sk_CRMF_CERTID_new_null()) == NULL)
+    if ((rep->certId = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
         goto oom;
-    sk_CRMF_CERTID_push(rep->certId, certId);
+    sk_OSSL_CRMF_CERTID_push(rep->certId, certId);
     certId = NULL;
 
     if (!(unprotectedErrors &&
@@ -229,7 +229,7 @@ static OSSL_CMP_PKIMESSAGE *CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO
     CMPerr(CMP_F_CMP_RP_NEW, CMP_R_OUT_OF_MEMORY);
  err:
     CMPerr(CMP_F_CMP_RP_NEW, CMP_R_ERROR_CREATING_RP);
-    CRMF_CERTID_free(certId);
+    OSSL_CRMF_CERTID_free(certId);
     OSSL_CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
@@ -409,9 +409,9 @@ static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_PKIMESSAGE 
             return 1;
     } else {
         X509_PUBKEY *pubkey = NULL;
-        CRMF_POPOSIGNINGKEY *sig = NULL;
-        CRMF_CERTREQMSG *req =
-            sk_CRMF_CERTREQMSG_value(msg->body->value.ir, CERTREQID);
+        OSSL_CRMF_POPOSIGNINGKEY *sig = NULL;
+        OSSL_CRMF_CERTREQMSG *req =
+            sk_OSSL_CRMF_CERTREQMSG_value(msg->body->value.ir, CERTREQID);
         switch (req->popo->type) {
         case CRMF_PROOFOFPOSESSION_RAVERIFIED:
             if (srv_ctx->acceptRAVerified)
@@ -428,7 +428,7 @@ This MUST be exactly the same value as is contained in the certificate template.
                 if (pubkey == NULL ||
                     sig->poposkInput->publicKey == NULL ||
                     CMP_X509_PUBKEY_cmp(pubkey, sig->poposkInput->publicKey) ||
-                    ASN1_item_verify(ASN1_ITEM_rptr(CRMF_POPOSIGNINGKEYINPUT),
+                    ASN1_item_verify(ASN1_ITEM_rptr(OSSL_CRMF_POPOSIGNINGKEYINPUT),
                                      sig->algorithmIdentifier, sig->signature,
                                      sig->poposkInput,
                                      X509_PUBKEY_get0(pubkey)) < 1)
@@ -436,7 +436,7 @@ This MUST be exactly the same value as is contained in the certificate template.
             } else {
                 if (pubkey == NULL ||
                     req->certReq->certTemplate->subject == NULL ||
-                    ASN1_item_verify(ASN1_ITEM_rptr(CRMF_CERTREQUEST),
+                    ASN1_item_verify(ASN1_ITEM_rptr(OSSL_CRMF_CERTREQUEST),
                                      sig->algorithmIdentifier, sig->signature,
                                      req->certReq,
                                      X509_PUBKEY_get0(pubkey)) < 1)
@@ -445,11 +445,11 @@ This MUST be exactly the same value as is contained in the certificate template.
             return 1;
         case CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT:
             if (req->popo->value.keyEncipherment->type
-                != CRMF_POPOPRIVKEY_SUBSEQUENTMESSAGE)
+                != OSSL_CRMF_POPOPRIVKEY_SUBSEQUENTMESSAGE)
                 goto unsupported;
             if (ASN1_INTEGER_get
                 (req->popo->value.keyEncipherment->value.subsequentMessage) !=
-                CRMF_SUBSEQUENTMESSAGE_ENCRCERT)
+                OSSL_CRMF_SUBSEQUENTMESSAGE_ENCRCERT)
                 goto unsupported;
 #if 0 /* TODO enable code when implemented in CMP_certrep_new() */
             srv_ctx->encryptcert = 1;
@@ -480,7 +480,7 @@ static OSSL_CMP_PKIMESSAGE *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     OSSL_CMP_PKISTATUSINFO *si = NULL;
     X509 *certOut = NULL;
     STACK_OF(X509) *chainOut = NULL, *caPubs = NULL;
-    CRMF_CERTREQMSG *certRequestMsg = NULL;
+    OSSL_CRMF_CERTREQMSG *certRequestMsg = NULL;
     int bodytype;
     if (srv_ctx == NULL || certReq == NULL) {
         CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_INVALID_ARGS);
@@ -506,7 +506,7 @@ static OSSL_CMP_PKIMESSAGE *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         srv_ctx->certReqId = CERTREQID;
     } else {
         if ((certRequestMsg =
-             sk_CRMF_CERTREQMSG_value(certReq->body->value.cr, 0)) == NULL) {
+             sk_OSSL_CRMF_CERTREQMSG_value(certReq->body->value.cr, 0)) == NULL) {
             CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_CERTREQMSG_NOT_FOUND);
             return NULL;
         }
@@ -559,7 +559,7 @@ static OSSL_CMP_PKIMESSAGE *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
 {
     OSSL_CMP_PKIMESSAGE *msg;
     CMP_REVDETAILS *details;
-    CRMF_CERTID *certId;
+    OSSL_CRMF_CERTID *certId;
 
     if (srv_ctx == NULL || req == NULL) {
         CMPerr(CMP_F_PROCESS_RR, CMP_R_NULL_ARGUMENT);
@@ -581,7 +581,7 @@ static OSSL_CMP_PKIMESSAGE *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
         return NULL;
     }
 
-    if ((certId = CRMF_CERTID_new()) == NULL) {
+    if ((certId = OSSL_CRMF_CERTID_new()) == NULL) {
         CMPerr(CMP_F_PROCESS_RR, CMP_R_OUT_OF_MEMORY);
         return NULL;
     }

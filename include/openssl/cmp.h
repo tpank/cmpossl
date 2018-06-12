@@ -252,14 +252,14 @@ typedef ASN1_INTEGER CMP_PKISTATUS;
 typedef struct OSSL_cmp_ctx_st OSSL_CMP_CTX;
 typedef struct OSSL_cmp_pkiheader_st OSSL_CMP_PKIHEADER;
 typedef struct OSSL_cmp_pkimessage_st OSSL_CMP_PKIMESSAGE;
-typedef struct OSSL_cmp_certstatus_st CMP_CERTSTATUS;
+typedef struct cmp_certstatus_st CMP_CERTSTATUS;
 typedef struct OSSL_cmp_infotypeandvalue_st OSSL_CMP_INFOTYPEANDVALUE;
-typedef struct OSSL_cmp_revrepcontent_st CMP_REVREPCONTENT;
+typedef struct cmp_revrepcontent_st CMP_REVREPCONTENT;
 typedef struct OSSL_cmp_pkistatusinfo_st OSSL_CMP_PKISTATUSINFO;
-typedef struct OSSL_cmp_certrepmessage_st CMP_CERTREPMESSAGE;
-typedef struct OSSL_cmp_pollrep_st CMP_POLLREP;
+typedef struct cmp_certrepmessage_st CMP_CERTREPMESSAGE;
+typedef struct cmp_pollrep_st CMP_POLLREP;
 typedef STACK_OF(CMP_POLLREP) CMP_POLLREPCONTENT;
-typedef struct OSSL_cmp_certresponse_st CMP_CERTRESPONSE;
+typedef struct cmp_certresponse_st CMP_CERTRESPONSE;
 DEFINE_STACK_OF(CMP_CERTSTATUS)
 DEFINE_STACK_OF(OSSL_CMP_INFOTYPEANDVALUE)
 DEFINE_STACK_OF(OSSL_CMP_PKISTATUSINFO)

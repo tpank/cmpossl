@@ -565,7 +565,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
     void *ppval = NULL;
     int pptype = 0;
 
-    CRMF_PBMPARAMETER *pbm = NULL;
+    OSSL_CRMF_PBMPARAMETER *pbm = NULL;
     ASN1_STRING *pbm_str = NULL;
     const unsigned char *pbm_str_uc = NULL;
 
@@ -592,9 +592,9 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
 
             pbm_str = (ASN1_STRING *)ppval;
             pbm_str_uc = (unsigned char *)pbm_str->data;
-            pbm = d2i_CRMF_PBMPARAMETER(NULL, &pbm_str_uc, pbm_str->length);
+            pbm = d2i_OSSL_CRMF_PBMPARAMETER(NULL, &pbm_str_uc, pbm_str->length);
 
-            if (!(CRMF_passwordBasedMac_new(pbm, prot_part_der,
+            if (!(OSSL_CRMF_passwordBasedMac_new(pbm, prot_part_der,
                                             prot_part_der_len, secret->data,
                                             secret->length, &mac, &mac_len)))
                 goto err;
@@ -641,7 +641,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
         CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_ERROR_CALCULATING_PROTECTION);
 
     /* cleanup */
-    CRMF_PBMPARAMETER_free(pbm);
+    OSSL_CRMF_PBMPARAMETER_free(pbm);
     EVP_MD_CTX_destroy(evp_ctx);
     OPENSSL_free(mac);
     OPENSSL_free(prot_part_der);
@@ -657,20 +657,20 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
 static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
 {
     X509_ALGOR *alg = NULL;
-    CRMF_PBMPARAMETER *pbm = NULL;
+    OSSL_CRMF_PBMPARAMETER *pbm = NULL;
     unsigned char *pbm_der = NULL;
     int pbm_der_len;
     ASN1_STRING *pbm_str = NULL;
 
     if ((alg = X509_ALGOR_new()) == NULL)
         goto err;
-    if ((pbm = CRMF_pbmp_new(ctx->pbm_slen, ctx->pbm_owf,
+    if ((pbm = OSSL_CRMF_pbmp_new(ctx->pbm_slen, ctx->pbm_owf,
                              ctx->pbm_itercnt, ctx->pbm_mac)) == NULL)
         goto err;
     if ((pbm_str = ASN1_STRING_new()) == NULL)
         goto err;
 
-    pbm_der_len = i2d_CRMF_PBMPARAMETER(pbm, &pbm_der);
+    pbm_der_len = i2d_OSSL_CRMF_PBMPARAMETER(pbm, &pbm_der);
 
     ASN1_STRING_set(pbm_str, pbm_der, pbm_der_len);
     OPENSSL_free(pbm_der);
@@ -678,13 +678,13 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
     X509_ALGOR_set0(alg, OBJ_nid2obj(NID_id_PasswordBasedMAC),
                     V_ASN1_SEQUENCE, pbm_str);
 
-    CRMF_PBMPARAMETER_free(pbm);
+    OSSL_CRMF_PBMPARAMETER_free(pbm);
     return alg;
  err:
     if (alg)
         X509_ALGOR_free(alg);
     if (pbm)
-        CRMF_PBMPARAMETER_free(pbm);
+        OSSL_CRMF_PBMPARAMETER_free(pbm);
     return NULL;
 }
 
@@ -1476,7 +1476,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, CMP_CERTRESPONSE *crep
             break;
         case CMP_CERTORENCCERT_ENCRYPTEDCERT:
         /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
-            crt = CRMF_ENCRYPTEDVALUE_encCert_get1(coec->value.encryptedCert,
+            crt = OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(coec->value.encryptedCert,
                                                    ctx->newPkey);
             break;
         default:

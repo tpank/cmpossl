@@ -147,7 +147,7 @@ int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
     ctx->setSubjectAltNameCritical = 0;
     ctx->setPoliciesCritical = 0;
     ctx->digest = NID_sha256;
-    ctx->popoMethod = CRMF_POPO_SIGNATURE;
+    ctx->popoMethod = OSSL_CRMF_POPO_SIGNATURE;
     ctx->revocationReason = CRL_REASON_NONE;
     ctx->permitTAInExtraCertsForIR = 0;
     ctx->implicitConfirm = 0;
