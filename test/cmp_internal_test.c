@@ -103,7 +103,7 @@ static int execute_cmp_pkiheader_init_test(CMP_INT_TEST_FIXTURE *fixture)
                      OSSL_CMP_PKIHEADER_init(fixture->cmp_ctx, header)))
         goto err;
     if (fixture->expected) {
-        if (!TEST_long_eq(ASN1_INTEGER_get(header->pvno), CMP_VERSION) ||
+        if (!TEST_long_eq(ASN1_INTEGER_get(header->pvno), OSSL_CMP_VERSION) ||
             !TEST_true(0 == ASN1_OCTET_STRING_cmp(header->senderNonce,
                                                   fixture->
                                                   cmp_ctx->last_senderNonce))
@@ -221,7 +221,7 @@ static int test_cmp_calc_protection_pbmac(void)
 static int test_cmp_pkiheader_init(void)
 {
     SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
-    unsigned char ref[TEST_CMP_REFVALUE_LENGTH];
+    unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
     fixture->expected = 1;
     if (!TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))) ||
         !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,

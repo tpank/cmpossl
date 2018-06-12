@@ -1137,7 +1137,7 @@ long OSSL_CMP_PKISTATUSINFO_PKIStatus_get(OSSL_CMP_PKISTATUSINFO *si)
  * returns the FailureInfo bits of the given PKIStatusInfo
  * returns -1 on error
  */
-long OSSL_CMP_PKISTATUSINFO_PKIFailureinfo_get(OSSL_CMP_PKISTATUSINFO *si)
+long OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_get(OSSL_CMP_PKISTATUSINFO *si)
 {
     int i;
     long res = 0;
@@ -1289,13 +1289,14 @@ OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *r
 }
 
 /*
- * checks bits in given PKIFailureInfo
- * returns 1 if a given bit is set in a PKIFailureInfo, 0 if not, -1 on error
- * PKIFailureInfo ::= ASN1_BIT_STRING
+ * checks PKIFailureInfo bits in a given PKIStatusInfo
+ * returns 1 if a given bit is set, 0 if not, -1 on error
  */
-int OSSL_CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit)
+int OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_check(OSSL_CMP_PKISTATUSINFO *si,
+                                                int codeBit)
 {
-    if (failInfo == NULL)
+    ASN1_BIT_STRING *failInfo = OSSL_CMP_PKISTATUSINFO_failInfo_get0(si);
+    if (failInfo == NULL) /* this can also indicate si == NULL */
         return -1;
     if ((codeBit < 0) || (codeBit > OSSL_CMP_PKIFAILUREINFO_MAX))
         return -1;

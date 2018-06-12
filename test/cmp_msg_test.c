@@ -23,10 +23,9 @@ typedef struct test_fixture {
     OSSL_CMP_PKIMESSAGE *msg;
     int expected;               /* expected outcome */
     OSSL_CMP_PKISTATUSINFO *si;      /* for error and response messages */
-    CMP_PKIFREETEXT *free_text; /* for error message creation */
 } CMP_MSG_TEST_FIXTURE;
 
-static unsigned char ref[TEST_CMP_REFVALUE_LENGTH];
+static unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
 
 static CMP_MSG_TEST_FIXTURE *set_up(const char *const test_case_name)
 {
@@ -61,7 +60,6 @@ static void tear_down(CMP_MSG_TEST_FIXTURE *fixture)
     OSSL_CMP_PKIMESSAGE_free(fixture->msg);
     /* TODO Wait for API consolidation */
     OSSL_CMP_PKISTATUSINFO_free(fixture->si);
-    sk_ASN1_UTF8STRING_pop_free(fixture->free_text, ASN1_UTF8STRING_free);
     OPENSSL_free(fixture);
 }
 
@@ -93,8 +91,8 @@ static int execute_certreq_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 static int execute_errormsg_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
     EXECUTE_MSG_CREATION_TEST(OSSL_CMP_error_new(fixture->cmp_ctx, fixture->si,
-                                            fixture->err_code,
-                                            fixture->free_text, 0));
+                                                 fixture->err_code,
+                                                 NULL/* fixture->free_text */, 0));
 }
 
 static int execute_rr_create_test(CMP_MSG_TEST_FIXTURE *fixture)
@@ -295,7 +293,6 @@ static int test_cmp_create_error_msg(void)
     fixture->si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection,
                                      OSSL_CMP_PKIFAILUREINFO_systemFailure, NULL);
     fixture->err_code = -1;
-    fixture->free_text = NULL;
     fixture->expected = 1;      /* Expected: Message creation is successful */
     if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey))) {
         tear_down(fixture);
@@ -310,7 +307,6 @@ static int test_cmp_create_error_msg_without_si(void)
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->si = NULL;
     fixture->err_code = -1;
-    fixture->free_text = NULL;
     fixture->expected = 0;      /* Expected: Message creation fails */
     if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey))) {
         tear_down(fixture);

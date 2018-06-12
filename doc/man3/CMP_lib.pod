@@ -9,7 +9,8 @@
   CMP_POLLREPCONTENT_pollRep_get0,
   CMP_CERTREPMESSAGE_certResponse_get0,
   CMP_CERTSTATUS_set_certHash,
-  CMP_PKIFAILUREINFO_check,
+  CMP_PKISTATUSINFO_PKIFailureInfo_get,
+  CMP_PKISTATUSINFO_PKIFailureInfo_check,
   CMP_PKIHEADER_generalInfo_item_push0,
   CMP_PKIMESSAGE_generalInfo_items_push1,
   CMP_PKIHEADER_new_senderNonce,
@@ -63,7 +64,8 @@
   CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
   int CMP_CERTSTATUS_set_certHash( CMP_CERTSTATUS *certStatus, const X509 *cert);
   char *CMP_ERRORMSGCONTENT_PKIStatus_get_string( CMP_ERRORMSGCONTENT *error);
-  int CMP_PKIFAILUREINFO_check( ASN1_BIT_STRING *failInfo, int codeBit);
+  long CMP_PKISTATUSINFO_PKIFailureInfo_get( CMP_PKISTATUSINFO *si);
+  int CMP_PKISTATUSINFO_PKIFailureInfo_check( CMP_PKISTATUSINFO *si, int codeBit);
   int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr, const CMP_INFOTYPEANDVALUE *itav);
   int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
   int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
@@ -147,8 +149,11 @@ certificate signature, and places the hash into the certHash field of a
 CMP_CERTSTATUS structure. This is used in the certConf message, for
 example, to confirm that the certificate was received successfully.
 
-CMP_PKIFAILUREINFO_check() checks whether a given bit is set within a
-given PKIFailureInfo.
+CMP_PKISTATUSINFO_PKIFailureInfo_get() returns the PKIFailureInfo bits
+of a given PKIStatusInfo, encoded as long integer, or -1 on error.
+
+CMP_PKISTATUSINFO_PKIFailureInfo_check() checks whether a given bit is set
+within the PKIFailureInfo of a given PKIStatusInfo. Returns -1 on error.
 
 CMP_PKIHEADER_generalInfo_item_push0() adds the given InfoTypeAndValue
 item to the hdr->generalInfo stack. Consumes the B<itav> pointer.

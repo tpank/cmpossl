@@ -190,7 +190,6 @@ static int execute_cmp_pkistatusinfo_test(CMP_LIB_TEST_FIXTURE *fixture)
 {
     OSSL_CMP_PKISTATUSINFO *si = NULL;
     ASN1_UTF8STRING *statusString = NULL;
-    CMP_PKIFAILUREINFO *fi = NULL;
     int res = 0, i;
 
     if (!TEST_ptr(si = OSSL_CMP_statusInfo_new(fixture->pkistatus,
@@ -199,13 +198,11 @@ static int execute_cmp_pkistatusinfo_test(CMP_LIB_TEST_FIXTURE *fixture)
     if (!TEST_long_eq(fixture->pkistatus,
                       OSSL_CMP_PKISTATUSINFO_PKIStatus_get(si)) ||
         !TEST_long_eq(fixture->pkifailure,
-                      OSSL_CMP_PKISTATUSINFO_PKIFailureinfo_get(si)))
-        goto end;
-    if (!TEST_ptr(fi = OSSL_CMP_PKISTATUSINFO_failInfo_get0(si)))
+                      OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_get(si)))
         goto end;
     for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
         if (!TEST_int_eq(fixture->pkifailure >> i & 1,
-                         OSSL_CMP_PKIFAILUREINFO_check(fi, i)))
+                         OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_check(si, i)))
             goto end;
     if (!TEST_ptr
         (statusString =

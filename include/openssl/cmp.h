@@ -378,7 +378,7 @@ CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft,const char *text);
 int OSSL_CMP_PKIHEADER_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
                                          const OSSL_CMP_INFOTYPEANDVALUE *itav);
 int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
-ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *pkimessage,
+ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *pkimessage, /* TODO export? used by cmp_internal_test.c */
                                      const ASN1_OCTET_STRING *secret,
                                      const EVP_PKEY *pkey);
 
@@ -403,9 +403,9 @@ OSSL_CMP_INFOTYPEANDVALUE *OSSL_CMP_ITAV_new(const ASN1_OBJECT *type,
 OSSL_CMP_PKISTATUSINFO *OSSL_CMP_statusInfo_new(int status, unsigned long failInfo,
                                       const char *text);
 long OSSL_CMP_PKISTATUSINFO_PKIStatus_get(OSSL_CMP_PKISTATUSINFO *statusInfo);
-long OSSL_CMP_PKISTATUSINFO_PKIFailureinfo_get(OSSL_CMP_PKISTATUSINFO *statusInfo);
+long OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_get(OSSL_CMP_PKISTATUSINFO *si);
+int OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_check(OSSL_CMP_PKISTATUSINFO *si, int codeBit);
 X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
-int OSSL_CMP_PKIFAILUREINFO_check(ASN1_BIT_STRING *failInfo, int codeBit);
 ASN1_BIT_STRING *OSSL_CMP_PKISTATUSINFO_failInfo_get0(OSSL_CMP_PKISTATUSINFO *si);
 CMP_PKIFREETEXT *OSSL_CMP_PKISTATUSINFO_statusString_get0(OSSL_CMP_PKISTATUSINFO *si);
 CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid);
@@ -434,7 +434,7 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store);
 
 /* cmp_vfy.c */
 int OSSL_CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm);
-int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg);
+int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg);/* TODO export? */
 int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx, const X509_STORE *trusted_store,
                            const X509 *cert, int defer_errors);
 int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);

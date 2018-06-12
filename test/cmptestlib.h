@@ -20,7 +20,7 @@
 # include "testutil.h"
 
 # ifndef OPENSSL_NO_CMP
-#  define TEST_CMP_REFVALUE_LENGTH 15 /* arbitary value */
+#  define CMP_TEST_REFVALUE_LENGTH 15 /* arbitary value */
 EVP_PKEY *load_pem_key(const char *file);
 X509 *load_pem_cert(const char *file);
 X509_REQ *load_csr(const char *file);

@@ -26,7 +26,7 @@ typedef struct test_fixture {
 
 static X509 *cert = NULL;
 static EVP_PKEY *key = NULL;
-static unsigned char ref[TEST_CMP_REFVALUE_LENGTH];
+static unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
 
 /*
  * For these unit tests, the client abandons message protection, and for
