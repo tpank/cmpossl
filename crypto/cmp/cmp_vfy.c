@@ -132,7 +132,7 @@ static int CMP_verify_PBMAC(const OSSL_CMP_PKIMESSAGE *msg,
     int valid = 0;
 
     /* generate expected protection for the message */
-    if ((protection = CMP_calc_protection(msg, secret, NULL)) == NULL)
+    if ((protection = OSSL_CMP_calc_protection(msg, secret, NULL)) == NULL)
         goto err;               /* failed to generate protection string! */
 
     valid = ASN1_STRING_cmp((const ASN1_STRING *)protection,

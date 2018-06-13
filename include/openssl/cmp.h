@@ -152,35 +152,35 @@ extern "C" {
  *       -- certificate already exists
  *   }
  */
-# define CMP_PKIFAILUREINFO_badAlg 0
-# define CMP_PKIFAILUREINFO_badMessageCheck 1
-# define CMP_PKIFAILUREINFO_badRequest 2
-# define CMP_PKIFAILUREINFO_badTime 3
-# define CMP_PKIFAILUREINFO_badCertId 4
-# define CMP_PKIFAILUREINFO_badDataFormat 5
-# define CMP_PKIFAILUREINFO_wrongAuthority 6
+# define OSSL_CMP_PKIFAILUREINFO_badAlg 0
+# define OSSL_CMP_PKIFAILUREINFO_badMessageCheck 1
+# define OSSL_CMP_PKIFAILUREINFO_badRequest 2
+# define OSSL_CMP_PKIFAILUREINFO_badTime 3
+# define OSSL_CMP_PKIFAILUREINFO_badCertId 4
+# define OSSL_CMP_PKIFAILUREINFO_badDataFormat 5
+# define OSSL_CMP_PKIFAILUREINFO_wrongAuthority 6
 # define OSSL_CMP_PKIFAILUREINFO_incorrectData 7
-# define CMP_PKIFAILUREINFO_missingTimeStamp 8
-# define CMP_PKIFAILUREINFO_badPOP 9
-# define CMP_PKIFAILUREINFO_certRevoked 10
-# define CMP_PKIFAILUREINFO_certConfirmed 11
-# define CMP_PKIFAILUREINFO_wrongIntegrity 12
-# define CMP_PKIFAILUREINFO_badRecipientNonce 13
-# define CMP_PKIFAILUREINFO_timeNotAvailable 14
-# define CMP_PKIFAILUREINFO_unacceptedPolicy 15
-# define CMP_PKIFAILUREINFO_unacceptedExtension 16
+# define OSSL_CMP_PKIFAILUREINFO_missingTimeStamp 8
+# define OSSL_CMP_PKIFAILUREINFO_badPOP 9
+# define OSSL_CMP_PKIFAILUREINFO_certRevoked 10
+# define OSSL_CMP_PKIFAILUREINFO_certConfirmed 11
+# define OSSL_CMP_PKIFAILUREINFO_wrongIntegrity 12
+# define OSSL_CMP_PKIFAILUREINFO_badRecipientNonce 13
+# define OSSL_CMP_PKIFAILUREINFO_timeNotAvailable 14
+# define OSSL_CMP_PKIFAILUREINFO_unacceptedPolicy 15
+# define OSSL_CMP_PKIFAILUREINFO_unacceptedExtension 16
 # define OSSL_CMP_PKIFAILUREINFO_addInfoNotAvailable 17
-# define CMP_PKIFAILUREINFO_badSenderNonce 18
-# define CMP_PKIFAILUREINFO_badCertTemplate 19
-# define CMP_PKIFAILUREINFO_signerNotTrusted 20
-# define CMP_PKIFAILUREINFO_transactionIdInUse 21
+# define OSSL_CMP_PKIFAILUREINFO_badSenderNonce 18
+# define OSSL_CMP_PKIFAILUREINFO_badCertTemplate 19
+# define OSSL_CMP_PKIFAILUREINFO_signerNotTrusted 20
+# define OSSL_CMP_PKIFAILUREINFO_transactionIdInUse 21
 # define OSSL_CMP_PKIFAILUREINFO_unsupportedVersion 22
-# define CMP_PKIFAILUREINFO_notAuthorized 23
-# define CMP_PKIFAILUREINFO_systemUnavail 24
+# define OSSL_CMP_PKIFAILUREINFO_notAuthorized 23
+# define OSSL_CMP_PKIFAILUREINFO_systemUnavail 24
 # define OSSL_CMP_PKIFAILUREINFO_systemFailure 25
-# define CMP_PKIFAILUREINFO_duplicateCertReq 26
+# define OSSL_CMP_PKIFAILUREINFO_duplicateCertReq 26
 # define OSSL_CMP_PKIFAILUREINFO_MAX 26
-typedef ASN1_BIT_STRING CMP_PKIFAILUREINFO;
+typedef ASN1_BIT_STRING OSSL_CMP_PKIFAILUREINFO;
 
 # define OSSL_CMP_CTX_FAILINFO_badAlg (1 << 0)
 # define OSSL_CMP_CTX_FAILINFO_badMessageCheck (1 << 1)
@@ -243,28 +243,28 @@ typedef ASN1_BIT_STRING CMP_PKIFAILUREINFO;
 # define OSSL_CMP_PKISTATUS_revocationNotification 5
 # define CMP_PKISTATUS_keyUpdateWarning 6
 
-typedef ASN1_INTEGER CMP_PKISTATUS;
+typedef ASN1_INTEGER OSSL_CMP_PKISTATUS;
 
-# define CMP_CERTORENCCERT_CERTIFICATE 0
-# define CMP_CERTORENCCERT_ENCRYPTEDCERT 1
+# define OSSL_CMP_CERTORENCCERT_CERTIFICATE 0
+# define OSSL_CMP_CERTORENCCERT_ENCRYPTEDCERT 1
 
 /* Forward declarations */
 typedef struct OSSL_cmp_ctx_st OSSL_CMP_CTX;
 typedef struct OSSL_cmp_pkiheader_st OSSL_CMP_PKIHEADER;
 typedef struct OSSL_cmp_pkimessage_st OSSL_CMP_PKIMESSAGE;
-typedef struct cmp_certstatus_st CMP_CERTSTATUS;
+typedef struct OSSL_cmp_certstatus_st OSSL_CMP_CERTSTATUS;
 typedef struct OSSL_cmp_infotypeandvalue_st OSSL_CMP_INFOTYPEANDVALUE;
-typedef struct cmp_revrepcontent_st CMP_REVREPCONTENT;
+typedef struct OSSL_cmp_revrepcontent_st OSSL_CMP_REVREPCONTENT;
 typedef struct OSSL_cmp_pkistatusinfo_st OSSL_CMP_PKISTATUSINFO;
-typedef struct cmp_certrepmessage_st CMP_CERTREPMESSAGE;
-typedef struct cmp_pollrep_st CMP_POLLREP;
-typedef STACK_OF(CMP_POLLREP) CMP_POLLREPCONTENT;
-typedef struct cmp_certresponse_st CMP_CERTRESPONSE;
-DEFINE_STACK_OF(CMP_CERTSTATUS)
+typedef struct OSSL_cmp_certrepmessage_st OSSL_CMP_CERTREPMESSAGE;
+typedef struct OSSL_cmp_pollrep_st OSSL_CMP_POLLREP;
+typedef STACK_OF(OSSL_CMP_POLLREP) OSSL_CMP_POLLREPCONTENT;
+typedef struct OSSL_cmp_certresponse_st OSSL_CMP_CERTRESPONSE;
+DEFINE_STACK_OF(OSSL_CMP_CERTSTATUS)
 DEFINE_STACK_OF(OSSL_CMP_INFOTYPEANDVALUE)
 DEFINE_STACK_OF(OSSL_CMP_PKISTATUSINFO)
-DEFINE_STACK_OF(CMP_CERTREPMESSAGE)
-DEFINE_STACK_OF(CMP_CERTRESPONSE)
+DEFINE_STACK_OF(OSSL_CMP_CERTREPMESSAGE)
+DEFINE_STACK_OF(OSSL_CMP_CERTRESPONSE)
 
 
 /*
@@ -284,16 +284,12 @@ typedef enum {LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERROR,
 #define OSSL_CMP_FL_INFO  __FILE__, __LINE__, LOG_INFO
 #define OSSL_CMP_FL_DEBUG __FILE__, __LINE__, LOG_DEBUG
 
-int CMP_puts(const char *file, int lineno,
-             OSSL_CMP_severity level, const char *msg);
 int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
                OSSL_CMP_severity level, const char *fmt, ...);
 #define OSSL_CMP_err(ctx, msg)   OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)
 #define OSSL_CMP_warn(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN , msg)
 #define OSSL_CMP_info(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO , msg)
-#define CMP_debug(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_DEBUG, msg)
-int CMP_log_fd(const char *file, int lineno,
-               OSSL_CMP_severity level, const char *msg, FILE *dest);
+#define OSSL_CMP_debug(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_DEBUG, msg)
 int  OSSL_CMP_log_init(void);
 void OSSL_CMP_log_close(void);
 
@@ -304,7 +300,7 @@ typedef int (*OSSL_cmp_certConf_cb_t) (OSSL_CMP_CTX *ctx, const X509 *cert, int 
 typedef BIO *(*OSSL_cmp_http_cb_t) (OSSL_CMP_CTX *ctx, BIO *hbio, int connect);
 typedef int (*OSSL_cmp_transfer_cb_t) (OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *req,
                                        OSSL_CMP_PKIMESSAGE **res);
-typedef STACK_OF(ASN1_UTF8STRING) CMP_PKIFREETEXT;
+typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
 
 /*
  * function DECLARATIONS
@@ -352,12 +348,9 @@ OSSL_CMP_PKIMESSAGE *OSSL_CMP_PKIMESSAGE_create(OSSL_CMP_CTX *ctx, int bodytype)
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_PKIMESSAGE_load(const char *file);
 
 /* cmp_lib.c */
-void CMP_add_error_txt(const char *separator, const char *txt);
-# define CMP_add_error_data(txt) CMP_add_error_txt(":", txt)
-# define CMP_add_error_line(txt) CMP_add_error_txt("\n", txt)
-
-# define TRANSACTIONID_LENGTH 16
-# define SENDERNONCE_LENGTH 16
+/* TODO: move those elsewhere? used in test/cmp_lib_test.c */
+# define OSSL_CMP_TRANSACTIONID_LENGTH 16
+# define OSSL_CMP_SENDERNONCE_LENGTH 16
 OSSL_CMP_PKIHEADER *OSSL_CMP_PKIMESSAGE_get0_header(const OSSL_CMP_PKIMESSAGE *msg);
 ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr);
 ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr);
@@ -374,30 +367,23 @@ int OSSL_CMP_PKIHEADER_push0_freeText(OSSL_CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
 int OSSL_CMP_PKIHEADER_push1_freeText(OSSL_CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
-CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft,const char *text);
 int OSSL_CMP_PKIHEADER_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
                                          const OSSL_CMP_INFOTYPEANDVALUE *itav);
 int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
-ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *pkimessage, /* TODO export? used by cmp_internal_test.c */
-                                     const ASN1_OCTET_STRING *secret,
-                                     const EVP_PKEY *pkey);
+ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *pkimessage,
+                                          const ASN1_OCTET_STRING *secret,
+                                          const EVP_PKEY *pkey);
 
-OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
-                                                long reqId);
 int OSSL_CMP_PKIMESSAGE_set_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg);
 int OSSL_CMP_PKIMESSAGE_check_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg);
 int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg);
 int OSSL_CMP_PKIMESSAGE_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg);
-int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus,
-                                const X509 *cert);
 int OSSL_CMP_PKIMESSAGE_generalInfo_items_push1(OSSL_CMP_PKIMESSAGE *msg,
                                          STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *itavs);
 int OSSL_CMP_PKIMESSAGE_genm_item_push0(OSSL_CMP_PKIMESSAGE *msg,
                                    const OSSL_CMP_INFOTYPEANDVALUE *itav);
 int OSSL_CMP_PKIMESSAGE_genm_items_push1(OSSL_CMP_PKIMESSAGE *msg,
                                     STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *itavs);
-int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) **
-                              itav_sk_p, const OSSL_CMP_INFOTYPEANDVALUE *itav);
 OSSL_CMP_INFOTYPEANDVALUE *OSSL_CMP_ITAV_new(const ASN1_OBJECT *type,
                                    const ASN1_TYPE *value);
 OSSL_CMP_PKISTATUSINFO *OSSL_CMP_statusInfo_new(int status, unsigned long failInfo,
@@ -405,12 +391,8 @@ OSSL_CMP_PKISTATUSINFO *OSSL_CMP_statusInfo_new(int status, unsigned long failIn
 long OSSL_CMP_PKISTATUSINFO_PKIStatus_get(OSSL_CMP_PKISTATUSINFO *statusInfo);
 long OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_get(OSSL_CMP_PKISTATUSINFO *si);
 int OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_check(OSSL_CMP_PKISTATUSINFO *si, int codeBit);
-X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
 ASN1_BIT_STRING *OSSL_CMP_PKISTATUSINFO_failInfo_get0(OSSL_CMP_PKISTATUSINFO *si);
 CMP_PKIFREETEXT *OSSL_CMP_PKISTATUSINFO_statusString_get0(OSSL_CMP_PKISTATUSINFO *si);
-CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid);
-CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
-                                                       *crepmsg, long rid);
 int OSSL_CMP_PKIMESSAGE_set_bodytype(OSSL_CMP_PKIMESSAGE *msg, int type);
 int OSSL_CMP_PKIMESSAGE_get_bodytype(const OSSL_CMP_PKIMESSAGE *msg);
 # define OSSL_CMP_PKISTATUSINFO_BUFLEN 1024
@@ -596,11 +578,6 @@ int OSSL_CMP_CTX_push_freeText(OSSL_CMP_CTX *ctx, const char *text);
                          d2i_OSSL_CMP_PKIMESSAGE, bp, p)
 # define OSSL_i2d_CMP_PKIMESSAGE_bio(bp, o) \
          ASN1_i2d_bio_of(OSSL_CMP_PKIMESSAGE, i2d_OSSL_CMP_PKIMESSAGE, bp, o)
-# define d2i_CMP_PROTECTEDPART_bio(bp, p) \
-         ASN1_d2i_bio_of(CMP_PROTECTEDPART, CMP_PROTECTEDPART_new, \
-                         d2i_CMP_PROTECTEDPART, bp, p)
-# define i2d_CMP_PROTECTEDPART_bio(bp, o) \
-         ASN1_i2d_bio_of(CMP_PROTECTEDPART, i2d_CMP_PROTECTEDPART, bp, o)
 OSSL_CMP_PKIMESSAGE *d2i_OSSL_CMP_PKIMESSAGE(OSSL_CMP_PKIMESSAGE **,
                                    const unsigned char **, long);
 int i2d_OSSL_CMP_PKIMESSAGE(OSSL_CMP_PKIMESSAGE *, unsigned char **);

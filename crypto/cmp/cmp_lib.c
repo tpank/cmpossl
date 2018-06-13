@@ -489,7 +489,7 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
      * reduce the probability of having the transactionID in use at the server.
      */
     if (!ctx->transactionID &&
-        !set1_aostr_else_random(&ctx->transactionID,NULL, TRANSACTIONID_LENGTH))
+        !set1_aostr_else_random(&ctx->transactionID,NULL, OSSL_CMP_TRANSACTIONID_LENGTH))
         goto err;
     if (!OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID, ctx->transactionID))
         goto err;
@@ -506,7 +506,7 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
      * is copied from the senderNonce of the previous message in the
      * transaction.
      */
-    if (!set1_aostr_else_random(&hdr->senderNonce, NULL, SENDERNONCE_LENGTH))
+    if (!set1_aostr_else_random(&hdr->senderNonce, NULL, OSSL_CMP_SENDERNONCE_LENGTH))
         goto err;
 
     /* store senderNonce - for cmp with recipNonce in next outgoing msg */
@@ -542,7 +542,7 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
  * error
  */
-ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
+ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
                                      const ASN1_OCTET_STRING *secret,
                                      const EVP_PKEY *pkey)
 {
@@ -720,7 +720,7 @@ int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
         OSSL_CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
 
         if ((msg->protection =
-              CMP_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
+              OSSL_CMP_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
 
             goto err;
     } else {
@@ -766,7 +766,7 @@ int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
             OSSL_CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
 
             if ((msg->protection =
-                 CMP_calc_protection(msg, NULL, ctx->pkey)) == NULL)
+                 OSSL_CMP_calc_protection(msg, NULL, ctx->pkey)) == NULL)
                 goto err;
         } else {
             CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT,

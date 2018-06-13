@@ -68,7 +68,7 @@ static X509 *cert = NULL;
 /* Certificates for trust chain */
 static X509 *endentity1 = NULL, *endentity2 = NULL,
     *root = NULL, *intermediate = NULL;
-static unsigned char rand_data[TRANSACTIONID_LENGTH];
+static unsigned char rand_data[OSSL_CMP_TRANSACTIONID_LENGTH];
 static OSSL_CMP_PKIMESSAGE *ir_unprotected, *ir_protected, *insta_unprotected;
 
 
@@ -377,7 +377,7 @@ static int test_cmp_pkimessage_check_received_no_protection_positive_cb(void)
 static int test_cmp_pkimessage_check_received_check_transaction_id(void)
 {
     /* Transaction id belonging to CMP_IR_unprotected.der */
-    const unsigned char trans_id[TRANSACTIONID_LENGTH] =
+    const unsigned char trans_id[OSSL_CMP_TRANSACTIONID_LENGTH] =
         { 0xDF, 0x5C, 0xDC, 0x01, 0xF8, 0x81, 0x6E, 0xA9,
         0x3E, 0x63, 0x94, 0x5B, 0xD3, 0x12, 0x1B, 0x65
     };
@@ -440,7 +440,7 @@ static int test_cmp_pkimessage_check_received_wrong_recipient_nonce(void)
 static int test_cmp_pkimessage_check_received_check_recipient_nonce(void)
 {
     /* Recipient nonce belonging to CMP_IP_insta_unprotected.der */
-    const unsigned char rec_nonce[SENDERNONCE_LENGTH] =
+    const unsigned char rec_nonce[OSSL_CMP_SENDERNONCE_LENGTH] =
         { 0x48, 0xF1, 0x71, 0x1F, 0xE5, 0xAF, 0x1C, 0x8B,
         0x21, 0x97, 0x5C, 0x84, 0x74, 0x49, 0xBA, 0x32
     };
@@ -622,7 +622,7 @@ void cleanup_tests(void)
 
 int setup_tests(void)
 {
-    if(!TEST_int_eq(1, RAND_bytes(rand_data, TRANSACTIONID_LENGTH)))
+    if(!TEST_int_eq(1, RAND_bytes(rand_data, OSSL_CMP_TRANSACTIONID_LENGTH)))
         return 0;
     if (!TEST_ptr(endentity1 =
                   load_pem_cert("../cmp-test/chain/EndEntity1.crt")) ||

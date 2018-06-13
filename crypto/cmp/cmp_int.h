@@ -693,7 +693,31 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  * functions
  */
 
+/* from cmp_lib.c */
+void CMP_add_error_txt(const char *separator, const char *txt);
+# define CMP_add_error_data(txt) CMP_add_error_txt(":", txt)
+# define CMP_add_error_line(txt) CMP_add_error_txt("\n", txt)
+
+CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft,const char *text);
+
+OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(
+                                           CMP_REVREPCONTENT *rrep, long reqId);
+int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus, const X509 *cert);
+int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) **
+                              itav_sk_p, const OSSL_CMP_INFOTYPEANDVALUE *itav);
+
+X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
+CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid);
+CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
+                                                       *crepmsg, long rid);
+
+
+
 /* from cmp_ctx.c */
+int CMP_puts(const char *file, int lineno, OSSL_CMP_severity level,
+             const char *msg);
+int CMP_log_fd(const char *file, int lineno, OSSL_CMP_severity level,
+               const char *msg, FILE *dest);
 #ifdef OSSL_CMP_POOR_LOG
 #define CMP_LOG(x)  CMP_log_printf x /* poor man's variadic macro for C90;
    calls need argument(s) in doubly nested parentheses: LOG((args)) */

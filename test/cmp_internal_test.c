@@ -75,7 +75,7 @@ static int execute_calc_protection_fails_test(CMP_INT_TEST_FIXTURE *fixture)
 {
     ASN1_BIT_STRING *protection = NULL;
     int res = TEST_ptr_null(protection =
-                            CMP_calc_protection(fixture->msg, fixture->secret,
+                            OSSL_CMP_calc_protection(fixture->msg, fixture->secret,
                                                 fixture->privkey));
     ASN1_BIT_STRING_free(protection);
     return res;
@@ -86,7 +86,7 @@ static int execute_calc_protection_test(CMP_INT_TEST_FIXTURE *fixture)
 {
     ASN1_BIT_STRING *protection = NULL;
     int res =
-        TEST_ptr(protection = CMP_calc_protection(fixture->msg, fixture->secret,
+        TEST_ptr(protection = OSSL_CMP_calc_protection(fixture->msg, fixture->secret,
                                                   fixture->privkey)) &&
         TEST_true(ASN1_STRING_cmp(protection, fixture->msg->protection) == 0);
     ASN1_BIT_STRING_free(protection);
@@ -154,7 +154,7 @@ static int verify_signature(OSSL_CMP_PKIMESSAGE *msg, EVP_PKEY *pkey,
     return res;
 }
 
-/* Calls CMP_calc_protection and verifies signature*/
+/* Calls OSSL_CMP_calc_protection and verifies signature*/
 static int execute_calc_protection_signature_test(CMP_INT_TEST_FIXTURE *
                                                   fixture)
 {
@@ -162,7 +162,7 @@ static int execute_calc_protection_signature_test(CMP_INT_TEST_FIXTURE *
     fixture->msg->protection = NULL;
     return
         TEST_ptr(fixture->msg->protection =
-                 CMP_calc_protection(fixture->msg, NULL, fixture->privkey)) &&
+                 OSSL_CMP_calc_protection(fixture->msg, NULL, fixture->privkey)) &&
         TEST_true(verify_signature
                   (fixture->msg, fixture->pubkey, fixture->cmp_ctx->digest));
 }
