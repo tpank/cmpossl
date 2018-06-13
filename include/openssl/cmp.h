@@ -11,8 +11,8 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#ifndef HEADER_CMP_H
-# define HEADER_CMP_H
+#ifndef OSSL_HEADER_CMP_H
+# define OSSL_HEADER_CMP_H
 
 # include <openssl/opensslconf.h>
 
@@ -236,12 +236,12 @@ typedef ASN1_BIT_STRING OSSL_CMP_PKIFAILUREINFO;
  *   }
  */
 # define OSSL_CMP_PKISTATUS_accepted 0
-# define CMP_PKISTATUS_grantedWithMods 1
+# define OSSL_CMP_PKISTATUS_grantedWithMods 1
 # define OSSL_CMP_PKISTATUS_rejection 2
-# define CMP_PKISTATUS_waiting 3
-# define CMP_PKISTATUS_revocationWarning 4
+# define OSSL_CMP_PKISTATUS_waiting 3
+# define OSSL_CMP_PKISTATUS_revocationWarning 4
 # define OSSL_CMP_PKISTATUS_revocationNotification 5
-# define CMP_PKISTATUS_keyUpdateWarning 6
+# define OSSL_CMP_PKISTATUS_keyUpdateWarning 6
 
 typedef ASN1_INTEGER OSSL_CMP_PKISTATUS;
 
@@ -284,8 +284,10 @@ typedef enum {LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERROR,
 #define OSSL_CMP_FL_INFO  __FILE__, __LINE__, LOG_INFO
 #define OSSL_CMP_FL_DEBUG __FILE__, __LINE__, LOG_DEBUG
 
+int OSSL_CMP_puts(const char *file, int lineno, OSSL_CMP_severity level,
+                  const char *msg);
 int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
-               OSSL_CMP_severity level, const char *fmt, ...);
+                    OSSL_CMP_severity level, const char *fmt, ...);
 #define OSSL_CMP_err(ctx, msg)   OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)
 #define OSSL_CMP_warn(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN , msg)
 #define OSSL_CMP_info(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO , msg)
@@ -341,7 +343,7 @@ OSSL_CMP_PKIMESSAGE *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure, const char *text);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_genm_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si,
-                              int errorCode, CMP_PKIFREETEXT *errorDetails,
+                              int errorCode, OSSL_CMP_PKIFREETEXT *errorDetails,
                               int unprotected);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int reqId);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_PKIMESSAGE_create(OSSL_CMP_CTX *ctx, int bodytype);
@@ -392,7 +394,7 @@ long OSSL_CMP_PKISTATUSINFO_PKIStatus_get(OSSL_CMP_PKISTATUSINFO *statusInfo);
 long OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_get(OSSL_CMP_PKISTATUSINFO *si);
 int OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_check(OSSL_CMP_PKISTATUSINFO *si, int codeBit);
 ASN1_BIT_STRING *OSSL_CMP_PKISTATUSINFO_failInfo_get0(OSSL_CMP_PKISTATUSINFO *si);
-CMP_PKIFREETEXT *OSSL_CMP_PKISTATUSINFO_statusString_get0(OSSL_CMP_PKISTATUSINFO *si);
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISTATUSINFO_statusString_get0(OSSL_CMP_PKISTATUSINFO *si);
 int OSSL_CMP_PKIMESSAGE_set_bodytype(OSSL_CMP_PKIMESSAGE *msg, int type);
 int OSSL_CMP_PKIMESSAGE_get_bodytype(const OSSL_CMP_PKIMESSAGE *msg);
 # define OSSL_CMP_PKISTATUSINFO_BUFLEN 1024
@@ -545,10 +547,10 @@ void *OSSL_CMP_CTX_get_transfer_cb_arg(OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts);
 int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path);
-int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo);
+int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFAILUREINFO *failInfo);
 unsigned long OSSL_CMP_CTX_failInfoCode_get(OSSL_CMP_CTX *ctx);
 long OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx);
-CMP_PKIFREETEXT *OSSL_CMP_CTX_statusString_get(OSSL_CMP_CTX *ctx);
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_statusString_get(OSSL_CMP_CTX *ctx);
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(OSSL_CMP_CTX *ctx);
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_last_senderNonce(OSSL_CMP_CTX *ctx);
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(OSSL_CMP_CTX *ctx);
@@ -586,10 +588,10 @@ int i2d_OSSL_CMP_PKIMESSAGE(OSSL_CMP_PKIMESSAGE *, unsigned char **);
 }
 #  endif
 # endif
-#endif /* fndef HEADER_CMP_H */
+#endif
 
-#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(HEADER_CMP_ERROR_CODES)
-# define HEADER_CMP_ERROR_CODES
+#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(OSSL_HEADER_CMP_ERROR_CODES)
+# define OSSL_HEADER_CMP_ERROR_CODES
 # ifdef  __cplusplus
 extern "C" {
 # endif

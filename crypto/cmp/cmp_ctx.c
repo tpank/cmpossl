@@ -252,7 +252,7 @@ long OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx)
  * returns the statusString from the last CertRepMessage
  * or Revocation Response, NULL on error
  */
-CMP_PKIFREETEXT *OSSL_CMP_CTX_statusString_get(OSSL_CMP_CTX *ctx)
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_statusString_get(OSSL_CMP_CTX *ctx)
 {
     return ctx != NULL ? ctx->lastStatusString : NULL;
 }
@@ -1306,10 +1306,10 @@ int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
 
 /*
  * Set the failInfo error code bits in OSSL_CMP_CTX based on the given
- * CMP_PKIFAILUREINFO structure, which is allowed to be NULL
+ * OSSL_CMP_PKIFAILUREINFO structure, which is allowed to be NULL
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx, CMP_PKIFAILUREINFO *failInfo)
+int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFAILUREINFO *failInfo)
 {
     int i;
 
@@ -1431,8 +1431,8 @@ void OSSL_CMP_log_close(void)
 }
 
 /* prints log messages to given stream fd */
-int CMP_log_fd(const char *file, int lineno,
-               OSSL_CMP_severity level, const char *msg, FILE *fd)
+static int CMP_log_fd(const char *file, int lineno,
+                      OSSL_CMP_severity level, const char *msg, FILE *fd)
 {
     char sep;
     char *lvl = NULL;
@@ -1477,7 +1477,7 @@ int CMP_log_fd(const char *file, int lineno,
 }
 
 /* prints errors and warnings to stderr, info and debug messages to stdout */
-int CMP_puts(const char *file, int lineno,
+int OSSL_CMP_puts(const char *file, int lineno,
              OSSL_CMP_severity level, const char *msg)
 {
     FILE *fd = level <= LOG_WARN ? stderr : stdout;
@@ -1486,7 +1486,7 @@ int CMP_puts(const char *file, int lineno,
 
 /*
  * Function used for outputting error/warn/debug messages depending on callback.
- * By default or if the callback is set NULL the function CMP_puts() is used.
+ * By default or if the callback is set NULL the function OSSL_CMP_puts() is used.
  */
 int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
                OSSL_CMP_severity level, const char *fmt, ...)
@@ -1494,7 +1494,7 @@ int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
     va_list arg_ptr;
     char buf[1024];
     int res;
-    OSSL_cmp_log_cb_t log_fn = ctx == NULL || !ctx->log_cb ? CMP_puts : ctx->log_cb;
+    OSSL_cmp_log_cb_t log_fn = ctx == NULL || !ctx->log_cb ? OSSL_CMP_puts : ctx->log_cb;
 
     va_start(arg_ptr, fmt);
     BIO_vsnprintf(buf, sizeof(buf), fmt, arg_ptr);
@@ -1516,7 +1516,7 @@ int CMP_log_printf(const char *file, int line,
 
     va_start(arg_ptr, fmt);
     BIO_vsnprintf(buf, sizeof(buf), fmt, arg_ptr);
-    res = CMP_puts(file, line, level, buf);
+    res = OSSL_CMP_puts(file, line, level, buf);
     va_end(arg_ptr);
     return res;
 }
@@ -1527,9 +1527,9 @@ int CMP_log_printf(const char *file, int line,
  * ERR_print_errors_cb() to the ctx->log_cb() function set by the user
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_error_cb(const char *str, size_t len, void *u) {
+int CMP_CTX_error_cb(const char *str, size_t len, void *u) {
     OSSL_CMP_CTX *ctx = (OSSL_CMP_CTX *)u;
-    OSSL_cmp_log_cb_t log_fn = ctx == NULL || !ctx->log_cb ? CMP_puts : ctx->log_cb;
+    OSSL_cmp_log_cb_t log_fn = ctx == NULL || !ctx->log_cb ? OSSL_CMP_puts : ctx->log_cb;
     while (*str && *str != ':') /* skip pid */
         str++;
     if (*str) /* skip ':' */

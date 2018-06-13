@@ -11,8 +11,8 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#ifndef HEADER_CRMF_H
-# define HEADER_CRMF_H
+#ifndef OSSL_HEADER_CRMF_H
+# define OSSL_HEADER_CRMF_H
 
 # include <openssl/opensslconf.h>
 
@@ -32,20 +32,20 @@
 extern "C" {
 # endif
 
-# define CRMF_POPOPRIVKEY_THISMESSAGE          0
+# define OSSL_CRMF_POPOPRIVKEY_THISMESSAGE          0
 # define OSSL_CRMF_POPOPRIVKEY_SUBSEQUENTMESSAGE    1
-# define CRMF_POPOPRIVKEY_DHMAC                2
-# define CRMF_POPOPRIVKEY_AGREEMAC             3
-# define CRMF_POPOPRIVKEY_ENCRYPTEDKEY         4
+# define OSSL_CRMF_POPOPRIVKEY_DHMAC                2
+# define OSSL_CRMF_POPOPRIVKEY_AGREEMAC             3
+# define OSSL_CRMF_POPOPRIVKEY_ENCRYPTEDKEY         4
 # define OSSL_CRMF_SUBSEQUENTMESSAGE_ENCRCERT       0
-# define CRMF_SUBSEQUENTMESSAGE_CHALLENGERESP  1
+# define OSSL_CRMF_SUBSEQUENTMESSAGE_CHALLENGERESP  1
 
 
 typedef struct OSSL_crmf_encrypetedvalue_st OSSL_CRMF_ENCRYPTEDVALUE;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDVALUE)
 typedef struct OSSL_crmf_certreqmsg_st OSSL_CRMF_CERTREQMSG;
 DEFINE_STACK_OF(OSSL_CRMF_CERTREQMSG)
-typedef struct crmf_attributetypeandvalue_st CRMF_ATTRIBUTETYPEANDVALUE;
+typedef struct OSSL_crmf_attributetypeandvalue_st OSSL_CRMF_ATTRIBUTETYPEANDVALUE;
 typedef struct OSSL_crmf_pbmparameter_st OSSL_CRMF_PBMPARAMETER;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PBMPARAMETER)
 typedef struct OSSL_crmf_poposigningkey_st OSSL_CRMF_POPOSIGNINGKEY;
@@ -60,7 +60,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTTEMPLATE)
 typedef STACK_OF(OSSL_CRMF_CERTREQMSG) OSSL_CRMF_CERTREQMESSAGES;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTREQMESSAGES)
 
-typedef struct crmf_optionalvalidity_st CRMF_OPTIONALVALIDITY;
+typedef struct OSSL_crmf_optionalvalidity_st OSSL_CRMF_OPTIONALVALIDITY;
 
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTTEMPLATE)
 
@@ -112,11 +112,11 @@ int OSSL_CRMF_CERTREQMSG_set0_extensions(OSSL_CRMF_CERTREQMSG *crm,
 
 int OSSL_CRMF_CERTREQMSG_push0_extension(OSSL_CRMF_CERTREQMSG *crm,
                                     const X509_EXTENSION *ext);
-
-# define CRMF_POPO_NONE       0
+/* TODO consolidate these with OSSL_CRMF_PROOFOFPOSESSION_RAVERIFIED etc. in crmf_int.h: */
+# define OSSL_CRMF_POPO_NONE       0
 # define OSSL_CRMF_POPO_SIGNATURE  1
-# define CRMF_POPO_ENCRCERT   2
-# define CRMF_POPO_RAVERIFIED 3
+# define OSSL_CRMF_POPO_ENCRCERT   2
+# define OSSL_CRMF_POPO_RAVERIFIED 3
 int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
                                 int dgst, int ppmtd);
 X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
@@ -125,10 +125,10 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
 # ifdef __cplusplus
 }
 # endif
-#endif /* ifndef HEADER_CRMF_H */
+#endif
 
-#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(HEADER_CRMF_ERROR_CODES)
-# define HEADER_CRMF_ERROR_CODES
+#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(OSSL_HEADER_CRMF_ERROR_CODES)
+# define OSSL_HEADER_CRMF_ERROR_CODES
 # ifdef  __cplusplus
 extern "C" {
 # endif

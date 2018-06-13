@@ -395,7 +395,7 @@ int OSSL_CMP_PKIHEADER_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *
  * newly allocated freeText if ft is NULL.
  * Returns the new/updated freeText. On error frees ft and returns NULL
  */
-CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft, const char *text)
+OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft, const char *text)
 {
     ASN1_UTF8STRING *utf8string = NULL;
 
@@ -437,7 +437,7 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
     }
 
     /* set the CMP version */
-    if (!OSSL_CMP_PKIHEADER_set_version(hdr, CMP_VERSION))
+    if (!OSSL_CMP_PKIHEADER_set_version(hdr, OSSL_CMP_VERSION))
         goto err;
 
     /*
@@ -547,7 +547,7 @@ ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
                                      const EVP_PKEY *pkey)
 {
     ASN1_BIT_STRING *prot = NULL;
-    CMP_PROTECTEDPART prot_part;
+    OSSL_CMP_PROTECTEDPART prot_part;
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
     const
 #endif
@@ -578,7 +578,7 @@ ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
     prot_part.header = msg->header;
     prot_part.body = msg->body;
 
-    l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+    l = i2d_OSSL_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
     if (l < 0 || prot_part_der == NULL)
         goto err;
     prot_part_der_len = (size_t) l;
@@ -599,7 +599,7 @@ ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
                                             secret->length, &mac, &mac_len)))
                 goto err;
         } else {
-            CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_WRONG_ALGORITHM_OID);
+            CMPerr(CMP_F_OSSL_CMP_CALC_PROTECTION, CMP_R_WRONG_ALGORITHM_OID);
             goto err;
         }
     } else if (secret == NULL && pkey != NULL) {
@@ -621,11 +621,11 @@ ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
             if (!(EVP_SignFinal(evp_ctx, mac, &mac_len, (EVP_PKEY *)pkey)))
                 goto err;
         } else {
-            CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_UNKNOWN_ALGORITHM_ID);
+            CMPerr(CMP_F_OSSL_CMP_CALC_PROTECTION, CMP_R_UNKNOWN_ALGORITHM_ID);
             goto err;
         }
     } else {
-        CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_OSSL_CMP_CALC_PROTECTION, CMP_R_INVALID_ARGS);
         goto err;
     }
 
@@ -638,7 +638,7 @@ ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
 
  err:
     if (prot == NULL)
-        CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_ERROR_CALCULATING_PROTECTION);
+        CMPerr(CMP_F_OSSL_CMP_CALC_PROTECTION, CMP_R_ERROR_CALCULATING_PROTECTION);
 
     /* cleanup */
     OSSL_CRMF_PBMPARAMETER_free(pbm);
@@ -837,7 +837,7 @@ int OSSL_CMP_PKIMESSAGE_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *m
  *
  * returns 1 on success, 0 on error
  */
-int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus, const X509 *cert)
+int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus, const X509 *cert)
 {
     unsigned int len;
     unsigned char hash[EVP_MAX_MD_SIZE];
@@ -1170,17 +1170,17 @@ static char *CMP_PKISTATUSINFO_PKIStatus_get_string(OSSL_CMP_PKISTATUSINFO *si)
     switch (PKIStatus) {
     case OSSL_CMP_PKISTATUS_accepted:
         return "PKIStatus: accepted";
-    case CMP_PKISTATUS_grantedWithMods:
+    case OSSL_CMP_PKISTATUS_grantedWithMods:
         return "PKIStatus: granted with mods";
     case OSSL_CMP_PKISTATUS_rejection:
         return "PKIStatus: rejection";
-    case CMP_PKISTATUS_waiting:
+    case OSSL_CMP_PKISTATUS_waiting:
         return "PKIStatus: waiting";
-    case CMP_PKISTATUS_revocationWarning:
+    case OSSL_CMP_PKISTATUS_revocationWarning:
         return "PKIStatus: revocation warning";
     case OSSL_CMP_PKISTATUS_revocationNotification:
         return "PKIStatus: revocation notification";
-    case CMP_PKISTATUS_keyUpdateWarning:
+    case OSSL_CMP_PKISTATUS_keyUpdateWarning:
         return "PKIStatus: key update warning";
     default:
         CMPerr(CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING,
@@ -1196,66 +1196,66 @@ static char *CMP_PKISTATUSINFO_PKIStatus_get_string(OSSL_CMP_PKISTATUSINFO *si)
  * returns pointer to static string
  * returns NULL on error
  */
-static char *CMP_PKIFAILUREINFO_get_string(CMP_PKIFAILUREINFO *fi, int i)
+static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi, int i)
 {
     if (fi == NULL)
         return NULL;
     if (0 <= i && i <= OSSL_CMP_PKIFAILUREINFO_MAX) {
         if (ASN1_BIT_STRING_get_bit(fi, i)) {
             switch (i) {
-            case CMP_PKIFAILUREINFO_badAlg:
+            case OSSL_CMP_PKIFAILUREINFO_badAlg:
                 return "PKIFailureInfo: badAlg";
-            case CMP_PKIFAILUREINFO_badMessageCheck:
+            case OSSL_CMP_PKIFAILUREINFO_badMessageCheck:
                 return "PKIFailureInfo: badMessageCheck";
-            case CMP_PKIFAILUREINFO_badRequest:
+            case OSSL_CMP_PKIFAILUREINFO_badRequest:
                 return "PKIFailureInfo: badRequest";
-            case CMP_PKIFAILUREINFO_badTime:
+            case OSSL_CMP_PKIFAILUREINFO_badTime:
                 return "PKIFailureInfo: badTime";
-            case CMP_PKIFAILUREINFO_badCertId:
+            case OSSL_CMP_PKIFAILUREINFO_badCertId:
                 return "PKIFailureInfo: badCertId";
-            case CMP_PKIFAILUREINFO_badDataFormat:
+            case OSSL_CMP_PKIFAILUREINFO_badDataFormat:
                 return "PKIFailureInfo: badDataFormat";
-            case CMP_PKIFAILUREINFO_wrongAuthority:
+            case OSSL_CMP_PKIFAILUREINFO_wrongAuthority:
                 return "PKIFailureInfo: wrongAuthority";
             case OSSL_CMP_PKIFAILUREINFO_incorrectData:
                 return "PKIFailureInfo: incorrectData";
-            case CMP_PKIFAILUREINFO_missingTimeStamp:
+            case OSSL_CMP_PKIFAILUREINFO_missingTimeStamp:
                 return "PKIFailureInfo: missingTimeStamp";
-            case CMP_PKIFAILUREINFO_badPOP:
+            case OSSL_CMP_PKIFAILUREINFO_badPOP:
                 return "PKIFailureInfo: badPOP";
-            case CMP_PKIFAILUREINFO_certRevoked:
+            case OSSL_CMP_PKIFAILUREINFO_certRevoked:
                 return "PKIFailureInfo: certRevoked";
-            case CMP_PKIFAILUREINFO_certConfirmed:
+            case OSSL_CMP_PKIFAILUREINFO_certConfirmed:
                 return "PKIFailureInfo: certConfirmed";
-            case CMP_PKIFAILUREINFO_wrongIntegrity:
+            case OSSL_CMP_PKIFAILUREINFO_wrongIntegrity:
                 return "PKIFailureInfo: wrongIntegrity";
-            case CMP_PKIFAILUREINFO_badRecipientNonce:
+            case OSSL_CMP_PKIFAILUREINFO_badRecipientNonce:
                 return "PKIFailureInfo: badRecipientNonce";
-            case CMP_PKIFAILUREINFO_timeNotAvailable:
+            case OSSL_CMP_PKIFAILUREINFO_timeNotAvailable:
                 return "PKIFailureInfo: timeNotAvailable";
-            case CMP_PKIFAILUREINFO_unacceptedPolicy:
+            case OSSL_CMP_PKIFAILUREINFO_unacceptedPolicy:
                 return "PKIFailureInfo: unacceptedPolicy";
-            case CMP_PKIFAILUREINFO_unacceptedExtension:
+            case OSSL_CMP_PKIFAILUREINFO_unacceptedExtension:
                 return "PKIFailureInfo: unacceptedExtension";
             case OSSL_CMP_PKIFAILUREINFO_addInfoNotAvailable:
                 return "PKIFailureInfo: addInfoNotAvailable";
-            case CMP_PKIFAILUREINFO_badSenderNonce:
+            case OSSL_CMP_PKIFAILUREINFO_badSenderNonce:
                 return "PKIFailureInfo: badSenderNonce";
-            case CMP_PKIFAILUREINFO_badCertTemplate:
+            case OSSL_CMP_PKIFAILUREINFO_badCertTemplate:
                 return "PKIFailureInfo: badCertTemplate";
-            case CMP_PKIFAILUREINFO_signerNotTrusted:
+            case OSSL_CMP_PKIFAILUREINFO_signerNotTrusted:
                 return "PKIFailureInfo: signerNotTrusted";
-            case CMP_PKIFAILUREINFO_transactionIdInUse:
+            case OSSL_CMP_PKIFAILUREINFO_transactionIdInUse:
                 return "PKIFailureInfo: transactionIdInUse";
             case OSSL_CMP_PKIFAILUREINFO_unsupportedVersion:
                 return "PKIFailureInfo: unsupportedVersion";
-            case CMP_PKIFAILUREINFO_notAuthorized:
+            case OSSL_CMP_PKIFAILUREINFO_notAuthorized:
                 return "PKIFailureInfo: notAuthorized";
-            case CMP_PKIFAILUREINFO_systemUnavail:
+            case OSSL_CMP_PKIFAILUREINFO_systemUnavail:
                 return "PKIFailureInfo: systemUnavail";
             case OSSL_CMP_PKIFAILUREINFO_systemFailure:
                 return "PKIFailureInfo: systemFailure";
-            case CMP_PKIFAILUREINFO_duplicateCertReq:
+            case OSSL_CMP_PKIFAILUREINFO_duplicateCertReq:
                 return "PKIFailureInfo: duplicateCertReq";
             }
         } else {
@@ -1272,7 +1272,7 @@ static char *CMP_PKIFAILUREINFO_get_string(CMP_PKIFAILUREINFO *fi, int i)
  * RevReqContent.
  * returns NULL on error
  */
-OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep,
+OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
                                                        long rsid)
 {
     OSSL_CMP_PKISTATUSINFO *status = NULL;
@@ -1308,7 +1308,7 @@ int OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_check(OSSL_CMP_PKISTATUSINFO *si,
  * returns a pointer to the failInfo contained in a PKIStatusInfo
  * returns NULL on error
  */
-CMP_PKIFAILUREINFO *OSSL_CMP_PKISTATUSINFO_failInfo_get0(OSSL_CMP_PKISTATUSINFO *si)
+OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISTATUSINFO_failInfo_get0(OSSL_CMP_PKISTATUSINFO *si)
 {
     return si == NULL ? NULL : si->failInfo;
 }
@@ -1317,7 +1317,7 @@ CMP_PKIFAILUREINFO *OSSL_CMP_PKISTATUSINFO_failInfo_get0(OSSL_CMP_PKISTATUSINFO 
  * returns a pointer to the statusString contained in a PKIStatusInfo
  * returns NULL on error
  */
-CMP_PKIFREETEXT *OSSL_CMP_PKISTATUSINFO_statusString_get0(OSSL_CMP_PKISTATUSINFO *si)
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISTATUSINFO_statusString_get0(OSSL_CMP_PKISTATUSINFO *si)
 {
     return si == NULL ? NULL : si->statusString;
 }
@@ -1328,9 +1328,9 @@ CMP_PKIFREETEXT *OSSL_CMP_PKISTATUSINFO_statusString_get0(OSSL_CMP_PKISTATUSINFO
  * returns NULL on error or if no suitable PollResponse available
  */
 /* cannot factor overlap with CERTREPMESSAGE_certResponse_get0 due to typing */
-CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid)
+OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc, long rid)
 {
-    CMP_POLLREP *pollRep = NULL;
+    OSSL_CMP_POLLREP *pollRep = NULL;
     int i;
     char str[DECIMAL_SIZE(rid)+1];
  
@@ -1339,8 +1339,8 @@ CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid)
         return NULL;
     }
 
-    for (i = 0; i < sk_CMP_POLLREP_num(prc); i++) {
-        pollRep = sk_CMP_POLLREP_value(prc, i);
+    for (i = 0; i < sk_OSSL_CMP_POLLREP_num(prc); i++) {
+        pollRep = sk_OSSL_CMP_POLLREP_value(prc, i);
         /* is it the right CertReqId? */
         if (rid == -1 || rid == ASN1_INTEGER_get(pollRep->certReqId))
             return pollRep;
@@ -1358,10 +1358,10 @@ CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid)
  * returns NULL on error or if no suitable CertResponse available
  */
 /* cannot factor overlap with POLLREPCONTENT_pollResponse_get0 due to typing */
-CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
+OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(OSSL_CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid)
 {
-    CMP_CERTRESPONSE *crep = NULL;
+    OSSL_CMP_CERTRESPONSE *crep = NULL;
     int i;
     char str[DECIMAL_SIZE(rid)+1];
 
@@ -1370,8 +1370,8 @@ CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
         return NULL;
     }
 
-    for (i = 0; i < sk_CMP_CERTRESPONSE_num(crepmsg->response); i++) {
-        crep = sk_CMP_CERTRESPONSE_value(crepmsg->response, i);
+    for (i = 0; i < sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response); i++) {
+        crep = sk_OSSL_CMP_CERTRESPONSE_value(crepmsg->response, i);
         /* is it the right CertReqId? */
         if (rid == -1 || rid == ASN1_INTEGER_get(crep->certReqId))
             return crep;
@@ -1428,7 +1428,7 @@ char *OSSL_CMP_PKISTATUSINFO_snprint(OSSL_CMP_PKISTATUSINFO *si, char *buf, int 
     /* PKIFailure is optional and may be empty */
     if (si->failInfo != NULL) {
         for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++) {
-            failure = CMP_PKIFAILUREINFO_get_string(si->failInfo, i);
+            failure = OSSL_CMP_PKIFAILUREINFO_get_string(si->failInfo, i);
             if (failure == NULL)
                 return NULL;
             if (failure[0] != '\0')
@@ -1458,9 +1458,9 @@ char *OSSL_CMP_PKISTATUSINFO_snprint(OSSL_CMP_PKISTATUSINFO *si, char *buf, int 
  * Retrieve a copy of the certificate, if any, from the given CertResponse.
  * returns NULL if not found or on error
  */
-X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, CMP_CERTRESPONSE *crep)
+X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, OSSL_CMP_CERTRESPONSE *crep)
 {
-    CMP_CERTORENCCERT *coec;
+    OSSL_CMP_CERTORENCCERT *coec;
     X509 *crt = NULL;
 
     if (ctx == NULL || crep == NULL) {
@@ -1471,10 +1471,10 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, CMP_CERTRESPONSE *crep
     if (crep->certifiedKeyPair &&
         (coec = crep->certifiedKeyPair->certOrEncCert)) {
         switch (coec->type) {
-        case CMP_CERTORENCCERT_CERTIFICATE:
+        case OSSL_CMP_CERTORENCCERT_CERTIFICATE:
             crt = X509_dup(coec->value.certificate);
             break;
-        case CMP_CERTORENCCERT_ENCRYPTEDCERT:
+        case OSSL_CMP_CERTORENCCERT_ENCRYPTEDCERT:
         /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
             crt = OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(coec->value.encryptedCert,
                                                    ctx->newPkey);

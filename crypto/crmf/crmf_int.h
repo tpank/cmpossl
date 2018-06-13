@@ -11,8 +11,8 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#ifndef HEADER_CRMF_INT_H
-# define HEADER_CRMF_INT_H
+#ifndef OSSL_HEADER_CRMF_INT_H
+# define OSSL_HEADER_CRMF_INT_H
 
 # include <openssl/ossl_typ.h>
 # include <openssl/x509.h>
@@ -62,13 +62,13 @@ struct OSSL_crmf_encrypetedvalue_st {
  *     attributes                    [0] IMPLICIT Attributes OPTIONAL
  *  }
  */
-typedef struct crmf_privatekeyinfo_st {
+typedef struct OSSL_crmf_privatekeyinfo_st {
     ASN1_INTEGER *version;
     X509_ALGOR *AlgorithmIdentifier;
     ASN1_OCTET_STRING *privateKey;
     STACK_OF(X509_ATTRIBUTE) *attributes; /* [ 0 ] */
-} CRMF_PRIVATEKEYINFO;
-DECLARE_ASN1_FUNCTIONS(CRMF_PRIVATEKEYINFO)
+} OSSL_CRMF_PRIVATEKEYINFO;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PRIVATEKEYINFO)
 
 /*-
  * section 4.2.1 Private Key Info Content Type
@@ -82,21 +82,21 @@ DECLARE_ASN1_FUNCTIONS(CRMF_PRIVATEKEYINFO)
  *      } OPTIONAL
  * }
  */
-typedef struct crmf_enckeywithid_identifier_st {
+typedef struct OSSL_crmf_enckeywithid_identifier_st {
     int type;
     union {
         ASN1_UTF8STRING *string;
         GENERAL_NAME *generalName;
     } value;
-} CRMF_ENCKEYWITHID_IDENTIFIER;
-DECLARE_ASN1_FUNCTIONS(CRMF_ENCKEYWITHID_IDENTIFIER)
+} OSSL_CRMF_ENCKEYWITHID_IDENTIFIER;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCKEYWITHID_IDENTIFIER)
 
-typedef struct crmf_enckeywithid_st {
-    CRMF_PRIVATEKEYINFO *privateKey;
+typedef struct OSSL_crmf_enckeywithid_st {
+    OSSL_CRMF_PRIVATEKEYINFO *privateKey;
     /* [0] */
-    CRMF_ENCKEYWITHID_IDENTIFIER *identifier;
-} CRMF_ENCKEYWITHID;
-DECLARE_ASN1_FUNCTIONS(CRMF_ENCKEYWITHID)
+    OSSL_CRMF_ENCKEYWITHID_IDENTIFIER *identifier;
+} OSSL_CRMF_ENCKEYWITHID;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCKEYWITHID)
 
 /*-
  * CertId ::= SEQUENCE {
@@ -117,7 +117,7 @@ OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_dup(OSSL_CRMF_CERTID *cid);
  * envelopedData     [0] EnvelopedData
  * }
  */
-typedef struct crmf_encryptedkey_st {
+typedef struct OSSL_crmf_encryptedkey_st {
     int type;
     union {
         OSSL_CRMF_ENCRYPTEDVALUE *encryptedValue; /* Deprecated */
@@ -127,8 +127,8 @@ typedef struct crmf_encryptedkey_st {
          * - this is not used anywhere so far */
         ASN1_NULL *envelopedData;
     } value;
-} CRMF_ENCRYPTEDKEY;
-DECLARE_ASN1_FUNCTIONS(CRMF_ENCRYPTEDKEY)
+} OSSL_CRMF_ENCRYPTEDKEY;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDKEY)
 
 /*
  * PKIArchiveOptions ::= CHOICE {
@@ -146,7 +146,7 @@ struct OSSL_crmf_pkiarchiveoptions_st {
     int type;
     union {
         /* 0 */
-        CRMF_ENCRYPTEDKEY *encryptedPrivKey;
+        OSSL_CRMF_ENCRYPTEDKEY *encryptedPrivKey;
         /* KeyGenParameters ::= OCTET STRING *//* 1 */
         ASN1_OCTET_STRING *keyGenParameters;
         /* 2 */
@@ -167,11 +167,11 @@ OSSL_CRMF_PKIARCHIVEOPTIONS *OSSL_CRMF_PKIARCHIVEOPTIONS_dup(OSSL_CRMF_PKIARCHIV
  *  pubLocation  GeneralName OPTIONAL
  * }
  */
-typedef struct crmf_singlepubinfo_st {
+typedef struct OSSL_crmf_singlepubinfo_st {
     ASN1_INTEGER *pubMethod;
     GENERAL_NAME *pubLocation;
-} CRMF_SINGLEPUBINFO;
-DECLARE_ASN1_FUNCTIONS(CRMF_SINGLEPUBINFO)
+} OSSL_CRMF_SINGLEPUBINFO;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_SINGLEPUBINFO)
 
 /*
  * PKIPublicationInfo ::= SEQUENCE {
@@ -185,7 +185,7 @@ DECLARE_ASN1_FUNCTIONS(CRMF_SINGLEPUBINFO)
  */
 struct OSSL_crmf_pkipublicationinfo_st {
     ASN1_INTEGER *action;
-    CRMF_SINGLEPUBINFO *pubinfos;
+    OSSL_CRMF_SINGLEPUBINFO *pubinfos;
 } /* OSSL_CRMF_PKIPUBLICATIONINFO */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIPUBLICATIONINFO)
 OSSL_CRMF_PKIPUBLICATIONINFO *OSSL_CRMF_PKIPUBLICATIONINFO_dup(
@@ -198,11 +198,11 @@ OSSL_CRMF_PKIPUBLICATIONINFO *OSSL_CRMF_PKIPUBLICATIONINFO_dup(
  * -- parameter value is PBMParameter
  * value  BIT STRING }
  */
-typedef struct crmf_pkmacvalue_st {
+typedef struct OSSL_crmf_pkmacvalue_st {
     X509_ALGOR *algId;
     ASN1_BIT_STRING *value;
-} CRMF_PKMACVALUE;
-DECLARE_ASN1_FUNCTIONS(CRMF_PKMACVALUE)
+} OSSL_CRMF_PKMACVALUE;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKMACVALUE)
 
 /*
  * SubsequentMessage ::= INTEGER {
@@ -225,13 +225,13 @@ DECLARE_ASN1_FUNCTIONS(CRMF_PKMACVALUE)
  * encryptedKey      [4] EnvelopedData }
  */
 
-typedef struct crmf_popoprivkey_st {
+typedef struct OSSL_crmf_popoprivkey_st {
     int type;
     union {
         ASN1_BIT_STRING *thisMessage; /* Deprecated *//* 0 */
         ASN1_INTEGER *subsequentMessage; /* 1 */
         ASN1_BIT_STRING *dhMAC; /* 2 */
-        CRMF_PKMACVALUE *agreeMAC; /* 3 */
+        OSSL_CRMF_PKMACVALUE *agreeMAC; /* 3 */
         /*
          * TODO: This is not ASN1_NULL but CMS_ENVELOPEDDATA which should be
          * somehow taken from crypto/cms which exists now
@@ -240,8 +240,8 @@ typedef struct crmf_popoprivkey_st {
         /* 4 */
         ASN1_NULL *encryptedKey;
     } value;
-} CRMF_POPOPRIVKEY;
-DECLARE_ASN1_FUNCTIONS(CRMF_POPOPRIVKEY)
+} OSSL_CRMF_POPOPRIVKEY;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_POPOPRIVKEY)
 
 /*
  * PBMParameter ::= SEQUENCE {
@@ -262,7 +262,7 @@ struct OSSL_crmf_pbmparameter_st {
     X509_ALGOR *mac;
 } /* OSSL_CRMF_PBMPARAMETER */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PBMPARAMETER)
-#define CRMF_PBM_MAX_ITERATION_COUNT 100000 /* manipulated cnt leads to DoS */
+#define OSSL_CRMF_PBM_MAX_ITERATION_COUNT 100000 /* manipulated cnt leads to DoS */
 
 /*
  * POPOSigningKeyInput ::= SEQUENCE {
@@ -283,7 +283,7 @@ typedef struct OSSL_crmf_poposigningkeyinput_authinfo_st {
         /* 0 */
         GENERAL_NAME *sender;
         /* 1 */
-        CRMF_PKMACVALUE *publicKeyMAC;
+        OSSL_CRMF_PKMACVALUE *publicKeyMAC;
     } value;
 } OSSL_CRMF_POPOSIGNINGKEYINPUT_AUTHINFO;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_POPOSIGNINGKEYINPUT_AUTHINFO)
@@ -316,33 +316,33 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_POPOSIGNINGKEY)
  *  keyEncipherment   [2] POPOPrivKey,
  *  keyAgreement      [3] POPOPrivKey }
  */
-# define CRMF_PROOFOFPOSESSION_RAVERIFIED          0
-# define CRMF_PROOFOFPOSESSION_SIGNATURE           1
-# define CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT 2
-# define CRMF_PROOFOFPOSESSION_KEYAGREEMENT        3
-typedef struct crmf_proofofpossesion_st {
+# define OSSL_CRMF_PROOFOFPOSESSION_RAVERIFIED          0
+# define OSSL_CRMF_PROOFOFPOSESSION_SIGNATURE           1
+# define OSSL_CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT 2
+# define OSSL_CRMF_PROOFOFPOSESSION_KEYAGREEMENT        3
+typedef struct OSSL_crmf_proofofpossesion_st {
     int type;
     union {
         ASN1_NULL *raVerified; /* 0 */
         OSSL_CRMF_POPOSIGNINGKEY *signature; /* 1 */
-        CRMF_POPOPRIVKEY *keyEncipherment; /* 2 */
-        CRMF_POPOPRIVKEY *keyAgreement; /* 3 */
+        OSSL_CRMF_POPOPRIVKEY *keyEncipherment; /* 2 */
+        OSSL_CRMF_POPOPRIVKEY *keyAgreement; /* 3 */
     } value;
-} CRMF_PROOFOFPOSSESION;
-DECLARE_ASN1_FUNCTIONS(CRMF_PROOFOFPOSSESION)
+} OSSL_CRMF_PROOFOFPOSSESION;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PROOFOFPOSSESION)
 
 /*
  * OptionalValidity ::= SEQUENCE {
  * notBefore      [0] Time OPTIONAL,
  * notAfter       [1] Time OPTIONAL } -- at least one MUST be present
  */
-struct crmf_optionalvalidity_st {
+struct OSSL_crmf_optionalvalidity_st {
     /* 0 */
     ASN1_TIME *notBefore;
     /* 1 */
     ASN1_TIME *notAfter;
-} /* CRMF_OPTIONALVALIDITY */;
-DECLARE_ASN1_FUNCTIONS(CRMF_OPTIONALVALIDITY)
+} /* OSSL_CRMF_OPTIONALVALIDITY */;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_OPTIONALVALIDITY)
 
 /*
  * CertTemplate ::= SEQUENCE {
@@ -364,7 +364,7 @@ struct OSSL_crmf_certtemplate_st {
     X509_ALGOR *signingAlg;          /* 2 */  /* signingAlg MUST be omitted   */
              /* This field is assigned by the CA during certificate creation  */
     X509_NAME *issuer;               /* 3 */
-    CRMF_OPTIONALVALIDITY *validity; /* 4 */
+    OSSL_CRMF_OPTIONALVALIDITY *validity; /* 4 */
     X509_NAME *subject;              /* 5 */
     X509_PUBKEY *publicKey;          /* 6 */
     ASN1_BIT_STRING *issuerUID;      /* 7 */  /* deprecated in version 2      */
@@ -383,14 +383,14 @@ struct OSSL_crmf_certtemplate_st {
 struct OSSL_crmf_certrequest_st {
     ASN1_INTEGER *certReqId;
     OSSL_CRMF_CERTTEMPLATE *certTemplate;
-    /* TODO: make CRMF_CONTROLS out of that - but only cosmetical */
-    STACK_OF(CRMF_ATTRIBUTETYPEANDVALUE) *controls;
+    /* TODO: make OSSL_CRMF_CONTROLS out of that - but only cosmetical */
+    STACK_OF(OSSL_CRMF_ATTRIBUTETYPEANDVALUE) *controls;
 } /* OSSL_CRMF_CERTREQUEST */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTREQUEST)
 OSSL_CRMF_CERTREQUEST *OSSL_CRMF_CERTREQUEST_dup(OSSL_CRMF_CERTREQUEST *atav);
 
 /* TODO: isn't there a better way to have this for ANY type? */
-struct crmf_attributetypeandvalue_st {
+struct OSSL_crmf_attributetypeandvalue_st {
     ASN1_OBJECT *type;
     union {
         /* NID_id_regCtrl_regToken */
@@ -419,11 +419,11 @@ struct crmf_attributetypeandvalue_st {
 
         ASN1_TYPE *other;
     } value;
-} /* CRMF_ATTRIBUTETYPEANDVALUE */;
-DECLARE_ASN1_FUNCTIONS(CRMF_ATTRIBUTETYPEANDVALUE)
-DEFINE_STACK_OF(CRMF_ATTRIBUTETYPEANDVALUE)
-CRMF_ATTRIBUTETYPEANDVALUE *CRMF_ATTRIBUTETYPEANDVALUE_dup(
-                                              CRMF_ATTRIBUTETYPEANDVALUE *atav);
+} /* OSSL_CRMF_ATTRIBUTETYPEANDVALUE */;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ATTRIBUTETYPEANDVALUE)
+DEFINE_STACK_OF(OSSL_CRMF_ATTRIBUTETYPEANDVALUE)
+OSSL_CRMF_ATTRIBUTETYPEANDVALUE *OSSL_CRMF_ATTRIBUTETYPEANDVALUE_dup(
+                                              OSSL_CRMF_ATTRIBUTETYPEANDVALUE *atav);
 
 /*
  * CertReqMessages ::= SEQUENCE SIZE (1..MAX) OF CertReqMsg
@@ -436,9 +436,9 @@ CRMF_ATTRIBUTETYPEANDVALUE *CRMF_ATTRIBUTETYPEANDVALUE_dup(
 struct OSSL_crmf_certreqmsg_st {
     OSSL_CRMF_CERTREQUEST *certReq;
     /* 0 */
-    CRMF_PROOFOFPOSSESION *popo;
+    OSSL_CRMF_PROOFOFPOSSESION *popo;
     /* 1 */
-    STACK_OF(CRMF_ATTRIBUTETYPEANDVALUE) *regInfo;
+    STACK_OF(OSSL_CRMF_ATTRIBUTETYPEANDVALUE) *regInfo;
 } /* OSSL_CRMF_CERTREQMSG */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTREQMSG)
 /* DEFINE_STACK_OF(OSSL_CRMF_CERTREQMSG) */

@@ -11,8 +11,8 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#ifndef HEADER_CMP_INT_H
-# define HEADER_CMP_INT_H
+#ifndef OSSL_HEADER_CMP_INT_H
+# define OSSL_HEADER_CMP_INT_H
 
 # include <openssl/ossl_typ.h>
 # include <openssl/x509.h>
@@ -20,8 +20,6 @@
 # include <openssl/safestack.h>
 
 # include <openssl/crmf.h>
-
-# define CMP_VERSION 2L
 
 # ifdef  __cplusplus
 extern "C" {
@@ -62,10 +60,10 @@ struct OSSL_cmp_ctx_st {
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
     STACK_OF(X509) *caPubs; /* CA certs received from server (in IP message) */
 #if 0
-    CMP_PKIFREETEXT *freeText; /* (this field is intended for human consumption)
+    OSSL_CMP_PKIFREETEXT *freeText; /* (this field is intended for human consumption)
                    this may be used to indicate context-specific instructions */
 #endif
-    CMP_PKIFREETEXT *lastStatusString;
+    OSSL_CMP_PKIFREETEXT *lastStatusString;
     X509 *newClCert; /* *new* CLIENT certificate received from the CA
      * TODO: this should be a stack since there could be more than one */
     X509_NAME *recipient; /* to set in recipient in pkiheader */
@@ -144,14 +142,14 @@ struct OSSL_cmp_ctx_st {
  *       -- extra CRL details (e.g., crl number, reason, location, etc.)
  *   }
  */
-typedef struct cmp_revanncontent_st {
+typedef struct OSSL_cmp_revanncontent_st {
     ASN1_INTEGER *status;
     OSSL_CRMF_CERTID *certId;
     ASN1_GENERALIZEDTIME *willBeRevokedAt;
     ASN1_GENERALIZEDTIME *badSinceDate;
     X509_EXTENSIONS *crlDetails;
-} CMP_REVANNCONTENT;
-DECLARE_ASN1_FUNCTIONS(CMP_REVANNCONTENT)
+} OSSL_CMP_REVANNCONTENT;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_REVANNCONTENT)
 
 /*-
  *   Challenge ::= SEQUENCE {
@@ -177,12 +175,12 @@ DECLARE_ASN1_FUNCTIONS(CMP_REVANNCONTENT)
  *       --   }
  *   }
  */
-typedef struct cmp_challenge_st {
+typedef struct OSSL_cmp_challenge_st {
     X509_ALGOR *owf;
     ASN1_OCTET_STRING *witness;
     ASN1_OCTET_STRING *challenge;
-} CMP_CHALLENGE;
-DECLARE_ASN1_FUNCTIONS(CMP_CHALLENGE)
+} OSSL_CMP_CHALLENGE;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CHALLENGE)
 
 /*-
  *  CAKeyUpdAnnContent ::= SEQUENCE {
@@ -191,12 +189,12 @@ DECLARE_ASN1_FUNCTIONS(CMP_CHALLENGE)
  *     newWithNew         Certificate
  *  }
  */
-typedef struct cmp_cakeyupdanncontent_st {
+typedef struct OSSL_cmp_cakeyupdanncontent_st {
     X509 *oldWithNew;
     X509 *newWithOld;
     X509 *newWithNew;
-} CMP_CAKEYUPDANNCONTENT;
-DECLARE_ASN1_FUNCTIONS(CMP_CAKEYUPDANNCONTENT)
+} OSSL_CMP_CAKEYUPDANNCONTENT;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CAKEYUPDANNCONTENT)
 
 /*-
  * declared already here as it will be used in OSSL_CMP_PKIMESSAGE (nested) and
@@ -224,7 +222,7 @@ struct OSSL_cmp_infotypeandvalue_st {
         /* NID_id_it_preferredSymmAlg - Preferred Symmetric Algorithm  */
         X509_ALGOR *preferredSymmAlg;
         /* NID_id_it_caKeyUpdateInfo - Updated CA Key Pair */
-        CMP_CAKEYUPDANNCONTENT *caKeyUpdateInfo;
+        OSSL_CMP_CAKEYUPDANNCONTENT *caKeyUpdateInfo;
         /* NID_id_it_currentCRL - CRL  */
         X509_CRL *currentCRL;
         /* NID_id_it_unsupportedOIDs - Unsupported Object Identifiers */
@@ -255,14 +253,14 @@ int OSSL_CMP_INFOTYPEANDVALUE_stack_item_push0(
                               const OSSL_CMP_INFOTYPEANDVALUE *itav);
 
 
-typedef struct cmp_certorenccert_st {
+typedef struct OSSL_cmp_certorenccert_st {
     int type;
     union {
         X509 *certificate;
         OSSL_CRMF_ENCRYPTEDVALUE *encryptedCert;
     } value;
-} CMP_CERTORENCCERT;
-DECLARE_ASN1_FUNCTIONS(CMP_CERTORENCCERT)
+} OSSL_CMP_CERTORENCCERT;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTORENCCERT)
 
 /*-
  *   CertifiedKeyPair ::= SEQUENCE {
@@ -272,12 +270,12 @@ DECLARE_ASN1_FUNCTIONS(CMP_CERTORENCCERT)
  *       publicationInfo [1] PKIPublicationInfo  OPTIONAL
  *   }
  */
-typedef struct cmp_certifiedkeypair_st {
-    CMP_CERTORENCCERT *certOrEncCert;
+typedef struct OSSL_cmp_certifiedkeypair_st {
+    OSSL_CMP_CERTORENCCERT *certOrEncCert;
     OSSL_CRMF_ENCRYPTEDVALUE *privateKey;
     OSSL_CRMF_PKIPUBLICATIONINFO *failInfo;
-} CMP_CERTIFIEDKEYPAIR;
-DECLARE_ASN1_FUNCTIONS(CMP_CERTIFIEDKEYPAIR)
+} OSSL_CMP_CERTIFIEDKEYPAIR;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTIFIEDKEYPAIR)
 
 /*-
  *   PKIStatusInfo ::= SEQUENCE {
@@ -287,9 +285,9 @@ DECLARE_ASN1_FUNCTIONS(CMP_CERTIFIEDKEYPAIR)
  *   }
  */
 struct OSSL_cmp_pkistatusinfo_st {
-    CMP_PKISTATUS *status;
-    CMP_PKIFREETEXT *statusString;
-    CMP_PKIFAILUREINFO *failInfo;
+    OSSL_CMP_PKISTATUS *status;
+    OSSL_CMP_PKIFREETEXT *statusString;
+    OSSL_CMP_PKIFAILUREINFO *failInfo;
 } /* OSSL_CMP_PKISTATUSINFO */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKISTATUSINFO)
 OSSL_CMP_PKISTATUSINFO *OSSL_CMP_PKISTATUSINFO_dup(OSSL_CMP_PKISTATUSINFO *itav);
@@ -302,12 +300,12 @@ OSSL_CMP_PKISTATUSINFO *OSSL_CMP_PKISTATUSINFO_dup(OSSL_CMP_PKISTATUSINFO *itav)
  *      crlEntryDetails     Extensions       OPTIONAL
  *  }
  */
-typedef struct cmp_revdetails_st {
+typedef struct OSSL_cmp_revdetails_st {
     OSSL_CRMF_CERTTEMPLATE *certDetails;
     X509_EXTENSIONS *crlEntryDetails;
-} CMP_REVDETAILS;
-DECLARE_ASN1_FUNCTIONS(CMP_REVDETAILS)
-DEFINE_STACK_OF(CMP_REVDETAILS)
+} OSSL_CMP_REVDETAILS;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_REVDETAILS)
+DEFINE_STACK_OF(OSSL_CMP_REVDETAILS)
 
 /*-
  *   RevRepContent ::= SEQUENCE {
@@ -322,12 +320,12 @@ DEFINE_STACK_OF(CMP_REVDETAILS)
  *       -- the resulting CRLs (there may be more than one)
  *   }
  */
-struct cmp_revrepcontent_st {
+struct OSSL_cmp_revrepcontent_st {
     STACK_OF(OSSL_CMP_PKISTATUSINFO) *status;
     STACK_OF(OSSL_CRMF_CERTID) *certId;
     STACK_OF(X509) *crls;
-} /* CMP_REVREPCONTENT */;
-DECLARE_ASN1_FUNCTIONS(CMP_REVREPCONTENT)
+} /* OSSL_CMP_REVREPCONTENT */;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_REVREPCONTENT)
 
 /*-
  *  KeyRecRepContent ::= SEQUENCE {
@@ -339,13 +337,13 @@ DECLARE_ASN1_FUNCTIONS(CMP_REVREPCONTENT)
  *                                   CertifiedKeyPair OPTIONAL
  *   }
  */
-typedef struct cmp_keyrecrepcontent_st {
+typedef struct OSSL_cmp_keyrecrepcontent_st {
     OSSL_CMP_PKISTATUSINFO *status;
     X509 *newSigCert;
     STACK_OF(X509) *caCerts;
-    STACK_OF(CMP_CERTIFIEDKEYPAIR) *keyPairHist;
-} CMP_KEYRECREPCONTENT;
-DECLARE_ASN1_FUNCTIONS(CMP_KEYRECREPCONTENT)
+    STACK_OF(OSSL_CMP_CERTIFIEDKEYPAIR) *keyPairHist;
+} OSSL_CMP_KEYRECREPCONTENT;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_KEYRECREPCONTENT)
 /*-
  *   ErrorMsgContent ::= SEQUENCE {
  *       pKIStatusInfo          PKIStatusInfo,
@@ -355,12 +353,12 @@ DECLARE_ASN1_FUNCTIONS(CMP_KEYRECREPCONTENT)
  *       -- implementation-specific error details
  *   }
  */
-typedef struct cmp_errormsgcontent_st {
+typedef struct OSSL_cmp_errormsgcontent_st {
     OSSL_CMP_PKISTATUSINFO *pKIStatusInfo;
     ASN1_INTEGER *errorCode;
-    CMP_PKIFREETEXT *errorDetails;
-} CMP_ERRORMSGCONTENT;
-DECLARE_ASN1_FUNCTIONS(CMP_ERRORMSGCONTENT)
+    OSSL_CMP_PKIFREETEXT *errorDetails;
+} OSSL_CMP_ERRORMSGCONTENT;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ERRORMSGCONTENT)
 
 /*-
  *   CertConfirmContent ::= SEQUENCE OF CertStatus
@@ -374,14 +372,14 @@ DECLARE_ASN1_FUNCTIONS(CMP_ERRORMSGCONTENT)
  *      statusInfo  PKIStatusInfo OPTIONAL
  *   }
  */
-struct cmp_certstatus_st {
+struct OSSL_cmp_certstatus_st {
     ASN1_OCTET_STRING *certHash;
     ASN1_INTEGER *certReqId;
     OSSL_CMP_PKISTATUSINFO *statusInfo;
-} /* CMP_CERTSTATUS */;
-DECLARE_ASN1_FUNCTIONS(CMP_CERTSTATUS)
+} /* OSSL_CMP_CERTSTATUS */;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTSTATUS)
 
-typedef STACK_OF(CMP_CERTSTATUS) CMP_CERTCONFIRMCONTENT;
+typedef STACK_OF(OSSL_CMP_CERTSTATUS) OSSL_CMP_CERTCONFIRMCONTENT;
 
 /*-
  *   CertResponse ::= SEQUENCE {
@@ -396,13 +394,13 @@ typedef STACK_OF(CMP_CERTSTATUS) CMP_CERTCONFIRMCONTENT;
  *       -- for regInfo in CertReqMsg [CRMF]
  *   }
  */
-struct cmp_certresponse_st {
+struct OSSL_cmp_certresponse_st {
     ASN1_INTEGER *certReqId;
     OSSL_CMP_PKISTATUSINFO *status;
-    CMP_CERTIFIEDKEYPAIR *certifiedKeyPair;
+    OSSL_CMP_CERTIFIEDKEYPAIR *certifiedKeyPair;
     ASN1_OCTET_STRING *rspInfo;
-} /* CMP_CERTRESPONSE */;
-DECLARE_ASN1_FUNCTIONS(CMP_CERTRESPONSE)
+} /* OSSL_CMP_CERTRESPONSE */;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTRESPONSE)
 
 /*-
  *   CertRepMessage ::= SEQUENCE {
@@ -411,24 +409,24 @@ DECLARE_ASN1_FUNCTIONS(CMP_CERTRESPONSE)
  *       response         SEQUENCE OF CertResponse
  *   }
  */
-struct cmp_certrepmessage_st {
+struct OSSL_cmp_certrepmessage_st {
     STACK_OF(X509) *caPubs;
-    STACK_OF(CMP_CERTRESPONSE) *response;
-} /* CMP_CERTREPMESSAGE */;
-DECLARE_ASN1_FUNCTIONS(CMP_CERTREPMESSAGE)
+    STACK_OF(OSSL_CMP_CERTRESPONSE) *response;
+} /* OSSL_CMP_CERTREPMESSAGE */;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTREPMESSAGE)
 
 /*-
  *   PollReqContent ::= SEQUENCE OF SEQUENCE {
  *         certReqId                              INTEGER
  *   }
  */
-typedef struct cmp_pollreq_st {
+typedef struct OSSL_cmp_pollreq_st {
     ASN1_INTEGER *certReqId;
-} CMP_POLLREQ;
-DECLARE_ASN1_FUNCTIONS(CMP_POLLREQ)
-DEFINE_STACK_OF(CMP_POLLREQ)
-typedef STACK_OF(CMP_POLLREQ) CMP_POLLREQCONTENT;
-DECLARE_ASN1_FUNCTIONS(CMP_POLLREQCONTENT)
+} OSSL_CMP_POLLREQ;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_POLLREQ)
+DEFINE_STACK_OF(OSSL_CMP_POLLREQ)
+typedef STACK_OF(OSSL_CMP_POLLREQ) OSSL_CMP_POLLREQCONTENT;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_POLLREQCONTENT)
 
 /*-
  * PollRepContent ::= SEQUENCE OF SEQUENCE {
@@ -437,14 +435,14 @@ DECLARE_ASN1_FUNCTIONS(CMP_POLLREQCONTENT)
  *         reason                                 PKIFreeText OPTIONAL
  * }
  */
-struct cmp_pollrep_st {
+struct OSSL_cmp_pollrep_st {
     ASN1_INTEGER *certReqId;
     ASN1_INTEGER *checkAfter;
-    CMP_PKIFREETEXT *reason;
-} /* CMP_POLLREP */;
-DECLARE_ASN1_FUNCTIONS(CMP_POLLREP)
-DEFINE_STACK_OF(CMP_POLLREP)
-DECLARE_ASN1_FUNCTIONS(CMP_POLLREPCONTENT)
+    OSSL_CMP_PKIFREETEXT *reason;
+} /* OSSL_CMP_POLLREP */;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_POLLREP)
+DEFINE_STACK_OF(OSSL_CMP_POLLREP)
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_POLLREPCONTENT)
 
 /*-
  * PKIHeader ::= SEQUENCE {
@@ -492,17 +490,17 @@ struct OSSL_cmp_pkiheader_st {
     ASN1_OCTET_STRING *transactionID; /* 4 */
     ASN1_OCTET_STRING *senderNonce; /* 5 */
     ASN1_OCTET_STRING *recipNonce; /* 6 */
-    CMP_PKIFREETEXT *freeText; /* 7 */
+    OSSL_CMP_PKIFREETEXT *freeText; /* 7 */
     STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *generalInfo; /* 8 */
 } /* OSSL_CMP_PKIHEADER */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIHEADER)
 
-typedef STACK_OF(CMP_CHALLENGE) CMP_POPODECKEYCHALLCONTENT;
-typedef STACK_OF(ASN1_INTEGER) CMP_POPODECKEYRESPCONTENT;
-typedef STACK_OF(CMP_REVDETAILS) CMP_REVREQCONTENT;
-typedef STACK_OF(X509_CRL) CMP_CRLANNCONTENT;
-typedef STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) CMP_GENMSGCONTENT;
-typedef STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) CMP_GENREPCONTENT;
+typedef STACK_OF(OSSL_CMP_CHALLENGE) OSSL_CMP_POPODECKEYCHALLCONTENT;
+typedef STACK_OF(ASN1_INTEGER) OSSL_CMP_POPODECKEYRESPCONTENT;
+typedef STACK_OF(OSSL_CMP_REVDETAILS) OSSL_CMP_REVREQCONTENT;
+typedef STACK_OF(X509_CRL) OSSL_CMP_CRLANNCONTENT;
+typedef STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) OSSL_CMP_GENMSGCONTENT;
+typedef STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) OSSL_CMP_GENREPCONTENT;
 
 /*-
  *   PKIBody ::= CHOICE {           -- message-specific body elements
@@ -538,47 +536,47 @@ typedef struct OSSL_cmp_pkibody_st {
     int type;
     union {
         OSSL_CRMF_CERTREQMESSAGES *ir; /* 0 */
-        CMP_CERTREPMESSAGE *ip; /* 1 */
+        OSSL_CMP_CERTREPMESSAGE *ip; /* 1 */
         OSSL_CRMF_CERTREQMESSAGES *cr; /* 2 */
-        CMP_CERTREPMESSAGE *cp; /* 3 */
+        OSSL_CMP_CERTREPMESSAGE *cp; /* 3 */
         /* p10cr      [4]  CertificationRequest,     --imported from [PKCS10] */
         /* PKCS10_CERTIFICATIONREQUEST is effectively X509_REQ
            so it is used directly */
         X509_REQ *p10cr; /* 4 */
         /* popdecc    [5]  POPODecKeyChallContent, --pop Challenge */
         /* POPODecKeyChallContent ::= SEQUENCE OF Challenge */
-        CMP_POPODECKEYCHALLCONTENT *popdecc; /* 5 */
+        OSSL_CMP_POPODECKEYCHALLCONTENT *popdecc; /* 5 */
         /* popdecr    [6]  POPODecKeyRespContent,  --pop Response */
         /* POPODecKeyRespContent ::= SEQUENCE OF INTEGER */
-        CMP_POPODECKEYRESPCONTENT *popdecr; /* 6 */
+        OSSL_CMP_POPODECKEYRESPCONTENT *popdecr; /* 6 */
         OSSL_CRMF_CERTREQMESSAGES *kur; /* 7 */
-        CMP_CERTREPMESSAGE *kup; /* 8 */
+        OSSL_CMP_CERTREPMESSAGE *kup; /* 8 */
         OSSL_CRMF_CERTREQMESSAGES *krr; /* 9 */
 
         /* krp        [10] KeyRecRepContent,         --Key Recovery Response */
-        CMP_KEYRECREPCONTENT *krp; /* 10 */
+        OSSL_CMP_KEYRECREPCONTENT *krp; /* 10 */
         /* rr         [11] RevReqContent,            --Revocation Request */
-        CMP_REVREQCONTENT *rr; /* 11 */
+        OSSL_CMP_REVREQCONTENT *rr; /* 11 */
         /* rp         [12] RevRepContent,            --Revocation Response */
-        CMP_REVREPCONTENT *rp; /* 12 */
+        OSSL_CMP_REVREPCONTENT *rp; /* 12 */
         /* ccr        [13] CertReqMessages,          --Cross-Cert. Request */
         OSSL_CRMF_CERTREQMESSAGES *ccr; /* 13 */
         /* ccp        [14] CertRepMessage,           --Cross-Cert. Response */
-        CMP_CERTREPMESSAGE *ccp; /* 14 */
+        OSSL_CMP_CERTREPMESSAGE *ccp; /* 14 */
         /* ckuann     [15] CAKeyUpdAnnContent,       --CA Key Update Ann. */
-        CMP_CAKEYUPDANNCONTENT *ckuann; /* 15 */
+        OSSL_CMP_CAKEYUPDANNCONTENT *ckuann; /* 15 */
         /* cann       [16] CertAnnContent,           --Certificate Ann. */
-        /* CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
+        /* OSSL_CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
         X509 *cann;         /* 16 */
         /* rann       [17] RevAnnContent,            --Revocation Ann. */
-        CMP_REVANNCONTENT *rann; /* 17 */
+        OSSL_CMP_REVANNCONTENT *rann; /* 17 */
         /* crlann     [18] CRLAnnContent,            --CRL Announcement */
         /* CRLAnnContent ::= SEQUENCE OF CertificateList */
-        CMP_CRLANNCONTENT *crlann;
+        OSSL_CMP_CRLANNCONTENT *crlann;
         /* PKIConfirmContent ::= NULL */
         /* pkiconf    [19] PKIConfirmContent,        --Confirmation */
-        /* CMP_PKICONFIRMCONTENT would be only a typedef of ASN1_NULL */
-        /* CMP_CONFIRMCONTENT *pkiconf; */
+        /* OSSL_CMP_PKICONFIRMCONTENT would be only a typedef of ASN1_NULL */
+        /* OSSL_CMP_CONFIRMCONTENT *pkiconf; */
         /* NOTE: this should ASN1_NULL according to the RFC but there might be a struct in it when sent from faulty servers... */
         ASN1_TYPE *pkiconf; /* 19 */
         /* nested     [20] NestedMessageContent,     --Nested Message */
@@ -586,21 +584,21 @@ typedef struct OSSL_cmp_pkibody_st {
         OSSL_CMP_PKIMESSAGES *nested; /* 20 */
         /* genm       [21] GenMsgContent,            --General Message */
         /* GenMsgContent ::= SEQUENCE OF InfoTypeAndValue */
-        CMP_GENMSGCONTENT *genm; /* 21 */
+        OSSL_CMP_GENMSGCONTENT *genm; /* 21 */
         /* genp       [22] GenRepContent,            --General Response */
         /* GenRepContent ::= SEQUENCE OF InfoTypeAndValue */
-        CMP_GENREPCONTENT *genp; /* 22 */
+        OSSL_CMP_GENREPCONTENT *genp; /* 22 */
         /* error      [23] ErrorMsgContent,          --Error Message */
-        CMP_ERRORMSGCONTENT *error; /* 23 */
+        OSSL_CMP_ERRORMSGCONTENT *error; /* 23 */
         /* certConf [24] CertConfirmContent,     --Certificate confirm */
-        CMP_CERTCONFIRMCONTENT *certConf; /* 24 */
+        OSSL_CMP_CERTCONFIRMCONTENT *certConf; /* 24 */
         /* pollReq    [25] PollReqContent,           --Polling request */
-        CMP_POLLREQCONTENT *pollReq;
+        OSSL_CMP_POLLREQCONTENT *pollReq;
         /* pollRep    [26] PollRepContent            --Polling response */
-        CMP_POLLREPCONTENT *pollRep;
+        OSSL_CMP_POLLREPCONTENT *pollRep;
     } value;
-} CMP_PKIBODY;
-DECLARE_ASN1_FUNCTIONS(CMP_PKIBODY)
+} OSSL_CMP_PKIBODY;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIBODY)
 
 /*-
  *   PKIProtection ::= BIT STRING
@@ -617,9 +615,9 @@ DECLARE_ASN1_FUNCTIONS(CMP_PKIBODY)
  */
 struct OSSL_cmp_pkimessage_st {
     OSSL_CMP_PKIHEADER *header;
-    CMP_PKIBODY *body;
+    OSSL_CMP_PKIBODY *body;
     ASN1_BIT_STRING *protection; /* 0 */
-    /* CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
+    /* OSSL_CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
     STACK_OF(X509) *extraCerts; /* 1 */
 } /* OSSL_CMP_PKIMESSAGE */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIMESSAGE)
@@ -630,11 +628,11 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIMESSAGE)
  * body      PKIBody
  * }
  */
-typedef struct cmp_protectedpart_st {
+typedef struct OSSL_cmp_protectedpart_st {
     OSSL_CMP_PKIHEADER *header;
-    CMP_PKIBODY *body;
-} CMP_PROTECTEDPART;
-DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
+    OSSL_CMP_PKIBODY *body;
+} OSSL_CMP_PROTECTEDPART;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PROTECTEDPART)
 
 /*-
  *  this is not defined here as it is already in CRMF:
@@ -698,27 +696,23 @@ void CMP_add_error_txt(const char *separator, const char *txt);
 # define CMP_add_error_data(txt) CMP_add_error_txt(":", txt)
 # define CMP_add_error_line(txt) CMP_add_error_txt("\n", txt)
 
-CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft,const char *text);
+OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,const char *text);
 
 OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(
-                                           CMP_REVREPCONTENT *rrep, long reqId);
-int CMP_CERTSTATUS_set_certHash(CMP_CERTSTATUS *certStatus, const X509 *cert);
+                                           OSSL_CMP_REVREPCONTENT *rrep, long reqId);
+int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus, const X509 *cert);
 int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) **
                               itav_sk_p, const OSSL_CMP_INFOTYPEANDVALUE *itav);
 
-X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
-CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid);
-CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(CMP_CERTREPMESSAGE
+X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, OSSL_CMP_CERTRESPONSE *crep);
+OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc, long rid);
+OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(OSSL_CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);
 
 
 
 /* from cmp_ctx.c */
-int CMP_puts(const char *file, int lineno, OSSL_CMP_severity level,
-             const char *msg);
-int CMP_log_fd(const char *file, int lineno, OSSL_CMP_severity level,
-               const char *msg, FILE *dest);
-#ifdef OSSL_CMP_POOR_LOG
+#ifdef CMP_POOR_LOG
 #define CMP_LOG(x)  CMP_log_printf x /* poor man's variadic macro for C90;
    calls need argument(s) in doubly nested parentheses: LOG((args)) */
 /* C99 would allow  #define LOG(...) log_print(__VA_ARGS__)  where
@@ -728,7 +722,7 @@ int CMP_log_printf(const char *file, int line, OSSL_CMP_severity level,
                    const char *fmt,...);
 #endif
 
-int OSSL_CMP_CTX_error_cb(const char *str, size_t len, void *u);
+int CMP_CTX_error_cb(const char *str, size_t len, void *u);
 
 /* from cmp_vfy.c */
 void put_cert_verify_err(int func);

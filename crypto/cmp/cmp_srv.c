@@ -14,7 +14,7 @@
 
 #include <openssl/cmp.h>
 #include "cmp_int.h"
-#include "../crmf/crmf_int.h"
+#include "../crmf/crmf_int.h" /* TODO avoid this */
 #include <openssl/err.h>
 #include <openssl/asn1.h>
 #include <openssl/asn1t.h>
@@ -202,7 +202,7 @@ static OSSL_CMP_PKIMESSAGE *CMP_pkiconf_new(OSSL_CMP_CTX *ctx)
 static OSSL_CMP_PKIMESSAGE *CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si,
                                   OSSL_CRMF_CERTID *certId, int unprotectedErrors)
 {
-    CMP_REVREPCONTENT *rep = NULL;
+    OSSL_CMP_REVREPCONTENT *rep = NULL;
     OSSL_CMP_PKISTATUSINFO *si1 = NULL;
     OSSL_CMP_PKIMESSAGE *msg = NULL;
 
@@ -245,8 +245,8 @@ static OSSL_CMP_PKIMESSAGE *CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
                                        int unprotectedErrors)
 {
     OSSL_CMP_PKIMESSAGE *msg = NULL;
-    CMP_CERTREPMESSAGE *repMsg = NULL;
-    CMP_CERTRESPONSE *resp = NULL;
+    OSSL_CMP_CERTREPMESSAGE *repMsg = NULL;
+    OSSL_CMP_CERTRESPONSE *resp = NULL;
     int status = -1;
 
     if (ctx == NULL || si == NULL) {
@@ -263,7 +263,7 @@ static OSSL_CMP_PKIMESSAGE *CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
         goto oom;
 
     /* body */
-    if ((resp = CMP_CERTRESPONSE_new()) == NULL)
+    if ((resp = OSSL_CMP_CERTRESPONSE_new()) == NULL)
         goto oom;
     OSSL_CMP_PKISTATUSINFO_free(resp->status);
     if ((resp->status = OSSL_CMP_PKISTATUSINFO_dup(si)) == NULL ||
@@ -273,23 +273,23 @@ static OSSL_CMP_PKIMESSAGE *CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
 
     status = OSSL_CMP_PKISTATUSINFO_PKIStatus_get(resp->status);
     if (status != OSSL_CMP_PKISTATUS_rejection &&
-        status != CMP_PKISTATUS_waiting && cert != NULL) {
+        status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
         if (encrypted) {
             CMPerr(CMP_F_CMP_CERTREP_NEW, CMP_R_INVALID_PARAMETERS);
             /*TODO implement (not urgent) */
             goto err;
         } else {
-            if ((resp->certifiedKeyPair = CMP_CERTIFIEDKEYPAIR_new()) == NULL)
+            if ((resp->certifiedKeyPair = OSSL_CMP_CERTIFIEDKEYPAIR_new()) == NULL)
                 goto oom;
             resp->certifiedKeyPair->certOrEncCert->type =
-                CMP_CERTORENCCERT_CERTIFICATE;
+                OSSL_CMP_CERTORENCCERT_CERTIFICATE;
             if (!X509_up_ref(cert))
                 goto err;
             resp->certifiedKeyPair->certOrEncCert->value.certificate = cert;
         }
     }
 
-    if (!sk_CMP_CERTRESPONSE_push(repMsg->response, resp))
+    if (!sk_OSSL_CMP_CERTRESPONSE_push(repMsg->response, resp))
         goto oom;
     resp = NULL;
     /* TODO: here optional 2nd certrep could be pushed to the stack */
@@ -311,7 +311,7 @@ static OSSL_CMP_PKIMESSAGE *CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
     CMPerr(CMP_F_CMP_CERTREP_NEW, CMP_R_OUT_OF_MEMORY);
  err:
     CMPerr(CMP_F_CMP_CERTREP_NEW, CMP_R_ERROR_CREATING_CERTREP);
-    CMP_CERTRESPONSE_free(resp);
+    OSSL_CMP_CERTRESPONSE_free(resp);
     OSSL_CMP_PKIMESSAGE_free(msg);
     return NULL;
 }
@@ -324,7 +324,7 @@ static OSSL_CMP_PKIMESSAGE *CMP_pollrep_new(OSSL_CMP_CTX *ctx, long certReqId,
                                        long pollAfter)
 {
     OSSL_CMP_PKIMESSAGE *msg;
-    CMP_POLLREP *pollRep;
+    OSSL_CMP_POLLREP *pollRep;
 
     if (ctx == NULL) {
         CMPerr(CMP_F_CMP_POLLREP_NEW, CMP_R_NULL_ARGUMENT);
@@ -332,9 +332,9 @@ static OSSL_CMP_PKIMESSAGE *CMP_pollrep_new(OSSL_CMP_CTX *ctx, long certReqId,
     }
     if ((msg = OSSL_CMP_PKIMESSAGE_create(ctx, OSSL_CMP_PKIBODY_POLLREP)) == NULL)
         goto err;
-    if ((pollRep = CMP_POLLREP_new()) == NULL)
+    if ((pollRep = OSSL_CMP_POLLREP_new()) == NULL)
         goto err;
-    sk_CMP_POLLREP_push(msg->body->value.pollRep, pollRep);
+    sk_OSSL_CMP_POLLREP_push(msg->body->value.pollRep, pollRep);
     ASN1_INTEGER_set(pollRep->certReqId, certReqId);
     ASN1_INTEGER_set(pollRep->checkAfter, pollAfter);
 
@@ -413,11 +413,11 @@ static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_PKIMESSAGE 
         OSSL_CRMF_CERTREQMSG *req =
             sk_OSSL_CRMF_CERTREQMSG_value(msg->body->value.ir, CERTREQID);
         switch (req->popo->type) {
-        case CRMF_PROOFOFPOSESSION_RAVERIFIED:
+        case OSSL_CRMF_PROOFOFPOSESSION_RAVERIFIED:
             if (srv_ctx->acceptRAVerified)
                 return 1;
             break;
-        case CRMF_PROOFOFPOSESSION_SIGNATURE:
+        case OSSL_CRMF_PROOFOFPOSESSION_SIGNATURE:
             pubkey = req->certReq->certTemplate->publicKey;
             sig = req->popo->value.signature;
             if (sig->poposkInput != NULL) {
@@ -443,7 +443,7 @@ This MUST be exactly the same value as is contained in the certificate template.
                     break;
             }
             return 1;
-        case CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT:
+        case OSSL_CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT:
             if (req->popo->value.keyEncipherment->type
                 != OSSL_CRMF_POPOPRIVKEY_SUBSEQUENTMESSAGE)
                 goto unsupported;
@@ -457,7 +457,7 @@ This MUST be exactly the same value as is contained in the certificate template.
 #else
             goto unsupported;
 #endif
-        case CRMF_PROOFOFPOSESSION_KEYAGREEMENT:
+        case OSSL_CRMF_PROOFOFPOSESSION_KEYAGREEMENT:
         default:
  unsupported:
             CMPerr(CMP_F_CMP_VERIFY_POPO, CMP_R_UNSUPPORTED_POPO_METHOD);
@@ -517,12 +517,12 @@ static OSSL_CMP_PKIMESSAGE *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     if (!cmp_verify_popo(srv_ctx, certReq)) {
         /* Proof of possession could not be verified */
         if ((si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection,
-                                     1 << CMP_PKIFAILUREINFO_badPOP,
+                                     1 << OSSL_CMP_PKIFAILUREINFO_badPOP,
                                      NULL)) == NULL)
             goto oom;
     } else if (srv_ctx->pollCount > 0) {
         srv_ctx->pollCount--;
-        if ((si = OSSL_CMP_statusInfo_new(CMP_PKISTATUS_waiting, 0, NULL)) == NULL)
+        if ((si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_waiting, 0, NULL)) == NULL)
             goto oom;
         OSSL_CMP_PKIMESSAGE_free(srv_ctx->certReq);
         if ((srv_ctx->certReq = OSSL_CMP_PKIMESSAGE_dup((OSSL_CMP_PKIMESSAGE *)certReq))
@@ -558,7 +558,7 @@ static OSSL_CMP_PKIMESSAGE *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
                                   const OSSL_CMP_PKIMESSAGE *req)
 {
     OSSL_CMP_PKIMESSAGE *msg;
-    CMP_REVDETAILS *details;
+    OSSL_CMP_REVDETAILS *details;
     OSSL_CRMF_CERTID *certId;
 
     if (srv_ctx == NULL || req == NULL) {
@@ -566,7 +566,7 @@ static OSSL_CMP_PKIMESSAGE *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
         return NULL;
     }
 
-    if ((details = sk_CMP_REVDETAILS_value(req->body->value.rr,
+    if ((details = sk_OSSL_CMP_REVDETAILS_value(req->body->value.rr,
                                            REVREQSID)) == NULL) {
         CMPerr(CMP_F_PROCESS_RR, CMP_R_ERROR_PROCESSING_MSG);
         return NULL;
@@ -600,10 +600,10 @@ static OSSL_CMP_PKIMESSAGE *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
                                         const OSSL_CMP_PKIMESSAGE *req)
 {
     OSSL_CMP_PKIMESSAGE *msg = NULL;
-    CMP_CERTSTATUS *status = NULL;
+    OSSL_CMP_CERTSTATUS *status = NULL;
     ASN1_OCTET_STRING *tmp = NULL;
     int res = -1;
-    int num = sk_CMP_CERTSTATUS_num(req->body->value.certConf);
+    int num = sk_OSSL_CMP_CERTSTATUS_num(req->body->value.certConf);
 
     if (num == 0) {
         OSSL_CMP_err(srv_ctx->ctx, "certificate rejected by client");
@@ -611,7 +611,7 @@ static OSSL_CMP_PKIMESSAGE *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         if (num > 1)
             OSSL_CMP_warn(srv_ctx->ctx,
                      "All CertStatus but the first will be ignored");
-        status = sk_CMP_CERTSTATUS_value(req->body->value.certConf, CERTREQID);
+        status = sk_OSSL_CMP_CERTSTATUS_value(req->body->value.certConf, CERTREQID);
     }
 
     if (status != NULL) {
@@ -847,7 +847,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_PKIMESSAG
         unsigned long err = ERR_peek_error_line_data(NULL, NULL, &data, &flags);
         if ((si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection,
                                      /* TODO make failure bits more specific */
-                                     1 << CMP_PKIFAILUREINFO_badRequest,
+                                     1 << OSSL_CMP_PKIFAILUREINFO_badRequest,
                                      NULL))) {
             srv_rsp = OSSL_CMP_error_new(cmp_ctx, si,
                                     err != 0 ? ERR_GET_REASON(err): -1,

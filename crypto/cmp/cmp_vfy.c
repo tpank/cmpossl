@@ -31,7 +31,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
                                 const OSSL_CMP_PKIMESSAGE *msg, const X509 *cert)
 {
     EVP_MD_CTX *ctx = NULL;
-    CMP_PROTECTEDPART prot_part;
+    OSSL_CMP_PROTECTEDPART prot_part;
     int ret = 0;
     int digest_nid, pk_nid;
     EVP_MD *digest = NULL;
@@ -64,7 +64,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     prot_part.header = msg->header;
     prot_part.body = msg->body;
 
-    l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+    l = i2d_OSSL_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
     if (l < 0 || prot_part_der == NULL)
         goto end;
     prot_part_der_len = (size_t) l;
@@ -515,7 +515,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, const X509 *scrt,
          * verify that the newly enrolled certificate (which is assumed to have
          * rid == 0) can also be validated with the same trusted store
          */
-        CMP_CERTRESPONSE *crep =
+        OSSL_CMP_CERTRESPONSE *crep =
             CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip, 0);
         X509 *newcrt = CMP_CERTRESPONSE_get_certificate(ctx, crep); /* maybe
             better use get_cert_status() from cmp_ses.c, which catches errors */

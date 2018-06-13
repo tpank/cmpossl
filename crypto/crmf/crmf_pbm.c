@@ -185,7 +185,7 @@ int OSSL_CRMF_passwordBasedMac_new(const OSSL_CRMF_PBMPARAMETER *pbm,
         !(iterations = ASN1_INTEGER_get(pbm->iterationCount))
 #endif
             || iterations < 100 /* min from RFC */
-            || iterations > CRMF_PBM_MAX_ITERATION_COUNT) {
+            || iterations > OSSL_CRMF_PBM_MAX_ITERATION_COUNT) {
         error = CRMF_R_BAD_PBM_ITERATIONCOUNT;
         goto err;
     }

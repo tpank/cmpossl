@@ -42,10 +42,10 @@
 int OSSL_CRMF_CERTREQMSG_set1_##ctrlinf##_##atyp(OSSL_CRMF_CERTREQMSG *msg,         \
                                          valt *in)                        \
 {                                                                         \
-    CRMF_ATTRIBUTETYPEANDVALUE *atav = NULL;                              \
+    OSSL_CRMF_ATTRIBUTETYPEANDVALUE *atav = NULL;                              \
     if (msg == NULL || in  == NULL)                                       \
         goto err;                                                         \
-    if ((atav = CRMF_ATTRIBUTETYPEANDVALUE_new()) == NULL)                \
+    if ((atav = OSSL_CRMF_ATTRIBUTETYPEANDVALUE_new()) == NULL)                \
         goto err;                                                         \
     if ((atav->type = OBJ_nid2obj(NID_id_##ctrlinf##_##atyp)) == NULL)    \
         goto err;                                                         \
@@ -55,7 +55,7 @@ int OSSL_CRMF_CERTREQMSG_set1_##ctrlinf##_##atyp(OSSL_CRMF_CERTREQMSG *msg,     
         goto err;                                                         \
     return 1;                                                             \
  err:                                                                     \
-    if (atav) CRMF_ATTRIBUTETYPEANDVALUE_free(atav);                      \
+    if (atav) OSSL_CRMF_ATTRIBUTETYPEANDVALUE_free(atav);                      \
     return 0;                                                             \
 }
 
@@ -66,7 +66,7 @@ int OSSL_CRMF_CERTREQMSG_set1_##ctrlinf##_##atyp(OSSL_CRMF_CERTREQMSG *msg,     
  * returns 1 on success, 0 on error
  */
 static int OSSL_CRMF_CERTREQMSG_push0_regCtrl(OSSL_CRMF_CERTREQMSG *crm,
-        CRMF_ATTRIBUTETYPEANDVALUE *ctrl)
+        OSSL_CRMF_ATTRIBUTETYPEANDVALUE *ctrl)
 {
     int new = 0;
 
@@ -75,11 +75,11 @@ static int OSSL_CRMF_CERTREQMSG_push0_regCtrl(OSSL_CRMF_CERTREQMSG *crm,
 
     if (!(crm->certReq->controls)) {
         if (!(crm->certReq->controls =
-                                      sk_CRMF_ATTRIBUTETYPEANDVALUE_new_null()))
+                                      sk_OSSL_CRMF_ATTRIBUTETYPEANDVALUE_new_null()))
             goto err;
         new = 1;
     }
-    if (!sk_CRMF_ATTRIBUTETYPEANDVALUE_push(crm->certReq->controls, ctrl))
+    if (!sk_OSSL_CRMF_ATTRIBUTETYPEANDVALUE_push(crm->certReq->controls, ctrl))
         goto err;
 
     return 1;
@@ -87,7 +87,7 @@ static int OSSL_CRMF_CERTREQMSG_push0_regCtrl(OSSL_CRMF_CERTREQMSG *crm,
     CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_PUSH0_REGCTRL, CRMF_R_ERROR);
 
     if (new) {
-        sk_CRMF_ATTRIBUTETYPEANDVALUE_free(crm->certReq->controls);
+        sk_OSSL_CRMF_ATTRIBUTETYPEANDVALUE_free(crm->certReq->controls);
         crm->certReq->controls = NULL;
     }
     return 0;
@@ -158,7 +158,7 @@ IMPLEMENT_CRMF_CTRL_FUNC(protocolEncrKey, X509_PUBKEY, regCtrl)
  * returns 1 on success, 0 on error
  */
 static int OSSL_CRMF_CERTREQMSG_push0_regInfo(OSSL_CRMF_CERTREQMSG *crm,
-                                  CRMF_ATTRIBUTETYPEANDVALUE *ri)
+                                  OSSL_CRMF_ATTRIBUTETYPEANDVALUE *ri)
 {
     int new = 0;
 
@@ -166,18 +166,18 @@ static int OSSL_CRMF_CERTREQMSG_push0_regInfo(OSSL_CRMF_CERTREQMSG *crm,
         goto err;
 
     if ((crm->regInfo) == NULL) {
-        if ((crm->regInfo = sk_CRMF_ATTRIBUTETYPEANDVALUE_new_null()) == NULL)
+        if ((crm->regInfo = sk_OSSL_CRMF_ATTRIBUTETYPEANDVALUE_new_null()) == NULL)
             goto err;
         new = 1;
     }
-    if (!sk_CRMF_ATTRIBUTETYPEANDVALUE_push(crm->regInfo, ri))
+    if (!sk_OSSL_CRMF_ATTRIBUTETYPEANDVALUE_push(crm->regInfo, ri))
         goto err;
     return 1;
  err:
     CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_PUSH0_REGINFO, CRMF_R_ERROR);
 
     if (new) {
-        sk_CRMF_ATTRIBUTETYPEANDVALUE_free(crm->regInfo);
+        sk_OSSL_CRMF_ATTRIBUTETYPEANDVALUE_free(crm->regInfo);
         crm->regInfo = NULL;
     }
     return 0;
@@ -214,7 +214,7 @@ int OSSL_CRMF_CERTREQMSG_set_version2(OSSL_CRMF_CERTREQMSG *crm)
 
 int OSSL_CRMF_CERTREQMSG_set_validity(OSSL_CRMF_CERTREQMSG *crm, time_t from, time_t to)
 {
-    CRMF_OPTIONALVALIDITY *vld = NULL;
+    OSSL_CRMF_OPTIONALVALIDITY *vld = NULL;
     ASN1_TIME *from_asn = NULL;
     ASN1_TIME *to_asn = NULL;
 
@@ -225,7 +225,7 @@ int OSSL_CRMF_CERTREQMSG_set_validity(OSSL_CRMF_CERTREQMSG *crm, time_t from, ti
         goto err;
     if (to && ((to_asn = ASN1_TIME_set(NULL, to)) == NULL))
         goto err;
-    if ((vld = CRMF_OPTIONALVALIDITY_new()) == NULL)
+    if ((vld = OSSL_CRMF_OPTIONALVALIDITY_new()) == NULL)
         goto err;
 
     vld->notBefore = from_asn;
@@ -419,9 +419,9 @@ static OSSL_CRMF_POPOSIGNINGKEY *poposigkey_new(OSSL_CRMF_CERTREQUEST *cr,
 int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
                                 int dgst, int ppmtd)
 {
-    CRMF_PROOFOFPOSSESION *pp = NULL;
+    OSSL_CRMF_PROOFOFPOSSESION *pp = NULL;
 
-    if (ppmtd == CRMF_POPO_NONE)
+    if (ppmtd == OSSL_CRMF_POPO_NONE)
         return 1;
 
     if (crm == NULL)
@@ -429,12 +429,12 @@ int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *
     if (ppmtd == OSSL_CRMF_POPO_SIGNATURE && (pkey == NULL))
         goto err;
 
-    if ((pp = CRMF_PROOFOFPOSSESION_new()) == NULL)
+    if ((pp = OSSL_CRMF_PROOFOFPOSSESION_new()) == NULL)
         goto err;
 
     switch (ppmtd) {
-    case CRMF_POPO_RAVERIFIED:
-        pp->type = CRMF_PROOFOFPOSESSION_RAVERIFIED;
+    case OSSL_CRMF_POPO_RAVERIFIED:
+        pp->type = OSSL_CRMF_PROOFOFPOSESSION_RAVERIFIED;
         pp->value.raVerified = ASN1_NULL_new();
         break;
 
@@ -442,12 +442,12 @@ int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *
         if ((pp->value.signature = poposigkey_new(crm->certReq, pkey, dgst))
             == NULL)
             goto err;
-        pp->type = CRMF_PROOFOFPOSESSION_SIGNATURE;
+        pp->type = OSSL_CRMF_PROOFOFPOSESSION_SIGNATURE;
         break;
 
-    case CRMF_POPO_ENCRCERT:
-        pp->type = CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT;
-        pp->value.keyEncipherment = CRMF_POPOPRIVKEY_new();
+    case OSSL_CRMF_POPO_ENCRCERT:
+        pp->type = OSSL_CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT;
+        pp->value.keyEncipherment = OSSL_CRMF_POPOPRIVKEY_new();
         pp->value.keyEncipherment->type = OSSL_CRMF_POPOPRIVKEY_SUBSEQUENTMESSAGE;
         pp->value.keyEncipherment->value.subsequentMessage = ASN1_INTEGER_new();
         ASN1_INTEGER_set(pp->value.keyEncipherment->value.subsequentMessage,
@@ -461,14 +461,14 @@ int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *
     }
 
     if (crm->popo)
-        CRMF_PROOFOFPOSSESION_free(crm->popo);
+        OSSL_CRMF_PROOFOFPOSSESION_free(crm->popo);
     crm->popo = pp;
 
     return 1;
  err:
     CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_CREATE_POPO, CRMF_R_ERROR);
     if (pp)
-        CRMF_PROOFOFPOSSESION_free(pp);
+        OSSL_CRMF_PROOFOFPOSSESION_free(pp);
     return 0;
 }
 

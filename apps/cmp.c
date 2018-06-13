@@ -2219,7 +2219,7 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
  * callback validating that the new certificate can be verified,
  * using ctx->trusted_store (which may consist of ctx->srvCert) and
  * ctx->untrusted_certs which at this point already contains ctx->extraCertsIn.
- * Returns -1 on acceptance, else a CMP_PKIFAILUREINFO bit number.
+ * Returns -1 on acceptance, else a OSSL_CMP_PKIFAILUREINFO bit number.
  * Quoting from RFC 4210 section 5.1. Overall PKI Message:
  *     The extraCerts field can contain certificates that may be useful to
  *     the recipient.  For example, this can be used by a CA or RA to

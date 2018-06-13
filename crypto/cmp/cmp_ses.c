@@ -127,7 +127,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
             exception = 1;
         }
         if (rcvd_type == expected_type && IS_ENOLLMENT(rcvd_type)) {
-            CMP_CERTRESPONSE *crep =
+            OSSL_CMP_CERTRESPONSE *crep =
                 CMP_CERTREPMESSAGE_certResponse_get0(rep->body->value.ip, -1);
             /*
              * TODO: handle multiple CertResponses in CertRepMsg, in case
@@ -238,7 +238,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **ou
 {
     OSSL_CMP_PKIMESSAGE *preq = NULL;
     OSSL_CMP_PKIMESSAGE *prep = NULL;
-    CMP_POLLREP *pollRep = NULL;
+    OSSL_CMP_POLLREP *pollRep = NULL;
 
     OSSL_CMP_info(ctx, "received 'waiting' PKIStatus, starting to poll for response");
     for (;;) {
@@ -371,7 +371,7 @@ int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int failure, const ch
 static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si)
 {
     int i;
-    CMP_PKIFREETEXT *ss;
+    OSSL_CMP_PKIFREETEXT *ss;
 
     if (si == NULL)
         return 0;
@@ -403,7 +403,7 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si)
  * Take into account PKIStatusInfo of CertResponse and report it on error.
  * returns NULL if not found or on error
  */
-static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *crep)
+static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype, OSSL_CMP_CERTRESPONSE *crep)
 {
     char *tempbuf;
     X509 *crt = NULL;
@@ -411,12 +411,12 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *
         return NULL;
 
     switch (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(crep->status)) {
-    case CMP_PKISTATUS_waiting:
+    case OSSL_CMP_PKISTATUS_waiting:
         OSSL_CMP_err(ctx,
                 "received \"waiting\" status for cert when actually aiming to extract cert");
             CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_WAITING);
         goto err;
-    case CMP_PKISTATUS_grantedWithMods:
+    case OSSL_CMP_PKISTATUS_grantedWithMods:
         OSSL_CMP_warn(ctx, "received \"grantedWithMods\" for certificate");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
@@ -430,7 +430,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
 
-    case CMP_PKISTATUS_revocationWarning:
+    case OSSL_CMP_PKISTATUS_revocationWarning:
         OSSL_CMP_warn(ctx,
        "received \"revocationWarning\" - a revocation of the cert is imminent");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
@@ -440,7 +440,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype, CMP_CERTRESPONSE *
  "received \"revocationNotification\" - a revocation of the cert has occurred");
         crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
         break;
-    case CMP_PKISTATUS_keyUpdateWarning:
+    case OSSL_CMP_PKISTATUS_keyUpdateWarning:
         if (bodytype != OSSL_CMP_PKIBODY_KUR) {
             CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_KEYUPDATEWARNING);
             goto err;
@@ -484,8 +484,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **resp
 {
     int failure = -1; /* no failure */
     const char *txt = NULL;
-    CMP_CERTREPMESSAGE *body;
-    CMP_CERTRESPONSE *crep;
+    OSSL_CMP_CERTREPMESSAGE *body;
+    OSSL_CMP_CERTRESPONSE *crep;
     STACK_OF(X509) *extracerts;
     int ret = 1;
 
@@ -502,7 +502,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **resp
     if (rid == -1) /* for OSSL_CMP_PKIBODY_P10CR, learn CertReqId from response */
         rid = ASN1_INTEGER_get(crep->certReqId);
 
-    if (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(crep->status) == CMP_PKISTATUS_waiting){
+    if (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(crep->status) == OSSL_CMP_PKISTATUS_waiting){
         OSSL_CMP_PKIMESSAGE_free(*resp);
         if (pollForResponse(ctx, rid, resp)) {
             goto retry; /* got rp/cp/kup which might still indicate 'waiting' */
@@ -628,9 +628,9 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
     OSSL_CMP_PKIMESSAGE_free(req);
     OSSL_CMP_PKIMESSAGE_free(rep);
 
-    /* print out OpenSSL and CMP errors via the log callback or CMP_puts */
+    /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
     if (result == NULL)
-        ERR_print_errors_cb(OSSL_CMP_CTX_error_cb, (void *)ctx);
+        ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
     return result;
 }
 
@@ -682,7 +682,7 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=accepted)");
         result = 1;
         break;
-    case CMP_PKISTATUS_grantedWithMods:
+    case OSSL_CMP_PKISTATUS_grantedWithMods:
         OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=grantedWithMods)");
         result = 1;
         break;
@@ -691,7 +691,7 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         OSSL_CMP_warn(ctx, "revocation rejected (PKIStatus=rejection)");
         CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
-    case CMP_PKISTATUS_revocationWarning:
+    case OSSL_CMP_PKISTATUS_revocationWarning:
         OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=revocationWarning)");
         result = 1;
         break;
@@ -700,8 +700,8 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=revocationNotification)");
         result = 1;
         break;
-    case CMP_PKISTATUS_waiting:
-    case CMP_PKISTATUS_keyUpdateWarning:
+    case OSSL_CMP_PKISTATUS_waiting:
+    case OSSL_CMP_PKISTATUS_keyUpdateWarning:
         CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_UNEXPECTED_PKISTATUS);
         goto err;
     default:
@@ -711,7 +711,7 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 
  err:
 
-    /* print out OpenSSL and CMP errors via the log callback or CMP_puts */
+    /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
     if (!result) {
         char *tempbuf;
         if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISTATUSINFO_BUFLEN))) {
@@ -720,7 +720,7 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
                 ERR_add_error_data(1, tempbuf);
             OPENSSL_free(tempbuf);
         }
-        ERR_print_errors_cb(OSSL_CMP_CTX_error_cb, (void *)ctx);
+        ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
     }
     OSSL_CMP_PKIMESSAGE_free(rr);
     OSSL_CMP_PKIMESSAGE_free(rp);
@@ -785,9 +785,9 @@ STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
     if (genp)
         OSSL_CMP_PKIMESSAGE_free(genp);
 
-    /* print out OpenSSL and CMP errors via the log callback or CMP_puts */
+    /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
     /* TODO: verify that !recv_itavs is necessarily an error */
     if (rcvd_itavs == NULL)
-        ERR_print_errors_cb(OSSL_CMP_CTX_error_cb, (void *)ctx);
+        ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
     return rcvd_itavs;
 }
