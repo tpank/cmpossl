@@ -112,11 +112,11 @@ int OSSL_CRMF_CERTREQMSG_set0_extensions(OSSL_CRMF_CERTREQMSG *crm,
 
 int OSSL_CRMF_CERTREQMSG_push0_extension(OSSL_CRMF_CERTREQMSG *crm,
                                     const X509_EXTENSION *ext);
-/* TODO consolidate these with OSSL_CRMF_PROOFOFPOSESSION_RAVERIFIED etc. in crmf_int.h: */
-# define OSSL_CRMF_POPO_NONE       0
+# define OSSL_CRMF_POPO_NONE      -1
+# define OSSL_CRMF_POPO_RAVERIFIED 0
 # define OSSL_CRMF_POPO_SIGNATURE  1
-# define OSSL_CRMF_POPO_ENCRCERT   2
-# define OSSL_CRMF_POPO_RAVERIFIED 3
+# define OSSL_CRMF_POPO_KEYENC     2
+# define OSSL_CRMF_POPO_KEYAGREE   3
 int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
                                 int dgst, int ppmtd);
 int OSSL_CRMF_CERTREQMESSAGES_verify_popo(const OSSL_CRMF_CERTREQMESSAGES *reqs,

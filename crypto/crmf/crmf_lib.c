@@ -389,39 +389,42 @@ static OSSL_CRMF_POPOSIGNINGKEY *poposigkey_new(OSSL_CRMF_CERTREQUEST *cr,
 int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
                                 int dgst, int ppmtd)
 {
-    OSSL_CRMF_PROOFOFPOSSESION *pp = NULL;
-
-    if (ppmtd == OSSL_CRMF_POPO_NONE)
-        return 1;
+    OSSL_CRMF_POPO *pp = NULL;
 
     if (crm == NULL)
         goto err;
-    if (ppmtd == OSSL_CRMF_POPO_SIGNATURE && (pkey == NULL))
+
+    if (ppmtd == OSSL_CRMF_POPO_NONE) {
+        OSSL_CRMF_POPO_free(crm->popo);
+        crm->popo = NULL;
+        return 1;
+    }
+
+    if ((pp = OSSL_CRMF_POPO_new()) == NULL)
         goto err;
 
-    if ((pp = OSSL_CRMF_PROOFOFPOSSESION_new()) == NULL)
-        goto err;
-
+    pp->type = ppmtd;
     switch (ppmtd) {
     case OSSL_CRMF_POPO_RAVERIFIED:
-        pp->type = OSSL_CRMF_PROOFOFPOSESSION_RAVERIFIED;
         pp->value.raVerified = ASN1_NULL_new();
         break;
 
     case OSSL_CRMF_POPO_SIGNATURE:
-        if ((pp->value.signature = poposigkey_new(crm->certReq, pkey, dgst))
+        if (pkey == NULL ||
+            (pp->value.signature = poposigkey_new(crm->certReq, pkey, dgst))
             == NULL)
             goto err;
-        pp->type = OSSL_CRMF_PROOFOFPOSESSION_SIGNATURE;
         break;
 
-    case OSSL_CRMF_POPO_ENCRCERT:
-        pp->type = OSSL_CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT;
-        pp->value.keyEncipherment = OSSL_CRMF_POPOPRIVKEY_new();
+    case OSSL_CRMF_POPO_KEYENC:
+        if ((pp->value.keyEncipherment = OSSL_CRMF_POPOPRIVKEY_new()) == NULL)
+            goto err;
         pp->value.keyEncipherment->type = OSSL_CRMF_POPOPRIVKEY_SUBSEQUENTMESSAGE;
-        pp->value.keyEncipherment->value.subsequentMessage = ASN1_INTEGER_new();
-        ASN1_INTEGER_set(pp->value.keyEncipherment->value.subsequentMessage,
-                         OSSL_CRMF_SUBSEQUENTMESSAGE_ENCRCERT);
+        if ((pp->value.keyEncipherment->value.subsequentMessage =
+             ASN1_INTEGER_new()) == NULL ||
+            !ASN1_INTEGER_set(pp->value.keyEncipherment->value.subsequentMessage,
+                              OSSL_CRMF_SUBSEQUENTMESSAGE_ENCRCERT))
+            goto err;
         break;
 
     default:
@@ -431,14 +434,13 @@ int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *
     }
 
     if (crm->popo)
-        OSSL_CRMF_PROOFOFPOSSESION_free(crm->popo);
+        OSSL_CRMF_POPO_free(crm->popo);
     crm->popo = pp;
 
     return 1;
  err:
     CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_CREATE_POPO, CRMF_R_ERROR);
-    if (pp)
-        OSSL_CRMF_PROOFOFPOSSESION_free(pp);
+    OSSL_CRMF_POPO_free(pp);
     return 0;
 }
 
@@ -475,11 +477,11 @@ int OSSL_CRMF_CERTREQMESSAGES_verify_popo(const OSSL_CRMF_CERTREQMESSAGES *reqs,
     }
 
     switch (req->popo->type) {
-    case OSSL_CRMF_PROOFOFPOSESSION_RAVERIFIED:
+    case OSSL_CRMF_POPO_RAVERIFIED:
         if (acceptRAVerified)
             return 1;
         break;
-    case OSSL_CRMF_PROOFOFPOSESSION_SIGNATURE:
+    case OSSL_CRMF_POPO_SIGNATURE:
         pubkey = req->certReq->certTemplate->publicKey;
         sig = req->popo->value.signature;
         if (sig->poposkInput != NULL) {
@@ -505,7 +507,7 @@ This MUST be exactly the same value as is contained in the certificate template.
                 break;
         }
         return 1;
-    case OSSL_CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT:
+    case OSSL_CRMF_POPO_KEYENC:
         if (req->popo->value.keyEncipherment->type
             != OSSL_CRMF_POPOPRIVKEY_SUBSEQUENTMESSAGE)
             goto unsupported;
@@ -519,7 +521,7 @@ This MUST be exactly the same value as is contained in the certificate template.
 #else
         goto unsupported;
 #endif
-    case OSSL_CRMF_PROOFOFPOSESSION_KEYAGREEMENT:
+    case OSSL_CRMF_POPO_KEYAGREE:
     default:
     unsupported:
         CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMESSAGES_VERIFY_POPO,

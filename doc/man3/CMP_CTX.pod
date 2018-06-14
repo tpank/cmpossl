@@ -284,7 +284,7 @@ RFC 4210.
         Select the proof of possession method to use. Possible values are:
             CRMF_POPO_NONE      - ProofOfPossession field omitted
             CRMF_POPO_SIGNATURE - sign a value with private key
-            CRMF_POPO_ENCRCERT - decrypt the encrypted certificate
+            CRMF_POPO_KEYENC - decrypt the encrypted certificate
                                  ("indirect method")
             CRMF_POPO_RAVERIFIED - assert that the RA has already
                                    verified the PoPo

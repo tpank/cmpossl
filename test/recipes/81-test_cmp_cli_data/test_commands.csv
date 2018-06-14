@@ -84,11 +84,12 @@ TBD 1;TBD 1;issuer empty string;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.
 1;1;reqexts malformed section;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;-reqexts;reqexts_invalidkey;BLANK;;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 0;0;proof of possession signature;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;1;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
-0;1;proof of possesion ra verified;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;3;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
+0;1;proof of possesion ra verified;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;0;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 1;1;proof of possession empty;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
-1;1;proof of possession out of range;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;4;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
-1;1;proof of possession negative;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;-1;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
+1;1;proof of possession none;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;-1;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
+1;1;proof of possession too large;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;3;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
+1;1;proof of possession too small;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;-2;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
 1;1;proof of possesion no integer;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;1.5;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
 1;1;proof of possession NaN;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;abc;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;
 1;1;proof of possession out of integer range;-section;;-cmd;ir;;BLANK;;;-newkey;test.ECC256p.pem;;-newkeypass;pass:;;;BLANK;;BLANK;;BLANK;;-popo;0x1000000000000000000;BLANK;;BLANK;;-certout;test.cert.pem;;-out_trusted;root.crt;;BLANK;;BLANK;;BLANK;;BLANK;;

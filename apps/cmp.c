@@ -261,7 +261,7 @@ static int opt_san_critical = 0;
 static int opt_san_nodefault = 0;
 static char *opt_policies = NULL;
 static int opt_policies_critical = 0;
-static int opt_popo = -1;
+static int opt_popo = OSSL_CRMF_POPO_NONE - 1;
 static char *opt_csr = NULL;
 static char *opt_out_trusted = NULL;
 static int opt_implicitConfirm = 0;
@@ -541,7 +541,7 @@ OPTIONS cmp_options[] = {
      "Flag the policies given with -policies as critical"},
     {"popo", OPT_POPO, 'n', "Set Proof-of-Possession (POPO) method where"},
     {OPT_MORE_STR, 0, 0,
-     "0 = NONE, 1 = SIGNATURE, 2 = ENCRCERT, 3 = RAVERIFIED. Default 1 = SIGNATURE"},
+     "-1 = NONE, 0 = RAVERIFIED, 1 = SIGNATURE (default), 2 = KEYENC"},
     {"csr", OPT_CSR, 's',
      "CSR in PKCS#10 format to use in p10cr for legacy support"},
     {"out_trusted", OPT_OUT_TRUSTED, 's',
@@ -3238,13 +3238,13 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_POLICIES_CRITICAL, 1);
     }
 
-    if (opt_popo < -1 || opt_popo > 3) {
+    if (opt_popo < OSSL_CRMF_POPO_NONE || opt_popo > OSSL_CRMF_POPO_KEYENC) {
         OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
-                   "invalid value '%d' for popo method (must be between 0 and 3)",
+                   "invalid value '%d' for popo method (must be between -1 and 2)",
                    opt_popo);
         goto err;
     }
-    if (opt_popo >= 0)
+    if (opt_popo >=  OSSL_CRMF_POPO_NONE)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_POPOMETHOD, opt_popo);
 
     if (opt_csr) {
@@ -4039,7 +4039,7 @@ static int get_opts(int argc, char **argv)
             opt_policies_critical = 1;
             break;
         case OPT_POPO:
-            if ((opt_popo = opt_nat()) < 0)
+            if (opt_int(opt_arg(), &opt_popo) && opt_popo < OSSL_CRMF_POPO_NONE)
                 goto opt_err;
             break;
         case OPT_CSR:

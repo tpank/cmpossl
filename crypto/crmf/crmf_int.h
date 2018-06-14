@@ -315,11 +315,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_POPOSIGNINGKEY)
  *  keyEncipherment   [2] POPOPrivKey,
  *  keyAgreement      [3] POPOPrivKey }
  */
-# define OSSL_CRMF_PROOFOFPOSESSION_RAVERIFIED          0
-# define OSSL_CRMF_PROOFOFPOSESSION_SIGNATURE           1
-# define OSSL_CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT 2
-# define OSSL_CRMF_PROOFOFPOSESSION_KEYAGREEMENT        3
-typedef struct OSSL_crmf_proofofpossesion_st {
+typedef struct OSSL_crmf_popo_st {
     int type;
     union {
         ASN1_NULL *raVerified; /* 0 */
@@ -327,8 +323,8 @@ typedef struct OSSL_crmf_proofofpossesion_st {
         OSSL_CRMF_POPOPRIVKEY *keyEncipherment; /* 2 */
         OSSL_CRMF_POPOPRIVKEY *keyAgreement; /* 3 */
     } value;
-} OSSL_CRMF_PROOFOFPOSSESION;
-DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PROOFOFPOSSESION)
+} OSSL_CRMF_POPO;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_POPO)
 
 /*
  * OptionalValidity ::= SEQUENCE {
@@ -435,7 +431,7 @@ OSSL_CRMF_ATTRIBUTETYPEANDVALUE *OSSL_CRMF_ATTRIBUTETYPEANDVALUE_dup(
 struct OSSL_crmf_certreqmsg_st {
     OSSL_CRMF_CERTREQUEST *certReq;
     /* 0 */
-    OSSL_CRMF_PROOFOFPOSSESION *popo;
+    OSSL_CRMF_POPO *popo;
     /* 1 */
     STACK_OF(OSSL_CRMF_ATTRIBUTETYPEANDVALUE) *regInfo;
 } /* OSSL_CRMF_CERTREQMSG */;
