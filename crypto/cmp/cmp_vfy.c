@@ -327,48 +327,48 @@ static void add_name_mismatch_data(const char *error_prefix,
 #if OPENSSL_VERSION_NUMBER >= 0x10100007L
                                    const
 #endif
-                                         X509_NAME *expected_name,
+                                         X509_NAME *actual_name,
 #if OPENSSL_VERSION_NUMBER >= 0x10100007L
                                    const
 #endif
-                                         X509_NAME *actual_name)
+                                         X509_NAME *expected_name)
 {
     char *expected = X509_NAME_oneline(expected_name, NULL, 0);
     char *actual = actual_name ? X509_NAME_oneline(actual_name, NULL, 0)
                                : "(none)";
     ERR_add_error_data(5, error_prefix,
-                          "\n expected = ", expected,
-                          "\n   actual = ", actual);
+                       "\n   actual = ", actual,
+                       "\n expected = ", expected);
     OPENSSL_free(expected);
     OPENSSL_free(actual);
 }
 
-/* return 0 if kid != NULL and there is no matching subject key ID in cert */
-static int check_kid(X509 *cert, const ASN1_OCTET_STRING *kid, int fn)
+/* return 0 if skid != NULL and there is no matching subject key ID in cert */
+static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid, int fn)
 {
-    if (kid != NULL) {
+    if (skid != NULL) {
         const ASN1_OCTET_STRING *ckid = X509_get0_subject_key_id(cert);
 
-        /* enforce that the right subject key id is there */
+        /* enforce that the right subject key identifier is there */
         if (ckid == NULL) {
             if (fn)
                 CMPerr(fn, CMP_R_UNEXPECTED_SENDER);
-            CMP_add_error_data(" missing subject key ID in certificate");
+            CMP_add_error_line(" missing Subject Key Identifier in certificate");
             return 0;
         }
-        if (ASN1_OCTET_STRING_cmp(ckid, kid) != 0) {
+        if (ASN1_OCTET_STRING_cmp(ckid, skid) != 0) {
 #if OPENSSL_VERSION_NUMBER >= 0x10100005L
             char *str;
 #endif
             if (fn)
                 CMPerr(fn, CMP_R_UNEXPECTED_SENDER);
-            CMP_add_error_data(" wrong subject key");
+            CMP_add_error_line(" certificate Subject Key Identifier does not match senderKID:");
 #if OPENSSL_VERSION_NUMBER >= 0x10100005L
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
-            CMP_add_error_txt("\n    ID = ", str);
+            CMP_add_error_txt("\n   actual = ", str);
             OPENSSL_free(str);
-            str = OPENSSL_buf2hexstr(kid->data, kid->length);
-            CMP_add_error_txt("\n    vs.  ", str);
+            str = OPENSSL_buf2hexstr(skid->data, skid->length);
+            CMP_add_error_txt("\n expected = ", str);
             OPENSSL_free(str);
 #endif
             return 0;
@@ -408,7 +408,7 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
             return 0;
         }
         if (X509_NAME_cmp(name, sender_name) != 0) {
-            add_name_mismatch_data(" subject does not match sender",
+            add_name_mismatch_data("\n certificate subject does not match sender:",
                                    name, sender_name);
             return 0;
         }
@@ -701,6 +701,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             if (X509_NAME_cmp(ctx->expected_sender, sender_name) != 0) {
                 CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
                 add_name_mismatch_data("", ctx->expected_sender, sender_name);
+                CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
+                add_name_mismatch_data("", sender_name, ctx->expected_sender);
                 break;
             }
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
@@ -723,15 +725,15 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             if (!X509_find_by_issuer_and_serial(msg->extraCerts,
                                 X509_get_issuer_name(scrt),
                                 (ASN1_INTEGER *)X509_get0_serialNumber(scrt))) {
-                CMP_add_error_line("cert used for signature verification attempt was not found in extraCerts");
+                CMP_add_error_line(" certificate used for signature verification attempt was not found in extraCerts");
             }
 
             if (msg->header->senderKID == NULL)
-                CMP_add_error_line("no senderKID in CMP header; risk that correct server cert could not be identified");
+                CMP_add_error_line(" no senderKID in CMP header; risk that correct server cert could not be identified");
             else /* server cert should match senderKID in header */
                 if (!check_kid(scrt, msg->header->senderKID, 0))
                     /* here this can only happen if ctx->srvCert has been set */
-                    CMP_add_error_line("for senderKID in CMP header there is no matching subject key identifier in context-provided server cert");
+                    CMP_add_error_line(" for senderKID in CMP header there is no matching Subject Key Identifier in context-provided server cert");
         } else {
             CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_NO_SUITABLE_SERVER_CERT);
         }
