@@ -48,7 +48,7 @@ cert =
 ignore_keyusage = 1
 unprotectederrors = 0
 column = 1
-sleep = 2
+sleep = 3
 
 [CmpWsRa] # this is a Siemens-only test configuration
 server_cn = localhost

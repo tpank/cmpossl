@@ -13,7 +13,7 @@
 1;1;server port out of range;-section;;-server;_SERVER_CN:65536;;;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
 1;1;server port negative;-section;;-server;_SERVER_CN:-10;;;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
 1;1;server empty;-section;;-server;;;;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
-1;1;server with default port;-section;;-server;_SERVER_CN;;;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
+0;1;server with default port;-section;;-server;_SERVER_CN;;;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
 1;-;server ip address bad syntax: double '.';-section;;-server;204.236.244..127:_SERVER_PORT;;;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
 1;-;server domain bad syntax: double '.';-section;;-server;ec2-204-236-244-127.compute-1.amazonaws..com:_SERVER_PORT;;;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
 1;1;server port bad syntax: missing ':';-section;;-server;_SERVER_CN.80;;;;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;;BLANK;
