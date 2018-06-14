@@ -115,7 +115,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
         }
         if (rcvd_type == OSSL_CMP_PKIBODY_RP &&
             OSSL_CMP_PKISTATUSINFO_PKIStatus_get(
-            CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp, REVREQSID))
+            CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp, OSSL_CMP_REVREQSID))
                 == OSSL_CMP_PKISTATUS_rejection) {
             OSSL_CMP_warn(ctx,
                      "ignoring missing protection of revocation response message with rejection status");
@@ -604,7 +604,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
 {
     OSSL_CMP_PKIMESSAGE *req = NULL;
     OSSL_CMP_PKIMESSAGE *rep = NULL;
-    long rid = (req_type == OSSL_CMP_PKIBODY_P10CR) ? -1 : CERTREQID;
+    long rid = (req_type == OSSL_CMP_PKIBODY_P10CR) ? -1 : OSSL_CMP_CERTREQID;
     X509 *result = NULL;
 
     if (ctx == NULL)
@@ -674,7 +674,7 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         goto err;
 
     /* evaluate PKIStatus field */
-    si = CMP_REVREPCONTENT_PKIStatusInfo_get(rp->body->value.rp, REVREQSID);
+    si = CMP_REVREPCONTENT_PKIStatusInfo_get(rp->body->value.rp, OSSL_CMP_REVREQSID);
     if (!save_statusInfo(ctx, si))
         goto err;
     switch (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(si)) {

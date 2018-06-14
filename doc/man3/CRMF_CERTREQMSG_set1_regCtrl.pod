@@ -7,7 +7,7 @@ CRMF_CERTREQMSG_set1_regCtrl_pkiPublicationInfo,
 CRMF_CERTREQMSG_set1_regCtrl_pkiArchiveOptions,
 CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey,
 CRMF_CERTREQMSG_set1_regCtrl_oldCertID,
-CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert
+OSSL_CRMF_CERTID_gen
 
 =head1 SYNOPSIS
 
@@ -21,12 +21,12 @@ CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert
                                                      CRMF_PKIPUBLICATIONINFO *pi);
  int CRMF_CERTREQMSG_set1_regCtrl_pkiArchiveOptions(CRMF_CERTREQMSG *msg,
                                                     CRMF_PKIARCHIVEOPTIONS *aos);
- int CRMF_CERTREQMSG_set1_regCtrl_oldCertID(CRMF_CERTREQMSG *crm,
-                                            CRMF_CERTID *cid);
- int CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(CRMF_CERTREQMSG *crm,
-                                                      X509 *oldc) {
  int CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey(CRMF_CERTREQMSG *msg,
                                                   X509_PUBKEY *pubkey);
+ int CRMF_CERTREQMSG_set1_regCtrl_oldCertID(CRMF_CERTREQMSG *crm,
+                                            CRMF_CERTID *cid);
+ OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_gen(const X509_NAME *issuer,
+                                        const ASN1_INTEGER *serial);
 
 =head1 DESCRIPTION
 
@@ -44,15 +44,14 @@ CRMF_CERTREQMSG_set1_regCtrl_pkiArchiveOptions() sets the pkiArchiveOptions
 control in the given B<msg> using the given B<tok> as value. See RFC4211, section
 6.4.
 
+CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey() sets the protocolEncrKey control
+in the given B<msg> using the given B<tok> as value. See RFC4211, section  6.6.
+
 CRMF_CERTREQMSG_set1_regCtrl_oldCertID() sets the oldCertID control in the given
 B<msg> using the given B<tok> as value. See RFC4211, section 6.5.
 
-CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert() sets the oldCertID control in
-the given B<msg> using the certID derived from the given B<oldc> as value. See
-RFC4211, section 6.5.
-
-CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey() sets the protocolEncrKey control
-in the given B<msg> using the given B<tok> as value. See RFC4211, section  6.6.
+OSSL_CRMF_CERTID_gen produces an OSSL_CRMF_CERTID_gen structure from the given
+B<issuer> name and B<serial> number.
 
 =head1 RETURN VALUES
 

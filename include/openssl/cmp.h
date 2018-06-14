@@ -339,13 +339,25 @@ typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
 # define OSSL_CMP_PKIBODY_POLLREP  26
 
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype, int err_code);
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
+                                     int certReqId, OSSL_CMP_PKISTATUSINFO *si,
+                                     X509 *cert, STACK_OF(X509) *chain,
+                                     STACK_OF(X509) *caPubs, int encrypted,
+                                     int unprotectedErrors);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx);
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si,
+                                     OSSL_CRMF_CERTID *certId, int unprotectedErrors);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure, const char *text);
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_genm_new(OSSL_CMP_CTX *ctx);
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si,
                               int errorCode, OSSL_CMP_PKIFREETEXT *errorDetails,
                               int unprotected);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int reqId);
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, long certReqId,
+                                          long pollAfter);
+
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_PKIMESSAGE_create(OSSL_CMP_CTX *ctx, int bodytype);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_PKIMESSAGE_load(const char *file);
 

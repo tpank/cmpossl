@@ -64,6 +64,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_CALC_PROTECTION                   227
 #  define CMP_F_OSSL_CMP_CERTCONF_NEW                      204
 #  define CMP_F_OSSL_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0  104
+#  define CMP_F_OSSL_CMP_CERTREP_NEW                       228
 #  define CMP_F_OSSL_CMP_CERTREQ_NEW                       205
 #  define CMP_F_OSSL_CMP_CERTRESPONSE_GET_CERTIFICATE      107
 #  define CMP_F_OSSL_CMP_CERTSTATUS_SET_CERTHASH           108
@@ -116,6 +117,8 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_EXEC_P10CR_SES                    213
 #  define CMP_F_OSSL_CMP_EXEC_RR_SES                       214
 #  define CMP_F_OSSL_CMP_GENM_NEW                          215
+#  define CMP_F_OSSL_CMP_GENP_NEW                          229
+#  define CMP_F_OSSL_CMP_PKICONF_NEW                       230
 #  define CMP_F_OSSL_CMP_PKIFREETEXT_PUSH_STR              160
 #  define CMP_F_OSSL_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0  161
 #  define CMP_F_OSSL_CMP_PKIHEADER_INIT                    162
@@ -137,6 +140,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_POLLREP_NEW                       178
 #  define CMP_F_OSSL_CMP_POLLREQ_NEW                       179
 #  define CMP_F_OSSL_CMP_REVREPCONTENT_PKISTATUSINFO_GET   181
+#  define CMP_F_OSSL_CMP_RP_NEW                            231
 #  define CMP_F_OSSL_CMP_RR_NEW                            217
 #  define CMP_F_OSSL_CMP_SRV_CTX_CREATE                    184
 #  define CMP_F_OSSL_CMP_VALIDATE_CERT_PATH                218

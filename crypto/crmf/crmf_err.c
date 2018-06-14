@@ -17,6 +17,10 @@ static const ERR_STRING_DATA CRMF_str_functs[] = {
     {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_PASSWORDBASEDMAC_NEW, 0),
      "OSSL_CRMF_passwordBasedMac_new"},
     {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_PBMP_NEW, 0), "OSSL_CRMF_pbmp_new"},
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_OSSL_CRMF_CERTID_GEN, 0),
+     "OSSL_CRMF_CERTID_gen"},
+    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_OSSL_CRMF_CERTREQMESSAGES_VERIFY_POPO, 0),
+     "OSSL_CRMF_CERTREQMESSAGES_verify_popo"},
     {ERR_PACK(ERR_LIB_CRMF, CRMF_F_OSSL_CRMF_CERTREQMSG_CREATE_POPO, 0),
      "OSSL_CRMF_CERTREQMSG_create_popo"},
     {ERR_PACK(ERR_LIB_CRMF, CRMF_F_OSSL_CRMF_CERTREQMSG_PUSH0_EXTENSION, 0),
@@ -84,6 +88,10 @@ static const ERR_STRING_DATA CRMF_str_reasons[] = {
     "unsupported cipher"},
     {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO),
     "unsupported method for creating popo"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_UNSUPPORTED_POPO_METHOD),
+    "unsupported popo method"},
+    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_UNSUPPORTED_POPO_NOT_ACCEPTED),
+    "unsupported popo not accepted"},
     {0, NULL}
 };
 

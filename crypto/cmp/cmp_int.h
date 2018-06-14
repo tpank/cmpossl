@@ -683,9 +683,9 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PROTECTEDPART)
  */
 
 /* certReqId for the first - and so far only - certificate request */
-# define CERTREQID 0L
+# define OSSL_CMP_CERTREQID 0L
 /* sequence id for the first - and so far only - revocation request */
-# define REVREQSID 0L
+# define OSSL_CMP_REVREQSID 0L
 
 /*
  * functions

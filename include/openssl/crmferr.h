@@ -21,6 +21,8 @@ int ERR_load_CRMF_strings(void);
  */
 # define CRMF_F_CRMF_PASSWORDBASEDMAC_NEW                 113
 # define CRMF_F_CRMF_PBMP_NEW                             114
+# define CRMF_F_OSSL_CRMF_CERTID_GEN                      118
+# define CRMF_F_OSSL_CRMF_CERTREQMESSAGES_VERIFY_POPO     119
 # define CRMF_F_OSSL_CRMF_CERTREQMSG_CREATE_POPO          100
 # define CRMF_F_OSSL_CRMF_CERTREQMSG_PUSH0_EXTENSION      101
 # define CRMF_F_OSSL_CRMF_CERTREQMSG_PUSH0_REGCTRL        102
@@ -59,5 +61,7 @@ int ERR_load_CRMF_strings(void);
 # define CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY         115
 # define CRMF_R_UNSUPPORTED_CIPHER                        116
 # define CRMF_R_UNSUPPORTED_METHOD_FOR_CREATING_POPO      117
+# define CRMF_R_UNSUPPORTED_POPO_METHOD                   118
+# define CRMF_R_UNSUPPORTED_POPO_NOT_ACCEPTED             119
 
 #endif

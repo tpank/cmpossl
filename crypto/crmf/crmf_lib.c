@@ -109,39 +109,34 @@ IMPLEMENT_CRMF_CTRL_FUNC(pkiArchiveOptions, OSSL_CRMF_PKIARCHIVEOPTIONS, regCtrl
  /* id-regCtrl-oldCertID Control (section 6.5) from the given */
 IMPLEMENT_CRMF_CTRL_FUNC(oldCertID, OSSL_CRMF_CERTID, regCtrl)
 
-/* TODO should that be done elsewhere? */
-int OSSL_CRMF_CERTREQMSG_set1_regCtrl_oldCertID_from_cert(OSSL_CRMF_CERTREQMSG *crm,
-                                                     X509 *oldc) {
-    int ret;
+OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_gen(const X509_NAME *issuer,
+                                       const ASN1_INTEGER *serial)
+{
     OSSL_CRMF_CERTID *cid = NULL;
 
-    if (crm == NULL || oldc == NULL)
-        goto err;
+    if (issuer == NULL || serial == NULL) {
+        CRMFerr(CRMF_F_OSSL_CRMF_CERTID_GEN, CRMF_R_NULL_ARGUMENT);
+        return NULL;
+    }
 
     if ((cid = OSSL_CRMF_CERTID_new()) == NULL)
         goto err;
 
-    if (!X509_NAME_set(&cid->issuer->d.directoryName,
-                       X509_get_issuer_name(oldc)))
+    if (!X509_NAME_set(&cid->issuer->d.directoryName, (X509_NAME *)issuer))
         goto err;
     cid->issuer->type = GEN_DIRNAME;
 
     ASN1_INTEGER_free(cid->serialNumber);
-    if ((cid->serialNumber =
-         ASN1_INTEGER_dup(X509_get_serialNumber(oldc))) == NULL)
+    if ((cid->serialNumber = ASN1_INTEGER_dup(serial)) == NULL)
         goto err;
 
-    ret = OSSL_CRMF_CERTREQMSG_set1_regCtrl_oldCertID(crm, cid);
-    OSSL_CRMF_CERTID_free(cid);
-    return ret;
- err:
-    CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_SET1_REGCTRL_OLDCERTID_FROM_CERT,
-            CRMF_R_ERROR);
-    if (cid)
-        OSSL_CRMF_CERTID_free(cid);
-    return 0;
-}
+    return cid;
 
+ err:
+    CRMFerr(CRMF_F_OSSL_CRMF_CERTID_GEN, CRMF_R_ERROR);
+    OSSL_CRMF_CERTID_free(cid);
+    return NULL;
+}
 
  /*
   * id-regCtrl-protocolEncrKey Control (section 6.6) */
@@ -253,6 +248,13 @@ int OSSL_CRMF_CERTREQMSG_set_certReqId(OSSL_CRMF_CERTREQMSG *crm, long rid)
  err:
     CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_SET_CERTREQID, CRMF_R_ERROR);
     return 0;
+}
+
+long OSSL_CRMF_CERTREQMSG_get_certReqId(OSSL_CRMF_CERTREQMSG *crm)
+{
+    if (crm == NULL || crm->certReq == NULL)
+        return -1;
+    return ASN1_INTEGER_get(crm->certReq->certReqId);
 }
 
 
@@ -470,6 +472,105 @@ int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *
     if (pp)
         OSSL_CRMF_PROOFOFPOSSESION_free(pp);
     return 0;
+}
+
+static int CMP_X509_PUBKEY_cmp(X509_PUBKEY *a, X509_PUBKEY *b)
+{
+    X509_ALGOR *algA = NULL, *algB = NULL;
+    int res = 0;
+
+    if (a == b)
+        return 0;
+    if (a == NULL)
+        return -1;
+    if (b == NULL)
+        return 1;
+    (void)X509_PUBKEY_get0_param(NULL, NULL, NULL, &algA, a);
+    (void)X509_PUBKEY_get0_param(NULL, NULL, NULL, &algB, b);
+    if ((res = X509_ALGOR_cmp(algA, algB)) != 0)
+        return res;
+    return EVP_PKEY_cmp(X509_PUBKEY_get0(a), X509_PUBKEY_get0(b));
+}
+
+int OSSL_CRMF_CERTREQMESSAGES_verify_popo(const OSSL_CRMF_CERTREQMESSAGES *reqs,
+                                          long rid, int acceptRAVerified)
+{
+    OSSL_CRMF_CERTREQMSG *req = NULL;
+    X509_PUBKEY *pubkey = NULL;
+    OSSL_CRMF_POPOSIGNINGKEY *sig = NULL;
+
+    if (reqs == NULL ||
+        (req = sk_OSSL_CRMF_CERTREQMSG_value(reqs, rid)) == NULL) {
+        CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMESSAGES_VERIFY_POPO,
+                CRMF_R_NULL_ARGUMENT);
+        return 0;
+    }
+
+    switch (req->popo->type) {
+    case OSSL_CRMF_PROOFOFPOSESSION_RAVERIFIED:
+        if (acceptRAVerified)
+            return 1;
+        break;
+    case OSSL_CRMF_PROOFOFPOSESSION_SIGNATURE:
+        pubkey = req->certReq->certTemplate->publicKey;
+        sig = req->popo->value.signature;
+        if (sig->poposkInput != NULL) {
+/* According to RFC 4211:
+publicKey contains a copy of the public key from the certificate template.
+This MUST be exactly the same value as is contained in the certificate template.
+*/
+            if (pubkey == NULL ||
+                sig->poposkInput->publicKey == NULL ||
+                CMP_X509_PUBKEY_cmp(pubkey, sig->poposkInput->publicKey) ||
+                ASN1_item_verify(ASN1_ITEM_rptr(OSSL_CRMF_POPOSIGNINGKEYINPUT),
+                                 sig->algorithmIdentifier, sig->signature,
+                                 sig->poposkInput,
+                                 X509_PUBKEY_get0(pubkey)) < 1)
+                break;
+        } else {
+            if (pubkey == NULL ||
+                req->certReq->certTemplate->subject == NULL ||
+                ASN1_item_verify(ASN1_ITEM_rptr(OSSL_CRMF_CERTREQUEST),
+                                 sig->algorithmIdentifier, sig->signature,
+                                 req->certReq,
+                                 X509_PUBKEY_get0(pubkey)) < 1)
+                break;
+        }
+        return 1;
+    case OSSL_CRMF_PROOFOFPOSESSION_KEYENCIPHERMENT:
+        if (req->popo->value.keyEncipherment->type
+            != OSSL_CRMF_POPOPRIVKEY_SUBSEQUENTMESSAGE)
+            goto unsupported;
+        if (ASN1_INTEGER_get
+            (req->popo->value.keyEncipherment->value.subsequentMessage) !=
+            OSSL_CRMF_SUBSEQUENTMESSAGE_ENCRCERT)
+            goto unsupported;
+#if 0 /* TODO enable code when implemented in CMP_certrep_new() */
+        srv_ctx->encryptcert = 1;
+        return 1;
+#else
+        goto unsupported;
+#endif
+    case OSSL_CRMF_PROOFOFPOSESSION_KEYAGREEMENT:
+    default:
+    unsupported:
+        CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMESSAGES_VERIFY_POPO,
+                CRMF_R_UNSUPPORTED_POPO_METHOD);
+        return 0;
+    }
+    CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMESSAGES_VERIFY_POPO,
+            CRMF_R_UNSUPPORTED_POPO_NOT_ACCEPTED);
+    return 0;
+}
+
+ASN1_INTEGER *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *tmpl)
+{
+    return tmpl ? tmpl->serialNumber : NULL;
+}
+
+X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl)
+{
+    return tmpl ? tmpl->issuer : NULL;
 }
 
 /*

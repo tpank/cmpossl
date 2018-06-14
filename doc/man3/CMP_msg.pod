@@ -3,10 +3,15 @@
 =head1 NAME
 
  CMP_certreq_new,
+ OSSL_CMP_certrep_new,
+ OSSL_CMP_rr_new,
+ OSSL_CMP_rp_new,
  CMP_certConf_new,
+ OSSL_CMP_pkiconf_new,
  CMP_pollReq_new,
- CMP_cr_new,
+ OSSL_CMP_pollRep_new,
  CMP_genm_new,
+ OSSL_CMP_genp_new,
  CMP_error_new
 
 =head1 SYNOPSIS
@@ -14,16 +19,30 @@
  #include <openssl/cmp.h>
 
  CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code);
+ OSSL_CMP_PKIMESSAGE *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
+                                     int certReqId, OSSL_CMP_PKISTATUSINFO *si,
+                                     X509 *cert, STACK_OF(X509) *chain,
+                                     STACK_OF(X509) *caPubs, int encrypted,
+                                     int unprotectedErrors);
+ OSSL_CMP_PKIMESSAGE *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx);
+ OSSL_CMP_PKIMESSAGE *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx,
+                                     OSSL_CMP_PKISTATUSINFO *si,
+                                     OSSL_CRMF_CERTID *certId,
+                                     int unprotectedErrors);
  CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
+ OSSL_CMP_PKIMESSAGE *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
  CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
+ OSSL_CMP_PKIMESSAGE *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, long certReqId,
+                                          long pollAfter);
  CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx);
+ OSSL_CMP_PKIMESSAGE *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx);
  CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
                                int errorCode, CMP_PKIFREETEXT *errorDetails,
                                int unprotected)
 
 =head1 DESCRIPTION
 
-This is the API for creating different CMP related PKIMESSAGES. The
+This is the API for creating various CMP PKIMESSAGES. The
 functions allocate a new message, fill it with the relevant data derived from
 the given CMP_CTX, and create the applicable protection.
 
@@ -50,11 +69,20 @@ Available CMP certificate request PKIMessage B<bodytype>s are:
 
 =back
 
+OSSL_CMP_certrep_new() creates a PKIMessage for certificate response, which can
+be either of IP/CP/KUP, depending on the given B<bodytype>.
+
 CMP_certConf_new() creates a Certificate Confirmation message.
+
+OSSL_CMP_pkiconf_new creates a PKI Confirmation message.
 
 CMP_pollReq_new() creates a Polling Request message.
 
+CMP_pollRep_new() creates a Polling Response message.
+
 CMP_genm_new() creates a new General Message.
+
+CMP_genp_new() creates a new General Response.
 
 CMP_error_new() creates a new Error Message.
 
