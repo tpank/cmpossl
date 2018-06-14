@@ -429,7 +429,7 @@ static OSSL_CMP_PKIMESSAGE *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
                                     const OSSL_CMP_PKIMESSAGE *req)
 {
     OSSL_CMP_PKIMESSAGE *msg = NULL;
-    STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *tmp = NULL;
+    STACK_OF(OSSL_CMP_ITAV) *tmp = NULL;
 
     if (srv_ctx == NULL || srv_ctx->ctx == NULL || req == NULL) {
         CMPerr(CMP_F_PROCESS_GENM, CMP_R_NULL_ARGUMENT);

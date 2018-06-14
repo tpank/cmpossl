@@ -66,8 +66,8 @@
   char *CMP_ERRORMSGCONTENT_PKIStatus_get_string( CMP_ERRORMSGCONTENT *error);
   long CMP_PKISTATUSINFO_PKIFailureInfo_get( CMP_PKISTATUSINFO *si);
   int CMP_PKISTATUSINFO_PKIFailureInfo_check( CMP_PKISTATUSINFO *si, int codeBit);
-  int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr, const CMP_INFOTYPEANDVALUE *itav);
-  int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
+  int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr, const CMP_ITAV *itav);
+  int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_ITAV) *itavs);
   int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
   int CMP_PKIHEADER_push0_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
   int CMP_PKIHEADER_push1_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
@@ -84,8 +84,8 @@
   int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr);
   int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
   int CMP_PKIMESSAGE_check_implicitConfirm(CMP_PKIMESSAGE *msg);
-  int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg, const CMP_INFOTYPEANDVALUE *itav);
-  int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_INFOTYPEANDVALUE) *itavs);
+  int CMP_PKIMESSAGE_genm_item_push0(CMP_PKIMESSAGE *msg, const CMP_ITAV *itav);
+  int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_ITAV) *itavs);
   int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
   ASN1_OCTET_STRING *CMP_PKIMESSAGE_get_transactionID(const CMP_PKIMESSAGE *msg);
   char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
@@ -96,7 +96,7 @@
                                        const EVP_PKEY *pkey);
   int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
-  CMP_INFOTYPEANDVALUE *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
+  CMP_ITAV *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
   CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, unsigned long failInfo,
                                         const char *text);
   long CMP_PKISTATUSINFO_PKIStatus_get( CMP_PKISTATUSINFO *statusInfo);
@@ -242,7 +242,7 @@ sets the protection to the given message.
 
 CMP_PKIMESSAGE_add_extraCerts() fills the extraCerts field in the message.
 
-CMP_ITAV_new() creates a new CMP_INFOTYPEANDVALUE structure and fills it in.
+CMP_ITAV_new() creates a new CMP_ITAV structure and fills it in.
 
 CMP_statusInfo_new() creates a new PKIStatusInfo structure and fills it in.
 

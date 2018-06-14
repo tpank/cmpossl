@@ -3433,7 +3433,7 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         ASN1_OBJECT *type;
         ASN1_INTEGER *aint;
         ASN1_TYPE *val;
-        OSSL_CMP_INFOTYPEANDVALUE *itav;
+        OSSL_CMP_ITAV *itav;
         char *endstr;
         char *valptr = strchr(opt_geninfo, ':');
 
@@ -3473,14 +3473,14 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             goto oom;
         }
         ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
-        itav = OSSL_CMP_ITAV_new(type, val);
+        itav = OSSL_CMP_ITAV_gen(type, val);
         if (itav == NULL) {
             ASN1_TYPE_free(val);
             goto oom;
         }
 
         if (!OSSL_CMP_CTX_geninfo_itav_push0(ctx, itav)) {
-            OSSL_CMP_INFOTYPEANDVALUE_free(itav);
+            OSSL_CMP_ITAV_free(itav);
             goto err;
         }
     }
@@ -3570,11 +3570,11 @@ static int save_certs(OSSL_CMP_CTX *ctx,
     return n;
 }
 
-static void print_itavs(STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *itavs)
+static void print_itavs(STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
-    OSSL_CMP_INFOTYPEANDVALUE *itav = NULL;
+    OSSL_CMP_ITAV *itav = NULL;
     int i;
-    int n = sk_OSSL_CMP_INFOTYPEANDVALUE_num(itavs); /* itavs == NULL leads to 0 */
+    int n = sk_OSSL_CMP_ITAV_num(itavs); /* itavs == NULL leads to 0 */
 
     if (n == 0) {
         OSSL_CMP_info(cmp_ctx, "genp contains no ITAV");
@@ -3583,8 +3583,8 @@ static void print_itavs(STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *itavs)
 
     for (i = 0; i < n; i++) {
         char buf[128];
-        itav = sk_OSSL_CMP_INFOTYPEANDVALUE_value(itavs, i);
-        OBJ_obj2txt(buf, 128, OSSL_CMP_INFOTYPEANDVALUE_get0_type(itav), 0);
+        itav = sk_OSSL_CMP_ITAV_value(itavs, i);
+        OBJ_obj2txt(buf, 128, OSSL_CMP_ITAV_get0_type(itav), 0);
         OSSL_CMP_printf(cmp_ctx, OSSL_CMP_FL_INFO, "genp contains ITAV of type: %s", buf);
     }
 }
@@ -4420,11 +4420,11 @@ int cmp_main(int argc, char **argv)
         break;
     case CMP_GENM:
         {
-            STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *itavs;
+            STACK_OF(OSSL_CMP_ITAV) *itavs;
 
             if (opt_infotype != NID_undef) {
-                OSSL_CMP_INFOTYPEANDVALUE *itav =
-                                  OSSL_CMP_ITAV_new(OBJ_nid2obj(opt_infotype), NULL);
+                OSSL_CMP_ITAV *itav =
+                                  OSSL_CMP_ITAV_gen(OBJ_nid2obj(opt_infotype), NULL);
                 if (itav == NULL)
                     goto err;
                 OSSL_CMP_CTX_genm_itav_push0(cmp_ctx, itav);
@@ -4433,7 +4433,7 @@ int cmp_main(int argc, char **argv)
             if ((itavs = OSSL_CMP_exec_GENM_ses(cmp_ctx)) == NULL)
                 goto err;
             print_itavs(itavs);
-            sk_OSSL_CMP_INFOTYPEANDVALUE_pop_free(itavs, OSSL_CMP_INFOTYPEANDVALUE_free);
+            sk_OSSL_CMP_ITAV_pop_free(itavs, OSSL_CMP_ITAV_free);
             break;
         }
     default:

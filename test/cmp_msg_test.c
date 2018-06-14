@@ -346,14 +346,14 @@ static int test_cmp_create_rr_without_oldcert(void)
 static int test_cmp_create_genm(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
-    OSSL_CMP_INFOTYPEANDVALUE *itv = NULL;
+    OSSL_CMP_ITAV *itv = NULL;
 
     OSSL_CMP_CTX_set_option(fixture->cmp_ctx, OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1);
     fixture->expected = 1;
     if (!TEST_ptr
-        (itv = OSSL_CMP_ITAV_new(OBJ_nid2obj(NID_id_it_implicitConfirm), NULL))
+        (itv = OSSL_CMP_ITAV_gen(OBJ_nid2obj(NID_id_it_implicitConfirm), NULL))
         || !TEST_true(OSSL_CMP_CTX_genm_itav_push0(fixture->cmp_ctx, itv))) {
-        OSSL_CMP_INFOTYPEANDVALUE_free(itv);
+        OSSL_CMP_ITAV_free(itv);
         tear_down(fixture);
         fixture = NULL;
     }

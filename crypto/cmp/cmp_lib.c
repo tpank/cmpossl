@@ -880,12 +880,12 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus, const X509 *cer
  */
 int OSSL_CMP_PKIMESSAGE_set_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg)
 {
-    OSSL_CMP_INFOTYPEANDVALUE *itav = NULL;
+    OSSL_CMP_ITAV *itav = NULL;
 
     if (msg == NULL)
         goto err;
 
-    if ((itav = OSSL_CMP_ITAV_new(OBJ_nid2obj(NID_id_it_implicitConfirm),
+    if ((itav = OSSL_CMP_ITAV_gen(OBJ_nid2obj(NID_id_it_implicitConfirm),
                              (const ASN1_TYPE *)ASN1_NULL_new())) == NULL)
         goto err;
     if (!OSSL_CMP_PKIHEADER_generalInfo_item_push0(msg->header, itav))
@@ -893,7 +893,7 @@ int OSSL_CMP_PKIMESSAGE_set_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg)
     return 1;
  err:
     if (itav)
-        OSSL_CMP_INFOTYPEANDVALUE_free(itav);
+        OSSL_CMP_ITAV_free(itav);
     return 0;
 }
 
@@ -906,15 +906,15 @@ int OSSL_CMP_PKIMESSAGE_check_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg)
 {
     int itavCount;
     int i;
-    OSSL_CMP_INFOTYPEANDVALUE *itav = NULL;
+    OSSL_CMP_ITAV *itav = NULL;
 
     if (msg == NULL)
         return 0;
 
-    itavCount = sk_OSSL_CMP_INFOTYPEANDVALUE_num(msg->header->generalInfo);
+    itavCount = sk_OSSL_CMP_ITAV_num(msg->header->generalInfo);
 
     for (i = 0; i < itavCount; i++) {
-        itav = sk_OSSL_CMP_INFOTYPEANDVALUE_value(msg->header->generalInfo, i);
+        itav = sk_OSSL_CMP_ITAV_value(msg->header->generalInfo, i);
         if (OBJ_obj2nid(itav->infoType) == NID_id_it_implicitConfirm)
             return 1;
     }
@@ -928,12 +928,12 @@ int OSSL_CMP_PKIMESSAGE_check_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg)
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_PKIHEADER_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
-                                         const OSSL_CMP_INFOTYPEANDVALUE *itav)
+                                         const OSSL_CMP_ITAV *itav)
 {
     if (hdr == NULL)
         goto err;
 
-    if (!OSSL_CMP_INFOTYPEANDVALUE_stack_item_push0(&hdr->generalInfo, itav))
+    if (!OSSL_CMP_ITAV_stack_item_push0(&hdr->generalInfo, itav))
         goto err;
     return 1;
  err:
@@ -944,18 +944,18 @@ int OSSL_CMP_PKIHEADER_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
 
 
 int OSSL_CMP_PKIMESSAGE_generalInfo_items_push1(OSSL_CMP_PKIMESSAGE *msg,
-                                          STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *itavs)
+                                          STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
-    OSSL_CMP_INFOTYPEANDVALUE *itav = NULL;
+    OSSL_CMP_ITAV *itav = NULL;
 
     if (msg == NULL)
         goto err;
 
-    for (i = 0; i < sk_OSSL_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
-        itav = OSSL_CMP_INFOTYPEANDVALUE_dup(sk_OSSL_CMP_INFOTYPEANDVALUE_value(itavs,i));
+    for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
+        itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i));
         if (!OSSL_CMP_PKIHEADER_generalInfo_item_push0(msg->header, itav)) {
-            OSSL_CMP_INFOTYPEANDVALUE_free(itav);
+            OSSL_CMP_ITAV_free(itav);
             goto err;
         }
     }
@@ -973,7 +973,7 @@ int OSSL_CMP_PKIMESSAGE_generalInfo_items_push1(OSSL_CMP_PKIMESSAGE *msg,
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_PKIMESSAGE_genm_item_push0(OSSL_CMP_PKIMESSAGE *msg,
-                                   const OSSL_CMP_INFOTYPEANDVALUE *itav)
+                                   const OSSL_CMP_ITAV *itav)
 {
     int bodytype;
     if (msg == NULL)
@@ -982,7 +982,7 @@ int OSSL_CMP_PKIMESSAGE_genm_item_push0(OSSL_CMP_PKIMESSAGE *msg,
     if (bodytype != OSSL_CMP_PKIBODY_GENM && bodytype != OSSL_CMP_PKIBODY_GENP)
         goto err;
 
-    if (!OSSL_CMP_INFOTYPEANDVALUE_stack_item_push0(&msg->body->value.genm, itav))
+    if (!OSSL_CMP_ITAV_stack_item_push0(&msg->body->value.genm, itav))
         goto err;
     return 1;
  err:
@@ -997,18 +997,18 @@ int OSSL_CMP_PKIMESSAGE_genm_item_push0(OSSL_CMP_PKIMESSAGE *msg,
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_PKIMESSAGE_genm_items_push1(OSSL_CMP_PKIMESSAGE *msg,
-                                    STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *itavs)
+                                    STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
-    OSSL_CMP_INFOTYPEANDVALUE *itav = NULL;
+    OSSL_CMP_ITAV *itav = NULL;
 
     if (msg == NULL)
         goto err;
 
-    for (i = 0; i < sk_OSSL_CMP_INFOTYPEANDVALUE_num(itavs); i++) {
-        itav = OSSL_CMP_INFOTYPEANDVALUE_dup(sk_OSSL_CMP_INFOTYPEANDVALUE_value(itavs,i));
+    for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
+        itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i));
         if (!OSSL_CMP_PKIMESSAGE_genm_item_push0(msg, itav)) {
-            OSSL_CMP_INFOTYPEANDVALUE_free(itav);
+            OSSL_CMP_ITAV_free(itav);
             goto err;
         }
     }
@@ -1028,8 +1028,8 @@ int OSSL_CMP_PKIMESSAGE_genm_items_push1(OSSL_CMP_PKIMESSAGE *msg,
  *
  * returns 1 on success, 0 on error
  */
-int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) **itav_sk_p,
-                              const OSSL_CMP_INFOTYPEANDVALUE *itav)
+int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
+                              const OSSL_CMP_ITAV *itav)
 {
     int created = 0;
 
@@ -1038,19 +1038,19 @@ int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) **itav_sk_p,
 
     if (*itav_sk_p == NULL) {
         /* not yet created */
-        if ((*itav_sk_p = sk_OSSL_CMP_INFOTYPEANDVALUE_new_null()) == NULL)
+        if ((*itav_sk_p = sk_OSSL_CMP_ITAV_new_null()) == NULL)
             goto err;
         created = 1;
     }
     if (itav) {
-        if (!sk_OSSL_CMP_INFOTYPEANDVALUE_push(*itav_sk_p,
-                    (OSSL_CMP_INFOTYPEANDVALUE *)itav))
+        if (!sk_OSSL_CMP_ITAV_push(*itav_sk_p,
+                    (OSSL_CMP_ITAV *)itav))
             goto err;
     }
     return 1;
  err:
     if (created) {
-        sk_OSSL_CMP_INFOTYPEANDVALUE_pop_free(*itav_sk_p, OSSL_CMP_INFOTYPEANDVALUE_free);
+        sk_OSSL_CMP_ITAV_pop_free(*itav_sk_p, OSSL_CMP_ITAV_free);
         *itav_sk_p = NULL;
     }
     return 0;
@@ -1058,16 +1058,16 @@ int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) **itav_sk_p,
 
 
 /*
- * Creates a new OSSL_CMP_INFOTYPEANDVALUE structure and fills it in
+ * Creates a new OSSL_CMP_ITAV structure and fills it in
  * returns a pointer to the structure on success, NULL on error
  */
-OSSL_CMP_INFOTYPEANDVALUE *OSSL_CMP_ITAV_new(const ASN1_OBJECT *type,
-                                   const ASN1_TYPE *value)
+OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(const ASN1_OBJECT *type,
+                                 const ASN1_TYPE *value)
 {
-    OSSL_CMP_INFOTYPEANDVALUE *itav;
-    if (type == NULL || (itav = OSSL_CMP_INFOTYPEANDVALUE_new()) == NULL)
+    OSSL_CMP_ITAV *itav;
+    if (type == NULL || (itav = OSSL_CMP_ITAV_new()) == NULL)
         return NULL;
-    OSSL_CMP_INFOTYPEANDVALUE_set(itav, type, value);
+    OSSL_CMP_ITAV_set(itav, type, value);
     return itav;
 }
 

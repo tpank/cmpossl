@@ -2,38 +2,38 @@
 
 =head1 NAME
 
-  CMP_INFOTYPEANDVALUE_set,
-  CMP_INFOTYPEANDVALUE_get0_type,
-  CMP_INFOTYPEANDVALUE_get0_value,
-  CMP_INFOTYPEANDVALUE_stack_item_push0 - CMP_INFOTYPEANDVALUE utility functions
+  CMP_ITAV_set,
+  CMP_ITAV_get0_type,
+  CMP_ITAV_get0_value,
+  CMP_ITAV_stack_item_push0 - CMP_ITAV utility functions
 
 =head1 SYNOPSIS
 
   #include <openssl/cmp.h>
-  void CMP_INFOTYPEANDVALUE_set(CMP_INFOTYPEANDVALUE *itav,
+  void CMP_ITAV_set(CMP_ITAV *itav,
                                 const ASN1_OBJECT *type,
                                 const ASN1_TYPE *value);
-  ASN1_OBJECT *CMP_INFOTYPEANDVALUE_get0_type(CMP_INFOTYPEANDVALUE *itav);
-  ASN1_TYPE *CMP_INFOTYPEANDVALUE_get0_value(CMP_INFOTYPEANDVALUE *itav);
+  ASN1_OBJECT *CMP_ITAV_get0_type(CMP_ITAV *itav);
+  ASN1_TYPE *CMP_ITAV_get0_value(CMP_ITAV *itav);
 
   #include "cmp_int.h"
-  int CMP_INFOTYPEANDVALUE_stack_item_push0(
-                                STACK_OF(CMP_INFOTYPEANDVALUE) **itav_sk_p,
-                                const CMP_INFOTYPEANDVALUE *itav);
+  int CMP_ITAV_stack_item_push0(
+                                STACK_OF(CMP_ITAV) **itav_sk_p,
+                                const CMP_ITAV *itav);
 
 =head1 DESCRIPTION
 
-CMP_INFOTYPEANDVALUE_set() sets the B<itav> with an infoType of B<type> and an
+CMP_ITAV_set() sets the B<itav> with an infoType of B<type> and an
 infoValue of B<value>. This function uses the pointers B<type> and B<value>
 internally, so they must B<not> be freed up after the call.
 
-CMP_INFOTYPEANDVALUE_get0_type() returns a direct pointer to the infoType in the
+CMP_ITAV_get0_type() returns a direct pointer to the infoType in the
 B<itav>.
 
-CMP_INFOTYPEANDVALUE_get0_value() returns a direct pointer to the infoValue in
+CMP_ITAV_get0_value() returns a direct pointer to the infoValue in
 the B<itav> as generic ASN1_TYPE*.
 
-CMP_INFOTYPEANDVALUE_stack_item_push0() is an internal function that pushes
+CMP_ITAV_stack_item_push0() is an internal function that pushes
 B<itav> to the stack pointed to by B<*itav_sk_p>. It creates a new stack if
 B<*itav_sk_p> points to NULL.
 
@@ -43,9 +43,9 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-CMP_INFOTYPEANDVALUE_set() does not return a value.
+CMP_ITAV_set() does not return a value.
 
-CMP_INFOTYPEANDVALUE_stack_item_push0() returns 1 on success, 0 on error.
+CMP_ITAV_stack_item_push0() returns 1 on success, 0 on error.
 
 =head1 EXAMPLE
 
@@ -63,15 +63,15 @@ in the requests' PKIHeader's genInfo field.
     ASN1_TYPE *val = ASN1_TYPE_new();
     ASN1_TYPE_set(val, V_ASN1_INTEGER, asn1int);
 
-    CMP_INFOTYPEANDVALUE *itav = CMP_INFOTYPEANDVALUE_new();
-    CMP_INFOTYPEANDVALUE_set(itav, type, val);
+    CMP_ITAV *itav = CMP_ITAV_new();
+    CMP_ITAV_set(itav, type, val);
 
     CMP_CTX *ctx = CMP_CTX_new();
     CMP_CTX_geninfo_itav_push0(ctx, itav);
 
 =head1 TODO
 
-Evaluate whether CMP_INFOTYPEANDVALUE_stack_item_push0() should be listed in
+Evaluate whether CMP_ITAV_stack_item_push0() should be listed in
 this documentation - as it is an internal function.
 
 =head1 SEE ALSO

@@ -63,8 +63,8 @@ ASN1_SEQUENCE(OSSL_CMP_CTX) = {
     ASN1_OPT(OSSL_CMP_CTX, transactionID, ASN1_OCTET_STRING),
     ASN1_OPT(OSSL_CMP_CTX, recipNonce, ASN1_OCTET_STRING),
     ASN1_OPT(OSSL_CMP_CTX, last_senderNonce, ASN1_OCTET_STRING),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, geninfo_itavs, OSSL_CMP_INFOTYPEANDVALUE),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, genm_itavs, OSSL_CMP_INFOTYPEANDVALUE),
+    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, geninfo_itavs, OSSL_CMP_ITAV),
+    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, genm_itavs, OSSL_CMP_ITAV),
 } ASN1_SEQUENCE_END(OSSL_CMP_CTX)
 IMPLEMENT_STATIC_ASN1_ALLOC_FUNCTIONS(OSSL_CMP_CTX)
 
@@ -521,23 +521,23 @@ int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID)
 /*
  * add an itav for geninfo of the PKI message header
  */
-int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_INFOTYPEANDVALUE *itav)
+int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_ITAV *itav)
 {
     if (ctx == NULL)
         return 0;
 
-    return OSSL_CMP_INFOTYPEANDVALUE_stack_item_push0(&ctx->geninfo_itavs, itav);
+    return OSSL_CMP_ITAV_stack_item_push0(&ctx->geninfo_itavs, itav);
 }
 
 /*
  * add an itav for the body of outgoing generalmessages
  */
-int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_INFOTYPEANDVALUE *itav)
+int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_ITAV *itav)
 {
     if (ctx == NULL)
         return 0;
 
-    return OSSL_CMP_INFOTYPEANDVALUE_stack_item_push0(&ctx->genm_itavs, itav);
+    return OSSL_CMP_ITAV_stack_item_push0(&ctx->genm_itavs, itav);
 }
 
 /*

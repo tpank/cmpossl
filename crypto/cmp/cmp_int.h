@@ -71,8 +71,8 @@ struct OSSL_cmp_ctx_st {
     ASN1_OCTET_STRING *transactionID; /* the current transaction ID */
     ASN1_OCTET_STRING *recipNonce; /* last nonce received */
     ASN1_OCTET_STRING *last_senderNonce; /* last nonce sent */
-    STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *geninfo_itavs;
-    STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *genm_itavs;
+    STACK_OF(OSSL_CMP_ITAV) *geninfo_itavs;
+    STACK_OF(OSSL_CMP_ITAV) *genm_itavs;
 
     /* non-OpenSSL ASN.1 members starting here */
     EVP_PKEY *pkey;    /* EVP_PKEY holding the *current* key pair
@@ -209,7 +209,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIMESSAGES)
  *       infoValue              ANY DEFINED BY infoType  OPTIONAL
  *   }
  */
-struct OSSL_cmp_infotypeandvalue_st {
+struct OSSL_cmp_itav_st {
     ASN1_OBJECT *infoType;
     union {
         char *ptr;
@@ -244,13 +244,13 @@ struct OSSL_cmp_infotypeandvalue_st {
         /* this is to be used for so far undeclared objects */
         ASN1_TYPE *other;
     } infoValue;
-} /* OSSL_CMP_INFOTYPEANDVALUE */;
-OSSL_CMP_INFOTYPEANDVALUE *OSSL_CMP_INFOTYPEANDVALUE_dup(OSSL_CMP_INFOTYPEANDVALUE *itav);
-DECLARE_ASN1_FUNCTIONS(OSSL_CMP_INFOTYPEANDVALUE)
+} /* OSSL_CMP_ITAV */;
+OSSL_CMP_ITAV *OSSL_CMP_ITAV_dup(OSSL_CMP_ITAV *itav);
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
 
-int OSSL_CMP_INFOTYPEANDVALUE_stack_item_push0(
-                              STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) **itav_sk_p,
-                              const OSSL_CMP_INFOTYPEANDVALUE *itav);
+int OSSL_CMP_ITAV_stack_item_push0(
+                              STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
+                              const OSSL_CMP_ITAV *itav);
 
 
 typedef struct OSSL_cmp_certorenccert_st {
@@ -491,15 +491,15 @@ struct OSSL_cmp_pkiheader_st {
     ASN1_OCTET_STRING *senderNonce; /* 5 */
     ASN1_OCTET_STRING *recipNonce; /* 6 */
     OSSL_CMP_PKIFREETEXT *freeText; /* 7 */
-    STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *generalInfo; /* 8 */
+    STACK_OF(OSSL_CMP_ITAV) *generalInfo; /* 8 */
 } /* OSSL_CMP_PKIHEADER */;
 
 typedef STACK_OF(OSSL_CMP_CHALLENGE) OSSL_CMP_POPODECKEYCHALLCONTENT;
 typedef STACK_OF(ASN1_INTEGER) OSSL_CMP_POPODECKEYRESPCONTENT;
 typedef STACK_OF(OSSL_CMP_REVDETAILS) OSSL_CMP_REVREQCONTENT;
 typedef STACK_OF(X509_CRL) OSSL_CMP_CRLANNCONTENT;
-typedef STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) OSSL_CMP_GENMSGCONTENT;
-typedef STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) OSSL_CMP_GENREPCONTENT;
+typedef STACK_OF(OSSL_CMP_ITAV) OSSL_CMP_GENMSGCONTENT;
+typedef STACK_OF(OSSL_CMP_ITAV) OSSL_CMP_GENREPCONTENT;
 
 /*-
  *   PKIBody ::= CHOICE {           -- message-specific body elements
@@ -700,8 +700,8 @@ OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,const ch
 OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(
                                            OSSL_CMP_REVREPCONTENT *rrep, long reqId);
 int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus, const X509 *cert);
-int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) **
-                              itav_sk_p, const OSSL_CMP_INFOTYPEANDVALUE *itav);
+int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **
+                              itav_sk_p, const OSSL_CMP_ITAV *itav);
 
 X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, OSSL_CMP_CERTRESPONSE *crep);
 OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc, long rid);

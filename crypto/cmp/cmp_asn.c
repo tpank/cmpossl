@@ -70,74 +70,74 @@ ASN1_SEQUENCE(OSSL_CMP_ERRORMSGCONTENT) = {
 } ASN1_SEQUENCE_END(OSSL_CMP_ERRORMSGCONTENT)
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_ERRORMSGCONTENT)
 
-ASN1_ADB_TEMPLATE(infotypeandvalue_default) = ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE,
+ASN1_ADB_TEMPLATE(infotypeandvalue_default) = ASN1_OPT(OSSL_CMP_ITAV,
         infoValue.other, ASN1_ANY);
-ASN1_ADB(OSSL_CMP_INFOTYPEANDVALUE) = {
+ASN1_ADB(OSSL_CMP_ITAV) = {
     /* OSSL_CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
-    ADB_ENTRY(NID_id_it_caProtEncCert, ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE,
+    ADB_ENTRY(NID_id_it_caProtEncCert, ASN1_OPT(OSSL_CMP_ITAV,
                                                 infoValue.caProtEncCert, X509)),
     ADB_ENTRY(NID_id_it_signKeyPairTypes,
-              ASN1_SEQUENCE_OF_OPT(OSSL_CMP_INFOTYPEANDVALUE,
+              ASN1_SEQUENCE_OF_OPT(OSSL_CMP_ITAV,
                                    infoValue.signKeyPairTypes, X509_ALGOR)),
     ADB_ENTRY(NID_id_it_encKeyPairTypes,
-              ASN1_SEQUENCE_OF_OPT(OSSL_CMP_INFOTYPEANDVALUE,
+              ASN1_SEQUENCE_OF_OPT(OSSL_CMP_ITAV,
                                    infoValue.encKeyPairTypes, X509_ALGOR)),
     ADB_ENTRY(NID_id_it_preferredSymmAlg,
-              ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE, infoValue.preferredSymmAlg,
+              ASN1_OPT(OSSL_CMP_ITAV, infoValue.preferredSymmAlg,
                        X509_ALGOR)),
     ADB_ENTRY(NID_id_it_caKeyUpdateInfo,
-              ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE, infoValue.caKeyUpdateInfo,
+              ASN1_OPT(OSSL_CMP_ITAV, infoValue.caKeyUpdateInfo,
                        OSSL_CMP_CAKEYUPDANNCONTENT)),
     ADB_ENTRY(NID_id_it_currentCRL,
-              ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE, infoValue.currentCRL, X509_CRL)),
+              ASN1_OPT(OSSL_CMP_ITAV, infoValue.currentCRL, X509_CRL)),
     ADB_ENTRY(NID_id_it_unsupportedOIDs,
-              ASN1_SEQUENCE_OF_OPT(OSSL_CMP_INFOTYPEANDVALUE,
+              ASN1_SEQUENCE_OF_OPT(OSSL_CMP_ITAV,
                                    infoValue.unsupportedOIDs, ASN1_OBJECT)),
     ADB_ENTRY(NID_id_it_keyPairParamReq,
-              ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE, infoValue.keyPairParamReq,
+              ASN1_OPT(OSSL_CMP_ITAV, infoValue.keyPairParamReq,
                        ASN1_OBJECT)),
     ADB_ENTRY(NID_id_it_keyPairParamRep,
-              ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE, infoValue.keyPairParamRep,
+              ASN1_OPT(OSSL_CMP_ITAV, infoValue.keyPairParamRep,
                        X509_ALGOR)),
     ADB_ENTRY(NID_id_it_revPassphrase,
-              ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE, infoValue.revPassphrase,
+              ASN1_OPT(OSSL_CMP_ITAV, infoValue.revPassphrase,
                        OSSL_CRMF_ENCRYPTEDVALUE)),
     ADB_ENTRY(NID_id_it_implicitConfirm,
-              ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE, infoValue.implicitConfirm,
+              ASN1_OPT(OSSL_CMP_ITAV, infoValue.implicitConfirm,
                        ASN1_NULL)),
     ADB_ENTRY(NID_id_it_confirmWaitTime,
-              ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE, infoValue.confirmWaitTime,
+              ASN1_OPT(OSSL_CMP_ITAV, infoValue.confirmWaitTime,
                        ASN1_GENERALIZEDTIME)),
     ADB_ENTRY(NID_id_it_origPKIMessage,
-              ASN1_OPT(OSSL_CMP_INFOTYPEANDVALUE, infoValue.origPKIMessage,
+              ASN1_OPT(OSSL_CMP_ITAV, infoValue.origPKIMessage,
                        OSSL_CMP_PKIMESSAGES)),
     ADB_ENTRY(NID_id_it_suppLangTags,
-              ASN1_SEQUENCE_OF_OPT(OSSL_CMP_INFOTYPEANDVALUE,
+              ASN1_SEQUENCE_OF_OPT(OSSL_CMP_ITAV,
                                  infoValue.suppLangTagsValue, ASN1_UTF8STRING)),
 #if 0
     /* this is what CL likes for KUR - not in the RFC */
     ADB_ENTRY(NID_id_smime_aa_signingCertificate,
-            ASN1_SET_OF(OSSL_CMP_INFOTYPEANDVALUE, infoValue.signingCertificate,
+            ASN1_SET_OF(OSSL_CMP_ITAV, infoValue.signingCertificate,
                         ESS_SIGNING_CERT))
     /*-
      * this is how signingCertificate should probably be actually used
      * ADB_ENTRY(NID_id_smime_aa_signingCertificate,
-     *           ASN1_SIMPLE(OSSL_CMP_INFOTYPEANDVALUE, infoValue.signingCertificate,
+     *           ASN1_SIMPLE(OSSL_CMP_ITAV, infoValue.signingCertificate,
      *                       ESS_SIGNING_CERT))
      */
 #endif
-} ASN1_ADB_END(OSSL_CMP_INFOTYPEANDVALUE, 0, infoType, 0,
+} ASN1_ADB_END(OSSL_CMP_ITAV, 0, infoType, 0,
                &infotypeandvalue_default_tt, NULL);
 
 
-ASN1_SEQUENCE(OSSL_CMP_INFOTYPEANDVALUE) = {
-    ASN1_SIMPLE(OSSL_CMP_INFOTYPEANDVALUE, infoType, ASN1_OBJECT),
-    ASN1_ADB_OBJECT(OSSL_CMP_INFOTYPEANDVALUE)
-} ASN1_SEQUENCE_END(OSSL_CMP_INFOTYPEANDVALUE)
-IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_INFOTYPEANDVALUE)
-IMPLEMENT_ASN1_DUP_FUNCTION(OSSL_CMP_INFOTYPEANDVALUE)
+ASN1_SEQUENCE(OSSL_CMP_ITAV) = {
+    ASN1_SIMPLE(OSSL_CMP_ITAV, infoType, ASN1_OBJECT),
+    ASN1_ADB_OBJECT(OSSL_CMP_ITAV)
+} ASN1_SEQUENCE_END(OSSL_CMP_ITAV)
+IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
+IMPLEMENT_ASN1_DUP_FUNCTION(OSSL_CMP_ITAV)
 
-void OSSL_CMP_INFOTYPEANDVALUE_set(OSSL_CMP_INFOTYPEANDVALUE *itav,
+void OSSL_CMP_ITAV_set(OSSL_CMP_ITAV *itav,
                               const ASN1_OBJECT *type,
                               const ASN1_TYPE *value)
 {
@@ -145,23 +145,23 @@ void OSSL_CMP_INFOTYPEANDVALUE_set(OSSL_CMP_INFOTYPEANDVALUE *itav,
     itav->infoValue.other = (ASN1_TYPE *)value;
 }
 
-ASN1_OBJECT *OSSL_CMP_INFOTYPEANDVALUE_get0_type(OSSL_CMP_INFOTYPEANDVALUE *itav)
+ASN1_OBJECT *OSSL_CMP_ITAV_get0_type(OSSL_CMP_ITAV *itav)
 {
     if (itav == NULL)
         return NULL;
     return itav->infoType;
 }
 
-ASN1_TYPE *OSSL_CMP_INFOTYPEANDVALUE_get0_value(OSSL_CMP_INFOTYPEANDVALUE *itav)
+ASN1_TYPE *OSSL_CMP_ITAV_get0_value(OSSL_CMP_ITAV *itav)
 {
     if (itav == NULL)
         return NULL;
     return itav->infoValue.other;
 }
 
-int OSSL_CMP_INFOTYPEANDVALUE_stack_item_push0(
-                              STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) **itav_sk_p,
-                              const OSSL_CMP_INFOTYPEANDVALUE *itav)
+int OSSL_CMP_ITAV_stack_item_push0(
+                              STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
+                              const OSSL_CMP_ITAV *itav)
 {
     int created = 0;
 
@@ -169,20 +169,20 @@ int OSSL_CMP_INFOTYPEANDVALUE_stack_item_push0(
         goto err;
 
     if (*itav_sk_p == NULL) {
-        if ((*itav_sk_p = sk_OSSL_CMP_INFOTYPEANDVALUE_new_null()) == NULL)
+        if ((*itav_sk_p = sk_OSSL_CMP_ITAV_new_null()) == NULL)
             goto err;
         created = 1;
     }
     if (itav) {
-        if (!sk_OSSL_CMP_INFOTYPEANDVALUE_push(*itav_sk_p,
-                                          (OSSL_CMP_INFOTYPEANDVALUE *)itav))
+        if (!sk_OSSL_CMP_ITAV_push(*itav_sk_p,
+                                          (OSSL_CMP_ITAV *)itav))
             goto err;
     }
     return 1;
  err:
     if (created) {
-        sk_OSSL_CMP_INFOTYPEANDVALUE_pop_free(*itav_sk_p,
-                                         OSSL_CMP_INFOTYPEANDVALUE_free);
+        sk_OSSL_CMP_ITAV_pop_free(*itav_sk_p,
+                                         OSSL_CMP_ITAV_free);
         *itav_sk_p = NULL;
     }
     return 0;
@@ -304,12 +304,12 @@ IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_CERTREPMESSAGE)
 
 ASN1_ITEM_TEMPLATE(OSSL_CMP_GENMSGCONTENT) =
     ASN1_EX_TEMPLATE_TYPE(ASN1_TFLG_SEQUENCE_OF, 0, OSSL_CMP_GENMSGCONTENT,
-                          OSSL_CMP_INFOTYPEANDVALUE)
+                          OSSL_CMP_ITAV)
 ASN1_ITEM_TEMPLATE_END(OSSL_CMP_GENMSGCONTENT)
 
 ASN1_ITEM_TEMPLATE(OSSL_CMP_GENREPCONTENT) =
     ASN1_EX_TEMPLATE_TYPE(ASN1_TFLG_SEQUENCE_OF, 0, OSSL_CMP_GENREPCONTENT,
-                          OSSL_CMP_INFOTYPEANDVALUE)
+                          OSSL_CMP_ITAV)
 ASN1_ITEM_TEMPLATE_END(OSSL_CMP_GENREPCONTENT)
 
 ASN1_ITEM_TEMPLATE(OSSL_CMP_CRLANNCONTENT) =
@@ -364,7 +364,7 @@ ASN1_SEQUENCE(OSSL_CMP_PKIHEADER) = {
      */
     ASN1_EXP_SEQUENCE_OF_OPT(OSSL_CMP_PKIHEADER, freeText, ASN1_UTF8STRING, 7),
     ASN1_EXP_SEQUENCE_OF_OPT(OSSL_CMP_PKIHEADER, generalInfo,
-                             OSSL_CMP_INFOTYPEANDVALUE, 8)
+                             OSSL_CMP_ITAV, 8)
 } ASN1_SEQUENCE_END(OSSL_CMP_PKIHEADER)
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_PKIHEADER)
 

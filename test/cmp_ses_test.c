@@ -94,10 +94,10 @@ static int execute_cmp_exec_rr_ses_test(CMP_SES_TEST_FIXTURE *fixture)
 
 static int execute_cmp_exec_genm_ses_test(CMP_SES_TEST_FIXTURE *fixture)
 {
-    STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *itavs = NULL;
+    STACK_OF(OSSL_CMP_ITAV) *itavs = NULL;
     if (!TEST_ptr(itavs = OSSL_CMP_exec_GENM_ses(fixture->cmp_ctx)))
         return 0;
-    sk_OSSL_CMP_INFOTYPEANDVALUE_pop_free(itavs, OSSL_CMP_INFOTYPEANDVALUE_free);
+    sk_OSSL_CMP_ITAV_pop_free(itavs, OSSL_CMP_ITAV_free);
     /* TODO: check if the returned value is the expected one (same as sent) */
     return 1;
 }

@@ -762,11 +762,11 @@ X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx)
  *
  * returns pointer to stack of ITAVs received in the answer or NULL on error
  */
-STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
+STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_PKIMESSAGE *genm = NULL;
     OSSL_CMP_PKIMESSAGE *genp = NULL;
-    STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *rcvd_itavs = NULL;
+    STACK_OF(OSSL_CMP_ITAV) *rcvd_itavs = NULL;
 
     if ((genm = OSSL_CMP_genm_new(ctx)) == NULL)
         goto err;

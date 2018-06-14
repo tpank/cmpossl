@@ -169,7 +169,7 @@ OSSL_CMP_PKIMESSAGE *OSSL_CMP_PKIMESSAGE_create(OSSL_CMP_CTX *ctx, int bodytype)
 
     case OSSL_CMP_PKIBODY_GENM:
     case OSSL_CMP_PKIBODY_GENP:
-        if ((msg->body->value.genm = sk_OSSL_CMP_INFOTYPEANDVALUE_new_null()) == NULL)
+        if ((msg->body->value.genm = sk_OSSL_CMP_ITAV_new_null()) == NULL)
             goto oom;
         return msg;
 

@@ -17,7 +17,7 @@
  X509 *CMP_exec_KUR_ses(CMP_CTX *ctx);
  X509 *CMP_exec_CR_ses(CMP_CTX *ctx);
  X509 *CMP_doPKCS10CertificationRequestSeq(CMP_CTX *ctx);
- STACK_OF(CMP_INFOTYPEANDVALUE) *CMP_exec_GENM_ses(CMP_CTX *ctx;
+ STACK_OF(CMP_ITAV) *CMP_exec_GENM_ses(CMP_CTX *ctx;
  int CMP_doRevocationRequestSeq(CMP_CTX *ctx);
 
 =head1 DESCRIPTION
