@@ -43,6 +43,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_EXEC_RR_SES                            156
 #  define CMP_F_CMP_GENM_NEW                               157
 #  define CMP_F_CMP_GENP_NEW                               158
+#  define CMP_F_CMP_GEN_NEW                                233
 #  define CMP_F_CMP_PKICONF_NEW                            159
 #  define CMP_F_CMP_PKIFREETEXT_PUSH_STR                   223
 #  define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING     220
@@ -57,6 +58,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_VERIFY_PBMAC                           187
 #  define CMP_F_CMP_VERIFY_POPO                            188
 #  define CMP_F_CMP_VERIFY_SIGNATURE                       189
+#  define CMP_F_CRM_NEW                                    232
 #  define CMP_F_FIND_SRVCERT                               190
 #  define CMP_F_GET_CERT_STATUS                            191
 #  define CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1            202

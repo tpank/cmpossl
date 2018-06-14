@@ -108,7 +108,6 @@ struct OSSL_crmf_certid_st {
     GENERAL_NAME *issuer;
     ASN1_INTEGER *serialNumber;
 } /* OSSL_CRMF_CERTID */;
-DEFINE_STACK_OF(OSSL_CRMF_CERTID)
 OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_dup(OSSL_CRMF_CERTID *cid);
 
 /*-

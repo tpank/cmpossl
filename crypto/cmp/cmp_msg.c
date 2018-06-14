@@ -22,7 +22,6 @@
 #include <string.h>
 
 #include "cmp_int.h"
-#include "../crmf/crmf_int.h" /* TODO: integrate into one folder */
 
 /*
  * Takes a stack of GENERAL_NAMEs and adds them to the given extension stack.
@@ -229,7 +228,7 @@ static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert, int bodytype)
  * returns a pointer to the OSSL_CRMF_CERTREQMSG on success, NULL on error
  */
 static OSSL_CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
-                                long rid, EVP_PKEY *rkey)
+                                     long rid, EVP_PKEY *rkey)
 {
     OSSL_CRMF_CERTREQMSG *crm = NULL;
     X509 *refcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
@@ -249,9 +248,9 @@ static OSSL_CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
 #endif
             /* rkey cannot be NULL so far - but it can be when
              * centralized key creation is supported --> Feature Request #68 */
-        !OSSL_CRMF_CERTREQMSG_set1_publicKey(crm, rkey) ||
-        (subject && !OSSL_CRMF_CERTREQMSG_set1_subject(crm, subject)) ||
-        (ctx->issuer && !OSSL_CRMF_CERTREQMSG_set1_issuer(crm, ctx->issuer)))
+        !rkey || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTREQMSG_get_tmpl(crm),
+                                              rkey, subject,
+                                              ctx->issuer, NULL/* serial */))
         goto err;
     if (ctx->days) {
         time_t notBefore, notAfter;
@@ -285,7 +284,7 @@ static OSSL_CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         int ret;
 
         if (refcert == NULL) {
-            /* TODO add suitable error code */
+            CMPerr(CMP_F_CRM_NEW, CMP_R_INVALID_ARGS);
             goto err;
         }
         if (!(cid = OSSL_CRMF_CERTID_gen(X509_get_issuer_name(refcert),
@@ -418,7 +417,7 @@ OSSL_CMP_PKIMESSAGE *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
     if (!sk_OSSL_CMP_CERTRESPONSE_push(repMsg->response, resp))
         goto oom;
     resp = NULL;
-    /* here optional 2nd certrep could be pushed to the stack */
+    /* TODO: here optional 2nd certrep could be pushed to the stack */
 
     if (bodytype == OSSL_CMP_PKIBODY_IP && caPubs &&
         (repMsg->caPubs = X509_chain_up_ref(caPubs)) == NULL)
@@ -456,7 +455,7 @@ OSSL_CMP_PKIMESSAGE *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int reqId)
         (msg = OSSL_CMP_PKIMESSAGE_create(ctx, OSSL_CMP_PKIBODY_POLLREQ)) == NULL)
         goto err;
 
-    /* TODO support multiple cert request IDs to poll */
+    /* TODO: support multiple cert request IDs to poll */
     if ((preq = OSSL_CMP_POLLREQ_new()) == NULL ||
         !ASN1_INTEGER_set(preq->certReqId, reqId) ||
         !sk_OSSL_CMP_POLLREQ_push(msg->body->value.pollReq, preq))
@@ -516,10 +515,9 @@ OSSL_CMP_PKIMESSAGE *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, long certReqId,
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_PKIMESSAGE *msg = NULL;
-    OSSL_CRMF_CERTTEMPLATE *certTpl = NULL;
-    X509_NAME *subject = NULL;
     EVP_PKEY *pubkey = NULL;
     OSSL_CMP_REVDETAILS *rd = NULL;
+    int ret;
 
     if (ctx == NULL || ctx->oldClCert == NULL) {
         CMPerr(CMP_F_OSSL_CMP_RR_NEW, CMP_R_INVALID_ARGS);
@@ -537,20 +535,15 @@ OSSL_CMP_PKIMESSAGE *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
      * Fill the template from the contents of the certificate to be revoked;
      * TODO: maybe add further fields
      */
-    certTpl = rd->certDetails;
-    if ((subject = X509_get_subject_name(ctx->oldClCert)) == NULL)
-        goto err;
-    X509_NAME_set(&certTpl->subject, subject);
-
     if ((pubkey = X509_get_pubkey(ctx->oldClCert)) == NULL)
         goto err;
-    X509_PUBKEY_set(&certTpl->publicKey, pubkey);
+    ret = OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails, pubkey,
+                                      X509_get_subject_name(ctx->oldClCert),
+                                      X509_get_issuer_name(ctx->oldClCert),
+                                      X509_get_serialNumber(ctx->oldClCert));
     EVP_PKEY_free(pubkey);
-
-    if ((certTpl->serialNumber =
-          ASN1_INTEGER_dup(X509_get_serialNumber(ctx->oldClCert))) == NULL)
+    if (!ret)
         goto err;
-    X509_NAME_set(&certTpl->issuer, X509_get_issuer_name(ctx->oldClCert));
 
     /* revocation reason code is optional */
     if (ctx->revocationReason != CRL_REASON_NONE &&
@@ -617,7 +610,7 @@ OSSL_CMP_PKIMESSAGE *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *
 /*
  * Creates a new Certificate Confirmation PKIMessage
  * returns a pointer to the PKIMessage on success, NULL on error
- * TODO: handle both possible certificates when signing and encrypting
+ * TODO: handle potential 2nd certificate when signing and encrypting
  * certificates have been requested/received
  */
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure, const char *text)
@@ -689,62 +682,53 @@ OSSL_CMP_PKIMESSAGE *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx)
 }
 
 /*
+ * Creates a new General Message/Response with an empty itav stack
+ * returns a pointer to the PKIMessage on success, NULL on error
+ */
+static OSSL_CMP_PKIMESSAGE *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type,
+                                        int err_code)
+{
+    OSSL_CMP_PKIMESSAGE *msg = NULL;
+
+    if (ctx == NULL) {
+        CMPerr(CMP_F_CMP_GEN_NEW, CMP_R_INVALID_ARGS);
+        return NULL;
+    }
+
+    if ((msg = OSSL_CMP_PKIMESSAGE_create(ctx, body_type)) == NULL)
+        goto err;
+
+    if (ctx->genm_itavs)
+        if (!OSSL_CMP_PKIMESSAGE_genm_items_push1(msg, ctx->genm_itavs))
+            goto err;
+
+    if (!OSSL_CMP_PKIMESSAGE_protect(ctx, msg))
+        goto err;
+
+    return msg;
+
+ err:
+    CMPerr(CMP_F_CMP_GEN_NEW, err_code);
+    OSSL_CMP_PKIMESSAGE_free(msg);
+    return NULL;
+}
+
+/*
  * Creates a new General Message with an empty itav stack
  * returns a pointer to the PKIMessage on success, NULL on error
  */
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_genm_new(OSSL_CMP_CTX *ctx)
 {
-    OSSL_CMP_PKIMESSAGE *msg = NULL;
-
-    if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_GENM_NEW, CMP_R_INVALID_ARGS);
-        return NULL;
-    }
-
-    if ((msg = OSSL_CMP_PKIMESSAGE_create(ctx, OSSL_CMP_PKIBODY_GENM)) == NULL)
-        goto err;
-
-    if (ctx->genm_itavs)
-        if (!OSSL_CMP_PKIMESSAGE_genm_items_push1(msg, ctx->genm_itavs))
-            goto err;
-
-    if (!OSSL_CMP_PKIMESSAGE_protect(ctx, msg))
-        goto err;
-
-    return msg;
-
- err:
-    CMPerr(CMP_F_OSSL_CMP_GENM_NEW, CMP_R_ERROR_CREATING_GENM);
-    OSSL_CMP_PKIMESSAGE_free(msg);
-    return NULL;
+    return CMP_gen_new(ctx, OSSL_CMP_PKIBODY_GENM, CMP_R_ERROR_CREATING_GENM);
 }
 
-/* TODO is nearly identical to OSSL_CMP_genm_new */
+/*
+ * Creates a new General Response with an empty itav stack
+ * returns a pointer to the PKIMessage on success, NULL on error
+ */
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx)
 {
-    OSSL_CMP_PKIMESSAGE *msg = NULL;
-
-    if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_GENP_NEW, CMP_R_NULL_ARGUMENT);
-        return NULL;
-    }
-
-    if ((msg = OSSL_CMP_PKIMESSAGE_create(ctx, OSSL_CMP_PKIBODY_GENP)) == NULL)
-        goto err;
-
-    if (ctx->genm_itavs)
-        if (!OSSL_CMP_PKIMESSAGE_genm_items_push1(msg, ctx->genm_itavs))
-            goto err;
-
-    if (!OSSL_CMP_PKIMESSAGE_protect(ctx, msg))
-        goto err;
-
-    return msg;
-
- err:
-    CMPerr(CMP_F_OSSL_CMP_GENP_NEW, CMP_R_ERROR_CREATING_GENP);
-    OSSL_CMP_PKIMESSAGE_free(msg);
-    return NULL;
+    return CMP_gen_new(ctx, OSSL_CMP_PKIBODY_GENP, CMP_R_ERROR_CREATING_GENP);
 }
 
 /*

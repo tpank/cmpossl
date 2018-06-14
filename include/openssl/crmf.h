@@ -44,6 +44,7 @@ extern "C" {
 typedef struct OSSL_crmf_encrypetedvalue_st OSSL_CRMF_ENCRYPTEDVALUE;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDVALUE)
 typedef struct OSSL_crmf_certreqmsg_st OSSL_CRMF_CERTREQMSG;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTREQMSG)
 DEFINE_STACK_OF(OSSL_CRMF_CERTREQMSG)
 typedef struct OSSL_crmf_attributetypeandvalue_st OSSL_CRMF_ATTRIBUTETYPEANDVALUE;
 typedef struct OSSL_crmf_pbmparameter_st OSSL_CRMF_PBMPARAMETER;
@@ -52,6 +53,8 @@ typedef struct OSSL_crmf_poposigningkey_st OSSL_CRMF_POPOSIGNINGKEY;
 typedef struct OSSL_crmf_certrequest_st OSSL_CRMF_CERTREQUEST;
 typedef struct OSSL_crmf_certid_st OSSL_CRMF_CERTID;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTID)
+DEFINE_STACK_OF(OSSL_CRMF_CERTID)
+
 typedef struct OSSL_crmf_pkipublicationinfo_st OSSL_CRMF_PKIPUBLICATIONINFO;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIPUBLICATIONINFO)
 typedef struct OSSL_crmf_pkiarchiveoptions_st OSSL_CRMF_PKIARCHIVEOPTIONS;
@@ -63,7 +66,6 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTREQMESSAGES)
 typedef struct OSSL_crmf_optionalvalidity_st OSSL_CRMF_OPTIONALVALIDITY;
 
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTTEMPLATE)
-
 
 /* CertReqMessages */
 /*
@@ -105,9 +107,6 @@ int OSSL_CRMF_CERTREQMSG_set_version2(OSSL_CRMF_CERTREQMSG *crm);
 int OSSL_CRMF_CERTREQMSG_set_validity(OSSL_CRMF_CERTREQMSG *crm, time_t from, time_t to);
 int OSSL_CRMF_CERTREQMSG_set_certReqId(OSSL_CRMF_CERTREQMSG *crm, long rid);
 long OSSL_CRMF_CERTREQMSG_get_certReqId(OSSL_CRMF_CERTREQMSG *crm);
-int OSSL_CRMF_CERTREQMSG_set1_publicKey(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey);
-int OSSL_CRMF_CERTREQMSG_set1_subject(OSSL_CRMF_CERTREQMSG *crm, const X509_NAME *subj);
-int OSSL_CRMF_CERTREQMSG_set1_issuer(OSSL_CRMF_CERTREQMSG *crm, const X509_NAME *is);
 int OSSL_CRMF_CERTREQMSG_set0_extensions(OSSL_CRMF_CERTREQMSG *crm,
                                     X509_EXTENSIONS *exts);
 
@@ -122,8 +121,14 @@ int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *
                                 int dgst, int ppmtd);
 int OSSL_CRMF_CERTREQMESSAGES_verify_popo(const OSSL_CRMF_CERTREQMESSAGES *reqs,
                                           long rid, int acceptRAVerified);
+OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_CERTREQMSG_get_tmpl(const OSSL_CRMF_CERTREQMSG *crm);
 ASN1_INTEGER *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *tmpl);
 X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl);
+int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
+                                const EVP_PKEY *pubkey,
+                                const X509_NAME *subject,
+                                const X509_NAME *issuer,
+                                const ASN1_INTEGER *serial);
 X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
                                        EVP_PKEY *pkey);
 

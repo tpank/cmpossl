@@ -5,9 +5,7 @@
 CRMF_CERTREQMSG_set_version2,
 CRMF_CERTREQMSG_set_validity,
 CRMF_CERTREQMSG_set_certReqId,
-CRMF_CERTREQMSG_set1_publicKey,
-CRMF_CERTREQMSG_set1_subject,
-CRMF_CERTREQMSG_set1_issuer,
+OSSL_CRMF_CERTTEMPLATE_fill,
 CRMF_CERTREQMSG_set0_extensions,
 CRMF_CERTREQMSG_push0_extension,
 CRMF_CERTREQMSG_create_popo - functions populating the CRMF CERTREQMSG structures
@@ -22,11 +20,11 @@ CRMF_CERTREQMSG_create_popo - functions populating the CRMF CERTREQMSG structure
 
  int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, const long rid)
 
- int CRMF_CERTREQMSG_set1_publicKey(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey)
-
- int CRMF_CERTREQMSG_set1_subject(CRMF_CERTREQMSG *crm, const X509_NAME *subj)
-
- int CRMF_CERTREQMSG_set1_issuer( CRMF_CERTREQMSG *crm, const X509_NAME *is)
+ int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
+                                 const EVP_PKEY *pubkey,
+                                 const X509_NAME *subject,
+                                 const X509_NAME *issuer,
+                                 const ASN1_INTEGER *serial);
 
  int CRMF_CERTREQMSG_set0_extensions( CRMF_CERTREQMSG *crm,
                                       X509_EXTENSIONS *exts);
@@ -51,14 +49,9 @@ as the validity in the certTemplate of B<crm>.
 
 CRMF_CERTREQMSG_set_certReqId() sets B<rid> as the certReqId of B<crm>.
 
-CRMF_CERTREQMSG_set1_publicKey() sets B<pkey> as the public key in the
-certTemplate of B<crm>.  Does not consume B<pkey>.
-
-CRMF_CERTREQMSG_set1_subject() sets B<subj> as the subject name in the
-certTemplate of B<crm>.  Does not consume B<subj>.
-
-CRMF_CERTREQMSG_set1_issuer() sets B<is> as the issuer name in the certTemplate
-of B<crm>.  Does not consume B<is>.
+OSSL_CRMF_CERTTEMPLATE_fill() sets those fields of the certTemplate B<tmpl>
+for which non-NULL values are provided: B<pubkey>, B<subject>, B<issuer>,
+and/or B<serial>. The arguments are not consumed.
 
 CRMF_CERTREQMSG_set0_extensions() sets B<exts> as the extensions in the
 certTemplate of B<crm>. Consumes B<exts>.

@@ -185,8 +185,8 @@ IMPLEMENT_CRMF_CTRL_FUNC(utf8Pairs, ASN1_UTF8STRING, regInfo)
 IMPLEMENT_CRMF_CTRL_FUNC(certReq, OSSL_CRMF_CERTREQUEST, regInfo)
 
 
-static OSSL_CRMF_CERTTEMPLATE *tmpl(OSSL_CRMF_CERTREQMSG *crm) {
-    if (crm->certReq == NULL)
+OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_CERTREQMSG_get_tmpl(const OSSL_CRMF_CERTREQMSG *crm) {
+    if (crm == NULL || crm->certReq == NULL)
         return NULL;
     return crm->certReq->certTemplate;
 }
@@ -194,12 +194,13 @@ static OSSL_CRMF_CERTTEMPLATE *tmpl(OSSL_CRMF_CERTREQMSG *crm) {
 
 int OSSL_CRMF_CERTREQMSG_set_version2(OSSL_CRMF_CERTREQMSG *crm)
 {
-    if (crm  == NULL || tmpl(crm) == NULL)
+    OSSL_CRMF_CERTTEMPLATE *tmpl = OSSL_CRMF_CERTREQMSG_get_tmpl(crm);
+    if (tmpl == NULL)
         goto err;
 
-    if ((tmpl(crm)->version) == NULL)
-        tmpl(crm)->version = ASN1_INTEGER_new();
-    ASN1_INTEGER_set(tmpl(crm)->version, 2L);
+    if ((tmpl->version) == NULL)
+        tmpl->version = ASN1_INTEGER_new();
+    ASN1_INTEGER_set(tmpl->version, 2L);
     return 1;
  err:
     CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_SET_VERSION2, CRMF_R_ERROR);
@@ -212,8 +213,9 @@ int OSSL_CRMF_CERTREQMSG_set_validity(OSSL_CRMF_CERTREQMSG *crm, time_t from, ti
     OSSL_CRMF_OPTIONALVALIDITY *vld = NULL;
     ASN1_TIME *from_asn = NULL;
     ASN1_TIME *to_asn = NULL;
+    OSSL_CRMF_CERTTEMPLATE *tmpl = OSSL_CRMF_CERTREQMSG_get_tmpl(crm);
 
-    if (crm == NULL || tmpl(crm) == NULL)
+    if (tmpl == NULL)
         goto err;
 
     if (from && ((from_asn = ASN1_TIME_set(NULL, from)) == NULL))
@@ -226,7 +228,7 @@ int OSSL_CRMF_CERTREQMSG_set_validity(OSSL_CRMF_CERTREQMSG *crm, time_t from, ti
     vld->notBefore = from_asn;
     vld->notAfter = to_asn;
 
-    tmpl(crm)->validity = vld;
+    tmpl->validity = vld;
 
     return 1;
  err:
@@ -258,46 +260,11 @@ long OSSL_CRMF_CERTREQMSG_get_certReqId(OSSL_CRMF_CERTREQMSG *crm)
 }
 
 
-int OSSL_CRMF_CERTREQMSG_set1_publicKey(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey)
-{
-    if (crm == NULL || tmpl(crm) == NULL || pkey == NULL)
-        goto err;
-
-    return X509_PUBKEY_set(&(tmpl(crm)->publicKey), (EVP_PKEY *)pkey);
- err:
-    CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_SET1_PUBLICKEY, CRMF_R_ERROR);
-    return 0;
-}
-
-
-int OSSL_CRMF_CERTREQMSG_set1_subject(OSSL_CRMF_CERTREQMSG *crm, const X509_NAME *subj)
-{
-    if (crm == NULL || tmpl(crm) == NULL || subj == NULL)
-        goto err;
-
-    return X509_NAME_set(&(tmpl(crm)->subject), (X509_NAME *)subj);
- err:
-    CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_SET1_SUBJECT, CRMF_R_ERROR);
-    return 0;
-}
-
-
-int OSSL_CRMF_CERTREQMSG_set1_issuer(OSSL_CRMF_CERTREQMSG *crm, const X509_NAME *is)
-{
-    if (crm == NULL || tmpl(crm) == NULL || is == NULL)
-        goto err;
-
-    return X509_NAME_set(&(tmpl(crm)->issuer), (X509_NAME*) is);
-err:
-    CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_SET1_ISSUER, CRMF_R_ERROR);
-    return 0;
-}
-
-
 int OSSL_CRMF_CERTREQMSG_set0_extensions(OSSL_CRMF_CERTREQMSG *crm,
                                      X509_EXTENSIONS *exts)
 {
-    if (crm == NULL || tmpl(crm) == NULL)
+    OSSL_CRMF_CERTTEMPLATE *tmpl = OSSL_CRMF_CERTREQMSG_get_tmpl(crm);
+    if (tmpl == NULL)
         goto err;
 
     if (sk_X509_EXTENSION_num(exts) <= 0) {
@@ -305,7 +272,7 @@ int OSSL_CRMF_CERTREQMSG_set0_extensions(OSSL_CRMF_CERTREQMSG *crm,
         exts = NULL; /* do not include empty extensions list */
     }
 
-    tmpl(crm)->extensions = exts;
+    tmpl->extensions = exts;
     return 1;
 err:
     CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_SET0_EXTENSIONS, CRMF_R_ERROR);
@@ -317,25 +284,26 @@ int OSSL_CRMF_CERTREQMSG_push0_extension(OSSL_CRMF_CERTREQMSG *crm,
                                     const X509_EXTENSION *ext)
 {
     int new = 0;
+    OSSL_CRMF_CERTTEMPLATE *tmpl = OSSL_CRMF_CERTREQMSG_get_tmpl(crm);
 
-    if (crm == NULL || tmpl(crm) == NULL || ext == NULL)
+    if (tmpl == NULL || ext == NULL)
         goto err;
 
-    if ((tmpl(crm)->extensions) == NULL) {
-        if ((tmpl(crm)->extensions = sk_X509_EXTENSION_new_null()) == NULL)
+    if ((tmpl->extensions) == NULL) {
+        if ((tmpl->extensions = sk_X509_EXTENSION_new_null()) == NULL)
             goto err;
         new = 1;
     }
 
-    if (!sk_X509_EXTENSION_push(tmpl(crm)->extensions, (X509_EXTENSION *)ext))
+    if (!sk_X509_EXTENSION_push(tmpl->extensions, (X509_EXTENSION *)ext))
         goto err;
     return 1;
  err:
     CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMSG_PUSH0_EXTENSION, CRMF_R_ERROR);
 
     if (new) {
-        sk_X509_EXTENSION_free(tmpl(crm)->extensions);
-        tmpl(crm)->extensions = NULL;
+        sk_X509_EXTENSION_free(tmpl->extensions);
+        tmpl->extensions = NULL;
     }
     return 0;
 }
@@ -572,6 +540,32 @@ X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl)
 {
     return tmpl ? tmpl->issuer : NULL;
 }
+
+/* fill in certificate template.
+   Any value argument that is NULL will leave the respective field unchanged.
+ */
+int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
+                                const EVP_PKEY *pubkey,
+                                const X509_NAME *subject,
+                                const X509_NAME *issuer,
+                                const ASN1_INTEGER *serial)
+{
+    if (tmpl == NULL) {
+        CRMFerr(CRMF_F_OSSL_CRMF_CERTTEMPLATE_FILL, CRMF_R_NULL_ARGUMENT);
+        return 0;
+    }
+    if ((pubkey && !X509_PUBKEY_set(&tmpl->publicKey, (EVP_PKEY *)pubkey)) ||
+        (subject && !X509_NAME_set(&tmpl->subject, (X509_NAME *)subject)) ||
+        (issuer && !X509_NAME_set(&tmpl->issuer, (X509_NAME *)issuer)))
+        return 0;
+    if (serial) {
+        ASN1_INTEGER_free(tmpl->serialNumber);
+        if ((tmpl->serialNumber = ASN1_INTEGER_dup(serial)) == NULL)
+        return 0;
+    }
+    return 1;
+}
+
 
 /*
  * Decrypts the certificate in the given encryptedValue
