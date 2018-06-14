@@ -493,7 +493,6 @@ struct OSSL_cmp_pkiheader_st {
     OSSL_CMP_PKIFREETEXT *freeText; /* 7 */
     STACK_OF(OSSL_CMP_INFOTYPEANDVALUE) *generalInfo; /* 8 */
 } /* OSSL_CMP_PKIHEADER */;
-DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIHEADER)
 
 typedef STACK_OF(OSSL_CMP_CHALLENGE) OSSL_CMP_POPODECKEYCHALLCONTENT;
 typedef STACK_OF(ASN1_INTEGER) OSSL_CMP_POPODECKEYRESPCONTENT;
@@ -628,11 +627,11 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIMESSAGE)
  * body      PKIBody
  * }
  */
-typedef struct OSSL_cmp_protectedpart_st {
+typedef struct cmp_protectedpart_st {
     OSSL_CMP_PKIHEADER *header;
     OSSL_CMP_PKIBODY *body;
-} OSSL_CMP_PROTECTEDPART;
-DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PROTECTEDPART)
+} CMP_PROTECTEDPART;
+DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
 
 /*-
  *  this is not defined here as it is already in CRMF:
@@ -708,8 +707,9 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, OSSL_CMP_CERTRESPONSE 
 OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc, long rid);
 OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(OSSL_CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);
-
-
+ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
+                                     const ASN1_OCTET_STRING *secret,
+                                     const EVP_PKEY *pkey);
 
 /* from cmp_ctx.c */
 #ifdef CMP_POOR_LOG
@@ -728,10 +728,6 @@ int CMP_CTX_error_cb(const char *str, size_t len, void *u);
 void put_cert_verify_err(int func);
 
 /* from cmp_ses.c */
-/* exported just for testing:
-int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int failure, const char *txt);
-int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int failure,const char *txt);
-*/
 
 # ifdef  __cplusplus
 }

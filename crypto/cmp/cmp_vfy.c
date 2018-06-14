@@ -31,7 +31,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
                                 const OSSL_CMP_PKIMESSAGE *msg, const X509 *cert)
 {
     EVP_MD_CTX *ctx = NULL;
-    OSSL_CMP_PROTECTEDPART prot_part;
+    CMP_PROTECTEDPART prot_part;
     int ret = 0;
     int digest_nid, pk_nid;
     EVP_MD *digest = NULL;
@@ -64,7 +64,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     prot_part.header = msg->header;
     prot_part.body = msg->body;
 
-    l = i2d_OSSL_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+    l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
     if (l < 0 || prot_part_der == NULL)
         goto end;
     prot_part_der_len = (size_t) l;
@@ -132,7 +132,7 @@ static int CMP_verify_PBMAC(const OSSL_CMP_PKIMESSAGE *msg,
     int valid = 0;
 
     /* generate expected protection for the message */
-    if ((protection = OSSL_CMP_calc_protection(msg, secret, NULL)) == NULL)
+    if ((protection = CMP_calc_protection(msg, secret, NULL)) == NULL)
         goto err;               /* failed to generate protection string! */
 
     valid = ASN1_STRING_cmp((const ASN1_STRING *)protection,

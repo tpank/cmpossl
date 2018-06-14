@@ -248,27 +248,27 @@ typedef ASN1_INTEGER OSSL_CMP_PKISTATUS;
 # define OSSL_CMP_CERTORENCCERT_CERTIFICATE 0
 # define OSSL_CMP_CERTORENCCERT_ENCRYPTEDCERT 1
 
-/* Forward declarations */
+/* data type declarations */
 typedef struct OSSL_cmp_ctx_st OSSL_CMP_CTX;
 typedef struct OSSL_cmp_pkiheader_st OSSL_CMP_PKIHEADER;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIHEADER)
 typedef struct OSSL_cmp_pkimessage_st OSSL_CMP_PKIMESSAGE;
 typedef struct OSSL_cmp_certstatus_st OSSL_CMP_CERTSTATUS;
+DEFINE_STACK_OF(OSSL_CMP_CERTSTATUS)
 typedef struct OSSL_cmp_infotypeandvalue_st OSSL_CMP_INFOTYPEANDVALUE;
+DEFINE_STACK_OF(OSSL_CMP_INFOTYPEANDVALUE)
 typedef struct OSSL_cmp_revrepcontent_st OSSL_CMP_REVREPCONTENT;
 typedef struct OSSL_cmp_pkistatusinfo_st OSSL_CMP_PKISTATUSINFO;
+DEFINE_STACK_OF(OSSL_CMP_PKISTATUSINFO)
 typedef struct OSSL_cmp_certrepmessage_st OSSL_CMP_CERTREPMESSAGE;
+DEFINE_STACK_OF(OSSL_CMP_CERTREPMESSAGE)
 typedef struct OSSL_cmp_pollrep_st OSSL_CMP_POLLREP;
 typedef STACK_OF(OSSL_CMP_POLLREP) OSSL_CMP_POLLREPCONTENT;
 typedef struct OSSL_cmp_certresponse_st OSSL_CMP_CERTRESPONSE;
-DEFINE_STACK_OF(OSSL_CMP_CERTSTATUS)
-DEFINE_STACK_OF(OSSL_CMP_INFOTYPEANDVALUE)
-DEFINE_STACK_OF(OSSL_CMP_PKISTATUSINFO)
-DEFINE_STACK_OF(OSSL_CMP_CERTREPMESSAGE)
 DEFINE_STACK_OF(OSSL_CMP_CERTRESPONSE)
 
-
 /*
- * context DECLARATIONS
+ * logging
  */
 
 /* declarations resemble those from bio/bss_log.c and syslog.h */
@@ -294,6 +294,10 @@ int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
 #define OSSL_CMP_debug(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_DEBUG, msg)
 int  OSSL_CMP_log_init(void);
 void OSSL_CMP_log_close(void);
+
+/*
+ * context DECLARATIONS
+ */
 
 typedef int (*OSSL_cmp_log_cb_t) (const char *file, int lineno,
                                   OSSL_CMP_severity level, const char *msg);
@@ -366,6 +370,7 @@ OSSL_CMP_PKIMESSAGE *OSSL_CMP_PKIMESSAGE_load(const char *file);
 # define OSSL_CMP_TRANSACTIONID_LENGTH 16
 # define OSSL_CMP_SENDERNONCE_LENGTH 16
 OSSL_CMP_PKIHEADER *OSSL_CMP_PKIMESSAGE_get0_header(const OSSL_CMP_PKIMESSAGE *msg);
+long OSSL_CMP_PKIHEADER_get_pvno(const OSSL_CMP_PKIHEADER *hdr);
 ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr);
 ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr);
 ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
@@ -384,9 +389,6 @@ int OSSL_CMP_PKIHEADER_push1_freeText(OSSL_CMP_PKIHEADER *hdr,
 int OSSL_CMP_PKIHEADER_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
                                          const OSSL_CMP_INFOTYPEANDVALUE *itav);
 int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
-ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *pkimessage,
-                                          const ASN1_OCTET_STRING *secret,
-                                          const EVP_PKEY *pkey);
 
 int OSSL_CMP_PKIMESSAGE_set_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg);
 int OSSL_CMP_PKIMESSAGE_check_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg);

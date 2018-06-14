@@ -13,7 +13,7 @@
 
 #include "cmptestlib.h"
 
-#include <crypto/cmp/cmp_int.h>
+#include "../crypto/cmp/cmp_int.h"
 
 /* Add test code as per
  * http://wiki.openssl.org/index.php/How_To_Write_Unit_Tests_For_OpenSSL#Style
@@ -75,7 +75,7 @@ static int execute_calc_protection_fails_test(CMP_INT_TEST_FIXTURE *fixture)
 {
     ASN1_BIT_STRING *protection = NULL;
     int res = TEST_ptr_null(protection =
-                            OSSL_CMP_calc_protection(fixture->msg, fixture->secret,
+                            CMP_calc_protection(fixture->msg, fixture->secret,
                                                 fixture->privkey));
     ASN1_BIT_STRING_free(protection);
     return res;
@@ -86,62 +86,30 @@ static int execute_calc_protection_test(CMP_INT_TEST_FIXTURE *fixture)
 {
     ASN1_BIT_STRING *protection = NULL;
     int res =
-        TEST_ptr(protection = OSSL_CMP_calc_protection(fixture->msg, fixture->secret,
+        TEST_ptr(protection = CMP_calc_protection(fixture->msg, fixture->secret,
                                                   fixture->privkey)) &&
-        TEST_true(ASN1_STRING_cmp(protection, fixture->msg->protection) == 0);
+        TEST_true(ASN1_STRING_cmp(protection,
+                                  fixture->msg->protection) == 0);
     ASN1_BIT_STRING_free(protection);
-    return res;
-}
-
-static int execute_cmp_pkiheader_init_test(CMP_INT_TEST_FIXTURE *fixture)
-{
-    OSSL_CMP_PKIHEADER *header = NULL;
-    int res = 0;
-    if (!TEST_ptr(header = OSSL_CMP_PKIHEADER_new()))
-        return 0;
-    if (!TEST_int_eq(fixture->expected,
-                     OSSL_CMP_PKIHEADER_init(fixture->cmp_ctx, header)))
-        goto err;
-    if (fixture->expected) {
-        if (!TEST_long_eq(ASN1_INTEGER_get(header->pvno), OSSL_CMP_VERSION) ||
-            !TEST_true(0 == ASN1_OCTET_STRING_cmp(header->senderNonce,
-                                                  fixture->
-                                                  cmp_ctx->last_senderNonce))
-            || !TEST_true(0 ==
-                          ASN1_OCTET_STRING_cmp(header->transactionID,
-                                                fixture->cmp_ctx->transactionID)))
-            goto err;
-        if (fixture->cmp_ctx->recipNonce != NULL &&
-            (!TEST_ptr(header->recipNonce) ||
-             !TEST_int_eq(0,
-                          ASN1_OCTET_STRING_cmp(header->recipNonce,
-                                                fixture->cmp_ctx->recipNonce))))
-            goto err;
-    }
-
-    res = 1;
-
- err:
-    OSSL_CMP_PKIHEADER_free(header);
     return res;
 }
 
 /* This function works similar to parts of CMP_verify_signature in cmp_vfy.c,
  * but without the need for a OSSL_CMP_CTX or a X509 certificate */
-static int verify_signature(OSSL_CMP_PKIMESSAGE *msg, EVP_PKEY *pkey,
-                            int digest_nid)
+static int verify_signature(OSSL_CMP_PKIMESSAGE *msg,
+                            ASN1_BIT_STRING *protection,
+                            EVP_PKEY *pkey, int digest_nid)
 {
-    ASN1_BIT_STRING *protection = msg->protection;
-    OSSL_CMP_PROTECTEDPART prot_part;
+    CMP_PROTECTEDPART prot_part;
     unsigned char *prot_part_der = NULL;
     int l;
     EVP_MD_CTX *ctx = NULL;
     int res;
 
-    prot_part.header = msg->header;
+    prot_part.header = OSSL_CMP_PKIMESSAGE_get0_header(msg);
     prot_part.body = msg->body;
     res =
-        TEST_int_ge(l = i2d_OSSL_CMP_PROTECTEDPART(&prot_part, &prot_part_der), 0) &&
+        TEST_int_ge(l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der), 0) &&
         TEST_ptr(ctx = EVP_MD_CTX_create()) &&
         TEST_true(EVP_VerifyInit_ex
                   (ctx, (EVP_MD *)EVP_get_digestbynid(digest_nid), NULL))
@@ -158,13 +126,15 @@ static int verify_signature(OSSL_CMP_PKIMESSAGE *msg, EVP_PKEY *pkey,
 static int execute_calc_protection_signature_test(CMP_INT_TEST_FIXTURE *
                                                   fixture)
 {
-    ASN1_BIT_STRING_free(fixture->msg->protection);
-    fixture->msg->protection = NULL;
-    return
-        TEST_ptr(fixture->msg->protection =
-                 OSSL_CMP_calc_protection(fixture->msg, NULL, fixture->privkey)) &&
-        TEST_true(verify_signature
-                  (fixture->msg, fixture->pubkey, fixture->cmp_ctx->digest));
+    ASN1_BIT_STRING *protection = NULL;
+    int ret = (TEST_ptr(protection =
+                        CMP_calc_protection(fixture->msg, NULL,
+                                                 fixture->privkey)) &&
+               TEST_true(verify_signature(fixture->msg, protection,
+                                           fixture->pubkey,
+                                          fixture->cmp_ctx->digest)));
+    ASN1_BIT_STRING_free(protection);
+    return ret;
 }
 
 /* TODO TPa: find a way to set protection algorithm */
@@ -218,46 +188,6 @@ static int test_cmp_calc_protection_pbmac(void)
     return result;
 }
 
-static int test_cmp_pkiheader_init(void)
-{
-    SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
-    unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
-    fixture->expected = 1;
-    if (!TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))) ||
-        !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
-                                               sizeof(ref)))) {
-        tear_down(fixture);
-        fixture = NULL;
-    }
-    EXECUTE_TEST(execute_cmp_pkiheader_init_test, tear_down);
-    return result;
-}
-
-static int test_cmp_pkiheader_init_with_subject(void)
-{
-    SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
-    X509_NAME *subject = NULL;
-    fixture->expected = 1;
-    if (!TEST_ptr(subject = X509_NAME_new()) ||
-        !TEST_true(X509_NAME_add_entry_by_txt(subject, "CN", V_ASN1_IA5STRING,
-                                              (unsigned char *)"Common Name", -1, -1, -1)) ||
-        !TEST_true(OSSL_CMP_CTX_set1_subjectName(fixture->cmp_ctx, subject))) {
-        tear_down(fixture);
-        fixture = NULL;
-    }
-    X509_NAME_free(subject);
-    EXECUTE_TEST(execute_cmp_pkiheader_init_test, tear_down);
-    return result;
-}
-
-static int test_cmp_pkiheader_init_no_ref_no_subject(void)
-{
-    SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
-    fixture->expected = 0;
-    EXECUTE_TEST(execute_cmp_pkiheader_init_test, tear_down);
-    return result;
-}
-
 void cleanup_tests(void)
 {
     EVP_PKEY_free(loadedprivkey);
@@ -275,10 +205,6 @@ int setup_tests(void)
     ADD_TEST(test_cmp_calc_protection_no_key_no_secret);
     ADD_TEST(test_cmp_calc_protection_pkey);
     ADD_TEST(test_cmp_calc_protection_pbmac);
-
-    ADD_TEST(test_cmp_pkiheader_init);
-    ADD_TEST(test_cmp_pkiheader_init_with_subject);
-    ADD_TEST(test_cmp_pkiheader_init_no_ref_no_subject);
 
     return 1;
 }

@@ -58,7 +58,6 @@ static void tear_down(CMP_MSG_TEST_FIXTURE *fixture)
        Free any memory owned by the fixture, etc. */
     OSSL_CMP_CTX_delete(fixture->cmp_ctx);
     OSSL_CMP_PKIMESSAGE_free(fixture->msg);
-    /* TODO Wait for API consolidation */
     OSSL_CMP_PKISTATUSINFO_free(fixture->si);
     OPENSSL_free(fixture);
 }

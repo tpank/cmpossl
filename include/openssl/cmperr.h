@@ -63,7 +63,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_GET_CERT_STATUS                            191
 #  define CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1            202
 #  define CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES      203
-#  define CMP_F_OSSL_CMP_CALC_PROTECTION                   227
 #  define CMP_F_OSSL_CMP_CERTCONF_NEW                      204
 #  define CMP_F_OSSL_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0  104
 #  define CMP_F_OSSL_CMP_CERTREP_NEW                       228

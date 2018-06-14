@@ -72,6 +72,83 @@ static unsigned char rand_data[OSSL_CMP_TRANSACTIONID_LENGTH];
 static OSSL_CMP_PKIMESSAGE *ir_unprotected, *ir_protected, *insta_unprotected;
 
 
+static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
+{
+    OSSL_CMP_PKIHEADER *header = NULL;
+    ASN1_OCTET_STRING *header_nonce = NULL;
+    ASN1_OCTET_STRING *ctx_nonce = NULL;
+    int res = 0;
+    if (!TEST_ptr(header = OSSL_CMP_PKIHEADER_new()))
+        return 0;
+    if (!TEST_int_eq(fixture->expected,
+                     OSSL_CMP_PKIHEADER_init(fixture->cmp_ctx, header)))
+        goto err;
+    if (fixture->expected) {
+        if (!TEST_long_eq(OSSL_CMP_PKIHEADER_get_pvno(header), OSSL_CMP_VERSION) ||
+            !TEST_true(0 == ASN1_OCTET_STRING_cmp(OSSL_CMP_PKIHEADER_get0_senderNonce(header),
+                                                  OSSL_CMP_CTX_get0_last_senderNonce(fixture->cmp_ctx)))
+            || !TEST_true(0 ==
+                          ASN1_OCTET_STRING_cmp(OSSL_CMP_PKIHEADER_get0_transactionID(header),
+                                                OSSL_CMP_CTX_get0_transactionID(fixture->cmp_ctx))))
+            goto err;
+        header_nonce = OSSL_CMP_PKIHEADER_get0_recipNonce(header);
+        ctx_nonce = OSSL_CMP_CTX_get0_recipNonce(fixture->cmp_ctx);
+        if (ctx_nonce != NULL &&
+            (!TEST_ptr(header_nonce) ||
+             !TEST_int_eq(0,
+                          ASN1_OCTET_STRING_cmp(header_nonce,
+                                                ctx_nonce))))
+            goto err;
+    }
+
+    res = 1;
+
+ err:
+    OSSL_CMP_PKIHEADER_free(header);
+    return res;
+}
+
+static int test_cmp_pkiheader_init(void)
+{
+    SETUP_TEST_FIXTURE(CMP_LIB_TEST_FIXTURE, set_up);
+    unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
+    fixture->expected = 1;
+    if (!TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))) ||
+        !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
+                                               sizeof(ref)))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    EXECUTE_TEST(execute_cmp_pkiheader_init_test, tear_down);
+    return result;
+}
+
+static int test_cmp_pkiheader_init_with_subject(void)
+{
+    SETUP_TEST_FIXTURE(CMP_LIB_TEST_FIXTURE, set_up);
+    X509_NAME *subject = NULL;
+    fixture->expected = 1;
+    if (!TEST_ptr(subject = X509_NAME_new()) ||
+        !TEST_true(X509_NAME_add_entry_by_txt(subject, "CN", V_ASN1_IA5STRING,
+                                              (unsigned char *)"Common Name", -1, -1, -1)) ||
+        !TEST_true(OSSL_CMP_CTX_set1_subjectName(fixture->cmp_ctx, subject))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    X509_NAME_free(subject);
+    EXECUTE_TEST(execute_cmp_pkiheader_init_test, tear_down);
+    return result;
+}
+
+static int test_cmp_pkiheader_init_no_ref_no_subject(void)
+{
+    SETUP_TEST_FIXTURE(CMP_LIB_TEST_FIXTURE, set_up);
+    fixture->expected = 0;
+    EXECUTE_TEST(execute_cmp_pkiheader_init_test, tear_down);
+    return result;
+}
+
+
 static int allow_unprotected(const OSSL_CMP_CTX *ctx, int arg,
                              const OSSL_CMP_PKIMESSAGE *msg)
 {
@@ -210,7 +287,6 @@ static int execute_cmp_pkistatusinfo_test(CMP_LIB_TEST_FIXTURE *fixture)
         || !TEST_str_eq(fixture->text, (char *)statusString->data))
         goto end;
     res = 1;
-    /* TODO Wait for API consolidation */
  end:
     OSSL_CMP_PKISTATUSINFO_free(si);
     return res;
@@ -643,6 +719,12 @@ int setup_tests(void)
         !TEST_ptr(insta_unprotected =
                 load_pkimsg("../cmp-test/insta_removed_protection.der")))
         return 0;
+
+
+    /* Message header tests */
+    ADD_TEST(test_cmp_pkiheader_init);
+    ADD_TEST(test_cmp_pkiheader_init_with_subject);
+    ADD_TEST(test_cmp_pkiheader_init_no_ref_no_subject);
 
     /* Message protection tests */
     ADD_TEST(test_cmp_protection_with_msg_sig_alg_protection_plus_rsa_key);

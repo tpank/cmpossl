@@ -104,34 +104,34 @@ void CMP_add_error_txt(const char *separator, const char *txt)
     } while (*txt);
 }
 
-/*
- * returns the header of the given CMP message
- * returns NULL on error
- */
+/* returns the header of the given CMP message or NULL on error */
 OSSL_CMP_PKIHEADER *OSSL_CMP_PKIMESSAGE_get0_header(const OSSL_CMP_PKIMESSAGE *msg)
 {
-    if (!msg)
-        return NULL;
+    return msg ? msg->header : NULL;
+}
 
-    return msg->header;
+/* returns the pvno (as long int) of the given PKIHeader or NULL on error */
+long OSSL_CMP_PKIHEADER_get_pvno(const OSSL_CMP_PKIHEADER *hdr)
+{
+    return hdr ? ASN1_INTEGER_get(hdr->pvno) : 0;
 }
 
 /* returns the transactionID of the given PKIHeader or NULL on error */
 ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr)
 {
-    return hdr == NULL ? NULL : hdr->transactionID;
+    return hdr ? hdr->transactionID : NULL;
 }
 
 /* returns the senderNonce of the given PKIHeader or NULL on error */
 ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr)
 {
-    return hdr == NULL ? NULL : hdr->senderNonce;
+    return hdr ? hdr->senderNonce : NULL;
 }
 
 /* returns the recipNonce of the given PKIHeader or NULL on error */
 ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr)
 {
-    return hdr == NULL ? NULL : hdr->recipNonce;
+    return hdr ? hdr->recipNonce : NULL;
 }
 
 /*
@@ -542,12 +542,12 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
  * error
  */
-ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
+ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
                                      const ASN1_OCTET_STRING *secret,
                                      const EVP_PKEY *pkey)
 {
     ASN1_BIT_STRING *prot = NULL;
-    OSSL_CMP_PROTECTEDPART prot_part;
+    CMP_PROTECTEDPART prot_part;
 #if OPENSSL_VERSION_NUMBER >= 0x1010001fL
     const
 #endif
@@ -578,7 +578,7 @@ ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
     prot_part.header = msg->header;
     prot_part.body = msg->body;
 
-    l = i2d_OSSL_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+    l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
     if (l < 0 || prot_part_der == NULL)
         goto err;
     prot_part_der_len = (size_t) l;
@@ -599,7 +599,7 @@ ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
                                             secret->length, &mac, &mac_len)))
                 goto err;
         } else {
-            CMPerr(CMP_F_OSSL_CMP_CALC_PROTECTION, CMP_R_WRONG_ALGORITHM_OID);
+            CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_WRONG_ALGORITHM_OID);
             goto err;
         }
     } else if (secret == NULL && pkey != NULL) {
@@ -621,11 +621,11 @@ ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
             if (!(EVP_SignFinal(evp_ctx, mac, &mac_len, (EVP_PKEY *)pkey)))
                 goto err;
         } else {
-            CMPerr(CMP_F_OSSL_CMP_CALC_PROTECTION, CMP_R_UNKNOWN_ALGORITHM_ID);
+            CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_UNKNOWN_ALGORITHM_ID);
             goto err;
         }
     } else {
-        CMPerr(CMP_F_OSSL_CMP_CALC_PROTECTION, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_INVALID_ARGS);
         goto err;
     }
 
@@ -638,7 +638,7 @@ ASN1_BIT_STRING *OSSL_CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
 
  err:
     if (prot == NULL)
-        CMPerr(CMP_F_OSSL_CMP_CALC_PROTECTION, CMP_R_ERROR_CALCULATING_PROTECTION);
+        CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_ERROR_CALCULATING_PROTECTION);
 
     /* cleanup */
     OSSL_CRMF_PBMPARAMETER_free(pbm);
@@ -720,7 +720,7 @@ int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
         OSSL_CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
 
         if ((msg->protection =
-              OSSL_CMP_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
+             CMP_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
 
             goto err;
     } else {
@@ -766,7 +766,7 @@ int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
             OSSL_CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
 
             if ((msg->protection =
-                 OSSL_CMP_calc_protection(msg, NULL, ctx->pkey)) == NULL)
+                 CMP_calc_protection(msg, NULL, ctx->pkey)) == NULL)
                 goto err;
         } else {
             CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT,
