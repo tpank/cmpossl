@@ -462,7 +462,7 @@ static int CMP_X509_PUBKEY_cmp(X509_PUBKEY *a, X509_PUBKEY *b)
     return EVP_PKEY_cmp(X509_PUBKEY_get0(a), X509_PUBKEY_get0(b));
 }
 
-int OSSL_CRMF_CERTREQMESSAGES_verify_popo(const OSSL_CRMF_CERTREQMESSAGES *reqs,
+int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
                                           long rid, int acceptRAVerified)
 {
     OSSL_CRMF_MSG *req = NULL;
@@ -471,7 +471,7 @@ int OSSL_CRMF_CERTREQMESSAGES_verify_popo(const OSSL_CRMF_CERTREQMESSAGES *reqs,
 
     if (reqs == NULL ||
         (req = sk_OSSL_CRMF_MSG_value(reqs, rid)) == NULL) {
-        CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMESSAGES_VERIFY_POPO,
+        CRMFerr(CRMF_F_OSSL_CRMF_MSGS_VERIFY_POPO,
                 CRMF_R_NULL_ARGUMENT);
         return 0;
     }
@@ -524,11 +524,11 @@ This MUST be exactly the same value as is contained in the certificate template.
     case OSSL_CRMF_POPO_KEYAGREE:
     default:
     unsupported:
-        CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMESSAGES_VERIFY_POPO,
+        CRMFerr(CRMF_F_OSSL_CRMF_MSGS_VERIFY_POPO,
                 CRMF_R_UNSUPPORTED_POPO_METHOD);
         return 0;
     }
-    CRMFerr(CRMF_F_OSSL_CRMF_CERTREQMESSAGES_VERIFY_POPO,
+    CRMFerr(CRMF_F_OSSL_CRMF_MSGS_VERIFY_POPO,
             CRMF_R_UNSUPPORTED_POPO_NOT_ACCEPTED);
     return 0;
 }

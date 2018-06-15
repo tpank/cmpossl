@@ -119,7 +119,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype)
     case OSSL_CMP_PKIBODY_IR:
     case OSSL_CMP_PKIBODY_CR:
     case OSSL_CMP_PKIBODY_KUR:
-        if ((msg->body->value.ir = OSSL_CRMF_CERTREQMESSAGES_new()) == NULL)
+        if ((msg->body->value.ir = OSSL_CRMF_MSGS_new()) == NULL)
             goto oom;
         return msg;
 

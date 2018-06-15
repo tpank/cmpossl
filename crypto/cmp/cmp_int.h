@@ -534,9 +534,9 @@ typedef STACK_OF(OSSL_CMP_ITAV) OSSL_CMP_GENREPCONTENT;
 typedef struct OSSL_cmp_pkibody_st {
     int type;
     union {
-        OSSL_CRMF_CERTREQMESSAGES *ir; /* 0 */
+        OSSL_CRMF_MSGS *ir; /* 0 */
         OSSL_CMP_CERTREPMESSAGE *ip; /* 1 */
-        OSSL_CRMF_CERTREQMESSAGES *cr; /* 2 */
+        OSSL_CRMF_MSGS *cr; /* 2 */
         OSSL_CMP_CERTREPMESSAGE *cp; /* 3 */
         /* p10cr      [4]  CertificationRequest,     --imported from [PKCS10] */
         /* PKCS10_CERTIFICATIONREQUEST is effectively X509_REQ
@@ -548,9 +548,9 @@ typedef struct OSSL_cmp_pkibody_st {
         /* popdecr    [6]  POPODecKeyRespContent,  --pop Response */
         /* POPODecKeyRespContent ::= SEQUENCE OF INTEGER */
         OSSL_CMP_POPODECKEYRESPCONTENT *popdecr; /* 6 */
-        OSSL_CRMF_CERTREQMESSAGES *kur; /* 7 */
+        OSSL_CRMF_MSGS *kur; /* 7 */
         OSSL_CMP_CERTREPMESSAGE *kup; /* 8 */
-        OSSL_CRMF_CERTREQMESSAGES *krr; /* 9 */
+        OSSL_CRMF_MSGS *krr; /* 9 */
 
         /* krp        [10] KeyRecRepContent,         --Key Recovery Response */
         OSSL_CMP_KEYRECREPCONTENT *krp; /* 10 */
@@ -559,7 +559,7 @@ typedef struct OSSL_cmp_pkibody_st {
         /* rp         [12] RevRepContent,            --Revocation Response */
         OSSL_CMP_REVREPCONTENT *rp; /* 12 */
         /* ccr        [13] CertReqMessages,          --Cross-Cert. Request */
-        OSSL_CRMF_CERTREQMESSAGES *ccr; /* 13 */
+        OSSL_CRMF_MSGS *ccr; /* 13 */
         /* ccp        [14] CertRepMessage,           --Cross-Cert. Response */
         OSSL_CMP_CERTREPMESSAGE *ccp; /* 14 */
         /* ckuann     [15] CAKeyUpdAnnContent,       --CA Key Update Ann. */

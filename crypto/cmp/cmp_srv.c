@@ -191,7 +191,7 @@ static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *msg)
         return 0;
     }
 
-    return OSSL_CRMF_CERTREQMESSAGES_verify_popo(msg->body->value.ir,
+    return OSSL_CRMF_MSGS_verify_popo(msg->body->value.ir,
                                                  OSSL_CMP_CERTREQID,
                                                  srv_ctx->acceptRAVerified);
 }

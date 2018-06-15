@@ -22,7 +22,7 @@ int ERR_load_CRMF_strings(void);
 # define CRMF_F_CRMF_PASSWORDBASEDMAC_NEW                 113
 # define CRMF_F_CRMF_PBMP_NEW                             114
 # define CRMF_F_OSSL_CRMF_CERTID_GEN                      118
-# define CRMF_F_OSSL_CRMF_CERTREQMESSAGES_VERIFY_POPO     119
+# define CRMF_F_OSSL_CRMF_MSGS_VERIFY_POPO     119
 # define CRMF_F_OSSL_CRMF_MSG_CREATE_POPO          100
 # define CRMF_F_OSSL_CRMF_MSG_PUSH0_EXTENSION      101
 # define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGCTRL        102
