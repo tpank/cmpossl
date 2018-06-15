@@ -105,7 +105,7 @@ void CMP_add_error_txt(const char *separator, const char *txt)
 }
 
 /* returns the header of the given CMP message or NULL on error */
-OSSL_CMP_PKIHEADER *OSSL_CMP_PKIMESSAGE_get0_header(const OSSL_CMP_PKIMESSAGE *msg)
+OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
 {
     return msg ? msg->header : NULL;
 }
@@ -542,7 +542,7 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
  * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
  * error
  */
-ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
+ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      const ASN1_OCTET_STRING *secret,
                                      const EVP_PKEY *pkey)
 {
@@ -695,7 +695,7 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
+int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     if (ctx == NULL)
         goto err;
@@ -717,7 +717,7 @@ int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
          * while not needed to validate the signing cert, the option to do
          * this might be handy for certain use cases
          */
-        OSSL_CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
+        OSSL_CMP_MSG_add_extraCerts(ctx, msg);
 
         if ((msg->protection =
              CMP_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
@@ -735,7 +735,7 @@ int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
 
             /* make sure that key and certificate match */
             if (!X509_check_private_key(ctx->clCert, ctx->pkey)) {
-                CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT,
+                CMPerr(CMP_F_OSSL_CMP_MSG_PROTECT,
                         CMP_R_CERT_AND_KEY_DO_NOT_MATCH);
                 goto err;
             }
@@ -745,7 +745,7 @@ int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
 
             if (!OBJ_find_sigid_by_algs(&algNID, ctx->digest,
                         EVP_PKEY_id(ctx->pkey))) {
-                CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT,
+                CMPerr(CMP_F_OSSL_CMP_MSG_PROTECT,
                         CMP_R_UNSUPPORTED_KEY_TYPE);
                 goto err;
             }
@@ -763,13 +763,13 @@ int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
 
             /* Add ctx->extraCertsOut, the ctx->clCert,
              * and the chain built upwards from ctx->untrusted_certs */
-            OSSL_CMP_PKIMESSAGE_add_extraCerts(ctx, msg);
+            OSSL_CMP_MSG_add_extraCerts(ctx, msg);
 
             if ((msg->protection =
                  CMP_calc_protection(msg, NULL, ctx->pkey)) == NULL)
                 goto err;
         } else {
-            CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT,
+            CMPerr(CMP_F_OSSL_CMP_MSG_PROTECT,
                    CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION);
             goto err;
         }
@@ -777,7 +777,7 @@ int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
 
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT, CMP_R_ERROR_PROTECTING_MESSAGE);
+    CMPerr(CMP_F_OSSL_CMP_MSG_PROTECT, CMP_R_ERROR_PROTECTING_MESSAGE);
     return 0;
 }
 
@@ -793,7 +793,7 @@ int OSSL_CMP_PKIMESSAGE_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_PKIMESSAGE_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIMESSAGE *msg)
+int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     int res = 0;
 
@@ -878,7 +878,7 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus, const X509 *cer
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_PKIMESSAGE_set_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg)
+int OSSL_CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg)
 {
     OSSL_CMP_ITAV *itav = NULL;
 
@@ -902,7 +902,7 @@ int OSSL_CMP_PKIMESSAGE_set_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg)
  *
  * returns 1 if it is set, 0 if not
  */
-int OSSL_CMP_PKIMESSAGE_check_implicitConfirm(OSSL_CMP_PKIMESSAGE *msg)
+int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg)
 {
     int itavCount;
     int i;
@@ -943,7 +943,7 @@ int OSSL_CMP_PKIHEADER_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
 }
 
 
-int OSSL_CMP_PKIMESSAGE_generalInfo_items_push1(OSSL_CMP_PKIMESSAGE *msg,
+int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
                                           STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
@@ -962,7 +962,7 @@ int OSSL_CMP_PKIMESSAGE_generalInfo_items_push1(OSSL_CMP_PKIMESSAGE *msg,
 
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_GENERALINFO_ITEMS_PUSH1,
+    CMPerr(CMP_F_OSSL_CMP_MSG_GENERALINFO_ITEMS_PUSH1,
            CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS);
     return 0;
 }
@@ -972,13 +972,13 @@ int OSSL_CMP_PKIMESSAGE_generalInfo_items_push1(OSSL_CMP_PKIMESSAGE *msg,
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_PKIMESSAGE_genm_item_push0(OSSL_CMP_PKIMESSAGE *msg,
+int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg,
                                    const OSSL_CMP_ITAV *itav)
 {
     int bodytype;
     if (msg == NULL)
         goto err;
-    bodytype = OSSL_CMP_PKIMESSAGE_get_bodytype(msg);
+    bodytype = OSSL_CMP_MSG_get_bodytype(msg);
     if (bodytype != OSSL_CMP_PKIBODY_GENM && bodytype != OSSL_CMP_PKIBODY_GENP)
         goto err;
 
@@ -986,7 +986,7 @@ int OSSL_CMP_PKIMESSAGE_genm_item_push0(OSSL_CMP_PKIMESSAGE *msg,
         goto err;
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_GENM_ITEM_PUSH0,
+    CMPerr(CMP_F_OSSL_CMP_MSG_GENM_ITEM_PUSH0,
            CMP_R_ERROR_PUSHING_GENERALINFO_ITEM);
     return 0;
 }
@@ -996,7 +996,7 @@ int OSSL_CMP_PKIMESSAGE_genm_item_push0(OSSL_CMP_PKIMESSAGE *msg,
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_PKIMESSAGE_genm_items_push1(OSSL_CMP_PKIMESSAGE *msg,
+int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
                                     STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
@@ -1007,14 +1007,14 @@ int OSSL_CMP_PKIMESSAGE_genm_items_push1(OSSL_CMP_PKIMESSAGE *msg,
 
     for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
         itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i));
-        if (!OSSL_CMP_PKIMESSAGE_genm_item_push0(msg, itav)) {
+        if (!OSSL_CMP_MSG_genm_item_push0(msg, itav)) {
             OSSL_CMP_ITAV_free(itav);
             goto err;
         }
     }
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_GENM_ITEMS_PUSH1,
+    CMPerr(CMP_F_OSSL_CMP_MSG_GENM_ITEMS_PUSH1,
            CMP_R_ERROR_PUSHING_GENM_ITEMS);
     return 0;
 }
@@ -1388,7 +1388,7 @@ OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(OSSL_CMP_CERTREPMESS
  * returns 1 on success
  * returns 0 on error
  */
-int OSSL_CMP_PKIMESSAGE_set_bodytype(OSSL_CMP_PKIMESSAGE *msg, int type)
+int OSSL_CMP_MSG_set_bodytype(OSSL_CMP_MSG *msg, int type)
 {
     if (msg == NULL || msg->body == NULL)
         return 0;
@@ -1402,7 +1402,7 @@ int OSSL_CMP_PKIMESSAGE_set_bodytype(OSSL_CMP_PKIMESSAGE *msg, int type)
  * returns the body type of the given CMP message
  * returns -1 on error
  */
-int OSSL_CMP_PKIMESSAGE_get_bodytype(const OSSL_CMP_PKIMESSAGE *msg)
+int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg)
 {
     if (msg == NULL || msg->body == NULL)
         return -1;
@@ -1673,17 +1673,17 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store)
  *
  * returns body type (which is >= 0) of the message on success, -1 on error
  */
-int OSSL_CMP_PKIMESSAGE_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg,
+int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
          int callback_arg,
-         int (*allow_unprotected)(const OSSL_CMP_CTX *, int, const OSSL_CMP_PKIMESSAGE *))
+         int (*allow_unprotected)(const OSSL_CMP_CTX *, int, const OSSL_CMP_MSG *))
 {
     int rcvd_type;
 
     if (ctx == NULL || msg == NULL)
         return -1;
 
-    if ((rcvd_type = OSSL_CMP_PKIMESSAGE_get_bodytype(msg)) < 0) {
-        CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CHECK_RECEIVED, CMP_R_PKIBODY_ERROR);
+    if ((rcvd_type = OSSL_CMP_MSG_get_bodytype(msg)) < 0) {
+        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED, CMP_R_PKIBODY_ERROR);
         return -1;
     }
 
@@ -1691,7 +1691,7 @@ int OSSL_CMP_PKIMESSAGE_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESS
     if (msg->header->protectionAlg) {
         if (!OSSL_CMP_validate_msg(ctx, msg)) {
             /* validation failed */
-             CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CHECK_RECEIVED,
+             CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                     CMP_R_ERROR_VALIDATING_PROTECTION);
              return -1;
          }
@@ -1699,7 +1699,7 @@ int OSSL_CMP_PKIMESSAGE_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESS
         /* detect explicitly permitted exceptions */
         if (allow_unprotected == NULL ||
             !(*allow_unprotected)(ctx, callback_arg, msg)) {
-            CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CHECK_RECEIVED,
+            CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                    CMP_R_MISSING_PROTECTION);
             return -1;
         }
@@ -1711,7 +1711,7 @@ int OSSL_CMP_PKIMESSAGE_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESS
         (msg->header->transactionID == NULL ||
             ASN1_OCTET_STRING_cmp(ctx->transactionID,
                                   msg->header->transactionID) != 0)) {
-        CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CHECK_RECEIVED,
+        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                CMP_R_TRANSACTIONID_UNMATCHED);
         return -1;
     }
@@ -1721,7 +1721,7 @@ int OSSL_CMP_PKIMESSAGE_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESS
         (msg->header->recipNonce == NULL ||
          ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
                                msg->header->recipNonce) != 0)) {
-        CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_CHECK_RECEIVED,
+        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                CMP_R_RECIPNONCE_UNMATCHED);
         return -1;
     }

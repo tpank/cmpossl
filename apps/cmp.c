@@ -1981,12 +1981,12 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
 #endif  /* !defined OPENSSL_NO_OCSP */
 
 /*-
- * Writes OSSL_CMP_PKIMESSAGE DER-encoded to the file specified with outfile
+ * Writes OSSL_CMP_MSG DER-encoded to the file specified with outfile
  *
  * returns 1 on success, 0 on error
  */
 static int write_PKIMESSAGE(OSSL_CMP_CTX *ctx,
-                            const OSSL_CMP_PKIMESSAGE *msg, char **filenames)
+                            const OSSL_CMP_MSG *msg, char **filenames)
 {
     char *file;
     FILE *f;
@@ -2009,7 +2009,7 @@ static int write_PKIMESSAGE(OSSL_CMP_CTX *ctx,
         OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot open file '%s' for writing", file);
     else {
         unsigned char *out = NULL;
-        int len = i2d_OSSL_CMP_PKIMESSAGE((OSSL_CMP_PKIMESSAGE *)msg, &out);
+        int len = i2d_OSSL_CMP_MSG((OSSL_CMP_MSG *)msg, &out);
 
         if (len >= 0) {
             if ((size_t)len == fwrite(out, sizeof(*out), len, f))
@@ -2024,18 +2024,18 @@ static int write_PKIMESSAGE(OSSL_CMP_CTX *ctx,
 }
 
 /*-
- * Reads a DER-encoded OSSL_CMP_PKIMESSAGE from the file specified in infile
- * The OSS_CMP_PKIMESSAGE must be freed by the caller
+ * Reads a DER-encoded OSSL_CMP_MSG from the file specified in infile
+ * The OSS_CMP_MSG must be freed by the caller
  *
- * returns a pointer to the parsed OSSL_CMP_PKIMESSAGE, null on error
+ * returns a pointer to the parsed OSSL_CMP_MSG, null on error
  */
-static OSSL_CMP_PKIMESSAGE *read_PKIMESSAGE(OSSL_CMP_CTX *ctx, char **filenames)
+static OSSL_CMP_MSG *read_PKIMESSAGE(OSSL_CMP_CTX *ctx, char **filenames)
 {
     char *file;
     FILE *f;
     long fsize;
     unsigned char *in;
-    OSSL_CMP_PKIMESSAGE *ret = NULL;
+    OSSL_CMP_MSG *ret = NULL;
 
     if (filenames == NULL) {
         OSSL_CMP_err(ctx, "NULL arg to read_PKIMESSAGE");
@@ -2066,7 +2066,7 @@ static OSSL_CMP_PKIMESSAGE *read_PKIMESSAGE(OSSL_CMP_CTX *ctx, char **filenames)
                     OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot read file '%s'", file);
                 else {
                     const unsigned char *p = in;
-                    ret = d2i_OSSL_CMP_PKIMESSAGE(NULL, &p, fsize);
+                    ret = d2i_OSSL_CMP_MSG(NULL, &p, fsize);
                     if (ret == NULL)
                         OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
                                "cannot parse PKIMessage in file '%s'", file);
@@ -2081,15 +2081,15 @@ static OSSL_CMP_PKIMESSAGE *read_PKIMESSAGE(OSSL_CMP_CTX *ctx, char **filenames)
 
 /*-
  * Sends the PKIMessage req and on success place the response in *res
- * basically like OSSL_CMP_PKIMESSAGE_http_perform(), but in addition allows
+ * basically like OSSL_CMP_MSG_http_perform(), but in addition allows
  * to dump the sequence of requests and responses to files and/or
  * to take the sequence of requests and responses from files.
  */
 static int read_write_req_resp(OSSL_CMP_CTX *ctx,
-                               const OSSL_CMP_PKIMESSAGE *req,
-                               OSSL_CMP_PKIMESSAGE **res)
+                               const OSSL_CMP_MSG *req,
+                               OSSL_CMP_MSG **res)
 {
-    OSSL_CMP_PKIMESSAGE *req_new = NULL;
+    OSSL_CMP_MSG *req_new = NULL;
     OSSL_CMP_PKIHEADER *hdr;
     int ret = CMP_R_ERROR_TRANSFERRING_OUT;
 
@@ -2109,9 +2109,9 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx,
            * Insta Demo CA correctly complains: "Transaction id already in use."
            * The following workaround unfortunately requires re-protection.
            */
-            OSSL_CMP_PKIHEADER_set1_transactionID(OSSL_CMP_PKIMESSAGE_get0_header
+            OSSL_CMP_PKIHEADER_set1_transactionID(OSSL_CMP_MSG_get0_header
                                              (req_new), NULL);
-            OSSL_CMP_PKIMESSAGE_protect((OSSL_CMP_CTX *)ctx, req_new);
+            OSSL_CMP_MSG_protect((OSSL_CMP_CTX *)ctx, req_new);
 # endif
         }
     }
@@ -2121,13 +2121,13 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx,
         if ((*res = read_PKIMESSAGE(ctx, &opt_rspin)))
             ret = 0;
     } else {
-        const OSSL_CMP_PKIMESSAGE *actual_req = opt_reqin ? req_new : req;
+        const OSSL_CMP_MSG *actual_req = opt_reqin ? req_new : req;
         if (opt_mock_srv) {
             OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
             ret = OSSL_CMP_mock_server_perform(ctx, actual_req, res);
         } else {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-            ret = OSSL_CMP_PKIMESSAGE_http_perform(ctx, actual_req, res);
+            ret = OSSL_CMP_MSG_http_perform(ctx, actual_req, res);
 #endif
         }
     }
@@ -2135,7 +2135,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx,
     if (ret || (*res) == NULL)
         goto err;
     ret = CMP_R_OUT_OF_MEMORY;
-    hdr = OSSL_CMP_PKIMESSAGE_get0_header(*res);
+    hdr = OSSL_CMP_MSG_get0_header(*res);
     if ((opt_reqin || opt_rspin) &&
         /* need to satisfy nonce and transactionID checks */
         (!OSSL_CMP_CTX_set1_last_senderNonce(ctx, OSSL_CMP_PKIHEADER_get0_recipNonce(hdr))
@@ -2146,13 +2146,13 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx,
 
     if (opt_rspout && !write_PKIMESSAGE(ctx, *res, &opt_rspout)) {
         ret = CMP_R_ERROR_TRANSFERRING_OUT;
-        OSSL_CMP_PKIMESSAGE_free(*res);
+        OSSL_CMP_MSG_free(*res);
         goto err;
     }
 
     ret = 0;
  err:
-    OSSL_CMP_PKIMESSAGE_free(req_new);
+    OSSL_CMP_MSG_free(req_new);
     return ret;
 }
 
@@ -2165,7 +2165,7 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, int connect)
         return sbio ? BIO_push(sbio, hbio): NULL;
     } else {
         /* as a workaround for OpenSSL double free, do not pop the sbio, but
-           rely on BIO_free_all() done by OSSL_CMP_PKIMESSAGE_http_perform() */
+           rely on BIO_free_all() done by OSSL_CMP_MSG_http_perform() */
         return hbio;
     }
 }
@@ -2190,7 +2190,7 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
       /*OSSL_CMP_CTX *cmp_ctx = X509_STORE_get_ex_data(ts,X509_STORE_EX_DATA_CMP);*/
         const char *expected = NULL;
 
-        if (http_connected /* OSSL_CMP_PKIMESSAGE_http_perform() is active */
+        if (http_connected /* OSSL_CMP_MSG_http_perform() is active */
             && !ssl) /* ssl_add_cert_chain() is active */
             return ok; /* avoid printing spurious errors */
 

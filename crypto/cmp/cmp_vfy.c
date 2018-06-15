@@ -28,7 +28,7 @@
  * returns 0 on error
  */
 static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
-                                const OSSL_CMP_PKIMESSAGE *msg, const X509 *cert)
+                                const OSSL_CMP_MSG *msg, const X509 *cert)
 {
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART prot_part;
@@ -125,7 +125,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
  *
  * Verify a message protected with PBMAC
  */
-static int CMP_verify_PBMAC(const OSSL_CMP_PKIMESSAGE *msg,
+static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
                             const ASN1_OCTET_STRING *secret)
 {
     ASN1_BIT_STRING *protection = NULL;
@@ -384,7 +384,7 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *kid, int fn)
  * and the cert must not be expired (for checking this, the ts must be given).
  * returns 0 on error or not acceptable, else 1
  */
-static int cert_acceptable(X509 *cert, const OSSL_CMP_PKIMESSAGE *msg,
+static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
                            const X509_STORE *ts) {
     X509_NAME *sender_name = NULL;
     X509_VERIFY_PARAM *vpm = NULL;
@@ -428,7 +428,7 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_PKIMESSAGE *msg,
  * returns 0 on error else 1
  */
 static int find_acceptable_certs(STACK_OF(X509) *certs,
-    const OSSL_CMP_PKIMESSAGE *msg, const X509_STORE *ts, STACK_OF(X509) *sk)
+    const OSSL_CMP_MSG *msg, const X509_STORE *ts, STACK_OF(X509) *sk)
 {
     int i;
 
@@ -466,7 +466,7 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
  * returns NULL on (out of memory) error
  */
 static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
-                    STACK_OF(X509) *untrusted, const OSSL_CMP_PKIMESSAGE *msg)
+                    STACK_OF(X509) *untrusted, const OSSL_CMP_MSG *msg)
 {
     int ret;
     STACK_OF(X509) *trusted, *found_certs;
@@ -503,7 +503,7 @@ oom:
  * newly enrolled certificate
  */
 static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, const X509 *scrt,
-                               const OSSL_CMP_PKIMESSAGE *msg) {
+                               const OSSL_CMP_MSG *msg) {
     int valid = 0;
     X509_STORE *store = X509_STORE_new();
     if (store && /* store does not include CRLs */
@@ -526,7 +526,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, const X509 *scrt,
     return valid;
 }
 
-static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg)
+static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
     X509 *scrt = NULL;
     int valid = 0;
@@ -581,7 +581,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg)
 
         /* exceptional 3GPP TS 33.310 handling */
         if (!valid && ctx->permitTAInExtraCertsForIR &&
-                OSSL_CMP_PKIMESSAGE_get_bodytype(msg) == OSSL_CMP_PKIBODY_IP) {
+                OSSL_CMP_MSG_get_bodytype(msg) == OSSL_CMP_PKIBODY_IP) {
             for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
                 scrt = sk_X509_value(found_crts, i);
                 valid = srv_cert_valid_3gpp(ctx, scrt, msg);
@@ -617,7 +617,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg)
  *
  * returns 1 on success, 0 on error or validation failed
  */
-int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg)
+int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
     X509_ALGOR *alg;
     int nid = NID_undef, pk_nid = NID_undef;
@@ -650,7 +650,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg)
              * the caPubs field may be directly trusted as a root CA
              * certificate by the initiator.'
              */
-            switch (OSSL_CMP_PKIMESSAGE_get_bodytype(msg)) {
+            switch (OSSL_CMP_MSG_get_bodytype(msg)) {
             case OSSL_CMP_PKIBODY_IP:
             case OSSL_CMP_PKIBODY_CP:
             case OSSL_CMP_PKIBODY_KUP:

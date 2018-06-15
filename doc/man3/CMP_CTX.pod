@@ -139,8 +139,8 @@
  int CMP_CTX_set_popoMethod(CMP_CTX *ctx, int method);
  int CMP_CTX_set1_proxyName(CMP_CTX *ctx, const char *name);
  int CMP_CTX_set_proxyPort(CMP_CTX *ctx, int port);
- typedef int (*cmp_transfer_cb_t)(const CMP_CTX *ctx, const CMP_PKIMESSAGE *req,
-                                  CMP_PKIMESSAGE **res);
+ typedef int (*cmp_transfer_cb_t)(const CMP_CTX *ctx, const CMP_MSG *req,
+                                  CMP_MSG **res);
  int CMP_CTX_set_transfer_cb(CMP_CTX *ctx, cmp_transfer_cb_t cb);
  int CMP_CTX_set_transfer_cb_arg(CMP_CTX *ctx, void *arg);
  void *CMP_CTX_get_transfer_cb_arg(CMP_CTX *ctx);
@@ -422,7 +422,7 @@ CMP_CTX_set_proxyPort() sets the port of the HTTP proxy.  Port defaults to 8080
 if not set explicitly.
 
 CMP_CTX_set_transfer_cb() sets the message transfer callback function.
-Default is CMP_PKIMESSAGE_http_perform().
+Default is CMP_MSG_http_perform().
 The callback should send the CMP request it obtains via the B<req> parameter
 and on success place the response in the B<*res> output parameter.
 The transfer callback may make use of a custom defined argument stored in
@@ -440,7 +440,7 @@ structure containing arguments, previously set by CMP_CTX_set_transfer_cb_arg().
 
 CMP_CTX_set_http_cb() sets the optional http connect/disconnect callback
 function, which may modify the HTTP BIO given in the B<hbio> argument
-used by CMP_PKIMESSAGE_http_perform().
+used by CMP_MSG_http_perform().
 On connect, the B<connect> argument is 1, and on disconnect it is 0.
 For instance, on connect a TLS BIO may be prepended to implement HTTPS,
 and on disconnect any cleanup may be done.

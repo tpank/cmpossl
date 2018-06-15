@@ -22,7 +22,7 @@ typedef struct test_fixture {
     const char *test_case_name;
     OSSL_CMP_CTX *cmp_ctx;
     /* for protection tests */
-    OSSL_CMP_PKIMESSAGE *msg;
+    OSSL_CMP_MSG *msg;
     OSSL_CMP_PKISI *si;      /* for error and response messages */
     ASN1_OCTET_STRING *secret;
     EVP_PKEY *privkey;
@@ -58,7 +58,7 @@ static void tear_down(CMP_INT_TEST_FIXTURE *fixture)
     /* ERR_print_errors_fp(stderr);
        Free any memory owned by the fixture, etc. */
     OSSL_CMP_CTX_delete(fixture->cmp_ctx);
-    OSSL_CMP_PKIMESSAGE_free(fixture->msg);
+    OSSL_CMP_MSG_free(fixture->msg);
     ASN1_OCTET_STRING_free(fixture->secret);
     EVP_PKEY_free(fixture->privkey);
     EVP_PKEY_free(fixture->pubkey);
@@ -96,7 +96,7 @@ static int execute_calc_protection_test(CMP_INT_TEST_FIXTURE *fixture)
 
 /* This function works similar to parts of CMP_verify_signature in cmp_vfy.c,
  * but without the need for a OSSL_CMP_CTX or a X509 certificate */
-static int verify_signature(OSSL_CMP_PKIMESSAGE *msg,
+static int verify_signature(OSSL_CMP_MSG *msg,
                             ASN1_BIT_STRING *protection,
                             EVP_PKEY *pkey, int digest_nid)
 {
@@ -106,7 +106,7 @@ static int verify_signature(OSSL_CMP_PKIMESSAGE *msg,
     EVP_MD_CTX *ctx = NULL;
     int res;
 
-    prot_part.header = OSSL_CMP_PKIMESSAGE_get0_header(msg);
+    prot_part.header = OSSL_CMP_MSG_get0_header(msg);
     prot_part.body = msg->body;
     res =
         TEST_int_ge(l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der), 0) &&

@@ -19,8 +19,8 @@
 #include <openssl/asn1t.h>
 #include <string.h>
 
-typedef OSSL_CMP_PKIMESSAGE *(*cmp_srv_process_cb_t)
-    (OSSL_CMP_SRV_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg);
+typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
+    (OSSL_CMP_SRV_CTX *ctx, const OSSL_CMP_MSG *msg);
 
 /*
  * this structure is used to store the context for the CMP mock server
@@ -32,7 +32,7 @@ struct OSSL_cmp_srv_ctx_st {
     STACK_OF(X509) *chainOut;   /* Cert chain useful to validate certOut */
     STACK_OF(X509) *caPubsOut;  /* caPubs for ip */
     OSSL_CMP_PKISI *pkiStatusOut; /* PKI Status Info to be returned */
-    OSSL_CMP_PKIMESSAGE *certReq;    /* ir/cr/p10cr/kur saved in case of polling */
+    OSSL_CMP_MSG *certReq;    /* ir/cr/p10cr/kur saved in case of polling */
     int certReqId;              /* id saved in case of polling */
     OSSL_CMP_CTX *ctx;               /* client cmp context, partly reused for srv */
     unsigned int pollCount;     /* Number of polls before cert response */
@@ -61,7 +61,7 @@ ASN1_SEQUENCE(OSSL_CMP_SRV_CTX) = {
         ASN1_SEQUENCE_OF_OPT(OSSL_CMP_SRV_CTX, chainOut, X509),
         ASN1_SEQUENCE_OF_OPT(OSSL_CMP_SRV_CTX, caPubsOut, X509),
         ASN1_SIMPLE(OSSL_CMP_SRV_CTX, pkiStatusOut, OSSL_CMP_PKISI),
-        ASN1_OPT(OSSL_CMP_SRV_CTX, certReq, OSSL_CMP_PKIMESSAGE)
+        ASN1_OPT(OSSL_CMP_SRV_CTX, certReq, OSSL_CMP_MSG)
 } ASN1_SEQUENCE_END(OSSL_CMP_SRV_CTX)
 IMPLEMENT_STATIC_ASN1_ALLOC_FUNCTIONS(OSSL_CMP_SRV_CTX)
 
@@ -176,7 +176,7 @@ int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx, int raveri
     return 1;
 }
 
-static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_PKIMESSAGE *msg)
+static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *msg)
 {
     if (srv_ctx == NULL || msg == NULL || msg->body == NULL) {
         CMPerr(CMP_F_CMP_VERIFY_POPO, CMP_R_NULL_ARGUMENT);
@@ -201,10 +201,10 @@ static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_PKIMESSAGE 
  * Only handles the first certification request contained in certReq
  * returns an ip/cp/kup on success and NULL on error
  */
-static OSSL_CMP_PKIMESSAGE *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
-                                                const OSSL_CMP_PKIMESSAGE *certReq)
+static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
+                                                const OSSL_CMP_MSG *certReq)
 {
-    OSSL_CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_PKISI *si = NULL;
     X509 *certOut = NULL;
     STACK_OF(X509) *chainOut = NULL, *caPubs = NULL;
@@ -251,15 +251,15 @@ static OSSL_CMP_PKIMESSAGE *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         srv_ctx->pollCount--;
         if ((si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_waiting, 0, NULL)) == NULL)
             goto oom;
-        OSSL_CMP_PKIMESSAGE_free(srv_ctx->certReq);
-        if ((srv_ctx->certReq = OSSL_CMP_PKIMESSAGE_dup((OSSL_CMP_PKIMESSAGE *)certReq))
+        OSSL_CMP_MSG_free(srv_ctx->certReq);
+        if ((srv_ctx->certReq = OSSL_CMP_MSG_dup((OSSL_CMP_MSG *)certReq))
             == NULL)
             goto oom;
     } else {
         certOut = srv_ctx->certOut;
         chainOut = srv_ctx->chainOut;
         caPubs = srv_ctx->caPubsOut;
-        if (OSSL_CMP_PKIMESSAGE_check_implicitConfirm((OSSL_CMP_PKIMESSAGE *) certReq) &&
+        if (OSSL_CMP_MSG_check_implicitConfirm((OSSL_CMP_MSG *) certReq) &&
             srv_ctx->grantImplicitConfirm)
             OSSL_CMP_CTX_set_option(srv_ctx->ctx, OSSL_CMP_CTX_OPT_IMPLICITCONFIRM, 1);
         if ((si = OSSL_CMP_PKISI_dup(srv_ctx->pkiStatusOut)) == NULL)
@@ -281,10 +281,10 @@ static OSSL_CMP_PKIMESSAGE *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     return NULL;
 }
 
-static OSSL_CMP_PKIMESSAGE *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
-                                  const OSSL_CMP_PKIMESSAGE *req)
+static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
+                                  const OSSL_CMP_MSG *req)
 {
-    OSSL_CMP_PKIMESSAGE *msg;
+    OSSL_CMP_MSG *msg;
     OSSL_CMP_REVDETAILS *details;
     OSSL_CRMF_CERTID *certId;
     OSSL_CRMF_CERTTEMPLATE *tmpl;
@@ -324,10 +324,10 @@ static OSSL_CMP_PKIMESSAGE *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
     return msg;
 }
 
-static OSSL_CMP_PKIMESSAGE *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
-                                        const OSSL_CMP_PKIMESSAGE *req)
+static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
+                                        const OSSL_CMP_MSG *req)
 {
-    OSSL_CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTSTATUS *status = NULL;
     ASN1_OCTET_STRING *tmp = NULL;
     int res = -1;
@@ -388,10 +388,10 @@ static OSSL_CMP_PKIMESSAGE *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
     return NULL;
 }
 
-static OSSL_CMP_PKIMESSAGE *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
-                                     const OSSL_CMP_PKIMESSAGE *req)
+static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
+                                     const OSSL_CMP_MSG *req)
 {
-    OSSL_CMP_PKIMESSAGE *msg = OSSL_CMP_pkiconf_new(srv_ctx->ctx);
+    OSSL_CMP_MSG *msg = OSSL_CMP_pkiconf_new(srv_ctx->ctx);
 
     if (msg == NULL) {
         CMPerr(CMP_F_PROCESS_ERROR, CMP_R_ERROR_CREATING_PKICONF);
@@ -401,10 +401,10 @@ static OSSL_CMP_PKIMESSAGE *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
     return msg;
 }
 
-static OSSL_CMP_PKIMESSAGE *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
-                                       const OSSL_CMP_PKIMESSAGE *req)
+static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
+                                       const OSSL_CMP_MSG *req)
 {
-    OSSL_CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_MSG *msg = NULL;
     if (!srv_ctx || !srv_ctx->certReq) {
         CMPerr(CMP_F_PROCESS_POLLREQ, CMP_R_NULL_ARGUMENT);
         return NULL;
@@ -425,10 +425,10 @@ static OSSL_CMP_PKIMESSAGE *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
  * Processes genm and creates a genp message mirroring the contents of the
  * incoming message
  */
-static OSSL_CMP_PKIMESSAGE *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
-                                    const OSSL_CMP_PKIMESSAGE *req)
+static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
+                                    const OSSL_CMP_MSG *req)
 {
-    OSSL_CMP_PKIMESSAGE *msg = NULL;
+    OSSL_CMP_MSG *msg = NULL;
     STACK_OF(OSSL_CMP_ITAV) *tmp = NULL;
 
     if (srv_ctx == NULL || srv_ctx->ctx == NULL || req == NULL) {
@@ -450,7 +450,7 @@ static OSSL_CMP_PKIMESSAGE *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
  */
 static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                                  int accept_unprotected_requests,
-                                 const OSSL_CMP_PKIMESSAGE *req)
+                                 const OSSL_CMP_MSG *req)
 {
     if (accept_unprotected_requests) {
         OSSL_CMP_warn(ctx, "ignoring missing protection of request message");
@@ -468,8 +468,8 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
  * srv_ctx is the context of the server
  * returns 1 if a message was created and 0 on error
  */
-static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_PKIMESSAGE *req,
-                           OSSL_CMP_PKIMESSAGE **rsp)
+static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *req,
+                           OSSL_CMP_MSG **rsp)
 {
     cmp_srv_process_cb_t process_cb = NULL;
     OSSL_CMP_CTX *ctx;
@@ -491,7 +491,7 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_PKIMESSAGE 
         return 0;
     }
 
-    if (OSSL_CMP_PKIMESSAGE_check_received(ctx, req,
+    if (OSSL_CMP_MSG_check_received(ctx, req,
                                       srv_ctx->acceptUnprotectedRequests,
                                       unprotected_exception) < 0) {
         CMPerr(CMP_F_PROCESS_REQUEST, CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE);
@@ -546,14 +546,14 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_PKIMESSAGE 
 }
 
 /*
- * Mocks the server connection. Works similar to OSSL_CMP_PKIMESSAGE_http_perform.
+ * Mocks the server connection. Works similar to OSSL_CMP_MSG_http_perform.
  * A OSSL_CMP_SRV_CTX must be set as transfer_cb_arg
  * returns 0 on success and else a CMP error reason code defined in cmp.h
  */
-int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_PKIMESSAGE *req,
-                            OSSL_CMP_PKIMESSAGE **rsp)
+int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
+                            OSSL_CMP_MSG **rsp)
 {
-    OSSL_CMP_PKIMESSAGE *srv_req = NULL, *srv_rsp = NULL;
+    OSSL_CMP_MSG *srv_req = NULL, *srv_rsp = NULL;
     OSSL_CMP_SRV_CTX *srv_ctx = NULL;
     int error = 0;
 
@@ -564,8 +564,8 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_PKIMESSAG
     if ((srv_ctx = OSSL_CMP_CTX_get_transfer_cb_arg(cmp_ctx)) == NULL)
         return CMP_R_ERROR_TRANSFERRING_OUT;
 
-    /* OSSL_CMP_PKIMESSAGE_dup en- and decodes ASN.1, used for checking encoding */
-    if ((srv_req = OSSL_CMP_PKIMESSAGE_dup((OSSL_CMP_PKIMESSAGE *)req)) == NULL)
+    /* OSSL_CMP_MSG_dup en- and decodes ASN.1, used for checking encoding */
+    if ((srv_req = OSSL_CMP_MSG_dup((OSSL_CMP_MSG *)req)) == NULL)
         error = CMP_R_ERROR_DECODING_MESSAGE;
 
     if (process_request(srv_ctx, srv_req, &srv_rsp) == 0) {
@@ -589,15 +589,15 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_PKIMESSAG
         goto end;
     }
 
-    /* OSSL_CMP_PKIMESSAGE_dup en- and decodes ASN.1, used for checking encoding */
-    if ((*rsp = OSSL_CMP_PKIMESSAGE_dup(srv_rsp)) == NULL) {
+    /* OSSL_CMP_MSG_dup en- and decodes ASN.1, used for checking encoding */
+    if ((*rsp = OSSL_CMP_MSG_dup(srv_rsp)) == NULL) {
         error = CMP_R_ERROR_DECODING_MESSAGE;
         goto end;
     }
 
  end:
-    OSSL_CMP_PKIMESSAGE_free(srv_req);
-    OSSL_CMP_PKIMESSAGE_free(srv_rsp);
+    OSSL_CMP_MSG_free(srv_req);
+    OSSL_CMP_MSG_free(srv_rsp);
 
     return error;
 }

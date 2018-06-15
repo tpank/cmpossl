@@ -20,7 +20,7 @@ typedef struct test_fixture {
     int bodytype;
     int err_code;
     /* for protection tests */
-    OSSL_CMP_PKIMESSAGE *msg;
+    OSSL_CMP_MSG *msg;
     int expected;               /* expected outcome */
     OSSL_CMP_PKISI *si;      /* for error and response messages */
 } CMP_MSG_TEST_FIXTURE;
@@ -57,7 +57,7 @@ static void tear_down(CMP_MSG_TEST_FIXTURE *fixture)
     /* ERR_print_errors_fp(stderr);
        Free any memory owned by the fixture, etc. */
     OSSL_CMP_CTX_delete(fixture->cmp_ctx);
-    OSSL_CMP_PKIMESSAGE_free(fixture->msg);
+    OSSL_CMP_MSG_free(fixture->msg);
     OSSL_CMP_PKISI_free(fixture->si);
     OPENSSL_free(fixture);
 }
@@ -67,11 +67,11 @@ static X509 *cert = NULL;
 
 #define EXECUTE_MSG_CREATION_TEST(expr) \
 do { \
-    OSSL_CMP_PKIMESSAGE *msg = NULL; \
+    OSSL_CMP_MSG *msg = NULL; \
     int good = fixture->expected ? \
             TEST_ptr(msg = expr) && TEST_true(valid_asn1_encoding(msg)) : \
             TEST_ptr_null(msg = expr); \
-    OSSL_CMP_PKIMESSAGE_free(msg); \
+    OSSL_CMP_MSG_free(msg); \
     return good; \
 } while(0)
 
@@ -117,7 +117,7 @@ static int execute_pollreq_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 
 static int execute_pkimessage_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(OSSL_CMP_PKIMESSAGE_create
+    EXECUTE_MSG_CREATION_TEST(OSSL_CMP_MSG_create
                               (fixture->cmp_ctx, fixture->bodytype));
 }
 

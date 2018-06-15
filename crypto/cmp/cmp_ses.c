@@ -65,12 +65,12 @@ static char *V_CMP_TABLE[] = {
 /*
  * internal function
  *
- * adds error data of the given OSSL_CMP_PKIMESSAGE
+ * adds error data of the given OSSL_CMP_MSG
  */
-static void message_add_error_data(OSSL_CMP_PKIMESSAGE *msg)
+static void message_add_error_data(OSSL_CMP_MSG *msg)
 {
     char *buf;
-    int bt = OSSL_CMP_PKIMESSAGE_get_bodytype(msg);
+    int bt = OSSL_CMP_MSG_get_bodytype(msg);
 
     switch (bt) {
     case OSSL_CMP_PKIBODY_ERROR:
@@ -103,10 +103,10 @@ static void message_add_error_data(OSSL_CMP_PKIMESSAGE *msg)
  * handling unprotected errors
  */
 static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
-                                 const OSSL_CMP_PKIMESSAGE *rep)
+                                 const OSSL_CMP_MSG *rep)
 {
     int exception = 0;
-    int rcvd_type = OSSL_CMP_PKIMESSAGE_get_bodytype(rep);
+    int rcvd_type = OSSL_CMP_MSG_get_bodytype(rep);
 
     if (ctx->unprotectedErrors) {
         if (rcvd_type == OSSL_CMP_PKIBODY_ERROR) {
@@ -154,9 +154,9 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
  * returns 1 on success, 0 on error
  * Regardless of success, caller is responsible for freeing *rep (unless NULL).
  */
-static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *req,
+static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                               const char *type_string, int func,
-                              OSSL_CMP_PKIMESSAGE **rep, int expected_type,
+                              OSSL_CMP_MSG **rep, int expected_type,
                               int not_received)
 {
     int msgtimeout = ctx->msgtimeout; /* backup original value */
@@ -200,7 +200,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *req,
     }
 
     OSSL_CMP_info(ctx, "got response");
-    if((rcvd_type = OSSL_CMP_PKIMESSAGE_check_received(ctx, *rep, expected_type,
+    if((rcvd_type = OSSL_CMP_MSG_check_received(ctx, *rep, expected_type,
                                                   unprotected_exception)) < 0)
         return 0;
 
@@ -234,10 +234,10 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *req,
  *
  * TODO: handle multiple poll requests for multiple certificates --> FR #13
  */
-static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **out)
+static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **out)
 {
-    OSSL_CMP_PKIMESSAGE *preq = NULL;
-    OSSL_CMP_PKIMESSAGE *prep = NULL;
+    OSSL_CMP_MSG *preq = NULL;
+    OSSL_CMP_MSG *prep = NULL;
     OSSL_CMP_POLLREP *pollRep = NULL;
 
     OSSL_CMP_info(ctx, "received 'waiting' PKIStatus, starting to poll for response");
@@ -251,7 +251,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **ou
              goto err;
 
         /* handle potential pollRep */
-        if (OSSL_CMP_PKIMESSAGE_get_bodytype(prep) == OSSL_CMP_PKIBODY_POLLREP) {
+        if (OSSL_CMP_MSG_get_bodytype(prep) == OSSL_CMP_PKIBODY_POLLREP) {
             long checkAfter;
             if (!(pollRep = CMP_POLLREPCONTENT_pollRep_get0(
                                                prep->body->value.pollRep, rid)))
@@ -280,9 +280,9 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **ou
                 }
             }
 
-            OSSL_CMP_PKIMESSAGE_free(preq);
+            OSSL_CMP_MSG_free(preq);
             preq = NULL;
-            OSSL_CMP_PKIMESSAGE_free(prep);
+            OSSL_CMP_MSG_free(prep);
             prep = NULL;
             sleep((unsigned int)checkAfter);
         } else {
@@ -293,13 +293,13 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **ou
     if (!prep)
         goto err;
 
-    OSSL_CMP_PKIMESSAGE_free(preq);
+    OSSL_CMP_MSG_free(preq);
     *out = prep;
 
     return 1;
  err:
-    OSSL_CMP_PKIMESSAGE_free(preq);
-    OSSL_CMP_PKIMESSAGE_free(prep);
+    OSSL_CMP_MSG_free(preq);
+    OSSL_CMP_MSG_free(prep);
     return 0;
 }
 
@@ -311,8 +311,8 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **ou
  */
 int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int failure, const char *txt)
 {
-    OSSL_CMP_PKIMESSAGE *certConf = NULL;
-    OSSL_CMP_PKIMESSAGE *PKIconf = NULL;
+    OSSL_CMP_MSG *certConf = NULL;
+    OSSL_CMP_MSG *PKIconf = NULL;
     int success = 0;
 
     /* check if all necessary options are set is done in OSSL_CMP_certConf_new */
@@ -326,8 +326,8 @@ int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int failure, const char *txt)
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
  err:
-    OSSL_CMP_PKIMESSAGE_free(certConf);
-    OSSL_CMP_PKIMESSAGE_free(PKIconf);
+    OSSL_CMP_MSG_free(certConf);
+    OSSL_CMP_MSG_free(PKIconf);
     return success;
 }
 
@@ -340,9 +340,9 @@ int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int failure, const char *txt)
  */
 int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int failure, const char *txt)
 {
-    OSSL_CMP_PKIMESSAGE *error = NULL;
+    OSSL_CMP_MSG *error = NULL;
     OSSL_CMP_PKISI *si = NULL;
-    OSSL_CMP_PKIMESSAGE *PKIconf = NULL;
+    OSSL_CMP_MSG *PKIconf = NULL;
     int success = 0;
 
     /* check if all necessary options are set is done in OSSL_CMP_error_new */
@@ -357,9 +357,9 @@ int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int failure, const ch
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
  err:
-    OSSL_CMP_PKIMESSAGE_free(error);
+    OSSL_CMP_MSG_free(error);
     OSSL_CMP_PKISI_free(si);
-    OSSL_CMP_PKIMESSAGE_free(PKIconf);
+    OSSL_CMP_MSG_free(PKIconf);
     return success;
 }
 
@@ -479,7 +479,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype, OSSL_CMP_CERTRESPO
  * returns 1 on success, 0 on error
  * Regardless of success, caller is responsible for freeing *resp (unless NULL).
  */
-static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **resp,
+static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **resp,
                          int func, int not_received)
 {
     int failure = -1; /* no failure */
@@ -503,7 +503,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **resp
         rid = ASN1_INTEGER_get(crep->certReqId);
 
     if (OSSL_CMP_PKISI_PKIStatus_get(crep->status) == OSSL_CMP_PKISTATUS_waiting){
-        OSSL_CMP_PKIMESSAGE_free(*resp);
+        OSSL_CMP_MSG_free(*resp);
         if (pollForResponse(ctx, rid, resp)) {
             goto retry; /* got rp/cp/kup which might still indicate 'waiting' */
         } else {
@@ -569,7 +569,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **resp
             txt = "CMP client application did not accept newly enrolled certificate";
     }
 
-    if (!ctx->disableConfirm && !OSSL_CMP_PKIMESSAGE_check_implicitConfirm(*resp))
+    if (!ctx->disableConfirm && !OSSL_CMP_MSG_check_implicitConfirm(*resp))
         if (!OSSL_CMP_exchange_certConf(ctx, failure, txt))
             ret = 0;
 
@@ -602,8 +602,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **resp
 static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
                            int req_type, int req_err, int rep_type, int rep_err)
 {
-    OSSL_CMP_PKIMESSAGE *req = NULL;
-    OSSL_CMP_PKIMESSAGE *rep = NULL;
+    OSSL_CMP_MSG *req = NULL;
+    OSSL_CMP_MSG *rep = NULL;
     long rid = (req_type == OSSL_CMP_PKIBODY_P10CR) ? -1 : OSSL_CMP_CERTREQID;
     X509 *result = NULL;
 
@@ -625,8 +625,8 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
 
     result = ctx->newClCert;
  err:
-    OSSL_CMP_PKIMESSAGE_free(req);
-    OSSL_CMP_PKIMESSAGE_free(rep);
+    OSSL_CMP_MSG_free(req);
+    OSSL_CMP_MSG_free(rep);
 
     /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
     if (result == NULL)
@@ -654,8 +654,8 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
  */
 int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 {
-    OSSL_CMP_PKIMESSAGE *rr = NULL;
-    OSSL_CMP_PKIMESSAGE *rp = NULL;
+    OSSL_CMP_MSG *rr = NULL;
+    OSSL_CMP_MSG *rp = NULL;
     OSSL_CMP_PKISI *si = NULL;
     int result = 0;
 
@@ -722,8 +722,8 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         }
         ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
     }
-    OSSL_CMP_PKIMESSAGE_free(rr);
-    OSSL_CMP_PKIMESSAGE_free(rp);
+    OSSL_CMP_MSG_free(rr);
+    OSSL_CMP_MSG_free(rp);
     return result;
 }
 
@@ -764,8 +764,8 @@ X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx)
  */
 STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
 {
-    OSSL_CMP_PKIMESSAGE *genm = NULL;
-    OSSL_CMP_PKIMESSAGE *genp = NULL;
+    OSSL_CMP_MSG *genm = NULL;
+    OSSL_CMP_MSG *genp = NULL;
     STACK_OF(OSSL_CMP_ITAV) *rcvd_itavs = NULL;
 
     if ((genm = OSSL_CMP_genm_new(ctx)) == NULL)
@@ -781,9 +781,9 @@ STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
 
  err:
     if (genm)
-        OSSL_CMP_PKIMESSAGE_free(genm);
+        OSSL_CMP_MSG_free(genm);
     if (genp)
-        OSSL_CMP_PKIMESSAGE_free(genp);
+        OSSL_CMP_MSG_free(genp);
 
     /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
     /* TODO: verify that !recv_itavs is necessarily an error */

@@ -17,9 +17,9 @@ typedef struct test_fixture {
     const char *test_case_name;
     int expected;
     OSSL_CMP_CTX *cmp_ctx;
-    OSSL_CMP_PKIMESSAGE *msg;
+    OSSL_CMP_MSG *msg;
     int callback_arg;
-    int (*allow_unprotected_cb) (const OSSL_CMP_CTX *, int, const OSSL_CMP_PKIMESSAGE *);
+    int (*allow_unprotected_cb) (const OSSL_CMP_CTX *, int, const OSSL_CMP_MSG *);
     X509 *cert;
     STACK_OF(X509) *certs;
     STACK_OF(X509) *chain;
@@ -52,7 +52,7 @@ static CMP_LIB_TEST_FIXTURE *set_up(const char *const test_case_name)
 
 static void tear_down(CMP_LIB_TEST_FIXTURE *fixture)
 {
-    OSSL_CMP_PKIMESSAGE_free(fixture->msg);
+    OSSL_CMP_MSG_free(fixture->msg);
     OSSL_CMP_CTX_delete(fixture->cmp_ctx);
     sk_X509_free(fixture->certs);
     sk_X509_free(fixture->chain);
@@ -69,7 +69,7 @@ static X509 *cert = NULL;
 static X509 *endentity1 = NULL, *endentity2 = NULL,
     *root = NULL, *intermediate = NULL;
 static unsigned char rand_data[OSSL_CMP_TRANSACTIONID_LENGTH];
-static OSSL_CMP_PKIMESSAGE *ir_unprotected, *ir_protected, *insta_unprotected;
+static OSSL_CMP_MSG *ir_unprotected, *ir_protected, *insta_unprotected;
 
 
 static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
@@ -150,7 +150,7 @@ static int test_cmp_pkiheader_init_no_ref_no_subject(void)
 
 
 static int allow_unprotected(const OSSL_CMP_CTX *ctx, int arg,
-                             const OSSL_CMP_PKIMESSAGE *msg)
+                             const OSSL_CMP_MSG *msg)
 {
     return arg;
 }
@@ -158,12 +158,12 @@ static int allow_unprotected(const OSSL_CMP_CTX *ctx, int arg,
 static int execute_protection_test(CMP_LIB_TEST_FIXTURE *fixture)
 {
     return TEST_int_eq(fixture->expected,
-                       OSSL_CMP_PKIMESSAGE_protect(fixture->cmp_ctx, fixture->msg));
+                       OSSL_CMP_MSG_protect(fixture->cmp_ctx, fixture->msg));
 }
 
 static int execute_check_received_test(CMP_LIB_TEST_FIXTURE *fixture)
 {
-    if (!TEST_int_eq(OSSL_CMP_PKIMESSAGE_check_received(fixture->cmp_ctx,
+    if (!TEST_int_eq(OSSL_CMP_MSG_check_received(fixture->cmp_ctx,
                                                    fixture->msg,
                                                    fixture->callback_arg,
                                                    fixture->
@@ -172,7 +172,7 @@ static int execute_check_received_test(CMP_LIB_TEST_FIXTURE *fixture)
         return 0;
 
     if (fixture->expected >= 0) {
-        const OSSL_CMP_PKIHEADER *header = OSSL_CMP_PKIMESSAGE_get0_header(fixture->msg);
+        const OSSL_CMP_PKIHEADER *header = OSSL_CMP_MSG_get0_header(fixture->msg);
         if (!TEST_int_eq(0,
               ASN1_OCTET_STRING_cmp(OSSL_CMP_PKIHEADER_get0_senderNonce(header),
                                     OSSL_CMP_CTX_get0_recipNonce(fixture->cmp_ctx))))
@@ -244,7 +244,7 @@ static int test_cmp_asn1_octet_string_tgt_is_src(void)
 static int execute_cmp_pkimessage_add_extracerts_test(CMP_LIB_TEST_FIXTURE
                                                       * fixture)
 {
-    return TEST_true(OSSL_CMP_PKIMESSAGE_add_extraCerts(fixture->cmp_ctx,
+    return TEST_true(OSSL_CMP_MSG_add_extraCerts(fixture->cmp_ctx,
                                                    fixture->msg));
 }
 
@@ -252,7 +252,7 @@ static int test_cmp_pkimessage_add_extracerts(void)
 {
     SETUP_TEST_FIXTURE(CMP_LIB_TEST_FIXTURE, set_up);
     if (!TEST_ptr(fixture->msg =
-                  OSSL_CMP_PKIMESSAGE_dup(ir_protected))) {
+                  OSSL_CMP_MSG_dup(ir_protected))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -296,9 +296,9 @@ static int
 execute_cmp_pkimessage_set_and_check_implicit_confirm_test(CMP_LIB_TEST_FIXTURE
                                                            * fixture)
 {
-    return TEST_false(OSSL_CMP_PKIMESSAGE_check_implicitConfirm(fixture->msg)) &&
-        TEST_true(OSSL_CMP_PKIMESSAGE_set_implicitConfirm(fixture->msg)) &&
-        TEST_true(OSSL_CMP_PKIMESSAGE_check_implicitConfirm(fixture->msg));
+    return TEST_false(OSSL_CMP_MSG_check_implicitConfirm(fixture->msg)) &&
+        TEST_true(OSSL_CMP_MSG_set_implicitConfirm(fixture->msg)) &&
+        TEST_true(OSSL_CMP_MSG_check_implicitConfirm(fixture->msg));
 }
 
 static int test_cmp_protection_unprotected_request(void)
@@ -308,7 +308,7 @@ static int test_cmp_protection_unprotected_request(void)
      * side effects */
     fixture->expected = 1;
     if (!TEST_ptr(fixture->msg =
-                  OSSL_CMP_PKIMESSAGE_dup(ir_unprotected)) ||
+                  OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
                                       OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1))) {
         tear_down(fixture);
@@ -325,7 +325,7 @@ static int test_cmp_protection_with_msg_sig_alg_protection_plus_rsa_key(void)
     fixture->expected = 1;
 
     if (!TEST_ptr(fixture->msg =
-                  OSSL_CMP_PKIMESSAGE_dup(ir_unprotected)) ||
+                  OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
                                       OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
         /* Use half of the 16 bytes of random input
@@ -350,7 +350,7 @@ static int test_cmp_protection_with_certificate_and_key(void)
     fixture->expected = 1;
 
     if (!TEST_ptr(fixture->msg =
-                  OSSL_CMP_PKIMESSAGE_dup(ir_unprotected)) ||
+                  OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
                                       OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
         !TEST_true(OSSL_CMP_CTX_set1_pkey(fixture->cmp_ctx, loadedkey)) ||
@@ -369,7 +369,7 @@ static int test_cmp_protection_certificate_based_without_cert(void)
      * side effects */
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg =
-                  OSSL_CMP_PKIMESSAGE_dup(ir_unprotected)) ||
+                  OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
                                       OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
         !TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, loadedkey))) {
@@ -386,7 +386,7 @@ static int test_cmp_protection_no_key_no_secret(void)
     /* Do test case-specific set up; set expected return values and
      * side effects */
     fixture->expected = 0;
-    if (!TEST_ptr(fixture->msg = OSSL_CMP_PKIMESSAGE_dup(ir_unprotected)) ||
+    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
                                       OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0))) {
         tear_down(fixture);
@@ -399,7 +399,7 @@ static int test_cmp_protection_no_key_no_secret(void)
 static int test_cmp_pkimessage_set_and_check_implicit_confirm(void)
 {
     SETUP_TEST_FIXTURE(CMP_LIB_TEST_FIXTURE, set_up);
-    if (!TEST_ptr(fixture->msg = OSSL_CMP_PKIMESSAGE_dup(ir_unprotected))) {
+    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -412,7 +412,7 @@ static int test_cmp_pkimessage_check_received_no_protection_no_cb(void)
 {
     SETUP_TEST_FIXTURE(CMP_LIB_TEST_FIXTURE, set_up);
     fixture->expected = -1;
-    if (!TEST_ptr(fixture->msg = OSSL_CMP_PKIMESSAGE_dup(ir_unprotected))) {
+    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -427,7 +427,7 @@ static int test_cmp_pkimessage_check_received_no_protection_negative_cb(void)
     fixture->callback_arg = 0;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg =
-                  OSSL_CMP_PKIMESSAGE_dup(ir_unprotected))) {
+                  OSSL_CMP_MSG_dup(ir_unprotected))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -442,7 +442,7 @@ static int test_cmp_pkimessage_check_received_no_protection_positive_cb(void)
     fixture->callback_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg =
-                  OSSL_CMP_PKIMESSAGE_dup(ir_unprotected))) {
+                  OSSL_CMP_MSG_dup(ir_unprotected))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -463,7 +463,7 @@ static int test_cmp_pkimessage_check_received_check_transaction_id(void)
     fixture->callback_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg =
-                  OSSL_CMP_PKIMESSAGE_dup(ir_unprotected)) ||
+                  OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_ptr(trid = ASN1_OCTET_STRING_new()) ||
         !TEST_true(ASN1_OCTET_STRING_set(trid, trans_id, sizeof(trans_id))) ||
         !TEST_true(OSSL_CMP_CTX_set1_transactionID(fixture->cmp_ctx, trid))) {
@@ -482,7 +482,7 @@ static int test_cmp_pkimessage_check_received_wrong_transaction_id(void)
     fixture->expected = -1;
     fixture->callback_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
-    if (!TEST_ptr(fixture->msg = OSSL_CMP_PKIMESSAGE_dup(ir_unprotected)) ||
+    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_ptr(trid = ASN1_OCTET_STRING_new()) ||
         !TEST_true(ASN1_OCTET_STRING_set(trid, rand_data, sizeof(rand_data))) ||
         !TEST_true(OSSL_CMP_CTX_set1_transactionID(fixture->cmp_ctx, trid))) {
@@ -501,7 +501,7 @@ static int test_cmp_pkimessage_check_received_wrong_recipient_nonce(void)
     fixture->expected = -1;
     fixture->callback_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
-    if (!TEST_ptr(fixture->msg = OSSL_CMP_PKIMESSAGE_dup(ir_unprotected)) ||
+    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_ptr(snonce = ASN1_OCTET_STRING_new()) ||
         !TEST_true(ASN1_OCTET_STRING_set(snonce, rand_data, sizeof(rand_data))) ||
         !TEST_true(OSSL_CMP_CTX_set1_last_senderNonce(fixture->cmp_ctx, snonce))) {
@@ -525,7 +525,7 @@ static int test_cmp_pkimessage_check_received_check_recipient_nonce(void)
     fixture->expected = OSSL_CMP_PKIBODY_IP;
     fixture->callback_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
-    if (!TEST_ptr(fixture->msg = OSSL_CMP_PKIMESSAGE_dup(insta_unprotected)) ||
+    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(insta_unprotected)) ||
         !TEST_ptr(snonce = ASN1_OCTET_STRING_new()) ||
         !TEST_true(ASN1_OCTET_STRING_set(snonce, rec_nonce, sizeof(rec_nonce)))
         || !TEST_true(OSSL_CMP_CTX_set1_last_senderNonce(fixture->cmp_ctx, snonce))) {
@@ -551,7 +551,7 @@ static int test_cmp_pkistatusinfo(void)
 static int test_cmp_pkimessage_get_and_check_implicit_confirm(void)
 {
     SETUP_TEST_FIXTURE(CMP_LIB_TEST_FIXTURE, set_up);
-    if (!TEST_ptr(fixture->msg = OSSL_CMP_PKIMESSAGE_dup(ir_unprotected))) {
+    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -689,9 +689,9 @@ void cleanup_tests(void)
     X509_free(endentity2);
     X509_free(root);
     X509_free(intermediate);
-    OSSL_CMP_PKIMESSAGE_free(ir_protected);
-    OSSL_CMP_PKIMESSAGE_free(ir_unprotected);
-    OSSL_CMP_PKIMESSAGE_free(insta_unprotected);
+    OSSL_CMP_MSG_free(ir_protected);
+    OSSL_CMP_MSG_free(ir_unprotected);
+    OSSL_CMP_MSG_free(insta_unprotected);
 
     return;
 }

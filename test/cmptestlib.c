@@ -43,10 +43,10 @@ X509 *load_pem_cert(const char *file)
     return cert;
 }
 
-OSSL_CMP_PKIMESSAGE *load_pkimsg(const char *file)
+OSSL_CMP_MSG *load_pkimsg(const char *file)
 {
-    OSSL_CMP_PKIMESSAGE *msg;
-    (void)TEST_ptr((msg = OSSL_CMP_PKIMESSAGE_load(file)));
+    OSSL_CMP_MSG *msg;
+    (void)TEST_ptr((msg = OSSL_CMP_MSG_load(file)));
     return msg;
 }
 
@@ -77,9 +77,9 @@ EVP_PKEY *gen_rsa(void)
 /*
  * Checks whether the syntax of msg is ASN.1 conform
  */
-int valid_asn1_encoding(const OSSL_CMP_PKIMESSAGE *msg)
+int valid_asn1_encoding(const OSSL_CMP_MSG *msg)
 {
-    return msg ? i2d_OSSL_CMP_PKIMESSAGE((OSSL_CMP_PKIMESSAGE *)msg, NULL) > 0 : 0;
+    return msg ? i2d_OSSL_CMP_MSG((OSSL_CMP_MSG *)msg, NULL) > 0 : 0;
 }
 
 /*

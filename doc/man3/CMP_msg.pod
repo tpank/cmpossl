@@ -18,25 +18,25 @@
 
  #include <openssl/cmp.h>
 
- CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code);
- OSSL_CMP_PKIMESSAGE *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
+ CMP_MSG *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code);
+ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
                                      int certReqId, OSSL_CMP_PKISI *si,
                                      X509 *cert, STACK_OF(X509) *chain,
                                      STACK_OF(X509) *caPubs, int encrypted,
                                      int unprotectedErrors);
- OSSL_CMP_PKIMESSAGE *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx);
- OSSL_CMP_PKIMESSAGE *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx,
+ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx);
+ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx,
                                      OSSL_CMP_PKISI *si,
                                      OSSL_CRMF_CERTID *certId,
                                      int unprotectedErrors);
- CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
- OSSL_CMP_PKIMESSAGE *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
- CMP_PKIMESSAGE *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
- OSSL_CMP_PKIMESSAGE *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, long certReqId,
+ CMP_MSG *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
+ OSSL_CMP_MSG *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
+ CMP_MSG *CMP_pollReq_new(CMP_CTX *ctx, int reqId);
+ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, long certReqId,
                                           long pollAfter);
- CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx);
- OSSL_CMP_PKIMESSAGE *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx);
- CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISI *si,
+ CMP_MSG *CMP_genm_new(CMP_CTX *ctx);
+ OSSL_CMP_MSG *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx);
+ CMP_MSG *CMP_error_new(CMP_CTX *ctx, CMP_PKISI *si,
                                int errorCode, CMP_PKIFREETEXT *errorDetails,
                                int unprotected)
 
@@ -92,7 +92,7 @@ CMP is specified in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-All of the functions return a new CMP_PKIMESSAGE structure containing
+All of the functions return a new CMP_MSG structure containing
 the generated message on success, or NULL on error.
 
 =head1 EXAMPLE

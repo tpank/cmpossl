@@ -298,7 +298,7 @@ static BIO *CMP_new_http_bio(const OSSL_CMP_CTX *ctx)
 }
 
 static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
-                                     const OSSL_CMP_PKIMESSAGE *req, int maxline)
+                                     const OSSL_CMP_MSG *req, int maxline)
 {
     static const char req_hdr[] =
         "Content-Type: application/pkixcmp\r\n"
@@ -313,7 +313,7 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
         goto err;
 
     if (req && !OCSP_REQ_CTX_i2d_hdr(rctx, req_hdr,
-                                     ASN1_ITEM_rptr(OSSL_CMP_PKIMESSAGE),
+                                     ASN1_ITEM_rptr(OSSL_CMP_MSG),
                                      (ASN1_VALUE *)req))
         goto err;
 
@@ -330,7 +330,7 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
  */
 static int CMP_http_nbio(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp)
 {
-    return OCSP_REQ_CTX_nbio_d2i(rctx, resp, ASN1_ITEM_rptr(OSSL_CMP_PKIMESSAGE));
+    return OCSP_REQ_CTX_nbio_d2i(rctx, resp, ASN1_ITEM_rptr(OSSL_CMP_MSG));
 }
 
 /*
@@ -338,8 +338,8 @@ static int CMP_http_nbio(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp)
  * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
  * 1: success and then provides the received message via the *resp argument
  */
-static int CMP_sendreq(BIO *bio, const char *path, const OSSL_CMP_PKIMESSAGE *req,
-                       OSSL_CMP_PKIMESSAGE **resp, time_t max_time)
+static int CMP_sendreq(BIO *bio, const char *path, const OSSL_CMP_MSG *req,
+                       OSSL_CMP_MSG **resp, time_t max_time)
 {
     OCSP_REQ_CTX *rctx;
     int rv;
@@ -360,8 +360,8 @@ static int CMP_sendreq(BIO *bio, const char *path, const OSSL_CMP_PKIMESSAGE *re
  * Any previous error is likely to be removed by ERR_clear_error().
  * returns 0 on success, else a CMP error reason code defined in cmp.h
  */
-int OSSL_CMP_PKIMESSAGE_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *req,
-                                OSSL_CMP_PKIMESSAGE **res)
+int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
+                                OSSL_CMP_MSG **res)
 {
     int rv;
     char *path = NULL;
@@ -388,7 +388,7 @@ int OSSL_CMP_PKIMESSAGE_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAG
        better error/timeout handling and reporting? Remove next 9 lines? */
     /* tentatively set error, which allows accumulating diagnostic info */
     (void)ERR_set_mark();
-    CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);
+    CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);
     rv = bio_connect(hbio, ctx->msgtimeout);
     if (rv <= 0) {
         err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_ERROR_CONNECTING;
@@ -430,12 +430,12 @@ int OSSL_CMP_PKIMESSAGE_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAG
 
  err:
     /* for any cert verify error at TLS level: */
-    put_cert_verify_err(CMP_F_OSSL_CMP_PKIMESSAGE_HTTP_PERFORM);
+    put_cert_verify_err(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM);
 
     if (err) {
         if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
             err = CMP_R_TLS_ERROR;
-        CMPerr(CMP_F_OSSL_CMP_PKIMESSAGE_HTTP_PERFORM, err);
+        CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, err);
         if (err == CMP_R_TLS_ERROR || err == CMP_R_CONNECT_TIMEOUT
                                    || err == CMP_R_ERROR_CONNECTING)
             add_conn_error_hint(ctx, ERR_peek_error());

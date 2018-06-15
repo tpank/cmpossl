@@ -197,11 +197,11 @@ typedef struct OSSL_cmp_cakeyupdanncontent_st {
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CAKEYUPDANNCONTENT)
 
 /*-
- * declared already here as it will be used in OSSL_CMP_PKIMESSAGE (nested) and
+ * declared already here as it will be used in OSSL_CMP_MSG (nested) and
  * infotype and * value
  */
-typedef STACK_OF(OSSL_CMP_PKIMESSAGE) OSSL_CMP_PKIMESSAGES;
-DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIMESSAGES)
+typedef STACK_OF(OSSL_CMP_MSG) OSSL_CMP_MSGS;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_MSGS)
 
 /*-
  *   InfoTypeAndValue ::= SEQUENCE {
@@ -238,7 +238,7 @@ struct OSSL_cmp_itav_st {
         /* NID_id_it_confirmWaitTime - ConfirmWaitTime  */
         ASN1_GENERALIZEDTIME *confirmWaitTime;
         /* NID_id_it_origPKIMessage - origPKIMessage  */
-        OSSL_CMP_PKIMESSAGES *origPKIMessage;
+        OSSL_CMP_MSGS *origPKIMessage;
         /* NID_id_it_suppLangTags - Supported Language Tags */
         STACK_OF(ASN1_UTF8STRING) *suppLangTagsValue;
         /* this is to be used for so far undeclared objects */
@@ -580,7 +580,7 @@ typedef struct OSSL_cmp_pkibody_st {
         ASN1_TYPE *pkiconf; /* 19 */
         /* nested     [20] NestedMessageContent,     --Nested Message */
         /* NestedMessageContent ::= PKIMessages */
-        OSSL_CMP_PKIMESSAGES *nested; /* 20 */
+        OSSL_CMP_MSGS *nested; /* 20 */
         /* genm       [21] GenMsgContent,            --General Message */
         /* GenMsgContent ::= SEQUENCE OF InfoTypeAndValue */
         OSSL_CMP_GENMSGCONTENT *genm; /* 21 */
@@ -612,14 +612,14 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIBODY)
  *                                            OPTIONAL
  *   }
  */
-struct OSSL_cmp_pkimessage_st {
+struct OSSL_cmp_msg_st {
     OSSL_CMP_PKIHEADER *header;
     OSSL_CMP_PKIBODY *body;
     ASN1_BIT_STRING *protection; /* 0 */
     /* OSSL_CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
     STACK_OF(X509) *extraCerts; /* 1 */
-} /* OSSL_CMP_PKIMESSAGE */;
-DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIMESSAGE)
+} /* OSSL_CMP_MSG */;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_MSG)
 
 /*-
  * ProtectedPart ::= SEQUENCE {
@@ -707,7 +707,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, OSSL_CMP_CERTRESPONSE 
 OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc, long rid);
 OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(OSSL_CMP_CERTREPMESSAGE
                                                        *crepmsg, long rid);
-ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_PKIMESSAGE *msg,
+ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      const ASN1_OCTET_STRING *secret,
                                      const EVP_PKEY *pkey);
 

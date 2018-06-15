@@ -17,7 +17,7 @@ typedef struct test_fixture {
     const char *test_case_name;
     int expected;
     OSSL_CMP_CTX *cmp_ctx;
-    OSSL_CMP_PKIMESSAGE *msg;
+    OSSL_CMP_MSG *msg;
     X509 *cert;
 } CMP_VFY_TEST_FIXTURE;
 
@@ -43,7 +43,7 @@ static CMP_VFY_TEST_FIXTURE *set_up(const char *const test_case_name)
 
 static void tear_down(CMP_VFY_TEST_FIXTURE *fixture)
 {
-    OSSL_CMP_PKIMESSAGE_free(fixture->msg);
+    OSSL_CMP_MSG_free(fixture->msg);
     OSSL_CMP_CTX_delete(fixture->cmp_ctx);
     OPENSSL_free(fixture);
 }

@@ -121,6 +121,13 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_EXEC_RR_SES                       214
 #  define CMP_F_OSSL_CMP_GENM_NEW                          215
 #  define CMP_F_OSSL_CMP_GENP_NEW                          229
+#  define CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED                237
+#  define CMP_F_OSSL_CMP_MSG_CREATE                        238
+#  define CMP_F_OSSL_CMP_MSG_GENERALINFO_ITEMS_PUSH1       239
+#  define CMP_F_OSSL_CMP_MSG_GENM_ITEMS_PUSH1              240
+#  define CMP_F_OSSL_CMP_MSG_GENM_ITEM_PUSH0               241
+#  define CMP_F_OSSL_CMP_MSG_HTTP_PERFORM                  242
+#  define CMP_F_OSSL_CMP_MSG_PROTECT                       243
 #  define CMP_F_OSSL_CMP_PKICONF_NEW                       230
 #  define CMP_F_OSSL_CMP_PKIFREETEXT_PUSH_STR              160
 #  define CMP_F_OSSL_CMP_PKIHEADER_GENERALINFO_ITEM_PUSH0  161
