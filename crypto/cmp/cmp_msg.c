@@ -225,12 +225,12 @@ static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert, int bodytype)
 
 /*
  * Create CRMF certificate request message for IR/CR/KUR
- * returns a pointer to the OSSL_CRMF_CERTREQMSG on success, NULL on error
+ * returns a pointer to the OSSL_CRMF_MSG on success, NULL on error
  */
-static OSSL_CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
+static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
                                      long rid, EVP_PKEY *rkey)
 {
-    OSSL_CRMF_CERTREQMSG *crm = NULL;
+    OSSL_CRMF_MSG *crm = NULL;
     X509 *refcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
        /* refcert defaults to current client cert */
     STACK_OF(GENERAL_NAME) *default_sans = NULL;
@@ -239,16 +239,16 @@ static OSSL_CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     /* RFC5280: subjectAltName MUST be critical if subject is null */
     X509_EXTENSIONS *exts = NULL;
 
-    if ((crm = OSSL_CRMF_CERTREQMSG_new()) == NULL ||
-        !OSSL_CRMF_CERTREQMSG_set_certReqId(crm, rid) ||
+    if ((crm = OSSL_CRMF_MSG_new()) == NULL ||
+        !OSSL_CRMF_MSG_set_certReqId(crm, rid) ||
 
     /* fill certTemplate, corresponding to PKCS#10 CertificationRequestInfo */
 #if 0
-        !OSSL_CRMF_CERTREQMSG_set_version2(crm) /* RFC4211: SHOULD be omitted */
+        !OSSL_CRMF_MSG_set_version2(crm) /* RFC4211: SHOULD be omitted */
 #endif
             /* rkey cannot be NULL so far - but it can be when
              * centralized key creation is supported --> Feature Request #68 */
-        !rkey || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTREQMSG_get_tmpl(crm),
+        !rkey || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get_tmpl(crm),
                                               rkey, subject,
                                               ctx->issuer, NULL/* serial */))
         goto err;
@@ -256,7 +256,7 @@ static OSSL_CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         time_t notBefore, notAfter;
         notBefore = time(NULL);
         notAfter = notBefore + 60 * 60 * 24 * ctx->days;
-        if (!OSSL_CRMF_CERTREQMSG_set_validity(crm, notBefore, notAfter))
+        if (!OSSL_CRMF_MSG_set_validity(crm, notBefore, notAfter))
             goto err;
     }
 
@@ -272,7 +272,7 @@ static OSSL_CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
          !add_subjectaltnames_extension(&exts, default_sans, crit)) ||
         (ctx->policies && !add_policy_extensions(&exts, ctx->policies,
                                                  ctx->setPoliciesCritical)) ||
-        !OSSL_CRMF_CERTREQMSG_set0_extensions(crm, exts))
+        !OSSL_CRMF_MSG_set0_extensions(crm, exts))
         goto err;
     sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
     exts = NULL;
@@ -290,7 +290,7 @@ static OSSL_CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         if (!(cid = OSSL_CRMF_CERTID_gen(X509_get_issuer_name(refcert),
                                          X509_get_serialNumber(refcert))))
             goto err;
-        ret = OSSL_CRMF_CERTREQMSG_set1_regCtrl_oldCertID(crm, cid);
+        ret = OSSL_CRMF_MSG_set1_regCtrl_oldCertID(crm, cid);
         OSSL_CRMF_CERTID_free(cid);
         if (!ret)
             goto err;
@@ -301,7 +301,7 @@ static OSSL_CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
  err:
     sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
     sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
-    OSSL_CRMF_CERTREQMSG_free(crm);
+    OSSL_CRMF_MSG_free(crm);
     return NULL;
 }
 
@@ -312,7 +312,7 @@ static OSSL_CRMF_CERTREQMSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
 OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype, int err_code)
 {
     OSSL_CMP_MSG *msg = NULL;
-    OSSL_CRMF_CERTREQMSG *crm = NULL;
+    OSSL_CRMF_MSG *crm = NULL;
 
     if (ctx == NULL ||
         (bodytype != OSSL_CMP_PKIBODY_P10CR && ctx->pkey == NULL &&
@@ -338,10 +338,10 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype, int err_code
             : ctx->pkey; /* default is currenty client key */
 
         if ((crm = crm_new(ctx, bodytype, OSSL_CMP_CERTREQID, rkey)) == NULL ||
-            !OSSL_CRMF_CERTREQMSG_create_popo(crm, rkey, ctx->digest,
+            !OSSL_CRMF_MSG_create_popo(crm, rkey, ctx->digest,
                                          ctx->popoMethod) ||
                       /* value.ir is same for cr and kur */
-            !sk_OSSL_CRMF_CERTREQMSG_push(msg->body->value.ir, crm))
+            !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
             goto err;
         crm = NULL;
         /* TODO: here optional 2nd certreqmsg could be pushed to the stack */
@@ -354,7 +354,7 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype, int err_code
 
  err:
     CMPerr(CMP_F_OSSL_CMP_CERTREQ_NEW, err_code);
-    OSSL_CRMF_CERTREQMSG_free(crm);
+    OSSL_CRMF_MSG_free(crm);
     OSSL_CMP_MSG_free(msg);
     return NULL;
 }

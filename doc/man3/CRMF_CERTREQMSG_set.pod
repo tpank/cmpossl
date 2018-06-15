@@ -2,23 +2,23 @@
 
 =head1 NAME
 
-CRMF_CERTREQMSG_set_version2,
-CRMF_CERTREQMSG_set_validity,
-CRMF_CERTREQMSG_set_certReqId,
+CRMF_MSG_set_version2,
+CRMF_MSG_set_validity,
+CRMF_MSG_set_certReqId,
 OSSL_CRMF_CERTTEMPLATE_fill,
-CRMF_CERTREQMSG_set0_extensions,
-CRMF_CERTREQMSG_push0_extension,
-CRMF_CERTREQMSG_create_popo - functions populating the CRMF CERTREQMSG structures
+CRMF_MSG_set0_extensions,
+CRMF_MSG_push0_extension,
+CRMF_MSG_create_popo - functions populating the CRMF CERTREQMSG structures
 
 =head1 SYNOPSIS
 
  #include <openssl/crmf.h>
 
- int CRMF_CERTREQMSG_set_version2(CRMF_CERTREQMSG *crm)
+ int CRMF_MSG_set_version2(CRMF_MSG *crm)
 
- int CRMF_CERTREQMSG_set_validity(CRMF_CERTREQMSG *crm, time_t from, time_t to)
+ int CRMF_MSG_set_validity(CRMF_MSG *crm, time_t from, time_t to)
 
- int CRMF_CERTREQMSG_set_certReqId(CRMF_CERTREQMSG *crm, const long rid)
+ int CRMF_MSG_set_certReqId(CRMF_MSG *crm, const long rid)
 
  int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
                                  const EVP_PKEY *pubkey,
@@ -26,10 +26,10 @@ CRMF_CERTREQMSG_create_popo - functions populating the CRMF CERTREQMSG structure
                                  const X509_NAME *issuer,
                                  const ASN1_INTEGER *serial);
 
- int CRMF_CERTREQMSG_set0_extensions( CRMF_CERTREQMSG *crm,
+ int CRMF_MSG_set0_extensions( CRMF_MSG *crm,
                                       X509_EXTENSIONS *exts);
 
- int CRMF_CERTREQMSG_push0_extension(CRMF_CERTREQMSG *crm,
+ int CRMF_MSG_push0_extension(CRMF_MSG *crm,
                                      const X509_EXTENSION *ext)
 
  # define CRMF_POPO_NONE         -1
@@ -37,29 +37,29 @@ CRMF_CERTREQMSG_create_popo - functions populating the CRMF CERTREQMSG structure
  # define CRMF_POPO_SIGNATURE     1
  # define CRMF_POPO_KEYENC        2
 
- int CRMF_CERTREQMSG_create_popo(CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
+ int CRMF_MSG_create_popo(CRMF_MSG *crm, const EVP_PKEY *pkey,
                                  int dgst, int ppmtd)
 
 =head1 DESCRIPTION
 
-CRMF_CERTREQMSG_set_version2() sets version 2 in the certTemplate of B<crm>.
+CRMF_MSG_set_version2() sets version 2 in the certTemplate of B<crm>.
 
-CRMF_CERTREQMSG_set_validity() sets B<from> as notBefore and B<to> as notAfter
+CRMF_MSG_set_validity() sets B<from> as notBefore and B<to> as notAfter
 as the validity in the certTemplate of B<crm>.
 
-CRMF_CERTREQMSG_set_certReqId() sets B<rid> as the certReqId of B<crm>.
+CRMF_MSG_set_certReqId() sets B<rid> as the certReqId of B<crm>.
 
 OSSL_CRMF_CERTTEMPLATE_fill() sets those fields of the certTemplate B<tmpl>
 for which non-NULL values are provided: B<pubkey>, B<subject>, B<issuer>,
 and/or B<serial>. The arguments are not consumed.
 
-CRMF_CERTREQMSG_set0_extensions() sets B<exts> as the extensions in the
+CRMF_MSG_set0_extensions() sets B<exts> as the extensions in the
 certTemplate of B<crm>. Consumes B<exts>.
 
-CRMF_CERTREQMSG_push0_extension() pushes the X509 extension B<ext> to the
+CRMF_MSG_push0_extension() pushes the X509 extension B<ext> to the
 extensions in the certTemplate of B<crm>.  Consumes B<ext>.
 
-CRMF_CERTREQMSG_create_popo() creates and sets the Proof-of-Possession (POP)
+CRMF_MSG_create_popo() creates and sets the Proof-of-Possession (POP)
 according to the method B<ppmtd> for B<pkey> to B<crm>. In case the method is
 CRMF_POPO_SIGNATURE, POP is calculated using the B<dgst>.
 

@@ -1,53 +1,53 @@
 =pod
 
 =head1 NAME
-CRMF_CERTREQMSG_set1_regCtrl_regToken,
-CRMF_CERTREQMSG_set1_regCtrl_authenticator,
-CRMF_CERTREQMSG_set1_regCtrl_pkiPublicationInfo,
-CRMF_CERTREQMSG_set1_regCtrl_pkiArchiveOptions,
-CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey,
-CRMF_CERTREQMSG_set1_regCtrl_oldCertID,
+CRMF_MSG_set1_regCtrl_regToken,
+CRMF_MSG_set1_regCtrl_authenticator,
+CRMF_MSG_set1_regCtrl_pkiPublicationInfo,
+CRMF_MSG_set1_regCtrl_pkiArchiveOptions,
+CRMF_MSG_set1_regCtrl_protocolEncrKey,
+CRMF_MSG_set1_regCtrl_oldCertID,
 OSSL_CRMF_CERTID_gen
 
 =head1 SYNOPSIS
 
  #include <openssl/crmf.h>
 
- int CRMF_CERTREQMSG_set1_regCtrl_regToken(CRMF_CERTREQMSG *msg,
+ int CRMF_MSG_set1_regCtrl_regToken(CRMF_MSG *msg,
                                            ASN1_UTF8STRING *tok);
- int CRMF_CERTREQMSG_set1_regCtrl_authenticator(CRMF_CERTREQMSG *msg,
+ int CRMF_MSG_set1_regCtrl_authenticator(CRMF_MSG *msg,
                                                 ASN1_UTF8STRING *auth);
- int CRMF_CERTREQMSG_set1_regCtrl_pkiPublicationInfo(CRMF_CERTREQMSG *msg,
+ int CRMF_MSG_set1_regCtrl_pkiPublicationInfo(CRMF_MSG *msg,
                                                      CRMF_PKIPUBLICATIONINFO *pi);
- int CRMF_CERTREQMSG_set1_regCtrl_pkiArchiveOptions(CRMF_CERTREQMSG *msg,
+ int CRMF_MSG_set1_regCtrl_pkiArchiveOptions(CRMF_MSG *msg,
                                                     CRMF_PKIARCHIVEOPTIONS *aos);
- int CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey(CRMF_CERTREQMSG *msg,
+ int CRMF_MSG_set1_regCtrl_protocolEncrKey(CRMF_MSG *msg,
                                                   X509_PUBKEY *pubkey);
- int CRMF_CERTREQMSG_set1_regCtrl_oldCertID(CRMF_CERTREQMSG *crm,
+ int CRMF_MSG_set1_regCtrl_oldCertID(CRMF_MSG *crm,
                                             CRMF_CERTID *cid);
  OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_gen(const X509_NAME *issuer,
                                         const ASN1_INTEGER *serial);
 
 =head1 DESCRIPTION
 
-CRMF_CERTREQMSG_set1_regCtrl_regToken() sets the regToken control in the given
+CRMF_MSG_set1_regCtrl_regToken() sets the regToken control in the given
 B<msg> using the given B<tok> as value. See RFC4211, section 6.1.
 
-CRMF_CERTREQMSG_set1_regCtrl_authenticator() sets the authenticator control in
+CRMF_MSG_set1_regCtrl_authenticator() sets the authenticator control in
 the given B<msg> using the given B<auth> as value. See RFC4211, section 6.2.
 
-CRMF_CERTREQMSG_set1_regCtrl_pkiPublicationInfo() sets the pkiPulicationInfo
+CRMF_MSG_set1_regCtrl_pkiPublicationInfo() sets the pkiPulicationInfo
 control in the given B<msg> using the given B<tok> as value. See RFC4211, section
 6.3.
 
-CRMF_CERTREQMSG_set1_regCtrl_pkiArchiveOptions() sets the pkiArchiveOptions
+CRMF_MSG_set1_regCtrl_pkiArchiveOptions() sets the pkiArchiveOptions
 control in the given B<msg> using the given B<tok> as value. See RFC4211, section
 6.4.
 
-CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey() sets the protocolEncrKey control
+CRMF_MSG_set1_regCtrl_protocolEncrKey() sets the protocolEncrKey control
 in the given B<msg> using the given B<tok> as value. See RFC4211, section  6.6.
 
-CRMF_CERTREQMSG_set1_regCtrl_oldCertID() sets the oldCertID control in the given
+CRMF_MSG_set1_regCtrl_oldCertID() sets the oldCertID control in the given
 B<msg> using the given B<tok> as value. See RFC4211, section 6.5.
 
 OSSL_CRMF_CERTID_gen produces an OSSL_CRMF_CERTID_gen structure from the given

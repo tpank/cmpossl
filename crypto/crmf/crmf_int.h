@@ -428,15 +428,15 @@ OSSL_CRMF_ATTRIBUTETYPEANDVALUE *OSSL_CRMF_ATTRIBUTETYPEANDVALUE_dup(
  * -- content depends upon key type
  * regInfo   SEQUENCE SIZE(1..MAX) OF AttributeTypeAndValue OPTIONAL }
  */
-struct OSSL_crmf_certreqmsg_st {
+struct OSSL_crmf_msg_st {
     OSSL_CRMF_CERTREQUEST *certReq;
     /* 0 */
     OSSL_CRMF_POPO *popo;
     /* 1 */
     STACK_OF(OSSL_CRMF_ATTRIBUTETYPEANDVALUE) *regInfo;
-} /* OSSL_CRMF_CERTREQMSG */;
-DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTREQMSG)
-/* DEFINE_STACK_OF(OSSL_CRMF_CERTREQMSG) */
+} /* OSSL_CRMF_MSG */;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_MSG)
+/* DEFINE_STACK_OF(OSSL_CRMF_MSG) */
 
 
 # ifdef  __cplusplus

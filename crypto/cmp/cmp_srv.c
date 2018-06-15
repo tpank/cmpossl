@@ -208,7 +208,7 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     OSSL_CMP_PKISI *si = NULL;
     X509 *certOut = NULL;
     STACK_OF(X509) *chainOut = NULL, *caPubs = NULL;
-    OSSL_CRMF_CERTREQMSG *crm = NULL;
+    OSSL_CRMF_MSG *crm = NULL;
     int bodytype;
     if (srv_ctx == NULL || certReq == NULL) {
         CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_INVALID_ARGS);
@@ -234,11 +234,11 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         srv_ctx->certReqId = OSSL_CMP_CERTREQID;
     } else {
         if ((crm =
-             sk_OSSL_CRMF_CERTREQMSG_value(certReq->body->value.cr, 0)) == NULL) {
+             sk_OSSL_CRMF_MSG_value(certReq->body->value.cr, 0)) == NULL) {
             CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_CERTREQMSG_NOT_FOUND);
             return NULL;
         }
-        srv_ctx->certReqId = OSSL_CRMF_CERTREQMSG_get_certReqId(crm);
+        srv_ctx->certReqId = OSSL_CRMF_MSG_get_certReqId(crm);
     }
 
     if (!cmp_verify_popo(srv_ctx, certReq)) {

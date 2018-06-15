@@ -43,9 +43,9 @@ extern "C" {
 
 typedef struct OSSL_crmf_encrypetedvalue_st OSSL_CRMF_ENCRYPTEDVALUE;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDVALUE)
-typedef struct OSSL_crmf_certreqmsg_st OSSL_CRMF_CERTREQMSG;
-DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTREQMSG)
-DEFINE_STACK_OF(OSSL_CRMF_CERTREQMSG)
+typedef struct OSSL_crmf_msg_st OSSL_CRMF_MSG;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_MSG)
+DEFINE_STACK_OF(OSSL_CRMF_MSG)
 typedef struct OSSL_crmf_attributetypeandvalue_st OSSL_CRMF_ATTRIBUTETYPEANDVALUE;
 typedef struct OSSL_crmf_pbmparameter_st OSSL_CRMF_PBMPARAMETER;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PBMPARAMETER)
@@ -60,7 +60,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIPUBLICATIONINFO)
 typedef struct OSSL_crmf_pkiarchiveoptions_st OSSL_CRMF_PKIARCHIVEOPTIONS;
 typedef struct OSSL_crmf_certtemplate_st OSSL_CRMF_CERTTEMPLATE;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTTEMPLATE)
-typedef STACK_OF(OSSL_CRMF_CERTREQMSG) OSSL_CRMF_CERTREQMESSAGES;
+typedef STACK_OF(OSSL_CRMF_MSG) OSSL_CRMF_CERTREQMESSAGES;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTREQMESSAGES)
 
 typedef struct OSSL_crmf_optionalvalidity_st OSSL_CRMF_OPTIONALVALIDITY;
@@ -83,45 +83,45 @@ int OSSL_CRMF_passwordBasedMac_new(const OSSL_CRMF_PBMPARAMETER *pbm,
                               unsigned int *macLen);
 
 /* crmf_lib.c */
-int OSSL_CRMF_CERTREQMSG_set1_regCtrl_regToken(OSSL_CRMF_CERTREQMSG *msg,
+int OSSL_CRMF_MSG_set1_regCtrl_regToken(OSSL_CRMF_MSG *msg,
                                           ASN1_UTF8STRING *tok);
-int OSSL_CRMF_CERTREQMSG_set1_regCtrl_authenticator(OSSL_CRMF_CERTREQMSG *msg,
+int OSSL_CRMF_MSG_set1_regCtrl_authenticator(OSSL_CRMF_MSG *msg,
                                                ASN1_UTF8STRING *auth);
-int OSSL_CRMF_CERTREQMSG_set1_regCtrl_pkiPublicationInfo(OSSL_CRMF_CERTREQMSG *msg,
+int OSSL_CRMF_MSG_set1_regCtrl_pkiPublicationInfo(OSSL_CRMF_MSG *msg,
                                                     OSSL_CRMF_PKIPUBLICATIONINFO *pi);
-int OSSL_CRMF_CERTREQMSG_set1_regCtrl_pkiArchiveOptions(OSSL_CRMF_CERTREQMSG *msg,
+int OSSL_CRMF_MSG_set1_regCtrl_pkiArchiveOptions(OSSL_CRMF_MSG *msg,
                                                    OSSL_CRMF_PKIARCHIVEOPTIONS *aos);
-int OSSL_CRMF_CERTREQMSG_set1_regCtrl_protocolEncrKey(OSSL_CRMF_CERTREQMSG *msg,
+int OSSL_CRMF_MSG_set1_regCtrl_protocolEncrKey(OSSL_CRMF_MSG *msg,
                                                  X509_PUBKEY *pubkey);
-int OSSL_CRMF_CERTREQMSG_set1_regCtrl_oldCertID(OSSL_CRMF_CERTREQMSG *crm,
+int OSSL_CRMF_MSG_set1_regCtrl_oldCertID(OSSL_CRMF_MSG *crm,
                                            OSSL_CRMF_CERTID *cid);
 OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_gen(const X509_NAME *issuer,
                                        const ASN1_INTEGER *serial);
 
-int OSSL_CRMF_CERTREQMSG_set1_regInfo_utf8Pairs(OSSL_CRMF_CERTREQMSG *msg,
+int OSSL_CRMF_MSG_set1_regInfo_utf8Pairs(OSSL_CRMF_MSG *msg,
                                            ASN1_UTF8STRING *utf8pairs);
-int OSSL_CRMF_CERTREQMSG_set1_regInfo_certReq(OSSL_CRMF_CERTREQMSG *msg,
+int OSSL_CRMF_MSG_set1_regInfo_certReq(OSSL_CRMF_MSG *msg,
                                          OSSL_CRMF_CERTREQUEST *cr);
 
-int OSSL_CRMF_CERTREQMSG_set_version2(OSSL_CRMF_CERTREQMSG *crm);
-int OSSL_CRMF_CERTREQMSG_set_validity(OSSL_CRMF_CERTREQMSG *crm, time_t from, time_t to);
-int OSSL_CRMF_CERTREQMSG_set_certReqId(OSSL_CRMF_CERTREQMSG *crm, long rid);
-long OSSL_CRMF_CERTREQMSG_get_certReqId(OSSL_CRMF_CERTREQMSG *crm);
-int OSSL_CRMF_CERTREQMSG_set0_extensions(OSSL_CRMF_CERTREQMSG *crm,
+int OSSL_CRMF_MSG_set_version2(OSSL_CRMF_MSG *crm);
+int OSSL_CRMF_MSG_set_validity(OSSL_CRMF_MSG *crm, time_t from, time_t to);
+int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, long rid);
+long OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
+int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm,
                                     X509_EXTENSIONS *exts);
 
-int OSSL_CRMF_CERTREQMSG_push0_extension(OSSL_CRMF_CERTREQMSG *crm,
+int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm,
                                     const X509_EXTENSION *ext);
 # define OSSL_CRMF_POPO_NONE      -1
 # define OSSL_CRMF_POPO_RAVERIFIED 0
 # define OSSL_CRMF_POPO_SIGNATURE  1
 # define OSSL_CRMF_POPO_KEYENC     2
 # define OSSL_CRMF_POPO_KEYAGREE   3
-int OSSL_CRMF_CERTREQMSG_create_popo(OSSL_CRMF_CERTREQMSG *crm, const EVP_PKEY *pkey,
+int OSSL_CRMF_MSG_create_popo(OSSL_CRMF_MSG *crm, const EVP_PKEY *pkey,
                                 int dgst, int ppmtd);
 int OSSL_CRMF_CERTREQMESSAGES_verify_popo(const OSSL_CRMF_CERTREQMESSAGES *reqs,
                                           long rid, int acceptRAVerified);
-OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_CERTREQMSG_get_tmpl(const OSSL_CRMF_CERTREQMSG *crm);
+OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get_tmpl(const OSSL_CRMF_MSG *crm);
 ASN1_INTEGER *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *tmpl);
 X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl);
 int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
