@@ -19,27 +19,22 @@ int ERR_load_CRMF_strings(void);
 /*
  * CRMF function codes.
  */
-# define CRMF_F_CRMF_PASSWORDBASEDMAC_NEW                 113
-# define CRMF_F_CRMF_PBMP_NEW                             114
-# define CRMF_F_OSSL_CRMF_CERTID_GEN                      118
-# define CRMF_F_OSSL_CRMF_MSGS_VERIFY_POPO     119
-# define CRMF_F_OSSL_CRMF_MSG_CREATE_POPO          100
-# define CRMF_F_OSSL_CRMF_MSG_PUSH0_EXTENSION      101
-# define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGCTRL        102
-# define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGINFO        103
-# define CRMF_F_OSSL_CRMF_MSG_SET0_EXTENSIONS      104
-# define CRMF_F_OSSL_CRMF_MSG_SET1_ISSUER          105
-# define CRMF_F_OSSL_CRMF_MSG_SET1_PUBLICKEY       106
-# define CRMF_F_OSSL_CRMF_MSG_SET1_REGCTRL_OLDCERTID_FROM_CERT 107
-# define CRMF_F_OSSL_CRMF_MSG_SET1_SUBJECT         108
-# define CRMF_F_OSSL_CRMF_MSG_SET_CERTREQID        109
-# define CRMF_F_OSSL_CRMF_MSG_SET_VALIDITY         110
-# define CRMF_F_OSSL_CRMF_MSG_SET_VERSION2         111
-# define CRMF_F_OSSL_CRMF_CERTTEMPLATE_FILL               120
-# define CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_ENCCERT_GET1     112
-# define CRMF_F_OSSL_CRMF_PASSWORDBASEDMAC_NEW            116
-# define CRMF_F_OSSL_CRMF_PBMP_NEW                        117
-# define CRMF_F_POPOSIGKEY_NEW                            115
+# define CRMF_F_CRMF_POPOSIGKEY_NEW                       115
+# define CRMF_F_OSSL_CRMF_CERTID_GEN                      100
+# define CRMF_F_OSSL_CRMF_CERTTEMPLATE_FILL               101
+# define CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_ENCCERT_GET1     102
+# define CRMF_F_OSSL_CRMF_MSGS_VERIFY_POPO                103
+# define CRMF_F_OSSL_CRMF_MSG_CREATE_POPO                 104
+# define CRMF_F_OSSL_CRMF_MSG_PUSH0_EXTENSION             105
+# define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGCTRL               106
+# define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGINFO               107
+# define CRMF_F_OSSL_CRMF_MSG_SET0_EXTENSIONS             108
+# define CRMF_F_OSSL_CRMF_MSG_SET_CERTREQID               109
+# define CRMF_F_OSSL_CRMF_MSG_SET_VALIDITY                110
+# define CRMF_F_OSSL_CRMF_MSG_SET_VERSION2                111
+# define CRMF_F_OSSL_CRMF_PASSWORDBASEDMAC_NEW            112
+# define CRMF_F_OSSL_CRMF_PBMP_NEW                        113
+# define CRMF_F_POPOSIGKEY_NEW                            114
 
 /*
  * CRMF reason codes.

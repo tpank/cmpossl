@@ -312,8 +312,8 @@ int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm,
  * TODO: also support cases 1+2 defined in RFC4211, section 4.1.
  * returns pointer to created OSSL_CRMF_POPOSIGNINGKEY on success, NULL on error
  */
-static OSSL_CRMF_POPOSIGNINGKEY *poposigkey_new(OSSL_CRMF_CERTREQUEST *cr,
-                                             const EVP_PKEY *pkey, int dgst)
+static OSSL_CRMF_POPOSIGNINGKEY *CRMF_poposigkey_new(OSSL_CRMF_CERTREQUEST *cr,
+                                                 const EVP_PKEY *pkey, int dgst)
 {
     OSSL_CRMF_POPOSIGNINGKEY *ps = NULL;
     int l;
@@ -343,13 +343,13 @@ static OSSL_CRMF_POPOSIGNINGKEY *poposigkey_new(OSSL_CRMF_CERTREQUEST *cr,
         goto err;
 
     if (!OBJ_find_sigid_by_algs(&alg_nid, dgst, EVP_PKEY_id(pkey))) {
-        CRMFerr(CRMF_F_POPOSIGKEY_NEW,
+        CRMFerr(CRMF_F_CRMF_POPOSIGKEY_NEW,
                 CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY);
         goto err;
     }
     if (!(OBJ_find_sigid_algs(alg_nid, &md_nid, NULL) &&
                 (alg = EVP_get_digestbynid(md_nid)))) {
-        CRMFerr(CRMF_F_POPOSIGKEY_NEW,
+        CRMFerr(CRMF_F_CRMF_POPOSIGKEY_NEW,
                 CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY);
         goto err;
     }
@@ -373,7 +373,7 @@ static OSSL_CRMF_POPOSIGNINGKEY *poposigkey_new(OSSL_CRMF_CERTREQUEST *cr,
     OPENSSL_free(sig);
     return ps;
  err:
-    CRMFerr(CRMF_F_POPOSIGKEY_NEW, CRMF_R_ERROR);
+    CRMFerr(CRMF_F_CRMF_POPOSIGKEY_NEW, CRMF_R_ERROR);
     if (ps)
         OSSL_CRMF_POPOSIGNINGKEY_free(ps);
     if (crder)
@@ -411,7 +411,7 @@ int OSSL_CRMF_MSG_create_popo(OSSL_CRMF_MSG *crm, const EVP_PKEY *pkey,
 
     case OSSL_CRMF_POPO_SIGNATURE:
         if (pkey == NULL ||
-            (pp->value.signature = poposigkey_new(crm->certReq, pkey, dgst))
+            (pp->value.signature = CRMF_poposigkey_new(crm->certReq, pkey, dgst))
             == NULL)
             goto err;
         break;
