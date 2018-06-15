@@ -284,13 +284,13 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTIFIEDKEYPAIR)
  *       failInfo      PKIFailureInfo  OPTIONAL
  *   }
  */
-struct OSSL_cmp_pkistatusinfo_st {
+struct OSSL_cmp_pkisi_st {
     OSSL_CMP_PKISTATUS *status;
     OSSL_CMP_PKIFREETEXT *statusString;
     OSSL_CMP_PKIFAILUREINFO *failInfo;
-} /* OSSL_CMP_PKISTATUSINFO */;
-DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKISTATUSINFO)
-OSSL_CMP_PKISTATUSINFO *OSSL_CMP_PKISTATUSINFO_dup(OSSL_CMP_PKISTATUSINFO *itav);
+} /* OSSL_CMP_PKISI */;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKISI)
+OSSL_CMP_PKISI *OSSL_CMP_PKISI_dup(OSSL_CMP_PKISI *itav);
 
 /*-
  *  RevReqContent ::= SEQUENCE OF RevDetails
@@ -321,7 +321,7 @@ DEFINE_STACK_OF(OSSL_CMP_REVDETAILS)
  *   }
  */
 struct OSSL_cmp_revrepcontent_st {
-    STACK_OF(OSSL_CMP_PKISTATUSINFO) *status;
+    STACK_OF(OSSL_CMP_PKISI) *status;
     STACK_OF(OSSL_CRMF_CERTID) *certId;
     STACK_OF(X509) *crls;
 } /* OSSL_CMP_REVREPCONTENT */;
@@ -338,7 +338,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_REVREPCONTENT)
  *   }
  */
 typedef struct OSSL_cmp_keyrecrepcontent_st {
-    OSSL_CMP_PKISTATUSINFO *status;
+    OSSL_CMP_PKISI *status;
     X509 *newSigCert;
     STACK_OF(X509) *caCerts;
     STACK_OF(OSSL_CMP_CERTIFIEDKEYPAIR) *keyPairHist;
@@ -354,7 +354,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_KEYRECREPCONTENT)
  *   }
  */
 typedef struct OSSL_cmp_errormsgcontent_st {
-    OSSL_CMP_PKISTATUSINFO *pKIStatusInfo;
+    OSSL_CMP_PKISI *pKIStatusInfo;
     ASN1_INTEGER *errorCode;
     OSSL_CMP_PKIFREETEXT *errorDetails;
 } OSSL_CMP_ERRORMSGCONTENT;
@@ -375,7 +375,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ERRORMSGCONTENT)
 struct OSSL_cmp_certstatus_st {
     ASN1_OCTET_STRING *certHash;
     ASN1_INTEGER *certReqId;
-    OSSL_CMP_PKISTATUSINFO *statusInfo;
+    OSSL_CMP_PKISI *statusInfo;
 } /* OSSL_CMP_CERTSTATUS */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTSTATUS)
 
@@ -396,7 +396,7 @@ typedef STACK_OF(OSSL_CMP_CERTSTATUS) OSSL_CMP_CERTCONFIRMCONTENT;
  */
 struct OSSL_cmp_certresponse_st {
     ASN1_INTEGER *certReqId;
-    OSSL_CMP_PKISTATUSINFO *status;
+    OSSL_CMP_PKISI *status;
     OSSL_CMP_CERTIFIEDKEYPAIR *certifiedKeyPair;
     ASN1_OCTET_STRING *rspInfo;
 } /* OSSL_CMP_CERTRESPONSE */;
@@ -697,7 +697,7 @@ void CMP_add_error_txt(const char *separator, const char *txt);
 
 OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,const char *text);
 
-OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(
+OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(
                                            OSSL_CMP_REVREPCONTENT *rrep, long reqId);
 int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus, const X509 *cert);
 int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **

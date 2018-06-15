@@ -1077,14 +1077,14 @@ OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(const ASN1_OBJECT *type,
  * note: strongly overlaps with TS_RESP_CTX_set_status_info()
  *       and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
  */
-OSSL_CMP_PKISTATUSINFO *OSSL_CMP_statusInfo_new(int status, unsigned long failInfo,
+OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, unsigned long failInfo,
                                       const char *text)
 {
-    OSSL_CMP_PKISTATUSINFO *si = NULL;
+    OSSL_CMP_PKISI *si = NULL;
     ASN1_UTF8STRING *utf8_text = NULL;
     int failure;
 
-    if ((si = OSSL_CMP_PKISTATUSINFO_new()) == NULL)
+    if ((si = OSSL_CMP_PKISI_new()) == NULL)
         goto err;
     if (!ASN1_INTEGER_set(si->status, status))
         goto err;
@@ -1114,7 +1114,7 @@ OSSL_CMP_PKISTATUSINFO *OSSL_CMP_statusInfo_new(int status, unsigned long failIn
     return si;
 
  err:
-    OSSL_CMP_PKISTATUSINFO_free(si);
+    OSSL_CMP_PKISI_free(si);
     ASN1_UTF8STRING_free(utf8_text);
     return NULL;
 }
@@ -1123,10 +1123,10 @@ OSSL_CMP_PKISTATUSINFO *OSSL_CMP_statusInfo_new(int status, unsigned long failIn
  * returns the PKIStatus of the given PKIStatusInfo
  * returns -1 on error
  */
-long OSSL_CMP_PKISTATUSINFO_PKIStatus_get(OSSL_CMP_PKISTATUSINFO *si)
+long OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si)
 {
     if (si == NULL || si->status == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_PKISTATUSINFO_PKISTATUS_GET,
+        CMPerr(CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET,
                CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
     }
@@ -1137,12 +1137,12 @@ long OSSL_CMP_PKISTATUSINFO_PKIStatus_get(OSSL_CMP_PKISTATUSINFO *si)
  * returns the FailureInfo bits of the given PKIStatusInfo
  * returns -1 on error
  */
-long OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_get(OSSL_CMP_PKISTATUSINFO *si)
+long OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si)
 {
     int i;
     long res = 0;
     if (si == NULL || si->failInfo == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_PKISTATUSINFO_PKIFAILUREINFO_GET,
+        CMPerr(CMP_F_OSSL_CMP_PKISI_PKIFAILUREINFO_GET,
                CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
     }
@@ -1161,11 +1161,11 @@ long OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_get(OSSL_CMP_PKISTATUSINFO *si)
  * PKIStatus of the given PKIStatusInfo
  * returns NULL on error
  */
-static char *CMP_PKISTATUSINFO_PKIStatus_get_string(OSSL_CMP_PKISTATUSINFO *si)
+static char *CMP_PKISI_PKIStatus_get_string(OSSL_CMP_PKISI *si)
 {
     long PKIStatus;
 
-    if ((PKIStatus = OSSL_CMP_PKISTATUSINFO_PKIStatus_get(si)) < 0)
+    if ((PKIStatus = OSSL_CMP_PKISI_PKIStatus_get(si)) < 0)
         return NULL;
     switch (PKIStatus) {
     case OSSL_CMP_PKISTATUS_accepted:
@@ -1183,7 +1183,7 @@ static char *CMP_PKISTATUSINFO_PKIStatus_get_string(OSSL_CMP_PKISTATUSINFO *si)
     case OSSL_CMP_PKISTATUS_keyUpdateWarning:
         return "PKIStatus: key update warning";
     default:
-        CMPerr(CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING,
+        CMPerr(CMP_F_CMP_PKISI_PKISTATUS_GET_STRING,
                CMP_R_ERROR_PARSING_PKISTATUS);
     }
     return NULL;
@@ -1272,14 +1272,14 @@ static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi, int
  * RevReqContent.
  * returns NULL on error
  */
-OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
+OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
                                                        long rsid)
 {
-    OSSL_CMP_PKISTATUSINFO *status = NULL;
+    OSSL_CMP_PKISI *status = NULL;
     if (rrep == NULL)
         return NULL;
 
-    if ((status = sk_OSSL_CMP_PKISTATUSINFO_value(rrep->status, rsid))) {
+    if ((status = sk_OSSL_CMP_PKISI_value(rrep->status, rsid))) {
         return status;
     }
 
@@ -1292,10 +1292,10 @@ OSSL_CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTE
  * checks PKIFailureInfo bits in a given PKIStatusInfo
  * returns 1 if a given bit is set, 0 if not, -1 on error
  */
-int OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_check(OSSL_CMP_PKISTATUSINFO *si,
+int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si,
                                                 int codeBit)
 {
-    ASN1_BIT_STRING *failInfo = OSSL_CMP_PKISTATUSINFO_failInfo_get0(si);
+    ASN1_BIT_STRING *failInfo = OSSL_CMP_PKISI_failInfo_get0(si);
     if (failInfo == NULL) /* this can also indicate si == NULL */
         return -1;
     if ((codeBit < 0) || (codeBit > OSSL_CMP_PKIFAILUREINFO_MAX))
@@ -1308,7 +1308,7 @@ int OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_check(OSSL_CMP_PKISTATUSINFO *si,
  * returns a pointer to the failInfo contained in a PKIStatusInfo
  * returns NULL on error
  */
-OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISTATUSINFO_failInfo_get0(OSSL_CMP_PKISTATUSINFO *si)
+OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_failInfo_get0(OSSL_CMP_PKISI *si)
 {
     return si == NULL ? NULL : si->failInfo;
 }
@@ -1317,7 +1317,7 @@ OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISTATUSINFO_failInfo_get0(OSSL_CMP_PKISTATUS
  * returns a pointer to the statusString contained in a PKIStatusInfo
  * returns NULL on error
  */
-OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISTATUSINFO_statusString_get0(OSSL_CMP_PKISTATUSINFO *si)
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(OSSL_CMP_PKISI *si)
 {
     return si == NULL ? NULL : si->statusString;
 }
@@ -1414,14 +1414,14 @@ int OSSL_CMP_PKIMESSAGE_get_bodytype(const OSSL_CMP_PKIMESSAGE *msg)
  * place human-readable error string created from PKIStatusInfo in given buffer
  * returns pointer to the same buffer containing the string, or NULL on error
  */
-char *OSSL_CMP_PKISTATUSINFO_snprint(OSSL_CMP_PKISTATUSINFO *si, char *buf, int bufsize)
+char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
 {
     const char *status, *failure;
     int i;
     int n = 0;
 
     if (si == NULL ||
-        (status = CMP_PKISTATUSINFO_PKIStatus_get_string(si)) == NULL)
+        (status = CMP_PKISI_PKIStatus_get_string(si)) == NULL)
         return NULL;
     BIO_snprintf(buf, bufsize, "%s; ", status);
 

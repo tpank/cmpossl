@@ -31,7 +31,7 @@ struct OSSL_cmp_srv_ctx_st {
     X509 *certOut;              /* Certificate to be returned in cp/ip/kup */
     STACK_OF(X509) *chainOut;   /* Cert chain useful to validate certOut */
     STACK_OF(X509) *caPubsOut;  /* caPubs for ip */
-    OSSL_CMP_PKISTATUSINFO *pkiStatusOut; /* PKI Status Info to be returned */
+    OSSL_CMP_PKISI *pkiStatusOut; /* PKI Status Info to be returned */
     OSSL_CMP_PKIMESSAGE *certReq;    /* ir/cr/p10cr/kur saved in case of polling */
     int certReqId;              /* id saved in case of polling */
     OSSL_CMP_CTX *ctx;               /* client cmp context, partly reused for srv */
@@ -60,7 +60,7 @@ ASN1_SEQUENCE(OSSL_CMP_SRV_CTX) = {
     ASN1_OPT(OSSL_CMP_SRV_CTX, certOut, X509),
         ASN1_SEQUENCE_OF_OPT(OSSL_CMP_SRV_CTX, chainOut, X509),
         ASN1_SEQUENCE_OF_OPT(OSSL_CMP_SRV_CTX, caPubsOut, X509),
-        ASN1_SIMPLE(OSSL_CMP_SRV_CTX, pkiStatusOut, OSSL_CMP_PKISTATUSINFO),
+        ASN1_SIMPLE(OSSL_CMP_SRV_CTX, pkiStatusOut, OSSL_CMP_PKISI),
         ASN1_OPT(OSSL_CMP_SRV_CTX, certReq, OSSL_CMP_PKIMESSAGE)
 } ASN1_SEQUENCE_END(OSSL_CMP_SRV_CTX)
 IMPLEMENT_STATIC_ASN1_ALLOC_FUNCTIONS(OSSL_CMP_SRV_CTX)
@@ -110,7 +110,7 @@ int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
 {
     if (srv_ctx == NULL)
         return 0;
-    OSSL_CMP_PKISTATUSINFO_free(srv_ctx->pkiStatusOut);
+    OSSL_CMP_PKISI_free(srv_ctx->pkiStatusOut);
     return (srv_ctx->pkiStatusOut = OSSL_CMP_statusInfo_new(status, failInfo, text))
         != NULL;
 }
@@ -205,7 +205,7 @@ static OSSL_CMP_PKIMESSAGE *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
                                                 const OSSL_CMP_PKIMESSAGE *certReq)
 {
     OSSL_CMP_PKIMESSAGE *msg = NULL;
-    OSSL_CMP_PKISTATUSINFO *si = NULL;
+    OSSL_CMP_PKISI *si = NULL;
     X509 *certOut = NULL;
     STACK_OF(X509) *chainOut = NULL, *caPubs = NULL;
     OSSL_CRMF_CERTREQMSG *crm = NULL;
@@ -262,7 +262,7 @@ static OSSL_CMP_PKIMESSAGE *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         if (OSSL_CMP_PKIMESSAGE_check_implicitConfirm((OSSL_CMP_PKIMESSAGE *) certReq) &&
             srv_ctx->grantImplicitConfirm)
             OSSL_CMP_CTX_set_option(srv_ctx->ctx, OSSL_CMP_CTX_OPT_IMPLICITCONFIRM, 1);
-        if ((si = OSSL_CMP_PKISTATUSINFO_dup(srv_ctx->pkiStatusOut)) == NULL)
+        if ((si = OSSL_CMP_PKISI_dup(srv_ctx->pkiStatusOut)) == NULL)
             goto oom;
     }
 
@@ -272,12 +272,12 @@ static OSSL_CMP_PKIMESSAGE *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     if (msg == NULL)
         CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_ERROR_CREATING_CERTREP);
 
-    OSSL_CMP_PKISTATUSINFO_free(si);
+    OSSL_CMP_PKISI_free(si);
     return msg;
 
  oom:
     CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_OUT_OF_MEMORY);
-    OSSL_CMP_PKISTATUSINFO_free(si);
+    OSSL_CMP_PKISI_free(si);
     return NULL;
 }
 
@@ -365,12 +365,12 @@ static OSSL_CMP_PKIMESSAGE *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         }
 
         if (status->statusInfo != NULL) {
-            char *tmpbuf = OPENSSL_malloc(OSSL_CMP_PKISTATUSINFO_BUFLEN);
+            char *tmpbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
             if (tmpbuf == NULL)
                 goto oom;
             OSSL_CMP_info(srv_ctx->ctx, "certificate rejected by client:");
-            if (OSSL_CMP_PKISTATUSINFO_snprint(status->statusInfo, tmpbuf,
-                                          OSSL_CMP_PKISTATUSINFO_BUFLEN) != NULL)
+            if (OSSL_CMP_PKISI_snprint(status->statusInfo, tmpbuf,
+                                          OSSL_CMP_PKISI_BUFLEN) != NULL)
                 OSSL_CMP_info(srv_ctx->ctx, tmpbuf);
             OPENSSL_free(tmpbuf);
         }
@@ -569,7 +569,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_PKIMESSAG
         error = CMP_R_ERROR_DECODING_MESSAGE;
 
     if (process_request(srv_ctx, srv_req, &srv_rsp) == 0) {
-        OSSL_CMP_PKISTATUSINFO *si;
+        OSSL_CMP_PKISI *si;
         const char *data;
         int flags = 0;
         unsigned long err = ERR_peek_error_line_data(NULL, NULL, &data, &flags);
@@ -582,7 +582,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_PKIMESSAG
                                     CMP_PKIFREETEXT_push_str(NULL,
                                             flags&ERR_TXT_STRING ? data : NULL),
                                     srv_ctx->sendUnprotectedErrors);
-            OSSL_CMP_PKISTATUSINFO_free(si);
+            OSSL_CMP_PKISI_free(si);
         } else {
             error = CMP_R_ERROR_PROCESSING_MSG;
         }

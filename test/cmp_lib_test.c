@@ -265,7 +265,7 @@ static int test_cmp_pkimessage_add_extracerts(void)
  */
 static int execute_cmp_pkistatusinfo_test(CMP_LIB_TEST_FIXTURE *fixture)
 {
-    OSSL_CMP_PKISTATUSINFO *si = NULL;
+    OSSL_CMP_PKISI *si = NULL;
     ASN1_UTF8STRING *statusString = NULL;
     int res = 0, i;
 
@@ -273,22 +273,22 @@ static int execute_cmp_pkistatusinfo_test(CMP_LIB_TEST_FIXTURE *fixture)
                                           fixture->pkifailure, fixture->text)))
         goto end;
     if (!TEST_long_eq(fixture->pkistatus,
-                      OSSL_CMP_PKISTATUSINFO_PKIStatus_get(si)) ||
+                      OSSL_CMP_PKISI_PKIStatus_get(si)) ||
         !TEST_long_eq(fixture->pkifailure,
-                      OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_get(si)))
+                      OSSL_CMP_PKISI_PKIFailureInfo_get(si)))
         goto end;
     for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
         if (!TEST_int_eq(fixture->pkifailure >> i & 1,
-                         OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_check(si, i)))
+                         OSSL_CMP_PKISI_PKIFailureInfo_check(si, i)))
             goto end;
     if (!TEST_ptr
         (statusString =
-         sk_ASN1_UTF8STRING_value(OSSL_CMP_PKISTATUSINFO_statusString_get0(si), 0))
+         sk_ASN1_UTF8STRING_value(OSSL_CMP_PKISI_statusString_get0(si), 0))
         || !TEST_str_eq(fixture->text, (char *)statusString->data))
         goto end;
     res = 1;
  end:
-    OSSL_CMP_PKISTATUSINFO_free(si);
+    OSSL_CMP_PKISI_free(si);
     return res;
 }
 

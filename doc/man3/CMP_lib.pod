@@ -9,8 +9,8 @@
   CMP_POLLREPCONTENT_pollRep_get0,
   CMP_CERTREPMESSAGE_certResponse_get0,
   CMP_CERTSTATUS_set_certHash,
-  CMP_PKISTATUSINFO_PKIFailureInfo_get,
-  CMP_PKISTATUSINFO_PKIFailureInfo_check,
+  CMP_PKISI_PKIFailureInfo_get,
+  CMP_PKISI_PKIFailureInfo_check,
   CMP_PKIHEADER_generalInfo_item_push0,
   CMP_PKIMESSAGE_generalInfo_items_push1,
   CMP_PKIHEADER_new_senderNonce,
@@ -32,7 +32,7 @@
   CMP_PKIMESSAGE_genm_item_push0,
   CMP_PKIMESSAGE_get_bodytype,
   CMP_PKIMESSAGE_get_transactionID,
-  CMP_PKISTATUSINFO_snprint,
+  CMP_PKISI_snprint,
   CMP_PKIMESSAGE_set_bodytype,
   CMP_PKIMESSAGE_set_implicitConfirm,
   OSSL_CMP_calc_protection,
@@ -40,7 +40,7 @@
   CMP_PKIMESSAGE_add_extraCerts,
   CMP_ITAV_new,
   CMP_statusInfo_new,
-  CMP_PKISTATUSINFO_PKIStatus_get,
+  CMP_PKISI_PKIStatus_get,
   CMP_get_protectionAlg_pbmac,
   CMP_CERTRESPONSE_get_certificate,
   CMP_build_cert_chain,
@@ -59,13 +59,13 @@
   void CMP_add_error_txt(const char *separator, const char *txt);
   void CMP_add_error_data(const char *txt);
   void CMP_add_error_line(const char *txt);
-  CMP_PKISTATUSINFO *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep, long rsid);
+  CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(CMP_REVREPCONTENT *rrep, long rsid);
   CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(CMP_POLLREPCONTENT *prc, long rid);
   CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0( CMP_CERTREPMESSAGE *certRep, long certReqId);
   int CMP_CERTSTATUS_set_certHash( CMP_CERTSTATUS *certStatus, const X509 *cert);
   char *CMP_ERRORMSGCONTENT_PKIStatus_get_string( CMP_ERRORMSGCONTENT *error);
-  long CMP_PKISTATUSINFO_PKIFailureInfo_get( CMP_PKISTATUSINFO *si);
-  int CMP_PKISTATUSINFO_PKIFailureInfo_check( CMP_PKISTATUSINFO *si, int codeBit);
+  long CMP_PKISI_PKIFailureInfo_get( CMP_PKISI *si);
+  int CMP_PKISI_PKIFailureInfo_check( CMP_PKISI *si, int codeBit);
   int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr, const CMP_ITAV *itav);
   int CMP_PKIMESSAGE_generalInfo_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_ITAV) *itavs);
   int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
@@ -88,7 +88,7 @@
   int CMP_PKIMESSAGE_genm_items_push1(CMP_PKIMESSAGE *msg, STACK_OF(CMP_ITAV) *itavs);
   int CMP_PKIMESSAGE_get_bodytype(const CMP_PKIMESSAGE *msg);
   ASN1_OCTET_STRING *CMP_PKIMESSAGE_get_transactionID(const CMP_PKIMESSAGE *msg);
-  char *CMP_PKISTATUSINFO_snprint(CMP_PKISTATUSINFO *si, char *buf, int bufsize);
+  char *CMP_PKISI_snprint(CMP_PKISI *si, char *buf, int bufsize);
   int CMP_PKIMESSAGE_set_bodytype( CMP_PKIMESSAGE *msg, int type);
   int CMP_PKIMESSAGE_set_implicitConfirm(CMP_PKIMESSAGE *msg);
   ASN1_BIT_STRING *OSSL_CMP_calc_protection(const CMP_PKIMESSAGE *msg,
@@ -97,9 +97,9 @@
   int CMP_PKIMESSAGE_protect(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   int CMP_PKIMESSAGE_add_extraCerts(CMP_CTX *ctx, CMP_PKIMESSAGE *msg);
   CMP_ITAV *CMP_ITAV_new(const ASN1_OBJECT *type, const ASN1_TYPE *value);
-  CMP_PKISTATUSINFO *CMP_statusInfo_new(int status, unsigned long failInfo,
+  CMP_PKISI *CMP_statusInfo_new(int status, unsigned long failInfo,
                                         const char *text);
-  long CMP_PKISTATUSINFO_PKIStatus_get( CMP_PKISTATUSINFO *statusInfo);
+  long CMP_PKISI_PKIStatus_get( CMP_PKISI *statusInfo);
   X509_ALGOR *CMP_get_protectionAlg_pbmac();
   X509 *CMP_CERTRESPONSE_get_certificate(CMP_CTX *ctx, CMP_CERTRESPONSE *crep);
   STACK_OF(X509) *CMP_build_cert_chain(X509_STORE *store, const X509 *cert);
@@ -149,10 +149,10 @@ certificate signature, and places the hash into the certHash field of a
 CMP_CERTSTATUS structure. This is used in the certConf message, for
 example, to confirm that the certificate was received successfully.
 
-CMP_PKISTATUSINFO_PKIFailureInfo_get() returns the PKIFailureInfo bits
+CMP_PKISI_PKIFailureInfo_get() returns the PKIFailureInfo bits
 of a given PKIStatusInfo, encoded as long integer, or -1 on error.
 
-CMP_PKISTATUSINFO_PKIFailureInfo_check() checks whether a given bit is set
+CMP_PKISI_PKIFailureInfo_check() checks whether a given bit is set
 within the PKIFailureInfo of a given PKIStatusInfo. Returns -1 on error.
 
 CMP_PKIHEADER_generalInfo_item_push0() adds the given InfoTypeAndValue
@@ -221,7 +221,7 @@ CMP_PKIMESSAGE_get_transactionID() returns the transactionID of the given PKIMes
 
 ASN1_OCTET_STRING *CMP_PKIMESSAGE_get_transactionID(const CMP_PKIMESSAGE *msg)
 
-CMP_PKISTATUSINFO_snprint() places human-readable error string
+CMP_PKISI_snprint() places human-readable error string
 created from PKIStatusInfo in given buffer.
 
 CMP_PKIMESSAGE_set_bodytype() sets the type of the message contained in
@@ -246,7 +246,7 @@ CMP_ITAV_new() creates a new CMP_ITAV structure and fills it in.
 
 CMP_statusInfo_new() creates a new PKIStatusInfo structure and fills it in.
 
-CMP_PKISTATUSINFO_PKIStatus_get() returns the status value of the given PKIStatusInfo.
+CMP_PKISI_PKIStatus_get() returns the status value of the given PKIStatusInfo.
 
 CMP_get_protectionAlg_pbmac() initializes an X509_ALGOR structure for
 Password Based MAC. Creates a CRMF_PBMPARAMETER structure for the

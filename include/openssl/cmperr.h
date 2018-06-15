@@ -46,6 +46,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_GEN_NEW                                233
 #  define CMP_F_CMP_PKICONF_NEW                            159
 #  define CMP_F_CMP_PKIFREETEXT_PUSH_STR                   223
+#  define CMP_F_CMP_PKISI_PKISTATUS_GET_STRING             234
 #  define CMP_F_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING     220
 #  define CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0            224
 #  define CMP_F_CMP_POLLREP_NEW                            225
@@ -63,6 +64,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_GET_CERT_STATUS                            191
 #  define CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1            202
 #  define CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES      203
+#  define CMP_F_OSSL_CMP_CALC_PROTECTION                   227
 #  define CMP_F_OSSL_CMP_CERTCONF_NEW                      204
 #  define CMP_F_OSSL_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0  104
 #  define CMP_F_OSSL_CMP_CERTREP_NEW                       228
@@ -134,6 +136,8 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_PKIMESSAGE_GENM_ITEM_PUSH0        171
 #  define CMP_F_OSSL_CMP_PKIMESSAGE_HTTP_PERFORM           172
 #  define CMP_F_OSSL_CMP_PKIMESSAGE_PROTECT                173
+#  define CMP_F_OSSL_CMP_PKISI_PKIFAILUREINFO_GET          235
+#  define CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET               236
 #  define CMP_F_OSSL_CMP_PKISTATUSINFO_PKIFAILUREINFO_GET  174
 #  define CMP_F_OSSL_CMP_PKISTATUSINFO_PKISTATUS_GET       175
 #  define CMP_F_OSSL_CMP_PKISTATUSINFO_PKISTATUS_GET_STRING 176

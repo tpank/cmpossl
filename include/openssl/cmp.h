@@ -258,8 +258,8 @@ DEFINE_STACK_OF(OSSL_CMP_CERTSTATUS)
 typedef struct OSSL_cmp_itav_st OSSL_CMP_ITAV;
 DEFINE_STACK_OF(OSSL_CMP_ITAV)
 typedef struct OSSL_cmp_revrepcontent_st OSSL_CMP_REVREPCONTENT;
-typedef struct OSSL_cmp_pkistatusinfo_st OSSL_CMP_PKISTATUSINFO;
-DEFINE_STACK_OF(OSSL_CMP_PKISTATUSINFO)
+typedef struct OSSL_cmp_pkisi_st OSSL_CMP_PKISI;
+DEFINE_STACK_OF(OSSL_CMP_PKISI)
 typedef struct OSSL_cmp_certrepmessage_st OSSL_CMP_CERTREPMESSAGE;
 DEFINE_STACK_OF(OSSL_CMP_CERTREPMESSAGE)
 typedef struct OSSL_cmp_pollrep_st OSSL_CMP_POLLREP;
@@ -344,18 +344,18 @@ typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
 
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype, int err_code);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
-                                     int certReqId, OSSL_CMP_PKISTATUSINFO *si,
+                                     int certReqId, OSSL_CMP_PKISI *si,
                                      X509 *cert, STACK_OF(X509) *chain,
                                      STACK_OF(X509) *caPubs, int encrypted,
                                      int unprotectedErrors);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx);
-OSSL_CMP_PKIMESSAGE *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si,
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
                                      OSSL_CRMF_CERTID *certId, int unprotectedErrors);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure, const char *text);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_genm_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx);
-OSSL_CMP_PKIMESSAGE *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si,
+OSSL_CMP_PKIMESSAGE *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
                               int errorCode, OSSL_CMP_PKIFREETEXT *errorDetails,
                               int unprotected);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int reqId);
@@ -402,17 +402,17 @@ int OSSL_CMP_PKIMESSAGE_genm_items_push1(OSSL_CMP_PKIMESSAGE *msg,
                                     STACK_OF(OSSL_CMP_ITAV) *itavs);
 OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(const ASN1_OBJECT *type,
                                  const ASN1_TYPE *value);
-OSSL_CMP_PKISTATUSINFO *OSSL_CMP_statusInfo_new(int status, unsigned long failInfo,
+OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, unsigned long failInfo,
                                       const char *text);
-long OSSL_CMP_PKISTATUSINFO_PKIStatus_get(OSSL_CMP_PKISTATUSINFO *statusInfo);
-long OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_get(OSSL_CMP_PKISTATUSINFO *si);
-int OSSL_CMP_PKISTATUSINFO_PKIFailureInfo_check(OSSL_CMP_PKISTATUSINFO *si, int codeBit);
-ASN1_BIT_STRING *OSSL_CMP_PKISTATUSINFO_failInfo_get0(OSSL_CMP_PKISTATUSINFO *si);
-OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISTATUSINFO_statusString_get0(OSSL_CMP_PKISTATUSINFO *si);
+long OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *statusInfo);
+long OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si);
+int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int codeBit);
+ASN1_BIT_STRING *OSSL_CMP_PKISI_failInfo_get0(OSSL_CMP_PKISI *si);
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(OSSL_CMP_PKISI *si);
 int OSSL_CMP_PKIMESSAGE_set_bodytype(OSSL_CMP_PKIMESSAGE *msg, int type);
 int OSSL_CMP_PKIMESSAGE_get_bodytype(const OSSL_CMP_PKIMESSAGE *msg);
-# define OSSL_CMP_PKISTATUSINFO_BUFLEN 1024
-char *OSSL_CMP_PKISTATUSINFO_snprint(OSSL_CMP_PKISTATUSINFO *si, char *buf, int bufsize);
+# define OSSL_CMP_PKISI_BUFLEN 1024
+char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
 STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
                                      const X509 *cert);
 int OSSL_CMP_PKIMESSAGE_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_PKIMESSAGE *msg,
@@ -491,7 +491,7 @@ ASN1_OBJECT *OSSL_CMP_ITAV_get0_type(OSSL_CMP_ITAV *itav);
 ASN1_TYPE *OSSL_CMP_ITAV_get0_value(OSSL_CMP_ITAV *itav);
 void OSSL_CMP_ITAV_free(OSSL_CMP_ITAV *itav);
 void OSSL_CMP_PKIMESSAGE_free(OSSL_CMP_PKIMESSAGE *msg);
-void OSSL_CMP_PKISTATUSINFO_free(OSSL_CMP_PKISTATUSINFO *si);
+void OSSL_CMP_PKISI_free(OSSL_CMP_PKISI *si);
 OSSL_CMP_PKIMESSAGE *OSSL_CMP_PKIMESSAGE_dup(OSSL_CMP_PKIMESSAGE *x);
 
 /* from cmp_ctx.c */

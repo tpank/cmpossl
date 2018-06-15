@@ -23,7 +23,7 @@ typedef struct test_fixture {
     OSSL_CMP_CTX *cmp_ctx;
     /* for protection tests */
     OSSL_CMP_PKIMESSAGE *msg;
-    OSSL_CMP_PKISTATUSINFO *si;      /* for error and response messages */
+    OSSL_CMP_PKISI *si;      /* for error and response messages */
     ASN1_OCTET_STRING *secret;
     EVP_PKEY *privkey;
     EVP_PKEY *pubkey;
@@ -62,7 +62,7 @@ static void tear_down(CMP_INT_TEST_FIXTURE *fixture)
     ASN1_OCTET_STRING_free(fixture->secret);
     EVP_PKEY_free(fixture->privkey);
     EVP_PKEY_free(fixture->pubkey);
-    OSSL_CMP_PKISTATUSINFO_free(fixture->si);
+    OSSL_CMP_PKISI_free(fixture->si);
 
     OPENSSL_free(fixture->mem);
     OPENSSL_free(fixture);

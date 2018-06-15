@@ -22,7 +22,7 @@ typedef struct test_fixture {
     /* for protection tests */
     OSSL_CMP_PKIMESSAGE *msg;
     int expected;               /* expected outcome */
-    OSSL_CMP_PKISTATUSINFO *si;      /* for error and response messages */
+    OSSL_CMP_PKISI *si;      /* for error and response messages */
 } CMP_MSG_TEST_FIXTURE;
 
 static unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
@@ -58,7 +58,7 @@ static void tear_down(CMP_MSG_TEST_FIXTURE *fixture)
        Free any memory owned by the fixture, etc. */
     OSSL_CMP_CTX_delete(fixture->cmp_ctx);
     OSSL_CMP_PKIMESSAGE_free(fixture->msg);
-    OSSL_CMP_PKISTATUSINFO_free(fixture->si);
+    OSSL_CMP_PKISI_free(fixture->si);
     OPENSSL_free(fixture);
 }
 

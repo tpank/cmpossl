@@ -20,13 +20,13 @@
 
  CMP_PKIMESSAGE *CMP_certreq_new(CMP_CTX *ctx, int bodytype, int err_code);
  OSSL_CMP_PKIMESSAGE *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
-                                     int certReqId, OSSL_CMP_PKISTATUSINFO *si,
+                                     int certReqId, OSSL_CMP_PKISI *si,
                                      X509 *cert, STACK_OF(X509) *chain,
                                      STACK_OF(X509) *caPubs, int encrypted,
                                      int unprotectedErrors);
  OSSL_CMP_PKIMESSAGE *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx);
  OSSL_CMP_PKIMESSAGE *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx,
-                                     OSSL_CMP_PKISTATUSINFO *si,
+                                     OSSL_CMP_PKISI *si,
                                      OSSL_CRMF_CERTID *certId,
                                      int unprotectedErrors);
  CMP_PKIMESSAGE *CMP_certConf_new(CMP_CTX *ctx, int failure, const char *text);
@@ -36,7 +36,7 @@
                                           long pollAfter);
  CMP_PKIMESSAGE *CMP_genm_new(CMP_CTX *ctx);
  OSSL_CMP_PKIMESSAGE *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx);
- CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISTATUSINFO *si,
+ CMP_PKIMESSAGE *CMP_error_new(CMP_CTX *ctx, CMP_PKISI *si,
                                int errorCode, CMP_PKIFREETEXT *errorDetails,
                                int unprotected)
 

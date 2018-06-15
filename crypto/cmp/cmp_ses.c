@@ -74,9 +74,9 @@ static void message_add_error_data(OSSL_CMP_PKIMESSAGE *msg)
 
     switch (bt) {
     case OSSL_CMP_PKIBODY_ERROR:
-        if ((buf = OPENSSL_malloc(OSSL_CMP_PKISTATUSINFO_BUFLEN))) {
-            if (OSSL_CMP_PKISTATUSINFO_snprint(msg->body->value.error->
-                   pKIStatusInfo, buf, OSSL_CMP_PKISTATUSINFO_BUFLEN))
+        if ((buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN))) {
+            if (OSSL_CMP_PKISI_snprint(msg->body->value.error->
+                   pKIStatusInfo, buf, OSSL_CMP_PKISI_BUFLEN))
                 ERR_add_error_data(1, buf);
             OPENSSL_free(buf);
         }
@@ -114,7 +114,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
             exception = 1;
         }
         if (rcvd_type == OSSL_CMP_PKIBODY_RP &&
-            OSSL_CMP_PKISTATUSINFO_PKIStatus_get(
+            OSSL_CMP_PKISI_PKIStatus_get(
             CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp, OSSL_CMP_REVREQSID))
                 == OSSL_CMP_PKISTATUS_rejection) {
             OSSL_CMP_warn(ctx,
@@ -135,7 +135,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
              */
             if (!crep)
                 return 0;
-            if (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(crep->status) ==
+            if (OSSL_CMP_PKISI_PKIStatus_get(crep->status) ==
                 OSSL_CMP_PKISTATUS_rejection) {
                 OSSL_CMP_warn(ctx,
                          "ignoring missing protection of CertRepMessage with rejection status");
@@ -341,7 +341,7 @@ int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int failure, const char *txt)
 int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int failure, const char *txt)
 {
     OSSL_CMP_PKIMESSAGE *error = NULL;
-    OSSL_CMP_PKISTATUSINFO *si = NULL;
+    OSSL_CMP_PKISI *si = NULL;
     OSSL_CMP_PKIMESSAGE *PKIconf = NULL;
     int success = 0;
 
@@ -358,7 +358,7 @@ int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int failure, const ch
 
  err:
     OSSL_CMP_PKIMESSAGE_free(error);
-    OSSL_CMP_PKISTATUSINFO_free(si);
+    OSSL_CMP_PKISI_free(si);
     OSSL_CMP_PKIMESSAGE_free(PKIconf);
     return success;
 }
@@ -368,7 +368,7 @@ int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int failure, const ch
  *
  * saves error information from PKIStatusInfo field of a certresponse into ctx
  */
-static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si)
+static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
 {
     int i;
     OSSL_CMP_PKIFREETEXT *ss;
@@ -376,7 +376,7 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISTATUSINFO *si)
     if (si == NULL)
         return 0;
 
-    if ((ctx->lastPKIStatus = OSSL_CMP_PKISTATUSINFO_PKIStatus_get(si) < 0))
+    if ((ctx->lastPKIStatus = OSSL_CMP_PKISI_PKIStatus_get(si) < 0))
         return 0;
 
     if (!OSSL_CMP_CTX_set_failInfoCode(ctx, si->failInfo))
@@ -410,7 +410,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype, OSSL_CMP_CERTRESPO
     if (ctx == NULL || crep == NULL)
         return NULL;
 
-    switch (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(crep->status)) {
+    switch (OSSL_CMP_PKISI_PKIStatus_get(crep->status)) {
     case OSSL_CMP_PKISTATUS_waiting:
         OSSL_CMP_err(ctx,
                 "received \"waiting\" status for cert when actually aiming to extract cert");
@@ -463,9 +463,9 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype, OSSL_CMP_CERTRESPO
     return crt;
 
  err:
-    if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISTATUSINFO_BUFLEN))) {
-        if (OSSL_CMP_PKISTATUSINFO_snprint(crep->status, tempbuf,
-                                      OSSL_CMP_PKISTATUSINFO_BUFLEN))
+    if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN))) {
+        if (OSSL_CMP_PKISI_snprint(crep->status, tempbuf,
+                                      OSSL_CMP_PKISI_BUFLEN))
             ERR_add_error_data(1, tempbuf);
         OPENSSL_free(tempbuf);
     }
@@ -502,7 +502,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_PKIMESSAGE **resp
     if (rid == -1) /* for OSSL_CMP_PKIBODY_P10CR, learn CertReqId from response */
         rid = ASN1_INTEGER_get(crep->certReqId);
 
-    if (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(crep->status) == OSSL_CMP_PKISTATUS_waiting){
+    if (OSSL_CMP_PKISI_PKIStatus_get(crep->status) == OSSL_CMP_PKISTATUS_waiting){
         OSSL_CMP_PKIMESSAGE_free(*resp);
         if (pollForResponse(ctx, rid, resp)) {
             goto retry; /* got rp/cp/kup which might still indicate 'waiting' */
@@ -656,7 +656,7 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_PKIMESSAGE *rr = NULL;
     OSSL_CMP_PKIMESSAGE *rp = NULL;
-    OSSL_CMP_PKISTATUSINFO *si = NULL;
+    OSSL_CMP_PKISI *si = NULL;
     int result = 0;
 
     if (ctx == NULL)
@@ -677,7 +677,7 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     si = CMP_REVREPCONTENT_PKIStatusInfo_get(rp->body->value.rp, OSSL_CMP_REVREQSID);
     if (!save_statusInfo(ctx, si))
         goto err;
-    switch (OSSL_CMP_PKISTATUSINFO_PKIStatus_get(si)) {
+    switch (OSSL_CMP_PKISI_PKIStatus_get(si)) {
     case OSSL_CMP_PKISTATUS_accepted:
         OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=accepted)");
         result = 1;
@@ -714,9 +714,9 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
     if (!result) {
         char *tempbuf;
-        if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISTATUSINFO_BUFLEN))) {
-            if (OSSL_CMP_PKISTATUSINFO_snprint(si, tempbuf,
-                                          OSSL_CMP_PKISTATUSINFO_BUFLEN))
+        if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN))) {
+            if (OSSL_CMP_PKISI_snprint(si, tempbuf,
+                                          OSSL_CMP_PKISI_BUFLEN))
                 ERR_add_error_data(1, tempbuf);
             OPENSSL_free(tempbuf);
         }
