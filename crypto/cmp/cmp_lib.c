@@ -251,7 +251,7 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
  * returns 1 on success, 0 on error.
  */
 int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                     const unsigned char *bytes, size_t len)
+                                          const unsigned char *bytes, size_t len)
 {
     ASN1_OCTET_STRING *new = NULL;
     int res = 0;
@@ -264,7 +264,8 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
     if (bytes != NULL) {
         if (!(new = ASN1_OCTET_STRING_new()) ||
             !(ASN1_OCTET_STRING_set(new, bytes, (int)len))) {
-            CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_OUT_OF_MEMORY);
+            CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES,
+                   CMP_R_OUT_OF_MEMORY);
             goto err;
         }
 
@@ -311,7 +312,7 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_HDR *hdr,
-                                 const ASN1_OCTET_STRING *senderKID)
+                                const ASN1_OCTET_STRING *senderKID)
 {
     if (hdr == NULL)
         return 0;
@@ -395,7 +396,8 @@ int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_HDR *hdr, ASN1_UTF8STRING *text)
  * newly allocated freeText if ft is NULL.
  * Returns the new/updated freeText. On error frees ft and returns NULL
  */
-OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft, const char *text)
+OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
+                                               const char *text)
 {
     ASN1_UTF8STRING *utf8string = NULL;
 
@@ -489,9 +491,11 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_HDR *hdr)
      * reduce the probability of having the transactionID in use at the server.
      */
     if (!ctx->transactionID &&
-        !set1_aostr_else_random(&ctx->transactionID,NULL, OSSL_CMP_TRANSACTIONID_LENGTH))
+        !set1_aostr_else_random(&ctx->transactionID,NULL,
+                                OSSL_CMP_TRANSACTIONID_LENGTH))
         goto err;
-    if (!OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID, ctx->transactionID))
+    if (!OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID,
+                                         ctx->transactionID))
         goto err;
 
     /*
@@ -506,7 +510,8 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_HDR *hdr)
      * is copied from the senderNonce of the previous message in the
      * transaction.
      */
-    if (!set1_aostr_else_random(&hdr->senderNonce, NULL, OSSL_CMP_SENDERNONCE_LENGTH))
+    if (!set1_aostr_else_random(&hdr->senderNonce, NULL,
+                                OSSL_CMP_SENDERNONCE_LENGTH))
         goto err;
 
     /* store senderNonce - for cmp with recipNonce in next outgoing msg */
@@ -595,8 +600,9 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
             pbm = d2i_OSSL_CRMF_PBMPARAMETER(NULL, &pbm_str_uc, pbm_str->length);
 
             if (!(OSSL_CRMF_passwordBasedMac_new(pbm, prot_part_der,
-                                            prot_part_der_len, secret->data,
-                                            secret->length, &mac, &mac_len)))
+                                                 prot_part_der_len,
+                                                 secret->data, secret->length,
+                                                 &mac, &mac_len)))
                 goto err;
         } else {
             CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_WRONG_ALGORITHM_OID);
@@ -665,7 +671,7 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
     if ((alg = X509_ALGOR_new()) == NULL)
         goto err;
     if ((pbm = OSSL_CRMF_pbmp_new(ctx->pbm_slen, ctx->pbm_owf,
-                             ctx->pbm_itercnt, ctx->pbm_mac)) == NULL)
+                                  ctx->pbm_itercnt, ctx->pbm_mac)) == NULL)
         goto err;
     if ((pbm_str = ASN1_STRING_new()) == NULL)
         goto err;
@@ -736,7 +742,7 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
             /* make sure that key and certificate match */
             if (!X509_check_private_key(ctx->clCert, ctx->pkey)) {
                 CMPerr(CMP_F_OSSL_CMP_MSG_PROTECT,
-                        CMP_R_CERT_AND_KEY_DO_NOT_MATCH);
+                       CMP_R_CERT_AND_KEY_DO_NOT_MATCH);
                 goto err;
             }
 
@@ -746,7 +752,7 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
             if (!OBJ_find_sigid_by_algs(&algNID, ctx->digest,
                         EVP_PKEY_id(ctx->pkey))) {
                 CMPerr(CMP_F_OSSL_CMP_MSG_PROTECT,
-                        CMP_R_UNSUPPORTED_KEY_TYPE);
+                       CMP_R_UNSUPPORTED_KEY_TYPE);
                 goto err;
             }
             alg = OBJ_nid2obj(algNID);
@@ -837,7 +843,8 @@ int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
  *
  * returns 1 on success, 0 on error
  */
-int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus, const X509 *cert)
+int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
+                                const X509 *cert)
 {
     unsigned int len;
     unsigned char hash[EVP_MAX_MD_SIZE];
@@ -859,7 +866,8 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus, const X509 *cer
         && (md = EVP_get_digestbynid(md_NID))) {
         if (!X509_digest(cert, md, hash, &len))
             goto err;
-        if (!OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&certStatus->certHash, hash, len))
+        if (!OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&certStatus->certHash,
+                                                   hash, len))
             goto err;
     } else {
         CMPerr(CMP_F_CMP_CERTSTATUS_SET_CERTHASH,
@@ -886,7 +894,7 @@ int OSSL_CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg)
         goto err;
 
     if ((itav = OSSL_CMP_ITAV_gen(OBJ_nid2obj(NID_id_it_implicitConfirm),
-                             (const ASN1_TYPE *)ASN1_NULL_new())) == NULL)
+                                  (const ASN1_TYPE *)ASN1_NULL_new())) == NULL)
         goto err;
     if (!OSSL_CMP_HDR_generalInfo_item_push0(msg->header, itav))
         goto err;
@@ -944,7 +952,7 @@ int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_HDR *hdr,
 
 
 int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
-                                          STACK_OF(OSSL_CMP_ITAV) *itavs)
+                                         STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
     OSSL_CMP_ITAV *itav = NULL;
@@ -973,7 +981,7 @@ int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg,
-                                   const OSSL_CMP_ITAV *itav)
+                                 const OSSL_CMP_ITAV *itav)
 {
     int bodytype;
     if (msg == NULL)
@@ -997,7 +1005,7 @@ int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg,
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
-                                    STACK_OF(OSSL_CMP_ITAV) *itavs)
+                                  STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
     OSSL_CMP_ITAV *itav = NULL;
@@ -1014,8 +1022,7 @@ int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
     }
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_MSG_GENM_ITEMS_PUSH1,
-           CMP_R_ERROR_PUSHING_GENM_ITEMS);
+    CMPerr(CMP_F_OSSL_CMP_MSG_GENM_ITEMS_PUSH1, CMP_R_ERROR_PUSHING_GENM_ITEMS);
     return 0;
 }
 
@@ -1043,8 +1050,7 @@ int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
         created = 1;
     }
     if (itav) {
-        if (!sk_OSSL_CMP_ITAV_push(*itav_sk_p,
-                    (OSSL_CMP_ITAV *)itav))
+        if (!sk_OSSL_CMP_ITAV_push(*itav_sk_p, (OSSL_CMP_ITAV *)itav))
             goto err;
     }
     return 1;
@@ -1078,7 +1084,7 @@ OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(const ASN1_OBJECT *type,
  *       and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
  */
 OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, unsigned long failInfo,
-                                      const char *text)
+                                        const char *text)
 {
     OSSL_CMP_PKISI *si = NULL;
     ASN1_UTF8STRING *utf8_text = NULL;
@@ -1196,7 +1202,8 @@ static char *CMP_PKISI_PKIStatus_get_string(OSSL_CMP_PKISI *si)
  * returns pointer to static string
  * returns NULL on error
  */
-static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi, int i)
+static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi,
+                                                int i)
 {
     if (fi == NULL)
         return NULL;
@@ -1273,7 +1280,7 @@ static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi, int
  * returns NULL on error
  */
 OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
-                                                       long rsid)
+                                                    long rsid)
 {
     OSSL_CMP_PKISI *status = NULL;
     if (rrep == NULL)
@@ -1292,8 +1299,7 @@ OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep
  * checks PKIFailureInfo bits in a given PKIStatusInfo
  * returns 1 if a given bit is set, 0 if not, -1 on error
  */
-int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si,
-                                                int codeBit)
+int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int codeBit)
 {
     ASN1_BIT_STRING *failInfo = OSSL_CMP_PKISI_failInfo_get0(si);
     if (failInfo == NULL) /* this can also indicate si == NULL */
@@ -1328,7 +1334,8 @@ OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(OSSL_CMP_PKISI *si)
  * returns NULL on error or if no suitable PollResponse available
  */
 /* cannot factor overlap with CERTREPMESSAGE_certResponse_get0 due to typing */
-OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc, long rid)
+OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
+                                                  long rid)
 {
     OSSL_CMP_POLLREP *pollRep = NULL;
     int i;
@@ -1358,8 +1365,8 @@ OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc, 
  * returns NULL on error or if no suitable CertResponse available
  */
 /* cannot factor overlap with POLLREPCONTENT_pollResponse_get0 due to typing */
-OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(OSSL_CMP_CERTREPMESSAGE
-                                                       *crepmsg, long rid)
+OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(
+                                     OSSL_CMP_CERTREPMESSAGE *crepmsg, long rid)
 {
     OSSL_CMP_CERTRESPONSE *crep = NULL;
     int i;
@@ -1458,7 +1465,8 @@ char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
  * Retrieve a copy of the certificate, if any, from the given CertResponse.
  * returns NULL if not found or on error
  */
-X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, OSSL_CMP_CERTRESPONSE *crep)
+X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
+                                       OSSL_CMP_CERTRESPONSE *crep)
 {
     OSSL_CMP_CERTORENCCERT *coec;
     X509 *crt = NULL;
@@ -1518,7 +1526,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, OSSL_CMP_CERTRESPONSE 
  *      returns NULL on error
  */
 STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
-                                     const X509 *cert)
+                                          const X509 *cert)
 {
     STACK_OF(X509) *chain = NULL, *result = NULL;
     X509_STORE *store = X509_STORE_new();
@@ -1550,7 +1558,7 @@ STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
     if ((result = sk_X509_new_null()) == NULL)
         goto err;
     OSSL_CMP_sk_X509_add1_certs(result, chain, 1/* no self-signed */,
-                           1/* no dups */);
+                                1/* no dups */);
 
  err:
     X509_STORE_free(store);
@@ -1567,7 +1575,8 @@ static int X509_cmp_from_ptrs(const struct x509_st *const *a,
 {
     return X509_cmp(*a, *b);
 }
-int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert, int not_duplicate)
+int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
+                               int not_duplicate)
 {
     if (not_duplicate) {
         sk_X509_set_cmp_func(sk, &X509_cmp_from_ptrs);
@@ -1586,7 +1595,7 @@ int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert, int not_duplicate
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
-                      int no_self_signed, int no_duplicates)
+                                int no_self_signed, int no_duplicates)
 {
     int i;
 
@@ -1611,7 +1620,7 @@ int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
-                              int only_self_signed)
+                                   int only_self_signed)
 {
     int i;
 
@@ -1674,8 +1683,10 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store)
  * returns body type (which is >= 0) of the message on success, -1 on error
  */
 int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-         int callback_arg,
-         int (*allow_unprotected)(const OSSL_CMP_CTX *, int, const OSSL_CMP_MSG *))
+                                int callback_arg,
+                                int (*allow_unprotected)(const OSSL_CMP_CTX *,
+                                                         int,
+                                                         const OSSL_CMP_MSG *))
 {
     int rcvd_type;
 

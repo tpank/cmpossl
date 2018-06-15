@@ -33,8 +33,8 @@ extern "C" {
 
 /*
  * this structure is used to store the context for CMP sessions
- * partly using OpenSSL ASN.1 types in order to ease handling it - such
- * ASN.1 entries must be given first, in same order as ASN1_SEQUENCE(OSSL_CMP_CTX)
+ * partly using OpenSSL ASN.1 types in order to ease handling it - such ASN.1
+ * entries must be given first, in same order as ASN1_SEQUENCE(OSSL_CMP_CTX)
  */
 struct OSSL_cmp_ctx_st {
     /* "reference and secret" for MSG_MAC_ALG */
@@ -60,7 +60,7 @@ struct OSSL_cmp_ctx_st {
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
     STACK_OF(X509) *caPubs; /* CA certs received from server (in IP message) */
 #if 0
-    OSSL_CMP_PKIFREETEXT *freeText; /* (this field is intended for human consumption)
+    OSSL_CMP_PKIFREETEXT *freeText; /* textis intended for human consumption,
                    this may be used to indicate context-specific instructions */
 #endif
     OSSL_CMP_PKIFREETEXT *lastStatusString;
@@ -248,9 +248,8 @@ struct OSSL_cmp_itav_st {
 OSSL_CMP_ITAV *OSSL_CMP_ITAV_dup(OSSL_CMP_ITAV *itav);
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
 
-int OSSL_CMP_ITAV_stack_item_push0(
-                              STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
-                              const OSSL_CMP_ITAV *itav);
+int OSSL_CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
+                                   const OSSL_CMP_ITAV *itav);
 
 
 typedef struct OSSL_cmp_certorenccert_st {
@@ -576,7 +575,8 @@ typedef struct OSSL_cmp_pkibody_st {
         /* pkiconf    [19] PKIConfirmContent,        --Confirmation */
         /* OSSL_CMP_PKICONFIRMCONTENT would be only a typedef of ASN1_NULL */
         /* OSSL_CMP_CONFIRMCONTENT *pkiconf; */
-        /* NOTE: this should ASN1_NULL according to the RFC but there might be a struct in it when sent from faulty servers... */
+        /* NOTE: this should ASN1_NULL according to the RFC
+           but there might be a struct in it when sent from faulty servers... */
         ASN1_TYPE *pkiconf; /* 19 */
         /* nested     [20] NestedMessageContent,     --Nested Message */
         /* NestedMessageContent ::= PKIMessages */
@@ -695,18 +695,21 @@ void CMP_add_error_txt(const char *separator, const char *txt);
 # define CMP_add_error_data(txt) CMP_add_error_txt(":", txt)
 # define CMP_add_error_line(txt) CMP_add_error_txt("\n", txt)
 
-OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,const char *text);
+OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
+                                               const char *text);
 
-OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(
-                                           OSSL_CMP_REVREPCONTENT *rrep, long reqId);
+OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
+                                                    long reqId);
 int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus, const X509 *cert);
 int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **
                               itav_sk_p, const OSSL_CMP_ITAV *itav);
 
-X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx, OSSL_CMP_CERTRESPONSE *crep);
-OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc, long rid);
-OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(OSSL_CMP_CERTREPMESSAGE
-                                                       *crepmsg, long rid);
+X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
+                                       OSSL_CMP_CERTRESPONSE *crep);
+OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
+                                                  long rid);
+OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(
+                                    OSSL_CMP_CERTREPMESSAGE *crepmsg, long rid);
 ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      const ASN1_OCTET_STRING *secret,
                                      const EVP_PKEY *pkey);

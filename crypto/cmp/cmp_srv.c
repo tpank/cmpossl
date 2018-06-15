@@ -20,7 +20,7 @@
 #include <string.h>
 
 typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
-    (OSSL_CMP_SRV_CTX *ctx, const OSSL_CMP_MSG *msg);
+                      (OSSL_CMP_SRV_CTX *ctx, const OSSL_CMP_MSG *msg);
 
 /*
  * this structure is used to store the context for the CMP mock server
@@ -32,9 +32,9 @@ struct OSSL_cmp_srv_ctx_st {
     STACK_OF(X509) *chainOut;   /* Cert chain useful to validate certOut */
     STACK_OF(X509) *caPubsOut;  /* caPubs for ip */
     OSSL_CMP_PKISI *pkiStatusOut; /* PKI Status Info to be returned */
-    OSSL_CMP_MSG *certReq;    /* ir/cr/p10cr/kur saved in case of polling */
+    OSSL_CMP_MSG *certReq;      /* ir/cr/p10cr/kur saved in case of polling */
     int certReqId;              /* id saved in case of polling */
-    OSSL_CMP_CTX *ctx;               /* client cmp context, partly reused for srv */
+    OSSL_CMP_CTX *ctx;          /* client cmp context, partly reused for srv */
     unsigned int pollCount;     /* Number of polls before cert response */
     long checkAfterTime;        /* time to wait for the next poll in seconds */
     int grantImplicitConfirm;   /* Grant implicit confirmation if requested */
@@ -81,7 +81,8 @@ OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(OSSL_CMP_SRV_CTX *srv_ctx)
     return srv_ctx->ctx;
 }
 
-int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx, int value)
+int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
+                                                int value)
 {
     if (srv_ctx == NULL)
         return 0;
@@ -89,7 +90,8 @@ int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx, int v
     return 1;
 }
 
-int OSSL_CMP_SRV_CTX_set_accept_unprotected(OSSL_CMP_SRV_CTX *srv_ctx, int value)
+int OSSL_CMP_SRV_CTX_set_accept_unprotected(OSSL_CMP_SRV_CTX *srv_ctx,
+                                            int value)
 {
     if (srv_ctx == NULL)
         return 0;
@@ -97,7 +99,8 @@ int OSSL_CMP_SRV_CTX_set_accept_unprotected(OSSL_CMP_SRV_CTX *srv_ctx, int value
     return 1;
 }
 
-int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx, int value)
+int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx,
+                                                 int value)
 {
     if (srv_ctx == NULL)
         return 0;
@@ -106,13 +109,14 @@ int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx, int 
 }
 
 int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
-                               unsigned long failInfo, const char *text)
+                                    unsigned long failInfo, const char *text)
 {
     if (srv_ctx == NULL)
         return 0;
     OSSL_CMP_PKISI_free(srv_ctx->pkiStatusOut);
-    return (srv_ctx->pkiStatusOut = OSSL_CMP_statusInfo_new(status, failInfo, text))
-        != NULL;
+    return (srv_ctx->pkiStatusOut =
+            OSSL_CMP_statusInfo_new(status, failInfo, text))
+           != NULL;
 }
 
 int OSSL_CMP_SRV_CTX_set1_certOut(OSSL_CMP_SRV_CTX *srv_ctx, X509 *cert)
@@ -128,7 +132,8 @@ int OSSL_CMP_SRV_CTX_set1_certOut(OSSL_CMP_SRV_CTX *srv_ctx, X509 *cert)
     return 0;
 }
 
-int OSSL_CMP_SRV_CTX_set1_chainOut(OSSL_CMP_SRV_CTX *srv_ctx, STACK_OF(X509) *chain)
+int OSSL_CMP_SRV_CTX_set1_chainOut(OSSL_CMP_SRV_CTX *srv_ctx,
+                                   STACK_OF(X509) *chain)
 {
     if (srv_ctx == NULL || chain == NULL)
         return 0;
@@ -136,7 +141,8 @@ int OSSL_CMP_SRV_CTX_set1_chainOut(OSSL_CMP_SRV_CTX *srv_ctx, STACK_OF(X509) *ch
     return (srv_ctx->chainOut = X509_chain_up_ref(chain)) != NULL;
 }
 
-int OSSL_CMP_SRV_CTX_set1_caPubsOut(OSSL_CMP_SRV_CTX *srv_ctx, STACK_OF(X509) *caPubs)
+int OSSL_CMP_SRV_CTX_set1_caPubsOut(OSSL_CMP_SRV_CTX *srv_ctx,
+                                    STACK_OF(X509) *caPubs)
 {
     if (srv_ctx == NULL || caPubs == NULL)
         return 0;
@@ -168,7 +174,8 @@ int OSSL_CMP_SRV_CTX_set_pollCount(OSSL_CMP_SRV_CTX *srv_ctx, int count)
     return 1;
 }
 
-int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx, int raverified)
+int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx,
+                                           int raverified)
 {
     if (srv_ctx == NULL)
         return 0;
@@ -192,8 +199,8 @@ static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *msg)
     }
 
     return OSSL_CRMF_MSGS_verify_popo(msg->body->value.ir,
-                                                 OSSL_CMP_CERTREQID,
-                                                 srv_ctx->acceptRAVerified);
+                                      OSSL_CMP_CERTREQID,
+                                      srv_ctx->acceptRAVerified);
 }
 
 /*
@@ -202,7 +209,7 @@ static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *msg)
  * returns an ip/cp/kup on success and NULL on error
  */
 static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
-                                                const OSSL_CMP_MSG *certReq)
+                                              const OSSL_CMP_MSG *certReq)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_PKISI *si = NULL;
@@ -244,12 +251,13 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     if (!cmp_verify_popo(srv_ctx, certReq)) {
         /* Proof of possession could not be verified */
         if ((si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection,
-                                     1 << OSSL_CMP_PKIFAILUREINFO_badPOP,
-                                     NULL)) == NULL)
+                                          1 << OSSL_CMP_PKIFAILUREINFO_badPOP,
+                                          NULL)) == NULL)
             goto oom;
     } else if (srv_ctx->pollCount > 0) {
         srv_ctx->pollCount--;
-        if ((si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_waiting, 0, NULL)) == NULL)
+        if ((si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_waiting, 0, NULL))
+            == NULL)
             goto oom;
         OSSL_CMP_MSG_free(srv_ctx->certReq);
         if ((srv_ctx->certReq = OSSL_CMP_MSG_dup((OSSL_CMP_MSG *)certReq))
@@ -261,7 +269,8 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         caPubs = srv_ctx->caPubsOut;
         if (OSSL_CMP_MSG_check_implicitConfirm((OSSL_CMP_MSG *) certReq) &&
             srv_ctx->grantImplicitConfirm)
-            OSSL_CMP_CTX_set_option(srv_ctx->ctx, OSSL_CMP_CTX_OPT_IMPLICITCONFIRM, 1);
+            OSSL_CMP_CTX_set_option(srv_ctx->ctx,
+                                    OSSL_CMP_CTX_OPT_IMPLICITCONFIRM, 1);
         if ((si = OSSL_CMP_PKISI_dup(srv_ctx->pkiStatusOut)) == NULL)
             goto oom;
     }
@@ -282,7 +291,7 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
-                                  const OSSL_CMP_MSG *req)
+                                const OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg;
     OSSL_CMP_REVDETAILS *details;
@@ -297,7 +306,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
     }
 
     if ((details = sk_OSSL_CMP_REVDETAILS_value(req->body->value.rr,
-                                           OSSL_CMP_REVREQSID)) == NULL) {
+                                                OSSL_CMP_REVREQSID)) == NULL) {
         CMPerr(CMP_F_PROCESS_RR, CMP_R_ERROR_PROCESSING_MSG);
         return NULL;
     }
@@ -325,7 +334,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
-                                        const OSSL_CMP_MSG *req)
+                                      const OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTSTATUS *status = NULL;
@@ -339,7 +348,8 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         if (num > 1)
             OSSL_CMP_warn(srv_ctx->ctx,
                      "All CertStatus but the first will be ignored");
-        status = sk_OSSL_CMP_CERTSTATUS_value(req->body->value.certConf, OSSL_CMP_CERTREQID);
+        status = sk_OSSL_CMP_CERTSTATUS_value(req->body->value.certConf,
+                                              OSSL_CMP_CERTREQID);
     }
 
     if (status != NULL) {
@@ -370,7 +380,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
                 goto oom;
             OSSL_CMP_info(srv_ctx->ctx, "certificate rejected by client:");
             if (OSSL_CMP_PKISI_snprint(status->statusInfo, tmpbuf,
-                                          OSSL_CMP_PKISI_BUFLEN) != NULL)
+                                       OSSL_CMP_PKISI_BUFLEN) != NULL)
                 OSSL_CMP_info(srv_ctx->ctx, tmpbuf);
             OPENSSL_free(tmpbuf);
         }
@@ -389,7 +399,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
-                                     const OSSL_CMP_MSG *req)
+                                   const OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg = OSSL_CMP_pkiconf_new(srv_ctx->ctx);
 
@@ -402,7 +412,7 @@ static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
-                                       const OSSL_CMP_MSG *req)
+                                     const OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg = NULL;
     if (!srv_ctx || !srv_ctx->certReq) {
@@ -426,7 +436,7 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
  * incoming message
  */
 static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
-                                    const OSSL_CMP_MSG *req)
+                                  const OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg = NULL;
     STACK_OF(OSSL_CMP_ITAV) *tmp = NULL;
@@ -499,7 +509,7 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *req,
     }
     if (srv_ctx->sendError) {
         if ((*rsp = OSSL_CMP_error_new(ctx, srv_ctx->pkiStatusOut, -1, NULL,
-                                  srv_ctx->sendUnprotectedErrors)))
+                                       srv_ctx->sendUnprotectedErrors)))
             return 1;
         CMPerr(CMP_F_PROCESS_REQUEST, CMP_R_ERROR_CREATING_ERROR);
         return 0;
@@ -551,7 +561,7 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *req,
  * returns 0 on success and else a CMP error reason code defined in cmp.h
  */
 int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
-                            OSSL_CMP_MSG **rsp)
+                                 OSSL_CMP_MSG **rsp)
 {
     OSSL_CMP_MSG *srv_req = NULL, *srv_rsp = NULL;
     OSSL_CMP_SRV_CTX *srv_ctx = NULL;
@@ -578,10 +588,10 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
                                      1 << OSSL_CMP_PKIFAILUREINFO_badRequest,
                                      NULL))) {
             srv_rsp = OSSL_CMP_error_new(cmp_ctx, si,
-                                    err != 0 ? ERR_GET_REASON(err): -1,
-                                    CMP_PKIFREETEXT_push_str(NULL,
+                                         err != 0 ? ERR_GET_REASON(err): -1,
+                                         CMP_PKIFREETEXT_push_str(NULL,
                                             flags&ERR_TXT_STRING ? data : NULL),
-                                    srv_ctx->sendUnprotectedErrors);
+                                         srv_ctx->sendUnprotectedErrors);
             OSSL_CMP_PKISI_free(si);
         } else {
             error = CMP_R_ERROR_PROCESSING_MSG;

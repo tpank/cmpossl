@@ -145,7 +145,8 @@ typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
  * 1: success and then provides the received message via the *resp argument
  */
 static int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
-                    OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp, time_t max_time)
+                    OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp,
+                    time_t max_time)
 {
     int rv = -4, rc, sending = 1;
     int blocking = max_time == 0;
@@ -361,7 +362,7 @@ static int CMP_sendreq(BIO *bio, const char *path, const OSSL_CMP_MSG *req,
  * returns 0 on success, else a CMP error reason code defined in cmp.h
  */
 int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
-                                OSSL_CMP_MSG **res)
+                              OSSL_CMP_MSG **res)
 {
     int rv;
     char *path = NULL;
@@ -452,7 +453,8 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 /* TODO DvO push that upstream as a separate PR #crls_timeout_local */
 /* adapted from apps/apps.c to include connection timeout */
 int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
-                                   X509 **pcert, X509_CRL **pcrl, BIO *bio_err)
+                                        X509 **pcert, X509_CRL **pcrl,
+                                        BIO *bio_err)
 {
     char *host = NULL;
     char *port = NULL;

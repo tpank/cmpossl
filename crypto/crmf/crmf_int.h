@@ -153,8 +153,8 @@ struct OSSL_crmf_pkiarchiveoptions_st {
     } value;
 } /* OSSL_CRMF_PKIARCHIVEOPTIONS */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIARCHIVEOPTIONS)
-OSSL_CRMF_PKIARCHIVEOPTIONS *OSSL_CRMF_PKIARCHIVEOPTIONS_dup(OSSL_CRMF_PKIARCHIVEOPTIONS
-                                                   *pkiPubInfo);
+OSSL_CRMF_PKIARCHIVEOPTIONS *OSSL_CRMF_PKIARCHIVEOPTIONS_dup(
+                                       OSSL_CRMF_PKIARCHIVEOPTIONS *pkiPubInfo);
 
 /*
  * SinglePubInfo ::= SEQUENCE {
@@ -188,7 +188,7 @@ struct OSSL_crmf_pkipublicationinfo_st {
 } /* OSSL_CRMF_PKIPUBLICATIONINFO */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIPUBLICATIONINFO)
 OSSL_CRMF_PKIPUBLICATIONINFO *OSSL_CRMF_PKIPUBLICATIONINFO_dup(
-                                           OSSL_CRMF_PKIPUBLICATIONINFO *pkiPubInfo);
+                                      OSSL_CRMF_PKIPUBLICATIONINFO *pkiPubInfo);
 
 /*
  * PKMACValue ::= SEQUENCE {
@@ -261,7 +261,7 @@ struct OSSL_crmf_pbmparameter_st {
     X509_ALGOR *mac;
 } /* OSSL_CRMF_PBMPARAMETER */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PBMPARAMETER)
-#define OSSL_CRMF_PBM_MAX_ITERATION_COUNT 100000 /* manipulated cnt leads to DoS */
+#define OSSL_CRMF_PBM_MAX_ITERATION_COUNT 100000 /* if too large allows DoS */
 
 /*
  * POPOSigningKeyInput ::= SEQUENCE {
@@ -418,7 +418,7 @@ struct OSSL_crmf_attributetypeandvalue_st {
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ATTRIBUTETYPEANDVALUE)
 DEFINE_STACK_OF(OSSL_CRMF_ATTRIBUTETYPEANDVALUE)
 OSSL_CRMF_ATTRIBUTETYPEANDVALUE *OSSL_CRMF_ATTRIBUTETYPEANDVALUE_dup(
-                                              OSSL_CRMF_ATTRIBUTETYPEANDVALUE *atav);
+                                         OSSL_CRMF_ATTRIBUTETYPEANDVALUE *atav);
 
 /*
  * CertReqMessages ::= SEQUENCE SIZE (1..MAX) OF CertReqMsg

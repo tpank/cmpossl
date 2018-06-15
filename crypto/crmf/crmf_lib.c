@@ -39,23 +39,23 @@
  * ctrlinf = "regCtrl" or "regInfo"
  */
 #define IMPLEMENT_CRMF_CTRL_FUNC(atyp, valt, ctrlinf)                     \
-int OSSL_CRMF_MSG_set1_##ctrlinf##_##atyp(OSSL_CRMF_MSG *msg,         \
+int OSSL_CRMF_MSG_set1_##ctrlinf##_##atyp(OSSL_CRMF_MSG *msg,             \
                                          valt *in)                        \
 {                                                                         \
-    OSSL_CRMF_ATTRIBUTETYPEANDVALUE *atav = NULL;                              \
+    OSSL_CRMF_ATTRIBUTETYPEANDVALUE *atav = NULL;                         \
     if (msg == NULL || in  == NULL)                                       \
         goto err;                                                         \
-    if ((atav = OSSL_CRMF_ATTRIBUTETYPEANDVALUE_new()) == NULL)                \
+    if ((atav = OSSL_CRMF_ATTRIBUTETYPEANDVALUE_new()) == NULL)           \
         goto err;                                                         \
     if ((atav->type = OBJ_nid2obj(NID_id_##ctrlinf##_##atyp)) == NULL)    \
         goto err;                                                         \
     if ((atav->value.atyp = valt##_dup(in)) == NULL)                      \
         goto err;                                                         \
-    if (!OSSL_CRMF_MSG_push0_##ctrlinf(msg, atav))                      \
+    if (!OSSL_CRMF_MSG_push0_##ctrlinf(msg, atav))                        \
         goto err;                                                         \
     return 1;                                                             \
  err:                                                                     \
-    if (atav) OSSL_CRMF_ATTRIBUTETYPEANDVALUE_free(atav);                      \
+    if (atav) OSSL_CRMF_ATTRIBUTETYPEANDVALUE_free(atav);                 \
     return 0;                                                             \
 }
 
@@ -66,7 +66,7 @@ int OSSL_CRMF_MSG_set1_##ctrlinf##_##atyp(OSSL_CRMF_MSG *msg,         \
  * returns 1 on success, 0 on error
  */
 static int OSSL_CRMF_MSG_push0_regCtrl(OSSL_CRMF_MSG *crm,
-        OSSL_CRMF_ATTRIBUTETYPEANDVALUE *ctrl)
+                                       OSSL_CRMF_ATTRIBUTETYPEANDVALUE *ctrl)
 {
     int new = 0;
 
@@ -75,7 +75,7 @@ static int OSSL_CRMF_MSG_push0_regCtrl(OSSL_CRMF_MSG *crm,
 
     if (!(crm->certReq->controls)) {
         if (!(crm->certReq->controls =
-                                      sk_OSSL_CRMF_ATTRIBUTETYPEANDVALUE_new_null()))
+              sk_OSSL_CRMF_ATTRIBUTETYPEANDVALUE_new_null()))
             goto err;
         new = 1;
     }
@@ -101,10 +101,12 @@ IMPLEMENT_CRMF_CTRL_FUNC(regToken, ASN1_STRING, regCtrl)
 IMPLEMENT_CRMF_CTRL_FUNC(authenticator, ASN1_UTF8STRING, regCtrl)
 
  /* id-regCtrl-pkiPublicationInfo Control (section 6.3) */
-IMPLEMENT_CRMF_CTRL_FUNC(pkiPublicationInfo, OSSL_CRMF_PKIPUBLICATIONINFO, regCtrl)
+IMPLEMENT_CRMF_CTRL_FUNC(pkiPublicationInfo, OSSL_CRMF_PKIPUBLICATIONINFO,
+                         regCtrl)
 
  /* id-regCtrl-pkiArchiveOptions Control (section 6.4) */
-IMPLEMENT_CRMF_CTRL_FUNC(pkiArchiveOptions, OSSL_CRMF_PKIARCHIVEOPTIONS, regCtrl)
+IMPLEMENT_CRMF_CTRL_FUNC(pkiArchiveOptions, OSSL_CRMF_PKIARCHIVEOPTIONS,
+                         regCtrl)
 
  /* id-regCtrl-oldCertID Control (section 6.5) from the given */
 IMPLEMENT_CRMF_CTRL_FUNC(oldCertID, OSSL_CRMF_CERTID, regCtrl)
@@ -153,7 +155,7 @@ IMPLEMENT_CRMF_CTRL_FUNC(protocolEncrKey, X509_PUBKEY, regCtrl)
  * returns 1 on success, 0 on error
  */
 static int OSSL_CRMF_MSG_push0_regInfo(OSSL_CRMF_MSG *crm,
-                                  OSSL_CRMF_ATTRIBUTETYPEANDVALUE *ri)
+                                       OSSL_CRMF_ATTRIBUTETYPEANDVALUE *ri)
 {
     int new = 0;
 
@@ -161,7 +163,8 @@ static int OSSL_CRMF_MSG_push0_regInfo(OSSL_CRMF_MSG *crm,
         goto err;
 
     if ((crm->regInfo) == NULL) {
-        if ((crm->regInfo = sk_OSSL_CRMF_ATTRIBUTETYPEANDVALUE_new_null()) == NULL)
+        if ((crm->regInfo =
+             sk_OSSL_CRMF_ATTRIBUTETYPEANDVALUE_new_null()) == NULL)
             goto err;
         new = 1;
     }
@@ -261,7 +264,7 @@ long OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm)
 
 
 int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm,
-                                     X509_EXTENSIONS *exts)
+                                  X509_EXTENSIONS *exts)
 {
     OSSL_CRMF_CERTTEMPLATE *tmpl = OSSL_CRMF_MSG_get_tmpl(crm);
     if (tmpl == NULL)
@@ -281,7 +284,7 @@ err:
 
 
 int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm,
-                                    const X509_EXTENSION *ext)
+                                  const X509_EXTENSION *ext)
 {
     int new = 0;
     OSSL_CRMF_CERTTEMPLATE *tmpl = OSSL_CRMF_MSG_get_tmpl(crm);
@@ -313,7 +316,8 @@ int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm,
  * returns pointer to created OSSL_CRMF_POPOSIGNINGKEY on success, NULL on error
  */
 static OSSL_CRMF_POPOSIGNINGKEY *CRMF_poposigkey_new(OSSL_CRMF_CERTREQUEST *cr,
-                                                 const EVP_PKEY *pkey, int dgst)
+                                                     const EVP_PKEY *pkey,
+                                                     int dgst)
 {
     OSSL_CRMF_POPOSIGNINGKEY *ps = NULL;
     int l;
@@ -387,7 +391,7 @@ static OSSL_CRMF_POPOSIGNINGKEY *CRMF_poposigkey_new(OSSL_CRMF_CERTREQUEST *cr,
 
 
 int OSSL_CRMF_MSG_create_popo(OSSL_CRMF_MSG *crm, const EVP_PKEY *pkey,
-                                int dgst, int ppmtd)
+                              int dgst, int ppmtd)
 {
     OSSL_CRMF_POPO *pp = NULL;
 
@@ -463,7 +467,7 @@ static int CMP_X509_PUBKEY_cmp(X509_PUBKEY *a, X509_PUBKEY *b)
 }
 
 int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
-                                          long rid, int acceptRAVerified)
+                               long rid, int acceptRAVerified)
 {
     OSSL_CRMF_MSG *req = NULL;
     X509_PUBKEY *pubkey = NULL;
@@ -577,7 +581,7 @@ int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
  * returns NULL on error or if no certificate available
  */
 X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
-                                       EVP_PKEY *pkey)
+                                            EVP_PKEY *pkey)
 {
     X509 *cert = NULL; /* decrypted certificate */
     EVP_CIPHER_CTX *evp_ctx = NULL; /* context for symmetric encryption */

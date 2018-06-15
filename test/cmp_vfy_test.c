@@ -102,7 +102,8 @@ static int test_cmp_validate_msg_mac_alg_protection_bad(void)
     fixture->expected = 0;
 
     if (!TEST_true
-        (OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, sec_bad, sizeof(sec_bad)))
+        (OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, sec_bad,
+                                       sizeof(sec_bad)))
         || !TEST_ptr(fixture->msg =
                      load_pkimsg("../cmp-test/CMP_IP_waitingStatus_PBM.der"))) {
         tear_down(fixture);
@@ -154,8 +155,8 @@ static int test_cmp_validate_msg_signature_expected_sender(void)
                   load_pkimsg("../cmp-test/CMP_IR_protected.der")) ||
         !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert)) ||
         /* Set wrong expected sender name*/
-        !TEST_true(OSSL_CMP_CTX_set1_expected_sender(
-                fixture->cmp_ctx, X509_get_subject_name(srvcert)))) {
+        !TEST_true(OSSL_CMP_CTX_set1_expected_sender(fixture->cmp_ctx,
+                                             X509_get_subject_name(srvcert)))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -173,8 +174,8 @@ static int test_cmp_validate_msg_signature_unexpected_sender(void)
                   load_pkimsg("../cmp-test/CMP_IR_protected.der")) ||
         !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert)) ||
         /* Set wrong expected sender name*/
-        !TEST_true(OSSL_CMP_CTX_set1_expected_sender(
-                fixture->cmp_ctx, X509_get_subject_name(root)))) {
+        !TEST_true(OSSL_CMP_CTX_set1_expected_sender(fixture->cmp_ctx,
+                                                X509_get_subject_name(root)))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -227,7 +228,8 @@ static int test_cmp_validate_cert_path_no_anchor(void)
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->cert = endentity2;
     fixture->expected = 0;
-    if (!TEST_ptr(untrusted = OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx)) ||
+    if (!TEST_ptr(untrusted =
+                  OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx)) ||
         !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1)) ||
         !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate)) ||
         !TEST_true(trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx)) ||
@@ -251,7 +253,8 @@ static int test_cmp_validate_cert_path_expired(void)
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->cert = endentity2;
     fixture->expected = 0;
-    if (!TEST_ptr(untrusted = OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx)) ||
+    if (!TEST_ptr(untrusted =
+                  OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx)) ||
         !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1)) ||
         !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate)) ||
         !TEST_true(trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx)) ||

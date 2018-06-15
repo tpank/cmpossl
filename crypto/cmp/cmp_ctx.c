@@ -108,12 +108,13 @@ STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(OSSL_CMP_CTX *ctx)
  * authentication.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx, const STACK_OF(X509) *certs)
+int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
+                                      const STACK_OF(X509) *certs)
 {
     if (ctx->untrusted_certs)
         sk_X509_pop_free(ctx->untrusted_certs, X509_free);
     ctx->untrusted_certs = sk_X509_new_null();
-    return OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, certs, 0, 1/*no dups*/);
+    return OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, certs, 0, 1);
 }
 
 /*
@@ -168,7 +169,7 @@ int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
     ctx->serverName = NULL;
     ctx->serverPort = 8080;
     /* serverPath must be an empty string if not set since it's not mandatory */
-    ctx->serverPath = OPENSSL_zalloc(1); /* will be freed by OSSL_CMP_CTX_delete() */
+    ctx->serverPath = OPENSSL_zalloc(1); /* freed by OSSL_CMP_CTX_delete() */
     if (ctx->serverPath == NULL)
         goto err;
     ctx->proxyName = NULL;
@@ -318,8 +319,8 @@ int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
  * user name) when using PBMAC.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx, const unsigned char *ref,
-                                size_t len)
+int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
+                                     const unsigned char *ref, size_t len)
 {
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_REFERENCEVALUE, CMP_R_INVALID_ARGS);
@@ -333,7 +334,7 @@ int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx, const unsigned char *ref
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
-                             const size_t len)
+                                  const size_t len)
 {
     if (ctx == NULL){
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SECRETVALUE, CMP_R_NULL_ARGUMENT);
@@ -398,7 +399,7 @@ int OSSL_CMP_CTX_extraCertsIn_num(OSSL_CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
-                              STACK_OF(X509) *extraCertsIn)
+                                   STACK_OF(X509) *extraCertsIn)
 {
     if (ctx == NULL)
         goto err;
@@ -465,7 +466,7 @@ int OSSL_CMP_CTX_extraCertsOut_num(OSSL_CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_extraCertsOut(OSSL_CMP_CTX *ctx,
-                               STACK_OF(X509) *extraCertsOut)
+                                    STACK_OF(X509) *extraCertsOut)
 {
     if (ctx == NULL)
         goto err;
@@ -787,7 +788,8 @@ int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx)
  * request's extensions field to request subject alternative names.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx, const GENERAL_NAME *name)
+int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
+                                      const GENERAL_NAME *name)
 {
     if (ctx == NULL || name == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, CMP_R_NULL_ARGUMENT);
@@ -795,7 +797,8 @@ int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx, const GENERAL_NAME *nam
     }
 
     if (OSSL_CMP_CTX_reqExtensions_have_SAN(ctx)) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, CMP_R_MULTIPLE_SAN_SOURCES);
+        CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1,
+               CMP_R_MULTIPLE_SAN_SOURCES);
         goto err;
     }
 
@@ -1030,7 +1033,8 @@ int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
  * sets the given transactionID to the context
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx, const ASN1_OCTET_STRING *id)
+int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
+                                    const ASN1_OCTET_STRING *id)
 {
     if (ctx == NULL)
         goto err;
@@ -1055,7 +1059,8 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(OSSL_CMP_CTX *ctx)
  * created.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce)
+int OSSL_CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
+                                 const ASN1_OCTET_STRING *nonce)
 {
     if (ctx == NULL)
         goto err;
@@ -1082,7 +1087,8 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(OSSL_CMP_CTX *ctx)
  * stores the given nonce as the last senderNonce sent out
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx, const ASN1_OCTET_STRING *nonce)
+int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
+                                       const ASN1_OCTET_STRING *nonce)
 {
     if (ctx == NULL || nonce == NULL)
         goto err;
@@ -1309,7 +1315,8 @@ int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
  * OSSL_CMP_PKIFAILUREINFO structure, which is allowed to be NULL
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFAILUREINFO *failInfo)
+int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
+                                  OSSL_CMP_PKIFAILUREINFO *failInfo)
 {
     int i;
 
@@ -1486,15 +1493,16 @@ int OSSL_CMP_puts(const char *file, int lineno,
 
 /*
  * Function used for outputting error/warn/debug messages depending on callback.
- * By default or if the callback is set NULL the function OSSL_CMP_puts() is used.
+ * By default or if the callback is NULL the function OSSL_CMP_puts() is used.
  */
 int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
-               OSSL_CMP_severity level, const char *fmt, ...)
+                    OSSL_CMP_severity level, const char *fmt, ...)
 {
     va_list arg_ptr;
     char buf[1024];
     int res;
-    OSSL_cmp_log_cb_t log_fn = ctx == NULL || !ctx->log_cb ? OSSL_CMP_puts : ctx->log_cb;
+    OSSL_cmp_log_cb_t log_fn = ctx == NULL ||
+                               !ctx->log_cb ? OSSL_CMP_puts : ctx->log_cb;
 
     va_start(arg_ptr, fmt);
     BIO_vsnprintf(buf, sizeof(buf), fmt, arg_ptr);
@@ -1529,7 +1537,8 @@ int CMP_log_printf(const char *file, int line,
  */
 int CMP_CTX_error_cb(const char *str, size_t len, void *u) {
     OSSL_CMP_CTX *ctx = (OSSL_CMP_CTX *)u;
-    OSSL_cmp_log_cb_t log_fn = ctx == NULL || !ctx->log_cb ? OSSL_CMP_puts : ctx->log_cb;
+    OSSL_cmp_log_cb_t log_fn = ctx == NULL ||
+                               !ctx->log_cb ? OSSL_CMP_puts : ctx->log_cb;
     while (*str && *str != ':') /* skip pid */
         str++;
     if (*str) /* skip ':' */

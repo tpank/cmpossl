@@ -149,7 +149,8 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype)
         return msg;
 
     case OSSL_CMP_PKIBODY_CERTCONF:
-        if ((msg->body->value.certConf = sk_OSSL_CMP_CERTSTATUS_new_null()) == NULL)
+        if ((msg->body->value.certConf =
+             sk_OSSL_CMP_CERTSTATUS_new_null()) == NULL)
             goto oom;
         return msg;
     case OSSL_CMP_PKIBODY_PKICONF:
@@ -209,7 +210,8 @@ static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin /* may be NULL */)
 
 #define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 || \
                       OSSL_CMP_CTX_reqExtensions_have_SAN(ctx))
-static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert, int bodytype) {
+static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
+                                 int bodytype) {
     if (ctx->subjectName) {
         return ctx->subjectName;
     }
@@ -228,7 +230,7 @@ static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert, int bodytype)
  * returns a pointer to the OSSL_CRMF_MSG on success, NULL on error
  */
 static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
-                                     long rid, EVP_PKEY *rkey)
+                              long rid, EVP_PKEY *rkey)
 {
     OSSL_CRMF_MSG *crm = NULL;
     X509 *refcert = ctx->oldClCert ? ctx->oldClCert : ctx->clCert;
@@ -309,21 +311,21 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
  * Create certificate request PKIMessage for IR/CR/KUR/P10CR
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype, int err_code)
+OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CRMF_MSG *crm = NULL;
 
     if (ctx == NULL ||
-        (bodytype != OSSL_CMP_PKIBODY_P10CR && ctx->pkey == NULL &&
+        (type != OSSL_CMP_PKIBODY_P10CR && ctx->pkey == NULL &&
          ctx->newPkey == NULL) ||
-         (bodytype != OSSL_CMP_PKIBODY_IR && bodytype != OSSL_CMP_PKIBODY_CR &&
-          bodytype != OSSL_CMP_PKIBODY_KUR && bodytype != OSSL_CMP_PKIBODY_P10CR)) {
+         (type != OSSL_CMP_PKIBODY_IR && type != OSSL_CMP_PKIBODY_CR &&
+          type != OSSL_CMP_PKIBODY_KUR && type != OSSL_CMP_PKIBODY_P10CR)) {
         CMPerr(CMP_F_OSSL_CMP_CERTREQ_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
-    if ((msg = OSSL_CMP_MSG_create(ctx, bodytype)) == NULL)
+    if ((msg = OSSL_CMP_MSG_create(ctx, type)) == NULL)
         goto err;
 
     /* header */
@@ -333,13 +335,13 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype, int err_code
 
     /* body */
     /* For P10CR the content has already been set in OSSL_CMP_MSG_create */
-     if (bodytype != OSSL_CMP_PKIBODY_P10CR) {
+     if (type != OSSL_CMP_PKIBODY_P10CR) {
         EVP_PKEY *rkey = ctx->newPkey ? ctx->newPkey
             : ctx->pkey; /* default is currenty client key */
 
-        if ((crm = crm_new(ctx, bodytype, OSSL_CMP_CERTREQID, rkey)) == NULL ||
+        if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID, rkey)) == NULL ||
             !OSSL_CRMF_MSG_create_popo(crm, rkey, ctx->digest,
-                                         ctx->popoMethod) ||
+                                       ctx->popoMethod) ||
                       /* value.ir is same for cr and kur */
             !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
             goto err;
@@ -364,10 +366,10 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype, int err_code
  * returns a pointer to the PKIMessage on success, NULL on error
  */
 OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
-                                     int certReqId, OSSL_CMP_PKISI *si,
-                                     X509 *cert, STACK_OF(X509) *chain,
-                                     STACK_OF(X509) *caPubs, int encrypted,
-                                     int unprotectedErrors)
+                                   int certReqId, OSSL_CMP_PKISI *si,
+                                   X509 *cert, STACK_OF(X509) *chain,
+                                   STACK_OF(X509) *caPubs, int encrypted,
+                                   int unprotectedErrors)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTREPMESSAGE *repMsg = NULL;
@@ -426,8 +428,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
         goto oom;
 
     if (!(unprotectedErrors &&
-          OSSL_CMP_PKISI_PKIStatus_get(si) ==
-          OSSL_CMP_PKISTATUS_rejection) &&
+          OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection) &&
         !OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
 
@@ -479,7 +480,7 @@ OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int reqId)
  * returns a poll response on success and NULL on error
  */
 OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, long certReqId,
-                                          long pollAfter)
+                                   long pollAfter)
 {
     OSSL_CMP_MSG *msg;
     OSSL_CMP_POLLREP *pollRep;
@@ -488,8 +489,7 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, long certReqId,
         CMPerr(CMP_F_OSSL_CMP_POLLREP_NEW, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
-    if ((msg = OSSL_CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_POLLREP))
-        == NULL)
+    if ((msg = OSSL_CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_POLLREP)) == NULL)
         goto err;
     if ((pollRep = OSSL_CMP_POLLREP_new()) == NULL)
         goto err;
@@ -572,7 +572,7 @@ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
  * Only handles the first given request. Consumes certId.
  */
 OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
-                                     OSSL_CRMF_CERTID *certId, int unprotectedErrors)
+                              OSSL_CRMF_CERTID *certId, int unprotectedErrors)
 {
     OSSL_CMP_REVREPCONTENT *rep = NULL;
     OSSL_CMP_PKISI *si1 = NULL;
@@ -592,8 +592,7 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     certId = NULL;
 
     if (!(unprotectedErrors &&
-          OSSL_CMP_PKISI_PKIStatus_get(si) ==
-          OSSL_CMP_PKISTATUS_rejection) &&
+          OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection) &&
         !OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
     return msg;
@@ -613,7 +612,8 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
  * TODO: handle potential 2nd certificate when signing and encrypting
  * certificates have been requested/received
  */
-OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure, const char *text)
+OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
+                                    const char *text)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTSTATUS *certStatus = NULL;
@@ -647,7 +647,8 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure, const char *
      */
     if (failure >= 0) {
         OSSL_CMP_PKISI *sinfo;
-        sinfo = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection, 1 << failure, text);
+        sinfo = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection,
+                                        1 << failure, text);
         if (sinfo == NULL)
             goto err;
         certStatus->statusInfo = sinfo;
@@ -736,8 +737,9 @@ OSSL_CMP_MSG *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx)
  * returns a pointer to the PKIMessage on success, NULL on error
  */
 OSSL_CMP_MSG *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
-                              int errorCode, OSSL_CMP_PKIFREETEXT *errorDetails,
-                              int unprotected)
+                                 int errorCode,
+                                 OSSL_CMP_PKIFREETEXT *errorDetails,
+                                 int unprotected)
 {
     OSSL_CMP_MSG *msg = NULL;
 

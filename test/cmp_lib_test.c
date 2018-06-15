@@ -85,11 +85,12 @@ static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
         goto err;
     if (fixture->expected) {
         if (!TEST_long_eq(OSSL_CMP_HDR_get_pvno(header), OSSL_CMP_VERSION) ||
-            !TEST_true(0 == ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_senderNonce(header),
-                                                  OSSL_CMP_CTX_get0_last_senderNonce(fixture->cmp_ctx)))
-            || !TEST_true(0 ==
-                          ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),
-                                                OSSL_CMP_CTX_get0_transactionID(fixture->cmp_ctx))))
+            !TEST_true(0 == ASN1_OCTET_STRING_cmp(
+                       OSSL_CMP_HDR_get0_senderNonce(header),
+                       OSSL_CMP_CTX_get0_last_senderNonce(fixture->cmp_ctx))) ||
+            !TEST_true(0 ==  ASN1_OCTET_STRING_cmp(
+                            OSSL_CMP_HDR_get0_transactionID(header),
+                            OSSL_CMP_CTX_get0_transactionID(fixture->cmp_ctx))))
             goto err;
         header_nonce = OSSL_CMP_HDR_get0_recipNonce(header);
         ctx_nonce = OSSL_CMP_CTX_get0_recipNonce(fixture->cmp_ctx);
@@ -130,7 +131,8 @@ static int test_cmp_pkiheader_init_with_subject(void)
     fixture->expected = 1;
     if (!TEST_ptr(subject = X509_NAME_new()) ||
         !TEST_true(X509_NAME_add_entry_by_txt(subject, "CN", V_ASN1_IA5STRING,
-                                              (unsigned char *)"Common Name", -1, -1, -1)) ||
+                                              (unsigned char *)"Common Name",
+                                              -1, -1, -1)) ||
         !TEST_true(OSSL_CMP_CTX_set1_subjectName(fixture->cmp_ctx, subject))) {
         tear_down(fixture);
         fixture = NULL;
@@ -175,11 +177,13 @@ static int execute_check_received_test(CMP_LIB_TEST_FIXTURE *fixture)
         const OSSL_CMP_HDR *header = OSSL_CMP_MSG_get0_header(fixture->msg);
         if (!TEST_int_eq(0,
               ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_senderNonce(header),
-                                    OSSL_CMP_CTX_get0_recipNonce(fixture->cmp_ctx))))
+                                    OSSL_CMP_CTX_get0_recipNonce(fixture->
+                                                                 cmp_ctx))))
             return 0;
         if (!TEST_int_eq(0,
            ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),
-                                 OSSL_CMP_CTX_get0_transactionID(fixture->cmp_ctx))))
+                                 OSSL_CMP_CTX_get0_transactionID(fixture->
+                                                                 cmp_ctx))))
             return 0;
     }
 
@@ -190,7 +194,8 @@ static int execute_cmp_build_cert_chain_test(CMP_LIB_TEST_FIXTURE *fixture)
 {
     STACK_OF(X509) *result = NULL;
     int ret = 0;
-    if (TEST_ptr(result = OSSL_CMP_build_cert_chain(fixture->certs, fixture->cert))) {
+    if (TEST_ptr(result = OSSL_CMP_build_cert_chain(fixture->certs,
+                                                    fixture->cert))) {
         /* Check whether chain built is equal to the expected one */
         ret = TEST_int_eq(0, STACK_OF_X509_cmp(result, fixture->chain));
         sk_X509_pop_free(result, X509_free);
@@ -203,7 +208,7 @@ static int execute_cmp_asn1_octet_string_set_test(CMP_LIB_TEST_FIXTURE *
 {
     if (!TEST_int_eq(fixture->expected,
                      OSSL_CMP_ASN1_OCTET_STRING_set1(&fixture->tgt_string,
-                                                fixture->src_string)))
+                                                     fixture->src_string)))
         return 0;
     if (fixture->expected)
         return TEST_int_eq(0, ASN1_OCTET_STRING_cmp(fixture->tgt_string,
@@ -332,8 +337,8 @@ static int test_cmp_protection_with_msg_sig_alg_protection_plus_rsa_key(void)
          * for each reference and secret value */
         !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, rand_data,
                 size)) ||
-        !TEST_true(OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, rand_data + size,
-                size))) {
+        !TEST_true(OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx,
+                                                 rand_data + size, size))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -503,8 +508,10 @@ static int test_cmp_pkimessage_check_received_wrong_recipient_nonce(void)
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_ptr(snonce = ASN1_OCTET_STRING_new()) ||
-        !TEST_true(ASN1_OCTET_STRING_set(snonce, rand_data, sizeof(rand_data))) ||
-        !TEST_true(OSSL_CMP_CTX_set1_last_senderNonce(fixture->cmp_ctx, snonce))) {
+        !TEST_true(ASN1_OCTET_STRING_set(snonce, rand_data, sizeof(rand_data)))
+        ||
+        !TEST_true(OSSL_CMP_CTX_set1_last_senderNonce(fixture->cmp_ctx,
+                                                      snonce))) {
         tear_down(fixture);
         fixture = NULL;
     }

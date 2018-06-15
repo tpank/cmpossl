@@ -154,8 +154,9 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
  * as any following certConf exchange will likely clear the OpenSSL error queue.
  * Returns 1 on successful validation and 0 otherwise.
  */
-int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx, const X509_STORE *trusted_store,
-                           const X509 *cert, int defer_errors)
+int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
+                                const X509_STORE *trusted_store,
+                                const X509 *cert, int defer_errors)
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
@@ -428,7 +429,8 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
  * returns 0 on error else 1
  */
 static int find_acceptable_certs(STACK_OF(X509) *certs,
-    const OSSL_CMP_MSG *msg, const X509_STORE *ts, STACK_OF(X509) *sk)
+                                 const OSSL_CMP_MSG *msg,
+                                 const X509_STORE *ts, STACK_OF(X509) *sk)
 {
     int i;
 
@@ -466,7 +468,8 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
  * returns NULL on (out of memory) error
  */
 static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
-                    STACK_OF(X509) *untrusted, const OSSL_CMP_MSG *msg)
+                                        STACK_OF(X509) *untrusted,
+                                        const OSSL_CMP_MSG *msg)
 {
     int ret;
     STACK_OF(X509) *trusted, *found_certs;
@@ -507,7 +510,8 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, const X509 *scrt,
     int valid = 0;
     X509_STORE *store = X509_STORE_new();
     if (store && /* store does not include CRLs */
-        OSSL_CMP_X509_STORE_add1_certs(store, msg->extraCerts, 1/* s-sgnd only */)) {
+        OSSL_CMP_X509_STORE_add1_certs(store, msg->extraCerts,
+                                       1/* self-signed only */)) {
         valid = OSSL_CMP_validate_cert_path(ctx, store, scrt, 0);
     }
     if (valid) {
@@ -565,8 +569,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         ctx->validatedSrvCert = NULL;
 
         /* use and store provided extraCerts in ctx also for future use */
-        if (!OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs,
-                        msg->extraCerts, 1/* no self-signed */, 1/* no dups */))
+        if (!OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, msg->extraCerts,
+                                         1/* no self-signed */, 1/* no dups */))
             return NULL;
 
         /* find server cert candidates from any available source */
@@ -656,8 +660,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             case OSSL_CMP_PKIBODY_KUP:
             case OSSL_CMP_PKIBODY_CCP:
                 if (!OSSL_CMP_X509_STORE_add1_certs(ctx->trusted_store,
-                        msg->body->value.ip->caPubs, /* same for cp, kup, ccp */
-                                               0/* allow self-signed or not */))
+                     /* same for cp, kup, ccp */    msg->body->value.ip->caPubs,
+                     /* allow self-signed or not */ 0))
                     break;
             }
             return 1;

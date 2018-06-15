@@ -31,7 +31,7 @@
  * returns pointer to OSSL_CRMF_PBMPARAMETER on success, NULL on error
  */
 OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
-                                 long itercnt, int macnid)
+                                           long itercnt, int macnid)
 {
     OSSL_CRMF_PBMPARAMETER *pbm = NULL;
     unsigned char *salt = NULL;
@@ -122,9 +122,10 @@ OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
  * returns 1 at success, 0 at error
  */
 int OSSL_CRMF_passwordBasedMac_new(const OSSL_CRMF_PBMPARAMETER *pbm,
-                              const unsigned char *msg, size_t msgLen,
-                              const unsigned char *secret, size_t secretLen,
-                              unsigned char **mac, unsigned int *macLen)
+                                   const unsigned char *msg, size_t msgLen,
+                                   const unsigned char *secret,
+                                   size_t secretLen,
+                                   unsigned char **mac, unsigned int *macLen)
 {
     int mac_nid, hmac_md_nid = NID_undef;
     const EVP_MD *m = NULL;
