@@ -74,24 +74,24 @@ static OSSL_CMP_MSG *ir_unprotected, *ir_protected, *insta_unprotected;
 
 static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
 {
-    OSSL_CMP_PKIHEADER *header = NULL;
+    OSSL_CMP_HDR *header = NULL;
     ASN1_OCTET_STRING *header_nonce = NULL;
     ASN1_OCTET_STRING *ctx_nonce = NULL;
     int res = 0;
-    if (!TEST_ptr(header = OSSL_CMP_PKIHEADER_new()))
+    if (!TEST_ptr(header = OSSL_CMP_HDR_new()))
         return 0;
     if (!TEST_int_eq(fixture->expected,
-                     OSSL_CMP_PKIHEADER_init(fixture->cmp_ctx, header)))
+                     OSSL_CMP_HDR_init(fixture->cmp_ctx, header)))
         goto err;
     if (fixture->expected) {
-        if (!TEST_long_eq(OSSL_CMP_PKIHEADER_get_pvno(header), OSSL_CMP_VERSION) ||
-            !TEST_true(0 == ASN1_OCTET_STRING_cmp(OSSL_CMP_PKIHEADER_get0_senderNonce(header),
+        if (!TEST_long_eq(OSSL_CMP_HDR_get_pvno(header), OSSL_CMP_VERSION) ||
+            !TEST_true(0 == ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_senderNonce(header),
                                                   OSSL_CMP_CTX_get0_last_senderNonce(fixture->cmp_ctx)))
             || !TEST_true(0 ==
-                          ASN1_OCTET_STRING_cmp(OSSL_CMP_PKIHEADER_get0_transactionID(header),
+                          ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),
                                                 OSSL_CMP_CTX_get0_transactionID(fixture->cmp_ctx))))
             goto err;
-        header_nonce = OSSL_CMP_PKIHEADER_get0_recipNonce(header);
+        header_nonce = OSSL_CMP_HDR_get0_recipNonce(header);
         ctx_nonce = OSSL_CMP_CTX_get0_recipNonce(fixture->cmp_ctx);
         if (ctx_nonce != NULL &&
             (!TEST_ptr(header_nonce) ||
@@ -104,7 +104,7 @@ static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
     res = 1;
 
  err:
-    OSSL_CMP_PKIHEADER_free(header);
+    OSSL_CMP_HDR_free(header);
     return res;
 }
 
@@ -172,13 +172,13 @@ static int execute_check_received_test(CMP_LIB_TEST_FIXTURE *fixture)
         return 0;
 
     if (fixture->expected >= 0) {
-        const OSSL_CMP_PKIHEADER *header = OSSL_CMP_MSG_get0_header(fixture->msg);
+        const OSSL_CMP_HDR *header = OSSL_CMP_MSG_get0_header(fixture->msg);
         if (!TEST_int_eq(0,
-              ASN1_OCTET_STRING_cmp(OSSL_CMP_PKIHEADER_get0_senderNonce(header),
+              ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_senderNonce(header),
                                     OSSL_CMP_CTX_get0_recipNonce(fixture->cmp_ctx))))
             return 0;
         if (!TEST_int_eq(0,
-           ASN1_OCTET_STRING_cmp(OSSL_CMP_PKIHEADER_get0_transactionID(header),
+           ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),
                                  OSSL_CMP_CTX_get0_transactionID(fixture->cmp_ctx))))
             return 0;
     }

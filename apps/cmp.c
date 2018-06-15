@@ -2090,7 +2090,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx,
                                OSSL_CMP_MSG **res)
 {
     OSSL_CMP_MSG *req_new = NULL;
-    OSSL_CMP_PKIHEADER *hdr;
+    OSSL_CMP_HDR *hdr;
     int ret = CMP_R_ERROR_TRANSFERRING_OUT;
 
     if (req && opt_reqout && !write_PKIMESSAGE(ctx, req, &opt_reqout))
@@ -2109,7 +2109,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx,
            * Insta Demo CA correctly complains: "Transaction id already in use."
            * The following workaround unfortunately requires re-protection.
            */
-            OSSL_CMP_PKIHEADER_set1_transactionID(OSSL_CMP_MSG_get0_header
+            OSSL_CMP_HDR_set1_transactionID(OSSL_CMP_MSG_get0_header
                                              (req_new), NULL);
             OSSL_CMP_MSG_protect((OSSL_CMP_CTX *)ctx, req_new);
 # endif
@@ -2138,9 +2138,9 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx,
     hdr = OSSL_CMP_MSG_get0_header(*res);
     if ((opt_reqin || opt_rspin) &&
         /* need to satisfy nonce and transactionID checks */
-        (!OSSL_CMP_CTX_set1_last_senderNonce(ctx, OSSL_CMP_PKIHEADER_get0_recipNonce(hdr))
+        (!OSSL_CMP_CTX_set1_last_senderNonce(ctx, OSSL_CMP_HDR_get0_recipNonce(hdr))
          || !OSSL_CMP_CTX_set1_transactionID(ctx,
-                                        OSSL_CMP_PKIHEADER_get0_transactionID(hdr))
+                                        OSSL_CMP_HDR_get0_transactionID(hdr))
         ))
         goto err;
 

@@ -109,7 +109,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype)
 
     if ((msg = OSSL_CMP_MSG_new()) == NULL)
         goto oom;
-    if (!OSSL_CMP_PKIHEADER_init(ctx, msg->header) ||
+    if (!OSSL_CMP_HDR_init(ctx, msg->header) ||
         !OSSL_CMP_MSG_set_bodytype(msg, bodytype) ||
         (ctx->geninfo_itavs &&
          !OSSL_CMP_MSG_generalInfo_items_push1(msg, ctx->geninfo_itavs)))

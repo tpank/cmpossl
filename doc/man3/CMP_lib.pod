@@ -11,23 +11,23 @@
   CMP_CERTSTATUS_set_certHash,
   CMP_PKISI_PKIFailureInfo_get,
   CMP_PKISI_PKIFailureInfo_check,
-  CMP_PKIHEADER_generalInfo_item_push0,
+  CMP_HDR_generalInfo_item_push0,
   CMP_MSG_generalInfo_items_push1,
-  CMP_PKIHEADER_new_senderNonce,
-  CMP_PKIHEADER_push0_freeText,
-  CMP_PKIHEADER_push1_freeText,
+  CMP_HDR_new_senderNonce,
+  CMP_HDR_push0_freeText,
+  CMP_HDR_push1_freeText,
   CMP_PKIFREETEXT_push_str,
   CMP_MSG_get0_header,
-  CMP_PKIHEADER_get0_transactionID,
-  CMP_PKIHEADER_get0_senderNonce,
-  CMP_PKIHEADER_get0_recipNonce,
-  CMP_PKIHEADER_init,
-  CMP_PKIHEADER_set1_recipient,
-  CMP_PKIHEADER_set1_sender,
-  CMP_PKIHEADER_set1_senderKID,
-  CMP_PKIHEADER_set1_transactionID,
-  CMP_PKIHEADER_set_messageTime,
-  CMP_PKIHEADER_set_version,
+  CMP_HDR_get0_transactionID,
+  CMP_HDR_get0_senderNonce,
+  CMP_HDR_get0_recipNonce,
+  CMP_HDR_init,
+  CMP_HDR_set1_recipient,
+  CMP_HDR_set1_sender,
+  CMP_HDR_set1_senderKID,
+  CMP_HDR_set1_transactionID,
+  CMP_HDR_set_messageTime,
+  CMP_HDR_set_version,
   CMP_MSG_check_implicitConfirm,
   CMP_MSG_genm_item_push0,
   CMP_MSG_get_bodytype,
@@ -66,23 +66,23 @@
   char *CMP_ERRORMSGCONTENT_PKIStatus_get_string( CMP_ERRORMSGCONTENT *error);
   long CMP_PKISI_PKIFailureInfo_get( CMP_PKISI *si);
   int CMP_PKISI_PKIFailureInfo_check( CMP_PKISI *si, int codeBit);
-  int CMP_PKIHEADER_generalInfo_item_push0(CMP_PKIHEADER *hdr, const CMP_ITAV *itav);
+  int CMP_HDR_generalInfo_item_push0(CMP_HDR *hdr, const CMP_ITAV *itav);
   int CMP_MSG_generalInfo_items_push1(CMP_MSG *msg, STACK_OF(CMP_ITAV) *itavs);
-  int CMP_PKIHEADER_new_senderNonce(CMP_PKIHEADER *hdr);
-  int CMP_PKIHEADER_push0_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
-  int CMP_PKIHEADER_push1_freeText( CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
+  int CMP_HDR_new_senderNonce(CMP_HDR *hdr);
+  int CMP_HDR_push0_freeText( CMP_HDR *hdr, ASN1_UTF8STRING *text);
+  int CMP_HDR_push1_freeText( CMP_HDR *hdr, ASN1_UTF8STRING *text);
   CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(CMP_PKIFREETEXT *ft, const char *text);
-  CMP_PKIHEADER *CMP_MSG_get0_header(const CMP_MSG *msg);
-  ASN1_OCTET_STRING *CMP_PKIHEADER_get0_transactionID(const CMP_PKIHEADER *hdr);
-  ASN1_OCTET_STRING *CMP_PKIHEADER_get0_senderNonce(const CMP_PKIHEADER *hdr);
-  ASN1_OCTET_STRING *CMP_PKIHEADER_get0_recipNonce(const CMP_PKIHEADER *hdr);
-  int CMP_PKIHEADER_init(CMP_CTX *ctx, CMP_PKIHEADER *hdr);
-  int CMP_PKIHEADER_set1_recipient(CMP_PKIHEADER *hdr, const X509_NAME *nm);
-  int CMP_PKIHEADER_set1_sender(CMP_PKIHEADER *hdr, const X509_NAME *nm);
-  int CMP_PKIHEADER_set1_senderKID(CMP_PKIHEADER *hdr, const ASN1_OCTET_STRING *senderKID);
-  int CMP_PKIHEADER_set1_transactionID(CMP_PKIHEADER *hdr, const ASN1_OCTET_STRING *transactionID);
-  int CMP_PKIHEADER_set_messageTime(CMP_PKIHEADER *hdr);
-  int CMP_PKIHEADER_set_version(CMP_PKIHEADER *hdr, int version);
+  CMP_HDR *CMP_MSG_get0_header(const CMP_MSG *msg);
+  ASN1_OCTET_STRING *CMP_HDR_get0_transactionID(const CMP_HDR *hdr);
+  ASN1_OCTET_STRING *CMP_HDR_get0_senderNonce(const CMP_HDR *hdr);
+  ASN1_OCTET_STRING *CMP_HDR_get0_recipNonce(const CMP_HDR *hdr);
+  int CMP_HDR_init(CMP_CTX *ctx, CMP_HDR *hdr);
+  int CMP_HDR_set1_recipient(CMP_HDR *hdr, const X509_NAME *nm);
+  int CMP_HDR_set1_sender(CMP_HDR *hdr, const X509_NAME *nm);
+  int CMP_HDR_set1_senderKID(CMP_HDR *hdr, const ASN1_OCTET_STRING *senderKID);
+  int CMP_HDR_set1_transactionID(CMP_HDR *hdr, const ASN1_OCTET_STRING *transactionID);
+  int CMP_HDR_set_messageTime(CMP_HDR *hdr);
+  int CMP_HDR_set_version(CMP_HDR *hdr, int version);
   int CMP_MSG_check_implicitConfirm(CMP_MSG *msg);
   int CMP_MSG_genm_item_push0(CMP_MSG *msg, const CMP_ITAV *itav);
   int CMP_MSG_genm_items_push1(CMP_MSG *msg, STACK_OF(CMP_ITAV) *itavs);
@@ -155,21 +155,21 @@ of a given PKIStatusInfo, encoded as long integer, or -1 on error.
 CMP_PKISI_PKIFailureInfo_check() checks whether a given bit is set
 within the PKIFailureInfo of a given PKIStatusInfo. Returns -1 on error.
 
-CMP_PKIHEADER_generalInfo_item_push0() adds the given InfoTypeAndValue
+CMP_HDR_generalInfo_item_push0() adds the given InfoTypeAndValue
 item to the hdr->generalInfo stack. Consumes the B<itav> pointer.
 
 CMP_MSG_generalInfo_items_push1() adds a copy of the B<itavs> stack to
 the generalInfo field of PKIheader of the B<msg>. Does not consume the B<itavs>
 pointer.
 
-CMP_PKIHEADER_new_senderNonce() generates a random value for the
+CMP_HDR_new_senderNonce() generates a random value for the
 hdr->senderNonce field, which is used to protect the PKIMessage against
 replay attacks.
 
-CMP_PKIHEADER_push0_freeText() pushes an ASN1_UTF8STRING to
+CMP_HDR_push0_freeText() pushes an ASN1_UTF8STRING to
 hdr->freeText and consumes the given pointer.
 
-CMP_PKIHEADER_push1_freeText() pushes an ASN1_UTF8STRING to
+CMP_HDR_push1_freeText() pushes an ASN1_UTF8STRING to
 hdr->freeText and does not consume the pointer.
 
 CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
@@ -178,32 +178,32 @@ It returns the new/updated freeText. On error it frees ft and returns NULL.
 
 CMP_MSG_get0_header returns the header of the given CMP message.
 
-CMP_PKIHEADER_get0_transactionID returns the transaction ID of the given PKIHeader.
+CMP_HDR_get0_transactionID returns the transaction ID of the given PKIHeader.
 
-CMP_PKIHEADER_get0_senderNonce returns the sender nonce of the given PKIHeader.
+CMP_HDR_get0_senderNonce returns the sender nonce of the given PKIHeader.
 
-CMP_PKIHEADER_get0_recipNonce returns the recipient nonce of the given PKIHeader.
+CMP_HDR_get0_recipNonce returns the recipient nonce of the given PKIHeader.
 
-CMP_PKIHEADER_init() initializes a PKIHeader structure based on the
+CMP_HDR_init() initializes a PKIHeader structure based on the
 values in the given CMP_CTX structure.
 
-CMP_PKIHEADER_set1_recipient() sets the recipient field in the given
+CMP_HDR_set1_recipient() sets the recipient field in the given
 PKIHeader to the given X509 Name value, without consuming the pointer.
 
-CMP_PKIHEADER_set1_sender() sets the sender field in the given PKIHeader
+CMP_HDR_set1_sender() sets the sender field in the given PKIHeader
 to the given X509 Name value, without consuming the pointer.
 
-CMP_PKIHEADER_set1_senderKID() Sets hdr->senderKID to the given
+CMP_HDR_set1_senderKID() Sets hdr->senderKID to the given
 string. In IR this is the reference number issued by the CA. In KUR
 this is set to the public key ID from the previously enrolled certificate.
 
-CMP_PKIHEADER_set1_transactionID() copies the given transactionID to
+CMP_HDR_set1_transactionID() copies the given transactionID to
 hdr->transactionID. If the transactionID parameter is NULL, a new random
 value is generated for it.
 
-CMP_PKIHEADER_set_messageTime() sets the messageTime to the current system time.
+CMP_HDR_set_messageTime() sets the messageTime to the current system time.
 
-CMP_PKIHEADER_set_version() sets hdr->pvno to the given integer.
+CMP_HDR_set_version() sets hdr->pvno to the given integer.
 
 CMP_MSG_check_implicitConfirm() returns 1 if implicitConfirm is
 set in the given PKIMessage, 0 if not.
