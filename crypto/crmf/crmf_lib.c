@@ -40,7 +40,7 @@
  */
 #define IMPLEMENT_CRMF_CTRL_FUNC(atyp, valt, ctrlinf)                     \
 int OSSL_CRMF_MSG_set1_##ctrlinf##_##atyp(OSSL_CRMF_MSG *msg,             \
-                                         valt *in)                        \
+                                          valt *in)                       \
 {                                                                         \
     OSSL_CRMF_ATTRIBUTETYPEANDVALUE *atav = NULL;                         \
     if (msg == NULL || in  == NULL)                                       \
@@ -188,6 +188,7 @@ IMPLEMENT_CRMF_CTRL_FUNC(utf8Pairs, ASN1_UTF8STRING, regInfo)
 IMPLEMENT_CRMF_CTRL_FUNC(certReq, OSSL_CRMF_CERTREQUEST, regInfo)
 
 
+/* retrieves the certificate template of crm */
 OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get_tmpl(const OSSL_CRMF_MSG *crm) {
     if (crm == NULL || crm->certReq == NULL)
         return NULL;
@@ -466,6 +467,7 @@ static int CMP_X509_PUBKEY_cmp(X509_PUBKEY *a, X509_PUBKEY *b)
     return EVP_PKEY_cmp(X509_PUBKEY_get0(a), X509_PUBKEY_get0(b));
 }
 
+/* verifies the Proof-of-Possession of the request with the given rid in reqs */
 int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
                                long rid, int acceptRAVerified)
 {
@@ -537,11 +539,13 @@ This MUST be exactly the same value as is contained in the certificate template.
     return 0;
 }
 
+/* retrieves the serialNumber of the given cert template or NULL on error */
 ASN1_INTEGER *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *tmpl)
 {
     return tmpl ? tmpl->serialNumber : NULL;
 }
 
+/* retrieves the issuer name of the given cert template or NULL on error */
 X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl)
 {
     return tmpl ? tmpl->issuer : NULL;
@@ -575,7 +579,7 @@ int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
 
 /*
  * Decrypts the certificate in the given encryptedValue
- * this is needed for the indirect PoP method as in section 5.2.8.2
+ * this is needed for the indirect PoP method as in RFC 4210 section 5.2.8.2
  *
  * returns a pointer to the decrypted certificate
  * returns NULL on error or if no certificate available

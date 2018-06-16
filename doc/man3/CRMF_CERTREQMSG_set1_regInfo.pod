@@ -1,24 +1,24 @@
 =pod
 
 =head1 NAME
-CRMF_MSG_set1_regInfo_utf8Pairs,
-CRMF_MSG_set1_regInfo_certReq
+OSSL_CRMF_MSG_set1_regInfo_utf8Pairs,
+OSSL_CRMF_MSG_set1_regInfo_certReq
 
 =head1 SYNOPSIS
 
  #include <openssl/crmf.h>
 
- int CRMF_MSG_set1_regInfo_utf8Pairs(CRMF_MSG *msg,
-                                            ASN1_UTF8STRING *utf8pairs);
- int CRMF_MSG_set1_regInfo_certReq(CRMF_MSG *msg,
-                                          CRMF_CERTREQUEST *cr);
+ int OSSL_CRMF_MSG_set1_regInfo_utf8Pairs(OSSL_CRMF_MSG *msg,
+                                          ASN1_UTF8STRING *utf8pairs);
+ int OSSL_CRMF_MSG_set1_regInfo_certReq(OSSL_CRMF_MSG *msg,
+                                        OSSL_CRMF_CERTREQUEST *cr);
 
 =head1 DESCRIPTION
 
-CRMF_MSG_set1_regInfo_utf8Pairs() adds the cutf8Pairs regInfo to the given
+OSSL_CRMF_MSG_set1_regInfo_utf8Pairs() adds the cutf8Pairs regInfo to the given
 B<msg> using the given B<utf8pairs> as value. See RFC4211 section 7.1.
 
-CRMF_MSG_set1_regInfo_certReq() adds the certReq regInfo to the given
+OSSL_CRMF_MSG_set1_regInfo_certReq() adds the certReq regInfo to the given
 B<msg> using the given B<cr> as value. See RFC4211 section 7.2.
 
 =head1 RETURN VALUES

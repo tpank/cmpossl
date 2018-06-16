@@ -75,52 +75,50 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTTEMPLATE)
 
 /* crmf_pbm.c */
 OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
-                                 long itercnt, int macnid);
+                                           long itercnt, int macnid);
 int OSSL_CRMF_passwordBasedMac_new(const OSSL_CRMF_PBMPARAMETER *pbm,
-                              const unsigned char *msg, size_t msgLen,
-                              const unsigned char *secret,
-                              size_t secretLen, unsigned char **mac,
-                              unsigned int *macLen);
+                                   const unsigned char *msg, size_t msgLen,
+                                   const unsigned char *secret,
+                                   size_t secretLen, unsigned char **mac,
+                                   unsigned int *macLen);
 
 /* crmf_lib.c */
 int OSSL_CRMF_MSG_set1_regCtrl_regToken(OSSL_CRMF_MSG *msg,
-                                          ASN1_UTF8STRING *tok);
+                                        ASN1_UTF8STRING *tok);
 int OSSL_CRMF_MSG_set1_regCtrl_authenticator(OSSL_CRMF_MSG *msg,
-                                               ASN1_UTF8STRING *auth);
+                                             ASN1_UTF8STRING *auth);
 int OSSL_CRMF_MSG_set1_regCtrl_pkiPublicationInfo(OSSL_CRMF_MSG *msg,
                                                   OSSL_CRMF_PKIPUBLICATIONINFO *pi);
 int OSSL_CRMF_MSG_set1_regCtrl_pkiArchiveOptions(OSSL_CRMF_MSG *msg,
                                                  OSSL_CRMF_PKIARCHIVEOPTIONS *aos);
 int OSSL_CRMF_MSG_set1_regCtrl_protocolEncrKey(OSSL_CRMF_MSG *msg,
-                                                 X509_PUBKEY *pubkey);
+                                               X509_PUBKEY *pubkey);
 int OSSL_CRMF_MSG_set1_regCtrl_oldCertID(OSSL_CRMF_MSG *crm,
-                                           OSSL_CRMF_CERTID *cid);
+                                         OSSL_CRMF_CERTID *cid);
 OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_gen(const X509_NAME *issuer,
                                        const ASN1_INTEGER *serial);
 
 int OSSL_CRMF_MSG_set1_regInfo_utf8Pairs(OSSL_CRMF_MSG *msg,
-                                           ASN1_UTF8STRING *utf8pairs);
+                                         ASN1_UTF8STRING *utf8pairs);
 int OSSL_CRMF_MSG_set1_regInfo_certReq(OSSL_CRMF_MSG *msg,
-                                         OSSL_CRMF_CERTREQUEST *cr);
+                                       OSSL_CRMF_CERTREQUEST *cr);
 
 int OSSL_CRMF_MSG_set_version2(OSSL_CRMF_MSG *crm);
 int OSSL_CRMF_MSG_set_validity(OSSL_CRMF_MSG *crm, time_t from, time_t to);
 int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, long rid);
 long OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
-int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm,
-                                    X509_EXTENSIONS *exts);
+int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm, X509_EXTENSIONS *exts);
 
-int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm,
-                                    const X509_EXTENSION *ext);
+int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm, const X509_EXTENSION *ext);
 # define OSSL_CRMF_POPO_NONE      -1
 # define OSSL_CRMF_POPO_RAVERIFIED 0
 # define OSSL_CRMF_POPO_SIGNATURE  1
 # define OSSL_CRMF_POPO_KEYENC     2
 # define OSSL_CRMF_POPO_KEYAGREE   3
 int OSSL_CRMF_MSG_create_popo(OSSL_CRMF_MSG *crm, const EVP_PKEY *pkey,
-                                int dgst, int ppmtd);
+                              int dgst, int ppmtd);
 int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
-                                          long rid, int acceptRAVerified);
+                               long rid, int acceptRAVerified);
 OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get_tmpl(const OSSL_CRMF_MSG *crm);
 ASN1_INTEGER *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *t);
 X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl);
@@ -130,7 +128,7 @@ int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
                                 const X509_NAME *issuer,
                                 const ASN1_INTEGER *serial);
 X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
-                                       EVP_PKEY *pkey);
+                                            EVP_PKEY *pkey);
 
 # ifdef __cplusplus
 }
