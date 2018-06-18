@@ -336,9 +336,9 @@ static void add_name_mismatch_data(const char *error_prefix,
     char *expected = X509_NAME_oneline(expected_name, NULL, 0);
     char *actual = actual_name ? X509_NAME_oneline(actual_name, NULL, 0)
                                : "(none)";
-    ERR_add_error_data(5, error_prefix,
-                       "\n   actual = ", actual,
-                       "\n expected = ", expected);
+    CMP_add_error_txt("", error_prefix);
+    CMP_add_error_txt("\n   actual = ", actual);
+    CMP_add_error_txt("\n expected = ", expected);
     OPENSSL_free(expected);
     OPENSSL_free(actual);
 }
@@ -560,7 +560,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         char *sname = X509_NAME_oneline(sender->d.directoryName, NULL, 0);
         (void)ERR_set_mark();
         CMPerr(CMP_F_FIND_SRVCERT, CMP_R_NO_VALID_SERVER_CERT_FOUND);
-        ERR_add_error_data(2, "\ntrying to match msg sender name = ", sname);
+        CMP_add_error_txt("\ntrying to match msg sender name = ", sname);
         OPENSSL_free(sname);
 
         /* release any cached cert, which is no more acceptable */
