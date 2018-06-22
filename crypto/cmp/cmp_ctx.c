@@ -81,12 +81,11 @@ X509_STORE *OSSL_CMP_CTX_get0_trustedStore(OSSL_CMP_CTX *ctx)
 /*
  * Set certificate store containing trusted (root) CA certs and possibly CRLs
  * and a cert verification callback function used for CMP server authentication.
+ * Any already existing store entry is freed. Given NULL, the entry is cleared.
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store)
 {
-    if (store == NULL)
-        return 0;
     if (ctx->trusted_store)
         X509_STORE_free(ctx->trusted_store);
     ctx->trusted_store = store;
@@ -772,6 +771,22 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
 
  err:
     return 0;
+}
+
+/*
+ * sets the X.509v3 certificate request extensions to be used in IR/CR/KUR
+ * returns 1 on success, 0 on error
+ */
+int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
+{
+    int res;
+    X509_EXTENSIONS *exts_copy = CMP_exts_dup((X509_EXTENSIONS *)exts);
+    if (exts_copy == NULL)
+        return 0;
+    res = OSSL_CMP_CTX_set0_reqExtensions(ctx, exts_copy);
+    if (res == 0)
+        sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
+    return res;
 }
 
 /* returns 1 if ctx contains a Subject Alternative Name extension, else 0 */

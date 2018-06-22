@@ -190,7 +190,7 @@ err:
     return NULL;
 }
 
-static X509_EXTENSIONS *exts_dup(X509_EXTENSIONS *extin /* may be NULL */)
+X509_EXTENSIONS *CMP_exts_dup(X509_EXTENSIONS *extin /* may be NULL */)
 {
     X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
     if (exts == NULL)
@@ -267,7 +267,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         default_sans = X509V3_get_d2i(X509_get0_extensions(refcert),
                                       NID_subject_alt_name, NULL, NULL);
     /* exts are copied from ctx to allow reuse */
-    if ((exts = exts_dup(ctx->reqExtensions)) == NULL ||
+    if ((exts = CMP_exts_dup(ctx->reqExtensions)) == NULL ||
         (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 &&
          !add_subjectaltnames_extension(&exts, ctx->subjectAltNames, crit)) ||
         (!HAS_SAN(ctx) && default_sans != NULL &&

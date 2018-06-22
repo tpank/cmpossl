@@ -690,6 +690,9 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  * functions
  */
 
+/* from cmp_msg.c */
+X509_EXTENSIONS *CMP_exts_dup(X509_EXTENSIONS *extin);
+
 /* from cmp_lib.c */
 void CMP_add_error_txt(const char *separator, const char *txt);
 # define CMP_add_error_data(txt) CMP_add_error_txt(":", txt)
