@@ -3272,7 +3272,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_POLICIES_CRITICAL, 1);
     }
 
-    if (opt_popo < OSSL_CRMF_POPO_NONE || opt_popo > OSSL_CRMF_POPO_KEYENC) {
+    if (opt_popo < OSSL_CRMF_POPO_NONE - 1 || opt_popo > OSSL_CRMF_POPO_KEYENC) {
         OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
                         "invalid value '%d' for popo method (must be between -1 and 2)",
                         opt_popo);
