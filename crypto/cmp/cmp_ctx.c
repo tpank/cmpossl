@@ -354,7 +354,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(OSSL_CMP_CTX *ctx)
     if (ctx == NULL)
         goto err;
     if (ctx->extraCertsIn == NULL)
-        return NULL;
+        return sk_X509_new_null();
     return X509_chain_up_ref(ctx->extraCertsIn);
  err:
     CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSIN_GET1, CMP_R_INVALID_ARGS);
