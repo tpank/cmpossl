@@ -1045,6 +1045,14 @@ int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
 }
 
 /*
+ * gets the newPkey from the context, or NULL on error
+ */
+EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx)
+{
+    return ctx == NULL ? NULL : ctx->newPkey;
+}
+
+/*
  * sets the given transactionID to the context
  * returns 1 on success, 0 on error
  */
