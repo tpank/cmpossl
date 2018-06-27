@@ -444,6 +444,8 @@ int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
                                 const X509_STORE *trusted_store,
                                 const X509 *cert, int defer_errors);
 int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
+int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int failure,
+                         const char **text);
 
 /*
  * from cmp_http.c

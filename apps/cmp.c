@@ -2220,7 +2220,7 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
              * Unfortunately there is no OpenSSL API function for retrieving the
              * hosts/ip entries in X509_VERIFY_PARAM. So we use ts->ex_data.
              * This works for names we set ourselves but not verify_hostname
-             * used for CertConf_cb.
+             * used for OSSL_CMP_certConf_cb.
              */
             expected = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
             if (expected != NULL)
@@ -2232,48 +2232,6 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
         }
     }
     return OSSL_CMP_print_cert_verify_cb(ok, ctx); /* print diagnostics */
-}
-
-/*-
- * callback validating that the new certificate can be verified, using
- * ctx->certConf_cb_arg, which has been initialized using opt_out_trusted, and
- * ctx->untrusted_certs, which at this point already contains ctx->extraCertsIn.
- * Returns -1 on acceptance, else a OSSL_CMP_PKIFAILUREINFO bit number.
- * Quoting from RFC 4210 section 5.1. Overall PKI Message:
- *     The extraCerts field can contain certificates that may be useful to
- *     the recipient.  For example, this can be used by a CA or RA to
- *     present an end entity with certificates that it needs to verify its
- *     own new certificate (if, for example, the CA that issued the end
- *     entity's certificate is not a root CA for the end entity).  Note that
- *     this field does not necessarily contain a certification path; the
- *     recipient may have to sort, select from, or otherwise process the
- *     extra certificates in order to use them.
- * Note: While often handy, there is no hard requirement by CMP that
- * an EE must be able to validate the certificates it gets enrolled.
- */
-static int certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int failure,
-                       const char **text)
-{
-    X509_STORE *out_trusted = OSSL_CMP_CTX_get_certConf_cb_arg(ctx);
-    text++; /* make (artificial) use of 'text' to prevent compiler warning */
-
-    if (failure >= 0) /* accept any error flagged by CMP core library */
-        return failure;
-
-    /* TODO: load caPubs [OSSL_CMP_CTX_caPubs_get1(ctx)] as additional trusted
-       certs during IR and if MSG_SIG_ALG is used, cf. RFC 4210, 5.3.2 */
-
-    if (out_trusted && !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))
-        failure = OSSL_CMP_PKIFAILUREINFO_incorrectData;
-
-    if (failure >= 0) {
-        char *str = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
-        OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
-                        "failed to validate newly enrolled certificate with subject: %s",
-                        str);
-        OPENSSL_free(str);
-    }
-    return failure;
 }
 
 /*!*****************************************************************************
@@ -2869,7 +2827,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
     if (opt_unprotectedErrors)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
 
-    if (opt_out_trusted) { /* in preparation for use in certConf_cb() */
+    if (opt_out_trusted) { /* in preparation for use in OSSL_CMP_certConf_cb() */
         X509_STORE *out_trusted;
         if (!(out_trusted = load_certstore(opt_out_trusted,
                             "trusted certs for verifying newly enrolled cert")))
@@ -2887,7 +2845,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
     if (opt_implicitConfirm)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_IMPLICITCONFIRM, 1);
 
-    (void)OSSL_CMP_CTX_set_certConf_cb(ctx, certConf_cb);
+    (void)OSSL_CMP_CTX_set_certConf_cb(ctx, OSSL_CMP_certConf_cb);
 
     return 1;
 
