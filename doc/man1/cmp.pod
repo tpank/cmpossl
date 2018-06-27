@@ -514,8 +514,8 @@ Flag the policies given with B<-policies> as critical.
 
 =item B<-popo number>
 
-Set Proof-of-Possession (POPO) method; values: C<0>..<3> where
-C<0> = NONE, C<1> = SIGNATURE (default), C<2> = ENCRCERT, C<3> = RAVERIFIED.
+Set Proof-of-Possession (POPO) method; values: C<-1>..<2> where
+C<-1> = NONE, C<0> = RAVERIFIED, C<1> = SIGNATURE (default), C<2> = KEYENC.
 
 =item B<-csr filename>
 
