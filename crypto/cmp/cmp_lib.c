@@ -795,7 +795,7 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
  * In any case all the certificates explicitly specified to be sent out
  * (i.e., ctx->extraCertsOut) are added.
  *
- * Note: it will NOT add the trust anchor (unless its part of extraCertsOut).
+ * Note: it will NOT add the trust anchor (unless it is part of extraCertsOut).
  *
  * returns 1 on success, 0 on error
  */

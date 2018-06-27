@@ -377,9 +377,9 @@ verification callback function used for CMP server authentication.
 CMP_CTX_get0_trustedStore() returns a pointer to the certificate store
 containing trusted root CA certificates. NULL on error.
 
-CMP_CTX_set1_untrusted_certs() takes over a list of certificates
-containing non-trusted intermediate certificates used for path construction
-in CMP server authentication.
+CMP_CTX_set1_untrusted_certs() takes over a list of certificates containing
+non-trusted intermediate certs used for path construction in authentication
+of the CMP server and potentially others (TLS server, newly enrolled cert).
 
 CMP_CTX_get0_untrusted_certs(CMP_CTX *ctx) returns a pointer to the list of
 untrusted certs.

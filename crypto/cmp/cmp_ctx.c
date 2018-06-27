@@ -103,8 +103,8 @@ STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(OSSL_CMP_CTX *ctx)
 }
 
 /*
- * Set untrusted certificates for path construction in CMP server
- * authentication.
+ * Set untrusted certificates for path construction in authentication of
+ * the CMP server and potentially others (TLS server, newly enrolled cert).
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
