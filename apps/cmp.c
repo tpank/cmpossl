@@ -1371,7 +1371,7 @@ static void DEBUG_print(const char *msg, const char *s1, const char *s2)
  * returns 1 on success, 0 on error.
  */
 #define X509_STORE_EX_DATA_HOST 0
-#define X509_STORE_EX_DATA_CMP 1 /* currently unused */
+#define X509_STORE_EX_DATA_SBIO 1
 static int truststore_set_host_etc(X509_STORE *ts, const char *host)
 {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
@@ -2168,18 +2168,25 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     return ret;
 }
 
-static int http_connected = 0;
 static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, int connect)
 {
-    http_connected = connect;
+    SSL_CTX *ssl_ctx = OSSL_CMP_CTX_get_http_cb_arg(ctx);
+    BIO *sbio = NULL;
     if (connect) {
-        BIO *sbio = BIO_new_ssl(OSSL_CMP_CTX_get_http_cb_arg(ctx), 1/* clnt */);
-        return sbio ? BIO_push(sbio, hbio): NULL;
+        sbio = BIO_new_ssl(OSSL_CMP_CTX_get_http_cb_arg(ctx), 1/* client */);
+        hbio = sbio ? BIO_push(sbio, hbio): NULL;
     } else {
         /* as a workaround for OpenSSL double free, do not pop the sbio, but
            rely on BIO_free_all() done by OSSL_CMP_MSG_http_perform() */
-        return hbio;
     }
+    if (ssl_ctx != NULL) {
+        X509_STORE *ts = SSL_CTX_get_cert_store(ssl_ctx);
+        if (ts != NULL) {
+            /* indicate if OSSL_CMP_MSG_http_perform() with TLS is active */
+            (void)X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_SBIO, sbio);
+        }
+    }
+    return hbio;
 }
 
 /*
@@ -2196,14 +2203,13 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 {
     if (ok == 0 && ctx != NULL) {
         int cert_error = X509_STORE_CTX_get_error(ctx);
+        X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
+        BIO *sbio = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_SBIO);
         SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
                                           SSL_get_ex_data_X509_STORE_CTX_idx());
-        X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
-     /* OSSL_CMP_CTX *cmp_ctx = 
-        X509_STORE_get_ex_data(ts,X509_STORE_EX_DATA_CMP); */
         const char *expected = NULL;
 
-        if (http_connected /* OSSL_CMP_MSG_http_perform() is active */
+        if (sbio != 0 /* OSSL_CMP_MSG_http_perform() with TLS is active */
             && !ssl) /* ssl_add_cert_chain() is active */
             return ok; /* avoid printing spurious errors */
 
@@ -3424,7 +3430,6 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_tls_used) {
-        X509_STORE *store;
         SSL_CTX *ssl_ctx;
 
         if (opt_proxy) {
@@ -3436,13 +3441,6 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         if (!ssl_ctx)
             goto err;
 
-        store = SSL_CTX_get_cert_store(ssl_ctx);
-        if (store &&
-            !X509_STORE_set_ex_data(store, X509_STORE_EX_DATA_CMP, ctx)) {
-            OSSL_CMP_err(ctx, "cannot set CMP CTX in SSL store");
-            SSL_CTX_free(ssl_ctx);
-            goto err;
-        }
         (void)OSSL_CMP_CTX_set_http_cb(ctx, tls_http_cb);
         (void)OSSL_CMP_CTX_set_http_cb_arg(ctx, ssl_ctx);
     } else {
