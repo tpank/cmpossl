@@ -767,8 +767,8 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
                 !OSSL_CMP_HDR_set1_senderKID(msg->header, subjKeyIDStr))
                 goto err;
 
-            /* Add ctx->extraCertsOut, the ctx->clCert,
-             * and the chain built upwards from ctx->untrusted_certs */
+            /* Add ctx->clCert followed, if possible, by its chain built
+             * from ctx->untrusted_certs, and then ctx->extraCertsOut */
             OSSL_CMP_MSG_add_extraCerts(ctx, msg);
 
             if ((msg->protection =
@@ -812,27 +812,26 @@ int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 
     res = 1;
     if (ctx->clCert) {
+        /* Make sure that our own cert gets sent, in the first position */
+        res = sk_X509_push(msg->extraCerts, ctx->clCert)
+            && X509_up_ref(ctx->clCert);
+
         /*
-         * if we have untrusted store, try to add all the intermediate certs and
-         * our own
+         * if we have untrusted store, try to add intermediate certs
          */
-        if (ctx->untrusted_certs) {
+        if (res && ctx->untrusted_certs) {
             STACK_OF(X509) *chain =
                 OSSL_CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
-            /* Our own cert will be sent first */
             res = OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain,
-                                         1/* no self-signed */, 1);
+                                              1/* no self-signed */,
+                                              1/* no dups */);
             sk_X509_pop_free(chain, X509_free);
-        } else {
-            /* Make sure that at least our own cert gets sent */
-            X509_up_ref(ctx->clCert);
-            res = sk_X509_push(msg->extraCerts, ctx->clCert);
         }
     }
 
     /* add any additional certificates from ctx->extraCertsOut */
     OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
-                           1/*no dups*/);
+                                1/*no dups*/);
 
  err:
     return res;
@@ -1570,18 +1569,16 @@ STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
  * Add certificate to given stack, optionally only if not already contained
  * returns 1 on success, 0 on error
  */
-static int X509_cmp_from_ptrs(const struct x509_st *const *a,
-                              const struct x509_st *const *b)
-{
-    return X509_cmp(*a, *b);
-}
 int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
                                int not_duplicate)
 {
     if (not_duplicate) {
-        sk_X509_set_cmp_func(sk, &X509_cmp_from_ptrs);
-        if (sk_X509_find(sk, cert) >= 0)
-            return 1;
+        /* not using sk_X509_set_cmp_func() and sk_X509_find()
+           because this re-orders the certs on the stack */
+        int i;
+        for (i = 0; i < sk_X509_num(sk); i++)
+            if (X509_cmp(sk_X509_value(sk, i), cert) == 0)
+                return 1;
     }
     if (!sk_X509_push(sk, cert))
         return 0;
