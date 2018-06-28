@@ -378,21 +378,6 @@ X509 *OSSL_CMP_CTX_extraCertsIn_pop(OSSL_CMP_CTX *ctx)
 }
 
 /*
- * Returns the number of extraCerts received in a response, -1 on error
- */
-int OSSL_CMP_CTX_extraCertsIn_num(OSSL_CMP_CTX *ctx)
-{
-    if (ctx == NULL)
-        goto err;
-    if (ctx->extraCertsIn == NULL)
-        return 0;
-    return sk_X509_num(ctx->extraCertsIn);
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSIN_NUM, CMP_R_INVALID_ARGS);
-    return -1;
-}
-
-/*
  * Copies the given stack of inbound X509 certificates to extraCertsIn of
  * the OSSL_CMP_CTX structure so that they may be retrieved later.
  * returns 1 on success, 0 on error
@@ -441,22 +426,6 @@ int OSSL_CMP_CTX_extraCertsOut_push1(OSSL_CMP_CTX *ctx, const X509 *val)
  err:
     CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1, CMP_R_INVALID_ARGS);
     return 0;
-}
-
-/*
- * Return the number of certificates we have in the outbound extraCerts stack,
- * -1 on error
- */
-int OSSL_CMP_CTX_extraCertsOut_num(OSSL_CMP_CTX *ctx)
-{
-    if (ctx == NULL)
-        goto err;
-    if (ctx->extraCertsOut == NULL)
-        return 0;
-    return sk_X509_num(ctx->extraCertsOut);
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_NUM, CMP_R_INVALID_ARGS);
-    return -1;
 }
 
 /*
@@ -571,22 +540,6 @@ X509 *OSSL_CMP_CTX_caPubs_pop(OSSL_CMP_CTX *ctx)
  err:
     CMPerr(CMP_F_OSSL_CMP_CTX_CAPUBS_POP, CMP_R_INVALID_ARGS);
     return NULL;
-}
-
-/*
- * Return the number of certificates received in the caPubs field of the last
- * response message, -1 on error
- */
-int OSSL_CMP_CTX_caPubs_num(OSSL_CMP_CTX *ctx)
-{
-    if (ctx == NULL)
-        goto err;
-    if (ctx->caPubs == NULL)
-        return 0;
-    return sk_X509_num(ctx->caPubs);
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_CAPUBS_NUM, CMP_R_INVALID_ARGS);
-    return -1;
 }
 
 /*

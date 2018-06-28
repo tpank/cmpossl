@@ -4449,9 +4449,9 @@ int cmp_main(int argc, char **argv)
         break;
     }
 
-    if (opt_cacertsout && OSSL_CMP_CTX_caPubs_num(cmp_ctx) > 0) {
+    if (opt_cacertsout) {
         STACK_OF(X509) *certs = OSSL_CMP_CTX_caPubs_get1(cmp_ctx);
-        if (certs == NULL ||
+        if (sk_X509_num(certs) > 0 &&
             save_certs(cmp_ctx, certs, opt_cacertsout, "CA") < 0) {
             sk_X509_pop_free(certs, X509_free);
             goto err;
@@ -4459,9 +4459,9 @@ int cmp_main(int argc, char **argv)
         sk_X509_pop_free(certs, X509_free);
     }
 
-    if (opt_extracertsout && OSSL_CMP_CTX_extraCertsIn_num(cmp_ctx) > 0) {
+    if (opt_extracertsout) {
         STACK_OF(X509) *certs = OSSL_CMP_CTX_extraCertsIn_get1(cmp_ctx);
-        if (certs == NULL ||
+        if (sk_X509_num(certs) > 0 &&
             save_certs(cmp_ctx, certs, opt_extracertsout, "extra") < 0) {
             sk_X509_pop_free(certs, X509_free);
             goto err;

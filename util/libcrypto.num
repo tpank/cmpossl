@@ -4611,7 +4611,7 @@ i2d_OSSL_CRMF_CERTID                    4622	1_1_1	EXIST::FUNCTION:
 ERR_load_CRMF_strings                   4624	1_1_1	EXIST::FUNCTION:
 OSSL_CMP_exec_GENM_ses                  4632	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_HDR_push0_freeText             4634	1_1_1	EXIST::FUNCTION:CMP
-OSSL_CMP_CTX_extraCertsOut_num          4635	1_1_1	EXIST::FUNCTION:CMP
+OSSL_CMP_CTX_extraCertsOut_num          4635	1_1_1	NOEXIST::FUNCTION:
 d2i_OSSL_CRMF_ENCRYPTEDVALUE            4641	1_1_1	EXIST::FUNCTION:
 OSSL_CMP_CTX_caPubs_pop                 4643	1_1_1	EXIST::FUNCTION:CMP
 ERR_load_CMP_strings                    4647	1_1_1	EXIST::FUNCTION:CMP
@@ -4698,7 +4698,7 @@ OSSL_CMP_CTX_set_option                 4757	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_issuer                4758	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_p10CSR                4759	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_secretValue           4760	1_1_1	EXIST::FUNCTION:CMP
-OSSL_CMP_CTX_caPubs_num                 4761	1_1_1	EXIST::FUNCTION:CMP
+OSSL_CMP_CTX_caPubs_num                 4761	1_1_1	NOEXIST::FUNCTION:
 OSSL_CMP_CTX_set_http_cb                4762	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_newClCert             4763	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_get0_transactionID         4764	1_1_1	EXIST::FUNCTION:CMP
@@ -4719,7 +4719,7 @@ OSSL_CMP_MSG_free                       4778	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_get0_trustedStore          4779	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_clCert                4780	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_check_received             4781	1_1_1	EXIST::FUNCTION:CMP
-OSSL_CMP_CTX_extraCertsIn_num           4782	1_1_1	EXIST::FUNCTION:CMP
+OSSL_CMP_CTX_extraCertsIn_num           4782	1_1_1	NOEXIST::FUNCTION:
 OSSL_CMP_PKISI_PKIFailureInfo_get       4783	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_PKISI_PKIFailureInfo_check     4784	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CRMF_MSG_set_version2              4785	1_1_1	EXIST::FUNCTION:
