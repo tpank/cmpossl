@@ -4559,7 +4559,7 @@ OSSL_CRMF_MSG_set1_regCtrl_pkiPublicationInfo 4519	1_1_1	EXIST::FUNCTION:
 OSSL_CMP_log_close                      4520	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_HDR_generalInfo_item_push0     4523	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CRMF_PKIPUBLICATIONINFO_new        4525	1_1_1	EXIST::FUNCTION:
-OSSL_CMP_CTX_extraCertsIn_pop           4527	1_1_1	EXIST::FUNCTION:CMP
+OSSL_CMP_CTX_extraCertsIn_pop           4527	1_1_1	NOEXIST::FUNCTION:
 OSSL_CMP_validate_cert_path             4528	1_1_1	EXIST::FUNCTION:CMP
 i2d_OSSL_CRMF_CERTTEMPLATE              4529	1_1_1	EXIST::FUNCTION:
 OSSL_CMP_genm_new                       4531	1_1_1	EXIST::FUNCTION:CMP
@@ -4613,7 +4613,7 @@ OSSL_CMP_exec_GENM_ses                  4632	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_HDR_push0_freeText             4634	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_extraCertsOut_num          4635	1_1_1	NOEXIST::FUNCTION:
 d2i_OSSL_CRMF_ENCRYPTEDVALUE            4641	1_1_1	EXIST::FUNCTION:
-OSSL_CMP_CTX_caPubs_pop                 4643	1_1_1	EXIST::FUNCTION:CMP
+OSSL_CMP_CTX_caPubs_pop                 4643	1_1_1	NOEXIST::FUNCTION:
 ERR_load_CMP_strings                    4647	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_validate_msg                   4652	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set_log_cb                 4653	1_1_1	EXIST::FUNCTION:CMP

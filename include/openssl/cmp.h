@@ -544,7 +544,6 @@ int OSSL_CMP_CTX_set1_subjectName(OSSL_CMP_CTX *ctx, const X509_NAME *name);
 int OSSL_CMP_CTX_set1_recipient(OSSL_CMP_CTX *ctx, const X509_NAME *name);
 int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx, const GENERAL_NAME *name);
 STACK_OF(X509) *OSSL_CMP_CTX_caPubs_get1(OSSL_CMP_CTX *ctx);
-X509 *OSSL_CMP_CTX_caPubs_pop(OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
 int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID);
 int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_ITAV *itav);
@@ -556,7 +555,6 @@ int OSSL_CMP_CTX_extraCertsOut_push1(OSSL_CMP_CTX *ctx, const X509 *val);
 STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                                    STACK_OF(X509) *extraCertsIn);
-X509 *OSSL_CMP_CTX_extraCertsIn_pop(OSSL_CMP_CTX *ctx);
 
 int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, const X509 *cert);
 X509 *OSSL_CMP_CTX_get0_newClCert(OSSL_CMP_CTX *ctx);

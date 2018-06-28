@@ -362,22 +362,6 @@ STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(OSSL_CMP_CTX *ctx)
 }
 
 /*
- * Pops and returns one certificate from the received extraCerts field
- * returns pointer certificate on success, NULL on error
- */
-X509 *OSSL_CMP_CTX_extraCertsIn_pop(OSSL_CMP_CTX *ctx)
-{
-    if (ctx == NULL)
-        goto err;
-    if (ctx->extraCertsIn == NULL)
-        return NULL;
-    return sk_X509_pop(ctx->extraCertsIn);
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSIN_POP, CMP_R_NULL_ARGUMENT);
-    return NULL;
-}
-
-/*
  * Copies the given stack of inbound X509 certificates to extraCertsIn of
  * the OSSL_CMP_CTX structure so that they may be retrieved later.
  * returns 1 on success, 0 on error
@@ -523,22 +507,6 @@ STACK_OF(X509) *OSSL_CMP_CTX_caPubs_get1(OSSL_CMP_CTX *ctx)
     return X509_chain_up_ref(ctx->caPubs);
  err:
     CMPerr(CMP_F_OSSL_CMP_CTX_CAPUBS_GET1, CMP_R_INVALID_ARGS);
-    return NULL;
-}
-
-/*
- * Pop one certificate out of the list of certificates received in
- * the caPubs field, returns NULL on error or when the stack is empty
- */
-X509 *OSSL_CMP_CTX_caPubs_pop(OSSL_CMP_CTX *ctx)
-{
-    if (ctx == NULL)
-        goto err;
-    if (ctx->caPubs == NULL)
-        return NULL;
-    return sk_X509_pop(ctx->caPubs);
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_CAPUBS_POP, CMP_R_INVALID_ARGS);
     return NULL;
 }
 
