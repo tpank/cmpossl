@@ -45,7 +45,7 @@ TODO;TODO;unknown attributes in expected sender;-section;;-recipient;_CA_DN;-exp
 1;-;wrong root servercert;-section;;-recipient;_CA_DN;BLANK;;-srvcert;root.crt;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;1;srvcert is empty;-section;;-recipient;_CA_DN;BLANK;;-srvcert;emptycert.crt;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;1;srvcert wrong content;-section;;-recipient;_CA_DN;BLANK;;-srvcert;random.txt;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
-1;1;srvcert expired;-section;;-recipient;_CA_DN;BLANK;;-srvcert;ECCIssuingCAv10_expired.crt;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
+TBD cert file does not exist;-;srvcert expired;-section;;-recipient;_CA_DN;BLANK;;-srvcert;ECCIssuingCAv10_expired.crt;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;1;srvcert does not exist;-section;;-recipient;_CA_DN;BLANK;;-srvcert;idontexist;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;1;srvcert is wrong root CA;-section;;-recipient;_CA_DN;BLANK;;-srvcert;WrongRootCA.crt;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;1;srvcert expired;-section;;-recipient;_CA_DN;BLANK;;-srvcert;ExpiredIssuingCAv10.crt;-trusted;root.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
@@ -59,7 +59,7 @@ TODO;TODO;unknown attributes in expected sender;-section;;-recipient;_CA_DN;-exp
 -;1;not matching trusted cert;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;signerWrong.crt;BLANK;;BLANK;-unprotectederrors;BLANK;-cert;signer.cert;-key;signer.p12;-keypass;pass:12345;
 1;1;trusted empty file;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;emptycert.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;1;trusted random file;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;random.txt;BLANK;;BLANK;-unprotectederrors;BLANK;;
-1;1;trusted expired;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;ECCIssuingCAv10_expired.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
+TBD cert file does not exist;-;trusted expired;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;ECCIssuingCAv10_expired.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;1;trusted file does not exist;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;idontexist;BLANK;;BLANK;-unprotectederrors;BLANK;;
 1;-;trusted is wrong root ca;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;WrongRootCA.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
 TBD;TBD;root expired;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt_expired.crt;BLANK;;BLANK;-unprotectederrors;BLANK;;
@@ -76,7 +76,7 @@ TBD;TBD;root expired;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt
 0;-;not matching untrusted cert;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt;-untrusted;EJBCACMPSignerIntermediate.crt;BLANK;-unprotectederrors;BLANK;;
 1;1;untrusted empty file;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt;-untrusted;emptycert.crt;BLANK;-unprotectederrors;BLANK;;
 1;1;untrusted random file;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt;-untrusted;random.txt;BLANK;-unprotectederrors;BLANK;;
-TBD;TBD;untrustedexpired;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt;-untrusted;EJBCAInfrastructureIssuingCAv10_expired.crt, ECCIssuingCAv10_expired.crt;BLANK;-unprotectederrors;BLANK;;
+TBD cert file does not exist;-;untrustedexpired;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt;-untrusted;EJBCAInfrastructureIssuingCAv10_expired.crt, ECCIssuingCAv10_expired.crt;BLANK;-unprotectederrors;BLANK;;
 1;1;untrusted file does not exist;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt;-untrusted;idontexist;BLANK;-unprotectederrors;BLANK;;
 0;0;untrusted is wrong root ca;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt;-untrusted;WrongRootCA.crt;BLANK;-unprotectederrors;BLANK;;
 0;0;untrusted expired cert;-section;;-recipient;_CA_DN;BLANK;;BLANK;;-trusted;root.crt;-untrusted;issuing.crt, ExpiredIssuingCAv10.crt;BLANK;-unprotectederrors;BLANK;;
