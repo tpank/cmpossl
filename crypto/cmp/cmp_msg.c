@@ -533,12 +533,12 @@ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
 
     /*
      * Fill the template from the contents of the certificate to be revoked;
-     * TODO: maybe add further fields
      */
     if ((pubkey = X509_get_pubkey(ctx->oldClCert)) == NULL)
         goto err;
-    ret = OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails, pubkey,
-                                      X509_get_subject_name(ctx->oldClCert),
+    ret = OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
+                                      NULL/* pubkey would be redundant */,
+                                      NULL/* subject would be redundant */,
                                       X509_get_issuer_name(ctx->oldClCert),
                                       X509_get_serialNumber(ctx->oldClCert));
     EVP_PKEY_free(pubkey);
