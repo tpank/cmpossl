@@ -207,6 +207,7 @@ for constructing certificate chains when verifying
 the CMP server (when checking signature-based CMP message protection),
 the TLS server (when establishing TLS connections),
 and/or the newly enrolled certificate.
+These may get added to the extraCerts field sent in requests as far as needed.
 
 Multiple file names may be given, separated by commas and/or whitespace.
 Each file may contain multiple certificates.
@@ -338,7 +339,8 @@ For IR this can be used for authenticating a request message
 using an external entity certificate as defined in appendix E.7 of RFC 4210.
 For KUR this is also used as certificate to be updated if the B<-oldcert>
 option is not given.
-If the file includes further certs, they are appended in the extraCerts field.
+If the file includes further certs, they are appended to the untrusted certs.
+These may get added to the extraCerts field sent in requests as far as needed.
 
 =item B<-key filename>
 

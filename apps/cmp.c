@@ -3111,17 +3111,22 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
         ok = OSSL_CMP_CTX_set1_clCert(ctx, clcert);
         X509_free(clcert);
 
-        if (ok)
-            ok = OSSL_CMP_CTX_set1_extraCertsOut(ctx, certs);
+        if (ok) {
+            /* add any remaining certs to the list of untrusted certs */
+            STACK_OF(X509) *untrusted = OSSL_CMP_CTX_get0_untrusted_certs(ctx);
+            ok = untrusted != NULL ?
+                OSSL_CMP_sk_X509_add1_certs(untrusted, certs,
+                                            0/* allow self-signed */,
+                                            1/* no dups */) :
+                OSSL_CMP_CTX_set1_untrusted_certs(ctx, certs);
+        }
         sk_X509_pop_free(certs, X509_free);
         if (!ok)
             goto oom;
     }
 
-    /* some extra certs may have already been set from optional additional
-       certs in opt_cert, thus using OSSL_CMP_CTX_extraCertsOut_push1 here */
     if (!setup_certs(opt_extracerts, "extra certificates for CMP", ctx,
-                     NULL, (add_X509_fn_t)OSSL_CMP_CTX_extraCertsOut_push1))
+                     (add_X509_stack_fn_t)OSSL_CMP_CTX_set1_extraCertsOut, NULL))
         goto err;
     if (opt_otherpass) {
         OPENSSL_cleanse(opt_otherpass, strlen(opt_otherpass));
