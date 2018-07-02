@@ -660,8 +660,10 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             case OSSL_CMP_PKIBODY_KUP:
             case OSSL_CMP_PKIBODY_CCP:
                 if (!OSSL_CMP_X509_STORE_add1_certs(ctx->trusted_store,
-                     /* same for cp, kup, ccp */    msg->body->value.ip->caPubs,
-                     /* allow self-signed or not */ 0))
+                                                    msg->body->value.ip->caPubs,
+                                                    0)) /* value.ip is same for
+                                                           cp, kup, and ccp */
+                    /* allows self-signed and not self-signed certs */
                     break;
             }
             return 1;
@@ -770,7 +772,7 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int failure,
         return failure;
 
     /* TODO: load caPubs [OSSL_CMP_CTX_caPubs_get1(ctx)] as additional trusted
-       certs during IR and if PBMAC (shared secrte) is used, cf. RFC 4210, 5.3.2 */
+       certs during IR and if PBMAC (shared secret) is used, cf. RFC 4210, 5.3.2 */
 
     if (out_trusted && !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))
         failure = OSSL_CMP_PKIFAILUREINFO_incorrectData;
