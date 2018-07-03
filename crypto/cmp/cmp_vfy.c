@@ -104,12 +104,13 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ERROR_VALIDATING_PROTECTION);
     }
  cert_err:
-    if (!ret) {
+    if (!ret) { /* print cert diagnostics on cert */
+        X509_STORE *ts = cmp_ctx->trusted_store; /* may be empty, not NULL */
         X509_STORE_CTX *csc = X509_STORE_CTX_new();
         X509_STORE_CTX_verify_cb verify_cb =
-            X509_STORE_get_verify_cb(cmp_ctx->trusted_store);
+            X509_STORE_get_verify_cb(ts);
         if (csc && verify_cb &&
-            X509_STORE_CTX_init(csc, cmp_ctx->trusted_store, NULL, NULL)) {
+            X509_STORE_CTX_init(csc, ts, NULL, NULL)) {
             X509_STORE_CTX_set_current_cert(csc, (X509 *)cert);
             X509_STORE_CTX_set_error_depth(csc, -1);
             X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
@@ -394,6 +395,7 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
     if (cert == NULL || msg == NULL || ts == NULL || vpm == NULL)
         return 0; /* TODO better flag and handle this as fatal internal error */
 
+    /* TODO better also check revocation state with OCSP/CRLs if avaialble */
     if (OSSL_CMP_expired(X509_get0_notAfter(cert), vpm)) {
         CMP_add_error_data(" expired");
         return 0;
@@ -445,9 +447,8 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
         CMP_add_error_txt(" = ", str);
         OPENSSL_free(str);
 
-        if (!cert_acceptable(cert, msg, ts))
-            continue;
-        if (!OSSL_CMP_sk_X509_add1_cert(sk, cert, 1/* no duplicates */))
+        if (cert_acceptable(cert, msg, ts) &&
+            !OSSL_CMP_sk_X509_add1_cert(sk, cert, 1/* no duplicates */))
             return 0;
     }
 
@@ -710,6 +711,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
         scrt = ctx->srvCert;
+        if (scrt != NULL && !cert_acceptable(scrt, msg, ctx->trusted_store))
+            scrt = NULL;
         if (scrt == NULL)
             scrt = find_srvcert(ctx, msg);
         if (scrt != NULL) {

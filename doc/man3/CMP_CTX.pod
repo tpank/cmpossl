@@ -175,7 +175,7 @@ structure.
 
 CMP_CTX_set1_srvCert() sets the server certificate to be directly trusted for
 verifying response messages. Additionally using CMP_CTX_set0_trustedStore() is
-recommended in order to be able to supply verification parameters like CRLs.
+recommended in order to be able to supply verification parameters and CRLs.
 The cert pointer is not consumed. It may be NULL to clear the entry.
 
 CMP_CTX_set1_clCert() sets the given client certificate in the given
@@ -344,7 +344,8 @@ received from remote.
 
 CMP_CTX_set0_trustedStore() sets the X509_STORE type certificate store
 containing trusted (root) CA certificates and possibly CRLs and a certificate
-verification callback function used for CMP server authentication.
+verification callback function used for CMP server authentication. Any already
+existing store entry is freed. When given a NULL parameter the entry is cleared.
 
 CMP_CTX_get0_trustedStore() returns a pointer to the certificate store
 containing trusted root CA certificates. NULL on error.

@@ -81,15 +81,15 @@ X509_STORE *OSSL_CMP_CTX_get0_trustedStore(OSSL_CMP_CTX *ctx)
 /*
  * Set certificate store containing trusted (root) CA certs and possibly CRLs
  * and a cert verification callback function used for CMP server authentication.
- * Any already existing store entry is freed. Given NULL, the entry is cleared.
+ * Any already existing store entry is freed. Given NULL, the entry is reset.
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store)
 {
     if (ctx->trusted_store)
         X509_STORE_free(ctx->trusted_store);
-    ctx->trusted_store = store;
-    return 1;
+    ctx->trusted_store = store != NULL ? store : X509_STORE_new();;
+    return ctx->trusted_store != NULL;
 }
 
 /*
@@ -198,23 +198,16 @@ void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return;
-    if (ctx->pkey)
-        EVP_PKEY_free(ctx->pkey);
-    if (ctx->newPkey)
-        EVP_PKEY_free(ctx->newPkey);
+    EVP_PKEY_free(ctx->pkey);
+    EVP_PKEY_free(ctx->newPkey);
     if (ctx->secretValue)
         OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
 
-    if (ctx->serverName)
-        OPENSSL_free(ctx->serverName);
-    if (ctx->serverPath)
-        OPENSSL_free(ctx->serverPath);
-    if (ctx->proxyName)
-        OPENSSL_free(ctx->proxyName);
-    if (ctx->trusted_store)
-        X509_STORE_free(ctx->trusted_store);
-    if (ctx->untrusted_certs)
-        sk_X509_pop_free(ctx->untrusted_certs, X509_free);
+    OPENSSL_free(ctx->serverName);
+    OPENSSL_free(ctx->serverPath);
+    OPENSSL_free(ctx->proxyName);
+    X509_STORE_free(ctx->trusted_store);
+    sk_X509_pop_free(ctx->untrusted_certs, X509_free);
     OSSL_CMP_CTX_free(ctx);
 }
 
@@ -539,7 +532,7 @@ int OSSL_CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
 /*
  * Sets the server certificate to be directly trusted for verifying response
  * messages. Additionally using OSSL_CMP_CTX_set0_trustedStore() is recommended
- * in order to be able to supply verification parameters like CRLs.
+ * in order to be able to supply verification parameters and CRLs.
  * Cert pointer is not consumed. It may be NULL to clear the entry.
  * returns 1 on success, 0 on error
  */
