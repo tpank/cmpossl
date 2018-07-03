@@ -25,17 +25,12 @@
  CMP_CTX_set1_last_senderNonce,
  CMP_CTX_set_option,
  CMP_CTX_caPubs_get1,
- CMP_CTX_caPubs_pop,
- CMP_CTX_caPubs_num,
  CMP_CTX_set1_caPubs,
  CMP_CTX_policyOID_push1,
  CMP_CTX_set1_extraCertsOut,
  CMP_CTX_extraCertsOut_push1,
- CMP_CTX_extraCertsOut_num,
  CMP_CTX_extraCertsIn_get1,
  CMP_CTX_set1_extraCertsIn,
- CMP_CTX_extraCertsIn_pop,
- CMP_CTX_extraCertsIn_num,
  CMP_CTX_set0_trustedStore,
  CMP_CTX_get0_trustedStore,
  CMP_CTX_set1_untrusted_certs,
@@ -98,8 +93,6 @@
  int CMP_CTX_set1_serverName(CMP_CTX *ctx, const char *name);
  int CMP_CTX_set_serverPort(CMP_CTX *ctx, int port);
  STACK_OF(X509) *CMP_CTX_caPubs_get1(CMP_CTX *ctx);
- X509 *CMP_CTX_caPubs_pop(CMP_CTX *ctx);
- int CMP_CTX_caPubs_num(CMP_CTX *ctx);
  int CMP_CTX_set1_caPubs(CMP_CTX *ctx, STACK_OF(X509) *caPubs);
  int CMP_CTX_policyOID_push1(CMP_CTX *ctx, const char *policyOID);
  int CMP_CTX_geninfo_itav_push0(CMP_CTX *ctx, CMP_ITAV *itav);
@@ -107,11 +100,8 @@
 
  int CMP_CTX_set1_extraCertsOut(CMP_CTX *ctx, STACK_OF(X509) *extraCertsOut);
  int CMP_CTX_extraCertsOut_push1(CMP_CTX *ctx, const X509 *val);
- int CMP_CTX_extraCertsOut_num(CMP_CTX *ctx);
  STACK_OF(X509) *CMP_CTX_extraCertsIn_get1(CMP_CTX *ctx);
  int CMP_CTX_set1_extraCertsIn(CMP_CTX *ctx, STACK_OF(X509) *extraCertsIn);
- X509 *CMP_CTX_extraCertsIn_pop(CMP_CTX *ctx);
- int CMP_CTX_extraCertsIn_num(CMP_CTX *ctx);
 
  int CMP_CTX_set0_trustedStore(CMP_CTX *ctx, X509_STORE *store);
  X509_STORE *CMP_CTX_get0_trustedStore(CMP_CTX *ctx);
@@ -321,20 +311,11 @@ RFC 4210.
         The reason code to be included in revocation request (RR);
         values: 0..10 (RFC 5210, 5.3.1) or -1 for none (which is the default)
 
-CMP_CTX_caPubs_num() can be used after an Initial Request or Key Update
-request to check the number of CA certificates that were sent from the
-server.
-
 CMP_CTX_caPubs_get1() returns a pointer to a duplicate of the stack of X.509
 certificates received in the caPubs field of last received certificate response
 message IP/CP/KUP which had caPubs set.
 
-CMP_CTX_caPubs_pop() pops one CA certificates of the stack of received
-CA certs and returns it
-
-CMP_CTX_set1_caPubs() copies the given caPubs stack to the context so
-that it may be accessed later by CMP_CTX_caPubs_num() and
-CMP_CTX_caPubs_pop().
+CMP_CTX_set1_caPubs() copies the given caPubs stack to the context.
 
 CMP_CTX_policyOID_push1() adds the certificate policy OID given by the
 string to the X509_EXTENSIONS of the requested certificate template.
@@ -354,20 +335,11 @@ sent to remote.
 CMP_CTX_extraCertsOut_push1() adds the given certificate to the outbound
 extraCerts stack, without consuming the pointer.
 
-CMP_CTX_extraCertsOut_num() returns the number of certificates in the
-outbound extraCerts stack.
-
 CMP_CTX_extraCertsIn_get1() returns a pointer to a duplicate of the stack of
 X.509 certificates received in the extraCerts field of last received
 certificate response message IP/CP/KUP which had extraCerts set.
 
 CMP_CTX_set1_extraCertsIn() sets the stack of extraCerts that was
-received from remote.
-
-CMP_CTX_extraCertsIn_pop() pops and returns one certificate off the
-stack of extra certificates received from remote.
-
-CMP_CTX_extraCertsIn_num() returns the number of certificates that were
 received from remote.
 
 CMP_CTX_set0_trustedStore() sets the X509_STORE type certificate store
@@ -533,12 +505,6 @@ might change every release!
 CMP_CTX_create() returns a pointer to an initialized CMP_CTX structure.
 
 CMP_CTX_delete() does not return anything.
-
-CMP_CTX_extraCertsIn_num(), CMP_CTX_extraCertsOut_num(), CMP_CTX_caPubs_num(),
-return the number of relevant certificates, or -1 on error.
-
-CMP_CTX_extraCertsIn_pop(), CMP_CTX_caPubs_pop() return the respective pop-ed
-certificate, or NULL if stack is empty as well as on error.
 
 CMP_CTX_extraCertsIn_get1() returns a pointer to a duplicate of the stack of
 X.509 certificates received in the extraCerts field of last received
