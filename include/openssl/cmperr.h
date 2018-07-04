@@ -188,6 +188,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  150
 #  define CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE         151
 #  define CMP_R_MISSING_PROTECTION                         152
+#  define CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED           188
 #  define CMP_R_MULTIPLE_SAN_SOURCES                       153
 #  define CMP_R_NO_SENDER_NO_REFERENCE                     154
 #  define CMP_R_NO_SUITABLE_SERVER_CERT                    155

@@ -129,14 +129,21 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
             exception = 1;
         }
         if (rcvd_type == expected_type && IS_ENOLLMENT(rcvd_type)) {
+            OSSL_CMP_CERTREPMESSAGE *crepmsg = rep->body->value.ip;
             OSSL_CMP_CERTRESPONSE *crep =
-                CMP_CERTREPMESSAGE_certResponse_get0(rep->body->value.ip, -1);
+                CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, -1);
+            if (sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response) > 1) {
+                /* a specific error could be misleading here */
+                return 0;
+            }
             /*
              * TODO: handle multiple CertResponses in CertRepMsg, in case
              *       multiple requests have been sent --> Feature Request #13
              */
-            if (!crep)
+            if (!crep) {
+                /* a specific error could be misleading here */
                 return 0;
+            }
             if (OSSL_CMP_PKISI_PKIStatus_get(crep->status) ==
                 OSSL_CMP_PKISTATUS_rejection) {
                 OSSL_CMP_warn(ctx,
@@ -257,8 +264,17 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **out)
         /* handle potential pollRep */
         if (OSSL_CMP_MSG_get_bodytype(prep) == OSSL_CMP_PKIBODY_POLLREP) {
             long checkAfter;
-            if (!(pollRep = CMP_POLLREPCONTENT_pollRep_get0(
-                                               prep->body->value.pollRep, rid)))
+            OSSL_CMP_POLLREPCONTENT *prc = prep->body->value.pollRep;
+            /*
+             * TODO: handle multiple PollRepContent elements, in case
+             *       multiple requests have been sent --> Feature Request #13
+             */
+            if (sk_OSSL_CMP_POLLREP_num(prc) > 1) {
+                CMPerr(CMP_F_POLLFORRESPONSE,
+                       CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED);
+                goto err;
+            }
+            if (!(pollRep = CMP_POLLREPCONTENT_pollRep_get0(prc, rid)))
                 goto err;
             checkAfter = ASN1_INTEGER_get(pollRep->checkAfter);
             if (checkAfter < 0) {
@@ -490,19 +506,22 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **resp,
 {
     int failure = -1; /* no failure */
     const char *txt = NULL;
-    OSSL_CMP_CERTREPMESSAGE *body;
+    OSSL_CMP_CERTREPMESSAGE *crepmsg;
     OSSL_CMP_CERTRESPONSE *crep;
     STACK_OF(X509) *extracerts;
     int ret = 1;
 
  retry:
-    body = (*resp)->body->value.ip; /* same for cp and kup */
-
+    crepmsg = (*resp)->body->value.ip; /* same for cp and kup */
+    if (sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response) > 1) {
+        CMPerr(func, CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED);
+        return 0;
+    }
     /*
      * TODO handle multiple CertResponses in CertRepMsg (in case multiple
      * requests have been sent) --> Feature Request #13
      */
-    crep = CMP_CERTREPMESSAGE_certResponse_get0(body, rid);
+    crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid);
     if (crep == NULL)
         return 0;
     if (rid == -1)/* for OSSL_CMP_PKIBODY_P10CR learn CertReqId from response */
@@ -534,8 +553,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **resp,
      * if the CMP server returned certificates in the caPubs field, copy them
      * to the context so that they can be retrieved if necessary
      */
-    if (body->caPubs)
-        OSSL_CMP_CTX_set1_caPubs(ctx, body->caPubs);
+    if (crepmsg->caPubs)
+        OSSL_CMP_CTX_set1_caPubs(ctx, crepmsg->caPubs);
 
     /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
     if ((extracerts = (*resp)->extraCerts)) {
