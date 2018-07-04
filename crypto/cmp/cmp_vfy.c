@@ -636,7 +636,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    if ((alg = msg->header->protectionAlg) == NULL) { /* unprotected message */
+    if ((alg = msg->header->protectionAlg) == NULL || /* unprotected message */
+        msg->protection == NULL || msg->protection->data == NULL) {
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_MISSING_PROTECTION);
         return 0;
     }
