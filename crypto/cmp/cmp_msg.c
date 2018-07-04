@@ -617,6 +617,7 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTSTATUS *certStatus = NULL;
+    OSSL_CMP_PKISI *sinfo;
 
     if (ctx == NULL || ctx->newClCert == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CERTCONF_NEW, CMP_R_INVALID_ARGS);
@@ -645,15 +646,18 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
      * be provided in the statusInfo field, perhaps for auditing purposes at
      * the CA/RA.
      */
-    if (failure >= 0) {
-        OSSL_CMP_PKISI *sinfo;
-        sinfo = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection,
-                                        1 << failure, text);
-        if (sinfo == NULL)
-            goto err;
-        certStatus->statusInfo = sinfo;
-        OSSL_CMP_info(ctx, "rejecting newly enrolled certificate");
-    }
+    sinfo = failure >= 0 ? 
+        OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection,
+                                1 << failure, text) :
+        OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_accepted, 0, text);
+    if (sinfo == NULL)
+        goto err;
+    certStatus->statusInfo = sinfo;
+
+    OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO,
+                    "%s newly enrolled certificate%s%s",
+                    failure >= 0 ? "rejecting" : "accepting",
+                    text ? " with text: " : "", text ? text : "");
 
     if (!OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
