@@ -654,11 +654,6 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
         goto err;
     certStatus->statusInfo = sinfo;
 
-    OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO,
-                    "%s newly enrolled certificate%s%s",
-                    failure >= 0 ? "rejecting" : "accepting",
-                    text ? " with text: " : "", text ? text : "");
-
     if (!OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
 

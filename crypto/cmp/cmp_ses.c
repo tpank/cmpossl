@@ -596,6 +596,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **resp,
             txt = "CMP client application did not accept newly enrolled certificate";
     }
 
+    /* TODO: better move certConf exchange to do_certreq_seq() such that
+       also more low-level errors with CertReqMessages get reported to server */
     if (!ctx->disableConfirm && !OSSL_CMP_MSG_check_implicitConfirm(*resp))
         if (!OSSL_CMP_exchange_certConf(ctx, failure, txt))
             ret = 0;
@@ -607,8 +609,9 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **resp,
          */
         put_cert_verify_err(func);
         CMPerr(func, CMP_R_CERTIFICATE_NOT_ACCEPTED);
-        ERR_add_error_data(1,
-                  "certConf callback resulted in rejection of new certificate");
+        ERR_add_error_data(1, "rejecting newly enrolled cert");
+        if (txt)
+            CMP_add_error_txt("; ", txt);
         return 0;
     }
     return ret;
