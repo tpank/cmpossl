@@ -792,18 +792,20 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 /* TODO DvO push this and related functions upstream (PR #multifile) */
 static char *next_item(char *opt) /* in list separated by comma and/or space */
 {
-    /* allows empty item if *opt immediately contains ',' */
+    /* advance to separator (comma or whitespace), if any */
     while (*opt != ',' && !isspace(*opt) && *opt != '\0') {
         if (*opt++ == '\\' && *opt != '\0') {
             opt++;
         }
     }
     if (*opt != '\0') {
+        /* terminate current item */
         *opt++ = '\0';
+        /* skip over any whitespace after separator */
         while (isspace(*opt))
             opt++;
     }
-    return opt;
+    return *opt == '\0' ? NULL : opt; /* NULL indicates end of input */
 }
 
 /*
@@ -2006,7 +2008,7 @@ static int write_PKIMESSAGE(OSSL_CMP_CTX *ctx,
         OSSL_CMP_err(ctx, "NULL arg to write_PKIMESSAGE");
         return 0;
     }
-    if (**filenames == '\0') {
+    if (*filenames == NULL) {
         OSSL_CMP_err(ctx,
                      "not enough file names have been provided for writing message");
         return 0;
@@ -2053,7 +2055,7 @@ static OSSL_CMP_MSG *read_PKIMESSAGE(OSSL_CMP_CTX *ctx, char **filenames)
         OSSL_CMP_err(ctx, "NULL arg to read_PKIMESSAGE");
         return 0;
     }
-    if (**filenames == '\0') {
+    if (*filenames == NULL) {
         OSSL_CMP_err(ctx,
                      "Not enough file names have been provided for reading message");
         return 0;
@@ -2360,7 +2362,7 @@ static int set_gennames(char *names, int type,
                        int (*set_fn) (OSSL_CMP_CTX *ctx, const GENERAL_NAME *name),
                        OSSL_CMP_CTX *ctx, const char *desc)
 {
-    while (names && *names != '\0') {
+    while (names != NULL) {
         char *next = next_item(names);
         GENERAL_NAME *n = a2i_GENERAL_NAME(NULL, NULL, NULL, type, names, 0);
 
@@ -2394,7 +2396,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
         goto err;
 
     /* BIO_printf(bio_c_out, "loading %s from file '%s'\n", desc, input); */
-    while (*input != '\0') {
+    while (input != NULL) {
         char *next = next_item(input);           \
 
         if (!load_certs_autofmt(input, &certs, opt_otherform, 1,
@@ -2428,7 +2430,7 @@ static STACK_OF(X509) *load_certs_multifile(char *files, int format,
         goto oom;
     }
 
-    while (*files != '\0') {
+    while (files != NULL) {
         char *next = next_item(files);
 
         if (!load_certs_autofmt(files, &certs, format, 0, pass, desc)) {
@@ -2722,7 +2724,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
         if ((*all_crls = sk_X509_CRL_new_null()) == NULL) {
             goto oom;
         }
-        while (*opt_crls != '\0') {
+        while (opt_crls != NULL) {
             char *next = next_item(opt_crls);
 
             crls =
@@ -3224,7 +3226,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
                                       1);
     }
 
-    while (opt_policies && *opt_policies != '\0') {
+    while (opt_policies != NULL) {
         char *next = next_item(opt_policies);
         int res = OSSL_CMP_CTX_policyOID_push1(ctx, opt_policies);
 
