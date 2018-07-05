@@ -111,6 +111,12 @@ tls_host =
 [commands]
 cmd =
 cacertsout =
+infotype =
+oldcert =
+revreason =
+
+[enrollment]
+cmd =
 newkey =
 newkeypass =
 #subject =
@@ -124,8 +130,6 @@ certout =
 out_trusted =
 oldcert =
 csr =
-revreason =
-infotype =
 
 ############################# extra cert template contents
 
