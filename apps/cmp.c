@@ -1093,10 +1093,9 @@ static void OPENSSL_clear_free(void *str, size_t num)
 }
 #endif
 
-static void cleanse_secret(char **pass) {
-    if (*pass != 0) {
-        OPENSSL_cleanse((void *)*pass, strlen(*pass));
-        *pass = 0;
+static void cleanse(char *str) {
+    if (str != NULL) {
+        OPENSSL_cleanse((void *)str, strlen(str));
     }
 }
 
@@ -2575,7 +2574,7 @@ static int setup_srv_ctx(ENGINE *e)
         char *pass_string;
         if ((pass_string = get_passwd(opt_srv_secret,
                                       "PBMAC secret of server"))) {
-            cleanse_secret(&opt_srv_secret);
+            cleanse(opt_srv_secret);
             res = OSSL_CMP_CTX_set1_referenceValue(ctx,
                                                    (unsigned char *)opt_srv_ref,
                                                    strlen(opt_srv_ref)) &&
@@ -2615,7 +2614,7 @@ static int setup_srv_ctx(ENGINE *e)
             goto err;
         }
     }
-    cleanse_secret(&opt_srv_keypass);
+    cleanse(opt_srv_keypass);
 
     if (opt_srv_trusted) {
         X509_STORE *ts =
@@ -3001,7 +3000,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
 
         pkey = load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass,
                                 e, "TLS client private key");
-        cleanse_secret(&opt_tls_keypass);
+        cleanse(opt_tls_keypass);
         if (pkey == NULL)
             goto err;
         /*
@@ -3063,7 +3062,7 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
         int res;
 
         if ((pass_string = get_passwd(opt_secret, "PBMAC"))) {
-            cleanse_secret(&opt_secret);
+            cleanse(opt_secret);
             res = OSSL_CMP_CTX_set1_secretValue(ctx,
                                                 (unsigned char *)pass_string,
                                                 strlen(pass_string));
@@ -3131,7 +3130,7 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
     if (!setup_certs(opt_extracerts, "extra certificates for CMP", ctx,
                      (add_X509_stack_fn_t)OSSL_CMP_CTX_set1_extraCertsOut, NULL))
         goto err;
-    cleanse_secret(&opt_otherpass);
+    cleanse(opt_otherpass);
 
     if (opt_unprotectedRequests)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1);
@@ -3168,7 +3167,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
             load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e,
                              "new private key for certificate to be enrolled");
 
-        cleanse_secret(&opt_newkeypass);
+        cleanse(opt_newkeypass);
         if (pkey == NULL || !OSSL_CMP_CTX_set0_newPkey(ctx, pkey)) {
             EVP_PKEY_free(pkey);
             goto err;
@@ -3283,7 +3282,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
         }
         X509_free(oldcert);
     }
-    cleanse_secret(&opt_keypass);
+    cleanse(opt_keypass);
     if (opt_revreason > CRL_REASON_NONE)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_REVOCATION_REASON,
                                       opt_revreason);
@@ -4476,14 +4475,14 @@ int cmp_main(int argc, char **argv)
     ret = 0;
  err:
     /*  in case we ended up here on error without proper cleaning */
-    cleanse_secret(&opt_keypass);
-    cleanse_secret(&opt_newkeypass);
-    cleanse_secret(&opt_otherpass);
-    cleanse_secret(&opt_tls_keypass);
-    cleanse_secret(&opt_secret);
+    cleanse(opt_keypass);
+    cleanse(opt_newkeypass);
+    cleanse(opt_otherpass);
+    cleanse(opt_tls_keypass);
+    cleanse(opt_secret);
 #ifndef NDEBUG
-    cleanse_secret(&opt_srv_keypass);
-    cleanse_secret(&opt_srv_secret);
+    cleanse(opt_srv_keypass);
+    cleanse(opt_srv_secret);
     OSSL_CMP_SRV_CTX_delete(srv_ctx);
 #endif
     if (ret > 0)
