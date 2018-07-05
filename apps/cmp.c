@@ -255,9 +255,7 @@ static char *opt_subject = NULL;
 static char *opt_issuer = NULL;
 static int opt_days = 0;
 static char *opt_reqexts = NULL;
-static char *opt_san_dns = NULL;
-static char *opt_san_ip = NULL;
-static int opt_san_critical = 0;
+static char *opt_sans = NULL;
 static int opt_san_nodefault = 0;
 static char *opt_policies = NULL;
 static int opt_policies_critical = 0;
@@ -387,7 +385,7 @@ typedef enum OPTION_choice {
     OPT_CMD, OPT_INFOTYPE, OPT_GENINFO,
 
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, OPT_DAYS, OPT_REQEXTS,
-    OPT_SAN_DNS, OPT_SAN_IP, OPT_SAN_CRITICAL, OPT_SAN_NODEFAULT,
+    OPT_SANS, OPT_SAN_NODEFAULT,
     OPT_POLICIES, OPT_POLICIES_CRITICAL,
     OPT_POPO, OPT_CSR,
     OPT_OUT_TRUSTED, OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
@@ -528,12 +526,8 @@ OPTIONS cmp_options[] = {
      "Number of days the new certificate is asked to be valid for"},
     {"reqexts", OPT_REQEXTS, 's',
      "Name of section in config file defining certificate request extensions"},
-    {"san_dns", OPT_SAN_DNS, 's',
-     "DNS Subject Alternative Name(s) (SANs) to add as cert request extension"},
-    {"san_ip", OPT_SAN_IP, 's',
-     "IP address SAN(s) to add as cert request extension"},
-    {"san_critical", OPT_SAN_CRITICAL, '-',
-     "Flag the SAN(s) given via -san_dns or -san_ip as critical"},
+    {"sans", OPT_SANS, 's',
+     "Subject Alternative Name(s) (DNS/IPADDR) to add as cert request extension"},
     {"san_nodefault", OPT_SAN_NODEFAULT, '-',
      "Do not take default SANs from reference certificate (see -oldcert)"},
     {"policies", OPT_POLICIES, 's',
@@ -738,8 +732,8 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_cmd_s}, {&opt_infotype_s}, {&opt_geninfo},
 
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
-    {(char **)&opt_days}, {&opt_reqexts}, {&opt_san_dns}, {&opt_san_ip},
-    {(char **)&opt_san_critical}, {(char **)&opt_san_nodefault},
+    {(char **)&opt_days}, {&opt_reqexts},
+    {&opt_sans}, {(char **)&opt_san_nodefault},
     {&opt_policies}, {(char **)&opt_policies_critical},
     {(char **)&opt_popo}, {&opt_csr},
     {&opt_out_trusted},
@@ -2362,13 +2356,31 @@ static int set_gennames(char *names, int type,
                        int (*set_fn) (OSSL_CMP_CTX *ctx, const GENERAL_NAME *name),
                        OSSL_CMP_CTX *ctx, const char *desc)
 {
-    while (names != NULL) {
-        char *next = next_item(names);
-        GENERAL_NAME *n = a2i_GENERAL_NAME(NULL, NULL, NULL, type, names, 0);
+    char *next;
+    for (; names != NULL; names = next) {
+        GENERAL_NAME *n;
+        next = next_item(names);
+
+        if (type == GEN_DNS && strcmp(names, "critical") == 0) {
+            (void)OSSL_CMP_CTX_set_option(ctx,
+                      OSSL_CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL, 1);
+            continue;
+        }
+        if (type != GEN_DNS || isdigit(names[0])) {
+            n = a2i_GENERAL_NAME(NULL, NULL, NULL,
+                                 type != GEN_DNS ? type : GEN_IPADD, names, 0);
+        } else { /* try IP address first, then domain name */
+            (void)ERR_set_mark();
+            n = a2i_GENERAL_NAME(NULL, NULL, NULL, GEN_IPADD, names, 0);
+            (void)ERR_pop_to_mark();
+            if (n == NULL) {
+                n = a2i_GENERAL_NAME(NULL, NULL, NULL, GEN_DNS, names, 0);
+            }
+        }
 
         if (n == NULL) {
             OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
-                            "cannot parse %s '%s'", desc, names);
+                            "bad syntax of %s '%s'", desc, names);
             return 0;
         }
         if (!(*set_fn) (ctx, n)) {
@@ -2377,7 +2389,6 @@ static int set_gennames(char *names, int type,
             return 0;
         }
         GENERAL_NAME_free(n);
-        names = next;
     }
     return 1;
 }
@@ -3193,34 +3204,21 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
         }
         OSSL_CMP_CTX_set0_reqExtensions(ctx, exts);
     }
-    if (OSSL_CMP_CTX_reqExtensions_have_SAN(ctx) &&
-        (opt_san_dns != NULL || opt_san_ip != NULL)) {
+    if (OSSL_CMP_CTX_reqExtensions_have_SAN(ctx) && opt_sans != NULL) {
         OSSL_CMP_err(ctx,
-                     "cannot have Subject Alternative Names both via -reqexts and via -san_dns or -san_ip");
+                     "cannot have Subject Alternative Names both via -reqexts and via -sans");
             goto err;
     }
 
-    if (!set_gennames(opt_san_dns, GEN_DNS,
+    if (!set_gennames(opt_sans, GEN_DNS,
                       OSSL_CMP_CTX_subjectAltName_push1, ctx,
-                      "DNS Subject Alternative Name") ||
-        !set_gennames(opt_san_ip , GEN_IPADD,
-                      OSSL_CMP_CTX_subjectAltName_push1, ctx,
-                      "IP address Subject Alternative Name"))
+                      "Subject Alternative Name"))
         goto err;
 
-    if (opt_san_critical) {
-        if (!opt_san_dns && !opt_san_ip)
-            OSSL_CMP_warn(ctx,
-                          "-opt_san_critical has no effect unless -san_dns or -san_ip is given");
-        (void)OSSL_CMP_CTX_set_option(ctx,
-                                      OSSL_CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL,
-                                      1);
-    }
-
     if (opt_san_nodefault) {
-        if (opt_san_dns || opt_san_ip)
+        if (opt_sans)
             OSSL_CMP_warn(ctx,
-                          "-opt_san_nodefault has no effect when -san_dns or -san_ip is used");
+                          "-opt_san_nodefault has no effect when -sans is used");
         (void)OSSL_CMP_CTX_set_option(ctx,
                                       OSSL_CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT,
                                       1);
@@ -4030,14 +4028,8 @@ static int get_opts(int argc, char **argv)
         case OPT_REQEXTS:
             opt_reqexts = opt_str("reqexts");
             break;
-        case OPT_SAN_DNS:
-            opt_san_dns = opt_str("san_dns");
-            break;
-        case OPT_SAN_IP:
-            opt_san_ip = opt_str("san_ip");
-            break;
-        case OPT_SAN_CRITICAL:
-            opt_san_critical = 1;
+        case OPT_SANS:
+            opt_sans = opt_str("sans");
             break;
         case OPT_SAN_NODEFAULT:
             opt_san_nodefault = 1;
