@@ -91,9 +91,11 @@ sub load_config {
 
 my @ca_configurations = (); # ("EJBCA", "Insta", "CmpWsRa");
 @ca_configurations = split /\s+/, $ENV{CMP_TESTS} if $ENV{CMP_TESTS};
-# set env variable, e.g., "CMP_TESTS = EJBCA Insta" to include certain CAs
+# set env variable, e.g., CMP_TESTS="EJBCA Insta" to include certain CAs
 
 my @all_aspects = ("connection", "verification", "credentials", "commands");
+@all_aspects = split /\s+/, $ENV{CMP_ASPECTS} if $ENV{CMP_ASPECTS};
+# set env variable, e.g., CMP_ASPECTS="commands" to select specific aspects
 
 sub test_cmp_cli {
     my @args = @_;
@@ -159,10 +161,13 @@ sub load_tests {
 		$line =~ s{_SERVER_PORT}{$server_port}g;
 		$line =~ s{_SRVCERT}{$server_cert}g;
 		$line =~ s{_SECRET}{$secret}g;
-		next LOOP if $no_proxy =~ $server_cn && $line =~ m/;-proxy;/;
-		$line =~ s{-section;;}{-section;;-proxy;$proxy;} unless $line =~ m/;-proxy;/;
-		$line =~ s{-section;;}{-config;../$test_config;-section;$name,$aspect;};
-		my @fields = grep /\S/, split ";", $line;
+		next LOOP if $no_proxy =~ $server_cn && $line =~ m/,-proxy,/;
+		$line =~ s{-section,,}{-section,,-proxy,$proxy,} unless $line =~ m/,-proxy,/;
+		$line =~ s{-section,,}{-config,../$test_config,-section,$name $aspect,};
+		my @fields = grep /\S/, split ",", $line;
+                s/^\s+// for (@fields); # remove leading  whitepace from elements
+                s/\s+$// for (@fields); # remove trailing whitepace from elements
+                s/\"\"/\"/g for (@fields); # remove escaping from quotation marks from elements
 		my $expected_exit = $fields[$column];
 		my $title = $fields[2];
 		next LOOP if (!defined($expected_exit) or ($expected_exit ne 0 and $expected_exit ne 1));
