@@ -3347,9 +3347,16 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
     }
-    if (opt_cmd == CMP_KUR && opt_cert == NULL && opt_oldcert == NULL) {
-        OSSL_CMP_err(ctx, "missing certificate to be updated");
-        goto err;
+    if (opt_cmd == CMP_KUR) {
+        char *ref_cert = opt_oldcert ? opt_oldcert : opt_cert;
+        if (ref_cert == NULL) {
+            OSSL_CMP_err(ctx, "missing certificate to be updated");
+            goto err;
+        }
+        if (opt_subject)
+            OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN,
+                            "-subject '%s' given, which overrides the subject of '%s' in KUR",
+                            opt_subject, ref_cert);
     }
     if (opt_cmd == CMP_RR && opt_oldcert == NULL) {
         OSSL_CMP_err(ctx, "missing certificate to be revoked");
