@@ -234,8 +234,11 @@ typedef int (*X509_STORE_CTX_check_revocation_fn) (X509_STORE_CTX *ctx);
 #  define X509_V_ERR_OCSP_VERIFY_NEEDED 73 /* Need OCSP verification */
 #  define X509_V_ERR_OCSP_VERIFY_FAILED 74 /* Could not verify cert via OCSP */
 # endif
+# define X509_V_FLAG_OCSP_STAPLING  0x20000 /* Use OCSP stapling (for TLS) */
+# define X509_V_FLAG_OCSP_CHECK     0x40000 /* Check certificate with OCSP */
+# define X509_V_FLAG_OCSP_CHECK_ALL 0x80000 /* Check whole chain with OCSP */
 X509_STORE_CTX_check_revocation_fn check_revocation = NULL;
-static int opt_ocsp_status = 0;/* unset if OPENSSL_VERSION_NUMBER<0x10100000L */
+static int opt_ocsp_status = 0; /* unset if OPENSSL_VERSION_NUMBER<0x10100000L */
 #endif
 
 static char *opt_ownform_s = "PEM";
@@ -1838,13 +1841,14 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     X509 *cert = sk_X509_value(chain, i);
     X509 *issuer = sk_X509_value(chain, i < num - 1 ? i + 1 : num - 1);
 
-    int ocsp_check = opt_ocsp_use_aia || opt_ocsp_url || opt_ocsp_check_all;
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
     unsigned long flags = X509_VERIFY_PARAM_get_flags(param);
+    int ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
+    int ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
     int crl_check = flags & X509_V_FLAG_CRL_CHECK;
     int ok = 0;
 
-    if (opt_ocsp_status) {
+    if (ocsp_stapling) {
         if (resp) /* (stapled) response is available */
             ok = check_ocsp_resp(ts, chain, cert, issuer, resp);
         else
@@ -1861,6 +1865,7 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     if (ocsp_check) {
         resp = get_ocsp_resp(cert, issuer, opt_ocsp_url, opt_ocsp_use_aia,
                              opt_ocsp_timeout == 0 ? -1 : opt_ocsp_timeout);
+        /* TODO remove these direct references to OCSP options: opt_ocsp_... */
         ok = check_ocsp_resp(ts, untrusted, cert, issuer, resp);
         OCSP_RESPONSE_free(resp);
 
@@ -1937,19 +1942,21 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
     int i;
     int last = 0;
     int num = sk_X509_num(chain);
-    int ocsp_check = opt_ocsp_use_aia || opt_ocsp_url || opt_ocsp_check_all;
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
     unsigned long flags = X509_VERIFY_PARAM_get_flags(param);
+    int ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
+    int ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
+    int ocsp_check_all = flags & X509_V_FLAG_OCSP_CHECK_ALL;
     int crl_check = flags & X509_V_FLAG_CRL_CHECK;
     int crl_check_all = flags & X509_V_FLAG_CRL_CHECK_ALL;
     /* when set, usually CRL_CHECK is set as well, e.g., via opt_verify() */
     SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
                                           SSL_get_ex_data_X509_STORE_CTX_idx());
 
-    if (!(ssl && opt_ocsp_status) && !ocsp_check && !crl_check)
+    if (!(ssl && ocsp_stapling) && !ocsp_check && !crl_check)
         return 1;
 
-    if (opt_ocsp_check_all || crl_check_all)
+    if (ocsp_check_all || crl_check_all)
         last = num - 1;
     else {
         /* If checking CRL paths this is not the EE certificate */
@@ -1968,7 +1975,7 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
          * then OCSP, then CRLs
          */
 
-        if (ssl && i == 0 && opt_ocsp_status) { /* OCSP (not multi-)stapling */
+        if (ssl && i == 0 && ocsp_stapling) { /* OCSP (not multi-)stapling */
         /* We were called from ssl_verify_cert_chain() at state TLS_ST_CR_CERT.
            Stapled OCSP response becomes available only at TLS_ST_CR_CERT_STATUS
            and ocsp_stapling_cb() is called even later, at TLS_ST_CR_SRVR_DONE.
@@ -2707,6 +2714,12 @@ static int setup_srv_ctx(ENGINE *e)
  */
 static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
     *all_crls = NULL;
+    if (opt_ocsp_status)
+        X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_OCSP_STAPLING);
+    if (opt_ocsp_use_aia || opt_ocsp_url || opt_ocsp_check_all)
+        X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_OCSP_CHECK);
+    if (opt_ocsp_check_all)
+        X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_OCSP_CHECK_ALL);
     if (opt_crls || opt_crl_download)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_CRL_CHECK);
     else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
