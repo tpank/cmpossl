@@ -13,7 +13,8 @@ OSSL_CRMF_MSG_get_certReqId - functions reading the CRMF CERTREQMSG structures
  #include <openssl/crmf.h>
 
  OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get_tmpl(const OSSL_CRMF_MSG *crm);
- ASN1_INTEGER *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *t);
+ ASN1_INTEGER
+     *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *t);
  X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl);
 
  long OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
@@ -49,7 +50,7 @@ B<RFC 4211>
 
 =head1 COPYRIGHT
 
-Copyright 2007-2017 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2016-2018 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the OpenSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

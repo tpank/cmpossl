@@ -2,19 +2,20 @@
 
 =head1 NAME
 
- CMP_expired,
- CMP_validate_msg,
- CMP_validate_cert_path,
- CMP_print_cert_verify_cb
+ OSSL_CMP_expired,
+ OSSL_CMP_validate_msg,
+ OSSL_CMP_validate_cert_path,
+ OSSL_CMP_print_cert_verify_cb
 
 =head1 SYNOPSIS
 
  #include <openssl/cmp.h>
- int CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm);
- int CMP_validate_msg(CMP_CTX *ctx, CMP_MSG *msg);
- int CMP_validate_cert_path(CMP_CTX *ctx, const X509_STORE *trusted_store,
-                            const X509 *cert, int defer_errors);
- int CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
+ int OSSL_CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm);
+ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
+ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
+                                 const X509_STORE *trusted_store,
+                                 const X509 *cert, int defer_errors);
+ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
 =head1 DESCRIPTION
 
@@ -22,10 +23,10 @@ This is the API for validating the protection of CMP messages,
 which includes validating CMP server certificates and their paths
 while optionally checking the revocation status of the certificates(s).
 
-CMP_expired() is a helper function checking if expiration should be checked
+OSSL_CMP_expired() is a helper function checking if expiration should be checked
 according to the given verification parameters and the given time has passed.
 
-CMP_validate_msg() validates the protection of the given PKIMessage
+OSSL_CMP_validate_msg() validates the protection of the given PKIMessage
 using either password-based mac (PBM) or a signature algorithm.
 
 In case of signature algorithm, the certificate to use for protection
@@ -47,13 +48,14 @@ PKIMessage's extraCerts field may also be used as trust anchor during
 protection validation if it can be used to validate the issued certificate
 returned in IP.  This is according to 3GPP TS 33.310.
 
-CMP_validate_cert_path() attempts to validate the given certificate and its path
-using the given store of trusted certs (possibly including CRLs and a cert
+OSSL_CMP_validate_cert_path() attempts to validate the given certificate and its
+path using the given store of trusted certs (possibly including CRLs and a cert
 verification callback) and non-trusted intermediate certs from the B<ctx>.
 The B<defer_errors> parameter needs to be set when used in a certConf callback
-because any following certConf exchange will likely clear the OpenSSL error queue.
+because any following certConf exchange will likely clear the OpenSSL error
+queue.
 
-CMP_print_cert_verify_cb() is a diagnostic function that may be registered
+OSSL_CMP_print_cert_verify_cb() is a diagnostic function that may be registered
 using X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
 verify_cert() function at the end of a cert verification as an opportunity
 to gather and output information regarding a (failing) cert verification,
@@ -66,15 +68,27 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-CMP_expired() returns 1 if expiration should be checked
+OSSL_CMP_expired() returns 1 if expiration should be checked
 and the given time has passed, and 0 otherwise.
 
-CMP_validate_msg() returns 1 on success, 0 on error or validation failed.
+OSSL_CMP_validate_msg() returns 1 on success, 0 on error or validation failed.
 
-CMP_validate_cert_path() returns 1 on successful validation and 0 otherwise.
+OSSL_CMP_validate_cert_path() returns 1 on successful validation and 0
+otherwise.
 
 =head1 EXAMPLE
 
 =head1 SEE ALSO
 
-CMP_CTX, CMP_ses
+L<CMP_CTX(3), L<CMP_ses(3)>
+
+=head1 COPYRIGHT
+
+Copyright 2016-2018 The OpenSSL Project Authors. All Rights Reserved.
+
+Licensed under the OpenSSL license (the "License").  You may not use
+this file except in compliance with the License.  You can obtain a copy
+in the file LICENSE in the source distribution or at
+L<https://www.openssl.org/source/license.html>.
+
+=cut
