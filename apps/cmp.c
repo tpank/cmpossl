@@ -2285,6 +2285,63 @@ static STACK_OF(X509) *load_certs_multifile(char *files, int format,
     return NULL;
 }
 
+/* TODO DvO push this and related functions upstream (PR #multifile) */
+static STACK_OF(X509_CRL) *load_crls_multifile(const char *files, int format,
+                                               const char *desc)
+{
+    X509_CRL *crl;
+    STACK_OF(X509_CRL) *crls;
+    STACK_OF(X509_CRL) *all_crls = NULL;
+    char *names;
+    char *file;
+    char *next;
+
+    if (files == NULL) {
+        goto err;
+    }
+
+    if ((names = strdup(files)) == NULL ||
+        (all_crls = sk_X509_CRL_new_null()) == NULL) {
+        goto oom;
+    }
+
+    for (file = names; file != 0; file = next) {
+        next = next_item(file); /* must do this here to split string */
+
+        crls = load_crls_autofmt(file, format, desc);
+        if (crls == NULL)
+            goto err;
+        while((crl = sk_X509_CRL_shift(crls))) {
+            if (!sk_X509_CRL_push(all_crls, crl)) {
+                sk_X509_CRL_pop_free(crls, X509_CRL_free);
+                goto oom;
+            }
+            if (OSSL_CMP_expired(X509_CRL_get0_nextUpdate(crl), vpm)) {
+                /* well, should ignore expiry of base CRL if delta CRL is valid */
+                char *issuer =
+                    X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
+                BIO_printf(bio_err, "CRL from '%s' issued by '%s' has expired",
+                           file, issuer);
+                OPENSSL_free(issuer);
+#if 0
+                sk_X509_CRL_pop_free(crls, X509_CRL_free);
+                goto err;
+#endif
+            }
+        }
+        sk_X509_CRL_free(crls);
+        file = next;
+    }
+    return all_crls;
+
+ oom:
+    BIO_printf(bio_err, "out of memory\n");
+ err:
+    sk_X509_CRL_pop_free(all_crls, X509_CRL_free);
+    free(names);
+    return NULL;
+}
+
 typedef int (*add_X509_stack_fn_t)(void *ctx, const STACK_OF(X509) *certs);
 typedef int (*add_X509_fn_t      )(void *ctx, const X509 *cert);
 static int setup_certs(char *files, const char *desc, void *ctx,
@@ -2554,43 +2611,11 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
     if (opt_crl_timeout == 0)
         opt_crl_timeout = -1;
     if (opt_crls != NULL) {
-/* TODO DvO extract load_multiple_crls() and push upstream (PR #multifile) */
-        X509_CRL *crl;
-        STACK_OF(X509_CRL) *crls;
-
-        if ((*all_crls = sk_X509_CRL_new_null()) == NULL) {
-            goto oom;
-        }
-        while (opt_crls != NULL) {
-            char *next = next_item(opt_crls);
-
-            crls =
-                load_crls_autofmt(opt_crls, opt_crlform,
-                                  "CRL(s) for checking certificate revocation");
-            if (crls == NULL)
-                goto err;
-            while ((crl = sk_X509_CRL_shift(crls)) != NULL) {
-                if (!sk_X509_CRL_push(*all_crls, crl)) {
-                    sk_X509_CRL_pop_free(crls, X509_CRL_free);
-                    goto oom;
-                }
-                if (OSSL_CMP_expired(X509_CRL_get0_nextUpdate(crl), vpm)) {
-              /* well, should ignore expiry of base CRL if delta CRL is valid */
-                    char *issuer =
-                        X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
-                    OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN,
-                                    "CRL from '%s' issued by '%s' has expired",
-                                    opt_crls, issuer);
-                    OPENSSL_free(issuer);
-#if 0
-                    sk_X509_CRL_pop_free(crls, X509_CRL_free);
-                    goto err;
-#endif
-                }
-            }
-            sk_X509_CRL_free(crls);
-            opt_crls = next;
-        }
+        *all_crls =
+            load_crls_multifile(opt_crls, opt_crlform,
+                                "CRL(s) for checking certificate revocation");
+        if (*all_crls == NULL)
+            goto err;
     }
     if (!setup_certs(opt_untrusted, "untrusted certificates", ctx,
                      (add_X509_stack_fn_t)OSSL_CMP_CTX_set1_untrusted_certs,
