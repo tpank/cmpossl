@@ -11,13 +11,16 @@
 # CMP tests by Martin Peylo, Tobias Pankert, and David von Oheimb.
 
 use strict;
-use OpenSSL::Test;              # get 'plan'
-use OpenSSL::Test::Simple;
-use OpenSSL::Test::Utils;
-
-setup("test_cmp_ses");
+use OpenSSL::Test qw/:DEFAULT data_file/;
 
 plan skip_all => "This test is unsupported in a shared library build on Windows"
     if $^O eq 'MSWin32' && !disabled("shared");
 
-simple_test("test_cmp_ses", "cmp_ses_test", "cmp_ses");
+setup("test_cmp_ses");
+
+plan tests => 1;
+
+ok(run(test(["cmp_ses_test",
+             data_file("server.crt"),
+             data_file("server.pem"),
+             data_file("pkcs10.der")])));

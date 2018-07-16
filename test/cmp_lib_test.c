@@ -13,6 +13,16 @@
 
 #include "cmptestlib.h"
 
+static const char *server_key_f;
+static const char *server_cert_f;
+static const char *endentity1_f;
+static const char *endentity2_f;
+static const char *root_f;
+static const char *intermediate_f;
+static const char *ir_protected_f;
+static const char *ir_unprotected_f;
+static const char *ir_rmprotection_f;
+
 typedef struct test_fixture {
     const char *test_case_name;
     int expected;
@@ -69,7 +79,7 @@ static X509 *cert = NULL;
 static X509 *endentity1 = NULL, *endentity2 = NULL,
     *root = NULL, *intermediate = NULL;
 static unsigned char rand_data[OSSL_CMP_TRANSACTIONID_LENGTH];
-static OSSL_CMP_MSG *ir_unprotected, *ir_protected, *insta_unprotected;
+static OSSL_CMP_MSG *ir_unprotected, *ir_protected, *ir_rmprotection;
 
 
 static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
@@ -522,7 +532,7 @@ static int test_cmp_pkimessage_check_received_wrong_recipient_nonce(void)
 
 static int test_cmp_pkimessage_check_received_check_recipient_nonce(void)
 {
-    /* Recipient nonce belonging to CMP_IP_insta_unprotected.der */
+    /* Recipient nonce belonging to CMP_IP_ir_rmprotection.der */
     const unsigned char rec_nonce[OSSL_CMP_SENDERNONCE_LENGTH] =
         { 0x48, 0xF1, 0x71, 0x1F, 0xE5, 0xAF, 0x1C, 0x8B,
         0x21, 0x97, 0x5C, 0x84, 0x74, 0x49, 0xBA, 0x32
@@ -532,7 +542,7 @@ static int test_cmp_pkimessage_check_received_check_recipient_nonce(void)
     fixture->expected = OSSL_CMP_PKIBODY_IP;
     fixture->callback_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
-    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(insta_unprotected)) ||
+    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_rmprotection)) ||
         !TEST_ptr(snonce = ASN1_OCTET_STRING_new()) ||
         !TEST_true(ASN1_OCTET_STRING_set(snonce, rec_nonce, sizeof(rec_nonce)))
         || !TEST_true(OSSL_CMP_CTX_set1_last_senderNonce(fixture->cmp_ctx, snonce))) {
@@ -698,33 +708,42 @@ void cleanup_tests(void)
     X509_free(intermediate);
     OSSL_CMP_MSG_free(ir_protected);
     OSSL_CMP_MSG_free(ir_unprotected);
-    OSSL_CMP_MSG_free(insta_unprotected);
+    OSSL_CMP_MSG_free(ir_rmprotection);
 
     return;
 }
 
 int setup_tests(void)
 {
+    if (!TEST_ptr(server_cert_f = test_get_argument(0)) ||
+        !TEST_ptr(server_key_f = test_get_argument(1)) ||
+        !TEST_ptr(endentity1_f = test_get_argument(2)) ||
+        !TEST_ptr(endentity2_f = test_get_argument(3)) ||
+        !TEST_ptr(root_f = test_get_argument(4)) ||
+        !TEST_ptr(intermediate_f = test_get_argument(5)) ||
+        !TEST_ptr(ir_protected_f = test_get_argument(6)) ||
+        !TEST_ptr(ir_unprotected_f = test_get_argument(7)) ||
+        !TEST_ptr(ir_rmprotection_f = test_get_argument(8))) {
+        TEST_error("usage: cmp_lib_test server.crt server.pem "
+                   "EndEntity1.crt EndEntity2.crt "
+                   "Root_CA.crt Intermediate_CA.crt"
+                   "IR_protected.der IR_unprotected.der"
+                   "IR_rmprotection.der\n");
+        return 0;
+    }
     if(!TEST_int_eq(1, RAND_bytes(rand_data, OSSL_CMP_TRANSACTIONID_LENGTH)))
         return 0;
-    if (!TEST_ptr(endentity1 =
-                  load_pem_cert("../cmp-test/chain/EndEntity1.crt")) ||
-        !TEST_ptr(endentity2 =
-                  load_pem_cert("../cmp-test/chain/EndEntity2.crt")) ||
-        !TEST_ptr(root = load_pem_cert("../cmp-test/chain/Root_CA.crt")) ||
-        !TEST_ptr(intermediate =
-                  load_pem_cert("../cmp-test/chain/Intermediate_CA.crt")))
+    if (!TEST_ptr(endentity1 = load_pem_cert(endentity1_f)) ||
+        !TEST_ptr(endentity2 = load_pem_cert(endentity2_f)) ||
+        !TEST_ptr(root = load_pem_cert(root_f)) ||
+        !TEST_ptr(intermediate = load_pem_cert(intermediate_f)))
         return 0;
-    if (!TEST_ptr(loadedkey = load_pem_key("../cmp-test/server.pem")) ||
-        !TEST_ptr(cert =
-                  load_pem_cert("../cmp-test/openssl_cmp_test_server.crt")))
+    if (!TEST_ptr(loadedkey = load_pem_key(server_key_f)) ||
+        !TEST_ptr(cert = load_pem_cert(server_cert_f)))
         return 0;
-    if (!TEST_ptr(ir_protected =
-                load_pkimsg("../cmp-test/CMP_IR_protected.der")) ||
-        !TEST_ptr(ir_unprotected =
-                load_pkimsg("../cmp-test/CMP_IR_unprotected.der")) ||
-        !TEST_ptr(insta_unprotected =
-                load_pkimsg("../cmp-test/insta_removed_protection.der")))
+    if (!TEST_ptr(ir_protected = load_pkimsg(ir_protected_f)) ||
+        !TEST_ptr(ir_unprotected = load_pkimsg(ir_unprotected_f)) ||
+        !TEST_ptr(ir_rmprotection = load_pkimsg(ir_rmprotection_f)))
         return 0;
 
 

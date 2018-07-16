@@ -11,13 +11,17 @@
 # CMP tests by Martin Peylo, Tobias Pankert, and David von Oheimb.
 
 use strict;
-use OpenSSL::Test;              # get 'plan'
-use OpenSSL::Test::Simple;
-use OpenSSL::Test::Utils;
-
-setup("test_internal_cmp");
+use OpenSSL::Test qw/:DEFAULT data_file/;
 
 plan skip_all => "This test is unsupported in a shared library build on Windows"
     if $^O eq 'MSWin32' && !disabled("shared");
 
-simple_test("test_internal_cmp", "cmp_internal_test", "cmp_internal");
+setup("test_cmp_internal");
+
+plan tests => 1;
+
+ok(run(test(["cmp_internal_test",
+             data_file("server.pem"),
+             data_file("IR_protected.der"),
+             data_file("IR_unprotected.der"),
+             data_file("IP_PBM.der")])));

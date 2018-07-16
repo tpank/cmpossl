@@ -15,6 +15,10 @@
 
 #ifndef NDEBUG /* tests need mock server, which is available only if !NDEBUG */
 
+static const char *server_cert_f;
+static const char *server_key_f;
+static const char *pkcs10_f;
+
 typedef struct test_fixture {
     const char *test_case_name;
     OSSL_CMP_CTX *cmp_ctx;
@@ -227,7 +231,7 @@ static int test_cmp_exec_p10cr_ses(void)
     X509_REQ *req = NULL;
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_P10CR_ses;
     fixture->expected = 1;
-    if (!TEST_ptr(req = load_csr("../cmp-test/pkcs10.der")) ||
+    if (!TEST_ptr(req = load_csr(pkcs10_f)) ||
         !TEST_true(OSSL_CMP_CTX_set1_p10CSR(fixture->cmp_ctx, req))) {
         tear_down(fixture);
         fixture = NULL;
@@ -290,9 +294,15 @@ void cleanup_tests(void)
 
 int setup_tests(void)
 {
-    if (!TEST_ptr(key = load_pem_key("../cmp-test/server.pem")) ||
-        !TEST_ptr(cert =
-                  load_pem_cert("../cmp-test/openssl_cmp_test_server.crt")) ||
+    if (!TEST_ptr(server_cert_f = test_get_argument(0)) ||
+        !TEST_ptr(server_key_f = test_get_argument(1)) ||
+        !TEST_ptr(pkcs10_f = test_get_argument(2))) {
+        TEST_error("usage: cmp_ses_test server.crt server.pem pkcs10.der\n");
+        return 0;
+    }
+
+    if (!TEST_ptr(key = load_pem_key(server_key_f)) ||
+        !TEST_ptr(cert = load_pem_cert(server_cert_f)) ||
         !TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))))
         return 0;
 

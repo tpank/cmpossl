@@ -13,6 +13,9 @@
 
 #include "cmptestlib.h"
 
+static const char *server_cert_f;
+static const char *pkcs10_f;
+
 typedef struct test_fixture {
     const char *test_case_name;
     OSSL_CMP_CTX *cmp_ctx;
@@ -204,7 +207,7 @@ static int test_cmp_create_p10cr(void)
     fixture->bodytype = OSSL_CMP_PKIBODY_P10CR;
     fixture->err_code = CMP_R_ERROR_CREATING_P10CR;
     fixture->expected = 1;
-    if (!TEST_ptr(p10cr = load_csr("../cmp-test/pkcs10.der")) ||
+    if (!TEST_ptr(p10cr = load_csr(pkcs10_f)) ||
         !TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey)) ||
         !TEST_true(OSSL_CMP_CTX_set1_p10CSR(fixture->cmp_ctx, p10cr))) {
         tear_down(fixture);
@@ -371,9 +374,7 @@ static int test_cmp_pkimessage_create(int bodytype)
     case OSSL_CMP_PKIBODY_P10CR:
         fixture->expected = 1;
         if (!TEST_true(OSSL_CMP_CTX_set1_p10CSR(fixture->cmp_ctx,
-                                           p10cr =
-                                           load_csr
-                                           ("../cmp-test/pkcs10.der")))) {
+                                                p10cr = load_csr(pkcs10_f)))) {
             tear_down(fixture);
             fixture = NULL;
         }
@@ -413,9 +414,15 @@ void cleanup_tests(void)
 
 int setup_tests(void)
 {
+    if (!TEST_ptr(server_cert_f = test_get_argument(0)) ||
+        !TEST_ptr(pkcs10_f = test_get_argument(1))) {
+        TEST_error("usage: cmp_msg_test server.crt pkcs10.der\n");
+        return 0;
+    }
+
     if (!TEST_ptr(newkey = gen_rsa()) ||
         !TEST_ptr(cert =
-                  load_pem_cert("../cmp-test/openssl_cmp_test_server.crt")) ||
+                  load_pem_cert(server_cert_f)) ||
         !TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))))
         return 0;
 

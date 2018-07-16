@@ -15,6 +15,11 @@
 
 #include "../crypto/cmp/cmp_int.h"
 
+static const char *server_f;
+static const char *ir_protected_f;
+static const char *ir_unprotected_f;
+static const char *ip_PBM_f;
+
 /* Add test code as per
  * http://wiki.openssl.org/index.php/How_To_Write_Unit_Tests_For_OpenSSL#Style
  */
@@ -143,8 +148,7 @@ static int test_cmp_calc_protection_no_key_no_secret(void)
     SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
      * side effects */
-    if (!TEST_ptr(fixture->msg =
-                  load_pkimsg("../cmp-test/CMP_IR_unprotected.der")) ||
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_unprotected_f)) ||
         !TEST_ptr(fixture->msg->header->protectionAlg = X509_ALGOR_new())) {
         tear_down(fixture);
         fixture = NULL;
@@ -162,8 +166,7 @@ static int test_cmp_calc_protection_pkey(void)
     fixture->privkey = loadedprivkey;
     if (!TEST_true(EVP_PKEY_up_ref(loadedpubkey)) ||
         !TEST_true(EVP_PKEY_up_ref(loadedprivkey)) ||
-        !TEST_ptr(fixture->msg =
-                  load_pkimsg("../cmp-test/CMP_IR_protected.der"))) {
+        !TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -179,8 +182,7 @@ static int test_cmp_calc_protection_pbmac(void)
     if (!TEST_ptr(fixture->secret = ASN1_OCTET_STRING_new()) ||
         !TEST_true(ASN1_OCTET_STRING_set
                    (fixture->secret, sec_insta, sizeof(sec_insta))) ||
-        !TEST_ptr(fixture->msg =
-                  load_pkimsg("../cmp-test/CMP_IP_insta_PBM.der"))) {
+        !TEST_ptr(fixture->msg = load_pkimsg(ip_PBM_f))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -196,7 +198,16 @@ void cleanup_tests(void)
 
 int setup_tests(void)
 {
-    if (!TEST_ptr(loadedprivkey = load_pem_key("../cmp-test/server.pem")))
+    if (!TEST_ptr(server_f = test_get_argument(0)) ||
+        !TEST_ptr(ir_protected_f = test_get_argument(1)) ||
+        !TEST_ptr(ir_unprotected_f = test_get_argument(2)) ||
+        !TEST_ptr(ip_PBM_f = test_get_argument(3))) {
+        TEST_error("usage: cmp_internal_test server.pem"
+                   "IR_protected.der IR_unprotected.der IP_PBM.der\n");
+        return 0;
+    }
+
+    if (!TEST_ptr(loadedprivkey = load_pem_key(server_f)))
         return 0;
     if (TEST_true(EVP_PKEY_up_ref(loadedprivkey)))
         loadedpubkey = loadedprivkey;

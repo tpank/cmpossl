@@ -13,6 +13,16 @@
 
 #include "cmptestlib.h"
 
+static const char *server_f;
+static const char *client_f;
+static const char *endentity1_f;
+static const char *endentity2_f;
+static const char *root_f;
+static const char *intermediate_f;
+static const char *ir_protected_f;
+static const char *ir_unprotected_f;
+static const char *ip_waiting_f;
+
 typedef struct test_fixture {
     const char *test_case_name;
     int expected;
@@ -83,8 +93,7 @@ static int test_cmp_validate_msg_mac_alg_protection(void)
 
     if (!TEST_true
         (OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, sec_1, sizeof(sec_1)))
-        || !TEST_ptr(fixture->msg =
-                     load_pkimsg("../cmp-test/CMP_IP_waitingStatus_PBM.der"))) {
+        || !TEST_ptr(fixture->msg = load_pkimsg(ip_waiting_f))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -104,8 +113,7 @@ static int test_cmp_validate_msg_mac_alg_protection_bad(void)
     if (!TEST_true
         (OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, sec_bad,
                                        sizeof(sec_bad)))
-        || !TEST_ptr(fixture->msg =
-                     load_pkimsg("../cmp-test/CMP_IP_waitingStatus_PBM.der"))) {
+        || !TEST_ptr(fixture->msg = load_pkimsg(ip_waiting_f))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -119,8 +127,7 @@ static int test_cmp_validate_msg_signature(void)
     /* Do test case-specific set up; set expected return values and
      * side effects */
     fixture->expected = 1;
-    if (!TEST_ptr(fixture->msg =
-                  load_pkimsg("../cmp-test/CMP_IR_protected.der")) ||
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f)) ||
         !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert))) {
         tear_down(fixture);
         fixture = NULL;
@@ -135,8 +142,7 @@ static int test_cmp_validate_msg_signature_bad(void)
     /* Do test case-specific set up; set expected return values and
      * side effects */
     fixture->expected = 0;
-    if (!TEST_ptr(fixture->msg =
-                  load_pkimsg("../cmp-test/CMP_IR_protected.der")) ||
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f)) ||
         !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, clcert))) {
         tear_down(fixture);
         fixture = NULL;
@@ -151,8 +157,7 @@ static int test_cmp_validate_msg_signature_expected_sender(void)
     /* Do test case-specific set up; set expected return values and
      * side effects */
     fixture->expected = 1;
-    if (!TEST_ptr(fixture->msg =
-                  load_pkimsg("../cmp-test/CMP_IR_protected.der")) ||
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f)) ||
         !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert)) ||
         /* Set wrong expected sender name*/
         !TEST_true(OSSL_CMP_CTX_set1_expected_sender(fixture->cmp_ctx,
@@ -170,8 +175,7 @@ static int test_cmp_validate_msg_signature_unexpected_sender(void)
     /* Do test case-specific set up; set expected return values and
      * side effects */
     fixture->expected = 0;
-    if (!TEST_ptr(fixture->msg =
-                  load_pkimsg("../cmp-test/CMP_IR_protected.der")) ||
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f)) ||
         !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert)) ||
         /* Set wrong expected sender name*/
         !TEST_true(OSSL_CMP_CTX_set1_expected_sender(fixture->cmp_ctx,
@@ -190,8 +194,7 @@ static int test_cmp_validate_msg_unprotected_request(void)
     /* Do test case-specific set up; set expected return values and
      * side effects */
     fixture->expected = 0;
-    if (!TEST_ptr(fixture->msg =
-                  load_pkimsg("../cmp-test/CMP_IR_unprotected.der"))) {
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_unprotected_f))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -291,21 +294,33 @@ int setup_tests(void)
     ts.tm_year += 10;           /* February 18th 2028 */
     test_time_future = mktime(&ts);
 
+    if (!TEST_ptr(server_f = test_get_argument(0)) ||
+        !TEST_ptr(client_f = test_get_argument(1)) ||
+        !TEST_ptr(endentity1_f = test_get_argument(2)) ||
+        !TEST_ptr(endentity2_f = test_get_argument(3)) ||
+        !TEST_ptr(root_f = test_get_argument(4)) ||
+        !TEST_ptr(intermediate_f = test_get_argument(5)) ||
+        !TEST_ptr(ir_protected_f = test_get_argument(6)) ||
+        !TEST_ptr(ir_unprotected_f = test_get_argument(7)) ||
+        !TEST_ptr(ip_waiting_f = test_get_argument(8))) {
+        TEST_error("usage: cmp_vfy_test server.crt client.crt"
+                   "EndEntity1.crt EndEntity2.crt"
+                   "Root_CA.crt Intermediate_CA.crt"
+                   "CMP_IR_protected.der CMP_IR_unprotected.der"
+                   "IP_waitingStatus_PBM.der\n");
+        return 0;
+    }
+
     /* Load certificates for cert chain */
-    if (!TEST_ptr(endentity1 =
-                  load_pem_cert("../cmp-test/chain/EndEntity1.crt")) ||
-        !TEST_ptr(endentity2 =
-                  load_pem_cert("../cmp-test/chain/EndEntity2.crt")) ||
-        !TEST_ptr(root = load_pem_cert("../cmp-test/chain/Root_CA.crt")) ||
-        !TEST_ptr(intermediate =
-                  load_pem_cert("../cmp-test/chain/Intermediate_CA.crt")))
+    if (!TEST_ptr(endentity1 = load_pem_cert(endentity1_f)) ||
+        !TEST_ptr(endentity2 = load_pem_cert(endentity2_f)) ||
+        !TEST_ptr(root = load_pem_cert(root_f)) ||
+        !TEST_ptr(intermediate = load_pem_cert(intermediate_f)))
         return 0;
 
     /* Load certificates for message validation */
-    if (!TEST_ptr(srvcert =
-                  load_pem_cert("../cmp-test/openssl_cmp_test_server.crt"))
-        || !TEST_ptr(clcert =
-                     load_pem_cert("../cmp-test/openssl_cmp_test_client.crt")))
+    if (!TEST_ptr(srvcert = load_pem_cert(server_f)) ||
+        !TEST_ptr(clcert = load_pem_cert(client_f)))
         return 0;
 
     /* Message validation tests */
