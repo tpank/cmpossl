@@ -211,6 +211,7 @@ static OSSL_CMP_SRV_CTX *srv_ctx = NULL;
 
 static int opt_crl_download = 0;
 static char *opt_crls = NULL;
+static STACK_OF(X509_CRL) *global_crls = NULL;
 static int opt_crl_timeout = 10;
 
 static X509_VERIFY_PARAM *vpm = NULL;
@@ -2115,7 +2116,7 @@ static int add_crls_store(X509_STORE *st, STACK_OF(X509_CRL) *crls)
     return 1;
 }
 
-static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
+static int set_store_parameters_crls(X509_STORE *ts)
 {
     if (ts == NULL|| vpm == NULL)
         return 0;
@@ -2129,8 +2130,8 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
 
     X509_STORE_set_verify_cb(ts, cert_verify_cb);
 
-    if (crls != NULL &&
-        !add_crls_store(ts, crls)) /* ups the references to crls */
+    if (global_crls != NULL &&
+        !add_crls_store(ts, global_crls)) /* ups the references to crls */
         return 0;
 
     if (opt_crl_download)
@@ -2497,7 +2498,7 @@ static int setup_srv_ctx(ENGINE *e)
     if (opt_srv_trusted != NULL) {
         X509_STORE *ts =
             load_certstore(opt_srv_trusted, "server trusted certificates");
-        if (!set1_store_parameters_crls(ts/* may be NULL */, NULL/*no CRLs*/) ||
+        if (!set_store_parameters_crls(ts/* may be NULL */) ||
             !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
             !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
@@ -2580,8 +2581,7 @@ static int setup_srv_ctx(ENGINE *e)
  * set up verification aspects of OSSL_CMP_CTX w.r.t. opts from config file/CLI.
  * Returns pointer on success, NULL on error
  */
-static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
-    *all_crls = NULL;
+static int setup_verification_ctx(OSSL_CMP_CTX *ctx) {
 #ifndef OPENSSL_NO_OCSP
     if (opt_ocsp_status)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_OCSP_STAPLING);
@@ -2611,10 +2611,10 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
     if (opt_crl_timeout == 0)
         opt_crl_timeout = -1;
     if (opt_crls != NULL) {
-        *all_crls =
+        global_crls =
             load_crls_multifile(opt_crls, opt_crlform,
                                 "CRL(s) for checking certificate revocation");
-        if (*all_crls == NULL)
+        if (global_crls == NULL)
             goto err;
     }
     if (!setup_certs(opt_untrusted, "untrusted certificates", ctx,
@@ -2686,7 +2686,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
         if (opt_trusted != NULL &&
             (ts = load_certstore(opt_trusted, "trusted certificates")) == NULL)
             goto err;
-        if (!set1_store_parameters_crls(ts, *all_crls) ||
+        if (!set_store_parameters_crls(ts) ||
             !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
             !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
@@ -2708,7 +2708,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
         if (out_trusted == NULL)
             goto err;
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
-        if (!set1_store_parameters_crls(out_trusted, *all_crls))
+        if (!set_store_parameters_crls(out_trusted))
             goto oom;
         /* ignore any -attime here, new certs are current anyway */
         out_vpm = X509_STORE_get0_param(out_trusted);
@@ -2730,8 +2730,6 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
  oom:
     OSSL_CMP_err(ctx, "out of memory");
  err:
-    sk_X509_CRL_pop_free(*all_crls, X509_CRL_free);
-    *all_crls = NULL;
     return 0;
 }
 
@@ -2755,8 +2753,7 @@ static int SSL_CTX_add_extra_chain_free(SSL_CTX *ssl_ctx, STACK_OF(X509) *certs)
  * set up ssl_ctx for the OSSL_CMP_CTX based on options from config file/CLI.
  * Returns pointer on success, NULL on error
  */
-static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
-                              STACK_OF(X509_CRL) *all_crls)
+static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs)
 {
     EVP_PKEY *pkey = NULL;
     X509_STORE *store = NULL;
@@ -2790,7 +2787,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         }
         /* do immediately for automatic cleanup in case of errors: */
         SSL_CTX_set_cert_store(ssl_ctx, store);
-        if (!set1_store_parameters_crls(store, all_crls))
+        if (!set_store_parameters_crls(store))
             goto oom;
         /* enable and parameterize server hostname/IP address check */
         if (!truststore_set_host_etc(store, opt_tls_host != NULL ?
@@ -3142,7 +3139,6 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
  */
 static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 {
-    STACK_OF(X509_CRL) *all_crls = NULL;
     int ret = 0;
 
     if (opt_server == NULL) {
@@ -3221,7 +3217,7 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
 
 
-    if (!setup_verification_ctx(ctx, &all_crls))
+    if (!setup_verification_ctx(ctx))
         goto err;
 
 
@@ -3246,7 +3242,7 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
         ssl_ctx =
-            setup_ssl_ctx(e, OSSL_CMP_CTX_get0_untrusted_certs(ctx), all_crls);
+            setup_ssl_ctx(e, OSSL_CMP_CTX_get0_untrusted_certs(ctx));
         if (ssl_ctx == NULL)
             goto err;
 
@@ -3351,7 +3347,6 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     ret = 1;
 
  err:
-    sk_X509_CRL_pop_free(all_crls, X509_CRL_free);
     return ret;
  oom:
     OSSL_CMP_err(ctx, "out of memory");
@@ -4178,6 +4173,7 @@ int cmp_main(int argc, char **argv)
     if (ret > 0)
         ERR_print_errors_fp(stderr);
 
+    sk_X509_CRL_pop_free(global_crls, X509_CRL_free);
     SSL_CTX_free(OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx));
     X509_STORE_free(OSSL_CMP_CTX_get_certConf_cb_arg(cmp_ctx));
     OSSL_CMP_CTX_delete(cmp_ctx);
