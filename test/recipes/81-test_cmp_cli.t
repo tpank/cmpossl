@@ -14,7 +14,7 @@ use strict;
 use warnings;
 
 use POSIX;
-use OpenSSL::Test qw/:DEFAULT with data_file data_dir/;
+use OpenSSL::Test qw/:DEFAULT with data_file/; # TODO add data_dir when exported
 use OpenSSL::Test::Utils;
 use Data::Dumper; # for debugging purposes only
 
@@ -126,7 +126,7 @@ sub test_cmp_cli_aspect {
     };
 }
 
-indir data_dir() => sub {
+indir data_file() => sub {  # TODO use data_dir() instead when exported
     plan tests => 1 + @ca_configurations * @all_aspects;
 
     test_cmp_cli_aspect("basic", "", \@cmp_basic_tests);
