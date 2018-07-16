@@ -13,9 +13,6 @@
 use strict;
 use OpenSSL::Test qw/:DEFAULT data_file/;
 
-plan skip_all => "This test is unsupported in a shared library build on Windows"
-    if $^O eq 'MSWin32' && !disabled("shared");
-
 setup("test_cmp_lib");
 
 plan tests => 1;

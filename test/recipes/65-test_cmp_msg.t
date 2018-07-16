@@ -15,11 +15,6 @@ use OpenSSL::Test qw/:DEFAULT data_file/;
 
 setup("test_cmp_msg");
 
-plan skip_all => "This test is unsupported in a shared library build on Windows"
-    if $^O eq 'MSWin32' && !disabled("shared");
-
-setup("test_cmp_msg");
-
 plan tests => 1;
 
 ok(run(test(["cmp_msg_test",
