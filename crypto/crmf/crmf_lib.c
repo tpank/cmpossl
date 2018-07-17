@@ -203,7 +203,8 @@ int OSSL_CRMF_MSG_set_version2(OSSL_CRMF_MSG *crm)
         goto err;
 
     if ((tmpl->version) == NULL)
-        tmpl->version = ASN1_INTEGER_new();
+        if ((tmpl->version = ASN1_INTEGER_new()) == 0)
+            goto err;
     ASN1_INTEGER_set(tmpl->version, 2L);
     return 1;
  err:
