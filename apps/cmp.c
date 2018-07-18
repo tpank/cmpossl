@@ -41,6 +41,9 @@
 # define X509_STORE_get_check_revocation(st)    ((st)->check_revocation)
 # define X509_STORE_set_check_revocation(st, f) {(st)->check_revocation=(f);}
 #endif
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+# define X509_STORE_CTX_get1_crls X509_STORE_get1_crls
+#endif
 
 static char *opt_config = NULL;
 #define CMP_SECTION "cmp"
@@ -693,9 +696,9 @@ OPTIONS cmp_options[] = {
     {"crls", OPT_CRLS, 's',
      "Use given CRL(s) as secondary (fallback) source when verifying certs."},
     {OPT_MORE_STR, 0, 0,
-     "URL may start with 'http:' or name a local file (can be prefixed by 'file:')"},
+     "Entries may start with 'http:' or name a file (with optional prefix 'file:')"},
     {"crl_timeout", OPT_CRL_TIMEOUT, 'n',
-     "Request timeout for online CRL retrieval (or 0 for none). Default 10 seconds"},
+     "Timeout for online CRL retrieval from CDPs (0 for none). Default 10 seconds"},
 #ifndef OPENSSL_NO_OCSP
     {"ocsp_url", OPT_OCSP_URL, 's',
      "Take given URL as fallback OCSP responder (AIA entries are preferred)"},
@@ -1536,9 +1539,6 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
     STACK_OF(X509_CRL) *crls;
     crls = LOCAL_crls_http_cb(ctx, nm);
     if (crls == NULL) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-# define X509_STORE_CTX_get1_crls X509_STORE_get1_crls
-#endif
         crls = X509_STORE_CTX_get1_crls(ctx, nm);
     }
     return crls;
@@ -1559,7 +1559,7 @@ static void DEBUG_print_cert(const char *msg, const X509 *cert)
 /* TODO DvO push this function upstream & use in ocsp.c (PR #check_ocsp_resp) */
 
 /* Maximum leeway in validity period: default 5 minutes */
-# define MAX_OCSP_VALIDITY_PERIOD (5 * 60)
+# define MAX_OCSP_VALIDITY_LEEWAY (5 * 60)
 
 /* adapted from ocsp_main() of ocsp.c */
 /*
@@ -1647,7 +1647,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
     }
 
     /* TODO: OCSP_check_validity() should respect -attime: vpm->check_time */
-    if (!OCSP_check_validity(thisupd, nextupd, MAX_OCSP_VALIDITY_PERIOD, -1)) {
+    if (!OCSP_check_validity(thisupd, nextupd, MAX_OCSP_VALIDITY_LEEWAY, -1)) {
         BIO_puts(bio_err, "OCSP status times invalid\n");
         ERR_print_errors(bio_err);
         goto end;
@@ -1655,7 +1655,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
         switch (status) {
         case V_OCSP_CERTSTATUS_GOOD:
 #if 0
-            DEBUG_print_cert("OCSP status good", cert);
+            DEBUG_print_cert("OCSP status: good", cert);
 #endif
             res = 1;
             break;
@@ -1708,13 +1708,14 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
      /* TODO DvO try using any AIA entries in the given order, then use any given fallback URL */
     if (url == NULL) {
         BIO_puts(bio_err,
-                 "cert_status: no AIA in cert and no default responder URL\n");
+                 "cert_status: no AIA in cert and no fallback OCSP responder URL\n");
         return NULL;
     }
     DEBUG_print("cert_status: using", aia && use_aia ?
                 "OCSP responder from AIA" : "fallback OCSP responder", url);
     if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl)) {
-        BIO_printf(bio_err, "cert_status: cannot parse AIA URL: %s\n", url);
+        BIO_printf(bio_err,
+                   "cert_status: cannot parse OCSP responder URL: %s\n", url);
         goto end;
     }
 
@@ -1785,30 +1786,10 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
 /* TODO DvO remove this function when the ones using it are merged upstream */
 /*
  * check revocation status of cert at current error depth in ctx using CRLs.
- * Emulates the internal check_cert() function from crypto/x509/x509_vfy.c
+ * Calls the internal check_cert() function from crypto/x509/x509_vfy.c
  */
-static int check_cert(X509_STORE_CTX *ctx)
-{
-    int i;
-    int ok;
-    X509 *cert, *cert_copy = NULL;
-    STACK_OF(X509) *chain = X509_STORE_CTX_get0_chain(ctx);
-    int cnum = X509_STORE_CTX_get_error_depth(ctx);
-
-    for (i = 0; i < sk_X509_num(chain); i++) {
-        cert = sk_X509_value(chain, i);
-        if (i == cnum)
-            cert_copy = cert;
-        /* do not check revocation of this cert:
-           else
-               X509_set_proxy_flag(cert); */
-    }
-    /* call internal check_cert() effectively only for the (cnum)-th cert: */
-    ok = (*check_revocation)(ctx);
-    if (ok)
-        DEBUG_print_cert("CRL check good  ", cert_copy);
-    /* well, better should restore original chain */
-    return ok;
+static int check_cert_status_crls(X509_STORE_CTX *ctx) {
+    return (*check_revocation)(ctx);
 }
 
 /* TODO DvO remove this function when the ones using it are merged upstream */
@@ -1825,6 +1806,18 @@ static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
     return verify_cb && (*verify_cb) (0, ctx);
 }
 
+static int check_cert_status_ocsp(X509_STORE *ts, STACK_OF(X509) *untrusted,
+                                  X509 *cert, X509 *issuer) {
+    char *ocsp_url = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP_URL);
+    int timeout = *(int *)
+                  X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP_TIMEOUT);
+    OCSP_RESPONSE *resp = get_ocsp_resp(cert, issuer, ocsp_url,
+                                        1/* use_aia */, timeout);
+    int res = check_ocsp_resp(ts, untrusted, cert, issuer, resp);
+    OCSP_RESPONSE_free(resp);
+    return res;
+}
+
 /*
  * Check the revocation status of the certificate as specified in given ctx
  * using any stapled OCSP response resp, else OCSP or CRLs as far as required.
@@ -1838,10 +1831,10 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
     STACK_OF(X509) *chain = X509_STORE_CTX_get0_chain(ctx);
     STACK_OF(X509) *untrusted = X509_STORE_CTX_get0_untrusted(ctx);
-    int i = X509_STORE_CTX_get_error_depth(ctx);
+    int depth = X509_STORE_CTX_get_error_depth(ctx);
     int num = sk_X509_num(chain);
-    X509 *cert = sk_X509_value(chain, i);
-    X509 *issuer = sk_X509_value(chain, i < num - 1 ? i + 1 : num - 1);
+    X509 *cert = sk_X509_value(chain, depth);
+    X509 *issuer = sk_X509_value(chain, depth < num - 1 ? depth + 1 : num - 1);
 
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
     unsigned long flags = X509_VERIFY_PARAM_get_flags(param);
@@ -1869,7 +1862,7 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
 
     if (crl_check && ocsp_check && ocsp_last) {
         int cert_error;
-        if (check_cert(ctx) != 0) /* cert status ok */
+        if (check_cert_status_crls(ctx) != 0) /* cert status ok */
             return 1;
         crl_check = 0; /* do not try again */
 
@@ -1896,14 +1889,7 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     }
 
     if (ocsp_check) {
-        char *ocsp_url =
-            X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP_URL);
-        int timeout = *(int *)
-            X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP_TIMEOUT);
-        resp = get_ocsp_resp(cert, issuer, ocsp_url, 1/* use_aia */, timeout);
-        ok = check_ocsp_resp(ts, untrusted, cert, issuer, resp);
-        OCSP_RESPONSE_free(resp);
-
+        ok = check_cert_status_ocsp(ts, untrusted, cert, issuer);
         if (ok == 1)        /* cert status ok */
             return 1;
         if (ok == 0 ||      /* cert revoked, thus clear failure */
@@ -1914,8 +1900,9 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     }
     /* OCSP (including stapling) is disabled or inconclusive */
 
-    if (crl_check)
-        return check_cert(ctx);
+    if (crl_check) {
+        return check_cert_status_crls(ctx);
+    }
     return 1;
 }
 
@@ -1931,7 +1918,7 @@ static int any_CDP_or_OCSPresponder(X509 *cert)
 # ifndef OPENSSL_NO_OCSP
     ocsp_responders = X509_get1_ocsp(cert); /* consult AIA entries */
 # endif
-#if 1 && !defined NDEBUG
+#if 0 && !defined NDEBUG
     BIO_printf(bio_err, "DEBUG: found %d CDP and %d OCSP entries in cert\n",
                cdps ? sk_DIST_POINT_num(cdps) : 0,
                ocsp_responders ? sk_OPENSSL_STRING_num(ocsp_responders) : 0);
@@ -1947,7 +1934,7 @@ static int any_CDP_or_OCSPresponder(X509 *cert)
 
 # if OPENSSL_VERSION_NUMBER >= 0x1010001fL
 /*
- * callback function for verifying stapled OCSP responses
+ * callback function for verifying stapled OCSP responses for leaf certs
  * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
  */
 static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
@@ -1958,43 +1945,43 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
     int check_any = flags & X509_V_FLAG_STATUS_CHECK_ANY;
     STACK_OF(X509) *chain = SSL_get0_verified_chain(ssl);
     X509 *cert = sk_X509_value(chain, 0); /* multi-stapling is not supported */
-    const unsigned char *resp;
-    OCSP_RESPONSE *rsp = NULL;
+    const unsigned char *resp_der;
+    int resp_der_len = SSL_get_tlsext_status_ocsp_resp(ssl, &resp_der);
+    OCSP_RESPONSE *resp = NULL;
     X509_STORE_CTX *ctx = NULL;
     int ret = -1; /* tls_process_initial_server_flight reports
                      return code < 0 as internal error: malloc failure */
-    int len = SSL_get_tlsext_status_ocsp_resp(ssl, &resp);
 
     if (check_any && !any_CDP_or_OCSPresponder(cert))
         return 1; /* skip since no revocation status source entry in cert */
-    if (resp == NULL) {
+    if (resp_der == NULL) {
 #if 1 && !defined NDEBUG
-        BIO_puts(bio_err, "no OCSP response has been stapled\n");
+        BIO_puts(bio_err, "DEBUG: no OCSP response has been stapled\n");
 #endif
     } else {
-        DEBUG_print_cert("OCSP rsp stapled", cert);
-        rsp = d2i_OCSP_RESPONSE(NULL, &resp, len);
-        if (rsp == NULL) {
+        DEBUG_print_cert("OCSP response stapled", cert);
+        resp = d2i_OCSP_RESPONSE(NULL, &resp_der, resp_der_len);
+        if (resp == NULL) {
             BIO_puts(bio_err, "error parsing stapled OCSP response\n");
-            BIO_dump_indent(bio_err, (char *)resp, len, 4);
+            BIO_dump_indent(bio_err, (char *)resp_der, resp_der_len, 4);
             /* well, this is likely not an internal error (malloc failure) */
             goto end;
         }
     }
 
-    ctx = X509_STORE_CTX_new();/* ctx needed for CRL checking and diagnostics */
+    ctx = X509_STORE_CTX_new();/* needed for further checking and diagnostics */
     if (ctx == NULL)
         goto end;
     if (!X509_STORE_CTX_init(ctx, ts, NULL/* cert */, untrusted))
         goto end;
     X509_STORE_CTX_set0_verified_chain(ctx, X509_chain_up_ref(chain));
     X509_STORE_CTX_set_error_depth(ctx, 0);
-    ret = check_cert_revocation(ctx, rsp);
+    ret = check_cert_revocation(ctx, resp);
 
  end:
     /* must not: sk_X509_free(untrusted); */
     X509_STORE_CTX_free(ctx);
-    OCSP_RESPONSE_free(rsp);
+    OCSP_RESPONSE_free(resp);
     return ret;
 }
 # endif
@@ -2050,7 +2037,11 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
            and ocsp_stapling_cb() is called even later, at TLS_ST_CR_SRVR_DONE.
            What we can do here is to defer status checking of the first cert.
            This will then be performed by ocsp_stapling_cb(). */
-                continue;
+#if 1 && !defined NDEBUG
+            BIO_puts(bio_err,
+                     "DEBUG: deferring status check for leaf cert to prefer stapling\n");
+#endif
+            continue;
         }
         if (!check_cert_revocation(ctx, NULL))
             return 0;

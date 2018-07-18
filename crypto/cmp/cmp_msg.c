@@ -337,7 +337,7 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
     /* For P10CR the content has already been set in OSSL_CMP_MSG_create */
      if (type != OSSL_CMP_PKIBODY_P10CR) {
         EVP_PKEY *rkey = ctx->newPkey ? ctx->newPkey
-            : ctx->pkey; /* default is currenty client key */
+            : ctx->pkey; /* default is current client key */
 
         if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID, rkey)) == NULL ||
             !OSSL_CRMF_MSG_create_popo(crm, rkey, ctx->digest,
