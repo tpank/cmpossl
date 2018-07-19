@@ -233,7 +233,7 @@ static int opt_ocsp_timeout = 10;
 # define X509_V_FLAG_OCSP_STAPLING  0x2000000 /* Use OCSP stapling (for TLS) */
 # define X509_V_FLAG_OCSP_CHECK     0x4000000 /* Check certificates with OCSP */
 # define X509_V_FLAG_OCSP_LAST      0x8000000 /* Try OCSP last (after CRLs) */
-#endif
+#endif  /* !defined OPENSSL_NO_OCSP */
 #define X509_V_FLAG_STATUS_CHECK_ALL X509_V_FLAG_CRL_CHECK_ALL /* full chain */
 #define X509_V_FLAG_STATUS_CHECK_ANY 0x10000000/* any cert containing CDP/AIA */
 
@@ -1635,7 +1635,7 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     int crl_check = flags & X509_V_FLAG_CRL_CHECK;
     int ok = 0;
 
-    DEBUG_print_cert("checking revocation status", cert);
+    DEBUG_print_cert("checking revoc status", cert);
 
     if (ocsp_stapling) {
         if (resp != NULL) /* (stapled) response is available */
@@ -1780,7 +1780,7 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
  * check_revocation() in crypto/x509/x509_vfy.c, do not only consider CRLs:
  * use any stapled OCSP response resp, else OCSP or CRLs as far as required.
  */
-static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
+static int check_revocation_any_method(X509_STORE_CTX *ctx)
 {
     STACK_OF(X509) *chain = X509_STORE_CTX_get0_chain(ctx);
     int i;
@@ -1789,15 +1789,10 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
     unsigned long flags = X509_VERIFY_PARAM_get_flags(param);
     int ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
-    int ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
-    int crl_check = flags & X509_V_FLAG_CRL_CHECK;
     int check_all = flags & X509_V_FLAG_STATUS_CHECK_ALL;
     int check_any = flags & X509_V_FLAG_STATUS_CHECK_ANY;
     SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
                                           SSL_get_ex_data_X509_STORE_CTX_idx());
-
-    if (!check_all && !(ssl && ocsp_stapling) && !ocsp_check && !crl_check)
-        return 1;
 
     if (check_all || check_any)
         last = num - 1;
@@ -2185,9 +2180,22 @@ static int add_crls_store(X509_STORE *st, STACK_OF(X509_CRL) *crls)
     return 1;
 }
 
-static int set_store_parameters_crls(X509_STORE *ts, unsigned long flags)
+static int set_store_parameters_crls(X509_STORE *ts, unsigned long flags,
+                                     const char *aspect)
 {
     X509_VERIFY_PARAM *ts_vpm;
+    int crl_check = flags & X509_V_FLAG_CRL_CHECK;
+    int check_all = flags & X509_V_FLAG_STATUS_CHECK_ALL;
+    int check_any = flags & X509_V_FLAG_STATUS_CHECK_ANY;
+    int ocsp_stapling = 0;
+    int ocsp_check = 0;
+    int ocsp_last = 0;
+#ifndef OPENSSL_NO_OCSP
+    ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
+    ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
+    ocsp_last = flags & X509_V_FLAG_OCSP_LAST;
+#endif
+
     if (ts == NULL|| vpm == NULL)
         return 0;
 
@@ -2204,7 +2212,13 @@ static int set_store_parameters_crls(X509_STORE *ts, unsigned long flags)
     ts_vpm = X509_STORE_get0_param(ts);
     X509_VERIFY_PARAM_set_flags(ts_vpm, flags); /* ORs with existing flags */
 
-    if (flags & X509_V_FLAG_CRL_CHECK) {
+    if (!check_all && !check_any &&
+        !ocsp_stapling && !ocsp_check && !ocsp_last && !crl_check)
+        return 1;
+
+    X509_STORE_set_check_revocation(ts, &check_revocation_any_method);
+
+    if (crl_check) {
         if (global_crls != NULL &&
             !add_crls_store(ts, global_crls)) /* ups the references to crls */
             return 0;
@@ -2217,30 +2231,22 @@ static int set_store_parameters_crls(X509_STORE *ts, unsigned long flags)
     }
 
 #ifndef OPENSSL_NO_OCSP
-    if (flags & X509_V_FLAG_OCSP_CHECK) {
-# if 1 && !defined NDEBUG
-        int ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
-        int ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
-        int ocsp_last = flags & X509_V_FLAG_OCSP_LAST;
-        int crl_check = flags & X509_V_FLAG_CRL_CHECK;
-        OSSL_CMP_printf(cmp_ctx, OSSL_CMP_FL_INFO,
-                        "Will try for any cert status checking: %s%s%s",
-                        ocsp_stapling ? "OCSP stapling" : "",
-                        ocsp_stapling &&(ocsp_check||crl_check) ? " then " : "",
-                        ocsp_check ? (crl_check ? (ocsp_last ? "CRLs then OCSP"
-                                                             : "OCSP then CRLs")
-                                                : "OCSP")
-                                   : (crl_check ? "CRLs" : ""));
-# endif
-
+    if (ocsp_check) {
         X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_OCSP_URL, opt_ocsp_url);
         X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_OCSP_TIMEOUT,
                                                            &opt_ocsp_timeout);
-
     }
-    /* do this also when OCSP is not enabled, to support the 'any' option: */
-    X509_STORE_set_check_revocation(ts, &check_revocation_ocsp_crls);
-#endif  /* !defined OPENSSL_NO_OCSP */
+#endif
+
+    OSSL_CMP_printf(cmp_ctx, OSSL_CMP_FL_DEBUG,
+                    "Will try for %s %s cert status checking: %s%s%s",
+                    check_all ? "full" : check_any ? "any" : "leaf", aspect,
+                    ocsp_stapling ? "OCSP stapling" : "",
+                    ocsp_stapling &&(ocsp_check||crl_check) ? " then " : "",
+                    ocsp_check ? (crl_check ? (ocsp_last ? "CRLs then OCSP"
+                                                         : "OCSP then CRLs")
+                                            : "OCSP")
+                               : (crl_check ? "CRLs" : ""));
 
     return 1;
 }
@@ -2679,7 +2685,7 @@ static int setup_srv_ctx(ENGINE *e)
     if (opt_srv_trusted != NULL) {
         X509_STORE *ts =
             load_certstore(opt_srv_trusted, "server trusted certificates");
-        if (!set_store_parameters_crls(ts/* may be NULL */, opt_flags_cmp) ||
+        if (!set_store_parameters_crls(ts/*may NULL*/, opt_flags_cmp, "CMP") ||
             !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
             !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
@@ -2829,7 +2835,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx) {
         if (opt_trusted != NULL &&
             (ts = load_certstore(opt_trusted, "trusted certificates")) == NULL)
             goto err;
-        if (!set_store_parameters_crls(ts, opt_flags_cmp) ||
+        if (!set_store_parameters_crls(ts, opt_flags_cmp, "CMP") ||
             !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
             !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
@@ -2851,7 +2857,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx) {
         if (out_trusted == NULL)
             goto err;
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
-        if (!set_store_parameters_crls(out_trusted, opt_flags_new))
+        if (!set_store_parameters_crls(out_trusted, opt_flags_new, "new"))
             goto oom;
         /* ignore any -attime here, new certs are current anyway */
         out_vpm = X509_STORE_get0_param(out_trusted);
@@ -2930,7 +2936,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs)
         }
         /* do immediately for automatic cleanup in case of errors: */
         SSL_CTX_set_cert_store(ssl_ctx, store);
-        if (!set_store_parameters_crls(store, opt_flags_tls))
+        if (!set_store_parameters_crls(store, opt_flags_tls, "TLS"))
             goto oom;
         /* enable and parameterize server hostname/IP address check */
         if (!truststore_set_host_etc(store, opt_tls_host != NULL ?
