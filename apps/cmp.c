@@ -1455,8 +1455,12 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
             res = 0;
             break;
         case V_OCSP_CERTSTATUS_UNKNOWN:
+            BIO_printf(bio_err, "OCSP status: unknown\n");
+            res = 0; /* fatal: cert producer may have bypassed the CA! */
+            break;
         default:
-            BIO_printf(bio_err, "OCSP status unknown (value %d)\n", status);
+            BIO_printf(bio_err, "OCSP status invalid (value %d)\n", status);
+            res = -1; /* inconclusive */
             break;
         }
     }
@@ -1679,7 +1683,7 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
         ok = check_cert_status_ocsp(ts, untrusted, cert, issuer);
         if (ok == 1)        /* cert status ok */
             return 1;
-        if (ok == 0 ||      /* cert revoked, thus clear failure */
+        if (ok == 0 ||      /* cert revoked or unknown, thus clear failure */
             /* OCSP is the last check and it was inconclusive: ok < 0 */
             (ok < 0 && !crl_check)) {
             return verify_cb_cert(ctx, cert, OCSP_err(ok));
