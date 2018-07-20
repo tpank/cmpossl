@@ -1106,7 +1106,7 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
     bio_err = bio_bak;
     if (crl == NULL) {
         ERR_print_errors(bio_err);
-        BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc,
+        BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc,
                    infile);
     }
     return crl;
@@ -1348,8 +1348,16 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
     return crls;
 }
 
-static int any_CDP_or_OCSPresponder(X509 *cert)
+static void DEBUG_print_cert(const char *msg, const X509 *cert)
 {
+    char *s = X509_NAME_oneline(X509_get_subject_name((X509 *)cert), NULL, 0);
+    DEBUG_print(msg, "for cert with subject =", s);
+    OPENSSL_free(s);
+}
+
+static int any_CDP_or_OCSPresponder(X509 *cert, int print)
+{
+    char buf[80];
     int res;
     /* consult AIA entry if present: */
     STACK_OF(OPENSSL_STRING) *ocsp_responders = X509_get1_ocsp(cert);
@@ -1359,9 +1367,12 @@ static int any_CDP_or_OCSPresponder(X509 *cert)
     if (cdps == NULL) /* maybe there is still a CDP for delta CRLs */
         cdps = X509_get_ext_d2i(cert, NID_freshest_crl, NULL, NULL);
 
-    BIO_printf(bio_err, "DEBUG: found %d CDP and %d OCSP entries in cert\n",
-               cdps != NULL ? sk_DIST_POINT_num(cdps) : 0,
-               ocsp_responders ? sk_OPENSSL_STRING_num(ocsp_responders) : 0);
+    if (print) {
+        snprintf(buf, sizeof(buf), "%d CDP and %d OCSP entries",
+                 cdps != NULL ? sk_DIST_POINT_num(cdps) : 0,
+                 ocsp_responders ? sk_OPENSSL_STRING_num(ocsp_responders) : 0);
+        DEBUG_print_cert(buf, cert);
+    }
 
     res = sk_DIST_POINT_num(cdps) > 0 ||
           sk_OPENSSL_STRING_num(ocsp_responders) > 0;
@@ -1384,13 +1395,6 @@ static int check_cert_status_crls(X509_STORE_CTX *ctx) {
 /*
  * code implementing OCSP support
  */
-
-static void DEBUG_print_cert(const char *msg, const X509 *cert)
-{
-    char *s = X509_NAME_oneline(X509_get_subject_name((X509 *)cert), NULL, 0);
-    DEBUG_print(msg, "for cert with subject =", s);
-    OPENSSL_free(s);
-}
 
 /* TODO DvO push this function upstream & use in ocsp.c (PR #check_ocsp_resp) */
 
@@ -1661,7 +1665,9 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     int crl_check = flags & X509_V_FLAG_CRL_CHECK;
     int ok = 0;
 
+#if 0
     DEBUG_print_cert("checking revoc status", cert);
+#endif
 
     if (ocsp_stapling) {
         if (resp != NULL) /* (stapled) response is available */
@@ -1742,7 +1748,7 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
     int ret = -1; /* tls_process_initial_server_flight reports
                      return code < 0 as internal error: malloc failure */
 
-    if (check_any && !any_CDP_or_OCSPresponder(cert))
+    if (check_any && !any_CDP_or_OCSPresponder(cert, 0))
         return 1; /* skip since no revocation status source entry in cert */
     if (resp_der == NULL) {
 #  if 1 && !defined NDEBUG
@@ -1787,10 +1793,28 @@ static int check_revocation_any_method(X509_STORE_CTX *ctx)
     int i;
     int last = 0;
     int num = sk_X509_num(chain);
+    SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
+                                          SSL_get_ex_data_X509_STORE_CTX_idx());
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
     unsigned long flags = X509_VERIFY_PARAM_get_flags(param);
     int check_all = flags & X509_V_FLAG_STATUS_CHECK_ALL;
     int check_any = flags & X509_V_FLAG_STATUS_CHECK_ANY;
+    int ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
+    int ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
+    int ocsp_last = flags & X509_V_FLAG_OCSP_LAST;
+    int crl_check = flags & X509_V_FLAG_CRL_CHECK;
+
+#if 1 && !defined NDEBUG
+    BIO_printf(bio_err, "DEBUG: for %s%s cert status checking trying %s%s%s\n",
+               check_all ? "full" : check_any ? "any" : "leaf",
+               ssl != NULL ? " TLS" : "",
+               ocsp_stapling ? "OCSP stapling" : "",
+               ocsp_stapling && (ocsp_check || crl_check) ? " then " : "",
+               ocsp_check ? (crl_check ? (ocsp_last ? "CRLs then OCSP"
+                                                    : "OCSP then CRLs")
+                                       : "OCSP")
+                          : (crl_check ? "CRLs" : ""));
+#endif
 
     if (check_all || check_any)
         last = num - 1;
@@ -1803,21 +1827,19 @@ static int check_revocation_any_method(X509_STORE_CTX *ctx)
     for (i = 0; i <= last; i++) {
         X509 *cert = sk_X509_value(chain, i);
 
-        if (check_any && !any_CDP_or_OCSPresponder(cert))
+        if (i == last && X509_check_issued(cert, cert) == X509_V_OK)
+            break; /* revocation makes no sense for self-signed, skip if last */
+
+        if (!any_CDP_or_OCSPresponder(cert, 1) && check_any)
             continue; /* skip since no revocation status source entry in cert */
         X509_STORE_CTX_set_error_depth(ctx, i);
-
-        if (i == last && X509_check_issued(cert, cert) == X509_V_OK)
-            break; /* revocation does not work for self-signed, okay if last */
 
 #ifndef OPENSSL_NO_OCSP
         /*
          * on current cert i in chain, first consider OCSP stapling if i == 0,
          * then any other method. OCSP multi-stapling is not supported.
          */
-        if (i == 0 && (flags & X509_V_FLAG_OCSP_STAPLING) != 0 &&
-            X509_STORE_CTX_get_ex_data(ctx,
-                                       SSL_get_ex_data_X509_STORE_CTX_idx())) {
+        if (i == 0 && ocsp_stapling && ssl != NULL) {
         /* We were called from ssl_verify_cert_chain() at state TLS_ST_CR_CERT.
            Stapled OCSP response becomes available only at TLS_ST_CR_CERT_STATUS
            and ocsp_stapling_cb() is called even later, at TLS_ST_CR_SRVR_DONE.
@@ -2195,11 +2217,9 @@ static int set_store_parameters_crls(X509_STORE *ts, unsigned long flags,
     int check_any = flags & X509_V_FLAG_STATUS_CHECK_ANY;
     int ocsp_stapling = 0;
     int ocsp_check = 0;
-    int ocsp_last = 0;
 #ifndef OPENSSL_NO_OCSP
     ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
     ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
-    ocsp_last = flags & X509_V_FLAG_OCSP_LAST;
 #endif
 
     if (ts == NULL|| vpm == NULL)
@@ -2218,8 +2238,7 @@ static int set_store_parameters_crls(X509_STORE *ts, unsigned long flags,
     ts_vpm = X509_STORE_get0_param(ts);
     X509_VERIFY_PARAM_set_flags(ts_vpm, flags); /* ORs with existing flags */
 
-    if (!check_all && !check_any &&
-        !ocsp_stapling && !ocsp_check && !ocsp_last && !crl_check)
+    if (!check_all && !check_any && !ocsp_stapling && !ocsp_check && !crl_check)
         return 1;
 
     X509_STORE_set_check_revocation(ts, &check_revocation_any_method);
@@ -2243,16 +2262,6 @@ static int set_store_parameters_crls(X509_STORE *ts, unsigned long flags,
                                                            &opt_ocsp_timeout);
     }
 #endif
-
-    OSSL_CMP_printf(cmp_ctx, OSSL_CMP_FL_DEBUG,
-                    "Will try for %s %s cert status checking: %s%s%s",
-                    check_all ? "full" : check_any ? "any" : "leaf", aspect,
-                    ocsp_stapling ? "OCSP stapling" : "",
-                    ocsp_stapling &&(ocsp_check||crl_check) ? " then " : "",
-                    ocsp_check ? (crl_check ? (ocsp_last ? "CRLs then OCSP"
-                                                         : "OCSP then CRLs")
-                                            : "OCSP")
-                               : (crl_check ? "CRLs" : ""));
 
     return 1;
 }
@@ -2539,7 +2548,7 @@ static unsigned long transform_status_opt(char *opt_revcheck,int allow_stapling)
     }
     else {
         OSSL_CMP_printf(cmp_ctx, OSSL_CMP_FL_ERR,
-                        "Bad revocation status method spec '%s'", method);
+                        "Bad revocation status check method spec '%s'", method);
         return -1;
     }
 
