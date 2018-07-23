@@ -1725,37 +1725,29 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
 
 /* adapted from get_ocsp_resp_from_responder() of s_server.c */
 /*
- * Get an OCSP_RESPONSE from a responder for the given cert and trust store.
+ * Get an OCSP_RESPONSE from a responder URL for the given cert and trust store.
  * This is a simplified version. It examines certificates each time and makes
  * one OCSP responder query for each request. A full version would store details
  * such as the OCSP certificate IDs and minimise the number of OCSP responses
  * by caching them until they were considered "expired".
  */
 static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
-                                    char *url, int use_aia, int timeout)
+                                    char *url, int timeout)
 {
     char *host = NULL;
     char *path = NULL;
     char *port = NULL;
     int use_ssl;
-    STACK_OF(OPENSSL_STRING) *aia = NULL;
     OCSP_REQUEST *req = NULL;
     OCSP_CERTID *id_copy, *id = NULL;
     int res;
     OCSP_RESPONSE *resp = NULL;
     OCSP_BASICRESP *br = NULL;
 
-    aia = X509_get1_ocsp((X509 *)cert);
-    if (aia && use_aia)
-        url = sk_OPENSSL_STRING_value(aia, 0);
-     /* TODO DvO try using any AIA entries in the given order, then use any given fallback URL */
-    if (url == NULL) {
-        BIO_puts(bio_err,
-                 "cert_status: no AIA in cert and no fallback OCSP responder URL\n");
+    if (cert == NULL || issuer == NULL || url == NULL) {
+        BIO_printf(bio_err, "cert_status: NULL argument to get_ocsp_resp()\n");
         return NULL;
     }
-    DEBUG_print("cert_status: using", aia && use_aia ?
-                "OCSP responder from AIA" : "fallback OCSP responder", url);
     if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl)) {
         BIO_printf(bio_err,
                    "cert_status: cannot parse OCSP responder URL: %s\n", url);
@@ -1816,8 +1808,6 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
         OPENSSL_free(path);
         OPENSSL_free(port);
     }
-    if (aia)
-        X509_email_free(aia);
     OCSP_CERTID_free(id);
     OCSP_REQUEST_free(req);
     OCSP_BASICRESP_free(br);
@@ -1840,15 +1830,40 @@ static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
     return verify_cb && (*verify_cb) (0, ctx);
 }
 
+/* check cert revocation status via OCSP. Try using any AIA entries (if enabled)
+   in the given order then try any given fallback OCSP responder URL.
+   Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error */
 static int check_cert_status_ocsp(X509_STORE *ts, STACK_OF(X509) *untrusted,
                                   X509 *cert, X509 *issuer) {
+    int use_aia = 1; /* TODO make configurable */
+    STACK_OF(OPENSSL_STRING) *aia = use_aia ? X509_get1_ocsp(cert) : NULL;
     char *ocsp_url = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP_URL);
     int timeout = *(int *)
                   X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP_TIMEOUT);
-    OCSP_RESPONSE *resp = get_ocsp_resp(cert, issuer, ocsp_url,
-                                        1/* use_aia */, timeout);
-    int res = check_ocsp_resp(ts, untrusted, cert, issuer, resp);
-    OCSP_RESPONSE_free(resp);
+    int i, n;
+    int res = -1;
+
+    if (aia == NULL && ocsp_url == NULL) {
+        BIO_printf(bio_err,
+                   "cert_status: AIA %s and no fallback OCSP responder URL\n",
+                   use_aia ? "not in cert" : "disabled");
+        return res; /* inconclusive */
+    }
+
+    n = (aia ? sk_OPENSSL_STRING_num(aia) : 0) + 1;
+    for (i = 0; res == -1 && i < n; i++) {
+        char *url = i < n-1 ? sk_OPENSSL_STRING_value(aia, i) : ocsp_url;
+        if (url) {
+            OCSP_RESPONSE *resp = NULL;
+            DEBUG_print("cert_status: using",
+                        i < n-1 ? "OCSP responder from AIA"
+                                : "fallback OCSP responder", url);
+            resp = get_ocsp_resp(cert, issuer, url, timeout); /* may be NULL */
+            res = check_ocsp_resp(ts, untrusted, cert, issuer, resp);
+            OCSP_RESPONSE_free(resp);
+        }
+    }
+    X509_email_free(aia);
     return res;
 }
 
@@ -2020,9 +2035,9 @@ static int check_revocation_any_method(X509_STORE_CTX *ctx)
     int crl_check = flags & X509_V_FLAG_CRL_CHECK;
 
 #if 1 && !defined NDEBUG
-    BIO_printf(bio_err, "DEBUG: for %s%s cert status checking trying %s%s%s\n",
+    BIO_printf(bio_err, "DEBUG: %s %sTLS cert status checks: trying %s%s%s\n",
                check_all ? "full" : check_any ? "any" : "leaf",
-               ssl != NULL ? " TLS" : "",
+               ssl != NULL ? "" : "non-",
                ocsp_stapling ? "OCSP stapling" : "",
                ocsp_stapling && (ocsp_check || crl_check) ? " then " : "",
                ocsp_check ? (crl_check ? (ocsp_last ? "CRLs then OCSP"
