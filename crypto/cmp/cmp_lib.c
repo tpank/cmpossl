@@ -833,6 +833,11 @@ int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
     OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
                                 1/*no dups*/);
 
+    /* if none was found avoid empty ASN.1 sequence */
+    if (sk_X509_num(msg->extraCerts) == 0) {
+        sk_X509_free(msg->extraCerts);
+        msg->extraCerts = NULL;
+    }
  err:
     return res;
 }
