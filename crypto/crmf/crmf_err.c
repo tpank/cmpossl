@@ -44,7 +44,6 @@ static const ERR_STRING_DATA CRMF_str_functs[] = {
      "OSSL_CRMF_passwordBasedMac_new"},
     {ERR_PACK(ERR_LIB_CRMF, CRMF_F_OSSL_CRMF_PBMP_NEW, 0),
      "OSSL_CRMF_pbmp_new"},
-    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_POPOSIGKEY_NEW, 0), "poposigkey_new"},
     {0, NULL}
 };
 
