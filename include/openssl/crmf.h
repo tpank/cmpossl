@@ -20,13 +20,7 @@
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
-# if OPENSSL_VERSION_NUMBER >= 0x10101000L
 # include <openssl/crmferr.h>
-# endif
-
-# if OPENSSL_VERSION_NUMBER < 0x10100000L
-#  define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
-# endif
 
 # ifdef  __cplusplus
 extern "C" {
@@ -134,15 +128,3 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
 }
 # endif
 #endif /* !defined OSSL_HEADER_CRMF_H */
-
-
-#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(OSSL_HEADER_CRMF_ERROR_CODES)
-# define OSSL_HEADER_CRMF_ERROR_CODES
-# ifdef  __cplusplus
-extern "C" {
-# endif
-/* BEGIN ERROR CODES */
-# ifdef  __cplusplus
-}
-# endif
-#endif

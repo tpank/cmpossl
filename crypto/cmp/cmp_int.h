@@ -19,11 +19,7 @@
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
 
-# if OPENSSL_VERSION_NUMBER < 0x10100000L
-#  include "crypto/cryptlib.h" /* for DECIMAL_SIZE */
-# else
 # include "internal/cryptlib.h" /* for DECIMAL_SIZE */
-# endif
 
 # include <openssl/crmf.h>
 
