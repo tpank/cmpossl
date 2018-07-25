@@ -61,6 +61,9 @@ char *prog = "cmp";
 #include <openssl/objects.h>
 #include <openssl/x509.h>
 
+static int read_config(void);
+static int opt_nat(void);
+
 static CONF *conf = NULL;       /* OpenSSL config file context structure */
 static OSSL_CMP_CTX *cmp_ctx = NULL;
 
@@ -3673,7 +3676,7 @@ static int conf_get_number_e(const CONF *conf_, const char *groups,
  * of openssl.cnf.  Defaults are taken from the config file, they can be
  * overwritten on the command line.
  */
-static int read_config()
+static int read_config(void)
 {
     unsigned int i;
     long num = 0;
@@ -3849,7 +3852,7 @@ static char *opt_str(char *opt)
     return arg;
 }
 
-static int opt_nat()
+static int opt_nat(void)
 {
     int result = -1;
 
