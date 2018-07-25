@@ -19,6 +19,12 @@
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
 
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+#  include "crypto/cryptlib.h" /* for DECIMAL_SIZE */
+# else
+# include "internal/cryptlib.h" /* for DECIMAL_SIZE */
+# endif
+
 # include <openssl/crmf.h>
 
 # ifdef  __cplusplus
@@ -738,4 +744,4 @@ void put_cert_verify_err(int func);
 # ifdef  __cplusplus
 }
 # endif
-#endif
+#endif /* !defined OSSL_HEADER_CMP_INT_H */

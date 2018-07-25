@@ -132,7 +132,7 @@ int OSSL_CRMF_passwordBasedMac_new(const OSSL_CRMF_PBMPARAMETER *pbm,
     EVP_MD_CTX *ctx = NULL;
     unsigned char basekey[EVP_MAX_MD_SIZE];
     unsigned int basekeyLen;
-#if OPENSSL_VERSION_NUMBER > 0x10100000L
+#ifdef ASN1_F_ASN1_STRING_GET_UINT64
     uint64_t
 #else
     long
@@ -179,7 +179,7 @@ int OSSL_CRMF_passwordBasedMac_new(const OSSL_CRMF_PBMPARAMETER *pbm,
     if (!(EVP_DigestFinal_ex(ctx, basekey, &basekeyLen)))
         goto err;
     if (
-#if OPENSSL_VERSION_NUMBER > 0x10100000L
+#ifdef ASN1_F_ASN1_STRING_GET_UINT64
         !ASN1_INTEGER_get_uint64(&iterations, pbm->iterationCount)
 #else
         ASN1_INTEGER_get(pbm->iterationCount) < 0 ||

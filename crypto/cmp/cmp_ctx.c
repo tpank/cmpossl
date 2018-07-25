@@ -129,7 +129,7 @@ int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
         goto err;
     }
 
-#if OPENSSL_VERSION_NUMBER < 0x10100003L
+#ifdef OpenSSL_add_all_algorithms
     OpenSSL_add_all_algorithms(); /* needed for SHA256 with OpenSSL 1.0.2 */
 #endif
 

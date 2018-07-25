@@ -249,11 +249,7 @@ static void add_conn_error_hint(const OSSL_CMP_CTX *ctx, unsigned long errdetail
 "Cannot authenticate server via its TLS certificate, likely due to mismatch with our trusted TLS certs or missing revocation status");
             break;
     /*  case 0x14094418: */ /* xSL_F_SSL3_READ_BYTES */
-# if OPENSSL_VERSION_NUMBER < 0x10100000L
-        case SSL_R_TLSV1_ALERT_UNKNOWN_CA:
-# else
         case SSL_AD_REASON_OFFSET+TLS1_AD_UNKNOWN_CA:
-# endif
             CMP_add_error_data(
 "Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor or missing revocation status");
             break;

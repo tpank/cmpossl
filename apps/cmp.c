@@ -230,9 +230,6 @@ static int opt_ocsp_check_all = 0;
 static int opt_ocsp_use_aia = 0;
 static char *opt_ocsp_url = NULL;
 static int opt_ocsp_timeout = 10;
-# if OPENSSL_VERSION_NUMBER < 0x10100006L
-typedef int (*X509_STORE_CTX_check_revocation_fn) (X509_STORE_CTX *ctx);
-# endif
 # if OPENSSL_VERSION_NUMBER < 0x10101000L
 #  define X509_V_ERR_OCSP_VERIFY_NEEDED 73 /* Need OCSP verification */
 #  define X509_V_ERR_OCSP_VERIFY_FAILED 74 /* Could not verify cert via OCSP */
@@ -241,7 +238,7 @@ typedef int (*X509_STORE_CTX_check_revocation_fn) (X509_STORE_CTX *ctx);
 # define X509_V_FLAG_OCSP_CHECK     0x40000 /* Check certificate with OCSP */
 # define X509_V_FLAG_OCSP_CHECK_ALL 0x80000 /* Check whole chain with OCSP */
 X509_STORE_CTX_check_revocation_fn check_revocation = NULL;
-static int opt_ocsp_status = 0; /* unset if OPENSSL_VERSION_NUMBER<0x10100000L */
+static int opt_ocsp_status = 0;/* unset if OPENSSL_VERSION_NUMBER<0x10100000L */
 #endif
 
 static char *opt_ownform_s = "PEM";
@@ -1540,9 +1537,6 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
     STACK_OF(X509_CRL) *crls;
     crls = LOCAL_crls_http_cb(ctx, nm);
     if (crls == NULL) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-# define X509_STORE_CTX_get1_crls X509_STORE_get1_crls
-#endif
         crls = X509_STORE_CTX_get1_crls(ctx, nm);
     }
     return crls;
@@ -2923,9 +2917,6 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     OpenSSL_add_ssl_algorithms();
     SSL_load_error_strings();
 
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
-# define TLS_client_method SSLv23_client_method
-#endif
     ssl_ctx = SSL_CTX_new(TLS_client_method());
     if (ssl_ctx == NULL) {
         goto oom;

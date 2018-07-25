@@ -325,14 +325,8 @@ int OSSL_CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm)
 }
 
 static void add_name_mismatch_data(const char *error_prefix,
-#if OPENSSL_VERSION_NUMBER >= 0x10100007L
-                                   const
-#endif
-                                         X509_NAME *actual_name,
-#if OPENSSL_VERSION_NUMBER >= 0x10100007L
-                                   const
-#endif
-                                         X509_NAME *expected_name)
+                                   OPENSSL_CMP_CONST X509_NAME *actual_name,
+                                   OPENSSL_CMP_CONST X509_NAME *expected_name)
 {
     char *expected = X509_NAME_oneline(expected_name, NULL, 0);
     char *actual = actual_name ? X509_NAME_oneline(actual_name, NULL, 0)
@@ -358,13 +352,13 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid, int fn)
             return 0;
         }
         if (ASN1_OCTET_STRING_cmp(ckid, skid) != 0) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100005L
+#ifdef hex_to_string
             char *str;
 #endif
             if (fn)
                 CMPerr(fn, CMP_R_UNEXPECTED_SENDER);
             CMP_add_error_line(" certificate Subject Key Identifier does not match senderKID:");
-#if OPENSSL_VERSION_NUMBER >= 0x10100005L
+#ifdef hex_to_string
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
             CMP_add_error_txt("\n   actual = ", str);
             OPENSSL_free(str);
@@ -626,10 +620,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
     X509_ALGOR *alg;
     int nid = NID_undef, pk_nid = NID_undef;
-#if OPENSSL_VERSION_NUMBER >= 0x1010001fL
-    const
-#endif
-    ASN1_OBJECT *algorOID = NULL;
+    OPENSSL_CMP_CONST ASN1_OBJECT *algorOID = NULL;
     X509 *scrt = NULL;
 
     if (ctx == NULL || msg == NULL || msg->header == NULL) {

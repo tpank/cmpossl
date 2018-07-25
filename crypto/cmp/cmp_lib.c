@@ -38,11 +38,6 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/rand.h>
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-# include "crypto/cryptlib.h" /* for DECIMAL_SIZE */
-#else
-# include "internal/cryptlib.h" /* for DECIMAL_SIZE */
-#endif
 
 #include <time.h>
 #include <string.h>
@@ -553,10 +548,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 {
     ASN1_BIT_STRING *prot = NULL;
     CMP_PROTECTEDPART prot_part;
-#if OPENSSL_VERSION_NUMBER >= 0x1010001fL
-    const
-#endif
-    ASN1_OBJECT *algorOID = NULL;
+    OPENSSL_CMP_CONST ASN1_OBJECT *algorOID = NULL;
 
     int l;
     size_t prot_part_der_len;
@@ -564,10 +556,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
     unsigned char *prot_part_der = NULL;
     unsigned char *mac = NULL;
 
-#if OPENSSL_VERSION_NUMBER >= 0x1010001fL
-    const
-#endif
-    void *ppval = NULL;
+    OPENSSL_CMP_CONST void *ppval = NULL;
     int pptype = 0;
 
     OSSL_CRMF_PBMPARAMETER *pbm = NULL;
