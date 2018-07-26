@@ -14,13 +14,14 @@ use strict;
 use warnings;
 
 use POSIX;
-use OpenSSL::Test qw/:DEFAULT with data_file/; # TODO add data_dir when exported
+use OpenSSL::Test qw/:DEFAULT with data_file data_dir/;
 use OpenSSL::Test::Utils;
 use Data::Dumper; # for debugging purposes only
 
-my $proxy = '""';
+my $proxy = "<EMPTY>";
 $proxy = $ENV{HTTP_PROXY} if $ENV{HTTP_PROXY};
 $proxy = $ENV{http_proxy} if $ENV{http_proxy};
+$proxy =~ s/^\"(.*?)\"$/$1/; # chop any leading/trailing '"' (for Windows)
 $proxy =~ s{http://}{};
 my $no_proxy = $ENV{no_proxy} // $ENV{NO_PROXY};
 
@@ -126,16 +127,18 @@ sub test_cmp_cli_aspect {
     };
 }
 
-indir data_file() => sub {  # TODO use data_dir() instead when exported
+indir data_dir() => sub {
     plan tests => 1 + @ca_configurations * @all_aspects;
 
     test_cmp_cli_aspect("basic", "", \@cmp_basic_tests);
 
     # TODO: complete and thoroughly review _all_ of the around 500 test cases
     foreach my $name (@ca_configurations) {
+        $name =~ s/^\"(.*?)\"$/$1/; # chop any leading/trailing '"' (for Win)
         load_config($name);
         indir $name => sub {
             foreach my $aspect (@all_aspects) {
+                $aspect =~ s/^\"(.*?)\"$/$1/; # chop any leading/trailing '"'
                 my $tests = load_tests($name, $aspect);
                 test_cmp_cli_aspect($name, $aspect, $tests);
             };
@@ -161,13 +164,14 @@ sub load_tests {
 		$line =~ s{_SERVER_PORT}{$server_port}g;
 		$line =~ s{_SRVCERT}{$server_cert}g;
 		$line =~ s{_SECRET}{$secret}g;
-		next LOOP if $no_proxy =~ $server_cn && $line =~ m/,-proxy,/;
+		next LOOP if $no_proxy && $no_proxy =~ $server_cn && $line =~ m/,-proxy,/;
 		$line =~ s{-section,,}{-section,,-proxy,$proxy,} unless $line =~ m/,-proxy,/;
 		$line =~ s{-section,,}{-config,../$test_config,-section,$name $aspect,};
 		my @fields = grep /\S/, split ",", $line;
+                s/^<EMPTY>$// for (@fields); # used for proxy=""
                 s/^\s+// for (@fields); # remove leading  whitepace from elements
                 s/\s+$// for (@fields); # remove trailing whitepace from elements
-                s/\"\"/\"/g for (@fields); # remove escaping from quotation marks from elements
+                s/^\"(\".*?\")\"$/$1/ for (@fields); # remove escaping from quotation marks from elements
 		my $expected_exit = $fields[$column];
 		my $title = $fields[2];
 		next LOOP if (!defined($expected_exit) or ($expected_exit ne 0 and $expected_exit ne 1));
