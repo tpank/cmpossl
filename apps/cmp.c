@@ -1902,6 +1902,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
            * The transaction ID in req_new may not be fresh. In this case the
            * Insta Demo CA correctly complains: "Transaction id already in use."
            * The following workaround unfortunately requires re-protection.
+           * --> GitHub issue#8
            */
             OSSL_CMP_HDR_set1_transactionID(OSSL_CMP_MSG_get0_header
                                             (req_new), NULL);
@@ -1916,14 +1917,18 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             ret = 0;
     } else {
         const OSSL_CMP_MSG *actual_req = opt_reqin ? req_new : req;
+# ifndef NDEBUG
         if (opt_mock_srv) {
             OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
             ret = OSSL_CMP_mock_server_perform(ctx, actual_req, res);
         } else {
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+# endif
+# if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
             ret = OSSL_CMP_MSG_http_perform(ctx, actual_req, res);
-#endif
+# endif
+# ifndef NDEBUG
         }
+# endif
     }
 
     if (ret || (*res) == NULL)
