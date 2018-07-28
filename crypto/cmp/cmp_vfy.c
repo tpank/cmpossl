@@ -663,7 +663,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         }
         break;
 
-        /* TODO: 5.1.3.2.  DH Key Pairs --> feature request #33 */
+        /* TODO: 5.1.3.2.  DH Key Pairs --> GitHub issue#87 */
     case NID_id_DHBasedMac:
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG,
                CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC);

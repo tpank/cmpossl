@@ -249,7 +249,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         !OSSL_CRMF_MSG_set_version2(crm) /* RFC4211: SHOULD be omitted */
 #endif
             /* rkey cannot be NULL so far - but it can be when
-             * centralized key creation is supported --> Feature Request #68 */
+             * centralized key creation is supported --> GitHub issue#68 */
         !rkey || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get_tmpl(crm),
                                               rkey, subject,
                                               ctx->issuer, NULL/* serial */))

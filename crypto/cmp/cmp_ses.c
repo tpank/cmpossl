@@ -138,7 +138,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
             }
             /*
              * TODO: handle multiple CertResponses in CertRepMsg, in case
-             *       multiple requests have been sent --> Feature Request #13
+             *       multiple requests have been sent -->  GitHub issue#67
              */
             if (!crep) {
                 /* a specific error could be misleading here */
@@ -242,7 +242,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
  * returns 1 on success, returns received PKIMESSAGE in *msg argument
  * returns 0 on error or when timeout is reached without a received message
  *
- * TODO: handle multiple poll requests for multiple certificates --> FR #13
+ * TODO: handle multiple poll requests for multiple certificates
+ *       --> GitHub issue#67
  */
 static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **out)
 {
@@ -267,7 +268,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **out)
             OSSL_CMP_POLLREPCONTENT *prc = prep->body->value.pollRep;
             /*
              * TODO: handle multiple PollRepContent elements, in case
-             *       multiple requests have been sent --> Feature Request #13
+             *       multiple requests have been sent -->  GitHub issue#67
              */
             if (sk_OSSL_CMP_POLLREP_num(prc) > 1) {
                 CMPerr(CMP_F_POLLFORRESPONSE,
@@ -519,7 +520,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **resp,
     }
     /*
      * TODO handle multiple CertResponses in CertRepMsg (in case multiple
-     * requests have been sent) --> Feature Request #13
+     * requests have been sent) -->  GitHub issue#67
      */
     crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid);
     if (crep == NULL)
