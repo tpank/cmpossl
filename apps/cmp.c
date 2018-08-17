@@ -675,9 +675,11 @@ static char *next_item(char *opt) /* in list separated by comma and/or space */
 {
     /* advance to separator (comma or whitespace), if any */
     while (*opt != ',' && !isspace(*opt) && *opt != '\0') {
-        if (*opt++ == '\\' && *opt != '\0') {
-            opt++;
+        if (*opt == '\\' && opt[1] != '\0') {
+            /* skip and unescape '\' escaped char */
+            memmove(opt, opt+1, strlen(opt));
         }
+        opt++;
     }
     if (*opt != '\0') {
         /* terminate current item */
