@@ -134,85 +134,43 @@ static int bio_connect(BIO *bio, int timeout) {
  * simplifying also other uses of XXX_sendreq_nbio, e.g., in query_responder()
  * in apps/ocsp.c
  */
-typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
+typedef int (*http_fn)(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp);
 /*
  * Even better would be to extend OCSP_REQ_CTX_nbio() and
  * thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior */
 /*
- * Exchange ASN.1 request and response via HTTP on any BIO
- * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
- * 1: success and then provides the received message via the *resp argument
+ * Exchange ASN.1 request and response via HTTP on any BIO.
+ * Return HTTP status code if > 200, 0 on other error, -1 on timeout, or 1: success
+ * (implies HTTP code 200) and then provide the received message via the *resp argument
  */
 static int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
                     OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp,
                     time_t max_time)
 {
-    int rv = -4, rc, sending = 1;
+    int rc, rv = 0;
     int blocking = max_time == 0;
-    ASN1_VALUE *const pattern = (ASN1_VALUE *)-1;
 
-    *resp = pattern; /* used for detecting parse errors */
     do {
-        rc = (*fn)(rctx, resp);
-        if (rc != -1) {
-            if (rc == 0) { /* an error occurred */
-                if (sending && !blocking)
-                    rv = -3; /* send error */
-                else {
-                    if (*resp == pattern)
-                        rv = -2;/* receive error */
-                    else
-                        rv = -1; /* parse error */
-                }
+        rv = (*fn)(rctx, resp);
+        if (rv != -1) {
+            if (rv != 1) { /* an error occurred */
                 *resp = NULL;
             }
             break;
         }
         /* else BIO_should_retry was true */
-        sending = 0;
         if (!blocking) {
-            rv = bio_wait(bio, (int)(max_time - time(NULL)));
-            if (rv <= 0) { /* error or timeout */
-                if (rv < 0) /* error */
-                    rv = -4;
+            rc = bio_wait(bio, (int)(max_time - time(NULL)));
+            if (rc <= 0) { /* error or timeout */
+                rv = (rc < 0) ? 0 /* unspecified error */ : -1; /* timeout */
                 *resp = NULL;
                 break;
             }
         }
-    } while (rc == -1); /* BIO_should_retry was true */
+    } while (rv == -1); /* BIO_should_retry was true */
 
     return rv;
 }
-
-/* one declaration and three defines copied from ocsp_ht.c; keep in sync! */
-/* dummy declaration to get access to internal state variable */
-struct ocsp_req_ctx_st {
-    int state;                  /* Current I/O state */
-    unsigned char *iobuf;       /* Line buffer */
-    int iobuflen;               /* Line buffer length */
-    BIO *io;                    /* BIO to perform I/O with */
-    BIO *mem;                   /* Memory BIO response is built into */
-};
-# define OHS_NOREAD              0x1000
-# define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
-
-/*
- * adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c -
- * TODO: generalize the function there
- */
-static int OCSP_REQ_CTX_i2d_hdr(OCSP_REQ_CTX *rctx, const char *req_hdr,
-                                const ASN1_ITEM *it, ASN1_VALUE *val)
-{
-    int reqlen = ASN1_item_i2d(val, NULL, it);
-    if (BIO_printf(rctx->mem, req_hdr, reqlen) <= 0)
-        return 0;
-    if (ASN1_item_i2d_bio(it, rctx->mem, val) <= 0)
-        return 0;
-    rctx->state = OHS_ASN1_WRITE_INIT;
-    return 1;
-}
-
-
 
 static void add_conn_error_hint(const OSSL_CMP_CTX *ctx, unsigned long errdetail)
 {
@@ -274,9 +232,9 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
     if (!OCSP_REQ_CTX_http(rctx, "POST", path))
         goto err;
 
-    if (req != NULL && !OCSP_REQ_CTX_i2d_hdr(rctx, req_hdr,
-                                             ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                                             (ASN1_VALUE *)req))
+    if (req != NULL &&
+        !OCSP_REQ_CTX_i2d(rctx, req_hdr, ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                          (ASN1_VALUE *)req))
         goto err;
 
     return rctx;
@@ -288,7 +246,7 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
 
 /*
  * Exchange CMP request/response via HTTP on (non-)blocking BIO
- * returns 1 on success, 0 on error, -1 on BIO_should_retry
+ * Return HTTP status code > 200, 0 on other error, -1: should retry, or 1: success
  */
 static int CMP_http_nbio(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp)
 {
@@ -296,9 +254,8 @@ static int CMP_http_nbio(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp)
 }
 
 /*
- * Send out CMP request and get response on blocking or non-blocking BIO
- * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
- * 1: success and then provides the received message via the *resp argument
+ * Send out CMP request and get response on blocking or non-blocking BIO.
+ * Return HTTP status code if > 200, 0 on other error, -1: timoeut, or 1: success
  */
 static int CMP_sendreq(BIO *bio, const char *path, const OSSL_CMP_MSG *req,
                        OSSL_CMP_MSG **resp, time_t max_time)
@@ -307,13 +264,12 @@ static int CMP_sendreq(BIO *bio, const char *path, const OSSL_CMP_MSG *req,
     int rv;
 
     if ((rctx = CMP_sendreq_new(bio, path, req, -1)) == NULL)
-        return -4;
+        return 0;
 
     rv = bio_http(bio, rctx, CMP_http_nbio, (ASN1_VALUE **)resp, max_time);
- /* This indirectly calls ERR_clear_error(); */
+    /* This indirectly calls ERR_clear_error(); */
 
     OCSP_REQ_CTX_free(rctx);
-
     return rv;
 }
 
@@ -325,12 +281,13 @@ static int CMP_sendreq(BIO *bio, const char *path, const OSSL_CMP_MSG *req,
 int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                               OSSL_CMP_MSG **res)
 {
-    int rv;
+    int rv = 0;
     char *path = NULL;
     size_t pos = 0, pathlen = 0;
     BIO *bio, *hbio = NULL;
     int err = ERR_R_MALLOC_FAILURE;
     time_t max_time;
+    int retries = 1;
 
     if (ctx == NULL || req == NULL || res == NULL ||
         ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort)
@@ -338,6 +295,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     max_time = ctx->msgtimeout > 0 ? time(NULL) + ctx->msgtimeout : 0;
 
+ retry:
     if ((hbio = CMP_new_http_bio(ctx)) == NULL)
         goto err;
     if (ctx->http_cb != NULL) {
@@ -374,21 +332,17 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     /* make sure path includes a forward slash */
     if (ctx->serverPath[0] != '/')
         path[pos++] = '/';
-
     BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
 
     rv = CMP_sendreq(hbio, path, req, res, max_time);
     OPENSSL_free(path);
-    if (rv == -3)
-        err = CMP_R_FAILED_TO_SEND_REQUEST;
-    else if (rv == -2)
-        err = CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE;
-    else if (rv == -1)
-        err = CMP_R_ERROR_DECODING_MESSAGE;
-    else if (rv == 0) { /* timeout */
+
+    if (rv == -1) /* timeout */
         err = CMP_R_READ_TIMEOUT;
-    } else
+    else if (rv == 1)
         err = 0;
+    else
+        err = CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE;
 
  err:
     /* for any cert verify error at TLS level: */
@@ -407,6 +361,13 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         err = ERR_R_MALLOC_FAILURE;
     BIO_free_all(hbio); /* also frees any (e.g., SSL/TLS) BIOs linked with hbio
        and, like BIO_reset(hbio), calls SSL_shutdown() to notify/alert peer */
+
+    /* On HTTP status 503 indicating server overload, wait for 5 seconds
+       then retry at most 'retries' times */
+    if (--retries >= 0 && rv == 503) {
+        sleep(5);
+        goto retry;
+    }
 
     return err;
 }
@@ -439,7 +400,7 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     if (bio_connect(bio, req_timeout) <= 0)
         goto err;
 
-    rctx = OCSP_REQ_CTX_new(bio, 1024);
+    rctx = OCSP_REQ_CTX_new(bio, 1024/* maxline */);
     if (rctx == NULL)
         goto err;
     if (!OCSP_REQ_CTX_http(rctx, "GET", path))
@@ -459,8 +420,7 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     OCSP_REQ_CTX_free(rctx);
     if (rv != 1) {
         BIO_printf(bio_err, "%s loading %s from '%s'\n",
-                   rv == 0 ? "timeout" : rv == -1 ?
-                           "parse Error" : "transfer error",
+                   rv == -1 ? "timeout" : "error",
                    pcert != NULL ? "certificate" : "CRL", url);
         ERR_print_errors(bio_err);
     }

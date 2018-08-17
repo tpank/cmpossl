@@ -14,6 +14,13 @@
 #ifndef OSSL_HEADER_CMP_INT_H
 # define OSSL_HEADER_CMP_INT_H
 
+#ifndef _WIN32
+#include <unistd.h>
+#else
+#include <windows.h>
+#define sleep(x) Sleep((x) * 1000)
+#endif
+
 # include <openssl/ossl_typ.h>
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>

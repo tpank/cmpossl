@@ -20,13 +20,6 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-#ifndef _WIN32
-#include <unistd.h>
-#else
-#include <windows.h>
-#define sleep(x) Sleep((x) * 1000)
-#endif
-
 #include "cmp_int.h"
 
 /*

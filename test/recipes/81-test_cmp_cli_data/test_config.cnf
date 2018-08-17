@@ -1,7 +1,6 @@
 [default]
 batch = 1
 #proxy = 194.145.60.1:9400
-totaltimeout = 6 # prevent, e.g., infinite polling due to error
 trusted = root.crt
 cert = signer.crt
 key  = signer.p12
@@ -13,6 +12,8 @@ out_trusted = root.crt
 certout = test.cert.pem
 policies = 1.2.3.4 # gets ignored
 policies_critical = 1 # gets ignored
+msgtimeout = 7
+totaltimeout = 15 # prevent, e.g., infinite polling due to error
 
 ############################# CA configurations
 
@@ -29,7 +30,7 @@ pbm_secret = pass:SecretCmp
 ignore_keyusage = 0
 unprotectederrors = 1 # EJBCA sends error messages and negative responses without protection
 column = 0
-sleep = 1
+sleep = 0
 
 [Insta]
 server_cn = pki.certificate.fi
@@ -48,7 +49,7 @@ cert =
 ignore_keyusage = 1
 unprotectederrors = 0
 column = 1
-sleep = 3
+sleep = 0
 
 [CmpWsRa] # this is a Siemens-only test configuration
 server_cn = localhost
@@ -70,8 +71,6 @@ sleep = 0
 ############################# aspects
 
 [connection]
-msgtimeout = 15
-totaltimeout =
 tls_used =
 tls_cert =
 tls_key =

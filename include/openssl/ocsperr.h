@@ -37,6 +37,11 @@ int ERR_load_OCSP_strings(void);
 #  define OCSP_F_OCSP_PARSE_URL                            114
 #  define OCSP_F_OCSP_REQUEST_SIGN                         110
 #  define OCSP_F_OCSP_REQUEST_VERIFY                       116
+#  define OCSP_F_OCSP_REQ_CTX_HTTP                         112
+#  define OCSP_F_OCSP_REQ_CTX_I2D                          113
+#  define OCSP_F_OCSP_REQ_CTX_NBIO                         117
+#  define OCSP_F_OCSP_REQ_CTX_NBIO_D2I                     120
+#  define OCSP_F_OCSP_REQ_CTX_NEW                          121
 #  define OCSP_F_OCSP_RESPONSE_GET1_BASIC                  111
 #  define OCSP_F_PARSE_HTTP_LINE1                          118
 
@@ -48,6 +53,10 @@ int ERR_load_OCSP_strings(void);
 #  define OCSP_R_ERROR_IN_NEXTUPDATE_FIELD                 122
 #  define OCSP_R_ERROR_IN_THISUPDATE_FIELD                 123
 #  define OCSP_R_ERROR_PARSING_URL                         121
+#  define OCSP_R_HTTP_BODY_TOO_LARGE                       106
+#  define OCSP_R_HTTP_LINE_TOO_LARGE                       107
+#  define OCSP_R_HTTP_READ_ERROR                           113
+#  define OCSP_R_HTTP_WRITE_ERROR                          116
 #  define OCSP_R_MISSING_OCSPSIGNING_USAGE                 103
 #  define OCSP_R_NEXTUPDATE_BEFORE_THISUPDATE              124
 #  define OCSP_R_NOT_BASIC_RESPONSE                        104
@@ -56,6 +65,8 @@ int ERR_load_OCSP_strings(void);
 #  define OCSP_R_NO_REVOKED_TIME                           109
 #  define OCSP_R_NO_SIGNER_KEY                             130
 #  define OCSP_R_PRIVATE_KEY_DOES_NOT_MATCH_CERTIFICATE    110
+#  define OCSP_R_PUT_HTTP_BODY                             131
+#  define OCSP_R_PUT_HTTP_HEADER                           132
 #  define OCSP_R_REQUEST_NOT_SIGNED                        128
 #  define OCSP_R_RESPONSE_CONTAINS_NO_REVOCATION_DATA      111
 #  define OCSP_R_ROOT_CA_NOT_TRUSTED                       112

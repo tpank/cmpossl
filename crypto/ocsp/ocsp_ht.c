@@ -59,14 +59,14 @@ struct ocsp_req_ctx_st {
 /* Headers set, no final \r\n included */
 #define OHS_HTTP_HEADER         (9 | OHS_NOREAD)
 
-static int parse_http_line1(char *line);
-
 OCSP_REQ_CTX *OCSP_REQ_CTX_new(BIO *io, int maxline)
 {
     OCSP_REQ_CTX *rctx = OPENSSL_zalloc(sizeof(*rctx));
 
-    if (rctx == NULL)
+    if (rctx == NULL) {
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_NEW, ERR_R_MALLOC_FAILURE);
         return NULL;
+    }
     rctx->state = OHS_ERROR;
     rctx->max_resp_len = OCSP_MAX_RESP_LENGTH;
     rctx->mem = BIO_new(BIO_s_mem());
@@ -78,6 +78,7 @@ OCSP_REQ_CTX *OCSP_REQ_CTX_new(BIO *io, int maxline)
     rctx->iobuf = OPENSSL_malloc(rctx->iobuflen);
     if (rctx->iobuf == NULL || rctx->mem == NULL) {
         OCSP_REQ_CTX_free(rctx);
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_NEW, ERR_R_MALLOC_FAILURE);
         return NULL;
     }
     return rctx;
@@ -105,24 +106,27 @@ void OCSP_set_max_response_length(OCSP_REQ_CTX *rctx, unsigned long len)
         rctx->max_resp_len = len;
 }
 
-int OCSP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx, const ASN1_ITEM *it, ASN1_VALUE *val)
+int OCSP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx, const char *req_hdr,
+                     const ASN1_ITEM *it, ASN1_VALUE *val)
 {
-    static const char req_hdr[] =
-        "Content-Type: application/ocsp-request\r\n"
-        "Content-Length: %d\r\n\r\n";
     int reqlen = ASN1_item_i2d(val, NULL, it);
-    if (BIO_printf(rctx->mem, req_hdr, reqlen) <= 0)
+    if (BIO_printf(rctx->mem, req_hdr, reqlen) <= 0) {
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_I2D, OCSP_R_PUT_HTTP_HEADER);
         return 0;
-    if (ASN1_item_i2d_bio(it, rctx->mem, val) <= 0)
+    }
+    if (ASN1_item_i2d_bio(it, rctx->mem, val) <= 0) {
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_I2D, OCSP_R_PUT_HTTP_BODY);
         return 0;
+    }
     rctx->state = OHS_ASN1_WRITE_INIT;
     return 1;
 }
 
-int OCSP_REQ_CTX_nbio_d2i(OCSP_REQ_CTX *rctx,
-                          ASN1_VALUE **pval, const ASN1_ITEM *it)
+/* Return HTTP status code if >200, 0 on other error, -1: should retry, or 1: success */
+int OCSP_REQ_CTX_nbio_d2i(OCSP_REQ_CTX *rctx, ASN1_VALUE **pval, const ASN1_ITEM *it)
 {
-    int rv, len;
+    int rv;
+    long len;
     const unsigned char *p;
 
     rv = OCSP_REQ_CTX_nbio(rctx);
@@ -133,6 +137,7 @@ int OCSP_REQ_CTX_nbio_d2i(OCSP_REQ_CTX *rctx,
     *pval = ASN1_item_d2i(NULL, &p, len, it);
     if (*pval == NULL) {
         rctx->state = OHS_ERROR;
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO_D2I, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
         return 0;
     }
     return 1;
@@ -145,15 +150,20 @@ int OCSP_REQ_CTX_http(OCSP_REQ_CTX *rctx, const char *op, const char *path)
     if (!path)
         path = "/";
 
-    if (BIO_printf(rctx->mem, http_hdr, op, path) <= 0)
+    if (BIO_printf(rctx->mem, http_hdr, op, path) <= 0) {
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_HTTP, OCSP_R_PUT_HTTP_HEADER);
         return 0;
+    }
     rctx->state = OHS_HTTP_HEADER;
     return 1;
 }
 
 int OCSP_REQ_CTX_set1_req(OCSP_REQ_CTX *rctx, OCSP_REQUEST *req)
 {
-    return OCSP_REQ_CTX_i2d(rctx, ASN1_ITEM_rptr(OCSP_REQUEST),
+    static const char ocsp_req_hdr[] =
+        "Content-Type: application/ocsp-request\r\n"
+        "Content-Length: %d\r\n\r\n";
+    return OCSP_REQ_CTX_i2d(rctx, ocsp_req_hdr, ASN1_ITEM_rptr(OCSP_REQUEST),
                             (ASN1_VALUE *)req);
 }
 
@@ -199,8 +209,14 @@ OCSP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
 }
 
 /*
+ * TODO move all this (generic) HTTP stuff out of here as it is independent of OCSP.
+ * Error output like OCSP_F PARSE_HTTP_LINE1 and OCSP_R_SERVER_RESPONSE_PARSE_ERROR
+ * can be quite misleadng when this HTTP client code is used for other purposes.
+ */
+/*
  * Parse the HTTP response. This will look like this: "HTTP/1.0 200 OK". We
  * need to obtain the numeric code and (optional) informational message.
+ * Return HTTP status code or 0 on parse error
  */
 
 static int parse_http_line1(char *line)
@@ -248,9 +264,7 @@ static int parse_http_line1(char *line)
         q++;
 
     if (*q) {
-        /*
-         * Finally zap any trailing white space in message (include CRLF)
-         */
+        /* Finally zap any trailing white space in message (include CRLF) */
 
         /* We know q has a non white space character so this is OK */
         for (r = q + strlen(q) - 1; ossl_isspace(*r); r--)
@@ -262,13 +276,12 @@ static int parse_http_line1(char *line)
             ERR_add_error_data(2, "Code=", p);
         else
             ERR_add_error_data(4, "Code=", p, ",Reason=", q);
-        return 0;
     }
 
-    return 1;
-
+    return retcode;
 }
 
+/* Return HTTP status code if >200, 0 on other error, -1: should retry, or 1: success */
 int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
 {
     int i, n;
@@ -280,13 +293,15 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
         if (n <= 0) {
             if (BIO_should_retry(rctx->io))
                 return -1;
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_READ_ERROR);
             return 0;
         }
 
         /* Write data to memory BIO */
-
-        if (BIO_write(rctx->mem, rctx->iobuf, n) != n)
+        if (BIO_write(rctx->mem, rctx->iobuf, n) != n) {
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_WRITE_ERROR);
             return 0;
+        }
     }
 
     switch (rctx->state) {
@@ -294,6 +309,7 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
         /* Last operation was adding headers: need a final \r\n */
         if (BIO_write(rctx->mem, "\r\n", 2) != 2) {
             rctx->state = OHS_ERROR;
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_WRITE_ERROR);
             return 0;
         }
         rctx->state = OHS_ASN1_WRITE_INIT;
@@ -313,6 +329,7 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
             if (BIO_should_retry(rctx->io))
                 return -1;
             rctx->state = OHS_ERROR;
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_WRITE_ERROR);
             return 0;
         }
 
@@ -339,9 +356,11 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
             return -1;
 
         rctx->state = OHS_ERROR;
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_WRITE_ERROR);
         return 0;
 
     case OHS_ERROR:
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, ERR_R_INTERNAL_ERROR);
         return 0;
 
     case OHS_FIRSTLINE:
@@ -359,6 +378,7 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
         if ((n <= 0) || !memchr(p, '\n', n)) {
             if (n >= rctx->iobuflen) {
                 rctx->state = OHS_ERROR;
+                OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_LINE_TOO_LARGE);
                 return 0;
             }
             goto next_io;
@@ -369,23 +389,26 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
             if (BIO_should_retry(rctx->mem))
                 goto next_io;
             rctx->state = OHS_ERROR;
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_READ_ERROR);
             return 0;
         }
 
         /* Don't allow excessive lines */
         if (n == rctx->iobuflen) {
             rctx->state = OHS_ERROR;
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_LINE_TOO_LARGE);
             return 0;
         }
 
         /* First line */
         if (rctx->state == OHS_FIRSTLINE) {
-            if (parse_http_line1((char *)rctx->iobuf)) {
+            int rc = parse_http_line1((char *)rctx->iobuf);
+            if (rc == 200) {
                 rctx->state = OHS_HEADERS;
                 goto next_line;
             } else {
                 rctx->state = OHS_ERROR;
-                return 0;
+                return rc;
             }
         } else {
             /* Look for blank line: end of headers */
@@ -415,6 +438,7 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
         /* Check it is an ASN1 SEQUENCE */
         if (*p++ != (V_ASN1_SEQUENCE | V_ASN1_CONSTRUCTED)) {
             rctx->state = OHS_ERROR;
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
             return 0;
         }
 
@@ -427,9 +451,16 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
             if (n < 6)
                 goto next_io;
             n = *p & 0x7F;
-            /* Not NDEF or excessive length */
-            if (!n || (n > 4)) {
+            /* Not NDEF */
+            if (!n) {
                 rctx->state = OHS_ERROR;
+                OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
+                return 0;
+            }
+            /* excessive length */
+            if (n > 4) {
+                rctx->state = OHS_ERROR;
+                OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_BODY_TOO_LARGE);
                 return 0;
             }
             p++;
@@ -441,6 +472,7 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
 
             if (rctx->asn1_len > rctx->max_resp_len) {
                 rctx->state = OHS_ERROR;
+                OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_BODY_TOO_LARGE);
                 return 0;
             }
 
@@ -469,6 +501,7 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
 
 }
 
+/* Return HTTP status code if >200, 0 on other error, -1: should retry, or 1: success */
 int OCSP_sendreq_nbio(OCSP_RESPONSE **presp, OCSP_REQ_CTX *rctx)
 {
     return OCSP_REQ_CTX_nbio_d2i(rctx,
@@ -491,7 +524,7 @@ OCSP_RESPONSE *OCSP_sendreq_bio(BIO *b, const char *path, OCSP_REQUEST *req)
 
     do {
         rv = OCSP_sendreq_nbio(&resp, ctx);
-    } while ((rv == -1) && BIO_should_retry(b));
+    } while (rv == -1); /* this means BIO_should_retry(b) */
 
     OCSP_REQ_CTX_free(ctx);
 

@@ -56,6 +56,7 @@ int X509_sign_ctx(X509 *x, EVP_MD_CTX *ctx)
 }
 
 #ifndef OPENSSL_NO_OCSP
+/* Return HTTP status code > 200, 0 on other error, -1: should retry, or 1: success */
 int X509_http_nbio(OCSP_REQ_CTX *rctx, X509 **pcert)
 {
     return OCSP_REQ_CTX_nbio_d2i(rctx,
@@ -92,6 +93,7 @@ int X509_CRL_sign_ctx(X509_CRL *x, EVP_MD_CTX *ctx)
 }
 
 #ifndef OPENSSL_NO_OCSP
+/* Return HTTP status code > 200, 0 on other error, -1: should retry, or 1: success */
 int X509_CRL_http_nbio(OCSP_REQ_CTX *rctx, X509_CRL **pcrl)
 {
     return OCSP_REQ_CTX_nbio_d2i(rctx,
