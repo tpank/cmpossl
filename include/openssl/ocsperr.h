@@ -37,11 +37,15 @@ int ERR_load_OCSP_strings(void);
 #  define OCSP_F_OCSP_PARSE_URL                            114
 #  define OCSP_F_OCSP_REQUEST_SIGN                         110
 #  define OCSP_F_OCSP_REQUEST_VERIFY                       116
+#  define OCSP_F_OCSP_REQ_CTX_ADD1_HEADER                  125
+#  define OCSP_F_OCSP_REQ_CTX_ADD1_HTTP                    124
+#  define OCSP_F_OCSP_REQ_CTX_D2I                          122
 #  define OCSP_F_OCSP_REQ_CTX_HTTP                         112
 #  define OCSP_F_OCSP_REQ_CTX_I2D                          113
 #  define OCSP_F_OCSP_REQ_CTX_NBIO                         117
 #  define OCSP_F_OCSP_REQ_CTX_NBIO_D2I                     120
 #  define OCSP_F_OCSP_REQ_CTX_NEW                          121
+#  define OCSP_F_OCSP_REQ_CTX_SENDREQ                      123
 #  define OCSP_F_OCSP_RESPONSE_GET1_BASIC                  111
 #  define OCSP_F_PARSE_HTTP_LINE1                          118
 
@@ -49,6 +53,7 @@ int ERR_load_OCSP_strings(void);
  * OCSP reason codes.
  */
 #  define OCSP_R_CERTIFICATE_VERIFY_ERROR                  101
+#  define OCSP_R_CONNECT_TIMEOUT                           133
 #  define OCSP_R_DIGEST_ERR                                102
 #  define OCSP_R_ERROR_IN_NEXTUPDATE_FIELD                 122
 #  define OCSP_R_ERROR_IN_THISUPDATE_FIELD                 123
@@ -68,7 +73,9 @@ int ERR_load_OCSP_strings(void);
 #  define OCSP_R_PUT_HTTP_BODY                             131
 #  define OCSP_R_PUT_HTTP_HEADER                           132
 #  define OCSP_R_REQUEST_NOT_SIGNED                        128
+#  define OCSP_R_REQUEST_TIMEOUT                           134
 #  define OCSP_R_RESPONSE_CONTAINS_NO_REVOCATION_DATA      111
+#  define OCSP_R_RESPONSE_PARSE_ERROR                      135
 #  define OCSP_R_ROOT_CA_NOT_TRUSTED                       112
 #  define OCSP_R_SERVER_RESPONSE_ERROR                     114
 #  define OCSP_R_SERVER_RESPONSE_PARSE_ERROR               115

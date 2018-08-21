@@ -249,7 +249,7 @@ RSA_get_ex_data                         249	1_1_0	EXIST::FUNCTION:RSA
 EVP_PKEY_meth_get_decrypt               250	1_1_0	EXIST::FUNCTION:
 DES_cfb_encrypt                         251	1_1_0	EXIST::FUNCTION:DES
 CMS_SignerInfo_set1_signer_cert         252	1_1_0	EXIST::FUNCTION:CMS
-X509_CRL_http_nbio                      253	1_1_0	EXIST::FUNCTION:OCSP
+X509_CRL_http_nbio                      253	1_1_0	NOEXIST::FUNCTION:
 ENGINE_register_all_ciphers             254	1_1_0	EXIST::FUNCTION:ENGINE
 SXNET_new                               255	1_1_0	EXIST::FUNCTION:
 EVP_camellia_256_ctr                    256	1_1_0	EXIST::FUNCTION:CAMELLIA
@@ -630,7 +630,7 @@ UI_get0_result_string                   629	1_1_0	EXIST::FUNCTION:
 TS_RESP_CTX_add_policy                  630	1_1_0	EXIST::FUNCTION:TS
 X509_REQ_dup                            631	1_1_0	EXIST::FUNCTION:
 d2i_DSA_PUBKEY_fp                       633	1_1_0	EXIST::FUNCTION:DSA,STDIO
-OCSP_REQ_CTX_nbio_d2i                   634	1_1_0	EXIST::FUNCTION:OCSP
+OCSP_REQ_CTX_d2i                        634	1_1_0	EXIST::FUNCTION:OCSP
 d2i_X509_REQ_fp                         635	1_1_0	EXIST::FUNCTION:STDIO
 DH_OpenSSL                              636	1_1_0	EXIST::FUNCTION:DH
 BN_get_rfc3526_prime_8192               637	1_1_0	EXIST::FUNCTION:
@@ -1282,7 +1282,7 @@ TS_REQ_set_cert_req                     1271	1_1_0	EXIST::FUNCTION:TS
 TXT_DB_get_by_index                     1272	1_1_0	EXIST::FUNCTION:
 X509_check_ca                           1273	1_1_0	EXIST::FUNCTION:
 DH_get_2048_224                         1274	1_1_0	EXIST::FUNCTION:DH
-X509_http_nbio                          1275	1_1_0	EXIST::FUNCTION:OCSP
+X509_http_nbio                          1275	1_1_0	NOEXIST::FUNCTION:
 i2d_AUTHORITY_INFO_ACCESS               1276	1_1_0	EXIST::FUNCTION:
 EVP_get_cipherbyname                    1277	1_1_0	EXIST::FUNCTION:
 CONF_dump_fp                            1278	1_1_0	EXIST::FUNCTION:STDIO
@@ -1423,7 +1423,7 @@ BIO_set_ex_data                         1411	1_1_0	EXIST::FUNCTION:
 SHA512                                  1412	1_1_0	EXIST::FUNCTION:
 X509_STORE_CTX_get_explicit_policy      1413	1_1_0	EXIST::FUNCTION:
 EVP_DecodeBlock                         1414	1_1_0	EXIST::FUNCTION:
-OCSP_REQ_CTX_http                       1415	1_1_0	EXIST::FUNCTION:OCSP
+OCSP_REQ_CTX_add1_http                  1415	1_1_0	EXIST::FUNCTION:OCSP
 EVP_MD_CTX_reset                        1416	1_1_0	EXIST::FUNCTION:
 X509_NAME_new                           1417	1_1_0	EXIST::FUNCTION:
 ASN1_item_pack                          1418	1_1_0	EXIST::FUNCTION:
@@ -3212,7 +3212,7 @@ d2i_OCSP_SERVICELOC                     3163	1_1_0	EXIST::FUNCTION:OCSP
 GENERAL_NAME_print                      3164	1_1_0	EXIST::FUNCTION:
 CMS_ReceiptRequest_get0_values          3165	1_1_0	EXIST::FUNCTION:CMS
 a2i_ASN1_INTEGER                        3166	1_1_0	EXIST::FUNCTION:
-OCSP_sendreq_bio                        3167	1_1_0	EXIST::FUNCTION:OCSP
+OCSP_query_responder                    3167	1_1_0	EXIST::FUNCTION:OCSP
 PKCS12_SAFEBAG_create_crl               3168	1_1_0	EXIST::FUNCTION:
 d2i_X509_NAME                           3169	1_1_0	EXIST::FUNCTION:
 IDEA_cfb64_encrypt                      3170	1_1_0	EXIST::FUNCTION:IDEA
@@ -4612,7 +4612,6 @@ OSSL_CMP_X509_STORE_get1_certs          4563	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_ASN1_OCTET_STRING_set1_bytes   4564	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_pkiconf_new                    4565	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CRMF_MSG_set_validity              4566	1_1_1	EXIST::FUNCTION:
-OSSL_CMP_load_cert_crl_http_timeout     4567	1_1_1	EXIST::FUNCTION:CMP,OCSP,SOCK
 OSSL_CMP_SRV_CTX_set_accept_unprotected 4568	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_issuer                4569	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_caPubs                4570	1_1_1	EXIST::FUNCTION:CMP
@@ -4804,3 +4803,7 @@ OSSL_CRMF_MSG_set_version2              4747	1_1_1	EXIST::FUNCTION:
 OSSL_CMP_add_error_txt                  4748	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_ITAV_stack_item_push0          4749	1_1_1	EXIST::FUNCTION:CMP
 OSSL_CMP_print_errors_cb                4750	1_1_1	EXIST::FUNCTION:CMP
+OCSP_REQ_CTX_sendreq                    4751	1_1_1	EXIST::FUNCTION:OCSP
+OSSL_socket_wait                        4752	1_1_1	EXIST::FUNCTION:OCSP
+OSSL_BIO_wait                           4753	1_1_1	EXIST::FUNCTION:OCSP
+OSSL_BIO_do_connect                     4754	1_1_1	EXIST::FUNCTION:OCSP

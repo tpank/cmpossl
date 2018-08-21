@@ -460,6 +460,8 @@ int set_ext_copy(int *copy_type, const char *arg);
 int copy_extensions(X509 *x, X509_REQ *req, int copy_type);
 int app_passwd(const char *arg1, const char *arg2, char **pass1, char **pass2);
 int add_oid_section(CONF *conf);
+int load_cert_crl_http(const char *url, int timeout,
+                       X509 **pcert, X509_CRL **pcrl);
 X509 *load_cert(const char *file, int format, const char *cert_descrip);
 X509_CRL *load_crl(const char *infile, int format);
 EVP_PKEY *load_key(const char *file, int format, int maybe_stdin,

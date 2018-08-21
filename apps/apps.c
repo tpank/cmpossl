@@ -582,7 +582,8 @@ static int load_pkcs12(BIO *in, const char *desc,
 }
 
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
+int load_cert_crl_http(const char *url, int timeout,
+                       X509 **pcert, X509_CRL **pcrl)
 {
     char *host = NULL, *port = NULL, *path = NULL;
     BIO *bio = NULL;
@@ -595,23 +596,27 @@ static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
         goto err;
     }
     bio = BIO_new_connect(host);
-    if (!bio || !BIO_set_conn_port(bio, port))
+    if (bio == NULL || !BIO_set_conn_port(bio, port))
         goto err;
-    rctx = OCSP_REQ_CTX_new(bio, 1024);
+
+    rctx = OCSP_REQ_CTX_new(bio, 1024/* maxline */, timeout);
     if (rctx == NULL)
         goto err;
-    if (!OCSP_REQ_CTX_http(rctx, "GET", path))
+    if (!OCSP_REQ_CTX_add1_http(rctx, "GET", path))
         goto err;
     if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
-    if (pcert) {
-        do {
-            rv = X509_http_nbio(rctx, pcert);
-        } while (rv == -1);
-    } else {
-        do {
-            rv = X509_CRL_http_nbio(rctx, pcrl);
-        } while (rv == -1);
+
+    rv = OCSP_REQ_CTX_sendreq(rctx);
+    if (rv == 1) {
+        if (pcert != NULL) {
+            if ((*pcert = OCSP_REQ_CTX_D2I(rctx, X509)) == NULL)
+                rv = 0;
+        }
+        else {
+            if ((*pcrl = OCSP_REQ_CTX_D2I(rctx, X509_CRL)) == NULL)
+                rv = 0;
+        }
     }
 
  err:
@@ -636,7 +641,7 @@ X509 *load_cert(const char *file, int format, const char *cert_descrip)
 
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        load_cert_crl_http(file, &x, NULL);
+        (void)load_cert_crl_http(file, -1/* no timeout */, &x, NULL);
 #endif
         return x;
     }
@@ -678,7 +683,7 @@ X509_CRL *load_crl(const char *infile, int format)
 
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        load_cert_crl_http(infile, NULL, &x);
+        (void)load_cert_crl_http(infile, -1/* no timeout */, NULL, &x);
 #endif
         return x;
     }

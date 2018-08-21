@@ -19,6 +19,7 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
+#include <openssl/ocsperr.h>
 
 #include "cmp_int.h"
 
@@ -190,9 +191,9 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     if (err != 0) {
         CMPerr(CMP_F_SEND_RECEIVE_CHECK, err);
-        if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
-            err == CMP_R_READ_TIMEOUT ||
-            err == CMP_R_ERROR_DECODING_MESSAGE)
+        if (err == OCSP_R_HTTP_READ_ERROR ||
+            err == OCSP_R_REQUEST_TIMEOUT ||
+            err == OCSP_R_RESPONSE_PARSE_ERROR)
             CMPerr(func, not_received);
         else {
             CMPerr(func, CMP_R_ERROR_SENDING_REQUEST);

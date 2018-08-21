@@ -402,16 +402,9 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int failure,
 /*
  * from cmp_http.c
  */
-/*
- * TODO dvo: push generic defs upstream with extended load_cert_crl_http(),
- * simplifying also other uses, e.g., in query_responder() in apps/ocsp.c
- */
 #  if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                               OSSL_CMP_MSG **out);
-int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
-                                        X509 **pcert, X509_CRL **pcrl,
-                                        BIO *bio_err);
 #  endif
 
 /* from cmp_ses.c */

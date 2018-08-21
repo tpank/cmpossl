@@ -17,9 +17,87 @@
 #include <openssl/err.h>
 #include <openssl/buffer.h>
 
-/* Stateful OCSP request code, supporting non-blocking I/O */
+/* TODO move all socket-related stuff to better place as is independent of OCSP */
+#ifndef OPENSSL_NO_SOCK
 
-/* Opaque OCSP request status structure */
+# ifndef openssl_fdset /* also defined in apps/apps.h */
+#  ifdef OPENSSL_SYSNAME_WIN32
+#   define openssl_fdset(a,b) FD_SET((unsigned int)a, b)
+#  else
+#   define openssl_fdset(a,b) FD_SET(a, b)
+#  endif
+# endif
+
+/* returns < 0 on error, 0 on timeout, > 0 on success */
+int OSSL_socket_wait(int fd, int for_read, int timeout)
+{
+    fd_set confds;
+    struct timeval tv;
+
+    if (timeout <= 0)
+        return 0;
+
+    FD_ZERO(&confds);
+    openssl_fdset(fd, &confds);
+    tv.tv_usec = 0;
+    tv.tv_sec = timeout;
+    return select(fd + 1, for_read ? &confds : NULL,
+                  for_read ? NULL : &confds, NULL, &tv);
+}
+
+/* returns < 0 on error, 0 on timeout, > 0 on success */
+int OSSL_BIO_wait(BIO *bio, int timeout)
+{
+    int fd;
+    if (BIO_get_fd(bio, &fd) <= 0)
+        return -1;
+    return OSSL_socket_wait(fd, BIO_should_read(bio), timeout);
+}
+
+/* returns -1 on timeout, 0 on other error, 1 on success */
+int OSSL_BIO_do_connect(BIO *bio, time_t max_time)
+{
+    int blocking;
+    int rv;
+    blocking = max_time == 0;
+
+/* https://www.openssl.org/docs/man1.1.0/crypto/BIO_should_io_special.html */
+    if (!blocking)
+        BIO_set_nbio(bio, 1);
+ retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
+    rv = BIO_do_connect(bio); /* This indirectly calls ERR_clear_error(); */
+    if (rv <= 0 && (errno == ETIMEDOUT ||
+                    ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT)) {
+    /* if blocking, despite blocking BIO, BIO_do_connect() timed out, else if
+       non-blocking, BIO_do_connect() timed out early with rv==-1 && errno==0 */
+        ERR_clear_error();
+        (void)BIO_reset(bio); /* otherwise blocking next connect() may crash and
+                                 non-blocking next BIO_do_connect() will fail */
+        goto retry;
+    }
+    if (rv <= 0 && BIO_should_retry(bio)) {
+        if (blocking || (rv = OSSL_BIO_wait(bio, (int)(max_time - time(NULL)))) > 0)
+            goto retry;
+    }
+    return rv;
+}
+
+#endif /* OPENSSL_NO_SOCK */
+/* end TODO move all socket-related stuff to better place as is independent of OCSP */
+
+/* TODO move all generic HTTP stuff to better place as it is independent of OCSP.
+ * Error output like OCSP_F PARSE_HTTP_LINE1 and OCSP_R_RESPONSE_PARSE_ERROR
+ * can be quite misleadng when this HTTP client code is used for other purposes.
+ */
+/*
+ * Parse the HTTP response. This will look like this: "HTTP/1.0 200 OK". We
+ * need to obtain the numeric code and (optional) informational message.
+ * Return HTTP status code or 0 on parse error
+ */
+
+/* Stateful ASN.1 request/response code, supporting non-blocking I/O */
+
+/* Opaque ASN.1 request/response status structure */
 
 struct ocsp_req_ctx_st {
     int state;                  /* Current I/O state */
@@ -29,6 +107,7 @@ struct ocsp_req_ctx_st {
     BIO *mem;                   /* Memory BIO response is built into */
     unsigned long asn1_len;     /* ASN1 length of response */
     unsigned long max_resp_len; /* Maximum length of response */
+    time_t max_time;            /* Time when to report eror, or 0 for blocking */
 };
 
 #define OCSP_MAX_RESP_LENGTH    (100 * 1024)
@@ -59,7 +138,7 @@ struct ocsp_req_ctx_st {
 /* Headers set, no final \r\n included */
 #define OHS_HTTP_HEADER         (9 | OHS_NOREAD)
 
-OCSP_REQ_CTX *OCSP_REQ_CTX_new(BIO *io, int maxline)
+OCSP_REQ_CTX *OCSP_REQ_CTX_new(BIO *io, int maxline, int timeout)
 {
     OCSP_REQ_CTX *rctx = OPENSSL_zalloc(sizeof(*rctx));
 
@@ -71,10 +150,8 @@ OCSP_REQ_CTX *OCSP_REQ_CTX_new(BIO *io, int maxline)
     rctx->max_resp_len = OCSP_MAX_RESP_LENGTH;
     rctx->mem = BIO_new(BIO_s_mem());
     rctx->io = io;
-    if (maxline > 0)
-        rctx->iobuflen = maxline;
-    else
-        rctx->iobuflen = OCSP_MAX_LINE_LEN;
+    rctx->iobuflen = maxline > 0 ? maxline : OCSP_MAX_LINE_LEN;
+    rctx->max_time = timeout > 0 ? time(NULL) + timeout : 0/* infinite */;
     rctx->iobuf = OPENSSL_malloc(rctx->iobuflen);
     if (rctx->iobuf == NULL || rctx->mem == NULL) {
         OCSP_REQ_CTX_free(rctx);
@@ -122,28 +199,21 @@ int OCSP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx, const char *req_hdr,
     return 1;
 }
 
-/* Return HTTP status code if >200, 0 on other error, -1: should retry, or 1: success */
-int OCSP_REQ_CTX_nbio_d2i(OCSP_REQ_CTX *rctx, ASN1_VALUE **pval, const ASN1_ITEM *it)
+/* Convert ASN.1 (DER) encoded response to given internal format */
+ASN1_VALUE *OCSP_REQ_CTX_d2i(OCSP_REQ_CTX *rctx, const ASN1_ITEM *it)
 {
-    int rv;
-    long len;
     const unsigned char *p;
-
-    rv = OCSP_REQ_CTX_nbio(rctx);
-    if (rv != 1)
-        return rv;
-
-    len = BIO_get_mem_data(rctx->mem, &p);
-    *pval = ASN1_item_d2i(NULL, &p, len, it);
-    if (*pval == NULL) {
+    ASN1_VALUE *val;
+    long len = BIO_get_mem_data(rctx->mem, &p);
+    val = ASN1_item_d2i(NULL, &p, len, it);
+    if (val == NULL) {
         rctx->state = OHS_ERROR;
-        OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO_D2I, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
-        return 0;
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_D2I, OCSP_R_RESPONSE_PARSE_ERROR);
     }
-    return 1;
+    return val;
 }
 
-int OCSP_REQ_CTX_http(OCSP_REQ_CTX *rctx, const char *op, const char *path)
+int OCSP_REQ_CTX_add1_http(OCSP_REQ_CTX *rctx, const char *op, const char *path)
 {
     static const char http_hdr[] = "%s %s HTTP/1.0\r\n";
 
@@ -151,20 +221,11 @@ int OCSP_REQ_CTX_http(OCSP_REQ_CTX *rctx, const char *op, const char *path)
         path = "/";
 
     if (BIO_printf(rctx->mem, http_hdr, op, path) <= 0) {
-        OCSPerr(OCSP_F_OCSP_REQ_CTX_HTTP, OCSP_R_PUT_HTTP_HEADER);
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_ADD1_HTTP, OCSP_R_PUT_HTTP_HEADER);
         return 0;
     }
     rctx->state = OHS_HTTP_HEADER;
     return 1;
-}
-
-int OCSP_REQ_CTX_set1_req(OCSP_REQ_CTX *rctx, OCSP_REQUEST *req)
-{
-    static const char ocsp_req_hdr[] =
-        "Content-Type: application/ocsp-request\r\n"
-        "Content-Length: %d\r\n\r\n";
-    return OCSP_REQ_CTX_i2d(rctx, ocsp_req_hdr, ASN1_ITEM_rptr(OCSP_REQUEST),
-                            (ASN1_VALUE *)req);
 }
 
 int OCSP_REQ_CTX_add1_header(OCSP_REQ_CTX *rctx,
@@ -173,51 +234,23 @@ int OCSP_REQ_CTX_add1_header(OCSP_REQ_CTX *rctx,
     if (!name)
         return 0;
     if (BIO_puts(rctx->mem, name) <= 0)
-        return 0;
+        goto err;
     if (value) {
         if (BIO_write(rctx->mem, ": ", 2) != 2)
-            return 0;
+            goto err;
         if (BIO_puts(rctx->mem, value) <= 0)
-            return 0;
+            goto err;
     }
     if (BIO_write(rctx->mem, "\r\n", 2) != 2)
-        return 0;
+        goto err;
+
     rctx->state = OHS_HTTP_HEADER;
     return 1;
-}
-
-OCSP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
-                               int maxline)
-{
-
-    OCSP_REQ_CTX *rctx = NULL;
-    rctx = OCSP_REQ_CTX_new(io, maxline);
-    if (rctx == NULL)
-        return NULL;
-
-    if (!OCSP_REQ_CTX_http(rctx, "POST", path))
-        goto err;
-
-    if (req && !OCSP_REQ_CTX_set1_req(rctx, req))
-        goto err;
-
-    return rctx;
 
  err:
-    OCSP_REQ_CTX_free(rctx);
-    return NULL;
+    OCSPerr(OCSP_F_OCSP_REQ_CTX_ADD1_HEADER, OCSP_R_PUT_HTTP_HEADER);
+    return 0;
 }
-
-/*
- * TODO move all this (generic) HTTP stuff out of here as it is independent of OCSP.
- * Error output like OCSP_F PARSE_HTTP_LINE1 and OCSP_R_SERVER_RESPONSE_PARSE_ERROR
- * can be quite misleadng when this HTTP client code is used for other purposes.
- */
-/*
- * Parse the HTTP response. This will look like this: "HTTP/1.0 200 OK". We
- * need to obtain the numeric code and (optional) informational message.
- * Return HTTP status code or 0 on parse error
- */
 
 static int parse_http_line1(char *line)
 {
@@ -228,7 +261,7 @@ static int parse_http_line1(char *line)
     for (p = line; *p && !ossl_isspace(*p); p++)
         continue;
     if (!*p) {
-        OCSPerr(OCSP_F_PARSE_HTTP_LINE1, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
+        OCSPerr(OCSP_F_PARSE_HTTP_LINE1, OCSP_R_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
@@ -237,7 +270,7 @@ static int parse_http_line1(char *line)
         p++;
 
     if (!*p) {
-        OCSPerr(OCSP_F_PARSE_HTTP_LINE1, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
+        OCSPerr(OCSP_F_PARSE_HTTP_LINE1, OCSP_R_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
@@ -246,7 +279,7 @@ static int parse_http_line1(char *line)
         continue;
 
     if (!*q) {
-        OCSPerr(OCSP_F_PARSE_HTTP_LINE1, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
+        OCSPerr(OCSP_F_PARSE_HTTP_LINE1, OCSP_R_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
@@ -281,7 +314,7 @@ static int parse_http_line1(char *line)
     return retcode;
 }
 
-/* Return HTTP status code if >200, 0 on other error, -1: should retry, or 1: success */
+/* Return HTTP code if >200, 0 on other error, -1: should retry, 1: success */
 int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
 {
     int i, n;
@@ -438,7 +471,7 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
         /* Check it is an ASN1 SEQUENCE */
         if (*p++ != (V_ASN1_SEQUENCE | V_ASN1_CONSTRUCTED)) {
             rctx->state = OHS_ERROR;
-            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_RESPONSE_PARSE_ERROR);
             return 0;
         }
 
@@ -454,7 +487,7 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
             /* Not NDEF */
             if (!n) {
                 rctx->state = OHS_ERROR;
-                OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
+                OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_RESPONSE_PARSE_ERROR);
                 return 0;
             }
             /* excessive length */
@@ -501,35 +534,127 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
 
 }
 
-/* Return HTTP status code if >200, 0 on other error, -1: should retry, or 1: success */
-int OCSP_sendreq_nbio(OCSP_RESPONSE **presp, OCSP_REQ_CTX *rctx)
+/*
+ * Exchange ASN.1 request and response via HTTP.
+ * Return HTTP status code if > 200, 0 on other error, or 1: success
+ * (implies HTTP code 200) and then provide the response via the *resp argument
+ */
+int OCSP_REQ_CTX_sendreq(OCSP_REQ_CTX *rctx)
 {
-    return OCSP_REQ_CTX_nbio_d2i(rctx,
-                                 (ASN1_VALUE **)presp,
-                                 ASN1_ITEM_rptr(OCSP_RESPONSE));
+    int rc, rv = 0;
+    int blocking = rctx->max_time == 0;
+
+    /* TODO: it looks like BIO_do_connect() is superfluous except for maybe
+       better error/timeout handling and reporting? Remove next 8 lines? */
+    rv = OSSL_BIO_do_connect(rctx->io, rctx->max_time);
+    if (rv <= 0) {
+        if (rv == -1) {
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_SENDREQ, OCSP_R_CONNECT_TIMEOUT);
+            rv = 0;
+        }
+        return rv;
+    }
+
+    do {
+        rv = OCSP_REQ_CTX_nbio(rctx);
+        if (rv != -1)
+            break;
+        /* else BIO_should_retry was true */
+        if (!blocking) {
+            rc = OSSL_BIO_wait(rctx->io, (int)(rctx->max_time - time(NULL)));
+            if (rc <= 0) { /* error or timeout */
+                rv = (rc < 0) ? 0 /* unspecified error */ : -1; /* timeout */
+                break;
+            }
+        }
+    } while (rv == -1); /* BIO_should_retry was true */
+
+    if (rv == -1) {
+        OCSPerr(OCSP_F_OCSP_REQ_CTX_SENDREQ, OCSP_R_REQUEST_TIMEOUT);
+        rv = 0;
+    }
+    return rv;
+}
+/* end TODO move all generic HTTP stuff to better place as it is independent of OCSP */
+
+int OCSP_REQ_CTX_set1_req(OCSP_REQ_CTX *rctx, OCSP_REQUEST *req)
+{
+    static const char ocsp_req_hdr[] =
+        "Content-Type: application/ocsp-request\r\n"
+        "Content-Length: %d\r\n\r\n";
+    return OCSP_REQ_CTX_i2d(rctx, ocsp_req_hdr, ASN1_ITEM_rptr(OCSP_REQUEST),
+                            (ASN1_VALUE *)req);
 }
 
-/* Blocking OCSP request handler: now a special case of non-blocking I/O */
-
-OCSP_RESPONSE *OCSP_sendreq_bio(BIO *b, const char *path, OCSP_REQUEST *req)
+/* TODO this function can now be made static */
+OCSP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
+                               int maxline, int timeout)
 {
-    OCSP_RESPONSE *resp = NULL;
-    OCSP_REQ_CTX *ctx;
+
+    OCSP_REQ_CTX *rctx = NULL;
+    rctx = OCSP_REQ_CTX_new(io, maxline, timeout);
+    if (rctx == NULL)
+        return NULL;
+
+    if (!OCSP_REQ_CTX_add1_http(rctx, "POST", path))
+        goto err;
+
+    if (req && !OCSP_REQ_CTX_set1_req(rctx, req))
+        goto err;
+
+    return rctx;
+
+ err:
+    OCSP_REQ_CTX_free(rctx);
+    return NULL;
+}
+
+/* Return HTTP code if >200, 0 on other error, -1: should retry, 1: success */
+/* TODO remove? Note that it is now unused */
+int OCSP_sendreq_nbio(OCSP_REQ_CTX *rctx, OCSP_RESPONSE **presp)
+{
+    int rv = OCSP_REQ_CTX_sendreq(rctx);
+    if (rv == 1 && (*presp = OCSP_REQ_CTX_D2I(rctx, OCSP_RESPONSE)) == NULL)
+        rv = 0;
+    return rv;
+}
+
+
+
+/* Blocking OCSP request handler: now a special case of non-blocking I/O */
+/* Note that OCSP_sendreq_bio was unused and contained a busy loop :-( and
+   is now supeseded by OCSP_query_responder(b, NULL, path, NULL, req, -1) */
+
+OCSP_RESPONSE *OCSP_query_responder(BIO *cbio, const char *host,
+                                    const char *path,
+                                    const STACK_OF(CONF_VALUE) *headers,
+                                    OCSP_REQUEST *req, int req_timeout)
+{
     int rv;
-
-    ctx = OCSP_sendreq_new(b, path, req, -1);
-
+    int i;
+    int add_host = 1;
+    OCSP_RESPONSE *rsp = NULL;
+    OCSP_REQ_CTX *ctx = OCSP_sendreq_new(cbio, path, req, -1, req_timeout);
     if (ctx == NULL)
         return NULL;
 
-    do {
-        rv = OCSP_sendreq_nbio(&resp, ctx);
-    } while (rv == -1); /* this means BIO_should_retry(b) */
+    for (i = 0; i < sk_CONF_VALUE_num(headers); i++) {
+        CONF_VALUE *hdr = sk_CONF_VALUE_value(headers, i);
+        if (add_host == 1 && strcasecmp("host", hdr->name) == 0)
+            add_host = 0;
+        if (!OCSP_REQ_CTX_add1_header(ctx, hdr->name, hdr->value))
+            goto err;
+    }
 
+    if (add_host == 1 && host != NULL &&
+        OCSP_REQ_CTX_add1_header(ctx, "Host", host) == 0)
+        goto err;
+
+    rv = OCSP_REQ_CTX_sendreq(ctx);
+    if (rv == 1)
+        rsp = OCSP_REQ_CTX_D2I(ctx, OCSP_RESPONSE);
+ err:
     OCSP_REQ_CTX_free(ctx);
 
-    if (rv)
-        return resp;
-
-    return NULL;
+    return rsp;
 }

@@ -776,8 +776,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
 
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        OSSL_CMP_load_cert_crl_http_timeout(file, opt_crl_timeout,
-                                            &x, NULL, bio_err);
+        (void)load_cert_crl_http(file, opt_crl_timeout, &x, NULL);
 #endif
         goto end;
     }
@@ -1084,8 +1083,7 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
     format = adjust_format(&infile, format, 0);
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        OSSL_CMP_load_cert_crl_http_timeout(infile, opt_crl_timeout, NULL,
-                                            &crl, bio_err);
+        (void)load_cert_crl_http(infile, opt_crl_timeout, NULL, &crl);
 #endif
         goto end;
     }

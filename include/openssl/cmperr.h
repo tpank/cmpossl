@@ -133,13 +133,11 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_CERTREQMSG_NOT_FOUND                       103
 #  define CMP_R_CERTRESPONSE_NOT_FOUND                     104
 #  define CMP_R_CERT_AND_KEY_DO_NOT_MATCH                  105
-#  define CMP_R_CONNECT_TIMEOUT                            106
 #  define CMP_R_CP_NOT_RECEIVED                            107
 #  define CMP_R_ENCOUNTERED_KEYUPDATEWARNING               108
 #  define CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS          109
 #  define CMP_R_ENCOUNTERED_WAITING                        110
 #  define CMP_R_ERROR_CALCULATING_PROTECTION               111
-#  define CMP_R_ERROR_CONNECTING                           112
 #  define CMP_R_ERROR_CREATING_CERTCONF                    113
 #  define CMP_R_ERROR_CREATING_CERTREP                     114
 #  define CMP_R_ERROR_CREATING_CR                          115
@@ -191,7 +189,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_PKISTATUSINFO_NOT_FOUND                    162
 #  define CMP_R_POLLREP_NOT_RECEIVED                       163
 #  define CMP_R_POTENTIALLY_INVALID_CERTIFICATE            164
-#  define CMP_R_READ_TIMEOUT                               165
 #  define CMP_R_RECEIVED_ERROR                             166
 #  define CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP    167
 #  define CMP_R_RECIPNONCE_UNMATCHED                       168

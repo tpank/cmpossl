@@ -149,21 +149,31 @@ typedef struct ocsp_service_locator_st OCSP_SERVICELOC;
 
 OCSP_CERTID *OCSP_CERTID_dup(OCSP_CERTID *id);
 
-OCSP_RESPONSE *OCSP_sendreq_bio(BIO *b, const char *path, OCSP_REQUEST *req);
+OCSP_RESPONSE *OCSP_query_responder(BIO *b, const char *host, const char *path,
+                                    const STACK_OF(CONF_VALUE) *headers,
+                                    OCSP_REQUEST *req, int req_timeout);
 OCSP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
-                               int maxline);
+                               int maxline, int timeout);
+int OCSP_REQ_CTX_set1_req(OCSP_REQ_CTX *rctx, OCSP_REQUEST *req);
+int OCSP_sendreq_nbio(OCSP_REQ_CTX *rctx, OCSP_RESPONSE **presp);
+
+/* TODO move all socket/BIO-related stuff to better place as is independent of OCSP */
+int OSSL_socket_wait(int fd, int for_read, int timeout);
+int OSSL_BIO_wait(BIO *bio, int timeout);
+int OSSL_BIO_do_connect(BIO *bio, time_t max_time);
+
+/* TODO move all generic HTTP stuff to better place as it is independent of OCSP */
 int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx);
-int OCSP_sendreq_nbio(OCSP_RESPONSE **presp, OCSP_REQ_CTX *rctx);
-OCSP_REQ_CTX *OCSP_REQ_CTX_new(BIO *io, int maxline);
+int OCSP_REQ_CTX_sendreq(OCSP_REQ_CTX *rctx);
+OCSP_REQ_CTX *OCSP_REQ_CTX_new(BIO *io, int maxline, int timeout);
 void OCSP_REQ_CTX_free(OCSP_REQ_CTX *rctx);
 void OCSP_set_max_response_length(OCSP_REQ_CTX *rctx, unsigned long len);
 int OCSP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx, const char *req_hdr, const ASN1_ITEM *it,
                      ASN1_VALUE *val);
-int OCSP_REQ_CTX_nbio_d2i(OCSP_REQ_CTX *rctx, ASN1_VALUE **pval,
-                          const ASN1_ITEM *it);
+ASN1_VALUE *OCSP_REQ_CTX_d2i(OCSP_REQ_CTX *rctx, const ASN1_ITEM *it);
+#define OCSP_REQ_CTX_D2I(rctx, type) ((type *)OCSP_REQ_CTX_d2i(rctx, ASN1_ITEM_rptr(type)))
 BIO *OCSP_REQ_CTX_get0_mem_bio(OCSP_REQ_CTX *rctx);
-int OCSP_REQ_CTX_http(OCSP_REQ_CTX *rctx, const char *op, const char *path);
-int OCSP_REQ_CTX_set1_req(OCSP_REQ_CTX *rctx, OCSP_REQUEST *req);
+int OCSP_REQ_CTX_add1_http(OCSP_REQ_CTX *rctx, const char *op, const char *path);
 int OCSP_REQ_CTX_add1_header(OCSP_REQ_CTX *rctx,
                              const char *name, const char *value);
 
