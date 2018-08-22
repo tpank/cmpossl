@@ -45,13 +45,16 @@ int OSSL_socket_wait(int fd, int for_read, int timeout)
                   for_read ? NULL : &confds, NULL, &tv);
 }
 
-/* returns < 0 on error, 0 on timeout, > 0 on success */
+/* returns -1 on timeout, 0 on other error, 1 on success */
 int OSSL_BIO_wait(BIO *bio, int timeout)
 {
     int fd;
+    int rc;
     if (BIO_get_fd(bio, &fd) <= 0)
-        return -1;
-    return OSSL_socket_wait(fd, BIO_should_read(bio), timeout);
+        return 0;
+    rc = OSSL_socket_wait(fd, BIO_should_read(bio), timeout);
+    return rc > 0 ? 1 :
+           rc < 0 ? 0 : -1/* timeout */;
 }
 
 /* returns -1 on timeout, 0 on other error, 1 on success */
@@ -66,17 +69,20 @@ int OSSL_BIO_do_connect(BIO *bio, time_t max_time)
         BIO_set_nbio(bio, 1);
  retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
     rv = BIO_do_connect(bio); /* This indirectly calls ERR_clear_error(); */
-    if (rv <= 0 && (errno == ETIMEDOUT ||
-                    ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT)) {
+    if (rv <= 0) {
+        rv = 0; /* some error or preliminary timeout occurred */
+        if (errno == ETIMEDOUT ||
+            ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT) {
     /* if blocking, despite blocking BIO, BIO_do_connect() timed out, else if
        non-blocking, BIO_do_connect() timed out early with rv==-1 && errno==0 */
-        ERR_clear_error();
-        (void)BIO_reset(bio); /* otherwise blocking next connect() may crash and
-                                 non-blocking next BIO_do_connect() will fail */
-        goto retry;
-    }
-    if (rv <= 0 && BIO_should_retry(bio)) {
-        if (blocking || (rv = OSSL_BIO_wait(bio, (int)(max_time - time(NULL)))) > 0)
+            ERR_clear_error();
+            (void)BIO_reset(bio); /* otherwise blocking next connect() may crash
+                             and non-blocking next BIO_do_connect() will fail */
+            goto retry;
+        }
+        if (BIO_should_retry(bio) &&
+            (blocking ||
+             (rv = OSSL_BIO_wait(bio, (int)(max_time - time(NULL)))) == 1))
             goto retry;
     }
     return rv;
@@ -104,9 +110,10 @@ struct ocsp_req_ctx_st {
     unsigned char *iobuf;       /* Line buffer */
     int iobuflen;               /* Line buffer length */
     BIO *io;                    /* BIO to perform I/O with */
-    BIO *mem;                   /* Memory BIO response is built into */
+    BIO *mem;                   /* Memory BIO used for request and response */
     unsigned long asn1_len;     /* ASN1 length of response */
     unsigned long max_resp_len; /* Maximum length of response */
+    char *resp_type;            /* Expected content type of response */
     time_t max_time;            /* Time when to report eror, or 0 for blocking */
 };
 
@@ -183,6 +190,11 @@ void OCSP_set_max_response_length(OCSP_REQ_CTX *rctx, unsigned long len)
         rctx->max_resp_len = len;
 }
 
+void OCSP_set_response_type(OCSP_REQ_CTX *rctx, char *content_type)
+{
+    rctx->resp_type = content_type;
+}
+
 int OCSP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx, const char *req_hdr,
                      const ASN1_ITEM *it, ASN1_VALUE *val)
 {
@@ -205,8 +217,7 @@ ASN1_VALUE *OCSP_REQ_CTX_d2i(OCSP_REQ_CTX *rctx, const ASN1_ITEM *it)
     const unsigned char *p;
     ASN1_VALUE *val;
     long len = BIO_get_mem_data(rctx->mem, &p);
-    val = ASN1_item_d2i(NULL, &p, len, it);
-    if (val == NULL) {
+    if (len == 0 || (val = ASN1_item_d2i(NULL, &p, len, it)) == NULL) {
         rctx->state = OHS_ERROR;
         OCSPerr(OCSP_F_OCSP_REQ_CTX_D2I, OCSP_R_RESPONSE_PARSE_ERROR);
     }
@@ -314,10 +325,82 @@ static int parse_http_line1(char *line)
     return retcode;
 }
 
+static unsigned long check_http_line(OCSP_REQ_CTX *rctx)
+{
+    static const char *len_str = "Content-Length:";
+    static const char *type_str = "Content-Type:";
+
+    char *p, *r;
+    unsigned long len;
+
+    if (strncmp((char *)rctx->iobuf, len_str, strlen(len_str)) == 0) {
+        for (p = (char *)rctx->iobuf+strlen(len_str); ossl_isspace(*p) ; p++)
+            ;
+        len = strtoul(p, &r, 10);
+        if (r == p || *r != '\r' || *(++r) != '\n') {
+            OCSPerr(OCSP_F_CHECK_HTTP_LINE, OCSP_R_RESPONSE_PARSE_ERROR);
+            return -1;
+        }
+        return len;
+    }
+
+    if (rctx->resp_type != NULL &&
+        strncmp((char *)rctx->iobuf, type_str, strlen(type_str)) == 0) {
+        for (p = (char *)rctx->iobuf+strlen(type_str); ossl_isspace(*p) ; p++)
+            ;
+        r = p + strlen(rctx->resp_type);
+        if (strncmp(p, rctx->resp_type, r - p) != 0 ||
+            *r != '\r' || *(++r) != '\n') {
+            OCSPerr(OCSP_F_CHECK_HTTP_LINE, OCSP_R_WRONG_RESPONSE_TYPE);
+            return -1;
+        }
+    }
+    return -2;
+}
+
+static int get_http_line(OCSP_REQ_CTX *rctx)
+{
+    int n;
+    const unsigned char *p;
+
+    /*
+     * Due to &%^*$" memory BIO behaviour with BIO_gets we have to check
+     * there's a complete line in there before calling BIO_gets or we'll
+     * just get a partial read.
+     */
+    n = BIO_get_mem_data(rctx->mem, &p);
+    if ((n <= 0) || !memchr(p, '\n', n)) {
+        if (n >= rctx->iobuflen) {
+            rctx->state = OHS_ERROR;
+            OCSPerr(OCSP_F_GET_HTTP_LINE, OCSP_R_HTTP_LINE_TOO_LARGE);
+            return 0;
+        }
+        return -1;
+    }
+
+    n = BIO_gets(rctx->mem, (char *)rctx->iobuf, rctx->iobuflen);
+    if (n <= 0) {
+        if (BIO_should_retry(rctx->mem))
+            return -1;
+        rctx->state = OHS_ERROR;
+        OCSPerr(OCSP_F_GET_HTTP_LINE, OCSP_R_HTTP_READ_ERROR);
+        return 0;
+    }
+
+    /* Don't allow excessive lines */
+    if (n == rctx->iobuflen) {
+        rctx->state = OHS_ERROR;
+        OCSPerr(OCSP_F_GET_HTTP_LINE, OCSP_R_HTTP_LINE_TOO_LARGE);
+        return 0;
+    }
+    return 1;
+}
+
 /* Return HTTP code if >200, 0 on other error, -1: should retry, 1: success */
 int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
 {
     int i, n;
+    unsigned long content_len = 0;
     const unsigned char *p;
  next_io:
     if (!(rctx->state & OHS_NOREAD)) {
@@ -402,36 +485,10 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
         /* Attempt to read a line in */
 
  next_line:
-        /*
-         * Due to &%^*$" memory BIO behaviour with BIO_gets we have to check
-         * there's a complete line in there before calling BIO_gets or we'll
-         * just get a partial read.
-         */
-        n = BIO_get_mem_data(rctx->mem, &p);
-        if ((n <= 0) || !memchr(p, '\n', n)) {
-            if (n >= rctx->iobuflen) {
-                rctx->state = OHS_ERROR;
-                OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_LINE_TOO_LARGE);
-                return 0;
-            }
+        if ((n = get_http_line(rctx)) == 0)
+            return 0;
+        if (n < 0)
             goto next_io;
-        }
-        n = BIO_gets(rctx->mem, (char *)rctx->iobuf, rctx->iobuflen);
-
-        if (n <= 0) {
-            if (BIO_should_retry(rctx->mem))
-                goto next_io;
-            rctx->state = OHS_ERROR;
-            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_READ_ERROR);
-            return 0;
-        }
-
-        /* Don't allow excessive lines */
-        if (n == rctx->iobuflen) {
-            rctx->state = OHS_ERROR;
-            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_LINE_TOO_LARGE);
-            return 0;
-        }
 
         /* First line */
         if (rctx->state == OHS_FIRSTLINE) {
@@ -444,12 +501,17 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
                 return rc;
             }
         } else {
+            if ((n = check_http_line(rctx)) == -1)
+                return 0;
+            if (n >= 0)
+                content_len = n;
+
             /* Look for blank line: end of headers */
             for (p = rctx->iobuf; *p; p++) {
                 if ((*p != '\r') && (*p != '\n'))
                     break;
             }
-            if (*p)
+            if (*p) /* not blank line */
                 goto next_line;
 
             rctx->state = OHS_ASN1_HEADER;
@@ -459,6 +521,9 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
         /* Fall thru */
 
     case OHS_ASN1_HEADER:
+#ifndef NO_USE_ASN1_SEQUENCE_LEN
+        /* TODO remove ASN.1 handling here? It is redundant with ASN.1 parsing
+           and should not be needed since Content-Length should be present */
         /*
          * Now reading ASN1 header: can read at least 2 bytes which is enough
          * for ASN1 SEQUENCE header and either length field or at least the
@@ -503,15 +568,29 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
                 rctx->asn1_len |= *p++;
             }
 
-            if (rctx->asn1_len > rctx->max_resp_len) {
-                rctx->state = OHS_ERROR;
-                OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_BODY_TOO_LARGE);
-                return 0;
-            }
-
             rctx->asn1_len += n + 2;
         } else
             rctx->asn1_len = *p + 2;
+
+        if (content_len != 0 && rctx->asn1_len != content_len) {
+            rctx->state = OHS_ERROR;
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_INCONSISTENT_RESPONSE_LEN);
+            return 0;
+        }
+#else /* ifdef USE_ASN1_SEQUENCE_LEN */
+        if (content_len == 0) {
+            rctx->state = OHS_ERROR;
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_RESPONSE_PARSE_ERROR);
+            return 0;
+        }
+        rctx->asn1_len = content_len;
+#endif
+
+        if (rctx->asn1_len > rctx->max_resp_len) {
+            rctx->state = OHS_ERROR;
+            OCSPerr(OCSP_F_OCSP_REQ_CTX_NBIO, OCSP_R_HTTP_BODY_TOO_LARGE);
+            return 0;
+        }
 
         rctx->state = OHS_ASN1_CONTENT;
 
@@ -541,11 +620,12 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
  */
 int OCSP_REQ_CTX_sendreq(OCSP_REQ_CTX *rctx)
 {
-    int rc, rv = 0;
+    int rv = 1;
     int blocking = rctx->max_time == 0;
 
-    /* TODO: it looks like BIO_do_connect() is superfluous except for maybe
-       better error/timeout handling and reporting? Remove next 8 lines? */
+#if 1
+    /* TODO: it seems that BIO_do_connect() is superfluous except for maybe
+       better error/timeout handling and reporting? Remove next 9 lines? */
     rv = OSSL_BIO_do_connect(rctx->io, rctx->max_time);
     if (rv <= 0) {
         if (rv == -1) {
@@ -554,20 +634,16 @@ int OCSP_REQ_CTX_sendreq(OCSP_REQ_CTX *rctx)
         }
         return rv;
     }
+#endif
 
     do {
-        rv = OCSP_REQ_CTX_nbio(rctx);
-        if (rv != -1)
+        if (OCSP_REQ_CTX_nbio(rctx) != -1)
             break;
         /* else BIO_should_retry was true */
         if (!blocking) {
-            rc = OSSL_BIO_wait(rctx->io, (int)(rctx->max_time - time(NULL)));
-            if (rc <= 0) { /* error or timeout */
-                rv = (rc < 0) ? 0 /* unspecified error */ : -1; /* timeout */
-                break;
-            }
+            rv = OSSL_BIO_wait(rctx->io, (int)(rctx->max_time - time(NULL)));
         }
-    } while (rv == -1); /* BIO_should_retry was true */
+    } while (rv > 0);
 
     if (rv == -1) {
         OCSPerr(OCSP_F_OCSP_REQ_CTX_SENDREQ, OCSP_R_REQUEST_TIMEOUT);
@@ -595,6 +671,7 @@ OCSP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
     rctx = OCSP_REQ_CTX_new(io, maxline, timeout);
     if (rctx == NULL)
         return NULL;
+    OCSP_set_response_type(rctx, "application/ocsp-response");
 
     if (!OCSP_REQ_CTX_add1_http(rctx, "POST", path))
         goto err;
@@ -622,19 +699,21 @@ int OCSP_sendreq_nbio(OCSP_REQ_CTX *rctx, OCSP_RESPONSE **presp)
 
 
 /* Blocking OCSP request handler: now a special case of non-blocking I/O */
-/* Note that OCSP_sendreq_bio was unused and contained a busy loop :-( and
-   is now supeseded by OCSP_query_responder(b, NULL, path, NULL, req, -1) */
+OCSP_RESPONSE *OCSP_sendreq_bio(BIO *b, const char *path, OCSP_REQUEST *req)
+{
+    return OCSP_query_responder(b, NULL, path, NULL, req, -1);
+}
 
 OCSP_RESPONSE *OCSP_query_responder(BIO *cbio, const char *host,
                                     const char *path,
                                     const STACK_OF(CONF_VALUE) *headers,
-                                    OCSP_REQUEST *req, int req_timeout)
+                                    OCSP_REQUEST *req, int timeout)
 {
     int rv;
     int i;
     int add_host = 1;
     OCSP_RESPONSE *rsp = NULL;
-    OCSP_REQ_CTX *ctx = OCSP_sendreq_new(cbio, path, req, -1, req_timeout);
+    OCSP_REQ_CTX *ctx = OCSP_sendreq_new(cbio, path, req, -1, timeout);
     if (ctx == NULL)
         return NULL;
 

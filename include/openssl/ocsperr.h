@@ -23,7 +23,9 @@ int ERR_load_OCSP_strings(void);
 /*
  * OCSP function codes.
  */
+#  define OCSP_F_CHECK_HTTP_LINE                           126
 #  define OCSP_F_D2I_OCSP_NONCE                            102
+#  define OCSP_F_GET_HTTP_LINE                             127
 #  define OCSP_F_OCSP_BASIC_ADD1_STATUS                    103
 #  define OCSP_F_OCSP_BASIC_SIGN                           104
 #  define OCSP_F_OCSP_BASIC_SIGN_CTX                       119
@@ -62,6 +64,7 @@ int ERR_load_OCSP_strings(void);
 #  define OCSP_R_HTTP_LINE_TOO_LARGE                       107
 #  define OCSP_R_HTTP_READ_ERROR                           113
 #  define OCSP_R_HTTP_WRITE_ERROR                          116
+#  define OCSP_R_INCONSISTENT_RESPONSE_LEN                 137
 #  define OCSP_R_MISSING_OCSPSIGNING_USAGE                 103
 #  define OCSP_R_NEXTUPDATE_BEFORE_THISUPDATE              124
 #  define OCSP_R_NOT_BASIC_RESPONSE                        104
@@ -87,6 +90,7 @@ int ERR_load_OCSP_strings(void);
 #  define OCSP_R_UNKNOWN_MESSAGE_DIGEST                    119
 #  define OCSP_R_UNKNOWN_NID                               120
 #  define OCSP_R_UNSUPPORTED_REQUESTORNAME_TYPE            129
+#  define OCSP_R_WRONG_RESPONSE_TYPE                       136
 
 # endif
 #endif

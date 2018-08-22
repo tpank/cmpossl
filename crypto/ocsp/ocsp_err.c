@@ -14,7 +14,9 @@
 #ifndef OPENSSL_NO_ERR
 
 static const ERR_STRING_DATA OCSP_str_functs[] = {
+    {ERR_PACK(ERR_LIB_OCSP, OCSP_F_CHECK_HTTP_LINE, 0), "check_http_line"},
     {ERR_PACK(ERR_LIB_OCSP, OCSP_F_D2I_OCSP_NONCE, 0), "d2i_ocsp_nonce"},
+    {ERR_PACK(ERR_LIB_OCSP, OCSP_F_GET_HTTP_LINE, 0), "get_http_line"},
     {ERR_PACK(ERR_LIB_OCSP, OCSP_F_OCSP_BASIC_ADD1_STATUS, 0),
      "OCSP_basic_add1_status"},
     {ERR_PACK(ERR_LIB_OCSP, OCSP_F_OCSP_BASIC_SIGN, 0), "OCSP_basic_sign"},
@@ -69,6 +71,8 @@ static const ERR_STRING_DATA OCSP_str_reasons[] = {
     "http line too large"},
     {ERR_PACK(ERR_LIB_OCSP, 0, OCSP_R_HTTP_READ_ERROR), "http read error"},
     {ERR_PACK(ERR_LIB_OCSP, 0, OCSP_R_HTTP_WRITE_ERROR), "http write error"},
+    {ERR_PACK(ERR_LIB_OCSP, 0, OCSP_R_INCONSISTENT_RESPONSE_LEN),
+    "inconsistent response len"},
     {ERR_PACK(ERR_LIB_OCSP, 0, OCSP_R_MISSING_OCSPSIGNING_USAGE),
     "missing ocspsigning usage"},
     {ERR_PACK(ERR_LIB_OCSP, 0, OCSP_R_NEXTUPDATE_BEFORE_THISUPDATE),
@@ -109,6 +113,8 @@ static const ERR_STRING_DATA OCSP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_OCSP, 0, OCSP_R_UNKNOWN_NID), "unknown nid"},
     {ERR_PACK(ERR_LIB_OCSP, 0, OCSP_R_UNSUPPORTED_REQUESTORNAME_TYPE),
     "unsupported requestorname type"},
+    {ERR_PACK(ERR_LIB_OCSP, 0, OCSP_R_WRONG_RESPONSE_TYPE),
+    "wrong response type"},
     {0, NULL}
 };
 
