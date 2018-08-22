@@ -19,7 +19,7 @@ This is the API for creating a BIO for CMP (Certificate Management
 Protocol) over HTTP(S) with OpenSSL.
 
 OSSL_CMP_MSG_http_perform() sends the given PKIMessage req to the CMP server
-specified in ctx. On success (return 0), assigns the server's response to *res.
+specified in ctx. On success (return 1), assigns the server's response to *res.
 
 =head1 NOTES
 
@@ -27,7 +27,9 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-OSSL_CMP_MSG_http_perform() returns 0 on success or else an error reason code.
+OSSL_CMP_MSG_http_perform() returns 1 on success,
+OSSL_CMP_ERROR_TRANSFERRING_OUT on send error,
+OSSL_CMP_ERROR_TRANSFERRING_IN on receive error, and 0 on other error.
 It uses ctx->http_cb if set and respects ctx->msgTimeOut.
 
 =head1 SEE ALSO

@@ -565,18 +565,18 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
 {
     OSSL_CMP_MSG *srv_req = NULL, *srv_rsp = NULL;
     OSSL_CMP_SRV_CTX *srv_ctx = NULL;
-    int error = 0;
+    int ret = 1; /* ok */
 
     if (cmp_ctx == NULL || req == NULL || rsp == NULL)
         return CMP_R_NULL_ARGUMENT;
     *rsp = NULL;
 
     if ((srv_ctx = OSSL_CMP_CTX_get_transfer_cb_arg(cmp_ctx)) == NULL)
-        return CMP_R_ERROR_TRANSFERRING_OUT;
+        return OSSL_CMP_ERROR_TRANSFERRING_OUT;
 
     /* OSSL_CMP_MSG_dup en- and decodes ASN.1, used for checking encoding */
     if ((srv_req = OSSL_CMP_MSG_dup((OSSL_CMP_MSG *)req)) == NULL)
-        error = CMP_R_ERROR_DECODING_MESSAGE;
+        ret = OSSL_CMP_ERROR_TRANSFERRING_IN;
 
     if (process_request(srv_ctx, srv_req, &srv_rsp) == 0) {
         OSSL_CMP_PKISI *si;
@@ -597,14 +597,14 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
                                          srv_ctx->sendUnprotectedErrors);
             OSSL_CMP_PKISI_free(si);
         } else {
-            error = CMP_R_ERROR_PROCESSING_MSG;
+            ret = 0; /* CMP_R_ERROR_PROCESSING_MSG */
         }
         goto end;
     }
 
     /* OSSL_CMP_MSG_dup en- and decodes ASN.1, used for checking encoding */
     if ((*rsp = OSSL_CMP_MSG_dup(srv_rsp)) == NULL) {
-        error = CMP_R_ERROR_DECODING_MESSAGE;
+        ret = 0;
         goto end;
     }
 
@@ -612,7 +612,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
     OSSL_CMP_MSG_free(srv_req);
     OSSL_CMP_MSG_free(srv_rsp);
 
-    return error;
+    return ret;
 }
 
 /*

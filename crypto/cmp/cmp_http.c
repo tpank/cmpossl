@@ -85,6 +85,7 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
     rctx = OCSP_REQ_CTX_new(io, maxline, timeout);
     if (rctx == NULL)
         return NULL;
+    OCSP_set_response_type(rctx, "application/pkixcmp");
 
     if (!OCSP_REQ_CTX_add1_http(rctx, "POST", path))
         goto err;
@@ -104,7 +105,8 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
 /*
  * Send the PKIMessage req and on success place the response in *res.
  * Any previous error is likely to be removed by ERR_clear_error().
- * returns 0 on success, else a CMP error reason code defined in cmp.h
+ * returns 1 on success, OSSL_CMP_ERROR_TRANSFERRING_OUT on send error,
+ * OSSL_CMP_ERROR_TRANSFERRING_IN on receive error, and 0 on other error.
  */
 int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                               OSSL_CMP_MSG **res)
@@ -114,12 +116,12 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     size_t pos = 0, pathlen = 0;
     BIO *hbio = NULL;
     OCSP_REQ_CTX *rctx;
-    int err = ERR_R_MALLOC_FAILURE;
+    int ret = 0; /* e.g., MALLOC_FAILURE */
     int retries = 1;
 
     if (ctx == NULL || req == NULL || res == NULL ||
         ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort)
-        return CMP_R_NULL_ARGUMENT;
+        return 0;
 
     pathlen = strlen(ctx->serverName) + strlen(ctx->serverPath) + 33;
     path = (char *)OPENSSL_malloc(pathlen);
@@ -155,23 +157,36 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     if (rv == 1 && ((*res = OCSP_REQ_CTX_D2I(rctx, OSSL_CMP_MSG)) == NULL))
         rv = 0;
     OCSP_REQ_CTX_free(rctx);
-    if (rv == 1) {
-        err = 0;
-    } else {
-        err = ERR_GET_REASON(ERR_peek_last_error());
-        if (err == 0)
-            err = ERR_R_INTERNAL_ERROR;
-    }
+    ret = rv == 1 ? 1 :
+          rv > 1 ? OSSL_CMP_ERROR_TRANSFERRING_IN : 0;
 
- err: /* TODO DvO clean up error reporting */
-    /* for any cert verify error at TLS level: */
-    put_cert_verify_err(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM);
+ err:
+    if (ret != 1) {
+        int err = ERR_GET_REASON(ERR_peek_last_error());
 
-    if (err != 0) {
-        if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
-            err = CMP_R_TLS_ERROR;
-        CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, err);
-        if (err != ERR_R_MALLOC_FAILURE)
+        if (ERR_GET_LIB(ERR_peek_last_error()) == ERR_LIB_SSL) {
+            /* for any cert verify error at TLS level: */
+            CMP_put_cert_verify_err(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM);
+            if (ret == 0)
+                ret = OSSL_CMP_ERROR_TRANSFERRING_OUT;
+        } else if (ret == 0) {
+            if (err == OCSP_R_HTTP_READ_ERROR ||
+                err == OCSP_R_REQUEST_TIMEOUT ||
+                err == OCSP_R_HTTP_LINE_TOO_LARGE ||
+                err == OCSP_R_HTTP_BODY_TOO_LARGE ||
+                err == OCSP_R_SERVER_RESPONSE_ERROR ||
+                err == OCSP_R_RESPONSE_PARSE_ERROR)
+                ret = OSSL_CMP_ERROR_TRANSFERRING_IN;
+            else if (err == OCSP_R_HTTP_WRITE_ERROR ||
+                     err == OCSP_R_CONNECT_TIMEOUT ||
+                     err == OCSP_R_REQUEST_TIMEOUT ||
+                     err == OCSP_R_PUT_HTTP_HEADER ||
+                     err == OCSP_R_PUT_HTTP_BODY)
+                ret = OSSL_CMP_ERROR_TRANSFERRING_OUT;
+        }
+        if (ret == 0)
+            CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, ERR_R_INTERNAL_ERROR);
+        else if (ret == OSSL_CMP_ERROR_TRANSFERRING_OUT)
             add_conn_error_hint(ctx, ERR_peek_error());
     }
 
@@ -188,7 +203,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     }
 
     OPENSSL_free(path);
-    return err;
+    return ret;
 }
 
 #endif /* !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK) */

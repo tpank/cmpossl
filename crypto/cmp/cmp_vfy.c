@@ -177,7 +177,7 @@ int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
     valid = X509_verify_cert(csc) > 0;
 
     if (!valid && !defer_errors)
-        put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_CERT_PATH);
+        CMP_put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_CERT_PATH);
 
  end:
     X509_STORE_CTX_free(csc);
@@ -241,7 +241,7 @@ static void print_store_certs(BIO *bio, X509_STORE *store) {
 /* needed because cert verify errors are threatened by ERR_clear_error() */
 static BIO *cert_verify_err_bio = NULL;
 
-void put_cert_verify_err(int func)
+void CMP_put_cert_verify_err(int func)
 {
     if (cert_verify_err_bio != NULL) { /* cert verify error in callback */
         char *str;
@@ -711,7 +711,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         if (scrt != NULL) {
             if (CMP_verify_signature(ctx, msg, scrt))
                 return 1;
-            put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_MSG);
+            CMP_put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_MSG);
 
             /* potentially the server cert finding algorithm took wrong cert:
              * the server certificate may not have a subject key identifier

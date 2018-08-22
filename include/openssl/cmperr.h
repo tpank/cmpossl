@@ -162,8 +162,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_ERROR_PUSHING_GENM_ITEMS                   134
 #  define CMP_R_ERROR_SENDING_REQUEST                      135
 #  define CMP_R_ERROR_SETTING_CERTHASH                     136
-#  define CMP_R_ERROR_TRANSFERRING_IN                      137
-#  define CMP_R_ERROR_TRANSFERRING_OUT                     138
 #  define CMP_R_ERROR_VALIDATING_PROTECTION                139
 #  define CMP_R_FAILED_EXTRACTING_PUBKEY                   140
 #  define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               141

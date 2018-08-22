@@ -1886,17 +1886,18 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 {
     OSSL_CMP_MSG *req_new = NULL;
     OSSL_CMP_HDR *hdr;
-    int ret = CMP_R_ERROR_TRANSFERRING_OUT;
+    int ret = OSSL_CMP_ERROR_TRANSFERRING_IN;
 
-    if (req != NULL && opt_reqout != NULL &&
-        !write_PKIMESSAGE(ctx, req, &opt_reqout))
-        goto err;
+    if (ctx == NULL || req == NULL || res == NULL)
+        return 0;
+
+    if (opt_reqout != NULL && !write_PKIMESSAGE(ctx, req, &opt_reqout))
+        return OSSL_CMP_ERROR_TRANSFERRING_OUT;
 
     if (opt_reqin != NULL) {
         if (opt_rspin != NULL) {
             OSSL_CMP_warn(ctx, "-reqin is ignored since -rspin is present");
         } else {
-            ret = CMP_R_ERROR_TRANSFERRING_IN;
             if ((req_new = read_PKIMESSAGE(ctx, &opt_reqin)) == NULL)
                 goto err;
 # if 0
@@ -1913,10 +1914,9 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         }
     }
 
-    ret = CMP_R_ERROR_TRANSFERRING_IN;
     if (opt_rspin != NULL) {
-        if ((*res = read_PKIMESSAGE(ctx, &opt_rspin)))
-            ret = 0;
+        if ((*res = read_PKIMESSAGE(ctx, &opt_rspin)) != NULL)
+            ret = 1;
     } else {
         const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
 # ifndef NDEBUG
@@ -1933,26 +1933,28 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 # endif
     }
 
-    if (ret != 0 || (*res) == NULL)
+    if (ret != 1 || *res == NULL)
         goto err;
-    ret = ERR_R_MALLOC_FAILURE;
     hdr = OSSL_CMP_MSG_get0_header(*res);
     if ((opt_reqin != NULL || opt_rspin != NULL) &&
         /* need to satisfy nonce and transactionID checks */
         (!OSSL_CMP_CTX_set1_last_senderNonce(ctx,
                                              OSSL_CMP_HDR_get0_recipNonce(hdr))
-         || !OSSL_CMP_CTX_set1_transactionID(ctx,
-                                             OSSL_CMP_HDR_get0_transactionID(hdr))
-        ))
+         ||
+         !OSSL_CMP_CTX_set1_transactionID(ctx,
+                                          OSSL_CMP_HDR_get0_transactionID(hdr))
+         )) {
+        ret = 0; /* MALLOC_FAILURE */
         goto err;
+    }
 
     if (opt_rspout != NULL && !write_PKIMESSAGE(ctx, *res, &opt_rspout)) {
-        ret = CMP_R_ERROR_TRANSFERRING_OUT;
+        ret = OSSL_CMP_ERROR_TRANSFERRING_OUT;
         OSSL_CMP_MSG_free(*res);
         goto err;
     }
 
-    ret = 0;
+    ret = 1;
  err:
     OSSL_CMP_MSG_free(req_new);
     return ret;
@@ -1991,7 +1993,7 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
         hbio = sbio != NULL ? BIO_push(sbio, hbio): NULL;
     } else { /* disconnecting */
         const char *hint = tls_error_hint(detail);
-        if (hint != NULL)
+        if (ERR_GET_LIB(detail) == ERR_LIB_SSL && hint != NULL)
             OSSL_CMP_add_error_data(hint);
         /* as a workaround for OpenSSL double free, do not pop the sbio, but
            rely on BIO_free_all() done by OSSL_CMP_MSG_http_perform() */
@@ -3151,7 +3153,7 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         }
         if (opt_subject != NULL)
             OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN,
-                            "-subject '%s' given, which overrides the subject of '%s' in KUR",
+                            "-subject '%s' given, which overrides the subject of the old cert '%s' in KUR",
                             opt_subject, ref_cert);
     }
     if (opt_cmd == CMP_RR && opt_oldcert == NULL) {

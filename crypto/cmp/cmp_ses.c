@@ -19,7 +19,6 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
-#include <openssl/ocsperr.h>
 
 #include "cmp_int.h"
 
@@ -163,7 +162,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                               int not_received)
 {
     int msgtimeout = ctx->msgtimeout; /* backup original value */
-    int err, rcvd_type;
+    int ret, rcvd_type;
 
     if ((expected_type == OSSL_CMP_PKIBODY_POLLREP ||
          IS_ENOLLMENT(expected_type))
@@ -179,23 +178,20 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO, "sending %s", type_string);
     if (ctx->transfer_cb != NULL)
-        err = (ctx->transfer_cb)(ctx, req, rep);
+        ret = (ctx->transfer_cb)(ctx, req, rep);
         /* may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
          *                 or CMP_R_ERROR_TRANSFERRING_IN
          * DO NOT DELETE the two error reason codes in this comment, they are
          * for mkerr.pl
          */
     else
-        err = CMP_R_ERROR_SENDING_REQUEST;
+        ret = OSSL_CMP_ERROR_TRANSFERRING_OUT;
     ctx->msgtimeout = msgtimeout; /* restore original value */
 
-    if (err != 0) {
-        CMPerr(CMP_F_SEND_RECEIVE_CHECK, err);
-        if (err == OCSP_R_HTTP_READ_ERROR ||
-            err == OCSP_R_REQUEST_TIMEOUT ||
-            err == OCSP_R_RESPONSE_PARSE_ERROR)
+    if (ret != 1) {
+        if (ret == OSSL_CMP_ERROR_TRANSFERRING_IN)
             CMPerr(func, not_received);
-        else {
+        if (ret == OSSL_CMP_ERROR_TRANSFERRING_OUT) {
             CMPerr(func, CMP_R_ERROR_SENDING_REQUEST);
             OSSL_CMP_add_error_data(type_string);
         }
@@ -204,8 +200,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     }
 
     OSSL_CMP_info(ctx, "got response");
-    if((rcvd_type = OSSL_CMP_MSG_check_received(ctx, *rep, expected_type,
-                                                unprotected_exception)) < 0)
+    if ((rcvd_type = OSSL_CMP_MSG_check_received(ctx, *rep, expected_type,
+                                                 unprotected_exception)) < 0)
         return 0;
 
     /* catch if received message type isn't one of expected ones (e.g. error) */
@@ -609,7 +605,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **resp,
          * cannot flag failure earlier because send_receive_check()
          * indirectly calls ERR_clear_error()
          */
-        put_cert_verify_err(func);
+        CMP_put_cert_verify_err(func);
         CMPerr(func, CMP_R_CERTIFICATE_NOT_ACCEPTED);
         ERR_add_error_data(1, "rejecting newly enrolled cert");
         if (txt != NULL)

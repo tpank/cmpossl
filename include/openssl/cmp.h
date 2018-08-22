@@ -402,6 +402,8 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int failure,
 /*
  * from cmp_http.c
  */
+#  define OSSL_CMP_ERROR_TRANSFERRING_OUT -1
+#  define OSSL_CMP_ERROR_TRANSFERRING_IN -2
 #  if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                               OSSL_CMP_MSG **out);
