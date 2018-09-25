@@ -3021,6 +3021,13 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
                                       1);
     }
 
+    if (opt_policies_critical) {
+        if (opt_policies == NULL)
+            OSSL_CMP_warn(ctx,
+                          "-opt_policies_critical has no effect unless -policies is given");
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_POLICIES_CRITICAL, 1);
+    }
+
     while (opt_policies != NULL) {
         char *next = next_item(opt_policies);
         int res = OSSL_CMP_CTX_policyOID_push1(ctx, opt_policies);
@@ -3031,13 +3038,6 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
             goto err;
         }
         opt_policies = next;
-    }
-
-    if (opt_policies_critical) {
-        if (opt_policies == NULL)
-            OSSL_CMP_warn(ctx,
-                          "-opt_policies_critical has no effect unless -policies is given");
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_POLICIES_CRITICAL, 1);
     }
 
     if (opt_popo < OSSL_CRMF_POPO_NONE - 1 || opt_popo > OSSL_CRMF_POPO_KEYENC) {
