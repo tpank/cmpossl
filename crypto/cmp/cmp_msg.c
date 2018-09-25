@@ -248,7 +248,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
 #endif
             /* rkey cannot be NULL so far - but it can be when
              * centralized key creation is supported --> GitHub issue#68 */
-        !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get_tmpl(crm), rkey,
+        !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
                                      subject, ctx->issuer, NULL/* serial */))
         goto err;
     if (ctx->days != 0) {

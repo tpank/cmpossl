@@ -25,7 +25,7 @@ B<msg> using the given B<cr> as value. See RFC 4211 section 7.2.
 
 =head1 RETURN VALUES
 
-All return 1 on success, 0 on error.
+All functions return 1 on success, 0 on error.
 
 =head1 SEE ALSO
 

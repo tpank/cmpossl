@@ -2,10 +2,10 @@
 
 =head1 NAME
 
-OSSL_CRMF_MSG_get_tmpl,
+OSSL_CRMF_MSG_get0_tmpl,
 OSSL_CRMF_CERTTEMPLATE_get0_serialNumber,
 OSSL_CRMF_CERTTEMPLATE_get0_issuer,
-OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1,
+OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert,
 OSSL_CRMF_MSG_get_certReqId
 - functions reading from CRMF CertReqMsg structures
 
@@ -13,19 +13,19 @@ OSSL_CRMF_MSG_get_certReqId
 
  #include <openssl/crmf.h>
 
- OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get_tmpl(const OSSL_CRMF_MSG *crm);
+ OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get0_tmpl(const OSSL_CRMF_MSG *crm);
  ASN1_INTEGER
-     *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *t);
+     *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *tmpl);
  X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl);
 
  long OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
 
- X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
+ X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
                                              EVP_PKEY *pkey);
 
 =head1 DESCRIPTION
 
-OSSL_CRMF_MSG_get_tmpl() retrieves the certificate template of B<crm>.
+OSSL_CRMF_MSG_get0_tmpl() retrieves the certificate template of B<crm>.
 
 OSSL_CRMF_CERTTEMPLATE_get0_serialNumber() retrieves the serialNumber of the
 given certificate template B<tmpl>.
@@ -33,7 +33,7 @@ given certificate template B<tmpl>.
 OSSL_CRMF_CERTTEMPLATE_get0_issuer() retrieves the issuer name of the
 given certificate template B<tmpl>.
 
-OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1() decrypts the certificate in the given
+OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert() decrypts the certificate in the given
 encryptedValue B<ecert>, using the private key B<pkey>.
 This is needed for the indirect PoP method as in RFC 4210 section 5.2.8.2.
 

@@ -27,7 +27,7 @@ OSSL_CRMF_CERTID_gen
                                                   *aos);
  int OSSL_CRMF_MSG_set1_regCtrl_protocolEncrKey(OSSL_CRMF_MSG *msg,
                                                 X509_PUBKEY *pubkey);
- int OSSL_CRMF_MSG_set1_regCtrl_oldCertID(OSSL_CRMF_MSG *crm,
+ int OSSL_CRMF_MSG_set1_regCtrl_oldCertID(OSSL_CRMF_MSG *msg,
                                           OSSL_CRMF_CERTID *cid);
  OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_gen(const X509_NAME *issuer,
                                         const ASN1_INTEGER *serial);
@@ -48,18 +48,21 @@ OSSL_CRMF_MSG_set1_regCtrl_pkiArchiveOptions() sets the pkiArchiveOptions
 control in the given B<msg> using the given B<tok> as value. See RFC 4211,
 section 6.4.
 
-OSSL_CRMF_MSG_set1_regCtrl_protocolEncrKey() sets the protocolEncrKey control
-in the given B<msg> using the given B<tok> as value. See RFC 4211, section 6.6.
+OSSL_CRMF_MSG_set1_regCtrl_protocolEncrKey() sets the protocolEncrKey control in
+the given B<msg> using the given B<pubkey> as value. See RFC 4211, section 6.6.
 
 OSSL_CRMF_MSG_set1_regCtrl_oldCertID() sets the oldCertID control in the given
-B<msg> using the given B<tok> as value. See RFC 4211, section 6.5.
+B<msg> using the given B<cid> as value. See RFC 4211, section 6.5.
 
 OSSL_CRMF_CERTID_gen produces an OSSL_CRMF_CERTID_gen structure from the given
 B<issuer> name and B<serial> number.
 
 =head1 RETURN VALUES
 
-All return 1 on success, 0 on error.
+OSSL_CRMF_CERTID_gen returns a pointer to the resulting structure
+or NULL on error.
+
+All other functions return 1 on success, 0 on error.
 
 =head1 SEE ALSO
 

@@ -81,6 +81,8 @@ so far.
 (subsequentMessage/enccert) supported,
 challenge-response exchange (challengeResp) not yet supported.
 
+=item * OSSL_CRMF_POPO_KEYAGREE   - RFC 4211, section 4.3, not yet supported.
+
 =back
 
 OSSL_CRMF_MSGS_verify_popo verifies the Proof-of-Possession of the request with

@@ -1472,7 +1472,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
             break;
         case OSSL_CMP_CERTORENCCERT_ENCRYPTEDCERT:
         /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
-            crt = OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(coec->value.encryptedCert,
+            crt = OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(coec->value.encryptedCert,
                                                    ctx->newPkey);
             break;
         default:

@@ -12,17 +12,16 @@
  */
 
 /* NAMING
- * The 0 version uses the supplied structure pointer directly in the parent and
+ * The 0 versions use the supplied structure pointer directly in the parent and
  * it will be freed up when the parent is freed. In the above example crl would
  * be freed but rev would not.
  *
- * The 1 function uses a copy of the supplied structure pointer (or in some
- * cases increases its link count) in the parent and so both (x and obj above)
- * should be freed up.
+ * The 1 functions use a copy of the supplied structure pointer (or in some
+ * cases increases its link count) in the parent and so both should be freed up.
  */
 
 /*
- * This file contains the functions which set the individual items inside
+ * This file contains the functions that handle the individual items inside
  * the CRMF structures
  */
 
@@ -193,9 +192,9 @@ IMPLEMENT_CRMF_CTRL_FUNC(certReq, OSSL_CRMF_CERTREQUEST, regInfo)
 
 
 /* retrieves the certificate template of crm */
-OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get_tmpl(const OSSL_CRMF_MSG *crm) {
+OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get0_tmpl(const OSSL_CRMF_MSG *crm) {
     if (crm == NULL || crm->certReq == NULL) {
-        CRMFerr(CRMF_F_OSSL_CRMF_MSG_GET_TMPL, CRMF_R_NULL_ARGUMENT);
+        CRMFerr(CRMF_F_OSSL_CRMF_MSG_GET0_TMPL, CRMF_R_NULL_ARGUMENT);
         return NULL;
     }
     return crm->certReq->certTemplate;
@@ -209,7 +208,7 @@ int OSSL_CRMF_MSG_set_version2(OSSL_CRMF_MSG *crm)
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_SET_VERSION2, CRMF_R_NULL_ARGUMENT);
         return 0;
     }
-    if ((tmpl = OSSL_CRMF_MSG_get_tmpl(crm)) == NULL)
+    if ((tmpl = OSSL_CRMF_MSG_get0_tmpl(crm)) == NULL)
         goto oom;
 
     if ((tmpl->version) == NULL)
@@ -237,7 +236,7 @@ int OSSL_CRMF_MSG_set_validity(OSSL_CRMF_MSG *crm, time_t from, time_t to)
         return 0;
     }
 
-    if ((tmpl = OSSL_CRMF_MSG_get_tmpl(crm)) == NULL)
+    if ((tmpl = OSSL_CRMF_MSG_get0_tmpl(crm)) == NULL)
         goto oom;
     if (from != 0 && ((from_asn = ASN1_TIME_set(NULL, from)) == NULL))
         goto oom;
@@ -292,7 +291,7 @@ int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm,
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_SET0_EXTENSIONS, CRMF_R_NULL_ARGUMENT);
         return 0;
     }
-    if ((tmpl = OSSL_CRMF_MSG_get_tmpl(crm)) == NULL) {
+    if ((tmpl = OSSL_CRMF_MSG_get0_tmpl(crm)) == NULL) {
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_SET0_EXTENSIONS, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -311,7 +310,7 @@ int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm,
                                   const X509_EXTENSION *ext)
 {
     int new = 0;
-    OSSL_CRMF_CERTTEMPLATE *tmpl = OSSL_CRMF_MSG_get_tmpl(crm);
+    OSSL_CRMF_CERTTEMPLATE *tmpl = OSSL_CRMF_MSG_get0_tmpl(crm);
 
     if (tmpl == NULL || ext == NULL) {
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_PUSH0_EXTENSION, CRMF_R_NULL_ARGUMENT);
@@ -620,7 +619,7 @@ int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
  * returns a pointer to the decrypted certificate
  * returns NULL on error or if no certificate available
  */
-X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
+X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
                                             EVP_PKEY *pkey)
 {
     X509 *cert = NULL; /* decrypted certificate */
@@ -636,12 +635,12 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
 
     if (ecert == NULL || ecert->symmAlg == NULL || ecert->encSymmKey == NULL ||
         ecert->encValue == NULL || pkey == NULL) {
-        CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_ENCCERT_GET1,
+        CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_GET1_ENCCERT,
                 CRMF_R_NULL_ARGUMENT);
         return NULL;
     }
     if ((symmAlg = OBJ_obj2nid(ecert->symmAlg->algorithm)) == 0) {
-        CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_ENCCERT_GET1,
+        CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_GET1_ENCCERT,
                 CRMF_R_UNSUPPORTED_CIPHER);
         return NULL;
     }
@@ -657,7 +656,7 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
             || (ek = OPENSSL_malloc(eksize)) == NULL
             || EVP_PKEY_decrypt(pkctx, ek, &eksize, encKey->data,
                                 encKey->length) <= 0) {
-            CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_ENCCERT_GET1,
+            CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_GET1_ENCCERT,
                     CRMF_R_ERROR_DECRYPTING_SYMMETRIC_KEY);
             goto end;
         }
@@ -666,7 +665,7 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
 
     /* select symmetric cipher based on algorithm given in message */
     if ((cipher = EVP_get_cipherbynid(symmAlg)) == NULL) {
-        CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_ENCCERT_GET1,
+        CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_GET1_ENCCERT,
                 CRMF_R_UNSUPPORTED_CIPHER);
         goto end;
     }
@@ -690,7 +689,7 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
                               ecert->encValue->data,
                               ecert->encValue->length)
         || !EVP_DecryptFinal(evp_ctx, outbuf + outlen, &n)) {
-        CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_ENCCERT_GET1,
+        CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_GET1_ENCCERT,
                 CRMF_R_ERROR_DECRYPTING_CERTIFICATE);
         goto end;
     }
@@ -698,13 +697,13 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_encCert_get1(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
 
     /* convert decrypted certificate from DER to internal ASN.1 structure */
     if ((cert = d2i_X509(NULL, &p, outlen)) == NULL) {
-        CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_ENCCERT_GET1,
+        CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_GET1_ENCCERT,
                 CRMF_R_ERROR_DECODING_CERTIFICATE);
     }
     goto end;
 
  oom:
-    CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_ENCCERT_GET1, ERR_R_MALLOC_FAILURE);
+    CRMFerr(CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_GET1_ENCCERT, ERR_R_MALLOC_FAILURE);
  end:
     EVP_PKEY_CTX_free(pkctx);
     OPENSSL_free(outbuf);
