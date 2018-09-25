@@ -241,6 +241,11 @@ static void print_store_certs(BIO *bio, X509_STORE *store) {
 /* needed because cert verify errors are threatened by ERR_clear_error() */
 static BIO *cert_verify_err_bio = NULL;
 
+static void clear_cert_verify_err(void) {
+    BIO_free(cert_verify_err_bio);
+    cert_verify_err_bio = NULL;
+}
+
 void put_cert_verify_err(int func)
 {
     if (cert_verify_err_bio != NULL) { /* cert verify error in callback */
@@ -251,8 +256,7 @@ void put_cert_verify_err(int func)
             str[len-1] = '\0'; /* replace last '\n', terminating str */
             OSSL_CMP_add_error_line(str);
         }
-        BIO_free(cert_verify_err_bio);
-        cert_verify_err_bio = NULL;
+        clear_cert_verify_err();
     }
 }
 
@@ -588,12 +592,14 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         }
 
         if (valid) {
+            clear_cert_verify_err();
             /* store trusted srv cert for future msgs of same transaction */
             X509_up_ref(scrt);
             ctx->validatedSrvCert = scrt;
             (void)ERR_pop_to_mark();
                         /* discard any diagnostic info on finding server cert */
         } else {
+            put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_MSG);
             scrt = NULL;
         }
         sk_X509_pop_free(found_crts, X509_free);
