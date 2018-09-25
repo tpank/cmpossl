@@ -1,7 +1,7 @@
 [default]
 batch = 1
 #proxy = 194.145.60.1:9400
-totaltimeout = 6 # prevent, e.g., infinite polling due to error
+totaltimeout = 8 # prevent, e.g., infinite polling due to error
 trusted = root.crt
 cert = signer.crt
 key  = signer.p12
@@ -56,7 +56,6 @@ server_ip = 127.0.0.1
 server_port = 9080
 server_cert = signer.crt
 server = $server_cn:$server_port
-server_cert = signer.crt
 path = cmp/PlaygroundECC/
 recipient = /CN=PPKI Playground ECC Issuing CA v1.0/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
 ra = /CN=Product PKI Playground CMP Signer/OU=PPKI Playground/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
