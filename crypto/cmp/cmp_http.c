@@ -277,7 +277,7 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *host,
     if (host != NULL)
         if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
             goto err;
-    if (!OCSP_REQ_CTX_add1_header(rctx, "Cache-Control", "no-cache"))
+    if (!OCSP_REQ_CTX_add1_header(rctx, "Pragma", "no-cache"))
         goto err;
 
     if (req != NULL && !CMP_REQ_CTX_i2d(rctx, ASN1_ITEM_rptr(OSSL_CMP_MSG),
