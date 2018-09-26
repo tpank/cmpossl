@@ -200,9 +200,12 @@ struct ocsp_req_ctx_st {
  * adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c -
  * TODO: generalize the function there
  */
-static int OCSP_REQ_CTX_i2d_hdr(OCSP_REQ_CTX *rctx, const char *req_hdr,
-                                const ASN1_ITEM *it, ASN1_VALUE *val)
+static int CMP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx,
+                           const ASN1_ITEM *it, ASN1_VALUE *val)
 {
+    static const char req_hdr[] =
+        "Content-Type: application/pkixcmp\r\n"
+        "Content-Length: %d\r\n\r\n";
     int reqlen = ASN1_item_i2d(val, NULL, it);
     if (BIO_printf(rctx->mem, req_hdr, reqlen) <= 0)
         return 0;
@@ -259,12 +262,10 @@ static BIO *CMP_new_http_bio(const OSSL_CMP_CTX *ctx)
     return cbio;
 }
 
-static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
-                                     const OSSL_CMP_MSG *req, int maxline)
+static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *host,
+                                     const char *path, const OSSL_CMP_MSG *req,
+                                     int maxline)
 {
-    static const char req_hdr[] =
-        "Content-Type: application/pkixcmp\r\n"
-        "Cache-Control: no-cache\r\n" "Content-Length: %d\r\n\r\n";
     OCSP_REQ_CTX *rctx = NULL;
 
     rctx = OCSP_REQ_CTX_new(io, maxline);
@@ -273,10 +274,14 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *path,
 
     if (!OCSP_REQ_CTX_http(rctx, "POST", path))
         goto err;
+    if (host != NULL)
+        if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
+            goto err;
+    if (!OCSP_REQ_CTX_add1_header(rctx, "Cache-Control", "no-cache"))
+        goto err;
 
-    if (req != NULL && !OCSP_REQ_CTX_i2d_hdr(rctx, req_hdr,
-                                             ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                                             (ASN1_VALUE *)req))
+    if (req != NULL && !CMP_REQ_CTX_i2d(rctx, ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                                        (ASN1_VALUE *)req))
         goto err;
 
     return rctx;
@@ -300,13 +305,14 @@ static int CMP_http_nbio(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp)
  * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
  * 1: success and then provides the received message via the *resp argument
  */
-static int CMP_sendreq(BIO *bio, const char *path, const OSSL_CMP_MSG *req,
-                       OSSL_CMP_MSG **resp, time_t max_time)
+static int CMP_sendreq(BIO *bio, const char *host, const char *path,
+                       const OSSL_CMP_MSG *req, OSSL_CMP_MSG **resp,
+                       time_t max_time)
 {
     OCSP_REQ_CTX *rctx;
     int rv;
 
-    if ((rctx = CMP_sendreq_new(bio, path, req, -1)) == NULL)
+    if ((rctx = CMP_sendreq_new(bio, host, path, req, -1)) == NULL)
         return -4;
 
     rv = bio_http(bio, rctx, CMP_http_nbio, (ASN1_VALUE **)resp, max_time);
@@ -346,7 +352,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         hbio = bio;
     }
 
-    /* TODO: it looks like bio_connect() is superflous except for maybe 
+    /* TODO: it looks like bio_connect() is superflous except for maybe
        better error/timeout handling and reporting? Remove next 9 lines? */
     /* tentatively set error, which allows accumulating diagnostic info */
     (void)ERR_set_mark();
@@ -377,7 +383,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
 
-    rv = CMP_sendreq(hbio, path, req, res, max_time);
+    rv = CMP_sendreq(hbio, ctx->serverName, path, req, res, max_time);
     OPENSSL_free(path);
     if (rv == -3)
         err = CMP_R_FAILED_TO_SEND_REQUEST;
