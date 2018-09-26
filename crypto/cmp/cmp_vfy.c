@@ -599,7 +599,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             (void)ERR_pop_to_mark();
                         /* discard any diagnostic info on finding server cert */
         } else {
-            put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_MSG);
+            put_cert_verify_err(CMP_F_FIND_SRVCERT);
             scrt = NULL;
         }
         sk_X509_pop_free(found_crts, X509_free);
