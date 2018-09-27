@@ -129,12 +129,7 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
     EVP_MD_CTX *ctx = NULL;
     unsigned char basekey[EVP_MAX_MD_SIZE];
     unsigned int bklen;
-#if OPENSSL_VERSION_NUMBER > 0x10100000L
-    uint64_t
-#else
-    long
-#endif
-         iterations;
+    uint64_t iterations;
     int error = CRMF_R_CRMFERROR;
 
     if (mac == NULL || pbmp == NULL || pbmp->mac == NULL ||
@@ -174,13 +169,7 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
         goto err;
     if (!(EVP_DigestFinal_ex(ctx, basekey, &bklen)))
         goto err;
-    if (
-#if OPENSSL_VERSION_NUMBER > 0x10100000L
-        !ASN1_INTEGER_get_uint64(&iterations, pbmp->iterationCount)
-#else
-        ASN1_INTEGER_get(pbmp->iterationCount) < 0 ||
-        !(iterations = ASN1_INTEGER_get(pbmp->iterationCount))
-#endif
+    if (!ASN1_INTEGER_get_uint64(&iterations, pbmp->iterationCount)
             || iterations < 100 /* min from RFC */
             || iterations > OSSL_CRMF_PBM_MAX_ITERATION_COUNT) {
         error = CRMF_R_BAD_PBM_ITERATIONCOUNT;
@@ -204,24 +193,6 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
      * DES-MAC [PKCS11].
      */
     mac_nid = OBJ_obj2nid(pbmp->mac->algorithm);
-
-#if OPENSSL_VERSION_NUMBER < 0x10101000L
-    /*
-     * OID 1.3.6.1.5.5.8.1.2 associated with NID_hmac_sha1 is explicitly
-     * mentioned in RFC 4210 and RFC 3370, but NID_hmac_sha1 is not included in
-     * builitin_pbe[] of crypto/evp/evp_pbe.c
-     */
-    if (mac_nid == NID_hmac_sha1)
-        mac_nid = NID_hmacWithSHA1;
-    /*
-     * NID_hmac_md5 not included in builtin_pbe[] of crypto/evp/evp_pbe.c as
-     * it is not explicitly referenced in the RFC it might not be used by any
-     * implementation although its OID 1.3.6.1.5.5.8.1.1 it is in the same OID
-     * branch as NID_hmac_sha1
-     */
-    else if (mac_nid == NID_hmac_md5)
-        mac_nid = NID_hmacWithMD5;
-#endif
 
     if (!EVP_PBE_find(EVP_PBE_TYPE_PRF, mac_nid, NULL, &hmac_md_nid, NULL) ||
             ((m = EVP_get_digestbynid(hmac_md_nid)) == NULL)) {
