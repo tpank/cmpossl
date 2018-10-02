@@ -51,7 +51,10 @@ DEFINE_STACK_OF(OSSL_CRMF_CERTID)
 
 typedef struct OSSL_crmf_pkipublicationinfo_st OSSL_CRMF_PKIPUBLICATIONINFO;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIPUBLICATIONINFO)
+typedef struct OSSL_crmf_singlepubinfo_st OSSL_CRMF_SINGLEPUBINFO;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_SINGLEPUBINFO)
 typedef struct OSSL_crmf_pkiarchiveoptions_st OSSL_CRMF_PKIARCHIVEOPTIONS;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIARCHIVEOPTIONS)
 typedef struct OSSL_crmf_certtemplate_st OSSL_CRMF_CERTTEMPLATE;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTTEMPLATE)
 typedef STACK_OF(OSSL_CRMF_MSG) OSSL_CRMF_MSGS;
@@ -72,10 +75,23 @@ int OSSL_CRMF_MSG_set1_regCtrl_regToken(OSSL_CRMF_MSG *msg,
                                         ASN1_UTF8STRING *tok);
 int OSSL_CRMF_MSG_set1_regCtrl_authenticator(OSSL_CRMF_MSG *msg,
                                              ASN1_UTF8STRING *auth);
+int OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo(
+                                 OSSL_CRMF_PKIPUBLICATIONINFO *pi,
+                                 OSSL_CRMF_SINGLEPUBINFO *spi);
+# define OSSL_CRMF_PUB_METHOD_DONTCARE 0
+# define OSSL_CRMF_PUB_METHOD_X500     1
+# define OSSL_CRMF_PUB_METHOD_WEB      2
+# define OSSL_CRMF_PUB_METHOD_LDAP     3
+int OSSL_CRMF_MSG_set0_SinglePubInfo(OSSL_CRMF_SINGLEPUBINFO *spi,
+                                     int method, GENERAL_NAME *nm);
+# define OSSL_CRMF_PUB_ACTION_DONTPUBLISH   0
+# define OSSL_CRMF_PUB_ACTION_PLEASEPUBLISH 1
+int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(
+                                 OSSL_CRMF_PKIPUBLICATIONINFO *pi, int action);
 int OSSL_CRMF_MSG_set1_regCtrl_pkiPublicationInfo(OSSL_CRMF_MSG *msg,
-                                                  OSSL_CRMF_PKIPUBLICATIONINFO *pi);
+                                              OSSL_CRMF_PKIPUBLICATIONINFO *pi);
 int OSSL_CRMF_MSG_set1_regCtrl_pkiArchiveOptions(OSSL_CRMF_MSG *msg,
-                                                 OSSL_CRMF_PKIARCHIVEOPTIONS *aos);
+                                              OSSL_CRMF_PKIARCHIVEOPTIONS *aos);
 int OSSL_CRMF_MSG_set1_regCtrl_protocolEncrKey(OSSL_CRMF_MSG *msg,
                                                X509_PUBKEY *pubkey);
 int OSSL_CRMF_MSG_set1_regCtrl_oldCertID(OSSL_CRMF_MSG *msg,

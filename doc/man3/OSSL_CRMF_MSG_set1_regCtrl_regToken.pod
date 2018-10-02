@@ -19,6 +19,13 @@ OSSL_CRMF_CERTID_gen
                                          ASN1_UTF8STRING *tok);
  int OSSL_CRMF_MSG_set1_regCtrl_authenticator(OSSL_CRMF_MSG *msg,
                                               ASN1_UTF8STRING *auth);
+ int OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo(
+                                  OSSL_CRMF_PKIPUBLICATIONINFO *pi,
+                                  OSSL_CRMF_SINGLEPUBINFO *spi);
+ int OSSL_CRMF_MSG_set1_SinglePubInfo(OSSL_CRMF_SINGLEPUBINFO *spi,
+                                      int method, GENERAL_NAME *nm);
+ int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(
+                                  OSSL_CRMF_PKIPUBLICATIONINFO *pi, int action);
  int OSSL_CRMF_MSG_set1_regCtrl_pkiPublicationInfo(OSSL_CRMF_MSG *msg,
                                                    OSSL_CRMF_PKIPUBLICATIONINFO
                                                    *pi);
@@ -39,6 +46,24 @@ B<msg> using the given B<tok> as value. See RFC 4211, section 6.1.
 
 OSSL_CRMF_MSG_set1_regCtrl_authenticator() sets the authenticator control in
 the given B<msg> using the given B<auth> as value. See RFC 4211, section 6.2.
+
+OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo() pushes the given B<spi>
+to B<si>. Consumes the B<spi> pointer.
+
+OSSL_CRMF_MSG_set0_SinglePubInfo() sets given B<method> and PubLoction B<nm> to
+B<spi>.  PubLocation is optional, and therfore B<nm> may be NULL. Consumes the
+B<nm> pointer.
+Available methods are:
+ # define OSSL_CRMF_PUB_METHOD_DONTCARE 0
+ # define OSSL_CRMF_PUB_METHOD_X500     1
+ # define OSSL_CRMF_PUB_METHOD_WEB      2
+ # define OSSL_CRMF_PUB_METHOD_LDAP     3
+
+OSSL_CRMF_MSG_set_PKIPublicationInfo_action() sets the action in the given B<pi>
+using the given B<action> as value. See RFC 4211, section 6.3.
+Available actions are:
+ # define OSSL_CRMF_PUB_ACTION_DONTPUBLISH   0
+ # define OSSL_CRMF_PUB_ACTION_PLEASEPUBLISH 1
 
 OSSL_CRMF_MSG_set1_regCtrl_pkiPublicationInfo() sets the pkiPulicationInfo
 control in the given B<msg> using the given B<tok> as value. See RFC 4211,

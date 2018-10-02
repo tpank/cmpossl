@@ -25,17 +25,20 @@ int ERR_load_CRMF_strings(void);
 # define CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_GET1_ENCCERT     103
 # define CRMF_F_OSSL_CRMF_MSGS_VERIFY_POPO                104
 # define CRMF_F_OSSL_CRMF_MSG_CREATE_POPO                 105
-# define CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID               115
 # define CRMF_F_OSSL_CRMF_MSG_GET0_TMPL                   116
+# define CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID               115
+# define CRMF_F_OSSL_CRMF_MSG_PKIPUBLICATIONINFO_PUSH0_SINGLEPUBINFO 117
 # define CRMF_F_OSSL_CRMF_MSG_PUSH0_EXTENSION             106
 # define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGCTRL               107
 # define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGINFO               108
 # define CRMF_F_OSSL_CRMF_MSG_SET0_EXTENSIONS             109
+# define CRMF_F_OSSL_CRMF_MSG_SET0_SINGLEPUBINFO          118
 # define CRMF_F_OSSL_CRMF_MSG_SET_CERTREQID               110
+# define CRMF_F_OSSL_CRMF_MSG_SET_PKIPUBLICATIONINFO_ACTION 119
 # define CRMF_F_OSSL_CRMF_MSG_SET_VALIDITY                111
 # define CRMF_F_OSSL_CRMF_MSG_SET_VERSION2                112
-# define CRMF_F_OSSL_CRMF_PBM_NEW                         113
 # define CRMF_F_OSSL_CRMF_PBMP_NEW                        114
+# define CRMF_F_OSSL_CRMF_PBM_NEW                         113
 
 /*
  * CRMF reason codes.

@@ -101,6 +101,57 @@ IMPLEMENT_CRMF_CTRL_FUNC(regToken, ASN1_STRING, regCtrl)
 #define ASN1_UTF8STRING_dup ASN1_STRING_dup
 IMPLEMENT_CRMF_CTRL_FUNC(authenticator, ASN1_UTF8STRING, regCtrl)
 
+int OSSL_CRMF_MSG_set0_SinglePubInfo(OSSL_CRMF_SINGLEPUBINFO *spi,
+                                     int method, GENERAL_NAME *nm) {
+    int error = CRMF_R_CRMFERROR;
+    if (spi == NULL) {
+        error = CRMF_R_NULL_ARGUMENT;
+        goto err;
+    }
+    ASN1_INTEGER_set(spi->pubMethod, method);
+    spi->pubLocation = nm;
+    return 1;
+ err:
+    CRMFerr(CRMF_F_OSSL_CRMF_MSG_SET0_SINGLEPUBINFO, error);
+    return 0;
+}
+
+int OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo(
+                                 OSSL_CRMF_PKIPUBLICATIONINFO *pi,
+                                 OSSL_CRMF_SINGLEPUBINFO *spi) {
+    int error = CRMF_R_CRMFERROR;
+    if (pi == NULL || spi == NULL) {
+        error = CRMF_R_NULL_ARGUMENT;
+        goto err;
+    }
+    if (pi->pubinfos == NULL)
+        if ((pi->pubinfos = sk_OSSL_CRMF_SINGLEPUBINFO_new_null()) == NULL) {
+            error = ERR_R_MALLOC_FAILURE;
+            goto err;
+        }
+
+    if (!(sk_OSSL_CRMF_SINGLEPUBINFO_push(pi->pubinfos, spi)))
+        goto err;
+    return 1;
+ err:
+    CRMFerr(CRMF_F_OSSL_CRMF_MSG_PKIPUBLICATIONINFO_PUSH0_SINGLEPUBINFO, error);
+    return 0;
+}
+
+int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(
+                                 OSSL_CRMF_PKIPUBLICATIONINFO *pi, int action) {
+    int error = CRMF_R_CRMFERROR;
+    if (pi == NULL) {
+        error = CRMF_R_NULL_ARGUMENT;
+        goto err;
+    }
+    ASN1_INTEGER_set(pi->action, action);
+    return 1;
+ err:
+    CRMFerr(CRMF_F_OSSL_CRMF_MSG_SET_PKIPUBLICATIONINFO_ACTION, error);
+    return 0;
+}
+
  /* id-regCtrl-pkiPublicationInfo Control (section 6.3) */
 IMPLEMENT_CRMF_CTRL_FUNC(pkiPublicationInfo, OSSL_CRMF_PKIPUBLICATIONINFO,
                          regCtrl)
