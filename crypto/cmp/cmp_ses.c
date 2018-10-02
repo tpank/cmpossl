@@ -615,8 +615,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, long rid, OSSL_CMP_MSG **resp,
          * cannot flag failure earlier because send_receive_check()
          * indirectly calls ERR_clear_error()
          */
-        put_cert_verify_err(func);
-        CMPerr(func, CMP_R_CERTIFICATE_NOT_ACCEPTED);
+        put_cert_verify_err(func, CMP_R_CERTIFICATE_NOT_ACCEPTED);
         ERR_add_error_data(1, "rejecting newly enrolled cert");
         if (txt != NULL)
             OSSL_CMP_add_error_txt("; ", txt);

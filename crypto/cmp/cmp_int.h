@@ -772,7 +772,7 @@ int CMP_log_printf(const char *file, int line, OSSL_CMP_severity level,
 #endif
 
 /* from cmp_vfy.c */
-void put_cert_verify_err(int func);
+void put_cert_verify_err(int func, int err);
 
 /* from cmp_ses.c */
 

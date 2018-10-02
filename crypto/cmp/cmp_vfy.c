@@ -32,7 +32,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 {
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART prot_part;
-    int ret = 0;
+    int err = ERR_R_MALLOC_FAILURE;
     int digest_nid, pk_nid;
     EVP_MD *digest = NULL;
     EVP_PKEY *pubkey = NULL;
@@ -49,15 +49,14 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     /* verify that keyUsage, if present, contains digitalSignature */
     if (!cmp_ctx->ignore_keyusage &&
         (X509_get_key_usage((X509 *)cert) & X509v3_KU_DIGITAL_SIGNATURE) == 0) {
-        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE,
-               CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE);
+        err = CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE;
         goto cert_err;
     }
 
     pubkey = X509_get_pubkey((X509 *)cert);
     if (pubkey == NULL) {
-        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_FAILED_EXTRACTING_PUBKEY);
-        return 0;
+        err = CMP_R_FAILED_EXTRACTING_PUBKEY;
+        goto cert_err;
     }
 
     /* create the DER representation of protected part */
@@ -66,7 +65,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 
     l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
     if (l < 0 || prot_part_der == NULL)
-        goto end;
+        goto cleanup;
     prot_part_der_len = (size_t) l;
 
     /* verify signature of protected part */
@@ -75,50 +74,47 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
         digest_nid == NID_undef ||
         pk_nid == NID_undef ||
         (digest = (EVP_MD *)EVP_get_digestbynid(digest_nid)) == NULL) {
-        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ALGORITHM_NOT_SUPPORTED);
-        goto end;
+        err = CMP_R_ALGORITHM_NOT_SUPPORTED;
+        goto cleanup;
     }
 
     /* check msg->header->protectionAlg is consistent with public key type */
     if (EVP_PKEY_type(pk_nid) != EVP_PKEY_base_id(pubkey)) {
-        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_WRONG_ALGORITHM_OID);
-        goto end;
+        err = CMP_R_WRONG_ALGORITHM_OID;
+        goto cleanup;
     }
 
     if ((ctx = EVP_MD_CTX_create()) == NULL) {
-        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, ERR_R_MALLOC_FAILURE);
-        goto end;
+        err = ERR_R_MALLOC_FAILURE;
+        goto cleanup;
     }
-    ret = EVP_VerifyInit_ex(ctx, digest, NULL) &&
-          EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len) &&
-          EVP_VerifyFinal(ctx, msg->protection->data,
-                          msg->protection->length, pubkey) == 1;
+    err = (EVP_VerifyInit_ex(ctx, digest, NULL) &&
+           EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len) &&
+           EVP_VerifyFinal(ctx, msg->protection->data,
+                           msg->protection->length, pubkey) == 1)
+        ? 0 : CMP_R_ERROR_VALIDATING_PROTECTION;
 
- end:
-    /* cleanup */
+ cleanup:
     EVP_MD_CTX_destroy(ctx);
     OPENSSL_free(prot_part_der);
     EVP_PKEY_free(pubkey);
 
-    if (ret == 0) {
-        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ERROR_VALIDATING_PROTECTION);
-    }
  cert_err:
-    if (ret == 0) { /* print cert diagnostics on cert */
+    if (err != 0) { /* print diagnostics on cert verification error */
         X509_STORE *ts = cmp_ctx->trusted_store; /* may be empty, not NULL */
         X509_STORE_CTX *csc = X509_STORE_CTX_new();
-        X509_STORE_CTX_verify_cb verify_cb =
-            X509_STORE_get_verify_cb(ts);
+        X509_STORE_CTX_verify_cb verify_cb = X509_STORE_get_verify_cb(ts);
         if (csc != NULL && verify_cb != NULL &&
             X509_STORE_CTX_init(csc, ts, NULL, NULL)) {
             X509_STORE_CTX_set_current_cert(csc, (X509 *)cert);
             X509_STORE_CTX_set_error_depth(csc, -1);
             X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
-            (void)(*verify_cb)(0, csc); /* just print diagnostics on cert */
+            (void)(*verify_cb)(0, csc);
         }
+        put_cert_verify_err(CMP_F_CMP_VERIFY_SIGNATURE, err);
         X509_STORE_CTX_free(csc);
     }
-    return ret;
+    return err == 0;
 }
 
 /*
@@ -176,8 +172,10 @@ int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
 
     valid = X509_verify_cert(csc) > 0;
 
-    if (!valid && !defer_errors)
-        put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_CERT_PATH);
+    if (!valid && !defer_errors) {
+        put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_CERT_PATH,
+                            CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
+    }
 
  end:
     X509_STORE_CTX_free(csc);
@@ -246,18 +244,20 @@ static void clear_cert_verify_err(void) {
     cert_verify_err_bio = NULL;
 }
 
-void put_cert_verify_err(int func)
+void put_cert_verify_err(int func, int err)
 {
-    if (cert_verify_err_bio != NULL) { /* cert verify error in callback */
-        char *str;
-        long len = BIO_get_mem_data(cert_verify_err_bio, &str);
-        CMPerr(func, CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
-        if (len > 0) {
-            str[len-1] = '\0'; /* replace last '\n', terminating str */
-            OSSL_CMP_add_error_line(str);
+    if (err != 0) { /* cert verify error in callback */
+        CMPerr(func, err);
+        if (cert_verify_err_bio != NULL) {
+            char *str;
+            long len = BIO_get_mem_data(cert_verify_err_bio, &str);
+            if (len > 0) {
+                str[len-1] = '\0'; /* replace last '\n', terminating str */
+                OSSL_CMP_add_error_line(str);
+            }
         }
-        clear_cert_verify_err();
     }
+    clear_cert_verify_err();
 }
 
 /*
@@ -303,6 +303,9 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
             print_store_certs(cert_verify_err_bio,
                               X509_STORE_CTX_get0_store(ctx));
         }
+        put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_CERT_PATH,
+                            CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
+        ERR_print_errors_fp(stdout);
     }
 # if 0
     /* TODO: we could check policies here too */
@@ -599,7 +602,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             (void)ERR_pop_to_mark();
                         /* discard any diagnostic info on finding server cert */
         } else {
-            put_cert_verify_err(CMP_F_FIND_SRVCERT);
+            put_cert_verify_err(CMP_F_FIND_SRVCERT,
+                                CMP_R_NO_VALID_SERVER_CERT_FOUND);
             scrt = NULL;
         }
         sk_X509_pop_free(found_crts, X509_free);
@@ -717,7 +721,6 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         if (scrt != NULL) {
             if (CMP_verify_signature(ctx, msg, scrt))
                 return 1;
-            put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_MSG);
 
             /* potentially the server cert finding algorithm took wrong cert:
              * the server certificate may not have a subject key identifier
@@ -774,7 +777,7 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int failure,
         return failure;
 
     /* TODO: load caPubs [OSSL_CMP_CTX_caPubs_get1(ctx)] as additional trusted
-       certs during IR and if PBMAC (shared secret) is used, cf. RFC 4210, 5.3.2 */
+    certs during IR and if PBMAC (shared secret) is used, cf. RFC 4210, 5.3.2 */
 
     if (out_trusted != NULL &&
         !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))

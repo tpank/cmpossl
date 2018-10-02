@@ -398,8 +398,8 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
  err:
     /* for any cert verify error at TLS level: */
-    put_cert_verify_err(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM);
-
+    put_cert_verify_err(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM,
+                        CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
     if (err != 0) {
         if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
             err = CMP_R_TLS_ERROR;
