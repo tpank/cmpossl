@@ -298,7 +298,7 @@ int OSSL_CRMF_MSG_set_validity(OSSL_CRMF_MSG *crm, time_t from, time_t to)
 }
 
 
-int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, long rid)
+int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, int64_t rid)
 {
     int res;
     if (crm == NULL || crm->certReq == NULL) {
@@ -306,19 +306,24 @@ int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, long rid)
         return 0;
     }
 
-    res = ASN1_INTEGER_set(crm->certReq->certReqId, rid);
+    res = ASN1_INTEGER_set_int64(crm->certReq->certReqId, rid);
     if (res == 0)
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_SET_CERTREQID, CRMF_R_NULL_ARGUMENT);
     return res;
 }
 
-long OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm)
+int64_t OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm)
 {
+    int64_t ret;
     if (crm == NULL || crm->certReq == NULL) {
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID, CRMF_R_NULL_ARGUMENT);
         return -1;
     }
-    return ASN1_INTEGER_get(crm->certReq->certReqId);
+    if (!ASN1_INTEGER_get_int64(&ret, crm->certReq->certReqId)) {
+        CRMFerr(CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID, CRMF_R_CETREQID_INVALID);
+        return -1;
+    }
+    return ret;
 }
 
 
@@ -536,7 +541,7 @@ static int CMP_X509_PUBKEY_cmp(X509_PUBKEY *a, X509_PUBKEY *b)
 
 /* verifies the Proof-of-Possession of the request with the given rid in reqs */
 int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
-                               long rid, int acceptRAVerified)
+                               int64_t rid, int acceptRAVerified)
 {
     OSSL_CRMF_MSG *req = NULL;
     X509_PUBKEY *pubkey = NULL;

@@ -67,7 +67,7 @@ typedef struct OSSL_crmf_optionalvalidity_st OSSL_CRMF_OPTIONALVALIDITY;
 
 /* crmf_pbm.c */
 OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
-                                           long itercnt, int macnid);
+                                           int64_t itercnt, int macnid);
 int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
                       const unsigned char *msg, size_t msglen,
                       const unsigned char *sec, size_t seclen,
@@ -110,8 +110,8 @@ int OSSL_CRMF_MSG_set1_regInfo_certReq(OSSL_CRMF_MSG *msg,
                                        const OSSL_CRMF_CERTREQUEST *cr);
 
 int OSSL_CRMF_MSG_set_validity(OSSL_CRMF_MSG *crm, time_t from, time_t to);
-int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, long rid);
-long OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
+int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, int64_t rid);
+int64_t OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
 int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm, X509_EXTENSIONS *exts);
 
 int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm, const X509_EXTENSION *ext);
@@ -123,7 +123,7 @@ int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm, const X509_EXTENSION *ext)
 int OSSL_CRMF_MSG_create_popo(OSSL_CRMF_MSG *crm, const EVP_PKEY *pkey,
                               int dgst, int ppmtd);
 int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
-                               long rid, int acceptRAVerified);
+                               int64_t rid, int acceptRAVerified);
 OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get0_tmpl(const OSSL_CRMF_MSG *crm);
 ASN1_INTEGER *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *t);
 X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl);

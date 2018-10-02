@@ -31,7 +31,7 @@
  * returns pointer to OSSL_CRMF_PBMPARAMETER on success, NULL on error
  */
 OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
-                                           long itercnt, int macnid)
+                                           int64_t itercnt, int macnid)
 {
     OSSL_CRMF_PBMPARAMETER *pbm = NULL;
     unsigned char *salt = NULL;
@@ -83,7 +83,7 @@ OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
         goto err;
     }
 
-    if (!ASN1_INTEGER_set(pbm->iterationCount, itercnt))
+    if (!ASN1_INTEGER_set_int64(pbm->iterationCount, itercnt))
         goto err;
 
     /*

@@ -18,7 +18,7 @@ OSSL_CRMF_MSG_get_certReqId
      *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *tmpl);
  X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl);
 
- long OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
+ int64_t OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
 
  X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
                                              EVP_PKEY *pkey);
@@ -44,7 +44,7 @@ OSSL_CRMF_MSG_get_certReqId() retrieves the certReqId of B<crm>.
 =head1 RETURN VALUES
 
 OSSL_CRMF_MSG_get_certReqId() returns the certificate request ID as a
-long integer or -1 on error.
+positive int64_t or -1 on error.
 
 All other functions return a pointer with the intended result or NULL on error.
 
