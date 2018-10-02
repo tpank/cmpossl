@@ -170,6 +170,8 @@ static const ERR_STRING_DATA CMP_str_functs[] = {
      "OSSL_CMP_pollRep_new"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_OSSL_CMP_POLLREQ_NEW, 0),
      "OSSL_CMP_pollReq_new"},
+    {ERR_PACK(ERR_LIB_CMP, CMP_F_OSSL_CMP_PRINT_CERT_VERIFY_CB, 0),
+     "OSSL_CMP_print_cert_verify_cb"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_OSSL_CMP_RP_NEW, 0), "OSSL_CMP_rp_new"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_OSSL_CMP_RR_NEW, 0), "OSSL_CMP_rr_new"},
     {ERR_PACK(ERR_LIB_CMP, CMP_F_OSSL_CMP_SRV_CTX_CREATE, 0),

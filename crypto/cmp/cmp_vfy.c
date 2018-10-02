@@ -303,7 +303,7 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
             print_store_certs(cert_verify_err_bio,
                               X509_STORE_CTX_get0_store(ctx));
         }
-        put_cert_verify_err(CMP_F_OSSL_CMP_VALIDATE_CERT_PATH,
+        put_cert_verify_err(CMP_F_OSSL_CMP_PRINT_CERT_VERIFY_CB,
                             CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
         ERR_print_errors_fp(stdout);
     }

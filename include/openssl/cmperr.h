@@ -106,6 +106,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET               179
 #  define CMP_F_OSSL_CMP_POLLREP_NEW                       180
 #  define CMP_F_OSSL_CMP_POLLREQ_NEW                       181
+#  define CMP_F_OSSL_CMP_PRINT_CERT_VERIFY_CB              200
 #  define CMP_F_OSSL_CMP_RP_NEW                            182
 #  define CMP_F_OSSL_CMP_RR_NEW                            183
 #  define CMP_F_OSSL_CMP_SRV_CTX_CREATE                    184
