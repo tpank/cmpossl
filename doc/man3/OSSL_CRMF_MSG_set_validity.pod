@@ -2,7 +2,6 @@
 
 =head1 NAME
 
-OSSL_CRMF_MSG_set_version2,
 OSSL_CRMF_MSG_set_validity,
 OSSL_CRMF_MSG_set_certReqId,
 OSSL_CRMF_CERTTEMPLATE_fill,
@@ -15,8 +14,6 @@ OSSL_CRMF_MSGS_verify_popo
 =head1 SYNOPSIS
 
  #include <openssl/crmf.h>
-
- int OSSL_CRMF_MSG_set_version2(OSSL_CRMF_MSG *crm);
 
  int OSSL_CRMF_MSG_set_validity(OSSL_CRMF_MSG *crm, time_t from, time_t to);
 
@@ -41,8 +38,6 @@ OSSL_CRMF_MSGS_verify_popo
                                 long rid, int acceptRAVerified);
 
 =head1 DESCRIPTION
-
-OSSL_CRMF_MSG_set_version2() sets version 2 in the certTemplate of B<crm>.
 
 OSSL_CRMF_MSG_set_validity() sets B<from> as notBefore and B<to> as notAfter
 as the validity in the certTemplate of B<crm>.

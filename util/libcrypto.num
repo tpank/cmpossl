@@ -4608,7 +4608,6 @@ OSSL_CRMF_CERTID_it                     4560	1_1_2	EXIST:!EXPORT_VAR_AS_FUNCTION
 OSSL_CRMF_CERTID_it                     4560	1_1_2	EXIST:EXPORT_VAR_AS_FUNCTION:FUNCTION:
 EC_POINT_set_affine_coordinates         4561	1_1_2	EXIST::FUNCTION:EC
 OSSL_CRMF_MSG_get_certReqId             4562	1_1_2	EXIST::FUNCTION:
-OSSL_CRMF_MSG_set_version2              4563	1_1_2	EXIST::FUNCTION:
 OSSL_CMP_SRV_CTX_set_checkAfterTime     4564	1_1_2	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_get0_header                4565	1_1_2	EXIST::FUNCTION:CMP
 EVP_MD_CTX_set_pkey_ctx                 4566	1_1_2	EXIST::FUNCTION:

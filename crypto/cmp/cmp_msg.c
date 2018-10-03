@@ -243,9 +243,6 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     if (!OSSL_CRMF_MSG_set_certReqId(crm, rid) ||
 
     /* fill certTemplate, corresponding to PKCS#10 CertificationRequestInfo */
-#if 0
-        !OSSL_CRMF_MSG_set_version2(crm) /* RFC4211: SHOULD be omitted */
-#endif
             /* rkey cannot be NULL so far - but it can be when
              * centralized key creation is supported --> GitHub issue#68 */
         !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,

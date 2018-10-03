@@ -104,7 +104,6 @@ int OSSL_CRMF_MSG_set1_regInfo_utf8Pairs(OSSL_CRMF_MSG *msg,
 int OSSL_CRMF_MSG_set1_regInfo_certReq(OSSL_CRMF_MSG *msg,
                                        OSSL_CRMF_CERTREQUEST *cr);
 
-int OSSL_CRMF_MSG_set_version2(OSSL_CRMF_MSG *crm);
 int OSSL_CRMF_MSG_set_validity(OSSL_CRMF_MSG *crm, time_t from, time_t to);
 int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, long rid);
 long OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);

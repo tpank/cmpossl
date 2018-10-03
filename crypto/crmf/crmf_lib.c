@@ -252,29 +252,6 @@ OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get0_tmpl(const OSSL_CRMF_MSG *crm) {
 }
 
 
-int OSSL_CRMF_MSG_set_version2(OSSL_CRMF_MSG *crm)
-{
-    OSSL_CRMF_CERTTEMPLATE *tmpl;
-    if (crm == NULL) {
-        CRMFerr(CRMF_F_OSSL_CRMF_MSG_SET_VERSION2, CRMF_R_NULL_ARGUMENT);
-        return 0;
-    }
-    if ((tmpl = OSSL_CRMF_MSG_get0_tmpl(crm)) == NULL)
-        goto oom;
-
-    if ((tmpl->version) == NULL)
-        if ((tmpl->version = ASN1_INTEGER_new()) == 0)
-            goto oom;
-    if (ASN1_INTEGER_set(tmpl->version, 2L) == 0)
-        goto oom;
-    return 1;
-
- oom:
-    CRMFerr(CRMF_F_OSSL_CRMF_MSG_SET_VERSION2, ERR_R_MALLOC_FAILURE);
-    return 0;
-}
-
-
 int OSSL_CRMF_MSG_set_validity(OSSL_CRMF_MSG *crm, time_t from, time_t to)
 {
     OSSL_CRMF_OPTIONALVALIDITY *vld = NULL;
