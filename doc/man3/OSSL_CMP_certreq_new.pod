@@ -57,14 +57,14 @@ OSSL_CMP_error_new
  OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx);
  OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx,
                                OSSL_CMP_PKISI *si,
-                               OSSL_CRMF_CERTID *certId,
-                               int unprotectedErrors);
+                               OSSL_CRMF_CERTID *cid,
+                               int unprot_err);
  OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
                                      const char *text);
  OSSL_CMP_MSG *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
- OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int reqId);
- OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, long certReqId,
-                                    long pollAfter);
+ OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int crid);
+ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int64_t crid,
+                                    int64_t poll_after)
  OSSL_CMP_MSG *OSSL_CMP_genm_new(OSSL_CMP_CTX *ctx);
  OSSL_CMP_MSG *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx);
  OSSL_CMP_MSG *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
@@ -143,15 +143,22 @@ The list of all CMP PKIMessage B<bodytype>s is:
 OSSL_CMP_rr_new() creates a Revocation Request message from the
 information set via OSSL_CMP_CTX_set1_oldClCert().
 
-OSSL_CMP_rp_new() creates a Revocation Response message.
+OSSL_CMP_rp_new() creates a Revocation Response message with status set to
+B<si> and CertID set to B<cid>. Consumes B<cid>. Accepts unprottected errors if
+B<uprot_err> != 0;
 
-OSSL_CMP_certConf_new() creates a Certificate Confirmation message.
+OSSL_CMP_certConf_new() creates a Certificate Confirmation message for the last
+received certificate. PKIStatus defaults to accepted. If B<failure> is set to
+!=0, it sets status to rejected, sets the failInfo bit with index
+B<failure>-1, and copies content of B<text> to statusString if not NULL.
 
-OSSL_CMP_pkiconf_new creates a PKI Confirmation message.
+OSSL_CMP_pkiconf_new() creates a PKI Confirmation message.
 
-OSSL_CMP_pollReq_new() creates a Polling Request message.
+OSSL_CMP_pollReq_new() creates a Polling Request message with certReqId set to
+B<crid>.
 
-OSSL_CMP_pollRep_new() creates a Polling Response message.
+OSSL_CMP_pollRep_new() creates a Polling Response message with certReqId set to
+B<crid> and pollAfter to B<poll_after>.
 
 OSSL_CMP_genm_new() creates a new General Message.
 

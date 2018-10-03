@@ -167,7 +167,7 @@ static int test_cmp_exec_ir_ses_poll(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     const int pollCount = 2;
-    const int checkAfter = 1;
+    const int64_t checkAfter = 1;
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
     fixture->expected = 1;
 
@@ -182,7 +182,7 @@ static int test_cmp_exec_ir_ses_poll_timeout(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     const int pollCount = 3;
-    const int checkAfter = 1;
+    const int64_t checkAfter = 1;
     const int timeout = pollCount * checkAfter;
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
     fixture->expected = 0;

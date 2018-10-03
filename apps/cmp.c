@@ -190,7 +190,7 @@ static char *opt_rsp_cert = NULL;
 static char *opt_rsp_extracerts = NULL;
 static char *opt_rsp_capubs = NULL;
 static int opt_poll_count = 0;
-static int opt_checkafter = 1;
+static int64_t opt_checkafter = 1;
 static int opt_grant_implicitconf = 0;
 
 static int opt_pkistatus = OSSL_CMP_PKISTATUS_accepted;

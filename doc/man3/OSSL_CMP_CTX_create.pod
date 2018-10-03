@@ -132,7 +132,7 @@ OSSL_CMP_CTX_subjectAltName_push1
 
  int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, const int opt, const int val);
 
- long OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx);
+ int64_t OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx);
  OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_statusString_get(OSSL_CMP_CTX *ctx);
  unsigned long OSSL_CMP_CTX_failInfoCode_get(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,

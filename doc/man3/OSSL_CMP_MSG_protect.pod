@@ -18,7 +18,8 @@ OSSL_CMP_HDR_set1_recipient,
 OSSL_CMP_HDR_set1_sender,
 OSSL_CMP_HDR_set1_senderKID,
 OSSL_CMP_HDR_set_messageTime,
-OSSL_CMP_HDR_set_version,
+OSSL_CMP_HDR_set_pvno,
+OSSL_CMP_HDR_get_pvno,
 OSSL_CMP_MSG_check_implicitConfirm,
 OSSL_CMP_MSG_genm_item_push0,
 OSSL_CMP_MSG_genm_items_push1,
@@ -61,7 +62,8 @@ OSSL_CMP_X509_STORE_get1_certs
   int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_HDR *hdr,
                                   const ASN1_OCTET_STRING *senderKID);
   int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_HDR *hdr);
-  int OSSL_CMP_HDR_set_version(OSSL_CMP_HDR *hdr, int version);
+  int OSSL_CMP_HDR_set_pvno(OSSL_CMP_HDR *hdr, int64_t pvno);
+  int64_t OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr);
   int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg);
   int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg,
                                    const OSSL_CMP_ITAV *itav);
@@ -178,7 +180,9 @@ this is set to the public key ID from the previously enrolled certificate.
 
 OSSL_CMP_HDR_set_messageTime() sets the messageTime to the current system time.
 
-OSSL_CMP_HDR_set_version() sets hdr->pvno to the given integer.
+OSSL_CMP_HDR_set_pvno() sets hdr->pvno to the given B<pvno>.
+
+OSSL_CMP_HDR_get_pvno() returns the pvno of the given B<hdr> or 0 on error.
 
 OSSL_CMP_MSG_check_implicitConfirm() returns 1 if implicitConfirm is
 set in the given PKIMessage, 0 if not.

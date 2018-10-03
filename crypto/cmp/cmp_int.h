@@ -85,7 +85,7 @@ struct OSSL_cmp_ctx_st {
     /* PBMParameters */
     size_t pbm_slen;
     int pbm_owf;
-    long pbm_itercnt;
+    int64_t pbm_itercnt;
     int pbm_mac;
 
     int days; /* Number of days new certificates are asked to be valid for */
@@ -105,7 +105,7 @@ struct OSSL_cmp_ctx_st {
     int unprotectedSend; /* send unprotected PKI messages */
     int unprotectedErrors; /* accept unprotected error responses */
     int ignore_keyusage; /* ignore key usage entry in certs */
-    long lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP, or -1 */
+    int64_t lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP, or -1 */
     /* TODO: this should be a stack since there could be more than one */
     unsigned long failInfoCode; /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
@@ -714,7 +714,7 @@ RevRepContent with the given request/sequence id inside a revocation response
 (matching the sequence id as sent in the RevReqContent), or NULL on error.
 */
 OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
-                                                    long reqId);
+                                                    int64_t rsid);
 /*
 OSSL_CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
 using the same hash algorithm as is used to create and verify the
@@ -741,7 +741,7 @@ with the given certReqId (or the first one in case -1) inside a PollRepContent.
 If no suitable PollRep is available or if there is an error, it returns NULL.
 */
 OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
-                                                  long rid);
+                                                  int64_t rid);
 /*
 OSSL_CMP_CERTREPMESSAGE_certResponse_get0() returns a pointer to the
 CertResponse
@@ -749,7 +749,7 @@ with the given certReqId (or the first one in case -1 inside a CertRepMessage.
 If no suitable CertResponse is available or there is an error, it returns NULL.
 */
 OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(
-                                    OSSL_CMP_CERTREPMESSAGE *crepmsg, long rid);
+                                 OSSL_CMP_CERTREPMESSAGE *crepmsg, int64_t rid);
 /*
 OSSL_CMP_calc_protection()
 calculates the protection for given PKImessage utilizing the given credentials

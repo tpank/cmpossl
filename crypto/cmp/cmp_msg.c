@@ -222,7 +222,7 @@ static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
  * returns a pointer to the OSSL_CRMF_MSG on success, NULL on error
  */
 static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
-                              long rid, EVP_PKEY *rkey)
+                              int64_t rid, EVP_PKEY *rkey)
 {
     OSSL_CRMF_MSG *crm = NULL;
     X509 *refcert = ctx->oldClCert != NULL ? ctx->oldClCert : ctx->clCert;
@@ -442,7 +442,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
  * Creates a new polling request PKIMessage for the given request ID
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int reqId)
+OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int64_t crid)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_POLLREQ *preq = NULL;
@@ -453,7 +453,7 @@ OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int reqId)
 
     /* TODO: support multiple cert request IDs to poll */
     if ((preq = OSSL_CMP_POLLREQ_new()) == NULL ||
-        !ASN1_INTEGER_set(preq->certReqId, reqId) ||
+        !ASN1_INTEGER_set_int64(preq->certReqId, crid) ||
         !sk_OSSL_CMP_POLLREQ_push(msg->body->value.pollReq, preq))
         goto err;
 
@@ -474,11 +474,11 @@ OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int reqId)
  * Creates a new poll response message for the given request id
  * returns a poll response on success and NULL on error
  */
-OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, long certReqId,
-                                   long pollAfter)
+OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int64_t crid,
+                                   int64_t poll_after)
 {
     OSSL_CMP_MSG *msg;
-    OSSL_CMP_POLLREP *pollRep;
+    OSSL_CMP_POLLREP *prep;
 
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_POLLREP_NEW, CMP_R_NULL_ARGUMENT);
@@ -486,11 +486,11 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, long certReqId,
     }
     if ((msg = OSSL_CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_POLLREP)) == NULL)
         goto err;
-    if ((pollRep = OSSL_CMP_POLLREP_new()) == NULL)
+    if ((prep = OSSL_CMP_POLLREP_new()) == NULL)
         goto err;
-    sk_OSSL_CMP_POLLREP_push(msg->body->value.pollRep, pollRep);
-    ASN1_INTEGER_set(pollRep->certReqId, certReqId);
-    ASN1_INTEGER_set(pollRep->checkAfter, pollAfter);
+    sk_OSSL_CMP_POLLREP_push(msg->body->value.pollRep, prep);
+    ASN1_INTEGER_set_int64(prep->certReqId, crid);
+    ASN1_INTEGER_set_int64(prep->checkAfter, poll_after);
 
     if (!OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
@@ -564,10 +564,10 @@ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
 
 /*
  * Creates a revocation response message to a given revocation request.
- * Only handles the first given request. Consumes certId.
+ * Only handles the first given request. Consumes cid.
  */
 OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
-                              OSSL_CRMF_CERTID *certId, int unprotectedErrors)
+                              OSSL_CRMF_CERTID *cid, int unprot_err)
 {
     OSSL_CMP_REVREPCONTENT *rep = NULL;
     OSSL_CMP_PKISI *si1 = NULL;
@@ -583,10 +583,10 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
 
     if ((rep->certId = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
         goto oom;
-    sk_OSSL_CRMF_CERTID_push(rep->certId, certId);
-    certId = NULL;
+    sk_OSSL_CRMF_CERTID_push(rep->certId, cid);
+    cid = NULL;
 
-    if (!(unprotectedErrors &&
+    if (!(unprot_err &&
           OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection) &&
         !OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
@@ -596,7 +596,7 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     CMPerr(CMP_F_OSSL_CMP_RP_NEW, ERR_R_MALLOC_FAILURE);
  err:
     CMPerr(CMP_F_OSSL_CMP_RP_NEW, CMP_R_ERROR_CREATING_RP);
-    OSSL_CRMF_CERTID_free(certId);
+    OSSL_CRMF_CERTID_free(cid);
     OSSL_CMP_MSG_free(msg);
     return NULL;
 }
@@ -641,7 +641,7 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
      * be provided in the statusInfo field, perhaps for auditing purposes at
      * the CA/RA.
      */
-    sinfo = failure >= 0 ? 
+    sinfo = failure >= 0 ?
         OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection,
                                 1 << failure, text) :
         OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_accepted, 0, text);

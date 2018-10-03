@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-OSSL_CMP_statusInfo_new,
+eSSL_CMP_statusInfo_new,
 OSSL_CMP_PKISI_PKIStatus_get,
 OSSL_CMP_PKISI_PKIFailureInfo_get,
 OSSL_CMP_PKISI_PKIFailureInfo_check,
@@ -13,9 +13,9 @@ OSSL_CMP_PKISI_statusString_get0
 =head1 SYNOPSIS
 
   #include "cmp.h"
-  OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, unsigned long failInfo,
+  OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int64_t status, unsigned long failInfo,
                                           const char *text);
-  long OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si);
+  int64_t OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si);
   long OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si);
   int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int codeBit);
   ASN1_BIT_STRING *OSSL_CMP_PKISI_failInfo_get0(OSSL_CMP_PKISI *si);
@@ -23,8 +23,10 @@ OSSL_CMP_PKISI_statusString_get0
 
 =head1 DESCRIPTION
 
-OSSL_CMP_statusInfo_new() creates a new PKISI structure and fills it with the
-given values. It returns a pointer to the structure on success, NULL on error.
+OSSL_CMP_statusInfo_new() creates a new PKIStatusInfo structure and fills it
+with the given values. Status is set to B<status>. If B<failInfo> >0 sets
+failinfo bit with index B<failInfo-1>. Sets statusString to B<text>.  It returns
+a pointer to the structure on success, NULL on error.
 
 OSSL_CMP_PKISI_PKIStatus_get() returns the PKIStatus of the given PKISI,
 or -1 on error.

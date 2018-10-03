@@ -89,10 +89,12 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_EXEC_P10CR_SES                    162
 #  define CMP_F_OSSL_CMP_EXEC_RR_SES                       163
 #  define CMP_F_OSSL_CMP_HDR_GENERALINFO_ITEM_PUSH0        164
+#  define CMP_F_OSSL_CMP_HDR_GET_PVNO                      200
 #  define CMP_F_OSSL_CMP_HDR_INIT                          165
 #  define CMP_F_OSSL_CMP_HDR_PUSH0_FREETEXT                166
 #  define CMP_F_OSSL_CMP_HDR_PUSH1_FREETEXT                167
 #  define CMP_F_OSSL_CMP_HDR_SET_MESSAGETIME               168
+#  define CMP_F_OSSL_CMP_HDR_SET_PVNO                      201
 #  define CMP_F_OSSL_CMP_HDR_SET_VERSION                   169
 #  define CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED                170
 #  define CMP_F_OSSL_CMP_MSG_CREATE                        171
@@ -129,6 +131,10 @@ int ERR_load_CMP_strings(void);
  * CMP reason codes.
  */
 #  define CMP_R_ALGORITHM_NOT_SUPPORTED                    100
+#  define CMP_R_BAD_CHECKAFTER_IN_POLLREP                  159
+#  define CMP_R_BAD_PVNO                                   191
+#  define CMP_R_BAD_REQUEST_ID                             192
+#  define CMP_R_BAD_STATUS                                 193
 #  define CMP_R_CERTIFICATE_NOT_ACCEPTED                   101
 #  define CMP_R_CERTIFICATE_NOT_FOUND                      102
 #  define CMP_R_CERTREQMSG_NOT_FOUND                       103
@@ -205,8 +211,10 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_TRANSACTIONID_UNMATCHED                    175
 #  define CMP_R_UNEXPECTED_PKIBODY                         176
 #  define CMP_R_UNEXPECTED_PKISTATUS                       177
+#  define CMP_R_UNEXPECTED_PVNO                            189
 #  define CMP_R_UNEXPECTED_REQUEST_ID                      178
 #  define CMP_R_UNEXPECTED_SENDER                          179
+#  define CMP_R_UNEXPECTED_STATUS                          190
 #  define CMP_R_UNKNOWN_ALGORITHM_ID                       180
 #  define CMP_R_UNKNOWN_CERT_TYPE                          181
 #  define CMP_R_UNKNOWN_PKISTATUS                          182

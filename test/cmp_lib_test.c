@@ -94,7 +94,7 @@ static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
                      OSSL_CMP_HDR_init(fixture->cmp_ctx, header)))
         goto err;
     if (fixture->expected != 0) {
-        if (!TEST_long_eq(OSSL_CMP_HDR_get_pvno(header), OSSL_CMP_VERSION) ||
+        if (!TEST_long_eq(OSSL_CMP_HDR_get_pvno(header), OSSL_CMP_PVNO) ||
             !TEST_true(0 == ASN1_OCTET_STRING_cmp(
                        OSSL_CMP_HDR_get0_senderNonce(header),
                        OSSL_CMP_CTX_get0_last_senderNonce(fixture->cmp_ctx))) ||

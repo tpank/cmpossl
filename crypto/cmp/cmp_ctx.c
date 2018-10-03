@@ -234,7 +234,7 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_create(void)
  * returns the PKIStatus from the last CertRepMessage
  * or Revocation Response, -1 on error
  */
-long OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx)
+int64_t OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx)
 {
     return ctx != NULL ? ctx->lastPKIStatus : -1;
 }
