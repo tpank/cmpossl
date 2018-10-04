@@ -19,7 +19,7 @@ use OpenSSL::Test::Utils;
 use Data::Dumper; # for debugging purposes only
 
 my $proxy = "<EMPTY>";
-$proxy = $ENV{http_proxy} // $ENV{HTTP_PROXY};
+$proxy = $ENV{http_proxy} // $ENV{HTTP_PROXY} // $proxy;
 $proxy =~ s/^\"(.*?)\"$/$1/; # chop any leading/trailing '"' (for Windows)
 $proxy =~ s{http://}{};
 my $no_proxy = $ENV{no_proxy} // $ENV{NO_PROXY};
