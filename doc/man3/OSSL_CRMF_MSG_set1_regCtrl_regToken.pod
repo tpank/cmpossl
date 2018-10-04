@@ -22,7 +22,7 @@ OSSL_CRMF_CERTID_gen
  int OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo(
                                   OSSL_CRMF_PKIPUBLICATIONINFO *pi,
                                   OSSL_CRMF_SINGLEPUBINFO *spi);
- int OSSL_CRMF_MSG_set1_SinglePubInfo(OSSL_CRMF_SINGLEPUBINFO *spi,
+ int OSSL_CRMF_MSG_set0_SinglePubInfo(OSSL_CRMF_SINGLEPUBINFO *spi,
                                       int method, GENERAL_NAME *nm);
  int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(
                                   OSSL_CRMF_PKIPUBLICATIONINFO *pi, int action);
