@@ -27,20 +27,20 @@ extern "C" {
 /*
  * EncryptedValue ::= SEQUENCE {
  * intendedAlg   [0] AlgorithmIdentifier  OPTIONAL,
- *                   -- the intended algorithm for which the value will be used
+ *                  -- the intended algorithm for which the value will be used
  * symmAlg       [1] AlgorithmIdentifier  OPTIONAL,
- *                   -- the symmetric algorithm used to encrypt the value
+ *                  -- the symmetric algorithm used to encrypt the value
  * encSymmKey    [2] BIT STRING           OPTIONAL,
- * -- the (encrypted) symmetric key used to encrypt the value
+ *                  -- the (encrypted) symmetric key used to encrypt the value
  * keyAlg        [3] AlgorithmIdentifier  OPTIONAL,
- *                   -- algorithm used to encrypt the symmetric key
+ *                  -- algorithm used to encrypt the symmetric key
  * valueHint     [4] OCTET STRING         OPTIONAL,
  *                  -- a brief description or identifier of the encValue content
  *                  -- (may be meaningful only to the sending entity, and
  *                  --  used only if EncryptedValue might be re-examined
  *                  --  by the sending entity in the future)
  * encValue            BIT STRING }
- * -- the encrypted value itself
+ *                  -- the encrypted value itself
  */
 struct OSSL_crmf_encrypetedvalue_st {
     X509_ALGOR *intendedAlg;      /* 0 */
@@ -110,6 +110,7 @@ struct OSSL_crmf_certid_st {
 } /* OSSL_CRMF_CERTID */;
 OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_dup(OSSL_CRMF_CERTID *cid);
 
+# if 0 /* held for future implementation of Archive Options Control */
 /*-
  * EncryptedKey ::= CHOICE {
  * encryptedValue    EncryptedValue,       -- Deprecated
@@ -128,7 +129,9 @@ typedef struct OSSL_crmf_encryptedkey_st {
     } value;
 } OSSL_CRMF_ENCRYPTEDKEY;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDKEY)
+# endif /* 0 */
 
+# if 0 /* held for future implementation of Archive Options Control */
 /*
  * PKIArchiveOptions ::= CHOICE {
  * encryptedPrivKey         [0] EncryptedKey,
@@ -154,6 +157,7 @@ struct OSSL_crmf_pkiarchiveoptions_st {
 } /* OSSL_CRMF_PKIARCHIVEOPTIONS */;
 OSSL_CRMF_PKIARCHIVEOPTIONS *OSSL_CRMF_PKIARCHIVEOPTIONS_dup(
                                        OSSL_CRMF_PKIARCHIVEOPTIONS *pkiPubInfo);
+# endif /* 0 */
 
 /*
  * SinglePubInfo ::= SEQUENCE {
@@ -398,8 +402,10 @@ struct OSSL_crmf_attributetypeandvalue_st {
         /* NID_id_regCtrl_pkiPublicationInfo */
         OSSL_CRMF_PKIPUBLICATIONINFO *pkiPublicationInfo;
 
+# if 0 /* held for implementation of id-regCtrl-pkiArchiveOptions control */
         /* NID_id_regCtrl_pkiArchiveOptions */
         OSSL_CRMF_PKIARCHIVEOPTIONS *pkiArchiveOptions;
+# endif /* 0 */
 
         /* NID_id_regCtrl_oldCertID */
         OSSL_CRMF_CERTID *oldCertID;
