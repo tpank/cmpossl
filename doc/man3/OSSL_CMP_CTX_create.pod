@@ -132,9 +132,9 @@ OSSL_CMP_CTX_subjectAltName_push1
 
  int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, const int opt, const int val);
 
- int64_t OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx);
+ int OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx);
  OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_statusString_get(OSSL_CMP_CTX *ctx);
- unsigned long OSSL_CMP_CTX_failInfoCode_get(OSSL_CMP_CTX *ctx);
+ int OSSL_CMP_CTX_failInfoCode_get(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
                                    OSSL_CMP_PKIFAILUREINFO *failInfo);
  int OSSL_CMP_CTX_set1_proxyName(OSSL_CMP_CTX *ctx, const char *name);
@@ -587,7 +587,7 @@ OSSL_CMP_CTX_get_certConf_cb_arg() returns the certConf callback argument
 set previously, NULL if not set or on function parameter error.
 
 OSSL_CMP_CTX_failInfoCode_get() returns the failinfo error code bits in context
-as returns bitstring in ulong on success, -1 on error.
+as returns bitstring encoded as integer on success, -1 on error.
 
 All other functions return 1 on success, 0 on error.
 

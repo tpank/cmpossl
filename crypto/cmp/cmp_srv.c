@@ -33,10 +33,10 @@ struct OSSL_cmp_srv_ctx_st {
     STACK_OF(X509) *caPubsOut;  /* caPubs for ip */
     OSSL_CMP_PKISI *pkiStatusOut; /* PKI Status Info to be returned */
     OSSL_CMP_MSG *certReq;      /* ir/cr/p10cr/kur saved in case of polling */
-    int64_t certReqId;          /* id saved in case of polling */
+    int certReqId;              /* id saved in case of polling */
     OSSL_CMP_CTX *ctx;          /* client cmp context, partly reused for srv */
     unsigned int pollCount;     /* Number of polls before cert response */
-    int64_t checkAfterTime;     /* time to wait for the next poll in seconds */
+    int checkAfterTime;         /* time to wait for the next poll in seconds */
     int grantImplicitConfirm;   /* Grant implicit confirmation if requested */
     int sendError;              /* Always send error if true */
     int sendUnprotectedErrors;  /* Send error and rejection msgs uprotected */
@@ -109,7 +109,7 @@ int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
-                                    unsigned long failInfo, const char *text)
+                                    int failInfo, const char *text)
 {
     if (srv_ctx == NULL)
         return 0;
@@ -158,7 +158,7 @@ int OSSL_CMP_SRV_CTX_set_send_error(OSSL_CMP_SRV_CTX *srv_ctx, int error)
     return 1;
 }
 
-int OSSL_CMP_SRV_CTX_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx, int64_t sec)
+int OSSL_CMP_SRV_CTX_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx, int sec)
 {
     if (srv_ctx == NULL)
         return 0;
@@ -354,8 +354,8 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
 
     if (status != NULL) {
         /* check cert request id */
-        int64_t rid;
-        if (!ASN1_INTEGER_get_int64(&rid, status->certReqId) ||
+        int rid;
+        if (!OSSL_CRMF_ASN1_get_int(&rid, status->certReqId) ||
               rid != srv_ctx->certReqId) {
             CMPerr(CMP_F_PROCESS_CERTCONF, CMP_R_UNEXPECTED_REQUEST_ID);
             return NULL;

@@ -16,7 +16,7 @@ OSSL_CRMF_pbmp_new
                         unsigned char **mac, unsigned int *maclen);
 
   OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t saltlen, int owfnid,
-                                             int64_t itercnt, int macnid);
+                                             int itercnt, int macnid);
 
 =head1 DESCRIPTION
 

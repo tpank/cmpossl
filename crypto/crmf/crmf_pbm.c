@@ -31,7 +31,7 @@
  * returns pointer to OSSL_CRMF_PBMPARAMETER on success, NULL on error
  */
 OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
-                                           int64_t itercnt, int macnid)
+                                           int itercnt, int macnid)
 {
     OSSL_CRMF_PBMPARAMETER *pbm = NULL;
     unsigned char *salt = NULL;
@@ -83,7 +83,7 @@ OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
         goto err;
     }
 
-    if (!ASN1_INTEGER_set_int64(pbm->iterationCount, itercnt))
+    if (!ASN1_INTEGER_set(pbm->iterationCount, itercnt))
         goto err;
 
     /*
@@ -129,7 +129,7 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
     EVP_MD_CTX *ctx = NULL;
     unsigned char basekey[EVP_MAX_MD_SIZE];
     unsigned int bklen;
-    uint64_t iterations;
+    int iterations;
     int error = CRMF_R_CRMFERROR;
 
     if (mac == NULL || pbmp == NULL || pbmp->mac == NULL ||
@@ -169,7 +169,7 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
         goto err;
     if (!(EVP_DigestFinal_ex(ctx, basekey, &bklen)))
         goto err;
-    if (!ASN1_INTEGER_get_uint64(&iterations, pbmp->iterationCount)
+    if (!OSSL_CRMF_ASN1_get_int(&iterations, pbmp->iterationCount)
             || iterations < 100 /* min from RFC */
             || iterations > OSSL_CRMF_PBM_MAX_ITERATION_COUNT) {
         error = CRMF_R_BAD_PBM_ITERATIONCOUNT;

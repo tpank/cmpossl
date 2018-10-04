@@ -107,11 +107,11 @@ OSSL_CMP_HDR *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
     return msg != NULL ? msg->header : NULL;
 }
 
-/* returns the pvno of the given PKIHeader or NULL on error */
-int64_t OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr)
+/* returns the pvno of the given PKIHeader or 0 on error */
+int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr)
 {
-    int64_t pvno;
-    if (!ASN1_INTEGER_get_int64(&pvno, hdr->pvno)){
+    int pvno;
+    if (!OSSL_CRMF_ASN1_get_int(&pvno, hdr->pvno)) {
         CMPerr(CMP_F_OSSL_CMP_HDR_GET_PVNO, CMP_R_BAD_PVNO);
     }
     return hdr != NULL ? pvno : 0;
@@ -139,14 +139,14 @@ ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_HDR *hdr)
  * Sets the protocol version number in PKIHeader.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_set_pvno(OSSL_CMP_HDR *hdr, int64_t pvno)
+int OSSL_CMP_HDR_set_pvno(OSSL_CMP_HDR *hdr, int pvno)
 {
     if (hdr == NULL) {
         CMPerr(CMP_F_OSSL_CMP_HDR_SET_PVNO, CMP_R_NULL_ARGUMENT);
         goto err;
     }
 
-    if (!ASN1_INTEGER_set_int64(hdr->pvno, pvno)) {
+    if (!ASN1_INTEGER_set(hdr->pvno, pvno)) {
         CMPerr(CMP_F_OSSL_CMP_HDR_SET_PVNO, ERR_R_MALLOC_FAILURE);
         goto err;
     }
@@ -1074,7 +1074,7 @@ OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(const ASN1_OBJECT *type,
  * note: strongly overlaps with TS_RESP_CTX_set_status_info()
  *       and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
  */
-OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int64_t status, unsigned long failInfo,
+OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int failInfo,
                                         const char *text)
 {
     OSSL_CMP_PKISI *si = NULL;
@@ -1083,7 +1083,7 @@ OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int64_t status, unsigned long failInfo,
 
     if ((si = OSSL_CMP_PKISI_new()) == NULL)
         goto err;
-    if (!ASN1_INTEGER_set_int64(si->status, status))
+    if (!ASN1_INTEGER_set(si->status, status))
         goto err;
 
     if (text != NULL) {
@@ -1121,15 +1121,15 @@ OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int64_t status, unsigned long failInfo,
  * returns the PKIStatus of the given PKIStatusInfo
  * returns -1 on error
  */
-int64_t OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si)
+int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si)
 {
-    int64_t stat;
+    int stat;
     if (si == NULL || si->status == NULL) {
         CMPerr(CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET,
                CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
     }
-    if (!ASN1_INTEGER_get_int64(&stat, si->status)){
+    if (!OSSL_CRMF_ASN1_get_int(&stat, si->status)) {
         CMPerr(CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET, CMP_R_BAD_STATUS);
     }
     return stat;
@@ -1139,10 +1139,10 @@ int64_t OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si)
  * returns the FailureInfo bits of the given PKIStatusInfo
  * returns -1 on error
  */
-long OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si)
+int OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si)
 {
     int i;
-    long res = 0;
+    int res = 0;
     if (si == NULL || si->failInfo == NULL) {
         CMPerr(CMP_F_OSSL_CMP_PKISI_PKIFAILUREINFO_GET,
                CMP_R_ERROR_PARSING_PKISTATUS);
@@ -1165,7 +1165,7 @@ long OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si)
  */
 static char *CMP_PKISI_PKIStatus_get_string(OSSL_CMP_PKISI *si)
 {
-    long PKIStatus;
+    int PKIStatus;
 
     if ((PKIStatus = OSSL_CMP_PKISI_PKIStatus_get(si)) < 0)
         return NULL;
@@ -1276,7 +1276,7 @@ static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi,
  * returns NULL on error
  */
 OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
-                                                    int64_t rsid)
+                                                    int rsid)
 {
     OSSL_CMP_PKISI *status = NULL;
     if (rrep == NULL)
@@ -1331,7 +1331,7 @@ OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(OSSL_CMP_PKISI *si)
  */
 /* cannot factor overlap with CERTREPMESSAGE_certResponse_get0 due to typing */
 OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
-                                                  int64_t rid)
+                                                  int rid)
 {
     OSSL_CMP_POLLREP *pollRep = NULL;
     int i;
@@ -1343,9 +1343,9 @@ OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
     }
 
     for (i = 0; i < sk_OSSL_CMP_POLLREP_num(prc); i++) {
-        int64_t trid;
+        int trid;
         pollRep = sk_OSSL_CMP_POLLREP_value(prc, i);
-        if (!ASN1_INTEGER_get_int64(&trid, pollRep->certReqId)){
+        if (!OSSL_CRMF_ASN1_get_int(&trid, pollRep->certReqId)) {
             CMPerr(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0, CMP_R_BAD_REQUEST_ID);
         }
         /* is it the right CertReqId? */
@@ -1366,7 +1366,7 @@ OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
  */
 /* cannot factor overlap with POLLREPCONTENT_pollResponse_get0 due to typing */
 OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(
-                                  OSSL_CMP_CERTREPMESSAGE *crepmsg, int64_t rid)
+                                  OSSL_CMP_CERTREPMESSAGE *crepmsg, int rid)
 {
     OSSL_CMP_CERTRESPONSE *crep = NULL;
     int i;
@@ -1378,9 +1378,9 @@ OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(
     }
 
     for (i = 0; i < sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response); i++) {
-        int64_t trid;
+        int trid;
         crep = sk_OSSL_CMP_CERTRESPONSE_value(crepmsg->response, i);
-        if (!ASN1_INTEGER_get_int64(&trid, crep->certReqId)){
+        if (!OSSL_CRMF_ASN1_get_int(&trid, crep->certReqId)) {
             CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
                    CMP_R_BAD_REQUEST_ID);
         }

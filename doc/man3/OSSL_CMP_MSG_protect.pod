@@ -44,7 +44,7 @@ OSSL_CMP_X509_STORE_get1_certs
   #include <openssl/cmp.h>
 
   void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
-  long OSSL_CMP_PKISI_PKIFailureInfo_get( OSSL_CMP_PKISI *si);
+  int OSSL_CMP_PKISI_PKIFailureInfo_get( OSSL_CMP_PKISI *si);
   int OSSL_CMP_PKISI_PKIFailureInfo_check( OSSL_CMP_PKISI *si, int codeBit);
   int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_HDR *hdr,
                                           const OSSL_CMP_ITAV *itav);
@@ -62,8 +62,8 @@ OSSL_CMP_X509_STORE_get1_certs
   int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_HDR *hdr,
                                   const ASN1_OCTET_STRING *senderKID);
   int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_HDR *hdr);
-  int OSSL_CMP_HDR_set_pvno(OSSL_CMP_HDR *hdr, int64_t pvno);
-  int64_t OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr);
+  int OSSL_CMP_HDR_set_pvno(OSSL_CMP_HDR *hdr, int pvno);
+  int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr);
   int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg);
   int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg,
                                    const OSSL_CMP_ITAV *itav);
@@ -107,7 +107,7 @@ OSSL_CMP_add_error_line() is a macro calling
 OSSL_CMP_add_error_txt() with the separator being "\n".
 
 OSSL_CMP_PKISI_PKIFailureInfo_get() returns the PKIFailureInfo bits
-of a given PKIStatusInfo, encoded as long integer, or -1 on error.
+of a given PKIStatusInfo, encoded as integer, or -1 on error.
 
 OSSL_CMP_PKISI_PKIFailureInfo_check() checks whether a given bit is set
 within the PKIFailureInfo of a given PKIStatusInfo. Returns -1 on error.

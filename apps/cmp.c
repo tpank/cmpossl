@@ -195,7 +195,7 @@ static int opt_grant_implicitconf = 0;
 
 static int opt_pkistatus = OSSL_CMP_PKISTATUS_accepted;
 static int opt_failure = -1;
-static unsigned long opt_failurebits = 0;
+static int opt_failurebits = 0;
 static char *opt_statusstring = NULL;
 static int opt_send_error = 0;
 static int opt_send_unprotected = 0;
@@ -535,8 +535,8 @@ OPTIONS cmp_options[] = {
      "PKIStatus to be included in server response"},
     {"failure", OPT_FAILURE, 'n',
      "A single failure info code to be included in server response"},
-    {"failurebits", OPT_FAILUREBITS, 'u',
-     "Unsigned number representing failure bits to be included in server response"},
+    {"failurebits", OPT_FAILUREBITS, 'n',
+     "Number representing failure bits to be included in server response"},
     {"statusstring", OPT_STATUSSTRING, 's',
      "Status string to be included in server response"},
     {"send_error", OPT_SEND_ERROR, '-',
@@ -2481,6 +2481,10 @@ static int setup_srv_ctx(ENGINE *e)
         else
             opt_failurebits = 1 << opt_failure;
     }
+    if (opt_failurebits >= 1 << (OSSL_CMP_PKIFAILUREINFO_MAX+1)) {
+        OSSL_CMP_err(ctx, "-failure or -failurebits too large");
+        goto err;
+    }
     if (!OSSL_CMP_SRV_CTX_set_statusInfo(srv_ctx, opt_pkistatus,
                                          opt_failurebits, opt_statusstring))
         goto err;
@@ -3906,12 +3910,7 @@ static int get_opts(int argc, char **argv)
             opt_failure = opt_nat();
             break;
         case OPT_FAILUREBITS:
-            if (!opt_ulong(opt_arg(), &opt_failurebits)) {
-                BIO_printf(bio_err,
-                           "invalid unsigned number '%s' representing failure bits\n",
-                           opt_arg());
-                goto opt_err;
-            }
+            opt_failurebits = opt_nat();
             break;
         case OPT_STATUSSTRING:
             opt_statusstring = opt_str("statusstring");

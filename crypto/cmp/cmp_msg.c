@@ -222,7 +222,7 @@ static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
  * returns a pointer to the OSSL_CRMF_MSG on success, NULL on error
  */
 static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
-                              int64_t rid, EVP_PKEY *rkey)
+                              int rid, EVP_PKEY *rkey)
 {
     OSSL_CRMF_MSG *crm = NULL;
     X509 *refcert = ctx->oldClCert != NULL ? ctx->oldClCert : ctx->clCert;
@@ -442,7 +442,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
  * Creates a new polling request PKIMessage for the given request ID
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int64_t crid)
+OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int crid)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_POLLREQ *preq = NULL;
@@ -453,7 +453,7 @@ OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int64_t crid)
 
     /* TODO: support multiple cert request IDs to poll */
     if ((preq = OSSL_CMP_POLLREQ_new()) == NULL ||
-        !ASN1_INTEGER_set_int64(preq->certReqId, crid) ||
+        !ASN1_INTEGER_set(preq->certReqId, crid) ||
         !sk_OSSL_CMP_POLLREQ_push(msg->body->value.pollReq, preq))
         goto err;
 
@@ -474,8 +474,8 @@ OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int64_t crid)
  * Creates a new poll response message for the given request id
  * returns a poll response on success and NULL on error
  */
-OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int64_t crid,
-                                   int64_t poll_after)
+OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
+                                   int poll_after)
 {
     OSSL_CMP_MSG *msg;
     OSSL_CMP_POLLREP *prep;
@@ -489,8 +489,8 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int64_t crid,
     if ((prep = OSSL_CMP_POLLREP_new()) == NULL)
         goto err;
     sk_OSSL_CMP_POLLREP_push(msg->body->value.pollRep, prep);
-    ASN1_INTEGER_set_int64(prep->certReqId, crid);
-    ASN1_INTEGER_set_int64(prep->checkAfter, poll_after);
+    ASN1_INTEGER_set(prep->certReqId, crid);
+    ASN1_INTEGER_set(prep->checkAfter, poll_after);
 
     if (!OSSL_CMP_MSG_protect(ctx, msg))
         goto err;

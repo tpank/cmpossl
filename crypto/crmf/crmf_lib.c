@@ -298,7 +298,7 @@ int OSSL_CRMF_MSG_set_validity(OSSL_CRMF_MSG *crm, time_t from, time_t to)
 }
 
 
-int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, int64_t rid)
+int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, int rid)
 {
     int res;
     if (crm == NULL || crm->certReq == NULL) {
@@ -306,26 +306,43 @@ int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, int64_t rid)
         return 0;
     }
 
-    res = ASN1_INTEGER_set_int64(crm->certReq->certReqId, rid);
+    res = ASN1_INTEGER_set(crm->certReq->certReqId, rid);
     if (res == 0)
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_SET_CERTREQID, CRMF_R_NULL_ARGUMENT);
     return res;
 }
 
-int64_t OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm)
+int OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm)
 {
-    int64_t ret;
+    int ret;
     if (crm == NULL || crm->certReq == NULL) {
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID, CRMF_R_NULL_ARGUMENT);
         return -1;
     }
-    if (!ASN1_INTEGER_get_int64(&ret, crm->certReq->certReqId)) {
+    if (!OSSL_CRMF_ASN1_get_int(&ret, crm->certReq->certReqId)) {
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID, CRMF_R_CETREQID_INVALID);
         return -1;
     }
     return ret;
 }
 
+
+int OSSL_CRMF_ASN1_get_int(int *pr, const ASN1_INTEGER *a)
+{
+    int64_t res;
+    if (!ASN1_INTEGER_get_int64(&res, a))
+        return 0;
+    if (res < INT_MIN) {
+        CRMFerr(CRMF_F_OSSL_CRMF_ASN1_GET_INT, ASN1_R_TOO_SMALL);
+        return 0;
+    }
+    if (res > INT_MAX) {
+        CRMFerr(CRMF_F_OSSL_CRMF_ASN1_GET_INT, ASN1_R_TOO_LARGE);
+        return 0;
+    }
+    *pr = (int)res;
+    return 1;
+}
 
 int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm,
                                   X509_EXTENSIONS *exts)
@@ -541,7 +558,7 @@ static int CMP_X509_PUBKEY_cmp(X509_PUBKEY *a, X509_PUBKEY *b)
 
 /* verifies the Proof-of-Possession of the request with the given rid in reqs */
 int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
-                               int64_t rid, int acceptRAVerified)
+                               int rid, int acceptRAVerified)
 {
     OSSL_CRMF_MSG *req = NULL;
     X509_PUBKEY *pubkey = NULL;

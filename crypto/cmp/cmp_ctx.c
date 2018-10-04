@@ -234,7 +234,7 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_create(void)
  * returns the PKIStatus from the last CertRepMessage
  * or Revocation Response, -1 on error
  */
-int64_t OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx)
+int OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx)
 {
     return ctx != NULL ? ctx->lastPKIStatus : -1;
 }
@@ -1219,9 +1219,9 @@ int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
 
 /*
  * Get the failinfo error code bits in OSSL_CMP_CTX
- * returns bit string in ulong on success, -1 on error
+ * returns bit string as integer on success, -1 on error
  */
-unsigned long OSSL_CMP_CTX_failInfoCode_get(OSSL_CMP_CTX *ctx)
+int OSSL_CMP_CTX_failInfoCode_get(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return -1;
