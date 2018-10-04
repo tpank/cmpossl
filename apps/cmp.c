@@ -190,7 +190,7 @@ static char *opt_rsp_cert = NULL;
 static char *opt_rsp_extracerts = NULL;
 static char *opt_rsp_capubs = NULL;
 static int opt_poll_count = 0;
-static int64_t opt_checkafter = 1;
+static int opt_checkafter = 1;
 static int opt_grant_implicitconf = 0;
 
 static int opt_pkistatus = OSSL_CMP_PKISTATUS_accepted;
@@ -535,7 +535,7 @@ OPTIONS cmp_options[] = {
      "PKIStatus to be included in server response"},
     {"failure", OPT_FAILURE, 'n',
      "A single failure info code to be included in server response"},
-    {"failurebits", OPT_FAILUREBITS, 'n',
+    {"failurebits", OPT_FAILUREBITS, 'u',
      "Unsigned number representing failure bits to be included in server response"},
     {"statusstring", OPT_STATUSSTRING, 's',
      "Status string to be included in server response"},
