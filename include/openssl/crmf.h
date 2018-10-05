@@ -16,24 +16,25 @@
 
 # include <openssl/opensslconf.h>
 
-# include <openssl/ossl_typ.h>
-# include <openssl/x509.h>
-# include <openssl/x509v3.h>
-# include <openssl/safestack.h>
-# include <openssl/crmferr.h>
+# ifndef OPENSSL_NO_CRMF
+#  include <openssl/ossl_typ.h>
+#  include <openssl/x509.h>
+#  include <openssl/x509v3.h>
+#  include <openssl/safestack.h>
+#  include <openssl/crmferr.h>
 
-# ifdef  __cplusplus
+#  ifdef  __cplusplus
 extern "C" {
-# endif
+#  endif
 
-# define OSSL_CRMF_POPOPRIVKEY_THISMESSAGE          0
-# define OSSL_CRMF_POPOPRIVKEY_SUBSEQUENTMESSAGE    1
-# define OSSL_CRMF_POPOPRIVKEY_DHMAC                2
-# define OSSL_CRMF_POPOPRIVKEY_AGREEMAC             3
-# define OSSL_CRMF_POPOPRIVKEY_ENCRYPTEDKEY         4
+#  define OSSL_CRMF_POPOPRIVKEY_THISMESSAGE          0
+#  define OSSL_CRMF_POPOPRIVKEY_SUBSEQUENTMESSAGE    1
+#  define OSSL_CRMF_POPOPRIVKEY_DHMAC                2
+#  define OSSL_CRMF_POPOPRIVKEY_AGREEMAC             3
+#  define OSSL_CRMF_POPOPRIVKEY_ENCRYPTEDKEY         4
 
-# define OSSL_CRMF_SUBSEQUENTMESSAGE_ENCRCERT       0
-# define OSSL_CRMF_SUBSEQUENTMESSAGE_CHALLENGERESP  1
+#  define OSSL_CRMF_SUBSEQUENTMESSAGE_ENCRCERT       0
+#  define OSSL_CRMF_SUBSEQUENTMESSAGE_CHALLENGERESP  1
 
 typedef struct OSSL_crmf_encrypetedvalue_st OSSL_CRMF_ENCRYPTEDVALUE;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDVALUE)
@@ -53,10 +54,10 @@ typedef struct OSSL_crmf_pkipublicationinfo_st OSSL_CRMF_PKIPUBLICATIONINFO;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIPUBLICATIONINFO)
 typedef struct OSSL_crmf_singlepubinfo_st OSSL_CRMF_SINGLEPUBINFO;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_SINGLEPUBINFO)
-# if 0 /* held for implementation of id-regCtrl-pkiArchiveOptions control */
+#  if 0 /* held for implementation of id-regCtrl-pkiArchiveOptions control */
 typedef struct OSSL_crmf_pkiarchiveoptions_st OSSL_CRMF_PKIARCHIVEOPTIONS;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIARCHIVEOPTIONS)
-# endif /* 0 */
+#  endif /* 0 */
 typedef struct OSSL_crmf_certtemplate_st OSSL_CRMF_CERTTEMPLATE;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTTEMPLATE)
 typedef STACK_OF(OSSL_CRMF_MSG) OSSL_CRMF_MSGS;
@@ -80,22 +81,22 @@ int OSSL_CRMF_MSG_set1_regCtrl_authenticator(OSSL_CRMF_MSG *msg,
 int OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo(
                                                OSSL_CRMF_PKIPUBLICATIONINFO *pi,
                                                OSSL_CRMF_SINGLEPUBINFO *spi);
-# define OSSL_CRMF_PUB_METHOD_DONTCARE 0
-# define OSSL_CRMF_PUB_METHOD_X500     1
-# define OSSL_CRMF_PUB_METHOD_WEB      2
-# define OSSL_CRMF_PUB_METHOD_LDAP     3
+#  define OSSL_CRMF_PUB_METHOD_DONTCARE 0
+#  define OSSL_CRMF_PUB_METHOD_X500     1
+#  define OSSL_CRMF_PUB_METHOD_WEB      2
+#  define OSSL_CRMF_PUB_METHOD_LDAP     3
 int OSSL_CRMF_MSG_set0_SinglePubInfo(OSSL_CRMF_SINGLEPUBINFO *spi,
                                      int method, GENERAL_NAME *nm);
-# define OSSL_CRMF_PUB_ACTION_DONTPUBLISH   0
-# define OSSL_CRMF_PUB_ACTION_PLEASEPUBLISH 1
+#  define OSSL_CRMF_PUB_ACTION_DONTPUBLISH   0
+#  define OSSL_CRMF_PUB_ACTION_PLEASEPUBLISH 1
 int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(
                                   OSSL_CRMF_PKIPUBLICATIONINFO *pi, int action);
 int OSSL_CRMF_MSG_set1_regCtrl_pkiPublicationInfo(OSSL_CRMF_MSG *msg,
                                               OSSL_CRMF_PKIPUBLICATIONINFO *pi);
-# if 0 /* held for future implementation of Archive Options Control */
+#  if 0 /* held for future implementation of Archive Options Control */
 int OSSL_CRMF_MSG_set1_regCtrl_pkiArchiveOptions(OSSL_CRMF_MSG *msg,
                                               OSSL_CRMF_PKIARCHIVEOPTIONS *aos);
-# endif /* 0 */
+#  endif /* 0 */
 int OSSL_CRMF_MSG_set1_regCtrl_protocolEncrKey(OSSL_CRMF_MSG *msg,
                                                X509_PUBKEY *pubkey);
 int OSSL_CRMF_MSG_set1_regCtrl_oldCertID(OSSL_CRMF_MSG *msg,
@@ -114,11 +115,11 @@ long OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
 int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm, X509_EXTENSIONS *exts);
 
 int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm, const X509_EXTENSION *ext);
-# define OSSL_CRMF_POPO_NONE      -1
-# define OSSL_CRMF_POPO_RAVERIFIED 0
-# define OSSL_CRMF_POPO_SIGNATURE  1
-# define OSSL_CRMF_POPO_KEYENC     2
-# define OSSL_CRMF_POPO_KEYAGREE   3
+#  define OSSL_CRMF_POPO_NONE      -1
+#  define OSSL_CRMF_POPO_RAVERIFIED 0
+#  define OSSL_CRMF_POPO_SIGNATURE  1
+#  define OSSL_CRMF_POPO_KEYENC     2
+#  define OSSL_CRMF_POPO_KEYAGREE   3
 int OSSL_CRMF_MSG_create_popo(OSSL_CRMF_MSG *crm, const EVP_PKEY *pkey,
                               int dgst, int ppmtd);
 int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
@@ -134,7 +135,8 @@ int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
 X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
                                             EVP_PKEY *pkey);
 
-# ifdef __cplusplus
+#  ifdef __cplusplus
 }
-# endif
+#  endif
+# endif /* !defined OPENSSL_NO_CRMF */
 #endif /* !defined OSSL_HEADER_CRMF_H */

@@ -95,6 +95,8 @@ int err_load_crypto_strings_int(void)
 # endif
 # ifndef OPENSSL_NO_CMP
         ERR_load_CMP_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_CRMF
         ERR_load_CRMF_strings() == 0 ||
 # endif
         ERR_load_ASYNC_strings() == 0 ||
