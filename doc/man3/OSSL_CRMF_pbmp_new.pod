@@ -34,8 +34,6 @@ OSSL_CRMF_pbmp_new() initializes and returns a new PBMParameter
 structure with new a random salt of given length B<saltlen>, OWF (one-way
 function) NID B<owfnid>, iteration count B<itercnt>, and MAC NID B<macnid>.
 
-The iteration count is enforced to be at least 100, as stipulated by RFC 4211.
-
 =head1 NOTES
 
 The OWF (one-way function) and for the MAC (message authentication code) may be
