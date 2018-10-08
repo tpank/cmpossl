@@ -17,15 +17,23 @@ OSSL_CRMF_MSG_set1_regInfo_certReq
 
 =head1 DESCRIPTION
 
-OSSL_CRMF_MSG_set1_regInfo_utf8Pairs() adds the cutf8Pairs regInfo to the given
-B<msg> using the given B<utf8pairs> as value. See RFC 4211 section 7.1.
+OSSL_CRMF_MSG_set1_regInfo_utf8Pairs() adds the utf8Pairs regInfo to the given
+B<msg> using a copy of the given B<utf8pairs> as value. See RFC 4211 section
+7.1.
 
 OSSL_CRMF_MSG_set1_regInfo_certReq() adds the certReq regInfo to the given
-B<msg> using the given B<cr> as value. See RFC 4211 section 7.2.
+B<msg> using a copy of the given B<cr> as value. See RFC 4211 section 7.2.
 
 =head1 RETURN VALUES
 
 All functions return 1 on success, 0 on error.
+
+=head1 NOTES
+
+Calling the functions multiple times adds multiple instances of the control in
+question to the regInfo structure of the given B<msg>. However RFC RFC 4211
+only expects multiple instances of utf8Pairs in one regInfo structure, but not
+for certReq.
 
 =head1 SEE ALSO
 
