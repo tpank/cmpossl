@@ -52,10 +52,10 @@ structure, or NULL on error.
 =head1 EXAMPLE
 
  OSSL_CRMF_PBMPARAMETER *pbm = NULL;
- unsiged char *msg = "Hello";
- unsiged char *sec = "SeCrEt";
- unsiged char *mac = NULL;
- unsiged int maclen;
+ unsigned char *msg = "Hello";
+ unsigend char *sec = "SeCrEt";
+ unsigend char *mac = NULL;
+ unsigend int maclen;
 
  if ((pbm = OSSL_CRMF_pbmp_new(16, NID_sha256, 500, NID_hmac_sha1) == NULL))
      goto err;
