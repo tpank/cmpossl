@@ -17,4 +17,7 @@ use OpenSSL::Test::Utils;
 
 setup("test_cmp_ctx");
 
+plan skip_all => "This test is not supported in a no-cmp build"
+    if disabled("cmp");
+
 simple_test("test_cmp_ctx", "cmp_ctx_test", "cmp_ctx");

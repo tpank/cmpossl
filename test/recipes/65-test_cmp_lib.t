@@ -15,6 +15,9 @@ use OpenSSL::Test qw/:DEFAULT data_file/;
 
 setup("test_cmp_lib");
 
+plan skip_all => "This test is not supported in a no-cmp build"
+    if disabled("cmp");
+
 plan tests => 1;
 
 ok(run(test(["cmp_lib_test",

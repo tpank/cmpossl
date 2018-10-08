@@ -16,7 +16,10 @@ use OpenSSL::Test::Utils;
 
 setup("test_cmp_internal");
 
-plan skip_all => "This test is unsupported in a shared library build on Windows"
+plan skip_all => "This test is not supported in a no-cmp build"
+    if disabled("cmp");
+
+plan skip_all => "This test is not supported in a shared library build on Windows"
     if $^O eq 'MSWin32' && !disabled("shared");
 
 plan tests => 1;

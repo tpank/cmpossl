@@ -26,7 +26,7 @@ my $no_proxy = $ENV{no_proxy} // $ENV{NO_PROXY};
 
 setup("test_cmp_cli");
 
-plan skip_all => "CMP is not supported by this OpenSSL build"
+plan skip_all => "This test is not supported in a no-cmp build"
     if disabled("cmp");
 
 my @cmp_basic_tests = (
