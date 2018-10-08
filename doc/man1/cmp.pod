@@ -88,7 +88,10 @@ S<[B<-revcheck_tls spec>]>
 S<[B<-revcheck_cmp spec>]>
 S<[B<-revcheck_new spec>]>
 S<[B<-crls URLs>]>
+S<[B<-disable_cdps>]>
+S<[B<-cdp url>]>
 S<[B<-crl_timeout seconds>]>
+S<[B<-disable_aias>]>
 S<[B<-ocsp_url url>]>
 S<[B<-ocsp_timeout seconds>]>
 
@@ -775,18 +778,32 @@ and with OpenSSL version 1.1.0 or newer. Multi-stapling is not (yet) supported).
 
 =item B<-crls URLs>
 
-Use given CRL(s) as secondary source of certificate revocation information.
+Pre-load the given CRL(s) as local primary source of certificate revocation
+information (to be used right after any stapled OCSP responses, if applicable).
 Multiple sources may be specified, separated by commas or whitespace,
 each starting with C<http:> or C<file:> or being simply a local file name.
+
+=item B<-disable_cdps>
+
+Disable use of CDP entries in certificates.
+
+=item B<-cdp url>
+
+Fallback URL for CRL Distribution Point (CDP);
+CDP entries in certificates are preferred.
 
 =item B<-crl_timeout seconds>
 
 Timeout for online CRL retrieval via HTTP (or 0 for none).
 Default is 10 seconds.
 
+=item B<-disable_aias>
+
+Disable use of AIA entries in certificates.
+
 =item B<-ocsp_url url>
 
-Take given URL as fallback OCSP responder (AIA entries are preferred.
+Fallback URL for OCSP responder (AIA entries in certificates are preferred).
 
 =item B<-ocsp_timeout seconds>
 
