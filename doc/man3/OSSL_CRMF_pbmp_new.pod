@@ -37,7 +37,7 @@ function) NID B<owfnid>, iteration count B<itercnt>, and MAC NID B<macnid>.
 =head1 NOTES
 
 The OWF (one-way function) and for the MAC (message authentication code) may be
-any with an NID defined in B<openssl/objects.h>,
+any with a NID defined in B<openssl/objects.h>,
 which also should include NID_hmac_sha1 which is specified by RFC 4210.
 
 RFC 4210 recommends that the salt SHOULD be at least 8 bytes (64 bits) long.
