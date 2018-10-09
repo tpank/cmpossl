@@ -37,7 +37,7 @@ struct OSSL_cmp_srv_ctx_st {
     int certReqId;              /* id saved in case of polling */
     OSSL_CMP_CTX *ctx;          /* client cmp context, partly reused for srv */
     unsigned int pollCount;     /* Number of polls before cert response */
-    int checkAfterTime;         /* time to wait for the next poll in seconds */
+    int64_t checkAfterTime;     /* time to wait for the next poll in seconds */
     int grantImplicitConfirm;   /* Grant implicit confirmation if requested */
     int sendError;              /* Always send error if true */
     int sendUnprotectedErrors;  /* Send error and rejection msgs unprotected */
@@ -159,7 +159,7 @@ int OSSL_CMP_SRV_CTX_set_send_error(OSSL_CMP_SRV_CTX *srv_ctx, int error)
     return 1;
 }
 
-int OSSL_CMP_SRV_CTX_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx, int sec)
+int OSSL_CMP_SRV_CTX_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx, int64_t sec)
 {
     if (srv_ctx == NULL)
         return 0;
@@ -167,7 +167,7 @@ int OSSL_CMP_SRV_CTX_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx, int sec)
     return 1;
 }
 
-int OSSL_CMP_SRV_CTX_set_pollCount(OSSL_CMP_SRV_CTX *srv_ctx, int count)
+int OSSL_CMP_SRV_CTX_set_pollCount(OSSL_CMP_SRV_CTX *srv_ctx, int64_t count)
 {
     if (srv_ctx == NULL || count < 0)
         return 0;
