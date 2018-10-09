@@ -111,10 +111,15 @@ OSSL_CMP_HDR *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
 int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr)
 {
     int pvno;
+    if (hdr == NULL) {
+        CMPerr(CMP_F_OSSL_CMP_HDR_GET_PVNO, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     if (!OSSL_CRMF_ASN1_get_int(&pvno, hdr->pvno)) {
         CMPerr(CMP_F_OSSL_CMP_HDR_GET_PVNO, CMP_R_BAD_PVNO);
+        return 0;
     }
-    return hdr != NULL ? pvno : 0;
+    return pvno;
 }
 
 /* returns the transactionID of the given PKIHeader or NULL on error */
