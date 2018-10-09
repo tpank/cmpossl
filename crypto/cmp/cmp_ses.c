@@ -291,7 +291,6 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             if (ctx->totaltimeout != 0) { /* total timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
                 int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
-
                 if (time_left <= 0) {
                     CMPerr(CMP_F_POLLFORRESPONSE, CMP_R_TOTAL_TIMEOUT);
                     goto err;

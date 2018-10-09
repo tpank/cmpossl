@@ -474,7 +474,7 @@ OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int crid)
  * returns a poll response on success and NULL on error
  */
 OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
-                                   int poll_after)
+                                   int64_t poll_after)
 {
     OSSL_CMP_MSG *msg;
     OSSL_CMP_POLLREP *prep;
@@ -489,7 +489,7 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
         goto err;
     sk_OSSL_CMP_POLLREP_push(msg->body->value.pollRep, prep);
     ASN1_INTEGER_set(prep->certReqId, crid);
-    ASN1_INTEGER_set(prep->checkAfter, poll_after);
+    ASN1_INTEGER_set_int64(prep->checkAfter, poll_after);
 
     if (!OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
