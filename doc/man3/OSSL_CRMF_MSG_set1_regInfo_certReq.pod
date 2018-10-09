@@ -30,10 +30,9 @@ All functions return 1 on success, 0 on error.
 
 =head1 NOTES
 
-Calling the functions multiple times adds multiple instances of the control in
-question to the regInfo structure of the given B<msg>. However RFC RFC 4211
-only expects multiple instances of utf8Pairs in one regInfo structure, but not
-for certReq.
+Calling these functions multiple times adds multiple instances of the respective
+control to the regInfo structure of the given B<msg>. While RFC 4211 expects
+multiple utf8Pairs in one regInfo structure, it does not allow multiple certReq.
 
 =head1 SEE ALSO
 
