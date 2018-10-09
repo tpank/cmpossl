@@ -11,18 +11,17 @@ OSSL_CRMF_MSG_set1_regInfo_certReq
  #include <openssl/crmf.h>
 
  int OSSL_CRMF_MSG_set1_regInfo_utf8Pairs(OSSL_CRMF_MSG *msg,
-                                          ASN1_UTF8STRING *utf8pairs);
+                                          const ASN1_UTF8STRING *utf8pairs);
  int OSSL_CRMF_MSG_set1_regInfo_certReq(OSSL_CRMF_MSG *msg,
-                                        OSSL_CRMF_CERTREQUEST *cr);
+                                        const OSSL_CRMF_CERTREQUEST *cr);
 
 =head1 DESCRIPTION
 
-OSSL_CRMF_MSG_set1_regInfo_utf8Pairs() adds the utf8Pairs regInfo to the given
-B<msg> using a copy of the given B<utf8pairs> as value. See RFC 4211 section
-7.1.
+OSSL_CRMF_MSG_set1_regInfo_utf8Pairs() adds a copy of the given B<utf8pairs>
+value as utf8Pairs regInfo to the given B<msg>. See RFC 4211 section 7.1.
 
-OSSL_CRMF_MSG_set1_regInfo_certReq() adds the certReq regInfo to the given
-B<msg> using a copy of the given B<cr> as value. See RFC 4211 section 7.2.
+OSSL_CRMF_MSG_set1_regInfo_certReq() adds a copy of the given B<cr> value
+as certReq regInfo to the given B<msg>. See RFC 4211 section 7.2.
 
 =head1 RETURN VALUES
 

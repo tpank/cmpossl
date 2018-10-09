@@ -39,7 +39,7 @@
  */
 #define IMPLEMENT_CRMF_CTRL_FUNC(atyp, valt, ctrlinf)                     \
 int OSSL_CRMF_MSG_set1_##ctrlinf##_##atyp(OSSL_CRMF_MSG *msg,             \
-                                          valt *in)                       \
+                                          const valt *in)                 \
 {                                                                         \
     OSSL_CRMF_ATTRIBUTETYPEANDVALUE *atav = NULL;                         \
     if (msg == NULL || in  == NULL)                                       \
@@ -48,7 +48,7 @@ int OSSL_CRMF_MSG_set1_##ctrlinf##_##atyp(OSSL_CRMF_MSG *msg,             \
         goto err;                                                         \
     if ((atav->type = OBJ_nid2obj(NID_id_##ctrlinf##_##atyp)) == NULL)    \
         goto err;                                                         \
-    if ((atav->value.atyp = valt##_dup(in)) == NULL)                      \
+    if ((atav->value.atyp = valt##_dup((valt *)in)) == NULL)            \
         goto err;                                                         \
     if (!OSSL_CRMF_MSG_push0_##ctrlinf(msg, atav))                        \
         goto err;                                                         \

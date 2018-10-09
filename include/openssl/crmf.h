@@ -75,9 +75,9 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
 
 /* crmf_lib.c */
 int OSSL_CRMF_MSG_set1_regCtrl_regToken(OSSL_CRMF_MSG *msg,
-                                        ASN1_UTF8STRING *tok);
+                                        const ASN1_UTF8STRING *tok);
 int OSSL_CRMF_MSG_set1_regCtrl_authenticator(OSSL_CRMF_MSG *msg,
-                                             ASN1_UTF8STRING *auth);
+                                             const ASN1_UTF8STRING *auth);
 int OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo(
                                                OSSL_CRMF_PKIPUBLICATIONINFO *pi,
                                                OSSL_CRMF_SINGLEPUBINFO *spi);
@@ -92,22 +92,22 @@ int OSSL_CRMF_MSG_set0_SinglePubInfo(OSSL_CRMF_SINGLEPUBINFO *spi,
 int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(
                                   OSSL_CRMF_PKIPUBLICATIONINFO *pi, int action);
 int OSSL_CRMF_MSG_set1_regCtrl_pkiPublicationInfo(OSSL_CRMF_MSG *msg,
-                                              OSSL_CRMF_PKIPUBLICATIONINFO *pi);
+                                        const OSSL_CRMF_PKIPUBLICATIONINFO *pi);
 #  if 0 /* held for future implementation of Archive Options Control */
 int OSSL_CRMF_MSG_set1_regCtrl_pkiArchiveOptions(OSSL_CRMF_MSG *msg,
-                                              OSSL_CRMF_PKIARCHIVEOPTIONS *aos);
+                                        const OSSL_CRMF_PKIARCHIVEOPTIONS *aos);
 #  endif /* 0 */
 int OSSL_CRMF_MSG_set1_regCtrl_protocolEncrKey(OSSL_CRMF_MSG *msg,
-                                               X509_PUBKEY *pubkey);
+                                               const X509_PUBKEY *pubkey);
 int OSSL_CRMF_MSG_set1_regCtrl_oldCertID(OSSL_CRMF_MSG *msg,
-                                         OSSL_CRMF_CERTID *cid);
+                                         const OSSL_CRMF_CERTID *cid);
 OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_gen(const X509_NAME *issuer,
                                        const ASN1_INTEGER *serial);
 
 int OSSL_CRMF_MSG_set1_regInfo_utf8Pairs(OSSL_CRMF_MSG *msg,
-                                         ASN1_UTF8STRING *utf8pairs);
+                                         const ASN1_UTF8STRING *utf8pairs);
 int OSSL_CRMF_MSG_set1_regInfo_certReq(OSSL_CRMF_MSG *msg,
-                                       OSSL_CRMF_CERTREQUEST *cr);
+                                       const OSSL_CRMF_CERTREQUEST *cr);
 
 int OSSL_CRMF_MSG_set_validity(OSSL_CRMF_MSG *crm, time_t from, time_t to);
 int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, long rid);
