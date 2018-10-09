@@ -1354,7 +1354,7 @@ OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
     }
 
     CMPerr(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0, CMP_R_CERTRESPONSE_NOT_FOUND);
-    BIO_snprintf(str, sizeof(str), "%ld", rid);
+    BIO_snprintf(str, sizeof(str), "%d", rid);
     ERR_add_error_data(2, "expected certReqId = ", str);
     return NULL;
 }
@@ -1391,7 +1391,7 @@ OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(
 
     CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
            CMP_R_CERTRESPONSE_NOT_FOUND);
-    BIO_snprintf(str, sizeof(str), "%ld", rid);
+    BIO_snprintf(str, sizeof(str), "%d", rid);
     ERR_add_error_data(2, "expected certReqId = ", str);
     return NULL;
 }
