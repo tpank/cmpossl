@@ -52,7 +52,6 @@ static char *prog = "cmp";
 #include <openssl/x509.h>
 
 static int read_config(void);
-static int opt_nat(void);
 
 static CONF *conf = NULL;       /* OpenSSL config file context structure */
 static OSSL_CMP_CTX *cmp_ctx = NULL;

@@ -784,7 +784,7 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int failure,
         failure = OSSL_CMP_PKIFAILUREINFO_incorrectData;
 
     if (failure >= 0) {
-        char *str = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
+        char *str = X509_NAME_oneline(X509_get_subject_name((X509 *)cert), NULL, 0);
         OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
                         "failed to validate newly enrolled certificate with subject: %s",
                         str);
