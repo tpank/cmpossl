@@ -84,6 +84,7 @@ or NULL on error.
 All other functions return 1 on success, 0 on error.
 
 =head1 NOTES
+
 A function OSSL_CRMF_MSG_set1_regCtrl_pkiArchiveOptions() for setting an
 Archive Options Control is not yet implemented due to missing features to
 create the needed OSSL_CRMF_PKIARCHIVEOPTINS content.
