@@ -18,16 +18,16 @@ use OpenSSL::Test qw/:DEFAULT with data_file data_dir/;
 use OpenSSL::Test::Utils;
 use Data::Dumper; # for debugging purposes only
 
+setup("test_cmp_cli");
+
+plan skip_all => "This test is not supported in a no-cmp build"
+    if disabled("cmp");
+
 my $proxy = "<EMPTY>";
 $proxy = $ENV{http_proxy} // $ENV{HTTP_PROXY} // $proxy;
 $proxy =~ s/^\"(.*?)\"$/$1/; # chop any leading/trailing '"' (for Windows)
 $proxy =~ s{http://}{};
 my $no_proxy = $ENV{no_proxy} // $ENV{NO_PROXY};
-
-setup("test_cmp_cli");
-
-plan skip_all => "This test is not supported in a no-cmp build"
-    if disabled("cmp");
 
 my @cmp_basic_tests = (
     [ "output help",                      [ "-help"], 0 ],

@@ -12,6 +12,7 @@
 
 use strict;
 use OpenSSL::Test qw/:DEFAULT data_file/;
+use OpenSSL::Test::Utils;
 
 setup("test_cmp_vfy");
 
