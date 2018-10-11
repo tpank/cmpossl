@@ -563,7 +563,7 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(OSSL_CMP_CTX *ctx);
 #  define OSSL_CMP_CTX_OPT_POLICIES_CRITICAL 14
 int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, const int opt, const int val);
 #  if 0 /* held for future implementation */
-int OSSL_CMP_CTX_push_freeText(OSSL_CMP_CTX *ctx, const char *text);
+/* int OSSL_CMP_CTX_push_freeText(OSSL_CMP_CTX *ctx, const char *text); */
 #  endif /* 0 */
 
 /* BIO definitions */
