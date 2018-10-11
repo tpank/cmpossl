@@ -54,10 +54,6 @@ typedef struct OSSL_crmf_pkipublicationinfo_st OSSL_CRMF_PKIPUBLICATIONINFO;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIPUBLICATIONINFO)
 typedef struct OSSL_crmf_singlepubinfo_st OSSL_CRMF_SINGLEPUBINFO;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_SINGLEPUBINFO)
-#  if 0 /* held for implementation of id-regCtrl-pkiArchiveOptions control */
-typedef struct OSSL_crmf_pkiarchiveoptions_st OSSL_CRMF_PKIARCHIVEOPTIONS;
-DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKIARCHIVEOPTIONS)
-#  endif /* 0 */
 typedef struct OSSL_crmf_certtemplate_st OSSL_CRMF_CERTTEMPLATE;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_CERTTEMPLATE)
 typedef STACK_OF(OSSL_CRMF_MSG) OSSL_CRMF_MSGS;
@@ -93,10 +89,6 @@ int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(
                                   OSSL_CRMF_PKIPUBLICATIONINFO *pi, int action);
 int OSSL_CRMF_MSG_set1_regCtrl_pkiPublicationInfo(OSSL_CRMF_MSG *msg,
                                         const OSSL_CRMF_PKIPUBLICATIONINFO *pi);
-#  if 0 /* held for future implementation of Archive Options Control */
-int OSSL_CRMF_MSG_set1_regCtrl_pkiArchiveOptions(OSSL_CRMF_MSG *msg,
-                                        const OSSL_CRMF_PKIARCHIVEOPTIONS *aos);
-#  endif /* 0 */
 int OSSL_CRMF_MSG_set1_regCtrl_protocolEncrKey(OSSL_CRMF_MSG *msg,
                                                const X509_PUBKEY *pubkey);
 int OSSL_CRMF_MSG_set1_regCtrl_oldCertID(OSSL_CRMF_MSG *msg,
