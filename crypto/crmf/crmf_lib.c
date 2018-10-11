@@ -165,6 +165,12 @@ int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(
 IMPLEMENT_CRMF_CTRL_FUNC(pkiPublicationInfo, OSSL_CRMF_PKIPUBLICATIONINFO,
                          regCtrl)
 
+#if 0 /* held for implementation of id-regCtrl-pkiArchiveOptions control */
+ /* id-regCtrl-pkiArchiveOptions Control (section 6.4) */
+IMPLEMENT_CRMF_CTRL_FUNC(pkiArchiveOptions, OSSL_CRMF_PKIARCHIVEOPTIONS,
+                         regCtrl)
+#endif /* 0 */
+
  /* id-regCtrl-oldCertID Control (section 6.5) from the given */
 IMPLEMENT_CRMF_CTRL_FUNC(oldCertID, OSSL_CRMF_CERTID, regCtrl)
 
