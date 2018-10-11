@@ -15,10 +15,6 @@
 #include <openssl/asn1t.h>
 #include <openssl/crmf.h>
 
-#if 0 /* held for future implementation of Archive Options Control */
-#include "../cms/cms_lcl.h" /* needed for CMS_EnvelopedData */
-#endif /* 0 */
-
 #include "crmf_int.h"
 
 ASN1_SEQUENCE(OSSL_CRMF_PRIVATEKEYINFO) = {
@@ -62,31 +58,6 @@ ASN1_SEQUENCE(OSSL_CRMF_ENCRYPTEDVALUE) = {
     ASN1_SIMPLE(OSSL_CRMF_ENCRYPTEDVALUE, encValue, ASN1_BIT_STRING)
 } ASN1_SEQUENCE_END(OSSL_CRMF_ENCRYPTEDVALUE)
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDVALUE)
-
-#if 0 /* held for future implementation of Archive Options Control */
-ASN1_CHOICE(OSSL_CRMF_ENCRYPTEDKEY) = {
-# if 0 /* DEPRECATED */
-    ASN1_IMP(OSSL_CRMF_ENCRYPTEDKEY, value.encryptedValue,
-             OSSL_CRMF_ENCRYPTEDVALUE, 0),
-# endif
-    ASN1_IMP(OSSL_CRMF_ENCRYPTEDKEY, value.envelopedData, CMS_EnvelopedData, 1)
-} ASN1_CHOICE_END(OSSL_CRMF_ENCRYPTEDKEY)
-IMPLEMENT_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDKEY)
-#endif /* 0 */
-
-#if 0 /* held for future implementation of Archive Options Control */
-ASN1_CHOICE(OSSL_CRMF_PKIARCHIVEOPTIONS) = {
-    ASN1_IMP(OSSL_CRMF_PKIARCHIVEOPTIONS, value.encryptedPrivKey,
-             OSSL_CRMF_ENCRYPTEDKEY, 0),
-    ASN1_IMP(OSSL_CRMF_PKIARCHIVEOPTIONS, value.keyGenParameters,
-             ASN1_OCTET_STRING, 1),
-    ASN1_IMP(OSSL_CRMF_PKIARCHIVEOPTIONS, value.archiveRemGenPrivKey,
-             ASN1_BOOLEAN, 2)
-} ASN1_CHOICE_END(OSSL_CRMF_PKIARCHIVEOPTIONS)
-IMPLEMENT_ASN1_FUNCTIONS(OSSL_CRMF_PKIARCHIVEOPTIONS)
-IMPLEMENT_ASN1_DUP_FUNCTION(OSSL_CRMF_PKIARCHIVEOPTIONS)
-#endif /* 0 */
-
 
 ASN1_SEQUENCE(OSSL_CRMF_SINGLEPUBINFO) = {
     ASN1_SIMPLE(OSSL_CRMF_SINGLEPUBINFO, pubMethod, ASN1_INTEGER),
@@ -182,12 +153,6 @@ ASN1_ADB(OSSL_CRMF_ATTRIBUTETYPEANDVALUE) = {
               ASN1_SIMPLE(OSSL_CRMF_ATTRIBUTETYPEANDVALUE,
                           value.pkiPublicationInfo,
                           OSSL_CRMF_PKIPUBLICATIONINFO)),
-#if 0 /* held for future implementation of Archive Options Control */
-    ADB_ENTRY(NID_id_regCtrl_pkiArchiveOptions,
-              ASN1_SIMPLE(OSSL_CRMF_ATTRIBUTETYPEANDVALUE,
-                          value.pkiArchiveOptions,
-                          OSSL_CRMF_PKIARCHIVEOPTIONS)),
-#endif /* 0 */
     ADB_ENTRY(NID_id_regCtrl_oldCertID,
               ASN1_SIMPLE(OSSL_CRMF_ATTRIBUTETYPEANDVALUE,
                           value.oldCertID, OSSL_CRMF_CERTID)),

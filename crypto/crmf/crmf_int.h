@@ -110,55 +110,6 @@ struct OSSL_crmf_certid_st {
 } /* OSSL_CRMF_CERTID */;
 OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_dup(OSSL_CRMF_CERTID *cid);
 
-# if 0 /* held for future implementation of Archive Options Control */
-/*-
- * EncryptedKey ::= CHOICE {
- * encryptedValue    EncryptedValue,       -- Deprecated
- * envelopedData     [0] EnvelopedData
- * }
- */
-typedef struct OSSL_crmf_encryptedkey_st {
-    int type;
-    union {
-        OSSL_CRMF_ENCRYPTEDVALUE *encryptedValue; /* Deprecated */
-        /*-
-         * TODO: This is not ASN1_NULL but CMS_ENVELOPEDDATA which should be
-         * somehow  taken from crypto/cms which exists now
-         * - this is not used anywhere so far */
-        ASN1_NULL *envelopedData;
-    } value;
-} OSSL_CRMF_ENCRYPTEDKEY;
-DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDKEY)
-# endif /* 0 */
-
-# if 0 /* held for future implementation of Archive Options Control */
-/*
- * PKIArchiveOptions ::= CHOICE {
- * encryptedPrivKey         [0] EncryptedKey,
- * -- the actual value of the private key
- * keyGenParameters         [1] KeyGenParameters,
- * -- parameters that allow the private key to be re-generated
- * archiveRemGenPrivKey [2] BOOLEAN
- * }
- * -- set to TRUE if sender wishes receiver to archive the private
- * -- key of a key pair that the receiver generates in response to
- * -- this request; set to FALSE if no archival is desired.
- */
-struct OSSL_crmf_pkiarchiveoptions_st {
-    int type;
-    union {
-        /* 0 */
-        OSSL_CRMF_ENCRYPTEDKEY *encryptedPrivKey;
-        /* KeyGenParameters ::= OCTET STRING *//* 1 */
-        ASN1_OCTET_STRING *keyGenParameters;
-        /* 2 */
-        ASN1_BOOLEAN *archiveRemGenPrivKey;
-    } value;
-} /* OSSL_CRMF_PKIARCHIVEOPTIONS */;
-OSSL_CRMF_PKIARCHIVEOPTIONS *OSSL_CRMF_PKIARCHIVEOPTIONS_dup(
-                                       OSSL_CRMF_PKIARCHIVEOPTIONS *pkiPubInfo);
-# endif /* 0 */
-
 /*
  * SinglePubInfo ::= SEQUENCE {
  *  pubMethod        INTEGER {
@@ -401,11 +352,6 @@ struct OSSL_crmf_attributetypeandvalue_st {
 
         /* NID_id_regCtrl_pkiPublicationInfo */
         OSSL_CRMF_PKIPUBLICATIONINFO *pkiPublicationInfo;
-
-# if 0 /* held for implementation of id-regCtrl-pkiArchiveOptions control */
-        /* NID_id_regCtrl_pkiArchiveOptions */
-        OSSL_CRMF_PKIARCHIVEOPTIONS *pkiArchiveOptions;
-# endif /* 0 */
 
         /* NID_id_regCtrl_oldCertID */
         OSSL_CRMF_CERTID *oldCertID;
