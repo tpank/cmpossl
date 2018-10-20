@@ -15,7 +15,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#include "e_os.h"
 #include <openssl/asn1.h>
 #include <openssl/asn1t.h>
 #include <openssl/cmp.h>
