@@ -19,7 +19,8 @@
 # include <openssl/x509v3.h>
 # include <openssl/safestack.h>
 
-# include "internal/cryptlib.h" /* for DECIMAL_SIZE */
+# define DECIMAL_SIZE(type) ((sizeof(type)*8+2)/3+1) /* this avoids dependency
+                      on internal header file: #include "internal/cryptlib.h" */
 
 # include <openssl/crmf.h>
 
