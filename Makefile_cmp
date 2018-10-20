@@ -1,0 +1,36 @@
+ifeq ($(OS),Windows_NT)
+#   EXE=.exe
+    DLL=.dll
+    OBJ=.obj
+#   LIB=bin
+else
+#   EXE=
+    DLL=.so
+    OBJ=.o
+#   LIB=lib
+endif
+
+BASE_DIR=.
+ CMP_SRC_DIR=$(BASE_DIR)/crypto/cmp
+CRMF_SRC_DIR=$(BASE_DIR)/crypto/crmf
+CMP_SRCS = \
+ $(CMP_SRC_DIR)/cmp_asn.c $(CMP_SRC_DIR)/cmp_ctx.c $(CMP_SRC_DIR)/cmp_err.c \
+ $(CMP_SRC_DIR)/cmp_http.c $(CMP_SRC_DIR)/cmp_lib.c $(CMP_SRC_DIR)/cmp_msg.c \
+ $(CMP_SRC_DIR)/cmp_ses.c $(CMP_SRC_DIR)/cmp_srv.c $(CMP_SRC_DIR)/cmp_vfy.c \
+ $(CRMF_SRC_DIR)/crmf_asn.c $(CRMF_SRC_DIR)/crmf_err.c \
+ $(CRMF_SRC_DIR)/crmf_lib.c $(CRMF_SRC_DIR)/crmf_pbm.c \
+#$(CRMF_SRC_DIR)/crmf_???.c $(CMP_SRC_DIR)/cmp_{???,http}.c
+
+CFLAGS=-g -O0 -fPIC -I$(BASE_DIR)/include
+
+CMP_LIB=$(BASE_DIR)/libcmp$(DLL)
+
+.phony: cmp_lib cmp_clean
+
+cmp_lib: $(CMP_LIB)
+
+$(CMP_LIB): $(CMP_SRCS)
+	$(CC) $(CFLAGS) $(CMP_SRCS) -shared -o $@
+
+cmp_clean:
+	rm -f $(CMP_LIB)
