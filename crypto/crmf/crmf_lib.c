@@ -323,9 +323,15 @@ int OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm)
 
 int OSSL_CRMF_ASN1_get_int(int *pr, const ASN1_INTEGER *a)
 {
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
     int64_t res;
     if (!ASN1_INTEGER_get_int64(&res, a))
         return 0;
+#else
+    int res = ASN1_INTEGER_get(a);
+    if (res == -1)
+        return 0;
+#endif
     if (res < INT_MIN) {
         CRMFerr(CRMF_F_OSSL_CRMF_ASN1_GET_INT, ASN1_R_TOO_SMALL);
         return 0;

@@ -21,7 +21,21 @@
 #  include <openssl/x509.h>
 #  include <openssl/x509v3.h>
 #  include <openssl/safestack.h>
-#  include <openssl/crmferr.h>
+#  if OPENSSL_VERSION_NUMBER >= 0x10101000L
+#   include <openssl/crmferr.h>
+#  else
+#   define ERR_load_strings_const(s) ERR_load_strings(0, (ERR_STRING_DATA *)s)
+#  endif
+
+#  if OPENSSL_VERSION_NUMBER < 0x10100000L
+#   define uint64_t unsigned long
+#   define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
+#   define static_ASN1_SEQUENCE_END(T) ASN1_SEQUENCE_END(T)
+#   define ERR_R_PASSED_INVALID_ARGUMENT CRMF_R_NULL_ARGUMENT
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100005L
+#   define X509_PUBKEY_get0(x)((x)->pkey)
+#  endif
 
 #  ifdef  __cplusplus
 extern "C" {
@@ -133,3 +147,15 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
 #  endif
 # endif /* !defined OPENSSL_NO_CRMF */
 #endif /* !defined OSSL_HEADER_CRMF_H */
+
+
+#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(OSSL_HEADER_CRMF_ERROR_CODES)
+# define OSSL_HEADER_CRMF_ERROR_CODES
+# ifdef  __cplusplus
+extern "C" {
+# endif
+/* BEGIN ERROR CODES */
+# ifdef  __cplusplus
+}
+# endif
+#endif
