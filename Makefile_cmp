@@ -11,6 +11,7 @@ else
 endif
 
 BASE_DIR=.
+HEADERS=include/openssl/cmp.h include/openssl/cmperr.h include/openssl/crmf.h include/openssl/crmferr.h
  CMP_SRC_DIR=$(BASE_DIR)/crypto/cmp
 CRMF_SRC_DIR=$(BASE_DIR)/crypto/crmf
 CMP_SRCS = \
@@ -29,7 +30,7 @@ CMP_LIB=$(BASE_DIR)/libcmp$(DLL)
 
 cmp_lib: $(CMP_LIB)
 
-$(CMP_LIB): $(CMP_SRCS)
+$(CMP_LIB): $(CMP_SRCS) $(HEADERS) 
 	$(CC) $(CFLAGS) $(CMP_SRCS) -shared -o $@
 
 cmp_clean:
