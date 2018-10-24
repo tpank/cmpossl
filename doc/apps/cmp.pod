@@ -120,8 +120,8 @@ Default file name is taken from the environment variable 'OPENSSL_CONF'.
 =item B<-section name>
 
 Section to use within config file defining CMP options,
-An empty string "" means no specific section. Default is 'cmp'. 
-In any case, as usual, the [default] section and finally the unnamed section 
+An empty string "" means no specific section. Default is 'cmp'.
+In any case, as usual, the [default] section and finally the unnamed section
 (as far as present) can provide per-option fallback values.
 
 =back
