@@ -752,8 +752,9 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 /*
  * callback validating that the new certificate can be verified, using
  * ctx->certConf_cb_arg, which has been initialized using opt_out_trusted, and
- * ctx->untrusted_certs, which at this point already contains ctx->extraCertsIn.
- * Returns -1 on acceptance, else a OSSL_CMP_PKIFAILUREINFO bit number.
+ * ctx->untrusted_certs, which at this point already contains
+ * ctx->extraCertsIn.  Returns -1 on acceptance, else a bit field reflecting
+ * one OSSL_CMP_PKIFAILUREINFO.
  * Quoting from RFC 4210 section 5.1. Overall PKI Message:
  *     The extraCerts field can contain certificates that may be useful to
  *     the recipient.  For example, this can be used by a CA or RA to
@@ -766,28 +767,29 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
  * Note: While often handy, there is no hard requirement by CMP that
  * an EE must be able to validate the certificates it gets enrolled.
  */
-int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int failure,
+int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int fail_info,
                          const char **text)
 {
     X509_STORE *out_trusted = OSSL_CMP_CTX_get_certConf_cb_arg(ctx);
     (void)text; /* make (artificial) use of var to prevent compiler warning */
 
-    if (failure >= 0) /* accept any error flagged by CMP core library */
-        return failure;
+    if (fail_info != 0) /* accept any error flagged by CMP core library */
+        return fail_info;
 
     /* TODO: load caPubs [OSSL_CMP_CTX_caPubs_get1(ctx)] as additional trusted
     certs during IR and if PBMAC (shared secret) is used, cf. RFC 4210, 5.3.2 */
 
     if (out_trusted != NULL &&
         !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))
-        failure = OSSL_CMP_PKIFAILUREINFO_incorrectData;
+        fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
 
-    if (failure >= 0) {
-        char *str = X509_NAME_oneline(X509_get_subject_name((X509 *)cert), NULL, 0);
+    if (fail_info != 0) {
+        char *str = X509_NAME_oneline(X509_get_subject_name((X509 *)cert),
+                                      NULL, 0);
         OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
-                        "failed to validate newly enrolled certificate with subject: %s",
+               "failed to validate newly enrolled certificate with subject: %s",
                         str);
         OPENSSL_free(str);
     }
-    return failure;
+    return fail_info;
 }
