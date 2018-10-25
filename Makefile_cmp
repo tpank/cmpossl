@@ -10,28 +10,49 @@ else
 #   LIB=lib
 endif
 
-BASE_DIR=.
-HEADERS=include/openssl/cmp.h include/openssl/cmperr.h include/openssl/crmf.h include/openssl/crmferr.h
- CMP_SRC_DIR=$(BASE_DIR)/crypto/cmp
-CRMF_SRC_DIR=$(BASE_DIR)/crypto/crmf
-CMP_SRCS = \
- $(CMP_SRC_DIR)/cmp_asn.c $(CMP_SRC_DIR)/cmp_ctx.c $(CMP_SRC_DIR)/cmp_err.c \
- $(CMP_SRC_DIR)/cmp_http.c $(CMP_SRC_DIR)/cmp_lib.c $(CMP_SRC_DIR)/cmp_msg.c \
- $(CMP_SRC_DIR)/cmp_ses.c $(CMP_SRC_DIR)/cmp_srv.c $(CMP_SRC_DIR)/cmp_vfy.c \
- $(CRMF_SRC_DIR)/crmf_asn.c $(CRMF_SRC_DIR)/crmf_err.c \
- $(CRMF_SRC_DIR)/crmf_lib.c $(CRMF_SRC_DIR)/crmf_pbm.c \
-#$(CRMF_SRC_DIR)/crmf_???.c $(CMP_SRC_DIR)/cmp_{???,http}.c
+ifeq ($(OPENSSL_DIR),)
+     OPENSSL_DIR=.
+endif
+OPENSSL_VERSION=$(shell fgrep OPENSSL_VERSION_NUMBER $(OPENSSL_DIR)/include/openssl/opensslv.h | sed -r 's/.*?NUMBER\s+//; s/L.*//')
+ifeq ($(findstring 0x,$(OPENSSL_VERSION)),)
+    $(warning cannot determine version of OpenSSL in directory '$(OPENSSL_DIR)')
+endif
+ifeq ($(shell test $$(printf "%d" $(OPENSSL_VERSION)) -ge $$(printf "%d" 0x10102000); echo $$?),0)
+    OSSL_VERSION_QUIRKS+=-D'DEPRECATEDIN_1_2_0(f)='
+endif
+ifeq ($(shell test $$(printf "%d" $(OPENSSL_VERSION)) -lt $$(printf "%d" 0x10100000); echo $$?),0)
+    #$(info enabling compilation quirks for OpenSSL 1.0.2)
+    OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers -D'DEPRECATEDIN_1_1_0(f)=f;' -D'DEPRECATEDIN_1_0_0(f)='
+endif
 
-CFLAGS=-g -O0 -fPIC -I$(BASE_DIR)/include
+ifeq ($(CMP_DIR),)
+     CMP_DIR=.
+endif
+CMP_OUT ?= $(CMP_DIR)
+CMP_INC=$(CMP_OUT)/include_cmp
+CMP_LIB=$(CMP_OUT)/libcmp$(DLL)
 
-CMP_LIB=$(BASE_DIR)/libcmp$(DLL)
+CC=gcc
+CFLAGS=-g -O0 -Werror $(OSSL_VERSION_QUIRKS) -fPIC -I$(CMP_INC) -I$(OPENSSL_DIR)/include # order of -I is critical
+CMP_HDRS_INC = -include openssl/crmf.h # used to force inclusion order in cmp_err.c
+
+CMP_HDRS_=crmf.h cmp.h cmperr.h crmferr.h err.h safestack.h
+CMP_HDRS = $(patsubst %,./include/openssl/%,$(CMP_HDRS_))
+CMP_SRCS_ = cmp_asn.c cmp_ctx.c cmp_err.c cmp_http.c cmp_lib.c cmp_msg.c cmp_ses.c cmp_srv.c cmp_vfy.c
+CRMF_SRCS_ = crmf_asn.c crmf_err.c crmf_lib.c crmf_pbm.c
+CMP_SRCS = $(patsubst %,./crypto/crmf/%,$(CRMF_SRCS_)) $(patsubst %,./crypto/cmp/%,$(CMP_SRCS_))
+
+CMP_LIB=$(CMP_DIR)/libcmp$(DLL)
 
 .phony: cmp_lib cmp_clean
 
 cmp_lib: $(CMP_LIB)
 
-$(CMP_LIB): $(CMP_SRCS) $(HEADERS) 
-	$(CC) $(CFLAGS) $(CMP_SRCS) -shared -o $@
+$(CMP_LIB): $(CMP_HDRS) $(CMP_SRCS)
+	@mkdir -p $(CMP_OUT)
+	@mkdir -p $(CMP_INC)/openssl
+	@ln -srft $(CMP_INC)/openssl $(CMP_HDRS)
+	$(CC) $(CFLAGS) $(CMP_HDRS_INC) $(CMP_SRCS) -shared -o $@
 
 cmp_clean:
-	rm -f $(CMP_LIB)
+	rm -f $(CMP_LIB) $(CMP_INC)/openssl/*; rmdir $(CMP_INC)/openssl $(CMP_INC) 2>/dev/null || true
