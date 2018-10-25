@@ -25,15 +25,21 @@ int ERR_load_CMP_strings(void);
  */
 #  define CMP_F_ADD_EXTENSION                              100
 #  define CMP_F_CMP_CALC_PROTECTION                        101
+#  define CMP_F_CMP_CERTCONF_NEW                           202
 #  define CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0       102
+#  define CMP_F_CMP_CERTREQ_NEW                            203
 #  define CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE           103
 #  define CMP_F_CMP_CERTSTATUS_SET_CERTHASH                104
+#  define CMP_F_CMP_ERROR_NEW                              204
+#  define CMP_F_CMP_GENM_NEW                               205
 #  define CMP_F_CMP_GEN_NEW                                105
 #  define CMP_F_CMP_PKIFREETEXT_PUSH_STR                   106
 #  define CMP_F_CMP_PKISI_PKISTATUS_GET_STRING             107
 #  define CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0            108
+#  define CMP_F_CMP_POLLREQ_NEW                            206
 #  define CMP_F_CMP_PROCESS_CERT_REQUEST                   109
 #  define CMP_F_CMP_REVREPCONTENT_PKISTATUSINFO_GET        110
+#  define CMP_F_CMP_RR_NEW                                 207
 #  define CMP_F_CMP_VERIFY_PBMAC                           111
 #  define CMP_F_CMP_VERIFY_POPO                            112
 #  define CMP_F_CMP_VERIFY_SIGNATURE                       113
