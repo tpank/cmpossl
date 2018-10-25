@@ -209,7 +209,8 @@ static int test_cmp_validate_cert_path(void)
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->cert = endentity2;
     fixture->expected = 1;
-    if (!TEST_ptr(untrusted = OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx)) ||
+    if (!TEST_ptr(untrusted =
+                  OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx)) ||
         !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1)) ||
         !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate)) ||
         !TEST_true(trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx)) ||
@@ -250,7 +251,6 @@ static int test_cmp_validate_cert_path_no_anchor(void)
 
 static int test_cmp_validate_cert_path_expired(void)
 {
-
     STACK_OF(X509) *untrusted = NULL;
     X509_STORE *trusted = NULL;
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
