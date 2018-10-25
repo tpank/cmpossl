@@ -17,13 +17,13 @@
 # include <openssl/opensslconf.h>
 
 # ifndef OPENSSL_NO_CMP
+#  include <openssl/crmf.h>
 #  include <openssl/ossl_typ.h>
 #  include <openssl/x509.h>
 #  include <openssl/x509v3.h>
 #  include <openssl/safestack.h>
 #  include <openssl/cmperr.h>
 #  define OPENSSL_CMP_CONST const
-#  include <openssl/crmf.h>
 
 #  define OSSL_CMP_PVNO 2L
 
