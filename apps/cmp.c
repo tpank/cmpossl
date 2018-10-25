@@ -2675,7 +2675,6 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
         if (!set1_store_parameters_crls(out_trusted, *all_crls))
             goto oom;
         (void)OSSL_CMP_CTX_set_certConf_cb_arg(ctx, out_trusted);
-
     }
 
     if (opt_disableConfirm)

@@ -2110,6 +2110,7 @@ CMP_R_FAILED_EXTRACTING_PUBKEY:144:failed extracting pubkey
 CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE:145:failed to receive pkimessage
 CMP_R_FAILED_TO_SEND_REQUEST:146:failed to send request
 CMP_R_FAILURE_OBTAINING_RANDOM:147:failure obtaining random
+CMP_R_FAIL_INFO_OUT_OF_RANGE:192:fail info out of range
 CMP_R_GENP_NOT_RECEIVED:148:genp not received
 CMP_R_INVALID_ARGS:149:invalid args
 CMP_R_INVALID_CONTEXT:150:invalid context

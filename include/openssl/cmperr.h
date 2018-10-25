@@ -183,6 +183,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               145
 #  define CMP_R_FAILED_TO_SEND_REQUEST                     146
 #  define CMP_R_FAILURE_OBTAINING_RANDOM                   147
+#  define CMP_R_FAIL_INFO_OUT_OF_RANGE                     192
 #  define CMP_R_GENP_NOT_RECEIVED                          148
 #  define CMP_R_INVALID_ARGS                               149
 #  define CMP_R_INVALID_CONTEXT                            150

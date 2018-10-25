@@ -59,7 +59,7 @@ OSSL_CMP_error_new
                                OSSL_CMP_PKISI *si,
                                OSSL_CRMF_CERTID *cid,
                                int unprot_err);
- OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
+ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
                                      const char *text);
  OSSL_CMP_MSG *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
  OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int crid);
@@ -148,9 +148,10 @@ B<si> and CertID set to B<cid>. Consumes B<cid>. Accepts unprottected errors if
 B<uprot_err> != 0;
 
 OSSL_CMP_certConf_new() creates a Certificate Confirmation message for the last
-received certificate. PKIStatus defaults to accepted. If B<failure> is set to
-!=0, it sets status to rejected, sets the failInfo bit with index
-B<failure>-1, and copies content of B<text> to statusString if not NULL.
+received certificate. PKIStatus defaults to accepted. If the B<fail_info> bit
+field is set to !=0, it is set to the failInfo of the PKIStatusInfo, and status
+is set to rejected.  If B<text> is not NULL, its content is copied to
+statusString.
 
 OSSL_CMP_pkiconf_new() creates a PKI Confirmation message.
 
@@ -169,6 +170,10 @@ OSSL_CMP_error_new() creates a new Error Message.
 =head1 NOTES
 
 CMP is specified in RFC 4210 (and CRMF in RFC 4211).
+
+=head1 TODO
+
+OSSL_CMP_certConf_new() could be enhanced to set more than one failInfo bit.
 
 =head1 RETURN VALUES
 
