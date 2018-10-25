@@ -11,12 +11,10 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
 #include <openssl/crmf.h>
 #include <openssl/cmp.h>
+#include <openssl/asn1t.h>
 #include <openssl/x509.h>
-#include <openssl/safestack.h>
 #include <openssl/err.h>
 
 #include <string.h>
