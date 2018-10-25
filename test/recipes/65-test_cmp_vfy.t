@@ -19,6 +19,9 @@ setup("test_cmp_vfy");
 plan skip_all => "This test is not supported in a no-cmp build"
     if disabled("cmp");
 
+plan skip_all => "This test is not supported in a no-ec build"
+    if disabled("ec");
+
 plan tests => 1;
 
 ok(run(test(["cmp_vfy_test",
