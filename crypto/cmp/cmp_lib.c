@@ -34,6 +34,8 @@
 #include <openssl/engine.h>
 #include <openssl/evp.h>
 #include <openssl/objects.h>
+#include <openssl/rand.h>
+#include <openssl/err.h> /* needed in case config no-deprecated */
 
 #include <time.h>
 #include <string.h>
