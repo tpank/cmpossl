@@ -8,6 +8,7 @@ OSSL_CMP_PKISI_PKIFailureInfo_get,
 OSSL_CMP_PKISI_PKIFailureInfo_check,
 OSSL_CMP_PKISI_failInfo_get0,
 OSSL_CMP_PKISI_statusString_get0
+OSSL_CMP_PKISI_snprint,
 - functions for managing PKI status information
 
 =head1 SYNOPSIS
@@ -18,30 +19,64 @@ OSSL_CMP_PKISI_statusString_get0
   int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si);
   int OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si);
   int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int codeBit);
-  ASN1_BIT_STRING *OSSL_CMP_PKISI_failInfo_get0(OSSL_CMP_PKISI *si);
+  OSSLL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_failInfo_get0(OSSL_CMP_PKISI *si);
   OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(OSSL_CMP_PKISI *si);
+  char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
+
+  #define OSSL_CMP_PKIFAILUREINFO_badAlg               0
+  #define OSSL_CMP_PKIFAILUREINFO_badMessageCheck      1
+  #define OSSL_CMP_PKIFAILUREINFO_badRequest           2
+  #define OSSL_CMP_PKIFAILUREINFO_badTime              3
+  #define OSSL_CMP_PKIFAILUREINFO_badCertId            4
+  #define OSSL_CMP_PKIFAILUREINFO_badDataFormat        5
+  #define OSSL_CMP_PKIFAILUREINFO_wrongAuthority       6
+  #define OSSL_CMP_PKIFAILUREINFO_incorrectData        7
+  #define OSSL_CMP_PKIFAILUREINFO_missingTimeStamp     8
+  #define OSSL_CMP_PKIFAILUREINFO_badPOP               9
+  #define OSSL_CMP_PKIFAILUREINFO_certRevoked         10
+  #define OSSL_CMP_PKIFAILUREINFO_certConfirmed       11
+  #define OSSL_CMP_PKIFAILUREINFO_wrongIntegrity      12
+  #define OSSL_CMP_PKIFAILUREINFO_badRecipientNonce   13
+  #define OSSL_CMP_PKIFAILUREINFO_timeNotAvailable    14
+  #define OSSL_CMP_PKIFAILUREINFO_unacceptedPolicy    15
+  #define OSSL_CMP_PKIFAILUREINFO_unacceptedExtension 16
+  #define OSSL_CMP_PKIFAILUREINFO_addInfoNotAvailable 17
+  #define OSSL_CMP_PKIFAILUREINFO_badSenderNonce      18
+  #define OSSL_CMP_PKIFAILUREINFO_badCertTemplate     19
+  #define OSSL_CMP_PKIFAILUREINFO_signerNotTrusted    20
+  #define OSSL_CMP_PKIFAILUREINFO_transactionIdInUse  21
+  #define OSSL_CMP_PKIFAILUREINFO_unsupportedVersion  22
+  #define OSSL_CMP_PKIFAILUREINFO_notAuthorized       23
+  #define OSSL_CMP_PKIFAILUREINFO_systemUnavail       24
+  #define OSSL_CMP_PKIFAILUREINFO_systemFailure       25
+  #define OSSL_CMP_PKIFAILUREINFO_duplicateCertReq    26
+  #define OSSL_CMP_PKIFAILUREINFO_MAX                 26
 
 =head1 DESCRIPTION
 
 OSSL_CMP_statusInfo_new() creates a new PKIStatusInfo structure and fills it
-with the given values. It sets the status field to B<status>, statusString to
-B<text>, and interprets the B<failInfo> as bit pattern for the failInfo field.
-It returns a pointer to the structure on success, or NULL on error.
+with the given values. It sets the status field to B<status>.  If B<text> is
+not NULL, it is copied to statusString.  If B<failInfo> is >= 0 and <
+OSSL_CMP_PKIFAILUREINFO_MAX, it is interpeted as bit pattern for the failInfo
+field.  Returns a pointer to the structure on success, or NULL on error.
 
-OSSL_CMP_PKISI_PKIStatus_get() returns the PKIStatus of the given PKISI,
-or -1 on error.
+OSSL_CMP_PKISI_PKIStatus_get() returns the PKIStatus of B<si>, or -1 on error.
 
-OSSL_CMP_PKISI_PKIFailureInfo_get() returns PKIFailureInfo bits of the given
-PKISI, or -1 on error.
+OSSL_CMP_PKISI_PKIFailureInfo_get() returns the PKIFailureInfo bits
+of B<si>, encoded as integer, or -1 on error.
 
-OSSL_CMP_PKISI_PKIFailureInfo_check() checks PKIFailureInfo bits in the given
-PKISI. Returns 1 if thea given bit is set, 0 if not, -1 on error.
+OSSL_CMP_PKISI_PKIFailureInfo_check() returns the state of the bit (0 or 1)
+with index B<codeBit> in the PKIFailureInfo of the B<si>, or -1 on error.
 
-OSSL_CMP_PKISI_failInfo_get() returns a pointer to the failInfo contained in
-the given PKISI, or NULL on error.
+OSSL_CMP_PKISI_failInfo_get0() returns a direct pointer to the failInfo
+field contained in B<si>, or NULL on error.
 
-OSSL_CMP_PKISI_statusString_get0() returns the statusString field contained
-in the given PKISI.
+OSSL_CMP_PKISI_statusString_get0() returns a direct pointer to the statusString
+field contained in B<si>.
+
+OSSL_CMP_PKISI_snprint() places at max B<bufsize> characters of human-readable
+error string of B<si> in pre-allocated B<buf>. Returns pointer to the same
+B<buf> containing the string, or NULL on error.
 
 =head1 NOTES
 
