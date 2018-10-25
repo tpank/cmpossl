@@ -17,6 +17,7 @@
 # include <openssl/opensslconf.h>
 
 # ifndef OPENSSL_NO_CMP
+#  include <openssl/crmf.h>
 #  include <openssl/ossl_typ.h>
 #  include <openssl/x509.h>
 #  include <openssl/x509v3.h>
@@ -83,10 +84,8 @@
 #   define X509_CRL_get0_nextUpdate X509_CRL_get_nextUpdate
 #   define X509_get_key_usage(x) ((X509_check_purpose((x), -1, -1), \
            (x)->ex_flags & EXFLAG_KUSAGE) ? (x)->ex_kusage : (unsigned long) ~0)
-#   define TLS_client_method SSLv23_client_method
+#   define TLS_client_method SSLv23_client_method /* use highest available */
 #  endif
-
-#  include <openssl/crmf.h>
 
 #  define OSSL_CMP_PVNO 2L
 

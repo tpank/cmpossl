@@ -17,6 +17,7 @@
 # include <openssl/opensslconf.h>
 
 # ifndef OPENSSL_NO_CRMF
+#  include <openssl/opensslv.h>
 #  include <openssl/ossl_typ.h>
 #  include <openssl/x509.h>
 #  include <openssl/x509v3.h>

@@ -12,14 +12,12 @@
  */
 
 
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
 #include <openssl/crmf.h>
+#include <openssl/asn1t.h>
 #include <openssl/rand.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/err.h>
-#include <openssl/crypto.h>
 #include "crmf_int.h"
 
 /*

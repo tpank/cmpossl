@@ -26,18 +26,14 @@
  * the CMP structures
  */
 
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
 #include <openssl/crmf.h>
 #include <openssl/cmp.h>
+#include <openssl/asn1t.h>
 #include <openssl/x509.h>
 #include <openssl/rand.h>
-#include <openssl/safestack.h>
-#include <openssl/crypto.h>
 #include <openssl/engine.h>
 #include <openssl/evp.h>
 #include <openssl/objects.h>
-#include <openssl/rand.h>
 
 #include <time.h>
 #include <string.h>
