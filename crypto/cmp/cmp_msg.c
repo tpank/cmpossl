@@ -605,7 +605,7 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
  * TODO: handle potential 2nd certificate when signing and encrypting
  * certificates have been requested/received
  */
-OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
+OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
                                     const char *text)
 {
     OSSL_CMP_MSG *msg = NULL;
@@ -616,6 +616,9 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
         CMPerr(CMP_F_OSSL_CMP_CERTCONF_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
+
+    if (fail_info > OSSL_CMP_PKIFAILUREINFO_MAX)
+        CMPerr(CMP_F_OSSL_CMP_CERTCONF_NEW, CMP_R_FAIL_INFO_OUT_OF_RANGE);
 
     if ((msg = OSSL_CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_CERTCONF)) == NULL)
         goto err;
@@ -639,9 +642,8 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
      * be provided in the statusInfo field, perhaps for auditing purposes at
      * the CA/RA.
      */
-    sinfo = failure >= 0 ?
-        OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection,
-                                1 << failure, text) :
+    sinfo = fail_info != 0 ?
+        OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection, fail_info, text) :
         OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_accepted, 0, text);
     if (sinfo == NULL)
         goto err;
