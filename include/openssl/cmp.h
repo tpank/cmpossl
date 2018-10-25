@@ -22,7 +22,7 @@
 #  include <openssl/x509.h>
 #  include <openssl/x509v3.h>
 #  include <openssl/safestack.h>
-#  if OPENSSL_VERSION_NUMBER >= 0x10101000L
+#  if OPENSSL_VERSION_NUMBER >= 0x10101000L || OPENSSL_API_COMPAT < 0x10100000L
 #   include <openssl/cmperr.h>
 #  endif
 
@@ -32,7 +32,8 @@
 #   define OPENSSL_CMP_CONST
 #  endif
 #  if OPENSSL_VERSION_NUMBER < 0x10100000L
-#   define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
+/*#   define ERR_LIB_CMP  54
+  #   define CMPerr(f,r) ERR_PUT_error(ERR_LIB_CMP,(f),(r),__FILE__,__LINE__)*/
 #   define X509_get0_subject_key_id(x) (X509_check_purpose((x),-1,-1),(x)->skid)
 #   define X509_STORE_CTX_get1_crls X509_STORE_get1_crls
 #   define OPENSSL_strndup strndup
@@ -43,6 +44,7 @@
 #   define X509_REQ_get0_pubkey(x) X509_PUBKEY_get0((x)->req_info->pubkey)
 #  endif
 #  if OPENSSL_VERSION_NUMBER < 0x10100006L
+DECLARE_STACK_OF(ASN1_UTF8STRING)
 #   define EVP_PKEY_up_ref(x)((x)->references++)
     typedef int (*X509_STORE_CTX_check_revocation_fn) (X509_STORE_CTX *ctx);
 #  endif
@@ -56,6 +58,7 @@
 #  if OPENSSL_VERSION_NUMBER < 0x1010001fL
 #   define OPENSSL_zalloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
 #   define X509_up_ref(x)((x)->references++)
+#   define X509_STORE_up_ref(x)((x)->references++)
 #   define ASN1_STRING_get0_data ASN1_STRING_data
 #   define X509_OBJECT_get0_X509(obj) ((obj) == NULL || \
                           (obj)->type != X509_LU_X509 ? NULL : (obj)->data.x509)

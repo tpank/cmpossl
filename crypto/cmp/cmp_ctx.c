@@ -22,6 +22,13 @@
 #include <dirent.h>
 #endif
 
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
+int ERR_load_strings_const(const ERR_STRING_DATA *str)
+{
+    return ERR_load_strings(0, (ERR_STRING_DATA *)str);
+}
+#endif
+
 #include "cmp_int.h"
 
 /*

@@ -24,7 +24,7 @@
  * This file contains the functions that handle the individual items inside
  * the CRMF structures
  */
-]
+
 #include <openssl/crmf.h>
 #include <openssl/asn1t.h>
 #include <openssl/evp.h>

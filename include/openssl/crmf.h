@@ -18,21 +18,67 @@
 
 # ifndef OPENSSL_NO_CRMF
 #  include <openssl/opensslv.h>
+#  if OPENSSL_VERSION_NUMBER < 0x10100002L
+#   define ossl_inline __inline
+#   define OPENSSL_FILE __FILE__
+#   define OPENSSL_LINE __LINE__
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100006L
+typedef int (*OPENSSL_sk_compfunc)(const void *, const void *);
+typedef void (*OPENSSL_sk_freefunc)(void *);
+typedef void *(*OPENSSL_sk_copyfunc)(void *);
+#   define OPENSSL_STACK _STACK
+#   define DECLARE_STACK_OF DEFINE_STACK_OF
+#   define OPENSSL_sk_value sk_value
+#   define OPENSSL_sk_num sk_num
+#   define OPENSSL_sk_new sk_new
+#   define OPENSSL_sk_new_null sk_new_null
+#   define OPENSSL_sk_free sk_free
+#   define OPENSSL_sk_zero sk_zero
+#   define OPENSSL_sk_delete sk_delete
+#   define OPENSSL_sk_delete_ptr sk_delete_ptr
+#   define OPENSSL_sk_push sk_push
+#   define OPENSSL_sk_unshift sk_unshift
+#   define OPENSSL_sk_pop sk_pop
+#   define OPENSSL_sk_shift sk_shift
+#   define OPENSSL_sk_pop_free sk_pop_free
+#   define OPENSSL_sk_insert sk_insert
+#   define OPENSSL_sk_set sk_set
+#   define OPENSSL_sk_find sk_find
+#   define OPENSSL_sk_find_ex sk_find_ex
+#   define OPENSSL_sk_sort sk_sort
+#   define OPENSSL_sk_is_sorted sk_is_sorted
+#   define OPENSSL_sk_dup sk_dup
+#   define OPENSSL_sk_deep_copy sk_deep_copy
+#   define OPENSSL_sk_set_cmp_func sk_set_cmp_func
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10101000L
+#   define OPENSSL_sk_new_reserve(f,n) sk_new(f) /* sorry, no reservation */
+#   define OPENSSL_sk_reserve(sk,n) 1 /* sorry, no-op */
+#  endif
 #  include <openssl/ossl_typ.h>
 #  include <openssl/x509.h>
 #  include <openssl/x509v3.h>
 #  include <openssl/safestack.h>
-#  if OPENSSL_VERSION_NUMBER >= 0x10101000L
+#  if OPENSSL_VERSION_NUMBER >= 0x10101000L || OPENSSL_API_COMPAT < 0x10100000L
 #   include <openssl/crmferr.h>
-#  else
-#   define ERR_load_strings_const(s) ERR_load_strings(0, (ERR_STRING_DATA *)s)
 #  endif
 
 #  if OPENSSL_VERSION_NUMBER < 0x10100000L
+/*#   define ERR_LIB_CRMF  55
+  #   define CRMFerr(f,r) ERR_PUT_error(ERR_LIB_CRMF,(f),(r),__FILE__,__LINE__)
+  #   define ERR_R_PASSED_INVALID_ARGUMENT CRMF_R_NULL_ARGUMENT
+*/
 #   define uint64_t unsigned long
-#   define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
+#   ifndef DEFINE_STACK_OF
+#    define DEFINE_STACK_OF(T) DECLARE_STACK_OF(T)
+#   endif
 #   define static_ASN1_SEQUENCE_END(T) ASN1_SEQUENCE_END(T)
-#   define ERR_R_PASSED_INVALID_ARGUMENT CRMF_R_NULL_ARGUMENT
+#   define ASN1_R_TOO_SMALL ASN1_R_INVALID_NUMBER
+#   define ASN1_R_TOO_LARGE ASN1_R_INVALID_NUMBER
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100002L
+#   define DEFINE_LHASH_OF DECLARE_LHASH_OF
 #  endif
 #  if OPENSSL_VERSION_NUMBER < 0x10100005L
 #   define X509_PUBKEY_get0(x)((x)->pkey)
