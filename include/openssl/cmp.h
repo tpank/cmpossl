@@ -250,7 +250,7 @@ void OSSL_CMP_print_errors_cb(OSSL_CMP_CTX *ctx);
 typedef int (*OSSL_cmp_log_cb_t) (const char *file, int lineno,
                                   OSSL_CMP_severity level, const char *msg);
 typedef int (*OSSL_cmp_certConf_cb_t) (OSSL_CMP_CTX *ctx, const X509 *cert,
-                                       int failure, const char **txt);
+                                       int fail_info, const char **txt);
 typedef BIO *(*OSSL_cmp_http_cb_t) (OSSL_CMP_CTX *ctx, BIO *hbio,
                                     unsigned long detail);
 typedef int (*OSSL_cmp_transfer_cb_t) (OSSL_CMP_CTX *ctx,
@@ -303,7 +303,7 @@ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
                               OSSL_CRMF_CERTID *certId,
                               int unprot_err);
-OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int failure,
+OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
                                     const char *text);
 OSSL_CMP_MSG *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_MSG *OSSL_CMP_genm_new(OSSL_CMP_CTX *ctx);
@@ -397,7 +397,7 @@ int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
                                 const X509_STORE *trusted_store,
                                 const X509 *cert, int defer_errors);
 int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
-int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int failure,
+int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int fail_info,
                          const char **text);
 
 /*

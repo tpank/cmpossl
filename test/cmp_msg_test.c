@@ -22,6 +22,8 @@ typedef struct test_fixture {
     /* for msg create tests */
     int bodytype;
     int err_code;
+    /* for certConf */
+    int fail_info;
     /* for protection tests */
     OSSL_CMP_MSG *msg;
     int expected;               /* expected outcome */
@@ -105,7 +107,7 @@ static int execute_rr_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 static int execute_certconf_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
     EXECUTE_MSG_CREATION_TEST(OSSL_CMP_certConf_new
-                              (fixture->cmp_ctx, fixture->err_code, NULL));
+                              (fixture->cmp_ctx, fixture->fail_info, NULL));
 }
 
 static int execute_genm_create_test(CMP_MSG_TEST_FIXTURE *fixture)
@@ -266,7 +268,33 @@ static int test_cmp_create_kur_without_oldcert(void)
 static int test_cmp_create_certconf(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
-    fixture->err_code = 12345;  /* TODO hardcoded */
+    fixture->fail_info = 0;
+    fixture->expected = 1;
+    if (!TEST_true(OSSL_CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    EXECUTE_TEST(execute_certconf_create_test, tear_down);
+    return result;
+}
+
+static int test_cmp_create_certconf_badAlg(void)
+{
+    SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
+    fixture->fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_badAlg;
+    fixture->expected = 1;
+    if (!TEST_true(OSSL_CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    EXECUTE_TEST(execute_certconf_create_test, tear_down);
+    return result;
+}
+
+static int test_cmp_create_certconf_fail_info_max(void)
+{
+    SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
+    fixture->fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_MAX;
     fixture->expected = 1;
     if (!TEST_true(OSSL_CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
@@ -279,7 +307,7 @@ static int test_cmp_create_certconf(void)
 static int test_cmp_create_certconf_without_newclcert(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
-    fixture->err_code = 12345;  /* TODO hardcoded */
+    fixture->fail_info = 0;
     fixture->expected = 0;
     if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey))) {
         tear_down(fixture);
@@ -433,6 +461,8 @@ int setup_tests(void)
     ADD_TEST(test_cmp_create_error_msg);
     ADD_TEST(test_cmp_create_error_msg_without_si);
     ADD_TEST(test_cmp_create_certconf);
+    ADD_TEST(test_cmp_create_certconf_badAlg);
+    ADD_TEST(test_cmp_create_certconf_fail_info_max);
     ADD_TEST(test_cmp_create_certconf_without_newclcert);
     ADD_TEST(test_cmp_create_kur);
     ADD_TEST(test_cmp_create_kur_without_oldcert);
