@@ -2515,12 +2515,14 @@ static int setup_srv_ctx(ENGINE *e)
  */
 static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_crls) {
     *all_crls = NULL;
+#ifndef OPENSSL_NO_OCSP
     if (opt_ocsp_status)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_OCSP_STAPLING);
     if (opt_ocsp_use_aia || opt_ocsp_url != NULL || opt_ocsp_check_all)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_OCSP_CHECK);
     if (opt_ocsp_check_all)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_OCSP_CHECK_ALL);
+#endif /* OPENSSL_NO_OCSP */
     if (opt_crls != NULL || opt_crl_download)
         X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_CRL_CHECK);
     else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
