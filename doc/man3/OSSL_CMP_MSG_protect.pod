@@ -3,8 +3,6 @@
 =head1 NAME
 
 OSSL_CMP_add_error_txt,
-OSSL_CMP_PKISI_PKIFailureInfo_get,
-OSSL_CMP_PKISI_PKIFailureInfo_check,
 OSSL_CMP_HDR_generalInfo_item_push0,
 OSSL_CMP_MSG_generalInfo_items_push1,
 OSSL_CMP_HDR_push0_freeText,
@@ -24,7 +22,6 @@ OSSL_CMP_MSG_check_implicitConfirm,
 OSSL_CMP_MSG_genm_item_push0,
 OSSL_CMP_MSG_genm_items_push1,
 OSSL_CMP_MSG_get_bodytype,
-OSSL_CMP_PKISI_snprint,
 OSSL_CMP_MSG_set_bodytype,
 OSSL_CMP_MSG_set_implicitConfirm,
 OSSL_CMP_MSG_protect,
@@ -44,8 +41,6 @@ OSSL_CMP_X509_STORE_get1_certs
   #include <openssl/cmp.h>
 
   void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
-  int OSSL_CMP_PKISI_PKIFailureInfo_get( OSSL_CMP_PKISI *si);
-  int OSSL_CMP_PKISI_PKIFailureInfo_check( OSSL_CMP_PKISI *si, int codeBit);
   int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_HDR *hdr,
                                           const OSSL_CMP_ITAV *itav);
   int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
@@ -70,7 +65,6 @@ OSSL_CMP_X509_STORE_get1_certs
   int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
                                     STACK_OF(OSSL_CMP_ITAV) *itavs);
   int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
-  char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
   int OSSL_CMP_MSG_set_bodytype( OSSL_CMP_MSG *msg, int type);
   int OSSL_CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg);
   int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
@@ -105,43 +99,6 @@ OSSL_CMP_add_error_txt() with the separator being ":".
 
 OSSL_CMP_add_error_line() is a macro calling
 OSSL_CMP_add_error_txt() with the separator being "\n".
-
-OSSL_CMP_PKISI_PKIFailureInfo_get() returns the PKIFailureInfo bits
-of a given PKIStatusInfo, encoded as integer, or -1 on error.
-
-OSSL_CMP_PKISI_PKIFailureInfo_check() checks whether a given bit is set
-within the PKIFailureInfo of a given PKIStatusInfo. Returns -1 on error.
-
-Available CMP PKIFailureInfo bit numbers are:
-
- #define OSSL_CMP_PKIFAILUREINFO_badAlg               0
- #define OSSL_CMP_PKIFAILUREINFO_badMessageCheck      1
- #define OSSL_CMP_PKIFAILUREINFO_badRequest           2
- #define OSSL_CMP_PKIFAILUREINFO_badTime              3
- #define OSSL_CMP_PKIFAILUREINFO_badCertId            4
- #define OSSL_CMP_PKIFAILUREINFO_badDataFormat        5
- #define OSSL_CMP_PKIFAILUREINFO_wrongAuthority       6
- #define OSSL_CMP_PKIFAILUREINFO_incorrectData        7
- #define OSSL_CMP_PKIFAILUREINFO_missingTimeStamp     8
- #define OSSL_CMP_PKIFAILUREINFO_badPOP               9
- #define OSSL_CMP_PKIFAILUREINFO_certRevoked         10
- #define OSSL_CMP_PKIFAILUREINFO_certConfirmed       11
- #define OSSL_CMP_PKIFAILUREINFO_wrongIntegrity      12
- #define OSSL_CMP_PKIFAILUREINFO_badRecipientNonce   13
- #define OSSL_CMP_PKIFAILUREINFO_timeNotAvailable    14
- #define OSSL_CMP_PKIFAILUREINFO_unacceptedPolicy    15
- #define OSSL_CMP_PKIFAILUREINFO_unacceptedExtension 16
- #define OSSL_CMP_PKIFAILUREINFO_addInfoNotAvailable 17
- #define OSSL_CMP_PKIFAILUREINFO_badSenderNonce      18
- #define OSSL_CMP_PKIFAILUREINFO_badCertTemplate     19
- #define OSSL_CMP_PKIFAILUREINFO_signerNotTrusted    20
- #define OSSL_CMP_PKIFAILUREINFO_transactionIdInUse  21
- #define OSSL_CMP_PKIFAILUREINFO_unsupportedVersion  22
- #define OSSL_CMP_PKIFAILUREINFO_notAuthorized       23
- #define OSSL_CMP_PKIFAILUREINFO_systemUnavail       24
- #define OSSL_CMP_PKIFAILUREINFO_systemFailure       25
- #define OSSL_CMP_PKIFAILUREINFO_duplicateCertReq    26
- #define OSSL_CMP_PKIFAILUREINFO_MAX                 26
 
 OSSL_CMP_HDR_generalInfo_item_push0() adds the given InfoTypeAndValue
 item to the hdr->generalInfo stack. Consumes the B<itav> pointer.
@@ -197,9 +154,6 @@ OSSL_CMP_MSG_get_bodytype() returns the body type of the given
 PKIMessage.
 
 ASN1_OCTET_STRING *OSSL_CMP_MSG_get_transactionID(const OSSL_CMP_MSG *msg)
-
-OSSL_CMP_PKISI_snprint() places human-readable error string
-created from PKIStatusInfo in given buffer.
 
 OSSL_CMP_MSG_set_bodytype() sets the type of the message contained in
 the PKIMessage body field.
