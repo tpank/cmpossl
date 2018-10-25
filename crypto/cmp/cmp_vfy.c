@@ -304,7 +304,9 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
         }
         put_cert_verify_err(CMP_F_OSSL_CMP_PRINT_CERT_VERIFY_CB,
                             CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
+# ifndef OPENSSL_NO_STDIO
         ERR_print_errors_fp(stdout);
+# endif /* OPENSSL_NO_STDIO */
     }
 # if 0
     /* TODO: we could check policies here too */
