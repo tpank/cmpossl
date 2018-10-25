@@ -25,9 +25,8 @@
  * the CRMF structures
  */
 
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
 #include <openssl/crmf.h>
+#include <openssl/asn1t.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include "crmf_int.h"

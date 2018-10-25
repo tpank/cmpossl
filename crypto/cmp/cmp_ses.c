@@ -14,7 +14,6 @@
 #include <string.h>
 
 #include <openssl/cmp.h>
-#include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/bio.h>
 #include <openssl/evp.h>

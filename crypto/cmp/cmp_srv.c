@@ -15,7 +15,6 @@
 #include <openssl/cmp.h>
 #include "cmp_int.h"
 #include <openssl/err.h>
-#include <openssl/asn1.h>
 #include <openssl/asn1t.h>
 #include <string.h>
 
