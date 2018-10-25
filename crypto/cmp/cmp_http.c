@@ -29,7 +29,7 @@
 
 #include "cmp_int.h"
 
-#ifndef OPENSSL_NO_SOCK
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 
 /* from apps.h */
 # ifndef openssl_fdset
@@ -119,12 +119,6 @@ static int bio_connect(BIO *bio, int timeout) {
     }
     return rv;
 }
-
-#endif /* OPENSSL_NO_SOCK */
-
-
-
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 
 /*
  * TODO dvo: push that upstream with extended load_cert_crl_http(),
