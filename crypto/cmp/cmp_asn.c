@@ -11,10 +11,9 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
 #include <openssl/crmf.h>
 #include <openssl/cmp.h>
+#include <openssl/asn1t.h>
 #include "cmp_int.h"
 
 ASN1_SEQUENCE(OSSL_CMP_REVANNCONTENT) = {
