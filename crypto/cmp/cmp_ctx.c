@@ -1338,7 +1338,7 @@ static int CMP_log_fd(const char *file, int lineno,
     int len = 0;
 
 #ifdef NDEBUG
-    if (level == LOG_DEBUG)
+    if (level == OSSL_LOG_DEBUG)
         return 1;
 #else
     if (file == NULL) {
@@ -1353,15 +1353,15 @@ static int CMP_log_fd(const char *file, int lineno,
 #endif
 
     switch(level) {
-    case LOG_EMERG: lvl = "EMERGENCY"; break;
-    case LOG_ALERT: lvl = "ALERT"; break;
-    case LOG_CRIT : lvl = "CRITICAL" ; break;
-    case LOG_ERROR: lvl = "ERROR"; break;
-    case LOG_WARN : lvl = "WARNING" ; break;
-    case LOG_NOTE : lvl = "NOTICE" ; break;
-    case LOG_INFO : lvl = "INFO" ; break;
+    case OSSL_LOG_EMERG  : lvl = "EMERGENCY"; break;
+    case OSSL_LOG_ALERT  : lvl = "ALERT"; break;
+    case OSSL_LOG_CRIT   : lvl = "CRITICAL" ; break;
+    case OSSL_LOG_ERR    : lvl = "ERROR"; break;
+    case OSSL_LOG_WARNING: lvl = "WARNING" ; break;
+    case OSSL_LOG_NOTICE : lvl = "NOTICE" ; break;
+    case OSSL_LOG_INFO   : lvl = "INFO" ; break;
 #ifndef NDEBUG
-    case LOG_DEBUG: lvl = "DEBUG"; break;
+    case OSSL_LOG_DEBUG  : lvl = "DEBUG"; break;
 #endif
     default: break;
     }
@@ -1378,7 +1378,7 @@ int OSSL_CMP_puts(const char *file, int lineno,
              OSSL_CMP_severity level, const char *msg)
 {
 #ifndef OPENSSL_NO_STDIO
-    FILE *fd = level <= LOG_WARN ? stderr : stdout;
+    FILE *fd = level <= OSSL_LOG_WARNING ? stderr : stdout;
     return CMP_log_fd(file, lineno, level, msg, fd);
 #endif
 }
@@ -1438,7 +1438,7 @@ static int CMP_CTX_error_cb(const char *str, size_t len, void *u)
 
     start = s = OPENSSL_strdup(str); /* we will modify the string */
     if (s == NULL)
-        return (*log_fn)(NULL, 0, LOG_ERROR, str);
+        return (*log_fn)(NULL, 0, OSSL_LOG_ERR, str);
 
     while (*s != '\0' && *s != ':') /* skip pid */
         s++;
@@ -1480,7 +1480,7 @@ static int CMP_CTX_error_cb(const char *str, size_t len, void *u)
         line = 0;
     while ((*(txt_end++) = *(s++)) != '\0') /* move any data string */
         ;
-    res = (*log_fn)(file, line, LOG_ERROR, txt);
+    res = (*log_fn)(file, line, OSSL_LOG_ERR, txt);
     OPENSSL_free(file);
     OPENSSL_free(start);
     return res;
