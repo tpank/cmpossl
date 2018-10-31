@@ -1377,8 +1377,10 @@ static int CMP_log_fd(const char *file, int lineno,
 int OSSL_CMP_puts(const char *file, int lineno,
              OSSL_CMP_severity level, const char *msg)
 {
+#ifndef OPENSSL_NO_STDIO
     FILE *fd = level <= LOG_WARN ? stderr : stdout;
     return CMP_log_fd(file, lineno, level, msg, fd);
+#endif
 }
 
 /*
