@@ -219,22 +219,24 @@ DEFINE_STACK_OF(OSSL_CMP_CERTRESPONSE)
  */
 
 /* declarations resemble those from bio/bss_log.c and syslog.h */
-typedef enum {LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERROR,
-              LOG_WARN, LOG_NOTE, LOG_INFO, LOG_DEBUG} OSSL_CMP_severity;
+typedef enum {OSSL_LOG_EMERG, OSSL_LOG_ALERT, OSSL_LOG_CRIT, OSSL_LOG_ERR,
+              OSSL_LOG_WARNING, OSSL_LOG_NOTICE, OSSL_LOG_INFO, OSSL_LOG_DEBUG}
+    OSSL_CMP_severity;
 
-#define OSSL_CMP_FL_EMERG __FILE__, __LINE__, LOG_EMERG
-#define OSSL_CMP_FL_ALERT __FILE__, __LINE__, LOG_ALERT
-#define OSSL_CMP_FL_CRIT  __FILE__, __LINE__, LOG_CRIT
-#define OSSL_CMP_FL_ERR   __FILE__, __LINE__, LOG_ERROR
-#define OSSL_CMP_FL_WARN  __FILE__, __LINE__, LOG_WARN
-#define OSSL_CMP_FL_NOTE  __FILE__, __LINE__, LOG_NOTE
-#define OSSL_CMP_FL_INFO  __FILE__, __LINE__, LOG_INFO
-#define OSSL_CMP_FL_DEBUG __FILE__, __LINE__, LOG_DEBUG
+#define OSSL_CMP_FL_EMERG __FILE__, __LINE__, OSSL_LOG_EMERG
+#define OSSL_CMP_FL_ALERT __FILE__, __LINE__, OSSL_LOG_ALERT
+#define OSSL_CMP_FL_CRIT  __FILE__, __LINE__, OSSL_LOG_CRIT
+#define OSSL_CMP_FL_ERR   __FILE__, __LINE__, OSSL_LOG_ERR
+#define OSSL_CMP_FL_WARN  __FILE__, __LINE__, OSSL_LOG_WARNING
+#define OSSL_CMP_FL_NOTE  __FILE__, __LINE__, OSSL_LOG_NOTICE
+#define OSSL_CMP_FL_INFO  __FILE__, __LINE__, OSSL_LOG_INFO
+#define OSSL_CMP_FL_DEBUG __FILE__, __LINE__, OSSL_LOG_DEBUG
 
 int OSSL_CMP_puts(const char *file, int lineno, OSSL_CMP_severity level,
                   const char *msg);
 int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
                     OSSL_CMP_severity level, const char *fmt, ...);
+#define OSSL_CMP_alert(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_ALERT, msg)
 #define OSSL_CMP_err(ctx, msg)   OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)
 #define OSSL_CMP_warn(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN , msg)
 #define OSSL_CMP_info(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO , msg)
