@@ -1197,19 +1197,19 @@ int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
-                                  OSSL_CMP_PKIFAILUREINFO *failInfo)
+                                  OSSL_CMP_PKIFAILUREINFO *fail_info)
 {
     int i;
 
     if (ctx == NULL)
         return 0;
-    if (failInfo == NULL)
+    if (fail_info == NULL)
         return 1;
 
     ctx->failInfoCode = 0;
     for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
-        if (ASN1_BIT_STRING_get_bit(failInfo, i))
-            ctx->failInfoCode |= 1UL << i;
+        if (ASN1_BIT_STRING_get_bit(fail_info, i))
+            ctx->failInfoCode |= (1 << i);
 
     return 1;
 }

@@ -148,10 +148,9 @@ B<si> and CertID set to B<cid>. Consumes B<cid>. Accepts unprottected errors if
 B<uprot_err> != 0;
 
 OSSL_CMP_certConf_new() creates a Certificate Confirmation message for the last
-received certificate. PKIStatus defaults to accepted. If the B<fail_info> bit
-field is set to !=0, it is set to the failInfo of the PKIStatusInfo, and status
-is set to rejected.  If B<text> is not NULL, its content is copied to
-statusString.
+received certificate. PKIStatus defaults to B<accepted> if the B<fail_info> bit
+field is 0. Else it is taken as the failInfo of the PKIStatusInfo, PKIStatus is
+set to B<rejected>, and B<text> is copied to statusString unless it is NULL.
 
 OSSL_CMP_pkiconf_new() creates a PKI Confirmation message.
 
@@ -170,10 +169,6 @@ OSSL_CMP_error_new() creates a new Error Message.
 =head1 NOTES
 
 CMP is specified in RFC 4210 (and CRMF in RFC 4211).
-
-=head1 TODO
-
-OSSL_CMP_certConf_new() could be enhanced to set more than one failInfo bit.
 
 =head1 RETURN VALUES
 

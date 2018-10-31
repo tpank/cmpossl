@@ -754,9 +754,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 /*
  * callback validating that the new certificate can be verified, using
  * ctx->certConf_cb_arg, which has been initialized using opt_out_trusted, and
- * ctx->untrusted_certs, which at this point already contains
- * ctx->extraCertsIn.  Returns -1 on acceptance, else a bit field reflecting
- * one OSSL_CMP_PKIFAILUREINFO.
+ * ctx->untrusted_certs, which at this point already contains ctx->extraCertsIn.
+ * Returns 0 on acceptance, else a bit field reflecting PKIFailureInfo.
  * Quoting from RFC 4210 section 5.1. Overall PKI Message:
  *     The extraCerts field can contain certificates that may be useful to
  *     the recipient.  For example, this can be used by a CA or RA to
