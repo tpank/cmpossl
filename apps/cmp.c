@@ -2480,7 +2480,7 @@ static int setup_srv_ctx(ENGINE *e)
         else
             opt_failurebits = 1 << opt_failure;
     }
-    if (opt_failurebits > 1 << OSSL_CMP_PKIFAILUREINFO_MAX) {
+    if (opt_failurebits >= 1 << (OSSL_CMP_PKIFAILUREINFO_MAX+1)) {
         OSSL_CMP_err(ctx, "-failure or -failurebits too large");
         goto err;
     }
