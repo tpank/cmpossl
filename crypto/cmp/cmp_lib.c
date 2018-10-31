@@ -1077,7 +1077,7 @@ OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(const ASN1_OBJECT *type,
  * note: strongly overlaps with TS_RESP_CTX_set_status_info()
  *       and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
  */
-OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int failInfo,
+OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
                                         const char *text)
 {
     OSSL_CMP_PKISI *si = NULL;
@@ -1103,7 +1103,7 @@ OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int failInfo,
     }
 
     for (failure = 0; failure <= OSSL_CMP_PKIFAILUREINFO_MAX; failure++) {
-        if ((failInfo & (1 << failure)) != 0) {
+        if ((fail_info & (1 << failure)) != 0) {
             if (si->failInfo == NULL &&
                 (si->failInfo = ASN1_BIT_STRING_new()) == NULL)
                 goto err;
@@ -1298,15 +1298,15 @@ OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep
  * checks PKIFailureInfo bits in a given PKIStatusInfo
  * returns 1 if a given bit is set, 0 if not, -1 on error
  */
-int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int codeBit)
+int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index)
 {
-    ASN1_BIT_STRING *failInfo = OSSL_CMP_PKISI_failInfo_get0(si);
-    if (failInfo == NULL) /* this can also indicate si == NULL */
+    ASN1_BIT_STRING *fail_info = OSSL_CMP_PKISI_failInfo_get0(si);
+    if (fail_info == NULL) /* this can also indicate si == NULL */
         return -1;
-    if ((codeBit < 0) || (codeBit > OSSL_CMP_PKIFAILUREINFO_MAX))
+    if ((bit_index < 0) || (bit_index > OSSL_CMP_PKIFAILUREINFO_MAX))
         return -1;
 
-    return ASN1_BIT_STRING_get_bit(failInfo, codeBit);
+    return ASN1_BIT_STRING_get_bit(fail_info, bit_index);
 }
 
 /*

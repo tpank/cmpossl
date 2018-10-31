@@ -504,25 +504,24 @@ a positive or negative certConf messge to the server. The callback has type
                                         int fail_info, const char **txt);
 
 and should inspect the certificate it obtains via the B<cert> parameter and may
-overrule the pre-decision given in the B<fail_info> and B<*txt> parameters.  If
-it accepts the certificate it must return -1, indicating success. Else it must
-return an integer corresponding to a  bit field <= OSSL_CMP_PKIFAILUREINFO_MAX
-indicating failure and may set the B<*txt> output parameter to point to a
-string constant with more detail.  The transfer callback may make use of a
-custom defined argument stored in the ctx by means of
-OSSL_CMP_CTX_set_certConf_cb_arg(), which may be retrieved again through
-OSSL_CMP_CTX_get_certConf_cb_arg().
+overrule the pre-decision given in the B<fail_info> and B<*txt> parameters.
+If it accepts the certificate it must return 0, indicating success. Else it must
+return a bit field reflecting PKIFailureInfo with at least one failure bit and
+may set the B<*txt> output parameter to point to a string constant with more
+detail.  The transfer callback may make use of a custom defined argument stored
+in the B<ctx> by means of OSSL_CMP_CTX_set_certConf_cb_arg(), which may be
+retrieved again through OSSL_CMP_CTX_get_certConf_cb_arg().
 Typically, the callback will check at least that the certificate can be verified
 using a set of trusted certificates.
 It also could compare the subject DN and other fields of the newly
 enrolled certificate with the certificate template of the request.
 
-OSSL_CMP_certConf_cb() example certConf callback validating that the new
-certificate can be verified with set up trusted/untrusted certificates in
-B<ctx>. As there is no requirement in the RFC that the certificate can be
-validated by the client, this example is not set by default in the context.
-Returns B<fail_info> if given !=0, 0 on successful validation, or else a
-PKIFailureInfo bit field reflecting OSSL_CMP_PKIFAILUREINFO_incorrectData.
+OSSL_CMP_certConf_cb() is a basic example certConf callback validating that
+the new certificate can be verified with the trusted/untrusted certificates
+in B<ctx>. As there is no requirement in RFC 4210 that the certificate can be
+validated by the client, this callback is not set by default in the context.
+It returns B<fail_info> if it is !=0, 0 on successful validation, or else a bit
+field with the OSSL_CMP_PKIFAILUREINFO_incorrectData bit set.
 
 OSSL_CMP_CTX_set_certConf_cb_arg() sets an argument, respecively a pointer to a
 structure containing arguments, optionally to be used by the certConf callback.

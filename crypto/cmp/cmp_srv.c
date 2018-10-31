@@ -108,13 +108,13 @@ int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
-                                    int failInfo, const char *text)
+                                    int fail_info, const char *text)
 {
     if (srv_ctx == NULL)
         return 0;
     OSSL_CMP_PKISI_free(srv_ctx->pkiStatusOut);
     return (srv_ctx->pkiStatusOut =
-            OSSL_CMP_statusInfo_new(status, failInfo, text))
+            OSSL_CMP_statusInfo_new(status, fail_info, text))
            != NULL;
 }
 

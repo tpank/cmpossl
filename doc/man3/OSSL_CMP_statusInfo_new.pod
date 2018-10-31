@@ -14,11 +14,11 @@ OSSL_CMP_PKISI_snprint,
 =head1 SYNOPSIS
 
   #include "cmp.h"
-  OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int failInfo,
+  OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
                                           const char *text);
   int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si);
   int OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si);
-  int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int codeBit);
+  int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index);
   OSSLL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_failInfo_get0(OSSL_CMP_PKISI *si);
   OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(OSSL_CMP_PKISI *si);
   char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
@@ -56,7 +56,7 @@ OSSL_CMP_PKISI_snprint,
 
 OSSL_CMP_statusInfo_new() creates a new PKIStatusInfo structure and fills it
 with the given values. It sets the status field to B<status>.  If B<text> is
-not NULL, it is copied to statusString.  If B<failInfo> is >= 0 and <
+not NULL, it is copied to statusString.  If B<fail_info> is >= 0 and <
 OSSL_CMP_PKIFAILUREINFO_MAX, it is interpeted as bit pattern for the failInfo
 field.  Returns a pointer to the structure on success, or NULL on error.
 
@@ -66,7 +66,7 @@ OSSL_CMP_PKISI_PKIFailureInfo_get() returns the PKIFailureInfo bits
 of B<si>, encoded as integer, or -1 on error.
 
 OSSL_CMP_PKISI_PKIFailureInfo_check() returns the state of the bit (0 or 1)
-with index B<codeBit> in the PKIFailureInfo of the B<si>, or -1 on error.
+with index B<bit_index> in the PKIFailureInfo of the B<si>, or -1 on error.
 
 OSSL_CMP_PKISI_failInfo_get0() returns a direct pointer to the failInfo
 field contained in B<si>, or NULL on error.
