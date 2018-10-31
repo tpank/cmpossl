@@ -118,15 +118,17 @@ OSSL_CMP_CTX_subjectAltName_push1
                                        const STACK_OF(X509) *store);
  STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(OSSL_CMP_CTX *ctx);
 
- typedef enum {LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERROR,
-               LOG_WARN, LOG_NOTE, LOG_INFO, LOG_DEBUG} severity;
+ typedef enum {OSSL_LOG_EMERG, OSSL_LOG_ALERT, OSSL_LOG_CRIT, OSSL_LOG_ERR,
+               OSSL_LOG_WARNING, OSSL_LOG_NOTICE, OSSL_LOG_INFO, OSSL_LOG_DEBUG}
+     OSSL_CMP_severity;
+
  int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
 
- int OSSL_CMP_puts(const char *file, int lineno, severity level,
+ int OSSL_CMP_puts(const char *file, int lineno, OSSL_CMP_severity level,
                    const char *msg);
 
  int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
-                     severity level, const char *fmt, ...);
+                     OSSL_CMP_severity level, const char *fmt, ...);
 
  void OSSL_CMP_print_errors_cb(OSSL_CMP_CTX *ctx);
 
@@ -372,8 +374,8 @@ list of untrusted certs.
 OSSL_CMP_CTX_set_log_cb() sets the log callback for error/warn/info/debug
 messages. This callback function has the type
 
- typedef void (*OSSL_cmp_log_cb_t)(const char *file, int lineno, severity level,
-                                   const char *msg);
+ typedef void (*OSSL_cmp_log_cb_t)(const char *file, int lineno,
+                                   OSSL_CMP_severity level, const char *msg);
 
 and obtains the current source file path name and line number
 (or NULL and 0 if not avaialble),
