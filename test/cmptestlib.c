@@ -18,7 +18,6 @@
  */
 
 #include "cmptestlib.h"
-#include <openssl/rsa.h>
 
 EVP_PKEY *load_pem_key(const char *file)
 {

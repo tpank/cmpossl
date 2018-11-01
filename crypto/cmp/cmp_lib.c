@@ -38,7 +38,6 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/rand.h>
-#include <openssl/err.h>
 
 #include <time.h>
 #include <string.h>
