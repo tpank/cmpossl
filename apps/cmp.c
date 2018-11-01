@@ -2722,12 +2722,6 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     X509_STORE *store = NULL;
     SSL_CTX *ssl_ctx;
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-    /* initialize OpenSSL's SSL lib */
-    OpenSSL_add_ssl_algorithms();
-    SSL_load_error_strings();
-#endif
-
     ssl_ctx = SSL_CTX_new(TLS_client_method());
     if (ssl_ctx == NULL) {
         goto oom;
