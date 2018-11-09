@@ -11,12 +11,12 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
 #include "apps.h"
-#include "progs.h"
 #include "s_apps.h"
+#include "progs.h"
 
 /* tweaks needed due to missing unistd.h on Windows */
 #ifdef _WIN32
@@ -28,7 +28,8 @@
 
 #ifndef OPENSSL_NO_CMP
 
-#include <openssl/opensslconf.h>
+#include "../crypto/cmp/cmp_int.h"
+
 #include <openssl/ui.h>
 #include <openssl/pkcs12.h>
 #include <openssl/ssl.h>
@@ -43,14 +44,6 @@ static char *opt_section = CMP_SECTION;
 #undef PROG
 #define PROG cmp_main
 static char *prog = "cmp";
-
-#include <openssl/crypto.h>
-#include <openssl/cmp.h>
-#include <openssl/crmf.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
 
 static int read_config(void);
 
@@ -534,7 +527,7 @@ OPTIONS cmp_options[] = {
     {"pkistatus", OPT_PKISTATUS, 'n',
      "PKIStatus to be included in server response"},
     {"failure", OPT_FAILURE, 'n',
-     "A single failure info code to be included in server response"},
+     "A single failure info bit number to be included in server response"},
     {"failurebits", OPT_FAILUREBITS, 'n',
      "Number representing failure bits to be included in server response"},
     {"statusstring", OPT_STATUSSTRING, 's',
@@ -2475,14 +2468,20 @@ static int setup_srv_ctx(ENGINE *e)
     if (opt_grant_implicitconf)
         (void)OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(srv_ctx, 1);
 
+    if (opt_failure < -1 || opt_failure > OSSL_CMP_PKIFAILUREINFO_MAX) {
+        OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
+                        "-failure out of range, should be >= 0 and <= %d",
+                        OSSL_CMP_PKIFAILUREINFO_MAX);
+        goto err;
+    }
     if (opt_failure >= 0) {
         if (opt_failurebits != 0)
             OSSL_CMP_warn(ctx, "-failurebits overrides -failure");
         else
             opt_failurebits = 1 << opt_failure;
     }
-    if (opt_failurebits >= 1 << (OSSL_CMP_PKIFAILUREINFO_MAX+1)) {
-        OSSL_CMP_err(ctx, "-failure or -failurebits too large");
+    if ((unsigned)opt_failurebits > OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN) {
+        OSSL_CMP_err(ctx, "-failurebits out of range");
         goto err;
     }
     if (!OSSL_CMP_SRV_CTX_set_statusInfo(srv_ctx, opt_pkistatus,

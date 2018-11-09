@@ -14,15 +14,11 @@
 #ifndef OSSL_HEADER_CMP_INT_H
 # define OSSL_HEADER_CMP_INT_H
 
-# include <openssl/ossl_typ.h>
-# include <openssl/x509.h>
-# include <openssl/x509v3.h>
-# include <openssl/safestack.h>
-
 # define DECIMAL_SIZE(type) ((sizeof(type)*8+2)/3+1) /* this avoids dependency
                       on internal header file: #include "internal/cryptlib.h" */
 
-# include <openssl/crmf.h>
+# include <openssl/cmp.h>
+# include <openssl/err.h>
 
 # ifdef  __cplusplus
 extern "C" {
@@ -275,6 +271,12 @@ typedef struct OSSL_cmp_certifiedkeypair_st {
     OSSL_CRMF_PKIPUBLICATIONINFO *failInfo;
 } OSSL_CMP_CERTIFIEDKEYPAIR;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTIFIEDKEYPAIR)
+
+#define OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN \
+    ( (1<<(OSSL_CMP_PKIFAILUREINFO_MAX+1)) - 1)
+#if OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN > INT_MAX
+# error  CMP_PKIFAILUREINFO_MAX bit pattern does not fit in type int
+#endif
 
 /*-
  *   PKIStatusInfo ::= SEQUENCE {
