@@ -12,11 +12,9 @@
  * Martin Peylo, Miikka Viljanen, David von Oheimb, and Tobias Pankert.
  */
 
-#include <openssl/cmp.h>
-#include "cmp_int.h"
-#include <openssl/err.h>
 #include <openssl/asn1t.h>
-#include <string.h>
+
+#include "cmp_int.h"
 
 typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
                       (OSSL_CMP_SRV_CTX *ctx, const OSSL_CMP_MSG *msg);

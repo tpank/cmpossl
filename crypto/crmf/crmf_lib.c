@@ -8,7 +8,7 @@
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
  *
- * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
+ * CRMF implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
 /* NAMING
@@ -25,10 +25,8 @@
  * the CRMF structures
  */
 
-#include <openssl/crmf.h>
 #include <openssl/asn1t.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
+
 #include "crmf_int.h"
 
 /*
@@ -531,7 +529,7 @@ int OSSL_CRMF_MSG_create_popo(OSSL_CRMF_MSG *crm, const EVP_PKEY *pkey,
     return 0;
 }
 
-static int CMP_X509_PUBKEY_cmp(X509_PUBKEY *a, X509_PUBKEY *b)
+static int X509_PUBKEY_cmp(X509_PUBKEY *a, X509_PUBKEY *b)
 {
     X509_ALGOR *algA = NULL, *algB = NULL;
     int res = 0;
@@ -579,7 +577,7 @@ This MUST be exactly the same value as is contained in the certificate template.
 */
             if (pubkey == NULL ||
                 sig->poposkInput->publicKey == NULL ||
-                CMP_X509_PUBKEY_cmp(pubkey, sig->poposkInput->publicKey) ||
+                X509_PUBKEY_cmp(pubkey, sig->poposkInput->publicKey) ||
                 ASN1_item_verify(ASN1_ITEM_rptr(OSSL_CRMF_POPOSIGNINGKEYINPUT),
                                  sig->algorithmIdentifier, sig->signature,
                                  sig->poposkInput,

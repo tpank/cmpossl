@@ -8,16 +8,13 @@
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
  *
- * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
+ * CRMF implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
 
-#include <openssl/crmf.h>
-#include <openssl/asn1t.h>
 #include <openssl/rand.h>
-#include <openssl/evp.h>
 #include <openssl/hmac.h>
-#include <openssl/err.h>
+
 #include "crmf_int.h"
 
 /*

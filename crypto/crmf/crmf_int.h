@@ -8,17 +8,14 @@
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
  *
- * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
+ * CRMF implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
 #ifndef OSSL_HEADER_CRMF_INT_H
 # define OSSL_HEADER_CRMF_INT_H
 
-# include <openssl/ossl_typ.h>
-# include <openssl/x509.h>
-# include <openssl/x509v3.h>
-# include <openssl/safestack.h>
 # include <openssl/crmf.h>
+# include <openssl/err.h>
 
 # ifdef  __cplusplus
 extern "C" {
