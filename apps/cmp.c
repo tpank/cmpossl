@@ -29,6 +29,7 @@
 #ifndef OPENSSL_NO_CMP
 
 #include <openssl/opensslconf.h>
+#include <openssl/ui.h>
 #include <openssl/pkcs12.h>
 #include <openssl/ssl.h>
 
