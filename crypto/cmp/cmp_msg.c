@@ -11,14 +11,6 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#include <openssl/crmf.h>
-#include <openssl/cmp.h>
-#include <openssl/asn1t.h>
-#include <openssl/x509.h>
-#include <openssl/err.h>
-
-#include <string.h>
-
 #include "cmp_int.h"
 
 /*
@@ -616,7 +608,7 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
         CMPerr(CMP_F_OSSL_CMP_CERTCONF_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
-    if (fail_info >= (1 << (OSSL_CMP_PKIFAILUREINFO_MAX+1)))
+    if ((unsigned)fail_info > OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN)
         CMPerr(CMP_F_OSSL_CMP_CERTCONF_NEW, CMP_R_FAIL_INFO_OUT_OF_RANGE);
 
     if ((msg = OSSL_CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_CERTCONF)) == NULL)
