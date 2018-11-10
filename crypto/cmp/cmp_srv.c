@@ -238,7 +238,8 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         srv_ctx->certReqId = OSSL_CMP_CERTREQID;
     } else {
         if ((crm =
-             sk_OSSL_CRMF_MSG_value(certReq->body->value.cr, 0)) == NULL) {
+             sk_OSSL_CRMF_MSG_value(certReq->body->value.cr,
+                                    OSSL_CMP_CERTREQID)) == NULL) {
             CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_CERTREQMSG_NOT_FOUND);
             return NULL;
         }
@@ -253,8 +254,8 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
             goto oom;
     } else if (srv_ctx->pollCount > 0) {
         srv_ctx->pollCount--;
-        if ((si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_waiting, 0, NULL))
-            == NULL)
+        if ((si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_waiting,
+                                          OSSL_CMP_CERTREQID, NULL)) == NULL)
             goto oom;
         OSSL_CMP_MSG_free(srv_ctx->certReq);
         if ((srv_ctx->certReq = OSSL_CMP_MSG_dup((OSSL_CMP_MSG *)certReq))
@@ -351,9 +352,8 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
 
     if (status != NULL) {
         /* check cert request id */
-        int rid;
-        if (!OSSL_CRMF_ASN1_get_int(&rid, status->certReqId) ||
-              rid != srv_ctx->certReqId) {
+        if (CMP_ASN1_get_int(CMP_F_PROCESS_CERTCONF, status->certReqId)
+            /* in case of error, invalid reqId -1 */ != srv_ctx->certReqId) {
             CMPerr(CMP_F_PROCESS_CERTCONF, CMP_R_UNEXPECTED_REQUEST_ID);
             return NULL;
         }

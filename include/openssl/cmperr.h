@@ -217,6 +217,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_TRANSACTIONID_UNMATCHED                    178
 #  define CMP_R_UNEXPECTED_PKIBODY                         179
 #  define CMP_R_UNEXPECTED_PKISTATUS                       180
+#  define CMP_R_UNEXPECTED_PVNO                            193
 #  define CMP_R_UNEXPECTED_REQUEST_ID                      181
 #  define CMP_R_UNEXPECTED_SENDER                          182
 #  define CMP_R_UNKNOWN_ALGORITHM_ID                       183
