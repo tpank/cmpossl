@@ -21,7 +21,7 @@
 #  include <openssl/cmperr.h>
 #  define OPENSSL_CMP_CONST const
 
-#  define OSSL_CMP_PVNO 2L
+#  define OSSL_CMP_PVNO 2
 
 #  ifdef  __cplusplus
 extern "C" {

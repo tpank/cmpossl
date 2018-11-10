@@ -303,37 +303,35 @@ int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, int rid)
     return res;
 }
 
+/* get ASN.1 encoded integer, return -1 on error */
+static int CRMF_ASN1_get_int(int func, const ASN1_INTEGER *a)
+{
+    int64_t res;
+    if (!ASN1_INTEGER_get_int64(&res, a)) {
+        CRMFerr(func, ASN1_R_INVALID_NUMBER);
+        return -1;
+    }
+    if (res < INT_MIN) {
+        CRMFerr(func, ASN1_R_TOO_SMALL);
+        return -1;
+    }
+    if (res > INT_MAX) {
+        CRMFerr(func, ASN1_R_TOO_LARGE);
+        return -1;
+    }
+    return (int)res;
+}
+
 int OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm)
 {
-    int ret;
-    if (crm == NULL || crm->certReq == NULL) {
+    if (crm == NULL || /* not really needed: */ crm->certReq == NULL) {
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID, CRMF_R_NULL_ARGUMENT);
         return -1;
     }
-    if (!OSSL_CRMF_ASN1_get_int(&ret, crm->certReq->certReqId)) {
-        CRMFerr(CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID, CRMF_R_CETREQID_INVALID);
-        return -1;
-    }
-    return ret;
+    return CRMF_ASN1_get_int(CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID,
+                             crm->certReq->certReqId);
 }
 
-
-int OSSL_CRMF_ASN1_get_int(int *pr, const ASN1_INTEGER *a)
-{
-    int64_t res;
-    if (!ASN1_INTEGER_get_int64(&res, a))
-        return 0;
-    if (res < INT_MIN) {
-        CRMFerr(CRMF_F_OSSL_CRMF_ASN1_GET_INT, ASN1_R_TOO_SMALL);
-        return 0;
-    }
-    if (res > INT_MAX) {
-        CRMFerr(CRMF_F_OSSL_CRMF_ASN1_GET_INT, ASN1_R_TOO_LARGE);
-        return 0;
-    }
-    *pr = (int)res;
-    return 1;
-}
 
 int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm,
                                   X509_EXTENSIONS *exts)
