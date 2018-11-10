@@ -35,8 +35,8 @@ typedef struct test_fixture {
     STACK_OF(X509) *chain;
     ASN1_OCTET_STRING *src_string;
     ASN1_OCTET_STRING *tgt_string;
-    long pkistatus;
-    long pkifailure;
+    int pkistatus;
+    int pkifailure;
     char *text;                 /* Not freed by tear_down */
 
 } CMP_LIB_TEST_FIXTURE;
@@ -94,7 +94,7 @@ static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
                      OSSL_CMP_HDR_init(fixture->cmp_ctx, header)))
         goto err;
     if (fixture->expected != 0) {
-        if (!TEST_long_eq(OSSL_CMP_HDR_get_pvno(header), OSSL_CMP_PVNO) ||
+        if (!TEST_int_eq(OSSL_CMP_HDR_get_pvno(header), OSSL_CMP_PVNO) ||
             !TEST_true(0 == ASN1_OCTET_STRING_cmp(
                        OSSL_CMP_HDR_get0_senderNonce(header),
                        OSSL_CMP_CTX_get0_last_senderNonce(fixture->cmp_ctx))) ||
@@ -287,10 +287,10 @@ static int execute_cmp_pkistatusinfo_test(CMP_LIB_TEST_FIXTURE *fixture)
                   OSSL_CMP_statusInfo_new(fixture->pkistatus,
                                           fixture->pkifailure, fixture->text)))
         goto end;
-    if (!TEST_long_eq(fixture->pkistatus,
-                      OSSL_CMP_PKISI_PKIStatus_get(si)) ||
-        !TEST_long_eq(fixture->pkifailure,
-                      OSSL_CMP_PKISI_PKIFailureInfo_get(si)))
+    if (!TEST_int_eq(fixture->pkistatus,
+                     OSSL_CMP_PKISI_PKIStatus_get(si)) ||
+        !TEST_int_eq(fixture->pkifailure,
+                     OSSL_CMP_PKISI_PKIFailureInfo_get(si)))
         goto end;
     for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
         if (!TEST_int_eq(fixture->pkifailure >> i & 1,
