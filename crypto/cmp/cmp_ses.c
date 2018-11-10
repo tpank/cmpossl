@@ -165,7 +165,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     if ((expected_type == OSSL_CMP_PKIBODY_POLLREP ||
          IS_ENOLLMENT(expected_type))
         && ctx->totaltimeout != 0) { /* total timeout is not infinite */
-        int time_left = (int)(ctx->end_time - time(NULL));
+        int64_t time_left = (int64_t)(ctx->end_time - time(NULL));
         if (time_left <= 0) {
             CMPerr(CMP_F_SEND_RECEIVE_CHECK, CMP_R_TOTAL_TIMEOUT);
             return 0;
@@ -255,7 +255,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
 
         /* handle potential pollRep */
         if (OSSL_CMP_MSG_get_bodytype(prep) == OSSL_CMP_PKIBODY_POLLREP) {
-            int check_after;
+            int64_t check_after;
             OSSL_CMP_POLLREPCONTENT *prc = prep->body->value.pollRep;
             /*
              * TODO: handle multiple PollRepContent elements, in case
@@ -268,7 +268,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             }
             if ((pollRep = CMP_POLLREPCONTENT_pollRep_get0(prc, rid)) == NULL)
                 goto err;
-            if (!OSSL_CRMF_ASN1_get_int(&check_after, pollRep->checkAfter)) {
+            if (!ASN1_INTEGER_get_int64(&check_after, pollRep->checkAfter)) {
                 CMPerr(CMP_F_POLLFORRESPONSE, CMP_R_BAD_CHECKAFTER_IN_POLLREP);
                 goto err;
             }
@@ -284,7 +284,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
 
             if (ctx->totaltimeout != 0) { /* total timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
-                int time_left = (int)(ctx->end_time - exp - time(NULL));
+                int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
                 if (time_left <= 0) {
                     CMPerr(CMP_F_POLLFORRESPONSE, CMP_R_TOTAL_TIMEOUT);
                     goto err;
@@ -525,11 +525,14 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
      */
     if ((crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid)) == NULL)
         return 0;
-    if (rid == -1)/* for OSSL_CMP_PKIBODY_P10CR learn CertReqId from response */
-        if (!OSSL_CRMF_ASN1_get_int(&rid, crep->certReqId)) {
-            CMPerr(func, CMP_R_UNEXPECTED_REQUEST_ID);
+    if (rid == -1) {
+        /* for OSSL_CMP_PKIBODY_P10CR learn CertReqId from response */
+        rid = CMP_ASN1_get_int(func, crep->certReqId);
+        if (rid == -1) {
+            CMPerr(func, CMP_R_BAD_REQUEST_ID);
             return 0;
         }
+    }
 
     if (OSSL_CMP_PKISI_PKIStatus_get(crep->status) ==
         OSSL_CMP_PKISTATUS_waiting) {

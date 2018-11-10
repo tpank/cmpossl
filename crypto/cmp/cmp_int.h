@@ -691,9 +691,9 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  */
 
 /* certReqId for the first - and so far only - certificate request */
-# define OSSL_CMP_CERTREQID 0L
+# define OSSL_CMP_CERTREQID 0
 /* sequence id for the first - and so far only - revocation request */
-# define OSSL_CMP_REVREQSID 0L
+# define OSSL_CMP_REVREQSID 0
 
 /*
  * functions
@@ -703,6 +703,9 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
 X509_EXTENSIONS *CMP_exts_dup(X509_EXTENSIONS *extin);
 
 /* from cmp_lib.c */
+/* get ASN.1 encoded integer, return -1 on error */
+int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a);
+
 /*
 OSSL_CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
 to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.

@@ -2147,6 +2147,7 @@ CMP_R_TOTAL_TIMEOUT:177:total timeout
 CMP_R_TRANSACTIONID_UNMATCHED:178:transactionid unmatched
 CMP_R_UNEXPECTED_PKIBODY:179:unexpected pkibody
 CMP_R_UNEXPECTED_PKISTATUS:180:unexpected pkistatus
+CMP_R_UNEXPECTED_PVNO:193:unexpected pvno
 CMP_R_UNEXPECTED_REQUEST_ID:181:unexpected request id
 CMP_R_UNEXPECTED_SENDER:182:unexpected sender
 CMP_R_UNKNOWN_ALGORITHM_ID:183:unknown algorithm id

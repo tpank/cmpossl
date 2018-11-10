@@ -16,8 +16,6 @@
 static const ERR_STRING_DATA CRMF_str_functs[] = {
     {ERR_PACK(ERR_LIB_CRMF, CRMF_F_CRMF_POPOSIGKEY_NEW, 0),
      "CRMF_poposigkey_new"},
-    {ERR_PACK(ERR_LIB_CRMF, CRMF_F_OSSL_CRMF_ASN1_GET_INT, 0),
-     "OSSL_CRMF_ASN1_get_int"},
     {ERR_PACK(ERR_LIB_CRMF, CRMF_F_OSSL_CRMF_CERTID_GEN, 0),
      "OSSL_CRMF_CERTID_gen"},
     {ERR_PACK(ERR_LIB_CRMF, CRMF_F_OSSL_CRMF_CERTTEMPLATE_FILL, 0),
@@ -59,7 +57,6 @@ static const ERR_STRING_DATA CRMF_str_functs[] = {
 static const ERR_STRING_DATA CRMF_str_reasons[] = {
     {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_BAD_PBM_ITERATIONCOUNT),
     "bad pbm iterationcount"},
-    {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_CETREQID_INVALID), "cetreqid invalid"},
     {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_CRMFERROR), "crmferror"},
     {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_ERROR), "error"},
     {ERR_PACK(ERR_LIB_CRMF, 0, CRMF_R_ERROR_DECODING_CERTIFICATE),

@@ -344,6 +344,7 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_UNEXPECTED_PKIBODY), "unexpected pkibody"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_UNEXPECTED_PKISTATUS),
     "unexpected pkistatus"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_UNEXPECTED_PVNO), "unexpected pvno"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_UNEXPECTED_REQUEST_ID),
     "unexpected request id"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_UNEXPECTED_SENDER), "unexpected sender"},

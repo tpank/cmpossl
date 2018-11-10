@@ -89,25 +89,39 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
     } while (*txt != '\0');
 }
 
+/* get ASN.1 encoded integer, return -1 on error */
+int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a)
+{
+    int64_t res;
+    if (!ASN1_INTEGER_get_int64(&res, a)) {
+        CMPerr(func, ASN1_R_INVALID_NUMBER);
+        return -1;
+    }
+    if (res < INT_MIN) {
+        CMPerr(func, ASN1_R_TOO_SMALL);
+        return -1;
+    }
+    if (res > INT_MAX) {
+        CMPerr(func, ASN1_R_TOO_LARGE);
+        return -1;
+    }
+    return (int)res;
+}
+
 /* returns the header of the given CMP message or NULL on error */
 OSSL_CMP_HDR *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
 {
     return msg != NULL ? msg->header : NULL;
 }
 
-/* returns the pvno of the given PKIHeader or 0 on error */
+/* returns the pvno of the given PKIHeader or -1 on error */
 int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr)
 {
-    int pvno;
     if (hdr == NULL) {
         CMPerr(CMP_F_OSSL_CMP_HDR_GET_PVNO, CMP_R_NULL_ARGUMENT);
-        return 0;
+        return -1;
     }
-    if (!OSSL_CRMF_ASN1_get_int(&pvno, hdr->pvno)) {
-        CMPerr(CMP_F_OSSL_CMP_HDR_GET_PVNO, CMP_R_BAD_PVNO);
-        return 0;
-    }
-    return pvno;
+    return CMP_ASN1_get_int(CMP_F_OSSL_CMP_HDR_GET_PVNO, hdr->pvno);
 }
 
 /* returns the transactionID of the given PKIHeader or NULL on error */
@@ -1116,16 +1130,12 @@ OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
  */
 int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si)
 {
-    int stat;
     if (si == NULL || si->status == NULL) {
         CMPerr(CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET,
                CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
     }
-    if (!OSSL_CRMF_ASN1_get_int(&stat, si->status)) {
-        CMPerr(CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET, CMP_R_BAD_STATUS);
-    }
-    return stat;
+    return CMP_ASN1_get_int(CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET, si->status);
 }
 
 /*
@@ -1317,18 +1327,37 @@ OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(OSSL_CMP_PKISI *si)
     return si == NULL ? NULL : si->statusString;
 }
 
+static int suitable_rid(int func, const ASN1_INTEGER *certReqId, int rid)
+{
+    if (rid == -1) {
+        return 1;
+    } else {
+        int trid = CMP_ASN1_get_int(func, certReqId);
+        if (trid == -1) {
+            CMPerr(func, CMP_R_BAD_REQUEST_ID);
+            return 0;
+        }
+        return rid == trid;
+    }
+}
+
+static void add_expected_rid(int rid)
+{
+    char str[DECIMAL_SIZE(rid)+1];
+    BIO_snprintf(str, sizeof(str), "%d", rid);
+    ERR_add_error_data(2, "expected certReqId = ", str);
+}
+
 /*
  * returns a pointer to the PollResponse with the given CertReqId
  * (or the first one in case -1) inside a PollRepContent
  * returns NULL on error or if no suitable PollResponse available
  */
-/* cannot factor overlap with CERTREPMESSAGE_certResponse_get0 due to typing */
 OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
                                                   int rid)
 {
     OSSL_CMP_POLLREP *pollRep = NULL;
     int i;
-    char str[DECIMAL_SIZE(rid)+1];
 
     if (prc == NULL) {
         CMPerr(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0, CMP_R_INVALID_ARGS);
@@ -1336,19 +1365,14 @@ OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
     }
 
     for (i = 0; i < sk_OSSL_CMP_POLLREP_num(prc); i++) {
-        int trid;
         pollRep = sk_OSSL_CMP_POLLREP_value(prc, i);
-        if (!OSSL_CRMF_ASN1_get_int(&trid, pollRep->certReqId)) {
-            CMPerr(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0, CMP_R_BAD_REQUEST_ID);
-        }
-        /* is it the right CertReqId? */
-        if (rid == -1 || rid == trid)
+        if (suitable_rid(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0,
+                         pollRep->certReqId, rid))
             return pollRep;
     }
 
     CMPerr(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0, CMP_R_CERTRESPONSE_NOT_FOUND);
-    BIO_snprintf(str, sizeof(str), "%d", rid);
-    ERR_add_error_data(2, "expected certReqId = ", str);
+    add_expected_rid(rid);
     return NULL;
 }
 
@@ -1357,13 +1381,11 @@ OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
  * (or the first one in case -1) inside a CertRepMessage
  * returns NULL on error or if no suitable CertResponse available
  */
-/* cannot factor overlap with POLLREPCONTENT_pollResponse_get0 due to typing */
 OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(
                                   OSSL_CMP_CERTREPMESSAGE *crepmsg, int rid)
 {
     OSSL_CMP_CERTRESPONSE *crep = NULL;
     int i;
-    char str[DECIMAL_SIZE(rid)+1];
 
     if (crepmsg == NULL || crepmsg->response == NULL) {
         CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0, CMP_R_INVALID_ARGS);
@@ -1371,21 +1393,15 @@ OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(
     }
 
     for (i = 0; i < sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response); i++) {
-        int trid;
         crep = sk_OSSL_CMP_CERTRESPONSE_value(crepmsg->response, i);
-        if (!OSSL_CRMF_ASN1_get_int(&trid, crep->certReqId)) {
-            CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
-                   CMP_R_BAD_REQUEST_ID);
-        }
-        /* is it the right CertReqId? */
-        if (rid == -1 || rid == trid)
+        if (suitable_rid(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
+                         crep->certReqId, rid))
             return crep;
     }
 
     CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
            CMP_R_CERTRESPONSE_NOT_FOUND);
-    BIO_snprintf(str, sizeof(str), "%d", rid);
-    ERR_add_error_data(2, "expected certReqId = ", str);
+    add_expected_rid(rid);
     return NULL;
 }
 
@@ -1689,11 +1705,6 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     if (ctx == NULL || msg == NULL)
         return -1;
 
-    if ((rcvd_type = OSSL_CMP_MSG_get_bodytype(msg)) < 0) {
-        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED, CMP_R_PKIBODY_ERROR);
-        return -1;
-    }
-
     /* validate message protection */
     if (msg->header->protectionAlg != 0) {
         if (!OSSL_CMP_validate_msg(ctx, msg)) {
@@ -1711,6 +1722,12 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
             return -1;
         }
         OSSL_CMP_warn(ctx, "received message is not protected");
+    }
+
+    /* check CMP version number in header */
+    if (OSSL_CMP_HDR_get_pvno(OSSL_CMP_MSG_get0_header(msg)) != OSSL_CMP_PVNO) {
+        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED, CMP_R_UNEXPECTED_PVNO);
+        return -1;
     }
 
     /* compare received transactionID with the expected one in previous msg */
@@ -1744,5 +1761,9 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
         !OSSL_CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
         return -1;
 
+    if ((rcvd_type = OSSL_CMP_MSG_get_bodytype(msg)) < 0) {
+        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED, CMP_R_PKIBODY_ERROR);
+        return -1;
+    }
     return rcvd_type;
 }

@@ -139,7 +139,7 @@ OSSL_CMP_HDR_set_messageTime() sets the messageTime to the current system time.
 
 OSSL_CMP_HDR_set_pvno() sets hdr->pvno to the given B<pvno>.
 
-OSSL_CMP_HDR_get_pvno() returns the pvno of the given B<hdr> or 0 on error.
+OSSL_CMP_HDR_get_pvno() returns the pvno of the given B<hdr> or -1 on error.
 
 OSSL_CMP_MSG_check_implicitConfirm() returns 1 if implicitConfirm is
 set in the given PKIMessage, 0 if not.

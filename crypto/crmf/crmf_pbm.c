@@ -124,7 +124,7 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
     EVP_MD_CTX *ctx = NULL;
     unsigned char basekey[EVP_MAX_MD_SIZE];
     unsigned int bklen;
-    int iterations;
+    int64_t iterations;
     int error = CRMF_R_CRMFERROR;
 
     if (mac == NULL || pbmp == NULL || pbmp->mac == NULL ||
@@ -164,7 +164,7 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
         goto err;
     if (!(EVP_DigestFinal_ex(ctx, basekey, &bklen)))
         goto err;
-    if (!OSSL_CRMF_ASN1_get_int(&iterations, pbmp->iterationCount)
+    if (!ASN1_INTEGER_get_int64(&iterations, pbmp->iterationCount)
             || iterations < 100 /* min from RFC */
             || iterations > OSSL_CRMF_PBM_MAX_ITERATION_COUNT) {
         error = CRMF_R_BAD_PBM_ITERATIONCOUNT;
