@@ -1307,15 +1307,6 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, const int opt, const int val) {
 
 int OSSL_CMP_log_init(void)
 {
-    /* fix any missing initialization of error strings */
-    static ERR_STRING_DATA str_libs[] = {
-        {ERR_PACK(ERR_LIB_CMP, 0, 0), "CMP routines"},
-        {ERR_PACK(ERR_LIB_CRMF, 0, 0), "CRMF routines"},
-        {0, NULL}
-    };
-    (void)ERR_load_strings_const(str_libs);
-    (void)ERR_load_CMP_strings();
-    (void)ERR_load_CRMF_strings();
     return 1;
 }
 
