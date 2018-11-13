@@ -1,0 +1,62 @@
+#!/bin/make
+# optional LIBCMP_INC defines where the libcmp header files will be placed (default: ".")
+# optional LIBCMP_OUT defines where the resulting cmp lib will be placed (default: "./include_cmp")
+# both may contain absolute path or path relative to the dir containing this Makefile
+
+ifeq ($(OS),Windows_NT)
+#   EXE=.exe
+    DLL=.dll
+    OBJ=.obj
+#   LIB=bin
+else
+#   EXE=
+    DLL=.so
+    OBJ=.o
+#   LIB=lib
+endif
+
+ifeq ($(OPENSSL_DIR),)
+     OPENSSL_DIR=.
+endif
+OPENSSL_VERSION=$(shell fgrep OPENSSL_VERSION_NUMBER $(OPENSSL_DIR)/include/openssl/opensslv.h | sed -r 's/.*?NUMBER\s+//; s/L.*//')
+$(info detected OpenSSL version $(OPENSSL_VERSION))
+ifeq ($(findstring 0x,$(OPENSSL_VERSION)),)
+    $(warning cannot determine version of OpenSSL in directory '$(OPENSSL_DIR)')
+endif
+ifeq ($(shell test $$(printf "%d" $(OPENSSL_VERSION)) -lt $$(printf "%d" 0x10100000); echo $$?),0)
+    $(info enabling compilation quirks for OpenSSL 1.0.2)
+    OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers
+endif
+
+ifeq ($(LIBCMP_OUT),)
+     LIBCMP_OUT=.
+endif
+LIBCMP_INC ?= $(LIBCMP_OUT)/include_cmp
+LIBCMP=$(LIBCMP_OUT)/libcmp$(DLL)
+
+CC=gcc
+CFLAGS=-g -O0 -Werror $(OSSL_VERSION_QUIRKS) -fPIC -I$(LIBCMP_INC)
+CFLAGS += -isystem $(OPENSSL_DIR)/include # use of -isystem is critical for selecting wanted OpenSSL version
+LIBCMP_HDRS_INC = -include openssl/crmf.h # used to force inclusion, needed for cmp_err.c
+
+LIBCMP_HDRS_= crmf.h cmp.h cmperr.h crmferr.h safestack_backport.h
+LIBCMP_HDRS = $(patsubst %,./include/openssl/%,$(LIBCMP_HDRS_))
+CMP_SRCS_ = cmp_asn.c cmp_ctx.c cmp_err.c cmp_http.c cmp_lib.c cmp_msg.c cmp_ses.c cmp_srv.c cmp_vfy.c
+CRMF_SRCS_ = crmf_asn.c crmf_err.c crmf_lib.c crmf_pbm.c
+LIBCMP_SRCS = $(patsubst %,./crypto/crmf/%,$(CRMF_SRCS_)) $(patsubst %,./crypto/cmp/%,$(CMP_SRCS_))
+
+.phony: cmp_lib cmp_clean
+
+cmp_lib: $(LIBCMP)
+
+$(LIBCMP): $(LIBCMP_HDRS) $(LIBCMP_SRCS)
+	@mkdir -p $(LIBCMP_OUT)
+	@mkdir -p $(LIBCMP_INC)/openssl
+	@rm -f $(LIBCMP_INC)/openssl/*.h
+	@cp -a $(LIBCMP_HDRS) $(LIBCMP_INC)/openssl
+	@cd $(LIBCMP_INC)/openssl && (mv crmf.h tmp2.h && /bin/echo -e "#undef CMP_STANDALONE\n#define CMP_STANDALONE\n" >tmp1.h && cat tmp1.h tmp2.h >crmf.h); rm -f tmp1.h tmp2.h
+	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) -shared -o $@
+
+cmp_clean:
+	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP)
+	rmdir $(LIBCMP_INC)/openssl $(LIBCMP_INC) 2>/dev/null || true
