@@ -18,9 +18,61 @@
 
 # ifndef OPENSSL_NO_CRMF
 #  include <openssl/opensslv.h>
-#  include <openssl/safestack.h>
-#  include <openssl/crmferr.h>
+#  if OPENSSL_VERSION_NUMBER < 0x10100002L
+#   define ossl_inline __inline
+#   define OPENSSL_FILE __FILE__
+#   define OPENSSL_LINE __LINE__
+#   ifndef CMP_STANDALONE
+#    define DEFINE_STACK_OF DECLARE_STACK_OF
+#   endif
+#  endif
+
+#  ifdef CMP_STANDALONE
+#   if OPENSSL_VERSION_NUMBER < 0x10101000L
+#    define OPENSSL_sk_new_reserve(f,n) sk_new(f) /* sorry, no reservation */
+#    define OPENSSL_sk_reserve(sk,n) 1 /* sorry, no-op */
+#   endif
+#   if OPENSSL_VERSION_NUMBER < 0x10100006L
+#    include <openssl/safestack_backport.h>
+#   endif
+#  endif
+
+#  ifdef CMP_STANDALONE
+#   if OPENSSL_VERSION_NUMBER < 0x10101000L
+#    include <openssl/err.h>
+int ERR_load_strings_const(const ERR_STRING_DATA *str);
+#   endif
+#   undef  ERR_LIB_CRMF
+#   define ERR_LIB_CRMF  (ERR_LIB_USER-2)
+#   undef  ERR_R_CRMF_LIB
+#   define ERR_R_CRMF_LIB ERR_LIB_CRMF
+#   undef  CRMFerr
+#   define CRMFerr(f,r) ERR_PUT_error(ERR_LIB_CRMF,(f),(r),__FILE__,__LINE__)
+#   undef  ERR_LIB_CMP
+#   define ERR_LIB_CMP  (ERR_LIB_USER-1)
+#   undef  ERR_R_CMP_LIB
+#   define ERR_R_CMP_LIB ERR_LIB_CMP
+#   undef  CMPerr
+#   define CMPerr(f,r) ERR_PUT_error(ERR_LIB_CMP,(f),(r),__FILE__,__LINE__)
+#  endif
+
 #  include <openssl/x509v3.h> /* for GENERAL_NAME etc. */
+#  include <openssl/safestack.h>
+#  if OPENSSL_VERSION_NUMBER >= 0x10101000L || defined(CMP_STANDALONE)
+#   include <openssl/crmferr.h>
+#  endif
+
+#  if OPENSSL_VERSION_NUMBER < 0x10100000L
+#    define ERR_R_PASSED_INVALID_ARGUMENT CRMF_R_NULL_ARGUMENT
+#   define int64_t long
+#   define ASN1_INTEGER_get_int64(pvar, a) ((*(pvar)=ASN1_INTEGER_get(a)) != -1)
+#   define static_ASN1_SEQUENCE_END(T) ASN1_SEQUENCE_END(T)
+#   define ASN1_R_TOO_SMALL ASN1_R_INVALID_NUMBER
+#   define ASN1_R_TOO_LARGE ASN1_R_INVALID_NUMBER
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100005L
+#   define X509_PUBKEY_get0(x)((x)->pkey)
+#  endif
 
 #  ifdef  __cplusplus
 extern "C" {
@@ -131,3 +183,15 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
 #  endif
 # endif /* !defined OPENSSL_NO_CRMF */
 #endif /* !defined OSSL_HEADER_CRMF_H */
+
+
+#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(OSSL_HEADER_CRMF_ERROR_CODES)
+# define OSSL_HEADER_CRMF_ERROR_CODES
+# ifdef  __cplusplus
+extern "C" {
+# endif
+/* BEGIN ERROR CODES */
+# ifdef  __cplusplus
+}
+# endif
+#endif
