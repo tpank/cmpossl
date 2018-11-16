@@ -20,6 +20,13 @@
 
 #include "cmp_int.h"
 
+/* explicit #includes not strictly needed since implied by the above: */
+#include <openssl/bio.h>
+#include <openssl/cmp.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/x509v3.h>
+
 /*
  * table used to translate PKIMessage body type number into a printable string
  */

@@ -20,6 +20,13 @@
 # include <openssl/cmp.h>
 # include <openssl/err.h>
 
+/* explicit #includes not strictly needed since implied by the above: */
+# include <openssl/crmf.h>
+# include <openssl/ossl_typ.h>
+# include <openssl/safestack.h>
+# include <openssl/x509.h>
+# include <openssl/x509v3.h>
+
 # ifdef  __cplusplus
 extern "C" {
 # endif
