@@ -15,6 +15,10 @@
 
 #include "cmp_int.h"
 
+/* explicit #includes not strictly needed since implied by the above: */
+#include <openssl/cmp.h>
+#include <openssl/crmf.h>
+
 ASN1_SEQUENCE(OSSL_CMP_REVANNCONTENT) = {
     /* OSSL_CMP_PKISTATUS is effectively ASN1_INTEGER so it is used directly */
     ASN1_SIMPLE(OSSL_CMP_REVANNCONTENT, status, ASN1_INTEGER),
