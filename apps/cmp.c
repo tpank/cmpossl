@@ -34,6 +34,16 @@
 #include <openssl/pkcs12.h>
 #include <openssl/ssl.h>
 
+/* explicit #includes not strictly needed since implied by the above: */
+#include <stdlib.h>
+#include <openssl/cmp.h>
+#include <openssl/crmf.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
+#include <openssl/objects.h>
+#include <openssl/x509.h>
+
 static char *opt_config = NULL;
 #define CMP_SECTION "cmp"
 #define SECTION_NAME_MAX 40 /* max length of section name */

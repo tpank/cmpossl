@@ -32,6 +32,18 @@
 
 #include "cmp_int.h"
 
+/* explicit #includes not strictly needed since implied by the above: */
+#include <time.h>
+#include <openssl/asn1t.h>
+#include <openssl/cmp.h>
+#include <openssl/crmf.h>
+#include <openssl/err.h> /* needed in case config no-deprecated */
+#include <openssl/engine.h>
+#include <openssl/evp.h>
+#include <openssl/objects.h>
+#include <openssl/x509.h>
+
+
 
 /* TODO DvO push this function upstream to crypto/err (PR #add_error_txt) */
 /*

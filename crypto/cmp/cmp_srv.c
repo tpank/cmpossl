@@ -16,6 +16,10 @@
 
 #include "cmp_int.h"
 
+/* explicit #includes not strictly needed since implied by the above: */
+#include <openssl/cmp.h>
+#include <openssl/err.h>
+
 typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
                       (OSSL_CMP_SRV_CTX *ctx, const OSSL_CMP_MSG *msg);
 
