@@ -300,6 +300,9 @@
                    Don't build the CAPI engine. This option will be forced if
                    on a platform that does not support CAPI.
 
+  no-cmp
+                   Don't build support for CMP features
+
   no-cms
                    Don't build support for CMS features
 
@@ -307,6 +310,9 @@
                    Don't build support for SSL/TLS compression. If this option
                    is left enabled (the default), then compression will only
                    work if the zlib or zlib-dynamic options are also chosen.
+
+  no-crmf
+                   Don't build support for CRMF features
 
   enable-crypto-mdebug
                    Build support for debugging memory allocated via
