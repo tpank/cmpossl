@@ -13,6 +13,13 @@
 
 #include "cmp_int.h"
 
+/* explicit #includes not strictly needed since implied by the above: */
+#include <openssl/asn1t.h>
+#include <openssl/cmp.h>
+#include <openssl/crmf.h>
+#include <openssl/err.h>
+#include <openssl/x509.h>
+
 /*
  * internal function
  *

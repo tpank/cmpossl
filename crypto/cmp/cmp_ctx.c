@@ -21,6 +21,12 @@
 
 #include "cmp_int.h"
 
+/* explicit #includes not strictly needed since implied by the above: */
+#include <openssl/cmp.h>
+#include <openssl/crmf.h>
+#include <openssl/err.h>
+#include <openssl/x509v3.h>
+
 /*
  * NAMING
  * The 0 version uses the supplied structure pointer directly in the parent and
