@@ -11,16 +11,26 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#include <openssl/asn1t.h>
-#include <openssl/ocsp.h>
-
 #include <string.h>
 #include <stdio.h>
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 
+#include <openssl/asn1t.h>
+#include <openssl/ocsp.h>
+
 #include "cmp_int.h"
+
+/* explicit #includes not strictly needed since implied by the above: */
+#include <ctype.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <openssl/bio.h>
+#include <openssl/buffer.h>
+#include <openssl/cmp.h>
+#include <openssl/err.h>
+
 
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 

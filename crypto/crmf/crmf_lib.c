@@ -29,6 +29,11 @@
 
 #include "crmf_int.h"
 
+/* explicit #includes not strictly needed since implied by the above: */
+#include <openssl/crmf.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+
 /*
  * atyp = Attribute Type
  * valt = Value Type
