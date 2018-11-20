@@ -60,3 +60,9 @@ $(LIBCMP): $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 cmp_clean:
 	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP)
 	rmdir $(LIBCMP_INC)/openssl $(LIBCMP_INC) 2>/dev/null || true
+
+install: $(LIBCMP)
+	mkdir -p $(DESTDIR)$(prefix)/usr/lib
+	install -D $(LIBCMP) $(DESTDIR)$(prefix)/usr/lib/
+	mkdir -p $(DESTDIR)$(prefix)/usr/include/openssl
+	install -D include_cmp/openssl/*.h $(DESTDIR)$(prefix)/usr/include/openssl/

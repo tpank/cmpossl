@@ -1,0 +1,21 @@
+Source: cmpossl
+Priority: optional
+Maintainer: David von Oheimb <David.von.Oheimb@siemens.com>
+Build-Depends: autotools-dev, libssl-dev, pkg-config, debhelper (>= 10~)
+Standards-Version: 4.0.0
+Section: libs
+Homepage: https://github.com/mpeylo/cmpossl
+
+Package: libcmp
+Architecture: any
+Depends: openssl, ${misc:Depends}, ${shlibs:Depends}
+Description: cmp library
+ CMP as standalone library based on OpenSSL
+
+Package: libcmp-dev
+Section: libdevel
+Architecture: all
+Depends: libcmp, ${misc:Depends}
+Description: cmp library development headers
+ only needed for development
+
