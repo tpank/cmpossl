@@ -433,7 +433,7 @@ static int CRMF_poposigningkey_init(OSSL_CRMF_POPOSIGNINGKEY *ps,
     }
     if (!X509_ALGOR_set0(ps->algorithmIdentifier, OBJ_nid2obj(alg_nid),
                          V_ASN1_NULL, NULL)
-        || (ctx = EVP_MD_CTX_new()) == NULL
+        || (ctx = EVP_MD_CTX_create()) == NULL
         || !(EVP_SignInit_ex(ctx, alg, NULL)))
         goto err;
     if (!(EVP_SignUpdate(ctx, crder, crlen)))
