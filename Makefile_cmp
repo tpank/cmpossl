@@ -15,8 +15,13 @@ else
 #   LIB=lib
 endif
 
+SYSTEM_INCLUDE_OPENSSL=/usr/include/openssl
 ifeq ($(OPENSSL_DIR),)
+   ifneq (,$(wildcard $(SYSTEM_INCLUDE_OPENSSL)))
+     OPENSSL_DIR=/usr
+   else
      OPENSSL_DIR=.
+   endif
 endif
 OPENSSL_VERSION=$(shell fgrep OPENSSL_VERSION_NUMBER $(OPENSSL_DIR)/include/openssl/opensslv.h | sed -r 's/.*?NUMBER\s+//; s/L.*//')
 $(info detected OpenSSL version $(OPENSSL_VERSION))
@@ -37,7 +42,7 @@ LIBCMP=$(LIBCMP_OUT)/libcmp$(DLL)
 CC=gcc
 CFLAGS=-g -O0 -Werror $(OSSL_VERSION_QUIRKS) -fPIC -I$(LIBCMP_INC)
 CFLAGS += -isystem $(OPENSSL_DIR)/include # use of -isystem is critical for selecting wanted OpenSSL version
-LIBCMP_HDRS_INC = -include openssl/crmf.h # used to force inclusion, needed for cmp_err.c
+LIBCMP_HDRS_INC = -include $(LIBCMP_INC)/openssl/crmf.h # used to force inclusion of standalone version, needed also for cmp_err.c
 
 LIBCMP_HDRS_= crmf.h cmp.h cmperr.h crmferr.h safestack_backport.h
 LIBCMP_HDRS = $(patsubst %,./include/openssl/%,$(LIBCMP_HDRS_))
@@ -61,8 +66,16 @@ cmp_clean:
 	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP)
 	rmdir $(LIBCMP_INC)/openssl $(LIBCMP_INC) 2>/dev/null || true
 
+SYSTEM_LIB=/usr/lib
+DEST_LIB=$(DESTDIR)$(prefix)$(SYSTEM_LIB)
+DEST_INC=$(DESTDIR)$(prefix)$(SYSTEM_INCLUDE_OPENSSL)
+LIBCMP_HDRS_install = $(patsubst %,$(DEST_INC)/%,$(LIBCMP_HDRS_))
+
 install: $(LIBCMP)
-	mkdir -p $(DESTDIR)$(prefix)/usr/lib
-	install -D $(LIBCMP) $(DESTDIR)$(prefix)/usr/lib/
-	mkdir -p $(DESTDIR)$(prefix)/usr/include/openssl
-	install -D include_cmp/openssl/*.h $(DESTDIR)$(prefix)/usr/include/openssl/
+	mkdir -p $(DEST_LIB)
+	install -D $(LIBCMP) $(DEST_LIB)
+	mkdir -p $(DEST_INC)
+	install -D $(LIBCMP_INC)/openssl/*.h $(DEST_INC)
+
+install_clean:
+	rm -f $(DEST_LIB)/libcmp$(DLL) $(LIBCMP_HDRS_install)
