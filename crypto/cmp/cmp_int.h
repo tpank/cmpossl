@@ -27,10 +27,6 @@
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>
 
-# ifdef  __cplusplus
-extern "C" {
-# endif
-
 /*
  * ##########################################################################
  * ASN.1 DECLARATIONS
@@ -789,7 +785,4 @@ void put_cert_verify_err(int func, int err);
 
 /* from cmp_ses.c */
 
-# ifdef  __cplusplus
-}
-# endif
 #endif /* !defined OSSL_HEADER_CMP_INT_H */
