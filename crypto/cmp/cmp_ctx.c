@@ -1311,8 +1311,37 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
     return 0;
 }
 
+#ifdef CMP_STANDALONE
+#define QUOTE(val) #val
+#define VALSTR(name) QUOTE(name)
+const char *OSSL_CMP_OVN="OPENSSL_VERSION_NUMBER "VALSTR(OPENSSL_VERSION_NUMBER);
+ #if OPENSSL_VERSION_NUMBER < 0x10101000L
+/* used below and needed also by crmf_err.c and cmp_err.c */
+int ERR_load_strings_const(const ERR_STRING_DATA *str)
+{
+#  if OPENSSL_VERSION_NUMBER < 0x10100006L
+    ERR_load_strings(0, (ERR_STRING_DATA *)(str));
+    return 1;
+#  else
+    return ERR_load_strings(0, (ERR_STRING_DATA *)str);
+#  endif
+}
+# endif
+#endif
+
 int OSSL_CMP_log_init(void)
 {
+#ifdef CMP_STANDALONE
+    /* fix missing initialization of error strings */
+    static ERR_STRING_DATA str_libs[] = {
+        {ERR_PACK(ERR_LIB_CMP, 0, 0), "CMP routines"},
+        {ERR_PACK(ERR_LIB_CRMF, 0, 0), "CRMF routines"},
+        {0, NULL}
+    };
+    (void)ERR_load_strings_const(str_libs);
+    (void)ERR_load_CMP_strings();
+    (void)ERR_load_CRMF_strings();
+#endif
     return 1;
 }
 
