@@ -23,26 +23,25 @@ int ERR_load_CRMF_strings(void);
 /*
  * CRMF function codes.
  */
-#  define CRMF_F_CRMF_POPOSIGKEY_NEW                       100
-#  define CRMF_F_OSSL_CRMF_ASN1_GET_INT                    101
-#  define CRMF_F_OSSL_CRMF_CERTID_GEN                      102
-#  define CRMF_F_OSSL_CRMF_CERTTEMPLATE_FILL               103
-#  define CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_GET1_ENCCERT     104
-#  define CRMF_F_OSSL_CRMF_MSGS_VERIFY_POPO                105
-#  define CRMF_F_OSSL_CRMF_MSG_CREATE_POPO                 106
-#  define CRMF_F_OSSL_CRMF_MSG_GET0_TMPL                   107
-#  define CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID               108
-#  define CRMF_F_OSSL_CRMF_MSG_PKIPUBLICATIONINFO_PUSH0_SINGLEPUBINFO 109
-#  define CRMF_F_OSSL_CRMF_MSG_PUSH0_EXTENSION             110
-#  define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGCTRL               111
-#  define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGINFO               112
-#  define CRMF_F_OSSL_CRMF_MSG_SET0_EXTENSIONS             113
-#  define CRMF_F_OSSL_CRMF_MSG_SET0_SINGLEPUBINFO          114
-#  define CRMF_F_OSSL_CRMF_MSG_SET_CERTREQID               115
-#  define CRMF_F_OSSL_CRMF_MSG_SET_PKIPUBLICATIONINFO_ACTION 116
-#  define CRMF_F_OSSL_CRMF_MSG_SET_VALIDITY                117
-#  define CRMF_F_OSSL_CRMF_PBMP_NEW                        118
-#  define CRMF_F_OSSL_CRMF_PBM_NEW                         119
+#  define CRMF_F_CRMF_POPOSIGNINGKEY_NEW                   100
+#  define CRMF_F_OSSL_CRMF_CERTID_GEN                      101
+#  define CRMF_F_OSSL_CRMF_CERTTEMPLATE_FILL               102
+#  define CRMF_F_OSSL_CRMF_ENCRYPTEDVALUE_GET1_ENCCERT     103
+#  define CRMF_F_OSSL_CRMF_MSGS_VERIFY_POPO                104
+#  define CRMF_F_OSSL_CRMF_MSG_CREATE_POPO                 105
+#  define CRMF_F_OSSL_CRMF_MSG_GET0_TMPL                   106
+#  define CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID               107
+#  define CRMF_F_OSSL_CRMF_MSG_PKIPUBLICATIONINFO_PUSH0_SINGLEPUBINFO 108
+#  define CRMF_F_OSSL_CRMF_MSG_PUSH0_EXTENSION             109
+#  define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGCTRL               110
+#  define CRMF_F_OSSL_CRMF_MSG_PUSH0_REGINFO               111
+#  define CRMF_F_OSSL_CRMF_MSG_SET0_EXTENSIONS             112
+#  define CRMF_F_OSSL_CRMF_MSG_SET0_SINGLEPUBINFO          113
+#  define CRMF_F_OSSL_CRMF_MSG_SET_CERTREQID               114
+#  define CRMF_F_OSSL_CRMF_MSG_SET_PKIPUBLICATIONINFO_ACTION 115
+#  define CRMF_F_OSSL_CRMF_MSG_SET_VALIDITY                116
+#  define CRMF_F_OSSL_CRMF_PBMP_NEW                        117
+#  define CRMF_F_OSSL_CRMF_PBM_NEW                         118
 
 /*
  * CRMF reason codes.
