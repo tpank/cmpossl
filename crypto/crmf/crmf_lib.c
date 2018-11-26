@@ -392,6 +392,7 @@ static int CRMF_poposigningkey_init(OSSL_CRMF_POPOSIGNINGKEY *ps,
                                     OSSL_CRMF_CERTREQUEST *cr,
                                     const EVP_PKEY *pkey, int dgst)
 {
+    OSSL_CRMF_POPOSIGNINGKEY *ps = NULL;
     int len;
     size_t crlen, max_sig_size;
     unsigned int siglen;
@@ -427,13 +428,13 @@ static int CRMF_poposigningkey_init(OSSL_CRMF_POPOSIGNINGKEY *ps,
     }
     if (!(OBJ_find_sigid_algs(alg_nid, &md_nid, NULL)
           && (alg = EVP_get_digestbynid(md_nid)) != NULL)) {
-        CRMFerr(CRMF_F_CRMF_POPOSIGNINGKEY_INIT,
+        CRMFerr(CRMF_F_CRMF_POPOSIGKEY_NEW,
                 CRMF_R_UNSUPPORTED_ALG_FOR_POPSIGNINGKEY);
         goto err;
     }
     if (!X509_ALGOR_set0(ps->algorithmIdentifier, OBJ_nid2obj(alg_nid),
                          V_ASN1_NULL, NULL)
-        || (ctx = EVP_MD_CTX_create()) == NULL
+        || (ctx = EVP_MD_CTX_new()) == NULL
         || !(EVP_SignInit_ex(ctx, alg, NULL)))
         goto err;
     if (!(EVP_SignUpdate(ctx, crder, crlen)))
