@@ -1331,10 +1331,10 @@ int ERR_load_strings_const(const ERR_STRING_DATA *str)
 
 int OSSL_CMP_log_init(void)
 {
-    if (SSLeay() != OPENSSL_VERSION_NUMBER) {
+    if (OpenSSL_version_num() != OPENSSL_VERSION_NUMBER) {
 #ifndef OPENSSL_NO_STDIO
         fprintf(stderr, "OpenSSL runtime version 0x%lx does not match compile-time version 0x%lx\n",
-                SSLeay(), OPENSSL_VERSION_NUMBER);
+                OpenSSL_version_num(), OPENSSL_VERSION_NUMBER);
 #endif
         return 0;
     }
