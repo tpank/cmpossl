@@ -1313,6 +1313,13 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
 
 int OSSL_CMP_log_init(void)
 {
+    if (SSLeay() != OPENSSL_VERSION_NUMBER) {
+#ifndef OPENSSL_NO_STDIO
+        fprintf(stderr, "OpenSSL runtime version 0x%lx does not match compile-time version 0x%lx\n",
+                SSLeay(), OPENSSL_VERSION_NUMBER);
+#endif
+        return 0;
+    }
     return 1;
 }
 
