@@ -38,7 +38,7 @@ ifeq ($(LIBCMP_OUT),)
 endif
 LIBCMP_INC ?= $(LIBCMP_OUT)/include_cmp
 LIBCMP=$(LIBCMP_OUT)/libcmp$(DLL)
-VERSION=.0
+#VERSION=.0
 
 CC=gcc
 CFLAGS=-g -O0 -Werror $(OSSL_VERSION_QUIRKS) -fPIC -I$(LIBCMP_INC)
@@ -61,10 +61,13 @@ $(LIBCMP): $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 	@rm -f $(LIBCMP_INC)/openssl/*.h
 	@cp -a $(LIBCMP_HDRS) $(LIBCMP_INC)/openssl
 	@cd $(LIBCMP_INC)/openssl && (mv crmf.h tmp2.h && /bin/echo -e "#undef CMP_STANDALONE\n#define CMP_STANDALONE\n" >tmp1.h && cat tmp1.h tmp2.h >crmf.h); rm -f tmp1.h tmp2.h
-	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) -lcrypto -shared -Wl,-soname,$@$(VERSION) -o $@
+	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) -lcrypto -shared -o $@
+	#-Wl,-soname,libcmp$(DLL)$(VERSION)
+	@# #ln -sr $(LIBCMP) $(LIBCMP)$(VERSION)
 
 clean:
 	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP)
+	@#rm $(LIBCMP)$(VERSION)
 	rmdir $(LIBCMP_INC)/openssl $(LIBCMP_INC) 2>/dev/null || true
 
 SYSTEM_LIB=/usr/lib
