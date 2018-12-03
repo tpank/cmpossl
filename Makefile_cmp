@@ -38,6 +38,7 @@ ifeq ($(LIBCMP_OUT),)
 endif
 LIBCMP_INC ?= $(LIBCMP_OUT)/include_cmp
 LIBCMP=$(LIBCMP_OUT)/libcmp$(DLL)
+VERSION=.0
 
 CC=gcc
 CFLAGS=-g -O0 -Werror $(OSSL_VERSION_QUIRKS) -fPIC -I$(LIBCMP_INC)
@@ -50,9 +51,9 @@ CMP_SRCS_ = cmp_asn.c cmp_ctx.c cmp_err.c cmp_http.c cmp_lib.c cmp_msg.c cmp_ses
 CRMF_SRCS_ = crmf_asn.c crmf_err.c crmf_lib.c crmf_pbm.c
 LIBCMP_SRCS = $(patsubst %,./crypto/crmf/%,$(CRMF_SRCS_)) $(patsubst %,./crypto/cmp/%,$(CMP_SRCS_))
 
-.phony: cmp_lib cmp_clean
+.phony: build clean
 
-cmp_lib: $(LIBCMP)
+build: $(LIBCMP)
 
 $(LIBCMP): $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 	@mkdir -p $(LIBCMP_OUT)
@@ -60,9 +61,9 @@ $(LIBCMP): $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 	@rm -f $(LIBCMP_INC)/openssl/*.h
 	@cp -a $(LIBCMP_HDRS) $(LIBCMP_INC)/openssl
 	@cd $(LIBCMP_INC)/openssl && (mv crmf.h tmp2.h && /bin/echo -e "#undef CMP_STANDALONE\n#define CMP_STANDALONE\n" >tmp1.h && cat tmp1.h tmp2.h >crmf.h); rm -f tmp1.h tmp2.h
-	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) -shared -o $@
+	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) -lcrypto -shared -Wl,-soname,$@$(VERSION) -o $@
 
-cmp_clean:
+clean:
 	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP)
 	rmdir $(LIBCMP_INC)/openssl $(LIBCMP_INC) 2>/dev/null || true
 
@@ -79,3 +80,17 @@ install: $(LIBCMP)
 
 install_clean:
 	rm -f $(DEST_LIB)/libcmp$(DLL) $(LIBCMP_HDRS_install)
+
+#SRCS=$(shell ls Makefile_cmp include/openssl/{{cmp,crmf}{,err}.h,safestack_backport.h} crypto/{cmp,crmf}/*.{c,h})
+#SRCS_TAR=cmpossl_0.1.0.orig.tar.gz
+.phony: deb deb_clean
+deb:
+	@#tar czf $(SRCS_TAR) $(SRCS)
+	rm -f  $(LIBCMP)
+	@#rm debian/tmp/usr/lib/libcmp.so*
+	debuild -uc -us --lintian-opts --profile debian
+	rm -r debian/tmp
+	@#rm $(SRCS_TAR)
+
+deb_clean:
+	rm ../libcmp*.deb
