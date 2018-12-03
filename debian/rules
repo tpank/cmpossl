@@ -4,10 +4,14 @@
 	dh $@
 
 override_dh_auto_configure:
-	cp Makefile_cmp Makefile
+	touch Makefile # trigger use of 'make' in dh_auto_build and dh_auto_install
 
 override_dh_auto_build:
-	OPENSSL_DIR=/usr dh_auto_build
+	OPENSSL_DIR=/usr dh_auto_build -- -f Makefile_cmp
 
+LIBDIR=debian/tmp/usr/lib
 override_dh_auto_install:
-	OPENSSL_DIR=/usr dh_auto_install
+	OPENSSL_DIR=/usr dh_auto_install -- -f Makefile_cmp
+	@# prevent some confusing lintian errors and warnings:
+	mv $(LIBDIR)/libcmp.so $(LIBDIR)/libcmp.so.0
+	ln -sr $(LIBDIR)/libcmp.so.0 $(LIBDIR)/libcmp.so
