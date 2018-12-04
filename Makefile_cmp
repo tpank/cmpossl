@@ -1,6 +1,6 @@
 #!/bin/make
-# optional LIBCMP_INC defines where the libcmp header files will be placed (default: ".")
-# optional LIBCMP_OUT defines where the resulting cmp lib will be placed (default: "./include_cmp")
+# optional LIBCMP_INC defines where the libcmp header files will be placed (default: "./include_cmp")
+# optional LIBCMP_OUT defines where the resulting cmp lib will be placed (default: ".")
 # both may contain absolute path or path relative to the dir containing this Makefile
 
 ifeq ($(OS),Windows_NT)
