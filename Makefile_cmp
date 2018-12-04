@@ -62,7 +62,7 @@ $(LIBCMP): $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 	@cp -a $(LIBCMP_HDRS) $(LIBCMP_INC)/openssl
 	@cd $(LIBCMP_INC)/openssl && (mv crmf.h tmp2.h && /bin/echo -e "#undef CMP_STANDALONE\n#define CMP_STANDALONE\n" >tmp1.h && cat tmp1.h tmp2.h >crmf.h); rm -f tmp1.h tmp2.h
 	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) -lcrypto -shared -o $@
-	#-Wl,-soname,libcmp$(DLL)$(VERSION)
+	@# # -Wl,-soname,libcmp$(DLL)$(VERSION)
 	@# #ln -sr $(LIBCMP) $(LIBCMP)$(VERSION)
 
 clean:
@@ -88,12 +88,11 @@ install_clean:
 #SRCS_TAR=cmpossl_0.1.0.orig.tar.gz
 .phony: deb deb_clean
 deb:
-	@#tar czf $(SRCS_TAR) $(SRCS)
-	rm -f  $(LIBCMP)
-	@#rm debian/tmp/usr/lib/libcmp.so*
-	debuild -uc -us --lintian-opts --profile debian
+	@# #tar czf $(SRCS_TAR) $(SRCS)
+	@# #rm -f $(LIBCMP) debian/tmp/usr/lib/libcmp.so*
+	debuild -uc -us -I* --lintian-opts --profile debian
 	rm -r debian/tmp
-	@#rm $(SRCS_TAR)
+	@ #rm $(SRCS_TAR)
 
 deb_clean:
 	rm ../libcmp*.deb
