@@ -1,4 +1,4 @@
-Source: cmpossl
+Source: libcmp
 Section: libs
 Priority: optional
 Maintainer: David von Oheimb <David.von.Oheimb@siemens.com>
@@ -8,7 +8,7 @@ Homepage: https://github.com/mpeylo/cmpossl
 
 Package: libcmp
 Architecture: any
-Depends: openssl, ${misc:Depends}, ${shlibs:Depends}
+Depends: openssl, ${misc:Depends},
 Description: Certificate Management Prototocl (CMP) library
  CMP as standalone library based on OpenSSL
 
