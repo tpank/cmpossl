@@ -299,18 +299,29 @@ typedef enum {OSSL_LOG_EMERG, OSSL_LOG_ALERT, OSSL_LOG_CRIT, OSSL_LOG_ERR,
               OSSL_LOG_WARNING, OSSL_LOG_NOTICE, OSSL_LOG_INFO, OSSL_LOG_DEBUG}
     OSSL_CMP_severity;
 
-#define OSSL_CMP_FL_EMERG __FILE__, __LINE__, OSSL_LOG_EMERG
-#define OSSL_CMP_FL_ALERT __FILE__, __LINE__, OSSL_LOG_ALERT
-#define OSSL_CMP_FL_CRIT  __FILE__, __LINE__, OSSL_LOG_CRIT
-#define OSSL_CMP_FL_ERR   __FILE__, __LINE__, OSSL_LOG_ERR
-#define OSSL_CMP_FL_WARN  __FILE__, __LINE__, OSSL_LOG_WARNING
-#define OSSL_CMP_FL_NOTE  __FILE__, __LINE__, OSSL_LOG_NOTICE
-#define OSSL_CMP_FL_INFO  __FILE__, __LINE__, OSSL_LOG_INFO
-#define OSSL_CMP_FL_DEBUG __FILE__, __LINE__, OSSL_LOG_DEBUG
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
+# define OSSL_CMP_FUNC __func__
+#elif defined(WIN32) || defined(__GNUC__) || defined(__GNUG__)
+# define OSSL_CMP_FUNC __FUNCTION__
+#elif defined(__FUNCSIG__)
+# define OSSL_CMP_FUNC __FUNCSIG__
+#else
+# define OSSL_CMP_FUNC "(unknown function)"
+#endif
+#define OSSL_CMP_FUNC_FILE_LINE OSSL_CMP_FUNC, OPENSSL_FILE, OPENSSL_LINE
+#define OSSL_CMP_FL_EMERG OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_EMERG
+#define OSSL_CMP_FL_ALERT OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_ALERT
+#define OSSL_CMP_FL_CRIT  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_CRIT
+#define OSSL_CMP_FL_ERR   OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_ERR
+#define OSSL_CMP_FL_WARN  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_WARNING
+#define OSSL_CMP_FL_NOTE  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_NOTICE
+#define OSSL_CMP_FL_INFO  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_INFO
+#define OSSL_CMP_FL_DEBUG OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_DEBUG
 
-int OSSL_CMP_puts(const char *file, int lineno, OSSL_CMP_severity level,
-                  const char *msg);
-int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
+int OSSL_CMP_puts(const char *component, const char *file, int lineno,
+                  OSSL_CMP_severity level, const char *msg);
+int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
+                    const char *func, const char *file, int lineno,
                     OSSL_CMP_severity level, const char *fmt, ...);
 #define OSSL_CMP_alert(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_ALERT, msg)
 #define OSSL_CMP_err(ctx, msg)   OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)
@@ -325,7 +336,8 @@ void OSSL_CMP_print_errors_cb(OSSL_CMP_CTX *ctx);
  * context DECLARATIONS
  */
 
-typedef int (*OSSL_cmp_log_cb_t) (const char *file, int lineno,
+typedef int (*OSSL_cmp_log_cb_t) (const char *component,
+                                  const char *file, int lineno,
                                   OSSL_CMP_severity level, const char *msg);
 typedef int (*OSSL_cmp_certConf_cb_t) (OSSL_CMP_CTX *ctx, const X509 *cert,
                                        int fail_info, const char **txt);
@@ -400,7 +412,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_load(const char *file);
 /* cmp_lib.c */
 /* TODO DvO push this function upstream to crypto/err (PR #add_error_txt) */
 void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
-#  define OSSL_CMP_add_error_data(txt) OSSL_CMP_add_error_txt(":", txt)
+#  define OSSL_CMP_add_error_data(txt) OSSL_CMP_add_error_txt(" : ", txt)
 #  define OSSL_CMP_add_error_line(txt) OSSL_CMP_add_error_txt("\n", txt)
 /* TODO: move those elsewhere? used in test/cmp_lib_test.c */
 #  define OSSL_CMP_TRANSACTIONID_LENGTH 16

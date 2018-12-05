@@ -124,10 +124,11 @@ OSSL_CMP_CTX_subjectAltName_push1
 
  int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
 
- int OSSL_CMP_puts(const char *file, int lineno, OSSL_CMP_severity level,
-                   const char *msg);
+ int OSSL_CMP_puts(const char *component, const char *file, int lineno,
+                   OSSL_CMP_severity level, const char *msg);
 
- int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
+ int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
+                     const char *func, const char *file, int lineno,
                      OSSL_CMP_severity level, const char *fmt, ...);
 
  void OSSL_CMP_print_errors_cb(OSSL_CMP_CTX *ctx);
@@ -371,30 +372,37 @@ of the CMP server and potentially others (TLS server, newly enrolled cert).
 OSSL_CMP_CTX_get0_untrusted_certs(OSSL_CMP_CTX *ctx) returns a pointer to the
 list of untrusted certs.
 
-OSSL_CMP_CTX_set_log_cb() sets the log callback for error/warn/info/debug
-messages. This callback function has the type
+OSSL_CMP_CTX_set_log_cb() sets in B<ctx> the log callback function B<cb> for
+alert/error/warning/note/info/debug messages. The callback function has type
 
- typedef void (*OSSL_cmp_log_cb_t)(const char *file, int lineno,
+ typedef void (*OSSL_cmp_log_cb_t)(const char *component,
+                                   const char *file, int lineno,
                                    OSSL_CMP_severity level, const char *msg);
 
-and obtains the current source file path name and line number
-(or NULL and 0 if not avaialble),
-the severity level as used also for syslog,
-and the message string.
+and obtains a component identifier (or NULL if not available),
+which typically consists of a library name followed by a function name,
+the current source file path name (or NULL) and line number (or 0),
+the nature of the message, i.e., its severity level as used also for syslog,
+and the message text.
 It should return 1 on success and 0 on failure.
 
-OSSL_CMP_puts() prints errors and warnings to stderr, whereas info and debug
-messages are printed to stdout. In debug mode, the message is preceded by a
-source file path name and line number if available or else by "CMP". It is also
-proceded by a severity indication such as "ERROR", "WARNING", "INFO", or
-"DEBUG".
+OSSL_CMP_puts() prints alerts, errors, and warnings to stderr,
+whereas note, info, and debug messages are printed to stdout.
+The nature of the message is specified by the B<level> parameter. In debug mode
+the message B<msg> is preceded by any provided component identifier
+B<component>, source file path name B<file>, and line number B<lineno>.
+It is also proceded by any given severity indication, namely, "EMERGENCY",
+"ALERT", "CRITICAL", "ERROR", "WARNING", "NOTICE", "INFO", or "DEBUG".
 
-OSSL_CMP_printf() is used for producing error/warn/info/debug messages. They
-can be given using a format string with variable number of arguments as with
-printf. The resulting string is appended to the error queue.
+OSSL_CMP_printf() outputs alert/error/warning/note/info/debug messages.
+The nature of the message is specified by the B<level> parameter.
+The message text is given using a format string B<fmt> with variable number of
+arguments as with printf. In debug mode
+optional information in B<func>, B<file>, and B<lineno> parameters is included.
+Output is sent to the log callback if set in B<ctx>, else to OSSL_CMP_puts().
 
-OSSL_CMP_print_errors_cb() outputs any CMP and other OpenSSL errors in the error
-queue using the log callback function if proviced, else using OSSL_CMP_puts().
+OSSL_CMP_print_errors_cb() outputs any OpenSSL errors in the error queue.
+It uses the log callback function if set in the B<ctx>, else OSSL_CMP_puts().
 
 OSSL_CMP_CTX_status_get() returns the PKIstatus from the last
 CertRepMessage or Revocation Response, -1 on error.
