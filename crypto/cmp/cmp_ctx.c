@@ -1358,28 +1358,30 @@ void OSSL_CMP_log_close(void)
 }
 
 /* prints log messages to given stream fd */
-static int CMP_log_fd(const char *file, int lineno,
+static int CMP_log_fd(const char *component, const char *file, int lineno,
                       OSSL_CMP_severity level, const char *msg, FILE *fd)
 {
-    char sep;
     char *lvl = NULL;
-    int msg_len = strlen(msg);
-    int msg_nl = msg_len > 0 && msg[msg_len-1] == '\n';
+    int msg_len;
+    int msg_nl;
     int len = 0;
 
-#ifdef NDEBUG
+    if (msg == NULL)
+        msg = "(no message)";
+    msg_len = strlen(msg);
+    msg_nl = msg_len > 0 && msg[msg_len-1] == '\n';
+
+#ifndef NDEBUG
+    len += fprintf(fd, "%s():", component == NULL ? "(no component)" : component);
+    len += fprintf(fd, "%s:", file == NULL ? "(no file)" : file);
+    if (lineno == 0)
+        len += fprintf(fd, "(no lineno):");
+    else
+        len += fprintf(fd, "%d:", lineno);
+#else
     if (level == OSSL_LOG_DEBUG)
         return 1;
-#else
-    if (file == NULL) {
-#endif
-        len += fprintf(fd, "CMP");
-        sep = ' ';
-#ifndef NDEBUG
-    } else {
-        len += fprintf(fd, "%s:%d", file, lineno);
-        sep = ':';
-    }
+    len += fprintf(fd, "CMP");
 #endif
 
     switch(level) {
@@ -1397,19 +1399,19 @@ static int CMP_log_fd(const char *file, int lineno,
     }
 
     if (lvl != NULL)
-        len += fprintf(fd, "%c%s", sep, lvl);
+        len += fprintf(fd, " %s", lvl);
     len += fprintf(fd, ": %s%s", msg, msg_nl != 0 ? "" : "\n");
 
     return fflush(fd) != EOF && len >= 0;
 }
 
 /* prints errors and warnings to stderr, info and debug messages to stdout */
-int OSSL_CMP_puts(const char *file, int lineno,
-             OSSL_CMP_severity level, const char *msg)
+int OSSL_CMP_puts(const char *component, const char *file, int lineno,
+                  OSSL_CMP_severity level, const char *msg)
 {
 #ifndef OPENSSL_NO_STDIO
     FILE *fd = level <= OSSL_LOG_WARNING ? stderr : stdout;
-    return CMP_log_fd(file, lineno, level, msg, fd);
+    return CMP_log_fd(component, file, lineno, level, msg, fd);
 #endif
 }
 
@@ -1417,107 +1419,46 @@ int OSSL_CMP_puts(const char *file, int lineno,
  * Function used for outputting error/warn/debug messages depending on callback.
  * By default or if the callback is NULL the function OSSL_CMP_puts() is used.
  */
-int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx, const char *file, int lineno,
+int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
+                    const char *func, const char *file, int lineno,
                     OSSL_CMP_severity level, const char *fmt, ...)
 {
     va_list arg_ptr;
-    char buf[1024];
+    char component[256];
+    char msg[1024];
     int res;
     OSSL_cmp_log_cb_t log_fn =
         ctx == NULL || ctx->log_cb == NULL ? OSSL_CMP_puts : ctx->log_cb;
 
+    BIO_snprintf(component, sizeof(component), "OpenSSL:%s", func);
     va_start(arg_ptr, fmt);
-    BIO_vsnprintf(buf, sizeof(buf), fmt, arg_ptr);
-    res = (*log_fn)(file, lineno, level, buf);
+    BIO_vsnprintf(msg, sizeof(msg), fmt, arg_ptr);
+    res = (*log_fn)(component, file, lineno, level, msg);
     va_end(arg_ptr);
     return res;
 }
 
-#ifdef OSSL_CMP_POOR_LOG
-/*
- * simple function for error/warn/debug messages, to be used via CMP_LOG((args))
- */
-int CMP_log_printf(const char *file, int line,
-                   OSSL_CMP_severity level, const char *fmt, ...)
-{
-    va_list arg_ptr;
-    char buf[1024];
-    int res;
-
-    va_start(arg_ptr, fmt);
-    BIO_vsnprintf(buf, sizeof(buf), fmt, arg_ptr);
-    res = OSSL_CMP_puts(file, line, level, buf);
-    va_end(arg_ptr);
-    return res;
-}
-#endif
-
-/*
- * This callback is used to print out the OpenSSL error queue via
- * ERR_print_errors_cb() to the ctx->log_cb() function set by the user
- * returns 1 on success, 0 on error
- */
-static int CMP_CTX_error_cb(const char *str, size_t len, void *u)
-{
-    char *start, *s, *txt, *txt_end, *file, *file_end;
-    int line;
-    OSSL_CMP_CTX *ctx = (OSSL_CMP_CTX *)u;
-    OSSL_cmp_log_cb_t log_fn =
-        ctx == NULL || ctx->log_cb == NULL ? OSSL_CMP_puts : ctx->log_cb;
-    int res;
-
-    start = s = OPENSSL_strdup(str); /* we will modify the string */
-    if (s == NULL)
-        return (*log_fn)(NULL, 0, OSSL_LOG_ERR, str);
-
-    while (*s != '\0' && *s != ':') /* skip pid */
-        s++;
-    if (*s != '\0') /* skip ':' */
-        s++;
-    while (*s != '\0' && *s != ':') /* skip 'error' */
-        s++;
-    if (*s != '\0') /* skip ':' */
-        s++;
-    while (*s != '\0' && *s != ':') /* skip error code */
-        s++;
-    if (*s != '\0') /* skip ':' */
-        s++;
-    while (*s != '\0' && *s != ':') /* skip library name */
-        s++;
-    if (*s != '\0') /* skip ':' */
-        s++;
-    txt = s;
-    while (*s != '\0' && *s != ':') /* function name */
-        s++;
-    if (*s != '\0') /* skip ':' */
-        s++;
-    while (*s != '\0' && *s != ':') /* reason sing */
-        s++;
-    if (*s != '\0') /* skip ':' */
-        s++;
-    txt_end = s;
-    while (*s != '\0' && *s != ':') /* source file */
-        s++;
-    if (*s != '\0') /* skip ':', inserting '\0' */
-        *(s++) = '\0';
-    file = OPENSSL_strdup(txt_end);
-    file_end = s;
-    while (*s != '\0' && *s != ':') /* source line */
-        s++;
-    if (*s != '\0') /* skip ':', inserting '\0' */
-        *(s++) = '\0';
-    if (sscanf(file_end, "%d", &line) != 1)
-        line = 0;
-    while ((*(txt_end++) = *(s++)) != '\0') /* move any data string */
-        ;
-    res = (*log_fn)(file, line, OSSL_LOG_ERR, txt);
-    OPENSSL_free(file);
-    OPENSSL_free(start);
-    return res;
-}
-
-/* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
+/* print OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
 void OSSL_CMP_print_errors_cb(OSSL_CMP_CTX *ctx)
 {
-    ERR_print_errors_cb(CMP_CTX_error_cb, (void *)ctx);
+    unsigned long err;
+    char component[256];
+    char msg[4096];
+    const char *file, *data;
+    int line, flags;
+    OSSL_cmp_log_cb_t log_fn =
+        ctx == NULL || ctx->log_cb == NULL ? OSSL_CMP_puts : ctx->log_cb;
+
+    while ((err = ERR_get_error_line_data(&file, &line, &data, &flags)) != 0) {
+        if (!(flags & ERR_TXT_STRING))
+            data = NULL;
+        BIO_snprintf(component, sizeof(component), "OpenSSL:%s",
+                     /* ERR_lib_error_string(err), */
+                     ERR_func_error_string(err));
+        BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
+                     data == NULL ? "" : " : ", data == NULL ? "" : data);
+        if (log_fn(component, file, line, OSSL_LOG_ERR, msg) <= 0)
+            break;              /* abort outputting the error report */
+    }
 }
+

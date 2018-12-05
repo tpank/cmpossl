@@ -70,8 +70,10 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
         int len;
         char *tmp;
         ERR_peek_last_error_line_data(&file, &line, &data, &flags);
-        if (!(flags & ERR_TXT_STRING))
+        if (!(flags & ERR_TXT_STRING)) {
             data = "";
+            separator = "";
+        }
         len = (int)strlen(data);
         curr = next = txt;
         while (*next != '\0' &&
