@@ -41,7 +41,8 @@ LIBCMP=$(LIBCMP_OUT)/libcmp$(DLL)
 #VERSION=.0
 
 CC=gcc
-CFLAGS=-g -O0 -Werror $(OSSL_VERSION_QUIRKS) -fPIC -I$(LIBCMP_INC)
+CFLAGS=-g -O0 $(OSSL_VERSION_QUIRKS) -fPIC -I$(LIBCMP_INC)
+CFLAGS += -DDEBUG_UNUSED -DPEDANTIC -pedantic -Wno-long-long -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wswitch -Wsign-compare -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wformat -Wtype-limits -Wundef -Werror
 ifdef NDEBUG
     CFLAGS += -DNDEBUG=1
 endif
