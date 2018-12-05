@@ -39,7 +39,7 @@ OSSL_CMP_CTX_get0_untrusted_certs,
 OSSL_CMP_CTX_set_log_cb,
 OSSL_CMP_puts,
 OSSL_CMP_printf,
-OSSL_CMP_print_errors_cb,
+OSSL_CMP_print_errors,
 OSSL_CMP_CTX_status_get,
 OSSL_CMP_CTX_statusString_get,
 OSSL_CMP_CTX_failInfoCode_get,
@@ -131,7 +131,7 @@ OSSL_CMP_CTX_subjectAltName_push1
                      const char *func, const char *file, int lineno,
                      OSSL_CMP_severity level, const char *fmt, ...);
 
- void OSSL_CMP_print_errors_cb(OSSL_CMP_CTX *ctx);
+ void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx);
 
  int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
 
@@ -401,7 +401,7 @@ arguments as with printf. In debug mode
 optional information in B<func>, B<file>, and B<lineno> parameters is included.
 Output is sent to the log callback if set in B<ctx>, else to OSSL_CMP_puts().
 
-OSSL_CMP_print_errors_cb() outputs any OpenSSL errors in the error queue.
+OSSL_CMP_print_errors() outputs any OpenSSL errors in the error queue.
 It uses the log callback function if set in the B<ctx>, else OSSL_CMP_puts().
 
 OSSL_CMP_CTX_status_get() returns the PKIstatus from the last

@@ -1439,7 +1439,7 @@ int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
 }
 
 /* print OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
-void OSSL_CMP_print_errors_cb(OSSL_CMP_CTX *ctx)
+void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx)
 {
     unsigned long err;
     char component[256];

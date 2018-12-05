@@ -4754,7 +4754,7 @@ OSSL_CMP_CTX_set1_srvCert               4700	1_1_2	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_untrusted_certs       4701	1_1_2	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_create                     4702	1_1_2	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_proxyName             4703	1_1_2	EXIST::FUNCTION:CMP
-OSSL_CMP_print_errors_cb                4704	1_1_2	EXIST::FUNCTION:CMP
+OSSL_CMP_print_errors                   4704	1_1_2	EXIST::FUNCTION:CMP
 OSSL_CRMF_CERTTEMPLATE_new              4705	1_1_2	EXIST::FUNCTION:CRMF
 OSSL_CRMF_ENCRYPTEDVALUE_free           4706	1_1_2	EXIST::FUNCTION:CRMF
 OSSL_CMP_CTX_get0_untrusted_certs       4707	1_1_2	EXIST::FUNCTION:CMP
