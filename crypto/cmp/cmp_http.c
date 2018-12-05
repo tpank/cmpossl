@@ -214,8 +214,7 @@ static int CMP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx,
 static void add_conn_error_hint(const OSSL_CMP_CTX *ctx, unsigned long errdetail)
 {
     char buf[200];
-    snprintf(buf, 200, "connecting to '%s' port %d", ctx->serverName,
-             ctx->serverPort);
+    snprintf(buf, 200, "host '%s' port %d", ctx->serverName, ctx->serverPort);
     OSSL_CMP_add_error_data(buf);
     if (errdetail == 0) {
         snprintf(buf, 200, "server has disconnected%s",
@@ -391,9 +390,6 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         err = 0;
 
  err:
-    /* for any cert verify error at TLS level: */
-    put_cert_verify_err(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM,
-                        CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
     if (err != 0) {
         if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
             err = CMP_R_TLS_ERROR;
