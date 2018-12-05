@@ -194,11 +194,11 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     ctx->msgtimeout = msgtimeout; /* restore original value */
 
     if (err != 0) {
-        CMPerr(CMP_F_SEND_RECEIVE_CHECK, err);
         if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
             err == CMP_R_READ_TIMEOUT ||
-            err == CMP_R_ERROR_DECODING_MESSAGE)
+            err == CMP_R_ERROR_DECODING_MESSAGE) {
             CMPerr(func, not_received);
+        }
         else {
             CMPerr(func, CMP_R_ERROR_SENDING_REQUEST);
             OSSL_CMP_add_error_data(type_string);
