@@ -1364,24 +1364,24 @@ static int CMP_log_fd(const char *component, const char *file, int lineno,
     char *lvl = NULL;
     int msg_len;
     int msg_nl;
+    char loc[256];
     int len = 0;
 
+    if (component == NULL)
+        component = "(no component)";
+    if (file == NULL)
+        file = "(no file)";
     if (msg == NULL)
         msg = "(no message)";
-    msg_len = strlen(msg);
-    msg_nl = msg_len > 0 && msg[msg_len-1] == '\n';
 
 #ifndef NDEBUG
-    len += fprintf(fd, "%s():", component == NULL ? "(no component)" : component);
-    len += fprintf(fd, "%s:", file == NULL ? "(no file)" : file);
-    if (lineno == 0)
-        len += fprintf(fd, "(no lineno):");
-    else
-        len += fprintf(fd, "%d:", lineno);
+    len  = snprintf(loc+len , sizeof(loc)-len, "%s():", component);
+    len += snprintf(loc+len , sizeof(loc)-len, "%s:", file);
+    len += snprintf(loc+len , sizeof(loc)-len, "%d:", lineno);
 #else
     if (level == OSSL_LOG_DEBUG)
         return 1;
-    len += fprintf(fd, "CMP");
+    len += snprintf(loc+len , sizeof(loc)-len, "CMP");
 #endif
 
     switch(level) {
@@ -1399,8 +1399,10 @@ static int CMP_log_fd(const char *component, const char *file, int lineno,
     }
 
     if (lvl != NULL)
-        len += fprintf(fd, " %s", lvl);
-    len += fprintf(fd, ": %s%s", msg, msg_nl != 0 ? "" : "\n");
+        len += snprintf(loc+len , sizeof(loc)-len, " %s", lvl);
+    msg_len = strlen(msg);
+    msg_nl = msg_len > 0 && msg[msg_len-1] == '\n';
+    len = fprintf(fd, "%s: %s%s", loc, msg, msg_nl != 0 ? "" : "\n");
 
     return fflush(fd) != EOF && len >= 0;
 }
