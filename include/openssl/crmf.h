@@ -18,9 +18,76 @@
 
 # ifndef OPENSSL_NO_CRMF
 #  include <openssl/opensslv.h>
+#  if OPENSSL_VERSION_NUMBER < 0x10100002L
+#   define ossl_inline __inline
+#   define OPENSSL_FILE __FILE__
+#   define OPENSSL_LINE __LINE__
+#   define EVP_MD_CTX_new()      EVP_MD_CTX_create()
+#   define EVP_MD_CTX_reset(ctx) EVP_MD_CTX_init((ctx))
+#   define EVP_MD_CTX_free(ctx)  EVP_MD_CTX_destroy((ctx))
+#   ifndef CMP_STANDALONE
+#    define DEFINE_STACK_OF DECLARE_STACK_OF
+#   endif
+#  endif
+
+#  ifdef CMP_STANDALONE
+#   if OPENSSL_VERSION_NUMBER < 0x10101000L
+#    define OPENSSL_sk_new_reserve(f,n) sk_new(f) /* sorry, no reservation */
+#    define OPENSSL_sk_reserve(sk,n) 1 /* sorry, no-op */
+#   endif
+#   if OPENSSL_VERSION_NUMBER < 0x10100006L
+#    include <openssl/safestack_backport.h>
+#   endif
+#  endif
+
+#  ifdef CMP_STANDALONE
+#   if OPENSSL_VERSION_NUMBER < 0x10101000L
+#    include <openssl/err.h>
+int ERR_load_strings_const(const ERR_STRING_DATA *str);
+#   endif
+#   undef  ERR_LIB_CRMF
+#   define ERR_LIB_CRMF  (ERR_LIB_USER-2)
+#   undef  CRMFerr
+#   define CRMFerr(f,r) ERR_PUT_error(ERR_LIB_CRMF,(f),(r),__FILE__,__LINE__)
+#   undef  ERR_LIB_CMP
+#   define ERR_LIB_CMP  (ERR_LIB_USER-1)
+#   undef  CMPerr
+#   define CMPerr(f,r) ERR_PUT_error(ERR_LIB_CMP,(f),(r),__FILE__,__LINE__)
+#  endif
+
 #  include <openssl/safestack.h>
+#  if OPENSSL_VERSION_NUMBER >= 0x10101000L || defined(CMP_STANDALONE)
 #  include <openssl/crmferr.h>
+#  endif
 #  include <openssl/x509v3.h> /* for GENERAL_NAME etc. */
+
+#  if OPENSSL_VERSION_NUMBER < 0x10100000L
+#    define ERR_R_PASSED_INVALID_ARGUMENT CRMF_R_NULL_ARGUMENT
+#   define int64_t long
+#   define ASN1_INTEGER_get_int64(pvar, a) ((*(pvar)=ASN1_INTEGER_get(a)) != -1)
+#   define static_ASN1_SEQUENCE_END(T) ASN1_SEQUENCE_END(T)
+#   define ASN1_R_TOO_SMALL ASN1_R_INVALID_NUMBER
+#   define ASN1_R_TOO_LARGE ASN1_R_INVALID_NUMBER
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100005L
+#   define X509_PUBKEY_get0(x)((x)->pkey)
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10101000L
+#   define OBJ_obj2nid(alg) \
+    (OBJ_obj2nid(alg) == NID_hmac_md5  ? NID_hmacWithMD5 : \
+     OBJ_obj2nid(alg) == NID_hmac_sha1 ? NID_hmacWithSHA1 : OBJ_obj2nid(alg))
+    /*
+     * OID 1.3.6.1.5.5.8.1.2 associated with NID_hmac_sha1 is explicitly
+     * mentioned in RFC 4210 and RFC 3370, but NID_hmac_sha1 is not included in
+     * builitin_pbe[] of crypto/evp/evp_pbe.c
+     */
+    /*
+     * NID_hmac_md5 not included in builtin_pbe[] of crypto/evp/evp_pbe.c as
+     * it is not explicitly referenced in the RFC it might not be used by any
+     * implementation although its OID 1.3.6.1.5.5.8.1.1 it is in the same OID
+     * branch as NID_hmac_sha1
+     */
+#  endif
 
 /* explicit #includes not strictly needed since implied by the above: */
 #  include <openssl/ossl_typ.h>
@@ -135,3 +202,15 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
 #  endif
 # endif /* !defined OPENSSL_NO_CRMF */
 #endif /* !defined OSSL_HEADER_CRMF_H */
+
+
+#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(OSSL_HEADER_CRMF_ERROR_CODES)
+# define OSSL_HEADER_CRMF_ERROR_CODES
+# ifdef  __cplusplus
+extern "C" {
+# endif
+/* BEGIN ERROR CODES */
+# ifdef  __cplusplus
+}
+# endif
+#endif
