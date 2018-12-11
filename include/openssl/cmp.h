@@ -306,6 +306,8 @@ typedef enum {OSSL_LOG_EMERG, OSSL_LOG_ALERT, OSSL_LOG_CRIT, OSSL_LOG_ERR,
 
 #if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
 # define OSSL_CMP_FUNC __func__
+#elif defined(__STDC__) && defined(PEDANTIC)
+# define OSSL_CMP_FUNC "(PEDANTIC disallows function name)"
 #elif defined(WIN32) || defined(__GNUC__) || defined(__GNUG__)
 # define OSSL_CMP_FUNC __FUNCTION__
 #elif defined(__FUNCSIG__)
