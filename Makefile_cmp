@@ -2,6 +2,7 @@
 # optional LIBCMP_INC defines where the libcmp header files will be placed (default: "./include_cmp")
 # optional LIBCMP_OUT defines where the resulting cmp lib will be placed (default: ".")
 # both may contain absolute path or path relative to the dir containing this Makefile
+# optional OPENSSL_DIR defines absolute or relative path to OpenSSL installation
 
 ifeq ($(OS),Windows_NT)
 #   EXE=.exe
@@ -64,7 +65,7 @@ $(LIBCMP): $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 	@mkdir -p $(LIBCMP_INC)/openssl
 	@cp --preserve=timestamps $(LIBCMP_HDRS) $(LIBCMP_INC)/openssl # maybe need rsync - for some reason, cp -a does not preserve file dates
 	@cd $(LIBCMP_INC)/openssl && ((mv crmf.h tmp2.h && /bin/echo -e "#undef CMP_STANDALONE\n#define CMP_STANDALONE\n" >tmp1.h && cat tmp1.h tmp2.h >crmf.h && touch -r tmp2.h crmf.h); rm -f tmp1.h tmp2.h)
-	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) -lcrypto -shared -o $@
+	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) -L$(OPENSSL_DIR) -lcrypto -shared -o $@
 	@# # -Wl,-soname,libcmp$(DLL)$(VERSION)
 	@# #ln -sr $(LIBCMP) $(LIBCMP)$(VERSION)
 
