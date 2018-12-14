@@ -8,12 +8,12 @@ ifeq ($(OS),Windows_NT)
 #   EXE=.exe
     DLL=.dll
     OBJ=.obj
-#   LIB=bin
+    LIB=bin
 else
 #   EXE=
     DLL=.so
     OBJ=.o
-#   LIB=lib
+    LIB=lib
 endif
 
 SYSTEM_INCLUDE_OPENSSL=/usr/include/openssl
@@ -24,6 +24,14 @@ ifeq ($(OPENSSL_DIR),)
      OPENSSL_DIR=.
    endif
 endif
+ifeq ($(shell echo $(OPENSSL_DIR) | grep "^/"),)
+# $(OPENSSL_DIR) is relative path
+    OPENSSL_LIB=$(OPENSSL_DIR)
+else
+# $(OPENSSL_DIR) is absolute path
+    OPENSSL_LIB=$(OPENSSL_DIR)/$(LIB)
+endif
+
 OPENSSL_VERSION=$(shell fgrep OPENSSL_VERSION_NUMBER $(OPENSSL_DIR)/include/openssl/opensslv.h | sed -r 's/.*?NUMBER\s+//; s/L.*//')
 $(info detected OpenSSL version $(OPENSSL_VERSION))
 ifeq ($(findstring 0x,$(OPENSSL_VERSION)),)
@@ -31,7 +39,7 @@ ifeq ($(findstring 0x,$(OPENSSL_VERSION)),)
 endif
 ifeq ($(shell test $$(printf "%d" $(OPENSSL_VERSION)) -lt $$(printf "%d" 0x10100000); echo $$?),0)
     $(info enabling compilation quirks for OpenSSL 1.0.2)
-    OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers
+    OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers -Wno-unused-parameter
 endif
 
 ifeq ($(LIBCMP_OUT),)
@@ -48,11 +56,11 @@ else
     override CFLAGS += -g# # not every compiler(version) supports -Og
 endif
 override CFLAGS += -fPIC -I$(LIBCMP_INC)
-override CFLAGS += -DDEBUG_UNUSED -DPEDANTIC -pedantic -Wall -Wextra -Wswitch -Wsign-compare -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wformat -Wtype-limits -Wundef -Wno-unused-parameter $(OSSL_VERSION_QUIRKS)# -Werror # not needed for cmp+crmf: -Wno-long-long -Wno-missing-field-initializers
+override CFLAGS += -DDEBUG_UNUSED -DPEDANTIC -pedantic -Wall -Wextra -Wswitch -Wsign-compare -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wformat -Wtype-limits -Wundef $(OSSL_VERSION_QUIRKS)# -Werror # not needed for cmp+crmf: -Wno-long-long -Wno-missing-field-initializers
 override CFLAGS += -isystem $(OPENSSL_DIR)/include # use of -isystem is critical for selecting wanted OpenSSL version
 LIBCMP_HDRS_INC = -include $(LIBCMP_INC)/openssl/crmf.h # used to force inclusion of standalone version, needed also for cmp_err.c
 
-LDFLAGS += -L$(OPENSSL_DIR)
+LDFLAGS += -L$(OPENSSL_LIB)
 LDLIBS  += -lcrypto
 
 LIBCMP_HDRS_= crmf.h cmp.h cmperr.h crmferr.h safestack_backport.h
