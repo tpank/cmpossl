@@ -12,6 +12,7 @@
 /out.*
 /tmp.*
 /configdata.pm
+/include_cmp
 
 # *all* Makefiles
 Makefile
