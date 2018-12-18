@@ -13,8 +13,8 @@ LIBDIR=debian/tmp/usr/lib
 override_dh_auto_install:
 	OPENSSL_DIR=/usr dh_auto_install -- -f Makefile_cmp
 	@# prevent some confusing lintian errors and warnings:
-	mv $(LIBDIR)/libcmp.so $(LIBDIR)/libcmp.so.0
-	ln -sr $(LIBDIR)/libcmp.so.0 $(LIBDIR)/libcmp.so
+	@#mv $(LIBDIR)/libcmp.so $(LIBDIR)/libcmp.so.0
+	@#ln -sr $(LIBDIR)/libcmp.so.0 $(LIBDIR)/libcmp.so
 
 #override_dh_builddeb:
 #	dh_builddeb --destdir . --
