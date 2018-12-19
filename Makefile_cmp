@@ -16,6 +16,10 @@ else
     LIB=lib
 endif
 
+ifeq ($(LIBCMP_OUT),)
+     LIBCMP_OUT=.
+endif
+
 SYSTEM_INCLUDE_OPENSSL=/usr/include/openssl
 ifeq ($(OPENSSL_DIR),)
    ifneq (,$(wildcard $(SYSTEM_INCLUDE_OPENSSL)))
@@ -26,10 +30,16 @@ ifeq ($(OPENSSL_DIR),)
 endif
 ifeq ($(shell echo $(OPENSSL_DIR) | grep "^/"),)
 # $(OPENSSL_DIR) is relative path
-    OPENSSL_LIB=$(OPENSSL_DIR)
+    OPENSSL=$(LIBCMP_OUT)/$(OPENSSL_DIR)
+    OPENSSL_LIB=$(OPENSSL)
+    OPENSSL_RPATH=$(OPENSSL)
+    OPENSSL_RPATH_LIB=$(OPENSSL)
 else
 # $(OPENSSL_DIR) is absolute path
-    OPENSSL_LIB=$(OPENSSL_DIR)/$(LIB)
+    OPENSSL=$(OPENSSL_DIR)
+    OPENSSL_LIB=$(OPENSSL)/$(LIB)
+    OPENSSL_RPATH=$(OPENSSL_DIR)
+    OPENSSL_RPATH_LIB=$(OPENSSL_LIB)
 endif
 
 OPENSSL_VERSION=$(shell fgrep OPENSSL_VERSION_NUMBER $(OPENSSL_DIR)/include/openssl/opensslv.h | sed -r 's/.*?NUMBER\s+//; s/L.*//')
@@ -44,9 +54,6 @@ ifeq ($(shell test $$(printf "%d" $(OPENSSL_VERSION)) -lt $$(printf "%d" 0x10100
     OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers -Wno-unused-parameter
 endif
 
-ifeq ($(LIBCMP_OUT),)
-     LIBCMP_OUT=.
-endif
 LIBCMP_INC ?= $(LIBCMP_OUT)/include_cmp
 LIBCMP=$(LIBCMP_OUT)/libcmp$(DLL)
 #VERSION=.0
@@ -62,7 +69,7 @@ override CFLAGS += -DDEBUG_UNUSED -DPEDANTIC -pedantic -Wall -Wextra -Wswitch -W
 override CFLAGS += -isystem $(OPENSSL_DIR)/include # use of -isystem is critical for selecting wanted OpenSSL version
 LIBCMP_HDRS_INC = -include $(LIBCMP_INC)/openssl/crmf.h # used to force inclusion of standalone version, needed also for cmp_err.c
 
-LDFLAGS += -L$(OPENSSL_LIB)
+LDFLAGS += -L$(OPENSSL_LIB) -L$(OPENSSL) -Wl,-rpath=$(OPENSSL_RPATH_LIB) -Wl,-rpath=$(OPENSSL_RPATH)
 LDLIBS  += -lcrypto
 
 LIBCMP_HDRS_= crmf.h cmp.h cmperr.h crmferr.h safestack_backport.h
