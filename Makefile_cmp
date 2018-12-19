@@ -33,9 +33,11 @@ else
 endif
 
 OPENSSL_VERSION=$(shell fgrep OPENSSL_VERSION_NUMBER $(OPENSSL_DIR)/include/openssl/opensslv.h | sed -r 's/.*?NUMBER\s+//; s/L.*//')
-$(info detected OpenSSL version $(OPENSSL_VERSION))
 ifeq ($(findstring 0x,$(OPENSSL_VERSION)),)
-    $(warning cannot determine version of OpenSSL in directory '$(OPENSSL_DIR)')
+    OPENSSL_VERSION=100020000
+    $(warning cannot determine version of OpenSSL in directory '$(OPENSSL_DIR)', assuming 1.0.2)
+else
+    $(info detected OpenSSL version $(OPENSSL_VERSION))
 endif
 ifeq ($(shell test $$(printf "%d" $(OPENSSL_VERSION)) -lt $$(printf "%d" 0x10100000); echo $$?),0)
     $(info enabling compilation quirks for OpenSSL 1.0.2)
