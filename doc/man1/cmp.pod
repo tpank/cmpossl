@@ -473,9 +473,9 @@ the name given in this option is also set as the recipient of the CMP message.
 
 =item B<-days number>
 
-Number of days the new certificate is requested to be valid for counting from
-the current time of the host.  Also triggers the explicit request that validity
-starts from current time from the host.
+Number of days the new certificate is requested to be valid for, counting from
+the current time of the host.  Also triggers the explicit request that the
+validity period starts from the current time (as seen by the host).
 
 =item B<-reqexts name>
 
