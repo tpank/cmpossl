@@ -16,7 +16,7 @@
 
 # include <openssl/opensslconf.h>
 
-# ifndef OPENSSL_NO_CRMF
+# if !defined(OPENSSL_NO_CRMF) && !defined(OPENSSL_NO_CMP)
 #  include <openssl/opensslv.h>
 #  if OPENSSL_VERSION_NUMBER < 0x10100002L
 #   define ossl_inline __inline
@@ -201,7 +201,7 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
 #  ifdef __cplusplus
 }
 #  endif
-# endif /* !defined OPENSSL_NO_CRMF */
+# endif /* !defined OPENSSL_NO_CRMF && !defined OPENSSL_NO_CMP */
 #endif /* !defined OSSL_HEADER_CRMF_H */
 
 
