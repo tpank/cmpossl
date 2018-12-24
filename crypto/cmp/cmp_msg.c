@@ -179,9 +179,10 @@ err:
     return NULL;
 }
 
-X509_EXTENSIONS *CMP_exts_dup(X509_EXTENSIONS *extin /* may be NULL */)
+X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin /* may be NULL */)
 {
     X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
+
     if (exts == NULL)
         goto err;
     if (extin != NULL) {
@@ -192,6 +193,7 @@ X509_EXTENSIONS *CMP_exts_dup(X509_EXTENSIONS *extin /* may be NULL */)
                 goto err;
     }
     return exts;
+
  err:
     sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
     return NULL;
