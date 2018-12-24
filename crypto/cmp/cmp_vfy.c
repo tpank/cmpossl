@@ -32,7 +32,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 {
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART prot_part;
-    int err = ERR_R_MALLOC_FAILURE;
+    int err = 1;
     int digest_nid, pk_nid;
     EVP_MD *digest = NULL;
     EVP_PKEY *pubkey = NULL;
@@ -49,13 +49,16 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     /* verify that keyUsage, if present, contains digitalSignature */
     if (!cmp_ctx->ignore_keyusage &&
         (X509_get_key_usage((X509 *)cert) & X509v3_KU_DIGITAL_SIGNATURE) == 0) {
-        err = CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE;
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE,
+               CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE);
+        err = 2;
         goto cert_err;
     }
 
     pubkey = X509_get_pubkey((X509 *)cert);
     if (pubkey == NULL) {
-        err = CMP_R_FAILED_EXTRACTING_PUBKEY;
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_FAILED_EXTRACTING_PUBKEY);
+        err = 2;
         goto cert_err;
     }
 
@@ -74,25 +77,27 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
         digest_nid == NID_undef ||
         pk_nid == NID_undef ||
         (digest = (EVP_MD *)EVP_get_digestbynid(digest_nid)) == NULL) {
-        err = CMP_R_ALGORITHM_NOT_SUPPORTED;
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ALGORITHM_NOT_SUPPORTED);
+        err = 2;
         goto cleanup;
     }
 
     /* check msg->header->protectionAlg is consistent with public key type */
     if (EVP_PKEY_type(pk_nid) != EVP_PKEY_base_id(pubkey)) {
-        err = CMP_R_WRONG_ALGORITHM_OID;
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_WRONG_ALGORITHM_OID);
+        err = 2;
         goto cleanup;
     }
 
     if ((ctx = EVP_MD_CTX_create()) == NULL) {
-        err = ERR_R_MALLOC_FAILURE;
+        CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, ERR_R_MALLOC_FAILURE);
         goto cleanup;
     }
     err = (EVP_VerifyInit_ex(ctx, digest, NULL) &&
            EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len) &&
            EVP_VerifyFinal(ctx, msg->protection->data,
                            msg->protection->length, pubkey) == 1)
-        ? 0 : CMP_R_ERROR_VALIDATING_PROTECTION;
+        ? 0 : 2;
 
  cleanup:
     EVP_MD_CTX_destroy(ctx);
@@ -100,7 +105,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     EVP_PKEY_free(pubkey);
 
  cert_err:
-    if (err != 0) { /* print diagnostics on cert verification error */
+    if (err == 2) { /* print diagnostics on cert verification error */
         X509_STORE *ts = cmp_ctx->trusted_store; /* may be empty, not NULL */
         X509_STORE_CTX *csc = X509_STORE_CTX_new();
         X509_STORE_CTX_verify_cb verify_cb = X509_STORE_get_verify_cb(ts);
@@ -111,7 +116,8 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
             X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
             (void)(*verify_cb)(0, csc);
         }
-        put_cert_verify_err(CMP_F_CMP_VERIFY_SIGNATURE, err);
+        put_cert_verify_err(CMP_F_CMP_VERIFY_SIGNATURE,
+                            CMP_R_ERROR_VALIDATING_PROTECTION);
         X509_STORE_CTX_free(csc);
     }
     return err == 0;
