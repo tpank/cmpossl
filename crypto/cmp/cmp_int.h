@@ -703,7 +703,7 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  */
 
 /* from cmp_msg.c */
-X509_EXTENSIONS *CMP_exts_dup(X509_EXTENSIONS *extin);
+X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin);
 
 /* from cmp_lib.c */
 /* get ASN.1 encoded integer, return -1 on error */

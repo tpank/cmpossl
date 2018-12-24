@@ -220,6 +220,7 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     STACK_OF(X509) *chainOut = NULL, *caPubs = NULL;
     OSSL_CRMF_MSG *crm = NULL;
     int bodytype;
+
     if (srv_ctx == NULL || certReq == NULL) {
         CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_INVALID_ARGS);
         return NULL;
@@ -420,6 +421,7 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
                                      const OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg = NULL;
+
     if (srv_ctx == NULL || srv_ctx->certReq == NULL) {
         CMPerr(CMP_F_PROCESS_POLLREQ, CMP_R_NULL_ARGUMENT);
         return NULL;
@@ -444,6 +446,7 @@ static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
                                   const OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg = NULL;
+
     STACK_OF(OSSL_CMP_ITAV) *tmp = NULL;
 
     if (srv_ctx == NULL || srv_ctx->ctx == NULL || req == NULL) {
@@ -588,6 +591,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
         const char *data;
         int flags = 0;
         unsigned long err = ERR_peek_error_line_data(NULL, NULL, &data, &flags);
+
         if ((si = OSSL_CMP_statusInfo_new(OSSL_CMP_PKISTATUS_rejection,
                                      /* TODO make failure bits more specific */
                                      1 << OSSL_CMP_PKIFAILUREINFO_badRequest,
@@ -627,6 +631,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
 OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void)
 {
     OSSL_CMP_SRV_CTX *ctx = NULL;
+
     if ((ctx = OSSL_CMP_SRV_CTX_new()) == NULL)
         goto oom;
     ctx->certReqId = -1;
