@@ -78,6 +78,7 @@ static int socket_wait(int fd, int for_read, int timeout)
 /* returns < 0 on error, 0 on timeout, > 0 on success */
 static int bio_wait(BIO *bio, int timeout) {
     int fd;
+
     if (BIO_get_fd(bio, &fd) <= 0)
         return -1;
     return socket_wait(fd, BIO_should_read(bio), timeout);
@@ -93,6 +94,7 @@ static int bio_connect(BIO *bio, int timeout) {
     int blocking;
     time_t max_time;
     int rv;
+
     blocking = timeout <= 0;
     max_time = timeout > 0 ? time(NULL) + timeout : 0;
 
@@ -201,6 +203,7 @@ static int CMP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx,
         "Content-Type: application/pkixcmp\r\n"
         "Content-Length: %d\r\n\r\n";
     int reqlen = ASN1_item_i2d(val, NULL, it);
+
     if (BIO_printf(rctx->mem, req_hdr, reqlen) <= 0)
         return 0;
     if (ASN1_item_i2d_bio(it, rctx->mem, val) <= 0)
@@ -214,6 +217,7 @@ static int CMP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx,
 static void add_conn_error_hint(const OSSL_CMP_CTX *ctx, unsigned long errdetail)
 {
     char buf[200];
+
     snprintf(buf, 200, "host '%s' port %d", ctx->serverName, ctx->serverPort);
     OSSL_CMP_add_error_data(buf);
     if (errdetail == 0) {
