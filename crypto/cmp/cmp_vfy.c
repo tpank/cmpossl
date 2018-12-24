@@ -36,7 +36,6 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     int digest_nid, pk_nid;
     EVP_MD *digest = NULL;
     EVP_PKEY *pubkey = NULL;
-
     int l;
     size_t prot_part_der_len = 0;
     unsigned char *prot_part_der = NULL;
@@ -196,6 +195,7 @@ static void print_cert(BIO *bio, const X509 *cert, unsigned long neg_cflags) {
     if (cert != NULL) {
         unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
             XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
+
         BIO_printf(bio, "    certificate\n");
         X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_SUBJECT);
         if (X509_check_issued((X509 *)cert, (X509 *)cert) == X509_V_OK) {
@@ -221,6 +221,7 @@ static void print_cert(BIO *bio, const X509 *cert, unsigned long neg_cflags) {
 static void print_certs(BIO *bio, const STACK_OF(X509) *certs) {
     if (certs != NULL && sk_X509_num(certs) > 0) {
         int i;
+
         for (i = 0; i < sk_X509_num(certs); i++) {
             X509 *cert = sk_X509_value(certs, i);
             if (cert != NULL) {
@@ -257,6 +258,7 @@ void put_cert_verify_err(int func, int err)
         if (cert_verify_err_bio != NULL) {
             char *str;
             long len = BIO_get_mem_data(cert_verify_err_bio, &str);
+
             if (len > 0) {
                 str[len-1] = '\0'; /* replace last '\n', terminating str */
                 OSSL_CMP_add_error_line(str);
@@ -519,6 +521,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, const X509 *scrt,
                                const OSSL_CMP_MSG *msg) {
     int valid = 0;
     X509_STORE *store = X509_STORE_new();
+
     if (store != NULL && /* store does not include CRLs */
         OSSL_CMP_X509_STORE_add1_certs(store, msg->extraCerts,
                                        1/* self-signed only */)) {
