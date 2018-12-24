@@ -58,8 +58,8 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
     int line;
     const char *data;
     int flags;
-
     unsigned long err = ERR_peek_last_error();
+
     if (err == 0) {
         ERR_PUT_error(ERR_LIB_CMP, 0, err, "", 0);
     }
@@ -69,6 +69,7 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
         const char *curr, *next;
         int len;
         char *tmp;
+
         ERR_peek_last_error_line_data(&file, &line, &data, &flags);
         if (!(flags & ERR_TXT_STRING)) {
             data = "";
@@ -107,6 +108,7 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
 int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a)
 {
     int64_t res;
+
     if (!ASN1_INTEGER_get_int64(&res, a)) {
         CMPerr(func, ASN1_R_INVALID_NUMBER);
         return -1;
@@ -594,7 +596,6 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
     int md_NID;
     const EVP_MD *md = NULL;
 
-
     /* construct data to be signed */
     prot_part.header = msg->header;
     prot_part.body = msg->body;
@@ -996,6 +997,7 @@ int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg,
                                  const OSSL_CMP_ITAV *itav)
 {
     int bodytype;
+
     if (msg == NULL)
         goto err;
     bodytype = OSSL_CMP_MSG_get_bodytype(msg);
@@ -1083,6 +1085,7 @@ OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(const ASN1_OBJECT *type,
                                  const ASN1_TYPE *value)
 {
     OSSL_CMP_ITAV *itav;
+
     if (type == NULL || (itav = OSSL_CMP_ITAV_new()) == NULL)
         return NULL;
     OSSL_CMP_ITAV_set(itav, type, value);
@@ -1160,6 +1163,7 @@ int OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si)
 {
     int i;
     int res = 0;
+
     if (si == NULL || si->failInfo == NULL) {
         CMPerr(CMP_F_OSSL_CMP_PKISI_PKIFAILUREINFO_GET,
                CMP_R_ERROR_PARSING_PKISTATUS);
@@ -1296,6 +1300,7 @@ OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep
                                                     int rsid)
 {
     OSSL_CMP_PKISI *status = NULL;
+
     if (rrep == NULL)
         return NULL;
 
@@ -1315,6 +1320,7 @@ OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep
 int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index)
 {
     ASN1_BIT_STRING *fail_info = OSSL_CMP_PKISI_failInfo_get0(si);
+
     if (fail_info == NULL) /* this can also indicate si == NULL */
         return -1;
     if ((bit_index < 0) || (bit_index > OSSL_CMP_PKIFAILUREINFO_MAX))

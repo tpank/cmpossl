@@ -264,6 +264,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
         if (OSSL_CMP_MSG_get_bodytype(prep) == OSSL_CMP_PKIBODY_POLLREP) {
             int64_t check_after;
             OSSL_CMP_POLLREPCONTENT *prc = prep->body->value.pollRep;
+
             /*
              * TODO: handle multiple PollRepContent elements, in case
              *       multiple requests have been sent -->  GitHub issue#67
@@ -292,6 +293,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             if (ctx->totaltimeout != 0) { /* total timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
                 int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
+
                 if (time_left <= 0) {
                     CMPerr(CMP_F_POLLFORRESPONSE, CMP_R_TOTAL_TIMEOUT);
                     goto err;
@@ -437,6 +439,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
 {
     char *tempbuf;
     X509 *crt = NULL;
+
     if (ctx == NULL || crep == NULL) {
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_INVALID_ARGS);
         return NULL;
