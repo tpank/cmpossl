@@ -247,9 +247,8 @@ struct OSSL_cmp_itav_st {
         ASN1_TYPE *other;
     } infoValue;
 } /* OSSL_CMP_ITAV */;
-OSSL_CMP_ITAV *OSSL_CMP_ITAV_dup(const OSSL_CMP_ITAV *itav);
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
-
+DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_ITAV)
 
 typedef struct OSSL_cmp_certorenccert_st {
     int type;
@@ -294,7 +293,7 @@ struct OSSL_cmp_pkisi_st {
     OSSL_CMP_PKIFAILUREINFO *failInfo;
 } /* OSSL_CMP_PKISI */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKISI)
-OSSL_CMP_PKISI *OSSL_CMP_PKISI_dup(const OSSL_CMP_PKISI *itav);
+DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_PKISI)
 
 /*-
  *  RevReqContent ::= SEQUENCE OF RevDetails
