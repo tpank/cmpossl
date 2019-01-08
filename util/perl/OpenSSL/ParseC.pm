@@ -502,6 +502,20 @@ EOF
     { regexp   => qr/DECLARE_ASN1_SET_OF<<<\((.*)\)>>>/,
       massager => sub { return (); }
     },
+    { regexp   => qr/DECLARE_ASN1_DUP_FUNCTION<<<\((.*)\)>>>/,
+      massager => sub {
+          return (<<"EOF");
+stname * $1_dup(const $1 *x);
+EOF
+      }
+    },
+    { regexp   => qr/DECLARE_ASN1_DUP_FUNCTION_name<<<\((.*),(.*)\)>>>/,
+      massager => sub {
+          return (<<"EOF");
+stname * $2_dup(const $1 *x);
+EOF
+      }
+    },
     { regexp   => qr/DECLARE_PKCS12_SET_OF<<<\((.*)\)>>>/,
       massager => sub { return (); }
     },
