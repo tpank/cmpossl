@@ -247,7 +247,7 @@ struct OSSL_cmp_itav_st {
         ASN1_TYPE *other;
     } infoValue;
 } /* OSSL_CMP_ITAV */;
-OSSL_CMP_ITAV *OSSL_CMP_ITAV_dup(OSSL_CMP_ITAV *itav);
+OSSL_CMP_ITAV *OSSL_CMP_ITAV_dup(const OSSL_CMP_ITAV *itav);
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
 
 
@@ -294,7 +294,7 @@ struct OSSL_cmp_pkisi_st {
     OSSL_CMP_PKIFAILUREINFO *failInfo;
 } /* OSSL_CMP_PKISI */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKISI)
-OSSL_CMP_PKISI *OSSL_CMP_PKISI_dup(OSSL_CMP_PKISI *itav);
+OSSL_CMP_PKISI *OSSL_CMP_PKISI_dup(const OSSL_CMP_PKISI *itav);
 
 /*-
  *  RevReqContent ::= SEQUENCE OF RevDetails
