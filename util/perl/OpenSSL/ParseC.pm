@@ -505,14 +505,14 @@ EOF
     { regexp   => qr/DECLARE_ASN1_DUP_FUNCTION<<<\((.*)\)>>>/,
       massager => sub {
           return (<<"EOF");
-stname * $1_dup(const $1 *x);
+int $1_dup(void);
 EOF
       }
     },
     { regexp   => qr/DECLARE_ASN1_DUP_FUNCTION_name<<<\((.*),(.*)\)>>>/,
       massager => sub {
           return (<<"EOF");
-stname * $2_dup(const $1 *x);
+int $2_dup(void);
 EOF
       }
     },
