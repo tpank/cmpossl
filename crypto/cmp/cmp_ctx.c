@@ -526,9 +526,8 @@ int OSSL_CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
 }
 
 /*
- * Sets the server certificate to be directly trusted for verifying response
- * messages. Additionally using OSSL_CMP_CTX_set0_trustedStore() is recommended
- * in order to be able to supply verification parameters and CRLs.
+ * Pins the server certificate to be directly trusted (even if it is expired)
+ * for verifying response messages.
  * Cert pointer is not consumed. It may be NULL to clear the entry.
  * returns 1 on success, 0 on error
  */
@@ -1314,13 +1313,6 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
 
 int OSSL_CMP_log_init(void)
 {
-    if (OpenSSL_version_num() != OPENSSL_VERSION_NUMBER) {
-#ifndef OPENSSL_NO_STDIO
-        fprintf(stderr, "OpenSSL runtime version 0x%lx does not match compile-time version 0x%lx\n",
-                OpenSSL_version_num(), OPENSSL_VERSION_NUMBER);
-#endif
-        return 0;
-    }
     return 1;
 }
 

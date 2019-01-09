@@ -212,8 +212,8 @@ Each file may contain multiple certificates.
 
 =item B<-srvcert filename>
 
-The specific CMP server certificate to use and trust directly
-when verifying signature-based protection of CMP response messages.
+The specific CMP server certificate to use and directly trust (even if it is
+expired) when verifying signature-based protection of CMP response messages.
 May be set alternatively to the B<-trusted> option
 if the certificate is available and only this one shall be accepted.
 
