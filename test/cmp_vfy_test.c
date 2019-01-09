@@ -121,7 +121,37 @@ static int test_cmp_validate_msg_mac_alg_protection_bad(void)
     return result;
 }
 
-static int test_cmp_validate_msg_signature(void)
+static int test_cmp_validate_msg_signature_trusted(int expired)
+{
+    X509_STORE *trusted = NULL;
+    SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
+    /* Do test case-specific set up; set expected return values and
+     * side effects */
+    fixture->expected = !expired;
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f)) ||
+        !TEST_true(trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx)) ||
+        !TEST_true(X509_STORE_add_cert(trusted, srvcert))) {
+        tear_down(fixture);
+        fixture = NULL;
+    } else {
+        X509_VERIFY_PARAM_set_time(X509_STORE_get0_param(trusted),
+                                   expired ? test_time_future : test_time_valid);
+    }
+    EXECUTE_TEST(execute_validation_test, tear_down);
+    return result;
+}
+
+static int test_cmp_validate_msg_signature_trusted_ok(void)
+{
+    return test_cmp_validate_msg_signature_trusted(0);
+}
+
+static int test_cmp_validate_msg_signature_trusted_expired(void)
+{
+    return test_cmp_validate_msg_signature_trusted(1);
+}
+
+static int test_cmp_validate_msg_signature_srvcert_ok(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -136,7 +166,7 @@ static int test_cmp_validate_msg_signature(void)
     return result;
 }
 
-static int test_cmp_validate_msg_signature_bad(void)
+static int test_cmp_validate_msg_signature_srvcert_bad(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -159,7 +189,7 @@ static int test_cmp_validate_msg_signature_expected_sender(void)
     fixture->expected = 1;
     if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f)) ||
         !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert)) ||
-        /* Set wrong expected sender name*/
+        /* Set correct expected sender name*/
         !TEST_true(OSSL_CMP_CTX_set1_expected_sender(fixture->cmp_ctx,
                                              X509_get_subject_name(srvcert)))) {
         tear_down(fixture);
@@ -194,7 +224,8 @@ static int test_cmp_validate_msg_unprotected_request(void)
     /* Do test case-specific set up; set expected return values and
      * side effects */
     fixture->expected = 0;
-    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_unprotected_f))) {
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_unprotected_f)) ||
+        !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -202,7 +233,7 @@ static int test_cmp_validate_msg_unprotected_request(void)
     return result;
 }
 
-static int test_cmp_validate_cert_path(void)
+static int test_cmp_validate_cert_path_ok(void)
 {
     STACK_OF(X509) *untrusted = NULL;
     X509_STORE *trusted = NULL;
@@ -324,8 +355,10 @@ int setup_tests(void)
         return 0;
 
     /* Message validation tests */
-    ADD_TEST(test_cmp_validate_msg_signature);
-    ADD_TEST(test_cmp_validate_msg_signature_bad);
+    ADD_TEST(test_cmp_validate_msg_signature_trusted_ok);
+    ADD_TEST(test_cmp_validate_msg_signature_trusted_expired);
+    ADD_TEST(test_cmp_validate_msg_signature_srvcert_ok);
+    ADD_TEST(test_cmp_validate_msg_signature_srvcert_bad);
     ADD_TEST(test_cmp_validate_msg_signature_expected_sender);
     ADD_TEST(test_cmp_validate_msg_signature_unexpected_sender);
     ADD_TEST(test_cmp_validate_msg_unprotected_request);
@@ -333,7 +366,7 @@ int setup_tests(void)
     ADD_TEST(test_cmp_validate_msg_mac_alg_protection_bad);
 
     /* Cert path validation tests */
-    ADD_TEST(test_cmp_validate_cert_path);
+    ADD_TEST(test_cmp_validate_cert_path_ok);
     ADD_TEST(test_cmp_validate_cert_path_expired);
     ADD_TEST(test_cmp_validate_cert_path_no_anchor);
 
