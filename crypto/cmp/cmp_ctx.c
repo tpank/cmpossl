@@ -1345,6 +1345,13 @@ int OSSL_CMP_log_init(void)
         (void)ERR_load_CRMF_strings();
     }
 #endif
+    if (OpenSSL_version_num() != OPENSSL_VERSION_NUMBER) {
+#ifndef OPENSSL_NO_STDIO
+        fprintf(stderr, "OpenSSL runtime version 0x%lx does not match compile-time version 0x%lx\n",
+                OpenSSL_version_num(), OPENSSL_VERSION_NUMBER);
+#endif
+        return 0;
+    }
     return 1;
 }
 
