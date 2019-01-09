@@ -74,11 +74,10 @@ static int execute_validation_test(CMP_VFY_TEST_FIXTURE *fixture)
 
 static int execute_cmp_validate_cert_path_test(CMP_VFY_TEST_FIXTURE *fixture)
 {
+    X509_STORE *ts = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx);
     return TEST_int_eq(fixture->expected,
                        OSSL_CMP_validate_cert_path(fixture->cmp_ctx,
-                                              OSSL_CMP_CTX_get0_trustedStore
-                                              (fixture->cmp_ctx), fixture->cert,
-                                              0));
+                                                   ts, NULL, fixture->cert, 0));
 }
 
 static int test_cmp_validate_msg_mac_alg_protection(void)
