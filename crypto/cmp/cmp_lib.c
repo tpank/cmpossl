@@ -845,7 +845,7 @@ int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 
     /* add any additional certificates from ctx->extraCertsOut */
     OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
-                                1/*no dups*/);
+                                1 /* no dups */);
 
     /* if none was found avoid empty ASN.1 sequence */
     if (sk_X509_num(msg->extraCerts) == 0) {
@@ -1771,6 +1771,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                CMP_R_RECIPNONCE_UNMATCHED);
         return -1;
     }
+
     /*
      * RFC 4210 section 5.1.1 states: the recipNonce is copied from
      * the senderNonce of the previous message in the transaction.

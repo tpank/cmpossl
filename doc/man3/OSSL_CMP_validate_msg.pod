@@ -16,6 +16,7 @@ OSSL_CMP_print_cert_verify_cb
  int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
  int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
                                  const X509_STORE *trusted_store,
+                                 const STACK_OF(X509) *extra_untrusted,
                                  const X509 *cert, int defer_errors);
  int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
@@ -53,7 +54,8 @@ returned in IP.  This is according to 3GPP TS 33.310.
 
 OSSL_CMP_validate_cert_path() attempts to validate the given certificate and its
 path using the given store of trusted certs (possibly including CRLs and a cert
-verification callback) and non-trusted intermediate certs from the B<ctx>.
+verification callback) and non-trusted intermediate certs from the B<ctx>
+and from any given list B<extra_untrusted>.
 The B<defer_errors> parameter needs to be set when used in a certConf callback
 because any following certConf exchange will likely clear the OpenSSL error
 queue.

@@ -579,6 +579,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         /*
          * merge them also into the untrusted certs, such that the peer does
          * not need to send them again (in this and any further transaction)
+         * and such that they are also available to ctx->certConf_cb
          */
             !OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, extracerts,
                                          0, 1/* no dups */))
