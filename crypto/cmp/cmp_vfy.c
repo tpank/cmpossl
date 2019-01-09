@@ -326,19 +326,23 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
     return (ok);
 }
 
-/* return 1 if expiration should be checked and the given time has passed */
-int OSSL_CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm)
+/* return 0 if time should not be checked or reference time is within frame,
+   or else 1 if it s past the end, or -1 if it is before the start */
+int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
+                           const ASN1_TIME *end, const X509_VERIFY_PARAM *vpm)
 {
     time_t check_time, *ptime = NULL;
-    unsigned long flags = X509_VERIFY_PARAM_get_flags((X509_VERIFY_PARAM*)vpm);
+    unsigned long flags = vpm == NULL ? 0 :
+                          X509_VERIFY_PARAM_get_flags((X509_VERIFY_PARAM*)vpm);
 
     if ((flags & X509_V_FLAG_USE_CHECK_TIME) != 0) {
         check_time = X509_VERIFY_PARAM_get_time(vpm);
         ptime = &check_time;
+    } else if ((flags & X509_V_FLAG_NO_CHECK_TIME) != 0) {
+        return 0; /* ok */
     }
-
-    return (!(flags & X509_V_FLAG_NO_CHECK_TIME) &&
-            endtime && X509_cmp_time(endtime, ptime) < 0);
+    return (end   != NULL && X509_cmp_time(end  , ptime) < 0) ? +1 :
+           (start != NULL && X509_cmp_time(start, ptime) > 0) ? -1 : 0;
 }
 
 static void add_name_mismatch_data(const char *error_prefix,
@@ -395,21 +399,25 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid, int fn)
  *
  * Check if the given cert is acceptable as sender cert of the given message.
  * The subject DN must match, the subject key ID as well if present in the msg,
- * and the cert must not be expired (for checking this, the ts must be given).
+ * and the cert must be current (for checking this, the ts should be given).
+ * Note that cert revocation etc. is checked by OSSL_CMP_validate_cert_path().
  * returns 0 on error or not acceptable, else 1
  */
 static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
                            const X509_STORE *ts) {
     X509_NAME *sender_name = NULL;
     X509_VERIFY_PARAM *vpm = NULL;
+    int time_cmp;
 
     vpm = ts != NULL ? X509_STORE_get0_param((X509_STORE *)ts) : NULL;
-    if (cert == NULL || msg == NULL || ts == NULL || vpm == NULL)
+    if (cert == NULL || msg == NULL || (ts != NULL && vpm == NULL))
         return 0; /* TODO better flag and handle this as fatal internal error */
 
-    /* TODO better also check revocation state with OCSP/CRLs if available */
-    if (OSSL_CMP_expired(X509_get0_notAfter(cert), vpm)) {
-        OSSL_CMP_add_error_line(" certificate expired");
+    time_cmp = OSSL_CMP_cmp_timeframe(X509_get0_notBefore(cert),
+                                      X509_get0_notAfter (cert), vpm);
+    if (time_cmp != 0) {
+        OSSL_CMP_add_error_line(time_cmp > 0 ? " certificate expired"
+                                             : " certificate not yet valid");
         return 0;
     }
 
@@ -504,8 +512,8 @@ static STACK_OF(X509) *find_server_cert(const X509_STORE *ts,
         goto oom;
 
     OSSL_CMP_add_error_line(sk_X509_num(found_certs) ?
-                            "found at least one valid matching server cert" :
-                            "no valid matching server cert found");
+                            "found at least one matching server cert" :
+                            "no current matching server cert found");
     return found_certs;
 oom:
     sk_X509_pop_free(found_certs, X509_free);
@@ -728,13 +736,16 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
         scrt = ctx->srvCert;
-        if (scrt != NULL && !cert_acceptable(scrt, msg, ctx->trusted_store))
-            scrt = NULL;
         if (scrt == NULL)
             scrt = find_srvcert(ctx, msg);
         if (scrt != NULL) {
             if (CMP_verify_signature(ctx, msg, scrt))
                 return 1;
+
+            /* failure; add further cert matching & validation diagnostics */
+
+            if (ctx->srvCert != NULL)
+                (void)cert_acceptable(scrt, msg, ctx->trusted_store);
 
             /* potentially the server cert finding algorithm took wrong cert:
              * the server certificate may not have a subject key identifier
