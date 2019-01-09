@@ -151,17 +151,19 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
 /*
  * Attempt to validate certificate and path using given store of trusted certs
  * (possibly including CRLs and a cert verification callback function) and
- * non-trusted intermediate certs from the given ctx.
+ * non-trusted intermediate certs from the given ctx and extraCerts.
  * The defer_errors parameter needs to be set when used in a certConf callback
  * as any following certConf exchange will likely clear the OpenSSL error queue.
  * Returns 1 on successful validation and 0 otherwise.
  */
 int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
                                 const X509_STORE *trusted_store,
+                                const STACK_OF(X509) *extra_untrusted,
                                 const X509 *cert, int defer_errors)
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
+    STACK_OF(X509) *untrusted;
 
     if (ctx == NULL || trusted_store == NULL || cert == NULL) {
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_CERT_PATH, CMP_R_NULL_ARGUMENT);
@@ -170,8 +172,10 @@ int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
 
     if ((csc = X509_STORE_CTX_new()) == NULL ||
         !X509_STORE_CTX_init(csc, (X509_STORE *)trusted_store, (X509 *)cert,
-                             (STACK_OF(X509) *)ctx->untrusted_certs)) {
-        CMPerr(CMP_F_OSSL_CMP_VALIDATE_CERT_PATH, ERR_R_MALLOC_FAILURE);
+                             (STACK_OF(X509) *)ctx->untrusted_certs) ||
+        ((untrusted = X509_STORE_CTX_get0_untrusted(csc)) == NULL) ||
+        !OSSL_CMP_sk_X509_add1_certs(untrusted, extra_untrusted,
+                                     0, 1/* no dups */)) {
         goto end;
     }
 
@@ -485,11 +489,9 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
  * looking for current certs with subject matching the msg sender name
  * and (if set in msg) a matching sender keyID = subject key ID.
  *
- * Considers given trusted store and any given untrusted certs, which should
- * include any extra certs from the received message msg.
+ * Traverses any extraCerts, any given untrusted certs, and certs in truststore
+ * and accumulates in found_certs all matching non-expired cert candidates.
  *
- * Puts exactly one in found_certs if there is a single clear hit, else
- * several candidates.
  * returns 0 on (out of memory) error, else 1
  */
 static int find_server_cert(const X509_STORE *ts,
@@ -503,13 +505,16 @@ static int find_server_cert(const X509_STORE *ts,
     if (ts == NULL || msg == NULL || found_certs == NULL)
         return NULL; /* maybe better flag and handle this as fatal error */
 
+    if (!find_acceptable_certs(msg->extraCerts, msg, ts, found_certs))
+        return 0;
+
+    if (!find_acceptable_certs(untrusted, msg, ts, found_certs))
+        return 0;
+
     trusted = OSSL_CMP_X509_STORE_get1_certs(ts);
     ret = find_acceptable_certs(trusted, msg, ts, found_certs);
     sk_X509_pop_free(trusted, X509_free);
     if (ret == 0)
-        return 0;
-
-    if (!find_acceptable_certs(untrusted, msg, ts, found_certs))
         return 0;
 
     OSSL_CMP_add_error_line(sk_X509_num(found_certs) ?
@@ -528,11 +533,12 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, const X509 *scrt,
                                const OSSL_CMP_MSG *msg) {
     int valid = 0;
     X509_STORE *store = X509_STORE_new();
+    const STACK_OF(X509) *extra = msg->extraCerts;
 
     if (store != NULL && /* store does not include CRLs */
         OSSL_CMP_X509_STORE_add1_certs(store, msg->extraCerts,
                                        1/* self-signed only */)) {
-        valid = OSSL_CMP_validate_cert_path(ctx, store, scrt, 0);
+        valid = OSSL_CMP_validate_cert_path(ctx, store, extra, scrt, 0);
     }
     if (valid) {
         /*
@@ -543,13 +549,14 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, const X509 *scrt,
             CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip, 0);
         X509 *newcrt = CMP_CERTRESPONSE_get_certificate(ctx, crep); /* maybe
             better use get_cert_status() from cmp_ses.c, which catches errors */
-        valid = OSSL_CMP_validate_cert_path(ctx, store, newcrt, 0);
+        valid = OSSL_CMP_validate_cert_path(ctx, store, extra, newcrt, 0);
         X509_free(newcrt);
     }
     X509_STORE_free(store);
     return valid;
 }
 
+/* find and validate any potentially usable server cert */
 static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
     X509 *scrt = NULL;
@@ -597,11 +604,6 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         X509_free(ctx->validatedSrvCert);
         ctx->validatedSrvCert = NULL;
 
-        /* use and store provided extraCerts in ctx also for future use */
-        if (!OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, msg->extraCerts,
-                                         1/* no self-signed */, 1/* no dups */))
-            goto end;
-
         /* find server cert candidates from any available source */
         if (!find_server_cert(ctx->trusted_store, ctx->untrusted_certs,
                               msg, found_crts))
@@ -610,7 +612,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         /* select first server cert that can be validated */
         for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
             scrt = sk_X509_value(found_crts, i);
-            valid = OSSL_CMP_validate_cert_path(ctx, ctx->trusted_store, scrt, 0);
+            valid = OSSL_CMP_validate_cert_path(ctx, ctx->trusted_store,
+                                                msg->extraCerts, scrt, 0);
         }
 
         /* exceptional 3GPP TS 33.310 handling */
@@ -643,8 +646,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
  * Validates the protection of the given PKIMessage using either password-
  * based mac (PBM) or a signature algorithm. In the case of signature algorithm,
  * the certificate can be provided in ctx->srvCert,
- * else it is taken from extraCerts and validated against ctx->trusted_store
- * utilizing ctx->untrusted_certs and extraCerts.
+ * else it is taken from extraCerts, ctx->untrusted_certs, and
+ * ctx->trusted_store and validated against ctx->trusted_store.
  *
  * If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
  * the extraCerts field when a self-signed certificate is found there which can
@@ -806,11 +809,8 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int fail_info,
     if (fail_info != 0) /* accept any error flagged by CMP core library */
         return fail_info;
 
-    /* TODO: load caPubs [OSSL_CMP_CTX_caPubs_get1(ctx)] as additional trusted
-    certs during IR and if PBMAC (shared secret) is used, cf. RFC 4210, 5.3.2 */
-
     if (out_trusted != NULL &&
-        !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))
+        !OSSL_CMP_validate_cert_path(ctx, out_trusted, NULL, cert, 1))
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
 
     if (fail_info != 0) {
