@@ -523,44 +523,66 @@ static int find_server_cert(const X509_STORE *ts,
     return 1;
 }
 
-/*
- * Exceptional handling for 3GPP TS 33.310, only to use for IP and if the ctx
- * option is explicitly set: use self-signed certificates from extraCerts as
- * trust anchor to validate server cert - provided it also can validate the
- * newly enrolled certificate
- */
-static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, const X509 *scrt,
-                               const OSSL_CMP_MSG *msg) {
-    int valid = 0;
-    X509_STORE *store = X509_STORE_new();
+static X509 *select_validated_scrt(OSSL_CMP_CTX *ctx,
+                                   STACK_OF(X509) *found_crts,
+                                   const OSSL_CMP_MSG *msg) {
     const STACK_OF(X509) *extra = msg->extraCerts;
+    X509 *scrt;
+    int i;
 
-    if (store != NULL && /* store does not include CRLs */
-        OSSL_CMP_X509_STORE_add1_certs(store, msg->extraCerts,
-                                       1/* self-signed only */)) {
-        valid = OSSL_CMP_validate_cert_path(ctx, store, extra, scrt, 0);
+    for (i = 0; i < sk_X509_num(found_crts); i++) {
+        scrt = sk_X509_value(found_crts, i);
+        if (OSSL_CMP_validate_cert_path(ctx, ctx->trusted_store,
+                                        extra, scrt, 0))
+            return scrt;
     }
-    if (valid) {
+    scrt = NULL;
+
+    /*
+     * Exceptional handling for 3GPP TS 33.310 section 9.5.4.3,
+     * only to use for IP and if the ctx option is explicitly set:
+     * use self-signed certificates from extraCerts as trust anchor to validate
+     * scrt, provided they also can validate the newly enrolled certificate
+     */
+    if (ctx->permitTAInExtraCertsForIR
+        && OSSL_CMP_MSG_get_bodytype(msg) == OSSL_CMP_PKIBODY_IP) {
         /*
          * verify that the newly enrolled certificate (which is assumed to have
-         * rid == 0) can also be validated with the same trusted store
+         * rid == OSSL_CMP_CERTREQID) validates with the extraCerts as trusted
          */
-        OSSL_CMP_CERTRESPONSE *crep =
-            CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip, 0);
-        X509 *newcrt = CMP_CERTRESPONSE_get_certificate(ctx, crep); /* maybe
-            better use get_cert_status() from cmp_ses.c, which catches errors */
-        valid = OSSL_CMP_validate_cert_path(ctx, store, extra, newcrt, 0);
+       const OSSL_CMP_CERTRESPONSE *crep =
+            CMP_CERTREPMESSAGE_certResponse_get0(msg->body->value.ip,
+                                                 OSSL_CMP_CERTREQID);
+        X509 *newcrt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
+        /*
+         * TODO maybe better use get_cert_status() from cmp_ses.c,
+         * which catches errors
+         */
+        X509_STORE *store = X509_STORE_new(); /* store does not include CRLs */
+        int ok = store != NULL
+            && OSSL_CMP_X509_STORE_add1_certs(store, msg->extraCerts,
+                                              1/* self-signed only */)
+            && OSSL_CMP_validate_cert_path(ctx, store, extra, newcrt, 0);
+
+        if (ok) {
+            for (i = 0; i < sk_X509_num(found_crts); i++) {
+                scrt = sk_X509_value(found_crts, i);
+                if (OSSL_CMP_validate_cert_path(ctx, store, extra, scrt, 0))
+                    goto end;
+            }
+        }
+        scrt = NULL;
+    end:
+        X509_STORE_free(store);
         X509_free(newcrt);
     }
-    X509_STORE_free(store);
-    return valid;
+    return scrt;
 }
 
 /* find and validate any potentially usable server cert */
 static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
     X509 *scrt = NULL;
-    int valid = 0;
     GENERAL_NAME *sender = msg->header->sender;
 
     if (sender == NULL || msg->body == NULL)
@@ -580,11 +602,9 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted_store)) {
         (void)ERR_pop_to_mark();
         scrt = ctx->validatedSrvCert;
-        valid = 1;
     } else {
         STACK_OF(X509) *found_crts;
         char *sname;
-        int i;
 
         (void)ERR_pop_to_mark();
 
@@ -610,30 +630,15 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             goto end;
 
         /* select first server cert that can be validated */
-        for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
-            scrt = sk_X509_value(found_crts, i);
-            valid = OSSL_CMP_validate_cert_path(ctx, ctx->trusted_store,
-                                                msg->extraCerts, scrt, 0);
-        }
+        scrt = select_validated_scrt(ctx, found_crts, msg);
 
-        /* exceptional 3GPP TS 33.310 handling */
-        if (!valid && ctx->permitTAInExtraCertsForIR &&
-                OSSL_CMP_MSG_get_bodytype(msg) == OSSL_CMP_PKIBODY_IP) {
-            for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
-                scrt = sk_X509_value(found_crts, i);
-                valid = srv_cert_valid_3gpp(ctx, scrt, msg);
-            }
-        }
-
-        if (valid) {
+        if (scrt != NULL) {
             /* discard any diagnostic info on finding server cert */
             clear_cert_verify_err();
             (void)ERR_pop_to_mark();
             /* store trusted srv cert for future msgs of same transaction */
             X509_up_ref(scrt);
             ctx->validatedSrvCert = scrt;
-        } else {
-            scrt = NULL;
         }
     end:
         sk_X509_pop_free(found_crts, X509_free);

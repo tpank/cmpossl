@@ -742,22 +742,23 @@ Takes the newKey in case of indirect POP from B<ctx>.
 Returns a pointer to a copy of the found certificate, or NULL if not found.
 */
 X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
-                                       OSSL_CMP_CERTRESPONSE *crep);
+                                       const OSSL_CMP_CERTRESPONSE *crep);
 /*
 OSSL_CMP_POLLREPCONTENT_pollRep_get0() returns a pointer to the PollRep
 with the given certReqId (or the first one in case -1) inside a PollRepContent.
 If no suitable PollRep is available or if there is an error, it returns NULL.
 */
-OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
-                                                  int rid);
+OSSL_CMP_POLLREP
+*CMP_POLLREPCONTENT_pollRep_get0(const OSSL_CMP_POLLREPCONTENT *prc, int rid);
 /*
 OSSL_CMP_CERTREPMESSAGE_certResponse_get0() returns a pointer to the
 CertResponse
 with the given certReqId (or the first one in case -1 inside a CertRepMessage.
 If no suitable CertResponse is available or there is an error, it returns NULL.
 */
-OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(
-                                 OSSL_CMP_CERTREPMESSAGE *crepmsg, int rid);
+OSSL_CMP_CERTRESPONSE
+*CMP_CERTREPMESSAGE_certResponse_get0(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
+                                      int rid);
 /*
 OSSL_CMP_calc_protection()
 calculates the protection for given PKImessage utilizing the given credentials

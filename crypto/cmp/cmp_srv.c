@@ -75,7 +75,7 @@ void OSSL_CMP_SRV_CTX_delete(OSSL_CMP_SRV_CTX *srv_ctx)
     OSSL_CMP_SRV_CTX_free(srv_ctx);
 }
 
-OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(OSSL_CMP_SRV_CTX *srv_ctx)
+OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx)
 {
     if (srv_ctx == NULL)
         return NULL;
