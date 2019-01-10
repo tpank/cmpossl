@@ -19,7 +19,7 @@ OSSL_CMP_PKISI_snprint,
   int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si);
   int OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si);
   int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index);
-  OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_failInfo_get0(OSSL_CMP_PKISI *si);
+  OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_failInfo_get0(const OSSL_CMP_PKISI *si);
   OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(OSSL_CMP_PKISI *si);
   char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
 

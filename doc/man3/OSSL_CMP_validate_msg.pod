@@ -41,16 +41,18 @@ ctx->untrusted_certs, and ctx->trusted_store.  The first candidate that can be
 validated against ctx->trusted_store, utilizing ctx->untrusted_certs and
 extraCerts, is used.
 
+If none of the candidate certs can be validated this way and B<msg> is a CMP
+I<IP> message and exceptional handling according to 3GPP TS 33.310 is enabled
+via B<OSSL_CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR> and the issued certificate
+can be validated taking the self-signed certificates from the extraCerts field
+as trust anchor then a second try is made for the same list of candidate certs
+taking the self-signed extraCerts as trust anchor.
+
 In case of successful validation of PBM protection of a certificate response,
 the certificates in the caPubs field (if any) are added to ctx->trusted_store,
 to be available for validating future messages in the same context.
 Those could e.g. apply to later Polling Responses (pollRep) or PKI Confirmation
 (PKIConf) messages in the same transaction.
-
-If ctx->permitTAInExtraCertsForIR is true, a self-signed certificate from the
-PKIMessage's extraCerts field may also be used as trust anchor during
-protection validation if it can be used to validate the issued certificate
-returned in IP.  This is according to 3GPP TS 33.310.
 
 OSSL_CMP_validate_cert_path() attempts to validate the given certificate and its
 path using the given store of trusted certs (possibly including CRLs and a cert
