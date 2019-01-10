@@ -70,7 +70,7 @@ IMPLEMENT_STATIC_ASN1_ALLOC_FUNCTIONS(OSSL_CMP_CTX)
 /*
  * Get current certificate store containing trusted root CA certs
  */
-X509_STORE *OSSL_CMP_CTX_get0_trustedStore(OSSL_CMP_CTX *ctx)
+X509_STORE *OSSL_CMP_CTX_get0_trustedStore(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;
@@ -94,7 +94,7 @@ int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store)
 /*
  * Get current list of non-trusted intermediate certs
  */
-STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(OSSL_CMP_CTX *ctx)
+STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;
@@ -340,7 +340,7 @@ int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
  * The stack is duplicated so the caller must handle freeing it!
  * returns pointer to created stack on success, NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(OSSL_CMP_CTX *ctx)
+STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         goto err;
@@ -489,7 +489,7 @@ int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_ITAV *itav)
  * were received in the caPubs field of the last response message.
  * returns NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_CTX_caPubs_get1(OSSL_CMP_CTX *ctx)
+STACK_OF(X509) *OSSL_CMP_CTX_caPubs_get1(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         goto err;
@@ -820,7 +820,7 @@ int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, const X509 *cert)
  * Get the (newly received in IP/KUP/CP) client certificate from the context
  * TODO: this only permits for one client cert to be received...
  */
-X509 *OSSL_CMP_CTX_get0_newClCert(OSSL_CMP_CTX *ctx)
+X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;
@@ -939,7 +939,7 @@ int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
  * gets the transactionID from the context
  * returns a pointer to the transactionID on success, NULL on error
  */
-ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(OSSL_CMP_CTX *ctx)
+ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx)
 {
     return ctx == NULL ? NULL : ctx->transactionID;
 }
@@ -966,7 +966,7 @@ int OSSL_CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
  * gets the recipNonce of the given context
  * returns a pointer to the nonce on success, NULL on error
  */
-ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(OSSL_CMP_CTX *ctx)
+ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx)
 {
     return ctx == NULL ? NULL : ctx->recipNonce;
 }
@@ -992,7 +992,7 @@ int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
  * gets the sender nonce of the last message sent
  * returns a pointer to the nonce on success, NULL on error
  */
-ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_last_senderNonce(OSSL_CMP_CTX *ctx)
+ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx)
 {
     return ctx == NULL ? NULL : ctx->last_senderNonce;
 }
