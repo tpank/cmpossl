@@ -387,10 +387,10 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid, int fn)
             OSSL_CMP_add_error_line("  certificate Subject Key Identifier does not match senderKID:");
 #ifdef hex_to_string
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
-            OSSL_CMP_add_error_line("      actual = ", str);
+            OSSL_CMP_add_error_txt("      actual = ", str);
             OPENSSL_free(str);
             str = OPENSSL_buf2hexstr(skid->data, skid->length);
-            OSSL_CMP_add_error_line("    expected = ", str);
+            OSSL_CMP_add_error_txt("    expected = ", str);
             OPENSSL_free(str);
 #endif
             return 0;
