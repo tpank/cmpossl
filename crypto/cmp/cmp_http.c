@@ -16,6 +16,7 @@
 #ifndef _WIN32
 #include <unistd.h>
 #endif
+#include "../../e_os.h" /* for type fd_set */
 
 #include <openssl/asn1t.h>
 #include <openssl/ocsp.h>
@@ -36,7 +37,8 @@
 
 /* from apps.h */
 # ifndef openssl_fdset
-#  ifdef OPENSSL_SYSNAME_WIN32
+#  if defined(OPENSSL_SYSNAME_WIN32) \
+   || defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)
 #   define openssl_fdset(a,b) FD_SET((unsigned int)a, b)
 #  else
 #   define openssl_fdset(a,b) FD_SET(a, b)
