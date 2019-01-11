@@ -1227,11 +1227,15 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
     }
 
     for (i = 0; ret && i < sk_X509_num(*certs); i++) {
+        int cmp;
         cert = sk_X509_value(*certs, i);
-        if (OSSL_CMP_expired(X509_get0_notAfter(cert), vpm)) {
+        cmp = OSSL_CMP_cmp_timeframe(X509_get0_notBefore(cert),
+                                     X509_get0_notAfter (cert), vpm);
+        if (cmp != 0) {
             char *s = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
             BIO_printf(bio_err,
-                     "warning: certificate with subject '%s' has expired\n", s);
+                       "warning: certificate with subject '%s' %s\n", s,
+                       cmp > 0 ? "has expired" : "not yet valid");
             OPENSSL_free(s);
 #if 0
             sk_X509_pop_free(*certs, X509_free);
@@ -2803,22 +2807,26 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
             if (crls == NULL)
                 goto err;
             while ((crl = sk_X509_CRL_shift(crls)) != NULL) {
-                if (!sk_X509_CRL_push(*all_crls, crl)) {
-                    sk_X509_CRL_pop_free(crls, X509_CRL_free);
-                    goto oom;
-                }
-                if (OSSL_CMP_expired(X509_CRL_get0_nextUpdate(crl), vpm)) {
+                int cmp =
+                    OSSL_CMP_cmp_timeframe(X509_CRL_get0_lastUpdate(crl),
+                                           X509_CRL_get0_nextUpdate(crl), vpm);
+                if (cmp != 0) {
               /* well, should ignore expiry of base CRL if delta CRL is valid */
                     char *issuer =
                         X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
                     OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN,
-                                    "CRL from '%s' issued by '%s' has expired",
-                                    opt_crls, issuer);
+                                    "CRL from '%s' issued by '%s' %s",
+                                    opt_crls, issuer,
+                                    cmp > 0 ? "has expired" : "not yet valid");
                     OPENSSL_free(issuer);
 #if 0
                     sk_X509_CRL_pop_free(crls, X509_CRL_free);
                     goto err;
 #endif
+                }
+                if (!sk_X509_CRL_push(*all_crls, crl)) {
+                    sk_X509_CRL_pop_free(crls, X509_CRL_free);
+                    goto oom;
                 }
             }
             sk_X509_CRL_free(crls);
@@ -2909,6 +2917,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
 
     if (opt_out_trusted != NULL) { /* for use in OSSL_CMP_certConf_cb() */
+        X509_VERIFY_PARAM *out_vpm = NULL;
         X509_STORE *out_trusted =
             load_certstore(opt_out_trusted,
                            "trusted certs for verifying newly enrolled cert");
@@ -2917,6 +2926,10 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
         if (!set1_store_parameters_crls(out_trusted, *all_crls))
             goto oom;
+        /* ignore any -attime here, new certs are current anyway */
+        out_vpm = X509_STORE_get0_param(out_trusted);
+        X509_VERIFY_PARAM_clear_flags(out_vpm, X509_V_FLAG_USE_CHECK_TIME);
+
         (void)OSSL_CMP_CTX_set_certConf_cb_arg(ctx, out_trusted);
     }
 
