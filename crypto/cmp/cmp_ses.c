@@ -178,7 +178,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             return 0;
         }
         if (ctx->msgtimeout == 0 || time_left < ctx->msgtimeout)
-            ctx->msgtimeout = time_left;
+            ctx->msgtimeout = (int)time_left;
     }
 
     OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO, "sending %s", type_string);
