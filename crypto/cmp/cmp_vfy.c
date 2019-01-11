@@ -479,11 +479,12 @@ static int find_acceptable_certs(OSSL_CMP_CTX *ctx,
         X509 *cert = sk_X509_value(certs, i);
         char *str = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
 
-        OSSL_CMP_add_error_line(" considering cert with subject");
+        OSSL_CMP_add_error_txt(NULL, "\n considering cert with subject ");
         OSSL_CMP_add_error_txt(" = ", str);
         OPENSSL_free(str);
         str = X509_NAME_oneline(X509_get_issuer_name(cert), NULL, 0);
-        OSSL_CMP_add_error_txt(" and issuer = ", str);
+        OSSL_CMP_add_error_line(       "                   and issuer  ");
+        OSSL_CMP_add_error_txt(" = ", str);
         OPENSSL_free(str);
 
         if (cert_acceptable(ctx, cert, msg)) {
@@ -762,9 +763,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             X509_NAME *sender_name = msg->header->sender->d.directoryName;
             if (X509_NAME_cmp(ctx->expected_sender, sender_name) != 0) {
                 CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
-                add_name_mismatch_data(NULL, ctx->expected_sender, sender_name);
-                CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
-                add_name_mismatch_data(NULL, sender_name, ctx->expected_sender);
+                add_name_mismatch_data("", sender_name, ctx->expected_sender);
                 break;
             }
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
