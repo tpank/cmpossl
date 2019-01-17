@@ -44,7 +44,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_VERIFY_POPO                            112
 #  define CMP_F_CMP_VERIFY_SIGNATURE                       113
 #  define CMP_F_CRM_NEW                                    114
-#  define CMP_F_FIND_SRVCERT                               115
+#  define CMP_F_FIND_VALIDATE_SRVCERT_AND_MSG              115
 #  define CMP_F_GET_CERT_STATUS                            116
 #  define CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1            117
 #  define CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES      118
