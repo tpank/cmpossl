@@ -566,7 +566,7 @@ static int find_validate_srvcert_and_msg(OSSL_CMP_CTX *ctx,
     if (sender == NULL || msg->body == NULL)
         return 0; /* other NULL cases already have been checked */
     if (sender->type != GEN_DIRNAME) {
-        CMPerr(CMP_F_FIND_SRVCERT,
+        CMPerr(CMP_F_FIND_VALIDATE_SRVCERT_AND_MSG,
                CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
         return 0; /* FR#42: support for more than X509_NAME */
     }
@@ -633,7 +633,8 @@ static int find_validate_srvcert_and_msg(OSSL_CMP_CTX *ctx,
 
     /* tentatively set error, which allows accumulating diagnostic info */
     (void)ERR_set_mark();
-    CMPerr(CMP_F_FIND_SRVCERT, CMP_R_NO_VALID_SERVER_CERT_FOUND);
+    CMPerr(CMP_F_FIND_VALIDATE_SRVCERT_AND_MSG,
+           CMP_R_NO_VALID_SERVER_CERT_FOUND);
     name = X509_NAME_oneline(sender->d.directoryName, NULL, 0);
     OSSL_CMP_add_error_txt(NULL, "\n");
     OSSL_CMP_add_error_txt("trying to match msg sender name = ", name);
