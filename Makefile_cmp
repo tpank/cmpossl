@@ -42,12 +42,17 @@ else
     OPENSSL_RPATH_LIB=$(OPENSSL_LIB)
 endif
 
-OPENSSL_VERSION=$(shell fgrep OPENSSL_VERSION_NUMBER $(OPENSSL_DIR)/include/openssl/opensslv.h | sed -r 's/.*?NUMBER\s+//; s/L.*//')
+OPENSSL_VERSION=$(shell fgrep OPENSSL_VERSION_NUMBER $(OPENSSL_DIR)/include/openssl/opensslv.h | head -n 1 | sed -r 's/.*?NUMBER\s+//; s/L.*//')
 ifeq ($(findstring 0x,$(OPENSSL_VERSION)),)
     OPENSSL_VERSION=100020000
     $(warning cannot determine version of OpenSSL in directory '$(OPENSSL_DIR)', assuming 1.0.2)
 else
-    $(info detected OpenSSL version $(OPENSSL_VERSION))
+    ifneq ($(findstring with the layout 0xMNN00PPS,$(OPENSSL_VERSION)),)
+        OPENSSL_VERSION=300000000
+        $(warning cannot determine version of OpenSSL in directory '$(OPENSSL_DIR)', assuming 3.0.0)
+    else
+        $(info detected OpenSSL version $(OPENSSL_VERSION))
+    endif
 endif
 ifeq ($(shell test $$(printf "%d" $(OPENSSL_VERSION)) -lt $$(printf "%d" 0x10100000); echo $$?),0)
     $(info enabling compilation quirks for OpenSSL 1.0.2)
