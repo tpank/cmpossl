@@ -16,7 +16,7 @@
 #ifndef _WIN32
 #include <unistd.h>
 #endif
-#include "../../e_os.h" /* for type fd_set */
+#include <openssl/e_os2.h> /* for type fd_set */
 
 #include <openssl/asn1t.h>
 #include <openssl/ocsp.h>
