@@ -409,6 +409,7 @@ static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
 {
     OSSL_CMP_MSG *msg = OSSL_CMP_pkiconf_new(srv_ctx->ctx);
 
+    (void)req; /* TODO make use of parameter */
     if (msg == NULL) {
         CMPerr(CMP_F_PROCESS_ERROR, CMP_R_ERROR_CREATING_PKICONF);
         return NULL;
@@ -422,6 +423,7 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
 {
     OSSL_CMP_MSG *msg = NULL;
 
+    (void)req; /* TODO make use of parameter */
     if (srv_ctx == NULL || srv_ctx->certReq == NULL) {
         CMPerr(CMP_F_PROCESS_POLLREQ, CMP_R_NULL_ARGUMENT);
         return NULL;
