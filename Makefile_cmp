@@ -42,21 +42,18 @@ else
     OPENSSL_RPATH_LIB=$(OPENSSL_LIB)
 endif
 
-OPENSSL_VERSION=$(shell fgrep OPENSSL_VERSION_NUMBER $(OPENSSL_DIR)/include/openssl/opensslv.h | head -n 1 | sed -r 's/.*?NUMBER\s+//; s/L.*//')
-ifeq ($(findstring 0x,$(OPENSSL_VERSION)),)
-    OPENSSL_VERSION=100020000
+ifeq ($(findstring clean,$(MAKECMDGOALS)),)
+OPENSSL_VERSION=$(shell $(MAKE) -s -f OpenSSL_version.mk LIB=h OPENSSL_DIR="$(OPENSSL_DIR)")
+ifeq ($(OPENSSL_VERSION),)
     $(warning cannot determine version of OpenSSL in directory '$(OPENSSL_DIR)', assuming 1.0.2)
-else
-    ifneq ($(findstring with the layout 0xMNN00PPS,$(OPENSSL_VERSION)),)
-        OPENSSL_VERSION=300000000
-        $(warning cannot determine version of OpenSSL in directory '$(OPENSSL_DIR)', assuming 3.0.0)
-    else
-        $(info detected OpenSSL version $(OPENSSL_VERSION))
-    endif
+    OPENSSL_VERSION=1.0
 endif
-ifeq ($(shell test $$(printf "%d" $(OPENSSL_VERSION)) -lt $$(printf "%d" 0x10100000); echo $$?),0)
+$(info detected OpenSSL version $(OPENSSL_VERSION).x)
+OSSL_VERSION_QUIRKS=-D'DEPRECATEDIN_1_2_0(f)= ' # needed for 1.2
+ifeq ($(shell expr $(OPENSSL_VERSION) \< 1.1),1) # same as comparing == 1.0
     $(info enabling compilation quirks for OpenSSL 1.0.2)
-    OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers -Wno-unused-parameter
+    OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers -Wno-unused-parameter# #-D'DEPRECATEDIN_1_1_0(f)=f;' -D'DEPRECATEDIN_1_0_0(f)='
+endif
 endif
 
 LIBCMP_INC ?= $(LIBCMP_OUT)/include_cmp
@@ -87,11 +84,13 @@ LIBCMP_SRCS = $(patsubst %,crypto/crmf/%,$(CRMF_SRCS_)) $(patsubst %,crypto/cmp/
 
 build: $(LIBCMP)
 
-$(LIBCMP): $(LIBCMP_HDRS) $(LIBCMP_SRCS)
+$(LIBCMP_INC)/openssl:
 	@mkdir -p $(LIBCMP_OUT)
 	@mkdir -p $(LIBCMP_INC)/openssl
 	@cp --preserve=timestamps $(LIBCMP_HDRS) $(LIBCMP_INC)/openssl # maybe need rsync - for some reason, cp -a does not preserve file dates
 	@cd $(LIBCMP_INC)/openssl && ((mv crmf.h tmp2.h && /bin/echo -e "#undef CMP_STANDALONE\n#define CMP_STANDALONE\n" >tmp1.h && cat tmp1.h tmp2.h >crmf.h && touch -r tmp2.h crmf.h); rm -f tmp1.h tmp2.h)
+
+$(LIBCMP): $(LIBCMP_INC)/openssl $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) $(LDFLAGS) $(LDLIBS) -shared -o $@
 	@# # -Wl,-soname,libcmp$(DLL)$(VERSION)
 	@# #ln -sr $(LIBCMP) $(LIBCMP)$(VERSION)
