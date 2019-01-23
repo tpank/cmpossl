@@ -1,5 +1,5 @@
 Bag Attributes
-    localKeyID: D9 92 D8 C5 56 6C A7 67 F2 2A F8 DD 1D C2 B4 56 88 9F 5C AD 
+    localKeyID: D9 92 D8 C5 56 6C A7 67 F2 2A F8 DD 1D C2 B4 56 88 9F 5C AD
     friendlyName: EJBCA CMP Signer
 subject=/CN=EJBCA CMP Signer/OU=For test purposes only/O=CMPforOpenSSL/C=DE
 issuer=/CN=EJBCA Infrastructure Issuing CA v1.0/OU=For test purpose only/O=CMPforOpenSSL/C=DE
@@ -1681,3 +1681,4 @@ b2dsZS51eoIJZ29vZ2xlLnZngglnb29nbGUudnWCCWdvb2dsZS53czANBgkqhkiG
 LPO+y4IH9KiVXD+qO8koye9yOMNawN9r/DFQd+t2nDmvlpcwJBNguiuqxl+rJaU8
 KKgswikGaaM4z+i4vHuXcCKZtM/ELAaJlSaBPip4GBAkgv7D9hwh+sWvYA==
 -----END CERTIFICATE-----
+
