@@ -4689,7 +4689,7 @@ OSSL_CMP_sk_X509_add1_cert              4644	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_sk_X509_add1_certs             4645	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_X509_STORE_add1_certs          4646	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_X509_STORE_get1_certs          4647	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_expired                        4648	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_cmp_timeframe                  4648	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_validate_msg                   4649	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_validate_cert_path             4650	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_print_cert_verify_cb           4651	3_0_0	EXIST::FUNCTION:CMP
