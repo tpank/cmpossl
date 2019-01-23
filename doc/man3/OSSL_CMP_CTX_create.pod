@@ -184,10 +184,8 @@ B<ctx> or clears it if the B<ref> argument is NULL.
 OSSL_CMP_CTX_set1_secretValue() sets the B<sec> with the length B<len> in the
 given B<ctx> or clears it if the B<sec> argument is NULL.
 
-OSSL_CMP_CTX_set1_srvCert() sets the server certificate to be directly trusted
-for verifying response messages. Additionally using
-OSSL_CMP_CTX_set0_trustedStore() is
-recommended in order to be able to supply verification parameters and CRLs.
+OSSL_CMP_CTX_set1_srvCert() pins the server certificate to be directly trusted
+(even if it is expired) for verifying response messages.
 The cert pointer is not consumed. It may be NULL to clear the entry.
 
 OSSL_CMP_CTX_set1_clCert() sets the given client certificate in the given
