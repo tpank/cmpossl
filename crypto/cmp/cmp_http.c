@@ -14,9 +14,10 @@
 #include <string.h>
 #include <stdio.h>
 #ifndef _WIN32
-#include <unistd.h>
+# include <unistd.h>
+#else
+# include <winsock.h> /* for type fd_set */
 #endif
-#include <openssl/e_os2.h> /* for type fd_set */
 
 #include <openssl/asn1t.h>
 #include <openssl/ocsp.h>
