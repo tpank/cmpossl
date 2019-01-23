@@ -147,14 +147,14 @@ void OSSL_CMP_ITAV_set(OSSL_CMP_ITAV *itav, const ASN1_OBJECT *type,
     itav->infoValue.other = (ASN1_TYPE *)value;
 }
 
-ASN1_OBJECT *OSSL_CMP_ITAV_get0_type(OSSL_CMP_ITAV *itav)
+ASN1_OBJECT *OSSL_CMP_ITAV_get0_type(const OSSL_CMP_ITAV *itav)
 {
     if (itav == NULL)
         return NULL;
     return itav->infoType;
 }
 
-ASN1_TYPE *OSSL_CMP_ITAV_get0_value(OSSL_CMP_ITAV *itav)
+ASN1_TYPE *OSSL_CMP_ITAV_get0_value(const OSSL_CMP_ITAV *itav)
 {
     if (itav == NULL)
         return NULL;

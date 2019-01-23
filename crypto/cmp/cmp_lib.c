@@ -1333,7 +1333,7 @@ int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index)
  * returns a pointer to the failInfo contained in a PKIStatusInfo
  * returns NULL on error
  */
-OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_failInfo_get0(OSSL_CMP_PKISI *si)
+OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_failInfo_get0(const OSSL_CMP_PKISI *si)
 {
     return si == NULL ? NULL : si->failInfo;
 }
@@ -1342,7 +1342,7 @@ OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_failInfo_get0(OSSL_CMP_PKISI *si)
  * returns a pointer to the statusString contained in a PKIStatusInfo
  * returns NULL on error
  */
-OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(OSSL_CMP_PKISI *si)
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(const OSSL_CMP_PKISI *si)
 {
     return si == NULL ? NULL : si->statusString;
 }
