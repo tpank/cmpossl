@@ -725,13 +725,16 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
 
         scrt = ctx->srvCert;
-        if (scrt != NULL && !cert_acceptable(scrt, msg, ctx->trusted_store))
-            scrt = NULL;
         if (scrt == NULL)
             scrt = find_srvcert(ctx, msg);
         if (scrt != NULL) {
             if (CMP_verify_signature(ctx, msg, scrt))
                 return 1;
+
+            /* failure; add further cert matching & validation diagnostics */
+
+            if (ctx->srvCert != NULL)
+                (void)cert_acceptable(scrt, msg, ctx->trusted_store);
 
             /* potentially the server cert finding algorithm took wrong cert:
              * the server certificate may not have a subject key identifier
