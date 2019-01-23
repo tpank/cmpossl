@@ -2676,6 +2676,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
 
     if (opt_out_trusted != NULL) { /* for use in OSSL_CMP_certConf_cb() */
+        X509_VERIFY_PARAM *out_vpm = NULL;
         X509_STORE *out_trusted =
             load_certstore(opt_out_trusted,
                            "trusted certs for verifying newly enrolled cert");
@@ -2684,6 +2685,10 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
         if (!set1_store_parameters_crls(out_trusted, *all_crls))
             goto oom;
+        /* ignore any -attime here, new certs are current anyway */
+        out_vpm = X509_STORE_get0_param(out_trusted);
+        X509_VERIFY_PARAM_clear_flags(out_vpm, X509_V_FLAG_USE_CHECK_TIME);
+
         (void)OSSL_CMP_CTX_set_certConf_cb_arg(ctx, out_trusted);
     }
 
