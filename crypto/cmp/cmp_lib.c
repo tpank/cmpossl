@@ -47,10 +47,10 @@
 
 /* TODO DvO push this function upstream to crypto/err (PR #add_error_txt) */
 /*
- * Appends text to the extra error data field of the last error message in
- * OpenSSL's error queue, after adding the given separator string. Note that,
- * in contrast, ERR_add_error_data() simply overwrites the previous contents
- * of the error data.
+ * Appends text to the extra data field of the last error message in the queue,
+ * after adding the optional separator unless data has been empty so far.
+ * Note that, in contrast, ERR_add_error_data() simply
+ * overwrites the previous contents of the data field.
  */
 void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
 {
@@ -60,6 +60,8 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
     int flags;
     unsigned long err = ERR_peek_last_error();
 
+    if (separator == NULL)
+        separator = "";
     if (err == 0) {
         ERR_PUT_error(ERR_LIB_CMP, 0, err, "", 0);
     }
