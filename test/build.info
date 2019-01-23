@@ -437,7 +437,7 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=main
   DEPEND[conf_include_test]=../libcrypto libtestutil.a
 
   IF[{- !$disabled{cmp} -}]
-    PROGRAMS_NO_INST=cmp_ctx_test cmp_lib_test cmp_msg_test cmp_ses_test cmp_vfy_test
+    PROGRAMS{noinst}=cmp_ctx_test cmp_lib_test cmp_msg_test cmp_ses_test cmp_vfy_test
   ENDIF
 
   SOURCE[cmp_msg_test]=cmp_msg_test.c cmptestlib.c
@@ -489,7 +489,7 @@ INCLUDE_MAIN___test_libtestutil_OLB = /INCLUDE=main
       PROGRAMS{noinst}=curve448_internal_test
     ENDIF
     IF[{- !$disabled{cmp} -}]
-      PROGRAMS_NO_INST=cmp_internal_test
+      PROGRAMS{noinst}=cmp_internal_test
     ENDIF
 
     SOURCE[poly1305_internal_test]=poly1305_internal_test.c
