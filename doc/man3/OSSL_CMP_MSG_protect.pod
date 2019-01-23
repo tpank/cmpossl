@@ -89,10 +89,11 @@ OSSL_CMP_X509_STORE_get1_certs
 
 =head1 DESCRIPTION
 
-OSSL_CMP_add_error_txt() appends text to the extra error data field of the last
-error message in openssl's error queue, after adding the given separator string.
-Note that, in contrast, ERR_add_error_data() simply overwrites the previous
-contents of the error data.
+OSSL_CMP_add_error_txt()
+appends text to the extra data field of the last error message in the queue,
+after adding the optional separator unless data has been empty so far.
+Note that, in contrast, ERR_add_error_data() simply
+overwrites the previous contents of the data field.
 
 OSSL_CMP_add_error_data() is a macro calling
 OSSL_CMP_add_error_txt() with the separator being ":".
