@@ -1373,8 +1373,8 @@ static void add_expected_rid(int rid)
  * (or the first one in case -1) inside a PollRepContent
  * returns NULL on error or if no suitable PollResponse available
  */
-OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
-                                                  int rid)
+OSSL_CMP_POLLREP
+*CMP_POLLREPCONTENT_pollRep_get0(const OSSL_CMP_POLLREPCONTENT *prc, int rid)
 {
     OSSL_CMP_POLLREP *pollRep = NULL;
     int i;
@@ -1401,8 +1401,9 @@ OSSL_CMP_POLLREP *CMP_POLLREPCONTENT_pollRep_get0(OSSL_CMP_POLLREPCONTENT *prc,
  * (or the first one in case -1) inside a CertRepMessage
  * returns NULL on error or if no suitable CertResponse available
  */
-OSSL_CMP_CERTRESPONSE *CMP_CERTREPMESSAGE_certResponse_get0(
-                                  OSSL_CMP_CERTREPMESSAGE *crepmsg, int rid)
+OSSL_CMP_CERTRESPONSE
+*CMP_CERTREPMESSAGE_certResponse_get0(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
+                                      int rid)
 {
     OSSL_CMP_CERTRESPONSE *crep = NULL;
     int i;
@@ -1500,7 +1501,7 @@ char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
  * returns NULL if not found or on error
  */
 X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
-                                       OSSL_CMP_CERTRESPONSE *crep)
+                                       const OSSL_CMP_CERTRESPONSE *crep)
 {
     OSSL_CMP_CERTORENCCERT *coec;
     X509 *crt = NULL;
