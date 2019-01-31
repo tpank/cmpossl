@@ -101,7 +101,7 @@ SKIP: {
     skip "RSA support disabled, skipping...", 1 unless !disabled("rsa");
     my @common = ($cmd, "pkey", "-inform", "PEM", "-noout", "-text", "-in");
     my @data = run(app([@common, data_file("beermug.pem")], stderr => undef), capture => 1);
-    my @match = grep /00:a0:3a:21:14:5d:cd:b6:d5:a0:3e:49:23:c1:3a:/, @data;
+    my @match = grep /a0:3a:21:14:5d:cd:b6:d5:a0:3e:49:23:c1:3a:35:/, @data;
     ok(scalar @match > 0 ? 1 : 0);
 }
 
