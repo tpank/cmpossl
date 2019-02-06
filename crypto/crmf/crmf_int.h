@@ -214,7 +214,6 @@ struct OSSL_crmf_pbmparameter_st {
     ASN1_INTEGER *iterationCount;
     X509_ALGOR *mac;
 } /* OSSL_CRMF_PBMPARAMETER */;
-DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PBMPARAMETER)
 #define OSSL_CRMF_PBM_MAX_ITERATION_COUNT 100000 /* if too large allows DoS */
 
 /*
@@ -386,6 +385,5 @@ struct OSSL_crmf_msg_st {
     /* 1 */
     STACK_OF(OSSL_CRMF_ATTRIBUTETYPEANDVALUE) *regInfo;
 } /* OSSL_CRMF_MSG */;
-DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_MSG)
 /* DEFINE_STACK_OF(OSSL_CRMF_MSG) */
 #endif
