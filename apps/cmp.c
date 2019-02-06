@@ -1373,9 +1373,12 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format,
     return crls;
 }
 
+#if 0 && !defined NDEBUG
+# define CERTSTATUS_DEBUG
+#endif
 static void DEBUG_print(const char *msg, const char *s1, const char *s2)
 {
-#if 1 && !defined NDEBUG
+#ifdef CERTSTATUS_DEBUG
     BIO_printf(bio_err, "DEBUG: %s %s %s\n", msg, s1 ? s1 : "", s2 ? s2 : "");
 #endif
 }
@@ -1473,12 +1476,12 @@ static void DEBUG_print_cert(const char *msg, const X509 *cert)
     OPENSSL_free(s);
 }
 
-static int any_CDP_or_OCSPresponder(X509 *cert, int print)
+static int any_CDP_or_AIA(X509 *cert, int print)
 {
     char buf[80];
     int res;
     /* consult AIA entry if present: */
-    STACK_OF(OPENSSL_STRING) *ocsp_responders = X509_get1_ocsp(cert);
+    STACK_OF(OPENSSL_STRING) *aias = X509_get1_ocsp(cert);
     /* collect CDP entries: */
     CRL_DIST_POINTS *cdps =
         X509_get_ext_d2i(cert, NID_crl_distribution_points, NULL, NULL);
@@ -1486,16 +1489,16 @@ static int any_CDP_or_OCSPresponder(X509 *cert, int print)
         cdps = X509_get_ext_d2i(cert, NID_freshest_crl, NULL, NULL);
 
     if (print) {
-        snprintf(buf, sizeof(buf), "%d CDP and %d OCSP entries",
+        snprintf(buf, sizeof(buf), "%d CDP entries and %d AIA entries",
                  cdps ? sk_DIST_POINT_num(cdps) : 0,
-                 ocsp_responders ? sk_OPENSSL_STRING_num(ocsp_responders) : 0);
+                 aias ? sk_OPENSSL_STRING_num(aias) : 0);
         DEBUG_print_cert(buf, cert);
     }
 
     res = sk_DIST_POINT_num(cdps) > 0 ||
-          sk_OPENSSL_STRING_num(ocsp_responders) > 0;
+          sk_OPENSSL_STRING_num(aias) > 0;
 
-    X509_email_free(ocsp_responders);
+    X509_email_free(aias);
     CRL_DIST_POINTS_free(cdps);
     return res;
 }
@@ -1517,7 +1520,7 @@ static int check_cert_local_crls(X509_STORE_CTX *ctx, STACK_OF(X509_CRL) *crls){
 
     if (tmp_ctx == NULL || cert == NULL || issuer == NULL ||
         !X509_STORE_CTX_init(tmp_ctx, X509_STORE_CTX_get0_store(ctx),
-                             NULL, NULL) ||
+                             NULL, NULL) || /* inherits flags etc. of store */
         !X509_STORE_CTX_set_ex_data(tmp_ctx, ssl_ex_idx, ssl))
         goto err;
     if ((certs = sk_X509_new_reserve(NULL, 2)) == NULL)
@@ -1659,31 +1662,31 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
     X509_VERIFY_PARAM *bak_vpm = NULL;
     OCSP_BASICRESP *br = NULL;
     OCSP_CERTID *id = NULL;
-    int res = -1, status, reason;
+    int status, reason, res = -1; /* inconclusive */
     ASN1_GENERALIZEDTIME *rev;
     ASN1_GENERALIZEDTIME *thisupd;
     ASN1_GENERALIZEDTIME *nextupd;
 
     if (resp == NULL)
-        return -1;
+        return res;
 
-# if 0 && !defined NDEBUG
-    BIO_puts(bio_c_out, "debug: OCSP response:\n");
-    BIO_puts(bio_c_out, "======================================\n");
-    OCSP_RESPONSE_print(bio_c_out, resp, 0);
-    BIO_puts(bio_c_out, "======================================\n");
+# ifdef CERTSTATUS_DEBUG
+    BIO_puts(bio_err, "DEBUG: OCSP response:\n");
+    BIO_puts(bio_err, "======================================\n");
+    OCSP_RESPONSE_print(bio_err, resp, 0);
+    BIO_puts(bio_err, "======================================\n");
 # endif
 
     status = OCSP_response_status(resp);
     if (status != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
         BIO_printf(bio_err, "OCSP responder error: %s (code %d)\n",
                    OCSP_response_status_str(status), status);
-        return -1;
+        return res;
     }
 
     if ((br = OCSP_response_get1_basic(resp)) == NULL) {
         BIO_printf(bio_err, "error getting OCSP basic response\n");
-        return -1;
+        return res;
     }
 
 # if OPENSSL_VERSION_NUMBER < 0x100020d0L
@@ -1701,28 +1704,28 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
         /* must not do revocation checking on OCSP responder cert chain */
         const X509_STORE_CTX_check_revocation_fn bak_fn =
             X509_STORE_get_check_revocation(ts);
-        (void)X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts),
-                                            X509_V_FLAG_CRL_CHECK);
         X509_STORE_set_check_revocation(ts, NULL);
 
         /* must not do host/ip/email checking on OCSP responder cert chain */
-        if (!(bak_vpm = X509_VERIFY_PARAM_new()) || /* copy vpm: */
-            !X509_VERIFY_PARAM_inherit(bak_vpm, X509_STORE_get0_param(ts)) ||
-            !truststore_set_host_etc(ts, NULL))
+        if (!(bak_vpm = X509_VERIFY_PARAM_new()) /* copy vpm: */
+            || !X509_VERIFY_PARAM_inherit(bak_vpm, X509_STORE_get0_param(ts))
+            || !truststore_set_host_etc(ts, NULL)
+            || !X509_VERIFY_PARAM_clear_flags(X509_STORE_get0_param(ts),
+                                              X509_V_FLAG_CRL_CHECK))
             goto end;
 
-        res = OCSP_basic_verify(br, untrusted, ts, OCSP_TRUSTOTHER);
+        res = OCSP_basic_verify(br, untrusted, ts, 0/* verify_flags */);
 
         X509_STORE_set_check_revocation(ts, bak_fn);
-        if (!X509_STORE_set1_param(ts, bak_vpm))
-            goto end;
+        if (!X509_STORE_set1_param(ts, bak_vpm) && res > 0)
+            res = -1;
     }
     if (res <= 0) {
-        BIO_printf(bio_err, "OCSP response verify failure\n");
-        ERR_print_errors(bio_err);
+        res = -1; /* inconclusive */
         goto end;
     }
 
+    res = -1;
     if ((id = OCSP_cert_to_id(NULL, cert, issuer)) == NULL) {
         BIO_puts(bio_err, "cannot obtain cert ID for OCSP\n");
         goto end;
@@ -1741,9 +1744,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
     } else {
         switch (status) {
         case V_OCSP_CERTSTATUS_GOOD:
-# if 0
             DEBUG_print_cert("OCSP status: good", cert);
-# endif
             res = 1;
             break;
         case V_OCSP_CERTSTATUS_REVOKED:
@@ -1766,6 +1767,11 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
     OCSP_CERTID_free(id);
     OCSP_BASICRESP_free(br);
     X509_VERIFY_PARAM_free(bak_vpm);
+    if (res <= 0) {
+        ERR_print_errors(bio_err);
+        BIO_printf(bio_err, "OCSP response verify %s\n", res == 0 ?
+                   ": cert revoked/rejected" : "inconclusive/failed");
+    }
     return res;
 }
 
@@ -1869,12 +1875,12 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
  * emulate the internal verify_cb_cert() of crypto/cmp/x509_vfy.c;
  * depth already set
  */
-static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
+static int verify_cb_cert(X509_STORE_CTX *ctx, X509 *cert, int err)
 {
     X509_STORE_CTX_verify_cb verify_cb = X509_STORE_CTX_get_verify_cb(ctx);
 
     X509_STORE_CTX_set_error(ctx, err);
-    X509_STORE_CTX_set_current_cert(ctx, (X509 *)cert);
+    X509_STORE_CTX_set_current_cert(ctx, cert);
     return verify_cb && (*verify_cb) (0, ctx);
 }
 
@@ -1885,34 +1891,41 @@ static int check_cert_status_ocsp(X509_STORE *ts, STACK_OF(X509) *untrusted,
                                   X509 *cert, X509 *issuer) {
     int use_aias = !*(int *)
         X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_DISABLE_AIAS);
-    STACK_OF(OPENSSL_STRING) *aia = use_aias ? X509_get1_ocsp(cert) : NULL;
+    STACK_OF(OPENSSL_STRING) *aias = use_aias ? X509_get1_ocsp(cert) : NULL;
     char *ocsp_url = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP_URL);
     int timeout = *(int *)
         X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP_TIMEOUT);
     int i, n;
-    int res = -1;
+    int res = -1; /* inconclusive */
 
-    if (aia == NULL && ocsp_url == NULL) {
+    if (ocsp_url != NULL) { /* add fallback AIA (OCSP responder) URL */
+        if ((aias == NULL && ((aias = sk_OPENSSL_STRING_new_null()) == NULL))
+            || !sk_OPENSSL_STRING_push(aias, OPENSSL_strdup(ocsp_url)))
+            goto end;
+    }
+
+    n = sk_OPENSSL_STRING_num(aias);
+    if (n == 0) { /* in this case no checks done here, inconclusive result */
         BIO_printf(bio_err,
                    "check_cert_status_ocsp: AIA %s and no fallback OCSP responder URL\n",
                    use_aias ? "not in cert" : "disabled");
-        return res; /* inconclusive */
     }
 
-    n = (aia ? sk_OPENSSL_STRING_num(aia) : 0) + 1;
     for (i = 0; res == -1 && i < n; i++) {
-        char *url = i < n-1 ? sk_OPENSSL_STRING_value(aia, i) : ocsp_url;
+        char *url = sk_OPENSSL_STRING_value(aias, i);
         if (url) {
             OCSP_RESPONSE *resp = NULL;
             DEBUG_print("cert_status: using",
-                        i < n-1 ? "OCSP responder from AIA"
-                                : "fallback OCSP responder", url);
+                        i < n-1 || ocsp_url == NULL ?
+                        "OCSP responder from AIA:" :
+                        "fallback OCSP responder", url);
             resp = get_ocsp_resp(cert, issuer, url, timeout); /* may be NULL */
             res = check_ocsp_resp(ts, untrusted, cert, issuer, resp);
             OCSP_RESPONSE_free(resp); /* TODO cache resp instead */
         }
     }
-    X509_email_free(aia);
+ end:
+    X509_email_free(aias); /* sk_OPENSSL_STRING_pop_free(aias, OPENSSL_free) */
     return res;
 }
 
@@ -1922,8 +1935,8 @@ static int check_cert_status_ocsp(X509_STORE *ts, STACK_OF(X509) *untrusted,
  * Returns 1 on success, 0 on rejection or checking error (inconclusive)
  */
 # define OCSP_err(ok) \
-    (ok == -2 ? X509_V_ERR_OCSP_VERIFY_NEEDED/* no OCSP response available*/ : \
-     ok !=  0 ? X509_V_ERR_OCSP_VERIFY_FAILED : X509_V_ERR_CERT_REVOKED)
+    ((ok) == -2 ? X509_V_ERR_OCSP_VERIFY_NEEDED/* no OCSP resp available */ : \
+     (ok) !=  0 ? X509_V_ERR_OCSP_VERIFY_FAILED : X509_V_ERR_CERT_REVOKED)
 static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
 {
     X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
@@ -1942,55 +1955,71 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     int crl_check = flags & X509_V_FLAG_CRL_CHECK;
     int ok = 0;
 
-#if 0
     DEBUG_print_cert("checking revoc status", cert);
+#if 0
+    print_cert(bio_err, cert, X509_FLAG_NO_EXTENSIONS);
 #endif
 
     if (ocsp_stapling) {
+        DEBUG_print("check_cert_revocation:", "trying OCSP stapling", NULL);
         if (resp) /* (stapled) response is available */
             ok = check_ocsp_resp(ts, chain, cert, issuer, resp);
         else
-            ok = -2; /* inconclusive */
+            ok = -2; /* no OCSP response available */
         if (ok == 1) /* cert status ok */
             return 1;
-        if (ok == 0  /* cert revoked, thus clear failure or */ ||
-            /* OCSP stapling was inconclusive: ok < 0 and is the only check */
+        if (ok == 0  /* cert revoked, thus a clear failure or */ ||
+            /* OCSP stapling was inconclusive (ok < 0) and is the only check: */
             (ok < 0 && !ocsp_check && !crl_check))
             return verify_cb_cert(ctx, cert, OCSP_err(ok));
     }
     /* OCSP stapling is disabled or inconclusive */
 
     if (crl_check) {
+        DEBUG_print("check_cert_revocation:", "trying local CRLs", NULL);
         ok = check_cert_local_crls(ctx, NULL); /* try locally available CRLs */
         if (ok != -1)
             return ok > 0;
     }
 
     if (crl_check && ocsp_check && ocsp_last) {
+        DEBUG_print("check_cert_revocation:", "trying CRLs from CDPs", NULL);
         ok = check_cert_status_cdps(ctx);
         if (ok == 1) /* cert status ok */
             return 1;
         crl_check = 0; /* do not try again */
-        if (ok == 0 /* CRL-based check gave clear failure */ ||
-            /* CRL-based check was inconclusive: ok < 0and is the last one */
+        if (ok == 0 /* CRL-based check gave a clear failure */ ||
+            /* CRL-based check was inconclusive (ok < 0) and is the last one: */
             (ok < 0 && !ocsp_check))
             return 0;
         /* CRL-based check is inconclusive */
     }
 
     if (ocsp_check) {
-        ok = check_cert_status_ocsp(ts, untrusted, cert, issuer);
+        DEBUG_print("check_cert_revocation:", "trying plain OCSP", NULL);
+        const int ncerts = sk_X509_num(chain) + sk_X509_num(untrusted);
+        STACK_OF(X509) *sk = sk_X509_new_reserve(NULL, ncerts);
+        if (sk == NULL
+            || !OSSL_CMP_sk_X509_add1_certs(sk, chain, 1/*no self-signed */, 0)
+            || !OSSL_CMP_sk_X509_add1_certs(sk, untrusted, 1/*no self-signed */,
+                                            1/* no dups */)) {
+            sk_X509_pop_free(sk, X509_free);
+            return 0;
+        }
+        ok = check_cert_status_ocsp(ts, sk, cert, issuer);
+        sk_X509_pop_free(sk, X509_free);
         if (ok == 1)        /* cert status ok */
             return 1;
-        if (ok == 0 ||      /* cert revoked or unknown, thus clear failure */
-            /* OCSP is the last check and it was inconclusive: ok < 0 */
+        if (ok == 0 ||      /* cert revoked or unknown, thus a clear failure */
+            /* OCSP check was inconclusive (ok < 0) and is the last one: */
             (ok < 0 && !crl_check)) {
-            return verify_cb_cert(ctx, cert, OCSP_err(ok));
+            return verify_cb_cert(ctx, cert, OCSP_err(ok == 0 ? 0 : -2));
         }
     }
     /* OCSP (including stapling) is disabled or inconclusive */
 
     if (crl_check) {
+        DEBUG_print("check_cert_revocation:", "trying CRLs from CDPs", NULL);
         return check_cert_status_cdps(ctx) > 0;
     }
     return 1;
@@ -2016,10 +2045,14 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
     int ret = -1; /* tls_process_initial_server_flight reports
                      return code < 0 as internal error: malloc failure */
 
-    if (check_any && !any_CDP_or_OCSPresponder(cert, 0))
+    DEBUG_print_cert("ocsp_stapling_cb", cert);
+#if 0
+    print_cert(bio_err, cert, X509_FLAG_NO_EXTENSIONS);
+#endif
+    if (check_any && !any_CDP_or_AIA(cert, 0))
         return 1; /* skip since no revocation status source entry in cert */
     if (resp_der == NULL) {
-#  if 1 && !defined NDEBUG
+#  ifdef CERTSTATUS_DEBUG
         BIO_puts(bio_err, "DEBUG: no OCSP response has been stapled\n");
 #  endif
     } else {
@@ -2069,7 +2102,7 @@ static int check_revocation_any_method(X509_STORE_CTX *ctx)
     int check_all = flags & X509_V_FLAG_STATUS_CHECK_ALL;
     int check_any = flags & X509_V_FLAG_STATUS_CHECK_ANY;
     int ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
-#if 1 && !defined NDEBUG
+#ifdef CERTSTATUS_DEBUG
     int ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
     int ocsp_last = flags & X509_V_FLAG_OCSP_LAST;
     int crl_check = flags & X509_V_FLAG_CRL_CHECK;
@@ -2099,9 +2132,9 @@ static int check_revocation_any_method(X509_STORE_CTX *ctx)
         X509 *cert = sk_X509_value(chain, i);
 
         if (i == last && X509_check_issued(cert, cert) == X509_V_OK)
-            break; /* revocation makes no sense for self-signed, skip if last */
+            break; /* revocation makes no sense for self-issued, skip if last */
 
-        if (!any_CDP_or_OCSPresponder(cert, 1) && check_any)
+        if (!any_CDP_or_AIA(cert, 1) && check_any)
             continue; /* skip since no revocation status source entry in cert */
         X509_STORE_CTX_set_error_depth(ctx, i);
 
@@ -2116,7 +2149,7 @@ static int check_revocation_any_method(X509_STORE_CTX *ctx)
            and ocsp_stapling_cb() is called even later, at TLS_ST_CR_SRVR_DONE.
            What we can do here is to defer status checking of the first cert.
            This will then be performed by ocsp_stapling_cb(). */
-# if 1 && !defined NDEBUG
+# ifdef CERTSTATUS_DEBUG
             BIO_puts(bio_err,
                      "DEBUG: deferring status check for leaf cert to prefer stapling\n");
 # endif
