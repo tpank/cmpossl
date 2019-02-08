@@ -1311,6 +1311,29 @@ OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep
 }
 
 /*
+ * returns the CertId field in the revCerts part of the RevRepContent
+ * with the given request/sequence id inside a revocation response.
+ * RevRepContent has the CertIds in same order as they were sent in
+ * RevReqContent.
+ * returns NULL on error
+ */
+OSSL_CRMF_CERTID *CMP_REVREPCONTENT_CertId_get(OSSL_CMP_REVREPCONTENT *rrep,
+                                             int rsid)
+{
+    OSSL_CRMF_CERTID *cid = NULL;
+
+    if (rrep == NULL)
+        return NULL;
+
+    if ((cid = sk_OSSL_CRMF_CERTID_value(rrep->certId, rsid)) != NULL) {
+        return cid;
+    }
+
+    CMPerr(CMP_F_CMP_REVREPCONTENT_CERTID_GET, CMP_R_CERTID_NOT_FOUND);
+    return NULL;
+}
+
+/*
  * checks PKIFailureInfo bits in a given PKIStatusInfo
  * returns 1 if a given bit is set, 0 if not, -1 on error
  */
