@@ -725,6 +725,14 @@ RevRepContent with the given request/sequence id inside a revocation response
 OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
                                                     int rsid);
 /*
+OSSL_CMP_REVREPCONTENT_CertId_get() returns the CertId field of the
+RevRepContent with the given request/sequence id inside a revocation response
+(matching the sequence id as sent in the RevReqContent), or NULL on error.
+*/
+OSSL_CRMF_CERTID *CMP_REVREPCONTENT_CertId_get(OSSL_CMP_REVREPCONTENT *rrep,
+                                               int rsid);
+
+/*
 OSSL_CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
 using the same hash algorithm as is used to create and verify the
 certificate signature, and places the hash into the certHash field of a
