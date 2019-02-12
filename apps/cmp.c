@@ -224,7 +224,6 @@ static char *opt_cdp = NULL;
 static int opt_crl_timeout = 10;
 
 static X509_VERIFY_PARAM *vpm = NULL;
-X509_STORE_CTX_check_revocation_fn check_revocation = NULL;
 
 #ifndef OPENSSL_NO_OCSP
 # include <openssl/ocsp.h>
@@ -1173,22 +1172,6 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format,
     return crls;
 }
 
-#if 0 && !defined NDEBUG
-# define CERTSTATUS_DEBUG
-#endif
-static void DEBUG_print(const char *msg, const char *s1, const char *s2)
-{
-#ifdef CERTSTATUS_DEBUG
-    BIO_printf(bio_err, "DEBUG: %s %s %s\n", msg,
-               s1 != NULL ? s1 : "", s2 != NULL ? s2 : "");
-#endif
-}
-
-/*
- * set the expected host name/IP addr and clears the email addr in the given ts.
- * The string must not be freed as long as cert_verify_cb() may use it.
- * returns 1 on success, 0 on error.
- */
 #define X509_STORE_EX_DATA_HOST 0
 #define X509_STORE_EX_DATA_SBIO 1
 #define X509_STORE_EX_DATA_DISABLE_CDPS 2
@@ -1197,6 +1180,12 @@ static void DEBUG_print(const char *msg, const char *s1, const char *s2)
 #define X509_STORE_EX_DATA_DISABLE_AIAS 5
 #define X509_STORE_EX_DATA_OCSP_URL 6
 #define X509_STORE_EX_DATA_OCSP_TIMEOUT 7
+
+/*
+ * set the expected host name/IP addr and clears the email addr in the given ts.
+ * The string must not be freed as long as cert_verify_cb() may use it.
+ * returns 1 on success, 0 on error.
+ */
 static int truststore_set_host_etc(X509_STORE *ts, const char *host)
 {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
@@ -1270,6 +1259,17 @@ static const char *LOCAL_get_dp_url(DIST_POINT *dp)
     return NULL;
 }
 
+#if 0 && !defined NDEBUG
+# define CERTSTATUS_DEBUG
+#endif
+static void DEBUG_print(const char *msg, const char *s1, const char *s2)
+{
+#ifdef CERTSTATUS_DEBUG
+    BIO_printf(bio_err, "DEBUG: %s %s %s\n", msg,
+               s1 != NULL ? s1 : "", s2 != NULL ? s2 : "");
+#endif
+}
+
 static void DEBUG_print_cert(const char *msg, const X509 *cert)
 {
     char *s = X509_NAME_oneline(X509_get_subject_name((X509 *)cert), NULL, 0);
@@ -1309,8 +1309,10 @@ static int any_CDP_or_AIA(X509 *cert, int print)
  * Emulates the internal check_cert() function from crypto/x509/x509_vfy.c
  * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
  */
-static int check_cert_local_crls(X509_STORE_CTX *ctx, STACK_OF(X509_CRL) *crls){
+static int check_cert_local_crls(X509_STORE_CTX *ctx, STACK_OF(X509_CRL) *crls)
+{
     X509_STORE_CTX *tmp_ctx = X509_STORE_CTX_new();
+    X509_STORE_CTX_check_revocation_fn check_revocation;
     int cert_idx = X509_STORE_CTX_get_error_depth(ctx);
     X509 *cert = sk_X509_value(X509_STORE_CTX_get0_chain(ctx), cert_idx);
     X509 *issuer = sk_X509_value(X509_STORE_CTX_get0_chain(ctx), cert_idx+1);
@@ -1319,11 +1321,24 @@ static int check_cert_local_crls(X509_STORE_CTX *ctx, STACK_OF(X509_CRL) *crls){
     STACK_OF(X509) *certs;
     int res = -1;
 
-    if (tmp_ctx == NULL || cert == NULL || issuer == NULL ||
-        !X509_STORE_CTX_init(tmp_ctx, X509_STORE_CTX_get0_store(ctx),
-                             NULL, NULL) || /* inherits flags etc. of store */
-        !X509_STORE_CTX_set_ex_data(tmp_ctx, ssl_ex_idx, ssl))
+    /*
+     * Unfortunately, check_revocation() in crypto/x509/x509_vfy.c is static,
+     * yet we can get hold of it via X509_STORE_CTX_get_check_revocation().
+     */
+    if (tmp_ctx == NULL
+        || !X509_STORE_CTX_init(tmp_ctx, NULL, NULL, NULL)
+        || ((check_revocation = X509_STORE_CTX_get_check_revocation(tmp_ctx))
+            == NULL)) {
+        BIO_printf(bio_err, "cannot get pointer to check_revocation()\n");
         goto err;
+    }
+    if (cert == NULL || issuer == NULL
+        || !X509_STORE_CTX_init(tmp_ctx, X509_STORE_CTX_get0_store(ctx),
+                                NULL, NULL) /* inherits flags etc. of store */
+        || !X509_STORE_CTX_set_ex_data(tmp_ctx, ssl_ex_idx, ssl)) {
+        BIO_printf(bio_err, "check_cert_local_crls: cannot set up tmp_ctx\n");
+        goto err;
+    }
     if ((certs = sk_X509_new_reserve(NULL, 2)) == NULL)
         goto err;
     X509_STORE_CTX_set0_verified_chain(tmp_ctx, certs);
@@ -1422,7 +1437,7 @@ static int check_cert_status_cdps(X509_STORE_CTX *ctx) {
 
         crls = sk_X509_CRL_new_reserve(NULL, 2);
         if (crls == NULL || !sk_X509_CRL_push(crls, crl)) {
-            BIO_printf(bio_err, "out of memory\n");
+            BIO_printf(bio_err, "check_cert_status_cdps: out of memory\n");
             res = -1;
         } else {
             if (delta_crl)
@@ -1529,7 +1544,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
     /* TODO: OCSP_check_validity() should respect -attime: vpm->check_time */
     if (!OCSP_check_validity(thisupd, nextupd, MAX_OCSP_VALIDITY_LEEWAY, -1)) {
         BIO_puts(bio_err, "OCSP status times invalid\n");
-        ERR_print_errors(bio_err);
+        (void)ERR_print_errors(bio_err);
         goto end;
     } else {
         switch (status) {
@@ -1558,7 +1573,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
     OCSP_BASICRESP_free(br);
     X509_VERIFY_PARAM_free(bak_vpm);
     if (res <= 0) {
-        ERR_print_errors(bio_err);
+        (void)ERR_print_errors(bio_err);
         BIO_printf(bio_err, "OCSP response verify %s\n", res == 0 ?
                    ": cert revoked/rejected" : "inconclusive/failed");
     }
@@ -1589,12 +1604,11 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
     OCSP_BASICRESP *br = NULL;
 
     if (cert == NULL || issuer == NULL || url == NULL) {
-        BIO_printf(bio_err, "cert_status: NULL argument to get_ocsp_resp()\n");
+        BIO_printf(bio_err, "NULL argument to get_ocsp_resp()\n");
         return NULL;
     }
     if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl)) {
-        BIO_printf(bio_err,
-                   "cert_status: cannot parse OCSP responder URL: %s\n", url);
+        BIO_printf(bio_err, "cannot parse OCSP responder URL: %s\n", url);
         goto end;
     }
 
@@ -1623,7 +1637,7 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
     resp = process_responder(
                              req, host, path, port, use_ssl, NULL, timeout);
     if (resp == NULL) {
-        BIO_puts(bio_err, "cert_status: error querying OCSP responder\n");
+        BIO_puts(bio_err, "error querying OCSP responder\n");
         goto end;
     }
 
@@ -1639,7 +1653,7 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
         goto end;
     }
     if (!OCSP_resp_find_status(br, id_copy, NULL, NULL, NULL, NULL, NULL)) {
-        BIO_puts(bio_err, "No OCSP status found matching cert ID in request\n");
+        BIO_puts(bio_err, "no OCSP status found matching cert ID in request\n");
         goto end;
     }
 
@@ -1675,7 +1689,8 @@ static int verify_cb_cert(X509_STORE_CTX *ctx, X509 *cert, int err)
    in the given order then try any given fallback OCSP responder URL.
    Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error */
 static int check_cert_status_ocsp(X509_STORE *ts, STACK_OF(X509) *untrusted,
-                                  X509 *cert, X509 *issuer) {
+                                  X509 *cert, X509 *issuer)
+{
     int use_aias = !*(int *)
         X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_DISABLE_AIAS);
     STACK_OF(OPENSSL_STRING) *aias = use_aias ? X509_get1_ocsp(cert) : NULL;
@@ -2026,7 +2041,7 @@ static OSSL_CMP_MSG *read_PKIMESSAGE(OSSL_CMP_CTX *ctx, char **filenames)
     }
     if (*filenames == NULL) {
         OSSL_CMP_err(ctx,
-                     "Not enough file names have been provided for reading message");
+                     "not enough file names have been provided for reading message");
         return 0;
     }
 
@@ -2530,7 +2545,7 @@ static STACK_OF(X509_CRL) *load_crls_multifile(const char *files, int format,
                 /* well, should ignore expiry of base CRL if delta CRL is valid */
                 char *issuer =
                     X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
-                BIO_printf(bio_err, "CRL from '%s' issued by '%s' has expired",
+                BIO_printf(bio_err, "CRL from '%s' issued by '%s' has expired\n",
                            file, issuer);
                 OPENSSL_free(issuer);
 #if 0
@@ -2908,21 +2923,6 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx) {
                      NULL))
         goto err;
 
-{ /* do this also when OCSP is not enabled, to support the 'any' option: */
-        /*
-         * Unfortunately, check_cert() in crypto/x509/x509_vfy.c is static,
-         * yet we can access it indirectly via check_revocation() with a trick.
-         */
-        X509_STORE_CTX *tmp_ctx = X509_STORE_CTX_new();
-        if (tmp_ctx != NULL && X509_STORE_CTX_init(tmp_ctx, NULL, NULL, NULL))
-            check_revocation = X509_STORE_CTX_get_check_revocation(tmp_ctx);
-        X509_STORE_CTX_free(tmp_ctx);
-        if (!check_revocation) {
-            OSSL_CMP_err(ctx, "internal issue: cannot get check_revocation");
-            goto err;
-        }
-    }
-
     if (opt_srvcert != NULL || opt_trusted != NULL) {
         X509_STORE *ts = NULL;
 
@@ -3037,8 +3037,8 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs)
                         SSL_OP_NO_TLSv1);
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
 
-#if OPENSSL_VERSION_NUMBER >= 0x1010001fL
-# ifndef OPENSSL_NO_OCSP
+#ifndef OPENSSL_NO_OCSP
+# if OPENSSL_VERSION_NUMBER >= 0x1010001fL
     if (opt_flags_tls & X509_V_FLAG_OCSP_STAPLING) {
         SSL_CTX_set_tlsext_status_type(ssl_ctx, TLSEXT_STATUSTYPE_ocsp);
         SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_stapling_cb);
@@ -3073,10 +3073,12 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs)
     {
         X509_STORE *untrusted_store = sk_X509_to_store(NULL, untrusted_certs);
 
-        /* do immediately for automatic cleanup in case of errors: */
+        /* do immediately for automatic cleanup in case of later errors: */
         if (!SSL_CTX_set0_chain_cert_store(ssl_ctx,
-                                           untrusted_store /* may be 0 */))
+                                           untrusted_store /* may be 0 */)) {
+            X509_STORE_free(untrusted_store);
             goto oom;
+        }
     }
 
     if (opt_tls_cert != NULL && opt_tls_key != NULL) {
@@ -3102,7 +3104,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs)
 
         /*
          * When the list of extra certificates in certs in non-empty,
-         * well send them (instead of a chain built from opt_untrusted)
+         * will send them (instead of a chain built from opt_untrusted)
          * along with the TLS end entity certificate.
          */
         if (!SSL_CTX_add_extra_chain_free(ssl_ctx, certs))
