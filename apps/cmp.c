@@ -235,7 +235,7 @@ static int opt_ocsp_timeout = 10;
 # define X509_V_FLAG_OCSP_LAST      0x8000000 /* Try OCSP last (after CRLs) */
 #endif  /* !defined OPENSSL_NO_OCSP */
 #define X509_V_FLAG_STATUS_CHECK_ALL X509_V_FLAG_CRL_CHECK_ALL /* full chain */
-#define X509_V_FLAG_STATUS_CHECK_ANY 0x10000000/* any cert containing CDP/AIA */
+#define X509_V_FLAG_STATUS_CHECK_ANY 0x1000000/* any cert containing CDP/AIA */
 
 static char *opt_ownform_s = "PEM";
 static int opt_ownform = FORMAT_PEM;
@@ -1174,12 +1174,15 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format,
 
 #define X509_STORE_EX_DATA_HOST 0
 #define X509_STORE_EX_DATA_SBIO 1
-#define X509_STORE_EX_DATA_DISABLE_CDPS 2
-#define X509_STORE_EX_DATA_CDP_URL 3
-#define X509_STORE_EX_DATA_CRL_TIMEOUT 4
-#define X509_STORE_EX_DATA_DISABLE_AIAS 5
-#define X509_STORE_EX_DATA_OCSP_URL 6
-#define X509_STORE_EX_DATA_OCSP_TIMEOUT 7
+#define X509_STORE_EX_DATA_CDPS 2 /* for CRL fetching */
+#define X509_STORE_EX_DATA_OCSP 3 /* for OCSP requests */
+
+typedef struct revstatus_access_st { /* CDPs or OCSP responders */
+    int flags;
+    const char *url; /* fallback */
+    int timeout;
+} revstatus_access;
+#define REVSTATUS_IGNORE_CERT_EXT 0x1 /* ignore AIA/CDP entry in certificates */
 
 /*
  * set the expected host name/IP addr and clears the email addr in the given ts.
@@ -1210,6 +1213,21 @@ static int truststore_set_host_etc(X509_STORE *ts, const char *host)
            X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
 }
 
+static void STORE_free(X509_STORE* ts)
+{
+    if(ts != NULL) {
+        /* freeing ex_data unfortunately cannot respect the reference counter */
+        OPENSSL_free(X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST));
+        OPENSSL_free(X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_CDPS));
+        OPENSSL_free(X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP));
+        /* prevent double free, which would happen if ts->references > 1: */
+        X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, NULL);
+        X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_CDPS, NULL);
+        X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_OCSP, NULL);
+        X509_STORE_free(ts);
+    }
+}
+
 static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */ ,
                                   const STACK_OF(X509) *certs /* may be NULL */)
 {
@@ -1221,7 +1239,7 @@ static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */ ,
         return NULL;
     for (i = 0; i < sk_X509_num(certs); i++) {
         if (!X509_STORE_add_cert(store, sk_X509_value(certs, i))) {
-            X509_STORE_free(store);
+            STORE_free(store);
             return NULL;
         }
     }
@@ -1387,13 +1405,12 @@ static int check_cert_status_cdps(X509_STORE_CTX *ctx) {
     STACK_OF(X509) *chain = X509_STORE_CTX_get0_chain(ctx);
     X509 *cert = sk_X509_value(chain, X509_STORE_CTX_get_error_depth(ctx));
     X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
-    int use_cdps = !*(int *)
-        X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_DISABLE_CDPS);
+    revstatus_access *cdps = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_CDPS);
+    int use_cdps = ((cdps->flags & REVSTATUS_IGNORE_CERT_EXT) == 0);
     STACK_OF(DIST_POINT) *crldp = use_cdps ?
         X509_get_ext_d2i(cert, NID_crl_distribution_points, NULL, NULL) : NULL;
-    char *cdp_url = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_CDP_URL);
-    int timeout = *(int *)
-        X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_CRL_TIMEOUT);
+    const char *cdp_url = cdps->url; /* fallback */
+    int timeout = cdps->timeout;
     STACK_OF(DIST_POINT) *delta_crldp = NULL;
     X509_CRL *delta_crl = NULL;
     int i, n;
@@ -1691,12 +1708,11 @@ static int verify_cb_cert(X509_STORE_CTX *ctx, X509 *cert, int err)
 static int check_cert_status_ocsp(X509_STORE *ts, STACK_OF(X509) *untrusted,
                                   X509 *cert, X509 *issuer)
 {
-    int use_aias = !*(int *)
-        X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_DISABLE_AIAS);
+    revstatus_access *ocsp = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP);
+    int use_aias = ((ocsp->flags & REVSTATUS_IGNORE_CERT_EXT) == 0);
     STACK_OF(OPENSSL_STRING) *aias = use_aias ? X509_get1_ocsp(cert) : NULL;
-    char *ocsp_url = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP_URL);
-    int timeout = *(int *)
-        X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_OCSP_TIMEOUT);
+    const char *ocsp_url = ocsp->url; /* fallback */
+    int timeout = ocsp->timeout;
     int i, n;
     int res = -1; /* inconclusive */
 
@@ -2358,18 +2374,23 @@ static int set_store_parameters_crls(X509_STORE *ts, unsigned long flags,
         !add_crls_store(ts, global_crls)) /* ups the references to crls */
         return 0;
 
-    X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_DISABLE_CDPS,
-                           &opt_disable_cdps);
-    X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_CDP_URL, opt_cdp);
-    X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_CRL_TIMEOUT,
-                           &opt_crl_timeout);
+    revstatus_access *cdps = OPENSSL_malloc(sizeof(*cdps));
+    if (cdps == NULL)
+        return 0;
+    cdps->flags   = opt_disable_cdps ? REVSTATUS_IGNORE_CERT_EXT : 0;
+    cdps->url     = opt_cdp;
+    cdps->timeout = opt_crl_timeout;
+    X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_CDPS, cdps);
+
 #ifndef OPENSSL_NO_OCSP
     if (ocsp_check) {
-        X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_DISABLE_AIAS,
-                               &opt_disable_aias);
-        X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_OCSP_URL, opt_ocsp_url);
-        X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_OCSP_TIMEOUT,
-                               &opt_ocsp_timeout);
+        revstatus_access *ocsp = OPENSSL_malloc(sizeof(*ocsp));
+        if (ocsp == NULL)
+            return 0;
+        ocsp->flags   = opt_disable_aias ? REVSTATUS_IGNORE_CERT_EXT : 0;
+        ocsp->url     = opt_ocsp_url;
+        ocsp->timeout = opt_ocsp_timeout;
+        X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_OCSP, ocsp);
     }
 #endif
 
@@ -2460,7 +2481,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
                                 opt_otherpass, desc) ||
             !(store = sk_X509_to_store(store, certs))) {
             /* BIO_puts(bio_err, "error: out of memory\n"); */
-            X509_STORE_free(store);
+            STORE_free(store);
             store = NULL;
             goto err;
         }
@@ -2813,7 +2834,7 @@ static int setup_srv_ctx(ENGINE *e)
         if (!set_store_parameters_crls(ts/*may NULL*/, opt_flags_cmp, "CMP") ||
             !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
             !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
-            X509_STORE_free(ts);
+            STORE_free(ts);
             goto err;
         }
     }
@@ -2958,7 +2979,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx) {
         if (!set_store_parameters_crls(ts, opt_flags_cmp, "CMP") ||
             !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
             !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
-            X509_STORE_free(ts);
+            STORE_free(ts);
             goto oom;
         }
     }
@@ -3076,7 +3097,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs)
         /* do immediately for automatic cleanup in case of later errors: */
         if (!SSL_CTX_set0_chain_cert_store(ssl_ctx,
                                            untrusted_store /* may be 0 */)) {
-            X509_STORE_free(untrusted_store);
+            STORE_free(untrusted_store);
             goto oom;
         }
     }
@@ -4451,7 +4472,7 @@ int cmp_main(int argc, char **argv)
 
     sk_X509_CRL_pop_free(global_crls, X509_CRL_free);
     SSL_CTX_free(OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx));
-    X509_STORE_free(OSSL_CMP_CTX_get_certConf_cb_arg(cmp_ctx));
+    STORE_free(OSSL_CMP_CTX_get_certConf_cb_arg(cmp_ctx));
     OSSL_CMP_CTX_delete(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);
     release_engine(e);
