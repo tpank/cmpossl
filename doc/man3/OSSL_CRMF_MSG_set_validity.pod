@@ -49,7 +49,7 @@ for which non-NULL values are provided: B<pubkey>, B<subject>, B<issuer>,
 and/or B<serial>. The arguments are not consumed.
 
 OSSL_CRMF_MSG_set0_extensions() sets B<exts> as the extensions in the
-certTemplate of B<crm>. Consumes B<exts>.
+certTemplate of B<crm>. Frees any pre-existing ones and consumes B<exts>.
 
 OSSL_CRMF_MSG_push0_extension() pushes the X509 extension B<ext> to the
 extensions in the certTemplate of B<crm>.  Consumes B<ext>.
