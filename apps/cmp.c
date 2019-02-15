@@ -1767,13 +1767,13 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
 
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
     unsigned long flags = X509_VERIFY_PARAM_get_flags(param);
-    int ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
-    int ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
-    int ocsp_last = flags & X509_V_FLAG_OCSP_LAST;
-    int crl_check = flags & X509_V_FLAG_CRL_CHECK;
+    int ocsp_stapling = (flags & X509_V_FLAG_OCSP_STAPLING) != 0;
+    int ocsp_check = (flags & X509_V_FLAG_OCSP_CHECK) != 0;
+    int ocsp_last = (flags & X509_V_FLAG_OCSP_LAST) != 0;
+    int crl_check = (flags & X509_V_FLAG_CRL_CHECK) != 0;
     int ok = 0;
 
-    DEBUG_print_cert("checking revoc status", cert);
+    DEBUG_print_cert("checking revocation status", cert);
 #if 0
     print_cert(bio_err, cert, X509_FLAG_NO_EXTENSIONS);
 #endif
@@ -1799,6 +1799,7 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
         if (ok != -1)
             return ok > 0;
     }
+    /* CRL check is disabled or inconclusive using local CRLs */
 
     if (crl_check && ocsp_check && ocsp_last) {
         DEBUG_print("check_cert_revocation:", "trying CRLs from CDPs", NULL);
@@ -1834,13 +1835,16 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
             (ok < 0 && !crl_check)) {
             return verify_cb_cert(ctx, cert, OCSP_err(ok == 0 ? 0 : -2));
         }
-        DEBUG_print("check_cert_revocation:", "trying CRLs from CDPs", NULL);
     }
     /* OCSP (including stapling) is disabled or inconclusive */
 
     if (crl_check) {
+        DEBUG_print("check_cert_revocation:", "trying CRLs from CDPs", NULL);
         return check_cert_status_cdps(ctx) > 0;
     }
+
+    BIO_printf(bio_err,
+               "check_cert_revocation: warning: no cert status checking method is enabled\n");
     return 1;
 }
 
@@ -1853,7 +1857,7 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
     X509_STORE *ts = SSL_CTX_get_cert_store(SSL_get_SSL_CTX(ssl));
     X509_VERIFY_PARAM *param = X509_STORE_get0_param(ts);
     unsigned long flags = X509_VERIFY_PARAM_get_flags(param);
-    int check_any = flags & X509_V_FLAG_STATUS_CHECK_ANY;
+    int check_any = (flags & X509_V_FLAG_STATUS_CHECK_ANY) != 0;
     STACK_OF(X509) *chain = SSL_get0_verified_chain(ssl);
     X509 *cert = sk_X509_value(chain, 0); /* multi-stapling is not supported */
     const unsigned char *resp_der;
@@ -1916,14 +1920,14 @@ static int check_revocation_any_method(X509_STORE_CTX *ctx)
                                           SSL_get_ex_data_X509_STORE_CTX_idx());
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
     unsigned long flags = X509_VERIFY_PARAM_get_flags(param);
-    int check_all = flags & X509_V_FLAG_STATUS_CHECK_ALL;
-    int check_any = flags & X509_V_FLAG_STATUS_CHECK_ANY;
-    int ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
+    int check_all = (flags & X509_V_FLAG_STATUS_CHECK_ALL) != 0;
+    int check_any = (flags & X509_V_FLAG_STATUS_CHECK_ANY) != 0;
+    int ocsp_stapling = (flags & X509_V_FLAG_OCSP_STAPLING) != 0;
 #ifdef CERTSTATUS_DEBUG
-    int ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
-    int ocsp_last = flags & X509_V_FLAG_OCSP_LAST;
-    int crl_check = flags & X509_V_FLAG_CRL_CHECK;
-    BIO_printf(bio_err, "DEBUG: for %s %sTLS cert status checks, trying %s%s%s%s%s\n",
+    int ocsp_check = (flags & X509_V_FLAG_OCSP_CHECK) != 0;
+    int ocsp_last = (flags & X509_V_FLAG_OCSP_LAST) != 0;
+    int crl_check = (flags & X509_V_FLAG_CRL_CHECK) != 0;
+    BIO_printf(bio_err, "DEBUG: for %s %sTLS cert status checks, will try %s%s%s%s%s\n",
                check_all ? "full" : check_any ? "any" : "leaf",
                ssl != NULL ? "" : "non-",
                ocsp_stapling ? "OCSP stapling" : "",
@@ -1934,7 +1938,8 @@ static int check_revocation_any_method(X509_STORE_CTX *ctx)
                ocsp_check ? (crl_check ? (ocsp_last ? "CDPs then OCSP"
                                                     : "OCSP then CDPs")
                                        : "OCSP")
-                          : (crl_check ? "CDPs" : ""));
+                          : (crl_check ? "CDPs" :
+                             (ocsp_stapling || crl_check) ? "" : "nothing"));
 #endif
 
     if (check_all || check_any)
@@ -1976,7 +1981,7 @@ static int check_revocation_any_method(X509_STORE_CTX *ctx)
         if (!check_cert_revocation(ctx, NULL))
             return 0;
 #else   /* defined OPENSSL_NO_OCSP */
-        if (flags & X509_V_FLAG_CRL_CHECK) {
+        if ((flags & X509_V_FLAG_CRL_CHECK) != 0) {
             int res = check_cert_local_crls(ctx, NULL); /* try available CRLs */
             if (res == 0)
                 return 0;
@@ -2339,14 +2344,14 @@ static int set_store_parameters_crls(X509_STORE *ts, unsigned long flags,
                                      const char *aspect)
 {
     X509_VERIFY_PARAM *ts_vpm;
-    int crl_check = flags & X509_V_FLAG_CRL_CHECK;
-    int check_all = flags & X509_V_FLAG_STATUS_CHECK_ALL;
-    int check_any = flags & X509_V_FLAG_STATUS_CHECK_ANY;
+    int crl_check = (flags & X509_V_FLAG_CRL_CHECK) != 0;
+    int check_all = (flags & X509_V_FLAG_STATUS_CHECK_ALL) != 0;
+    int check_any = (flags & X509_V_FLAG_STATUS_CHECK_ANY) != 0;
     int ocsp_stapling = 0;
     int ocsp_check = 0;
 #ifndef OPENSSL_NO_OCSP
-    ocsp_stapling = flags & X509_V_FLAG_OCSP_STAPLING;
-    ocsp_check = flags & X509_V_FLAG_OCSP_CHECK;
+    ocsp_stapling = (flags & X509_V_FLAG_OCSP_STAPLING) != 0;
+    ocsp_check = (flags & X509_V_FLAG_OCSP_CHECK) != 0;
 #endif
 
     if (ts == NULL|| vpm == NULL)
