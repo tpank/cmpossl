@@ -575,7 +575,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_HDR *hdr)
  */
 ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      const ASN1_OCTET_STRING *secret,
-                                     const EVP_PKEY *pkey)
+                                     EVP_PKEY *pkey)
 {
     ASN1_BIT_STRING *prot = NULL;
     CMP_PROTECTEDPART prot_part;
@@ -585,7 +585,8 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
     size_t prot_part_der_len;
     unsigned int mac_len;
     unsigned char *prot_part_der = NULL;
-    unsigned char *mac = NULL;
+    size_t sig_len;
+    unsigned char *protection = NULL;
 
     OPENSSL_CMP_CONST void *ppval = NULL;
     int pptype = 0;
@@ -620,29 +621,25 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 
             if (!(OSSL_CRMF_pbm_new(pbm, prot_part_der, prot_part_der_len,
                                     secret->data, secret->length,
-                                    &mac, &mac_len)))
+                                    &protection, &mac_len)))
                 goto err;
+            sig_len = mac_len;
         } else {
             CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_WRONG_ALGORITHM_OID);
             goto err;
         }
     } else if (secret == NULL && pkey != NULL) {
-        /* EVP_SignFinal() will check that pkey type is correct for the alg */
+        /* TODO combine this with large parts of CRMF_poposigningkey_init() */
+        /* EVP_DigestSignInit() checks that pkey type is correct for the alg */
 
         if (OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
             && (md = EVP_get_digestbynid(md_NID))) {
-            mac = OPENSSL_malloc(EVP_PKEY_size((EVP_PKEY *)pkey));
-            if (mac == NULL)
-                goto err;
-
-            evp_ctx = EVP_MD_CTX_create();
-            if (evp_ctx == NULL)
-                goto err;
-            if (!(EVP_SignInit_ex(evp_ctx, md, NULL)))
-                goto err;
-            if (!(EVP_SignUpdate(evp_ctx, prot_part_der, prot_part_der_len)))
-                goto err;
-            if (!(EVP_SignFinal(evp_ctx, mac, &mac_len, (EVP_PKEY *)pkey)))
+            if ((protection = OPENSSL_malloc(EVP_PKEY_size(pkey))) == NULL
+                || (evp_ctx = EVP_MD_CTX_create()) == NULL
+                || EVP_DigestSignInit(evp_ctx, NULL, md, NULL, pkey) <= 0
+                || EVP_DigestSignUpdate(evp_ctx, prot_part_der,
+                                        prot_part_der_len) <= 0
+                || EVP_DigestSignFinal(evp_ctx, protection, &sig_len) <= 0)
                 goto err;
         } else {
             CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_UNKNOWN_ALGORITHM_ID);
@@ -658,7 +655,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
     /* OpenSSL defaults all bit strings to be encoded as ASN.1 NamedBitList */
     prot->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
     prot->flags |= ASN1_STRING_FLAG_BITS_LEFT;
-    ASN1_BIT_STRING_set(prot, mac, mac_len);
+    ASN1_BIT_STRING_set(prot, protection, sig_len);
 
  err:
     if (prot == NULL)
@@ -667,7 +664,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
     /* cleanup */
     OSSL_CRMF_PBMPARAMETER_free(pbm);
     EVP_MD_CTX_destroy(evp_ctx);
-    OPENSSL_free(mac);
+    OPENSSL_free(protection);
     OPENSSL_free(prot_part_der);
     return prot;
 }
