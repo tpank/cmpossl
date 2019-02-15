@@ -767,7 +767,7 @@ Does PBMAC in case B<secret> is non-NULL and signature using B<pkey> otherwise.
 */
 ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      const ASN1_OCTET_STRING *secret,
-                                     const EVP_PKEY *pkey);
+                                     EVP_PKEY *pkey);
 
 /* from cmp_ctx.c */
 #ifdef CMP_POOR_LOG
