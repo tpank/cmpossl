@@ -1755,7 +1755,8 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                                   msg->header->transactionID) != 0)) {
         CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                CMP_R_TRANSACTIONID_UNMATCHED);
-        return -1;
+        if (OSSL_CMP_MSG_get_bodytype(msg) != OSSL_CMP_PKIBODY_ERROR)
+            return -1;
     }
 
     /* compare received nonce with the one we sent */
@@ -1765,7 +1766,8 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                                msg->header->recipNonce) != 0)) {
         CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                CMP_R_RECIPNONCE_UNMATCHED);
-        return -1;
+        if (OSSL_CMP_MSG_get_bodytype(msg) != OSSL_CMP_PKIBODY_ERROR)
+            return -1;
     }
     /*
      * RFC 4210 section 5.1.1 states: the recipNonce is copied from
