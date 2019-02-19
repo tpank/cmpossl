@@ -1414,19 +1414,22 @@ static int check_cert_local_crls(X509_STORE_CTX *ctx, STACK_OF(X509_CRL) *crls)
         BIO_printf(bio_err, "cannot get pointer to check_revocation()\n");
         goto err;
     }
-    if (cert == NULL || issuer == NULL
-        || !X509_STORE_CTX_init(tmp_ctx, X509_STORE_CTX_get0_store(ctx),
-                                NULL, NULL) /* inherits flags etc. of store */
+    X509_STORE_CTX_set0_param(tmp_ctx, NULL); /* free tmp_ctx->param */
+    if (!X509_STORE_CTX_init(tmp_ctx, X509_STORE_CTX_get0_store(ctx),
+                             NULL, NULL) /* inherits flags etc. of store */
         || !X509_STORE_CTX_set_ex_data(tmp_ctx, ssl_ex_idx, ssl)) {
         BIO_printf(bio_err, "check_cert_local_crls: cannot set up tmp_ctx\n");
         goto err;
     }
-    if ((certs = sk_X509_new_reserve(NULL, 2)) == NULL)
+    if ((certs = sk_X509_new_reserve(NULL, 2)) == NULL
+        || (X509_STORE_CTX_set0_verified_chain(tmp_ctx, certs), 0)
+        || cert   == NULL || !sk_X509_push(certs, X509_dup(cert))
+        || issuer == NULL || !sk_X509_push(certs, X509_dup(issuer))) {
+        BIO_printf(bio_err,
+                   "check_cert_local_crls: cannot set certs in tmp_ctx\n");
         goto err;
-    X509_STORE_CTX_set0_verified_chain(tmp_ctx, certs);
-    if (!sk_X509_push(certs, X509_dup(cert)) ||
-        !sk_X509_push(certs, X509_dup(issuer)))
-        goto err;
+    }
+
     X509_VERIFY_PARAM_clear_flags(X509_STORE_CTX_get0_param(tmp_ctx),
                                   X509_V_FLAG_CRL_CHECK_ALL);
     X509_STORE_CTX_set0_crls(tmp_ctx, crls);
