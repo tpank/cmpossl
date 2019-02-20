@@ -1509,14 +1509,16 @@ static int check_cert_status_cdps(X509_STORE_CTX *ctx) {
         X509_CRL *crl = NULL;
         const char *url =
             i < n-1 ? LOCAL_get_dp_url(sk_DIST_POINT_value(crldp,i)) : cdp_url;
-        if (!url)
+        const char *desc = i < n-1 ? "CRL from CDP entry in certificate"
+                                   : "CRL from fallback URL";
+        if (url == NULL)
             continue;
-        DEBUG_print("check_cert_status_cdps:", "using CDP URL:", url);
+        if (cdp_url != NULL && strcmp(cdp_url, url) == 0)
+            cdp_url = NULL; /* ignore duplicate fallback URL */
+        DEBUG_print("check_cert_status_cdps:", desc, url);
 
-        crl = load_crl_autofmt(url, FORMAT_ASN1, timeout,
-                               i < n-1 ? "CRL from CDP entry in certificate"
-                                       : "CRL from fallback URL");
-        if (!crl)
+        crl = load_crl_autofmt(url, FORMAT_ASN1, timeout, desc);
+        if (crl == NULL)
             continue;
 
         crls = sk_X509_CRL_new_reserve(NULL, 2);
@@ -1777,19 +1779,19 @@ static int check_cert_status_ocsp(X509_STORE *ts, STACK_OF(X509) *untrusted,
 {
     const revstatus_access *ocsp = STORE_get0_ocsp(ts);
     int use_aias = ((ocsp->flags & REVSTATUS_IGNORE_CERT_EXT) == 0);
-    STACK_OF(OPENSSL_STRING) *aias = use_aias ? X509_get1_ocsp(cert) : NULL;
+    STACK_OF(OPENSSL_STRING) *ocsps = use_aias ? X509_get1_ocsp(cert) : NULL;
     const char *ocsp_url = ocsp->url; /* fallback */
     int timeout = ocsp->timeout;
     int i, n;
     int res = -1; /* inconclusive */
 
     if (ocsp_url != NULL) { /* add fallback AIA (OCSP responder) URL */
-        if ((aias == NULL && ((aias = sk_OPENSSL_STRING_new_null()) == NULL))
-            || !sk_OPENSSL_STRING_push(aias, OPENSSL_strdup(ocsp_url)))
+        if ((ocsps == NULL && ((ocsps = sk_OPENSSL_STRING_new_null()) == NULL))
+            || !sk_OPENSSL_STRING_push(ocsps, OPENSSL_strdup(ocsp_url)))
             goto end;
     }
 
-    n = sk_OPENSSL_STRING_num(aias);
+    n = sk_OPENSSL_STRING_num(ocsps);
     if (n == 0) { /* in this case no checks done here, inconclusive result */
         BIO_printf(bio_err,
                    "check_cert_status_ocsp: AIA %s and no fallback OCSP responder URL\n",
@@ -1797,9 +1799,10 @@ static int check_cert_status_ocsp(X509_STORE *ts, STACK_OF(X509) *untrusted,
     }
 
     for (i = 0; res == -1 && i < n; i++) {
-        char *url = sk_OPENSSL_STRING_value(aias, i);
-        if (url) {
+        char *url = sk_OPENSSL_STRING_value(ocsps, i);
+        if (url != NULL) {
             OCSP_RESPONSE *resp = NULL;
+
             DEBUG_print("cert_status: using",
                         i < n-1 || ocsp_url == NULL ?
                         "OCSP responder from AIA:" :
@@ -1807,10 +1810,12 @@ static int check_cert_status_ocsp(X509_STORE *ts, STACK_OF(X509) *untrusted,
             resp = get_ocsp_resp(cert, issuer, url, timeout); /* may be NULL */
             res = check_ocsp_resp(ts, untrusted, cert, issuer, resp);
             OCSP_RESPONSE_free(resp); /* TODO cache resp instead */
+            if (ocsp_url != NULL && strcmp(ocsp_url, url) == 0)
+                n--; /* ignore duplicate fallback URL */
         }
     }
  end:
-    X509_email_free(aias); /* sk_OPENSSL_STRING_pop_free(aias, OPENSSL_free) */
+    X509_email_free(ocsps);/* sk_OPENSSL_STRING_pop_free(ocsps, OPENSSL_free) */
     return res;
 }
 
