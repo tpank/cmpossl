@@ -2037,16 +2037,14 @@ static int proxy_connect(OSSL_CMP_CTX *ctx, BIO *bio)
      * HTTP/d.d ddd Reason text\r\n
      */
     /* TODO as the BIO doesn't block, we need to wait that the first line comes in */
-    //mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
 retry:
     mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
-    //sleep(5);
+    sleep(5);
     if (mbuf_len < (int)strlen("HTTP/1.0 200")) {
         BIO_printf(bio_err,
                 "%s: HTTP CONNECT failed, insufficient response "
                 "from proxy (got %d octets)\n", prog, mbuf_len);
         goto retry;
-        goto end;
     }
     if (mbuf[8] != ' ') {
         BIO_printf(bio_err,

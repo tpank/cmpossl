@@ -359,7 +359,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     } else
         (void)ERR_pop_to_mark(); /* discard diagnostic info */
 
-    /* callback can be used to establish wrapping TLS session */
+    /* callback can be used to wrap or prepend TLS session */
     if (ctx->http_cb != NULL) {
         if ((bio = (*ctx->http_cb)(ctx, hbio, 1)) == NULL)
             goto err;
