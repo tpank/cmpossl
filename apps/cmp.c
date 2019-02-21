@@ -339,7 +339,7 @@ OPTIONS cmp_options[] = {
     {"server", OPT_SERVER, 's',
      "address[:port] of CMP server. Default port 8080"},
     {"proxy", OPT_PROXY, 's',
-     "address[:port] of optional HTTP proxy. Default 8080. TLS not supported here."},
+     "address[:port] of optional HTTP(S) proxy. Default port 8080."},
     {OPT_MORE_STR, 0, 0,
      "The env variable 'no_proxy' (or else NO_PROXY) is respected"},
     {"path", OPT_PATH, 's',
@@ -1987,13 +1987,113 @@ static const char *tls_error_hint(unsigned long err)
     }
 }
 
+/* copied from s_client with simplifications and trivial changes */
+#undef BUFSIZZ
+#define BUFSIZZ 1024*8
+static int proxy_connect(OSSL_CMP_CTX *ctx, BIO *bio)
+{
+    char *mbuf = NULL;
+    int mbuf_len = 0;
+    int ret = 0;
+
+    mbuf = app_malloc(BUFSIZZ, "mbuf");
+
+    BIO *fbio = BIO_new(BIO_f_buffer());
+
+    BIO_push(fbio, bio);
+    BIO_printf(fbio, "CONNECT %s:%d HTTP/1.0\r\n", ctx->serverName,
+                                                   ctx->serverPort);
+    /*
+     * Workaround for broken proxies which would otherwise close
+     * the connection when entering tunnel mode (eg Squid 2.6)
+     */
+    BIO_printf(fbio, "Proxy-Connection: Keep-Alive\r\n");
+
+#if 0 /* proxyuser not yet supported */
+    /* Support for basic (base64) proxy authentication */
+    if (proxyuser != NULL) {
+        size_t l;
+        char *proxyauth, *proxyauthenc;
+
+        l = strlen(proxyuser);
+        if (proxypass != NULL)
+            l += strlen(proxypass);
+        proxyauth = app_malloc(l + 2, "Proxy auth string");
+        snprintf(proxyauth, l + 2, "%s:%s", proxyuser, (proxypass != NULL) ? proxypass : "");
+        proxyauthenc = base64encode(proxyauth, strlen(proxyauth));
+        BIO_printf(fbio, "Proxy-Authorization: Basic %s\r\n", proxyauthenc);
+        OPENSSL_clear_free(proxyauth, strlen(proxyauth));
+        OPENSSL_clear_free(proxyauthenc, strlen(proxyauthenc));
+    }
+#endif
+
+    /* Terminate the HTTP CONNECT header */
+    BIO_printf(fbio, "\r\n");
+    (void)BIO_flush(fbio); /* potentially need to retry when non-blocking */
+    /*
+     * The first line is the HTTP response.  According to RFC 7230,
+     * it's formated exactly like this:
+     *
+     * HTTP/d.d ddd Reason text\r\n
+     */
+    /* TODO as the BIO doesn't block, we need to wait that the first line comes in */
+    //mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
+retry:
+    mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
+    //sleep(5);
+    if (mbuf_len < (int)strlen("HTTP/1.0 200")) {
+        BIO_printf(bio_err,
+                "%s: HTTP CONNECT failed, insufficient response "
+                "from proxy (got %d octets)\n", prog, mbuf_len);
+        goto retry;
+        goto end;
+    }
+    if (mbuf[8] != ' ') {
+        BIO_printf(bio_err,
+                "%s: HTTP CONNECT failed, incorrect response "
+                "from proxy\n", prog);
+        goto end;
+    } else if (mbuf[9] != '2') {
+        BIO_printf(bio_err, "%s: HTTP CONNECT failed: %s ", prog,
+                &mbuf[9]);
+        goto end;
+    }
+
+    /* Read past all following headers */
+    do {
+        mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
+    } while (mbuf_len > 2);
+
+    ret = 1;
+end:
+    (void)BIO_flush(fbio);
+    BIO_pop(fbio);
+    BIO_free(fbio);
+    OPENSSL_free(mbuf);
+    return ret;
+}
+
+
 static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
 {
     SSL_CTX *ssl_ctx = OSSL_CMP_CTX_get_http_cb_arg(ctx);
+    SSL *ssl;
     BIO *sbio = NULL;
+
+    if (ctx->proxyName != NULL && ctx->proxyPort && proxy_connect(ctx, hbio))
+        return NULL;
+
+    if ((sbio = BIO_new(BIO_f_ssl())) == NULL)
+        return NULL;
     if (detail == 1) { /* connecting */
-        sbio = BIO_new_ssl(OSSL_CMP_CTX_get_http_cb_arg(ctx), 1/* client */);
-        hbio = sbio != NULL ? BIO_push(sbio, hbio): NULL;
+        if ((ssl = SSL_new(OSSL_CMP_CTX_get_http_cb_arg(ctx))) == NULL) {
+            BIO_free(sbio);
+            return NULL;
+        }
+        SSL_set_connect_state(ssl);
+        BIO_set_ssl(sbio, ssl, BIO_CLOSE);
+
+        hbio = BIO_push(sbio, hbio);
     } else { /* disconnecting */
         const char *hint = tls_error_hint(detail);
         if (hint != NULL)
@@ -3216,10 +3316,6 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     if (opt_tls_used) {
         SSL_CTX *ssl_ctx;
 
-        if (opt_proxy != NULL) {
-            OSSL_CMP_err(ctx, "sorry, TLS not yet supported via proxy");
-            goto err;
-        }
         ssl_ctx =
             setup_ssl_ctx(e, OSSL_CMP_CTX_get0_untrusted_certs(ctx), all_crls);
         if (ssl_ctx == NULL)

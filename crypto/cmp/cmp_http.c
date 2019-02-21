@@ -346,11 +346,6 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     if ((hbio = CMP_new_http_bio(ctx)) == NULL)
         goto err;
-    if (ctx->http_cb != NULL) {
-        if ((bio = (*ctx->http_cb)(ctx, hbio, 1)) == NULL)
-            goto err;
-        hbio = bio;
-    }
 
     /* TODO: it looks like bio_connect() is superflous except for maybe
        better error/timeout handling and reporting? Remove next 9 lines? */
@@ -364,6 +359,13 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     } else
         (void)ERR_pop_to_mark(); /* discard diagnostic info */
 
+    /* callback can be used to establish wrapping TLS session */
+    if (ctx->http_cb != NULL) {
+        if ((bio = (*ctx->http_cb)(ctx, hbio, 1)) == NULL)
+            goto err;
+        hbio = bio;
+    }
+
     pathlen = strlen(ctx->serverName) + strlen(ctx->serverPath) + 33;
     path = (char *)OPENSSL_malloc(pathlen);
     if (path == NULL)
@@ -373,7 +375,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
      * Section 5.1.2 of RFC 1945 states that the absoluteURI form is only
      * allowed when using a proxy
      */
-    if (ctx->proxyName != NULL && ctx->proxyPort != 0)
+    if (ctx->proxyName != NULL && ctx->proxyPort != 0) /* TODO: ! if TLS through proxy */
         pos = BIO_snprintf(path, pathlen-1, "http://%s:%d",
                            ctx->serverName, ctx->serverPort);
 
