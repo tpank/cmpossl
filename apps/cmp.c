@@ -442,7 +442,7 @@ OPTIONS cmp_options[] = {
     {"server", OPT_SERVER, 's',
      "address[:port] of CMP server. Default port 8080"},
     {"proxy", OPT_PROXY, 's',
-     "address[:port] of optional HTTP proxy. Default 8080. TLS not supported here."},
+     "address[:port] of optional HTTP(S) proxy. Default port 8080."},
     {OPT_MORE_STR, 0, 0,
      "The env variable 'no_proxy' (or else NO_PROXY) is respected"},
     {"path", OPT_PATH, 's',
@@ -2207,13 +2207,118 @@ static const char *tls_error_hint(unsigned long err)
     }
 }
 
+/* copied from s_client with simplifications and trivial changes */
+#undef BUFSIZZ
+#define BUFSIZZ 1024*8
+static int proxy_connect(OSSL_CMP_CTX *ctx, BIO *bio)
+{
+    char *mbuf = app_malloc(BUFSIZZ, "mbuf");
+    int mbuf_len = 0;
+    int ret = 0;
+    BIO *fbio = BIO_new(BIO_f_buffer());
+
+    if (mbuf == NULL || fbio == NULL) {
+        BIO_printf(bio_err, "%s: out of memory", prog);
+        goto end;
+    }
+    BIO_push(fbio, bio);
+    /* CONNECT seems only to be specified for HTTP/1.1 in RFC 2817/7231 */
+    BIO_printf(fbio, "CONNECT %s:%d HTTP/1.1\r\n", ctx->serverName,
+                                                   ctx->serverPort);
+    /*
+     * Workaround for broken proxies which would otherwise close
+     * the connection when entering tunnel mode (eg Squid 2.6)
+     */
+    BIO_printf(fbio, "Proxy-Connection: Keep-Alive\r\n");
+
+#if 0 /* proxyuser not yet supported */
+    /* Support for basic (base64) proxy authentication */
+    if (proxyuser != NULL) {
+        size_t l;
+        char *proxyauth, *proxyauthenc;
+
+        l = strlen(proxyuser);
+        if (proxypass != NULL)
+            l += strlen(proxypass);
+        proxyauth = app_malloc(l + 2, "Proxy auth string");
+        snprintf(proxyauth, l + 2, "%s:%s", proxyuser, (proxypass != NULL) ? proxypass : "");
+        proxyauthenc = base64encode(proxyauth, strlen(proxyauth));
+        BIO_printf(fbio, "Proxy-Authorization: Basic %s\r\n", proxyauthenc);
+        OPENSSL_clear_free(proxyauth, strlen(proxyauth));
+        OPENSSL_clear_free(proxyauthenc, strlen(proxyauthenc));
+    }
+#endif
+    BIO_printf(fbio, "\r\n");
+flush_retry:
+    if(!BIO_flush(fbio))
+        /* potentially needs to be retried if BIO is non-blocking */
+        if (BIO_should_retry(fbio))
+                goto flush_retry;
+retry:
+    mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
+    /* as the BIO doesn't block, we need to wait that the first line comes in */
+    if (mbuf_len < (int)strlen("HTTP/1.1 200")) {
+        goto retry;
+    }
+    /* RFC 7231 4.3.6: any 2xx status code is valid */
+    if (strncmp(mbuf, "HTTP/", strlen("HTTP/1.1 2") != 0)) {
+        BIO_printf(bio_err, "%s: HTTP CONNECT failed, non-HTTP response\n",
+                   prog);
+        goto end;
+    }
+    if (strncmp(&mbuf[5], "1.1 ", 4) != 0) {
+        BIO_printf(bio_err, "%s: HTTP CONNECT failed, bad HTTP version\n",
+                   prog);
+        goto end;
+    }
+    if (mbuf[9] != '2') {
+        BIO_printf(bio_err, "%s: HTTP CONNECT failed: %.*s ",
+                   prog, mbuf_len-9, &mbuf[9]);
+        goto end;
+    }
+
+    /* TODO: this does not necessarily catch the case when the full HTTP
+             response came in in more than a single TCP message */
+    /* Read past all following headers */
+    do {
+        mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
+    } while (mbuf_len > 2);
+
+    ret = 1;
+end:
+    if (fbio != NULL) {
+        (void)BIO_flush(fbio);
+        BIO_pop(fbio);
+        BIO_free(fbio);
+    }
+    OPENSSL_free(mbuf);
+    return ret;
+}
+
+
 static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
 {
     SSL_CTX *ssl_ctx = OSSL_CMP_CTX_get_http_cb_arg(ctx);
     BIO *sbio = NULL;
+
     if (detail == 1) { /* connecting */
-        sbio = BIO_new_ssl(OSSL_CMP_CTX_get_http_cb_arg(ctx), 1/* client */);
-        hbio = sbio != NULL ? BIO_push(sbio, hbio): NULL;
+        SSL *ssl;
+
+        if ((ctx->proxyName != NULL && ctx->proxyPort != 0
+             && !proxy_connect(ctx, hbio))
+            || (sbio = BIO_new(BIO_f_ssl())) == NULL) {
+            hbio = NULL;
+            goto end;
+        }
+        if ((ssl = SSL_new(ssl_ctx)) == NULL) {
+            BIO_free(sbio);
+            hbio = sbio = NULL;
+            goto end;
+        }
+        SSL_set_connect_state(ssl);
+        BIO_set_ssl(sbio, ssl, BIO_CLOSE);
+
+        hbio = BIO_push(sbio, hbio);
     } else { /* disconnecting */
         const char *hint = tls_error_hint(detail);
         if (hint != NULL)
@@ -2221,6 +2326,7 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
         /* as a workaround for OpenSSL double free, do not pop the sbio, but
            rely on BIO_free_all() done by OSSL_CMP_MSG_http_perform() */
     }
+ end:
     if (ssl_ctx != NULL) {
         X509_STORE *ts = SSL_CTX_get_cert_store(ssl_ctx);
         if (ts != NULL) {
@@ -3475,10 +3581,6 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     if (opt_tls_used) {
         SSL_CTX *ssl_ctx;
 
-        if (opt_proxy != NULL) {
-            OSSL_CMP_err(ctx, "sorry, TLS not yet supported via proxy");
-            goto err;
-        }
         ssl_ctx =
             setup_ssl_ctx(e, OSSL_CMP_CTX_get0_untrusted_certs(ctx), all_crls);
         if (ssl_ctx == NULL)
