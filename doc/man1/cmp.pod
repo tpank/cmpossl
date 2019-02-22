@@ -266,9 +266,8 @@ else C<digitalSignature> must be allowed for signer certificate.
 
 =item B<-unprotectederrors>
 
-Accept unprotected messages by the server even if they should have been
-protected.  This applies to the following message types received from the
-server:
+Accept missing or invalid protection for responses received from the server.
+This applies to the following message types:
 
 =over 4
 
