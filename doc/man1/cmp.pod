@@ -267,8 +267,9 @@ else C<digitalSignature> must be allowed for signer certificate.
 =item B<-unprotectederrors>
 
 Accept unprotected messages by the server even if they should have been
-protected.  This applies to the following message types received from the
-server:
+protected.  Unprotected means no protection indicated in the PKIMessage header,
+or protection which was not successfully validated.  This option applies to the
+following message types received from the server:
 
 =over 4
 

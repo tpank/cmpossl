@@ -1724,22 +1724,18 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
         return -1;
 
     /* validate message protection */
-    if (msg->header->protectionAlg != 0) {
-        if (!OSSL_CMP_validate_msg(ctx, msg)) {
-            /* validation failed */
-             CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
-                    CMP_R_ERROR_VALIDATING_PROTECTION);
-             return -1;
-         }
-    } else {
+    if (!OSSL_CMP_validate_msg(ctx, msg)) {
+        /* validation failed */
+        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
+                CMP_R_ERROR_VALIDATING_PROTECTION);
         /* detect explicitly permitted exceptions */
         if (allow_unprotected == NULL ||
-            !(*allow_unprotected)(ctx, callback_arg, msg)) {
-            CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
-                   CMP_R_MISSING_PROTECTION);
+                !(*allow_unprotected)(ctx, callback_arg, msg)) {
+            CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED, CMP_R_MISSING_PROTECTION);
             return -1;
+        } else {
+            OSSL_CMP_warn(ctx, "received PKIMessage has no valid protection");
         }
-        OSSL_CMP_warn(ctx, "received message is not protected");
     }
 
     /* check CMP version number in header */
