@@ -1992,14 +1992,15 @@ static const char *tls_error_hint(unsigned long err)
 #define BUFSIZZ 1024*8
 static int proxy_connect(OSSL_CMP_CTX *ctx, BIO *bio)
 {
-    char *mbuf = NULL;
+    char *mbuf = app_malloc(BUFSIZZ, "mbuf");
     int mbuf_len = 0;
     int ret = 0;
-
-    mbuf = app_malloc(BUFSIZZ, "mbuf");
-
     BIO *fbio = BIO_new(BIO_f_buffer());
 
+    if (mbuf == NULL || fbio == NULL) {
+        BIO_printf(bio_err, "%s: out of memory", prog);
+        goto end;
+    }
     BIO_push(fbio, bio);
     BIO_printf(fbio, "CONNECT %s:%d HTTP/1.0\r\n", ctx->serverName,
                                                    ctx->serverPort);
@@ -2039,21 +2040,22 @@ static int proxy_connect(OSSL_CMP_CTX *ctx, BIO *bio)
     /* TODO as the BIO doesn't block, we need to wait that the first line comes in */
 retry:
     mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
+#if 0
     sleep(5);
+#endif
     if (mbuf_len < (int)strlen("HTTP/1.0 200")) {
         BIO_printf(bio_err,
-                "%s: HTTP CONNECT failed, insufficient response "
-                "from proxy (got %d octets)\n", prog, mbuf_len);
+                "%s: HTTP CONNECT failed, insufficient response from proxy (got %d octets)\n",
+                   prog, mbuf_len);
         goto retry;
     }
     if (mbuf[8] != ' ') {
         BIO_printf(bio_err,
-                "%s: HTTP CONNECT failed, incorrect response "
-                "from proxy\n", prog);
+                "%s: HTTP CONNECT failed, incorrect response from proxy\n",
+                   prog);
         goto end;
     } else if (mbuf[9] != '2') {
-        BIO_printf(bio_err, "%s: HTTP CONNECT failed: %s ", prog,
-                &mbuf[9]);
+        BIO_printf(bio_err, "%s: HTTP CONNECT failed: %s ", prog, &mbuf[9]);
         goto end;
     }
 
@@ -2064,9 +2066,11 @@ retry:
 
     ret = 1;
 end:
-    (void)BIO_flush(fbio);
-    BIO_pop(fbio);
-    BIO_free(fbio);
+    if (fbio != NULL) {
+        (void)BIO_flush(fbio);
+        BIO_pop(fbio);
+        BIO_free(fbio);
+    }
     OPENSSL_free(mbuf);
     return ret;
 }
@@ -2075,18 +2079,21 @@ end:
 static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
 {
     SSL_CTX *ssl_ctx = OSSL_CMP_CTX_get_http_cb_arg(ctx);
-    SSL *ssl;
     BIO *sbio = NULL;
 
-    if (ctx->proxyName != NULL && ctx->proxyPort && proxy_connect(ctx, hbio))
-        return NULL;
-
-    if ((sbio = BIO_new(BIO_f_ssl())) == NULL)
-        return NULL;
     if (detail == 1) { /* connecting */
-        if ((ssl = SSL_new(OSSL_CMP_CTX_get_http_cb_arg(ctx))) == NULL) {
+        SSL *ssl;
+
+        if ((ctx->proxyName != NULL && ctx->proxyPort != 0
+             && !proxy_connect(ctx, hbio))
+            || (sbio = BIO_new(BIO_f_ssl())) == NULL) {
+            hbio = NULL;
+            goto end;
+        }
+        if ((ssl = SSL_new(ssl_ctx)) == NULL) {
             BIO_free(sbio);
-            return NULL;
+            hbio = sbio = NULL;
+            goto end;
         }
         SSL_set_connect_state(ssl);
         BIO_set_ssl(sbio, ssl, BIO_CLOSE);
@@ -2099,6 +2106,7 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
         /* as a workaround for OpenSSL double free, do not pop the sbio, but
            rely on BIO_free_all() done by OSSL_CMP_MSG_http_perform() */
     }
+ end:
     if (ssl_ctx != NULL) {
         X509_STORE *ts = SSL_CTX_get_cert_store(ssl_ctx);
         if (ts != NULL) {

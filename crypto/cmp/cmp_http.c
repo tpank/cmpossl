@@ -350,14 +350,17 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     /* TODO: it looks like bio_connect() is superflous except for maybe
        better error/timeout handling and reporting? Remove next 9 lines? */
     /* tentatively set error, which allows accumulating diagnostic info */
+#if 1
     (void)ERR_set_mark();
     CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);
     rv = bio_connect(hbio, ctx->msgtimeout);
     if (rv <= 0) {
         err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_ERROR_CONNECTING;
         goto err;
-    } else
+    } else {
         (void)ERR_pop_to_mark(); /* discard diagnostic info */
+    }
+#endif
 
     /* callback can be used to wrap or prepend TLS session */
     if (ctx->http_cb != NULL) {
@@ -375,7 +378,8 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
      * Section 5.1.2 of RFC 1945 states that the absoluteURI form is only
      * allowed when using a proxy
      */
-    if (ctx->proxyName != NULL && ctx->proxyPort != 0) /* TODO: ! if TLS through proxy */
+    if (ctx->http_cb == NULL /* no TLS */
+        && ctx->proxyName != NULL && ctx->proxyPort != 0)
         pos = BIO_snprintf(path, pathlen-1, "http://%s:%d",
                            ctx->serverName, ctx->serverPort);
 
