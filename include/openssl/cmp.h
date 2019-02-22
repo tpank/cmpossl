@@ -491,8 +491,8 @@ char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
 STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
                                           const X509 *cert);
 int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-        int callback_arg,
-        int (*allow_unprot)(const OSSL_CMP_CTX *, int, const OSSL_CMP_MSG *));
+    int callback_arg,
+    int (*allow_unprot)(const OSSL_CMP_CTX *, int, int, const OSSL_CMP_MSG *));
 
 int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                     const ASN1_OCTET_STRING *src);
