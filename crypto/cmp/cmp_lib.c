@@ -1715,7 +1715,7 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store)
 int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                                 int callback_arg,
                                 int (*allow_unprotected)(const OSSL_CMP_CTX *,
-                                                         int,
+                                                         int, int,
                                                          const OSSL_CMP_MSG *))
 {
     int rcvd_type;
@@ -1725,7 +1725,9 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
 
     /* validate message protection */
     if (msg->header->protectionAlg != 0) {
-        if (!OSSL_CMP_validate_msg(ctx, msg)) {
+        if (!OSSL_CMP_validate_msg(ctx, msg) &&
+            (allow_unprotected == NULL ||
+             !(*allow_unprotected)(ctx, callback_arg, 1, msg))) {
             /* validation failed */
              CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                     CMP_R_ERROR_VALIDATING_PROTECTION);
@@ -1734,7 +1736,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     } else {
         /* detect explicitly permitted exceptions */
         if (allow_unprotected == NULL ||
-            !(*allow_unprotected)(ctx, callback_arg, msg)) {
+            !(*allow_unprotected)(ctx, callback_arg, 0, msg)) {
             CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                    CMP_R_MISSING_PROTECTION);
             return -1;
