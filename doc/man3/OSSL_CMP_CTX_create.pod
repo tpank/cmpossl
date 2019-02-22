@@ -300,9 +300,10 @@ RFC 4210.
         Else, 'digitalSignature' must be allowed by CMP signer certificates.
 
     OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS
-        Accept unprotected error responses: regular error messages as well as
-        certificate responses (IP/CP/KUP) and revocation responses (RP)
-        with rejection.
+        Accept unprotected error responses which are either explicitly
+        unprotected or where protection verification failed. Applies to regular
+        error messages as well as certificate responses (IP/CP/KUP) and
+        revocation responses (RP) with rejection.
 B<WARNING:> This setting leads to unspecified behavior and it is meant
 exclusively to allow interoperability with server implementations violating
 RFC 4210.
