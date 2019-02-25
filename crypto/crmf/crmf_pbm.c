@@ -13,7 +13,7 @@
 
 
 #include <openssl/rand.h>
-#include <openssl/hmac.h>
+#include <openssl/evp.h>
 
 #include "crmf_int.h"
 
@@ -114,13 +114,13 @@ OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
  * |sec| key to use
  * |seclen| length of the key
  * |mac| pointer to the computed mac, will be set on success
- * |maclen| if not NULL, will set variable to the length of the mac on success
+ * |maclen| will set variable to the length of the mac on success
  * returns 1 on success, 0 on error
  */
 int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
                       const unsigned char *msg, size_t msglen,
                       const unsigned char *sec, size_t seclen,
-                      unsigned char **mac, unsigned int *maclen)
+                      unsigned char **mac, size_t *maclen)
 {
     int mac_nid, hmac_md_nid = NID_undef;
     const EVP_MD *m = NULL;
@@ -130,6 +130,7 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
     int64_t iterations;
     unsigned char *mac_res = 0;
     int ok = 0;
+    EVP_MAC_CTX *mctx = NULL;
 
     if (mac == NULL || pbmp == NULL || pbmp->mac == NULL
         || pbmp->mac->algorithm == NULL || msg == NULL || sec == NULL) {
@@ -196,12 +197,21 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
         CRMFerr(CRMF_F_OSSL_CRMF_PBM_NEW, CRMF_R_UNSUPPORTED_ALGORITHM);
         goto err;
     }
-    if (HMAC(m, basekey, bklen, msg, msglen, mac_res, maclen) != NULL)
-        ok = 1;
+
+    if ((mctx = EVP_MAC_CTX_new(EVP_get_macbyname("HMAC"))) == NULL
+        || EVP_MAC_ctrl(mctx, EVP_MAC_CTRL_SET_MD, m) <= 0
+        || EVP_MAC_ctrl(mctx, EVP_MAC_CTRL_SET_KEY, basekey, bklen) <= 0
+        || !EVP_MAC_init(mctx)
+        || !EVP_MAC_update(mctx, msg, msglen)
+        || !EVP_MAC_final(mctx, mac_res, maclen))
+        goto err;
+
+    ok = 1;
 
  err:
     /* cleanup */
     OPENSSL_cleanse(basekey, bklen);
+    EVP_MAC_CTX_free(mctx);
     EVP_MD_CTX_free(ctx);
 
     if (ok == 1) {
