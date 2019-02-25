@@ -213,9 +213,10 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         return 0;
 
     /* catch if received message type isn't one of expected ones (e.g. error) */
-    if (rcvd_type != expected_type &&
+    if (rcvd_type != expected_type
         /* as an answer to polling, there could be IP/CP/KUP */
-        !(expected_type == OSSL_CMP_PKIBODY_POLLREP && IS_ENOLLMENT(rcvd_type))) {
+        && !(expected_type == OSSL_CMP_PKIBODY_POLLREP
+          && IS_ENOLLMENT(rcvd_type))) {
         CMPerr(CMP_F_SEND_RECEIVE_CHECK,
                rcvd_type == OSSL_CMP_PKIBODY_ERROR ? CMP_R_RECEIVED_ERROR :
                CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
@@ -250,7 +251,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
     OSSL_CMP_POLLREP *pollRep = NULL;
 
     OSSL_CMP_info(ctx,
-                  "received 'waiting' PKIStatus, starting to poll for response");
+                 "received 'waiting' PKIStatus, starting to poll for response");
     for (;;) {
         if ((preq = OSSL_CMP_pollReq_new(ctx, rid)) == NULL)
             goto err;
@@ -333,7 +334,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
  * send certConf for IR, CR or KUR sequences and check response
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info, const char *txt)
+int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,const char *txt)
 {
     OSSL_CMP_MSG *certConf = NULL;
     OSSL_CMP_MSG *PKIconf = NULL;
@@ -595,8 +596,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         (void)OSSL_CMP_exchange_error(ctx, OSSL_CMP_PKISTATUS_rejection,
                                       fail_info, txt);
         /*
-         * cannot flag fail_info earlier as send_receive_check() indirectly calls
-         * ERR_clear_error()
+         * cannot flag fail_info earlier as send_receive_check() indirectly
+         * calls ERR_clear_error()
          */
         CMPerr(func, CMP_R_CERTIFICATE_NOT_ACCEPTED);
         ERR_add_error_data(1, txt);
@@ -648,7 +649,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
  * returns pointer to received certificate, or NULL if none was received
  */
 static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
-                            int req_type, int req_err, int rep_type, int rep_err)
+                            int req_type, int req_err, int rep_type,
+                            int rep_err)
 {
     OSSL_CMP_MSG *req = NULL;
     OSSL_CMP_MSG *rep = NULL;
@@ -661,7 +663,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
     ctx->end_time = time(NULL) + ctx->totaltimeout;
     ctx->lastPKIStatus = -1;
 
-    /* The check if all necessary options are set done by OSSL_CMP_certreq_new */
+    /* check if all necessary options are set done by OSSL_CMP_certreq_new */
     if ((req = OSSL_CMP_certreq_new(ctx, req_type, req_err)) == NULL)
         goto err;
 
