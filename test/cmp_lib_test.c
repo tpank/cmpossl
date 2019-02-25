@@ -29,7 +29,8 @@ typedef struct test_fixture {
     OSSL_CMP_CTX *cmp_ctx;
     OSSL_CMP_MSG *msg;
     int callback_arg;
-    int (*allow_unprotected_cb) (const OSSL_CMP_CTX *, int, const OSSL_CMP_MSG *);
+    int (*allow_unprotected_cb) (const OSSL_CMP_CTX *, int, int,
+                                 const OSSL_CMP_MSG *);
     X509 *cert;
     STACK_OF(X509) *certs;
     STACK_OF(X509) *chain;
@@ -161,10 +162,10 @@ static int test_cmp_pkiheader_init_no_ref_no_subject(void)
 }
 
 
-static int allow_unprotected(const OSSL_CMP_CTX *ctx, int arg,
+static int allow_unprotected(const OSSL_CMP_CTX *ctx, int arg2, int arg3,
                              const OSSL_CMP_MSG *msg)
 {
-    return arg;
+    return 1;
 }
 
 static int execute_protection_test(CMP_LIB_TEST_FIXTURE *fixture)

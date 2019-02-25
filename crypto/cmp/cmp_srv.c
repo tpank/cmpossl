@@ -470,10 +470,11 @@ static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
  */
 static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                                  int accept_unprotected_requests,
+                                 int invalid_protection,
                                  const OSSL_CMP_MSG *req)
 {
-    if (accept_unprotected_requests) {
-        OSSL_CMP_warn(ctx, "ignoring missing protection of request message");
+    if (accept_unprotected_requests || invalid_protection) {
+        OSSL_CMP_warn(ctx, "ignoring missing/invalid protection of request message");
         return 1;
     }
     if (req->body->type == OSSL_CMP_PKIBODY_ERROR && ctx->unprotectedErrors) {
