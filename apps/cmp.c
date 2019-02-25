@@ -2315,6 +2315,9 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
             hbio = sbio = NULL;
             goto end;
         }
+
+        SSL_set_tlsext_host_name(ssl, ctx->serverName);
+
         SSL_set_connect_state(ssl);
         BIO_set_ssl(sbio, ssl, BIO_CLOSE);
 
