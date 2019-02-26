@@ -114,7 +114,7 @@ OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
  * |sec| key to use
  * |seclen| length of the key
  * |mac| pointer to the computed mac, will be set on success
- * |maclen| will set variable to the length of the mac on success
+ * |maclen| if not NULL, will set variable to the length of the mac on success
  * returns 1 on success, 0 on error
  */
 int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
