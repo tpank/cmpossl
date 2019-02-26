@@ -386,7 +386,7 @@ static int CRMF_poposigningkey_init(OSSL_CRMF_POPOSIGNINGKEY *ps,
                                     EVP_PKEY *pkey, int dgst)
 {
     int len;
-    size_t crlen, max_sig_size;
+    size_t crlen;
     size_t siglen;
     unsigned char *crder = NULL, *sig = NULL;
     int alg_nid = 0;
