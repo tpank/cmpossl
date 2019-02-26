@@ -426,17 +426,13 @@ static int CRMF_poposigningkey_init(OSSL_CRMF_POPOSIGNINGKEY *ps,
                          V_ASN1_NULL, NULL)
         || (ctx = EVP_MD_CTX_new()) == NULL
         || EVP_DigestSignInit(ctx, NULL, alg, NULL, pkey) <= 0
-        || EVP_DigestUpdate(ctx, crder, crlen) <= 0) {
+        || EVP_DigestSignUpdate(ctx, crder, crlen) <= 0
+        || EVP_DigestSignFinal(ctx, NULL, &siglen) <= 0) {
         CRMFerr(CRMF_F_CRMF_POPOSIGNINGKEY_INIT, CRMF_R_ERROR);
         goto err;
     }
-    if (EVP_DigestSignFinal(ctx, NULL, &siglen) > 0) {
-        if ((sig = OPENSSL_malloc(siglen)) == NULL) {
-            CRMFerr(CRMF_F_CRMF_POPOSIGNINGKEY_INIT, ERR_R_MALLOC_FAILURE);
-            goto err;
-        }
-    } else {
-        CRMFerr(CRMF_F_CRMF_POPOSIGNINGKEY_INIT, CRMF_R_ERROR);
+    if ((sig = OPENSSL_malloc(siglen)) == NULL) {
+        CRMFerr(CRMF_F_CRMF_POPOSIGNINGKEY_INIT, ERR_R_MALLOC_FAILURE);
         goto err;
     }
     if (EVP_DigestSignFinal(ctx, sig, &siglen) <= 0
