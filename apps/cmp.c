@@ -2398,6 +2398,7 @@ static int set_gennames(char *names, int type,
                        OSSL_CMP_CTX *ctx, const char *desc)
 {
     char *next;
+
     for (; names != NULL; names = next) {
         GENERAL_NAME *n;
         next = next_item(names);
@@ -2407,9 +2408,9 @@ static int set_gennames(char *names, int type,
                       OSSL_CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL, 1);
             continue;
         }
-        if (type != GEN_DNS || isdigit(names[0])) {
-            n = a2i_GENERAL_NAME(NULL, NULL, NULL,
-                                 type != GEN_DNS ? type : GEN_IPADD, names, 0);
+
+        if (type != GEN_DNS) {
+            n = a2i_GENERAL_NAME(NULL, NULL, NULL, type, names, 0);
         } else { /* try IP address first, then domain name */
             (void)ERR_set_mark();
             n = a2i_GENERAL_NAME(NULL, NULL, NULL, GEN_IPADD, names, 0);
