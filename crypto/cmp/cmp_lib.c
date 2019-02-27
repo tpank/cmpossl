@@ -630,22 +630,22 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
         /* TODO combine this with large parts of CRMF_poposigningkey_init() */
         /* EVP_DigestSignInit() checks that pkey type is correct for the alg */
 
-        if (OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
-            && (md = EVP_get_digestbynid(md_NID))) {
-            if ((protection = OPENSSL_malloc(EVP_PKEY_size(pkey))) == NULL
-                || (evp_ctx = EVP_MD_CTX_create()) == NULL
-                || EVP_DigestSignInit(evp_ctx, NULL, md, NULL, pkey) <= 0
-                || EVP_DigestSignUpdate(evp_ctx, prot_part_der,
-                                        prot_part_der_len) <= 0
-                || EVP_DigestSignFinal(evp_ctx, protection, &sig_len) <= 0)
-                goto err;
-        } else {
+        if (!OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
+            || (md = EVP_get_digestbynid(md_NID)) == NULL) {
             CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_UNKNOWN_ALGORITHM_ID);
-            goto err;
+            goto end;
         }
+        if ((evp_ctx = EVP_MD_CTX_create()) == NULL
+            || EVP_DigestSignInit(evp_ctx, NULL, md, NULL, pkey) <= 0
+            || EVP_DigestSignUpdate(evp_ctx, prot_part_der,
+                                    prot_part_der_len) <= 0
+            || EVP_DigestSignFinal(evp_ctx, NULL, &sig_len) <= 0
+            || (protection = OPENSSL_malloc(sig_len)) == NULL
+            || EVP_DigestSignFinal(evp_ctx, protection, &sig_len) <= 0)
+                goto err;
     } else {
         CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_INVALID_ARGS);
-        goto err;
+        goto end;
     }
 
     if ((prot = ASN1_BIT_STRING_new()) == NULL)
@@ -658,7 +658,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
  err:
     if (prot == NULL)
         CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_ERROR_CALCULATING_PROTECTION);
-
+ end:
     /* cleanup */
     OSSL_CRMF_PBMPARAMETER_free(pbm);
     EVP_MD_CTX_destroy(evp_ctx);
