@@ -103,7 +103,7 @@ struct OSSL_cmp_ctx_st {
     int disableConfirm;  /* disable confirmation messages in IR/KUR/CR
                             message exchanges to cope with broken server */
     int unprotectedSend; /* send unprotected PKI messages */
-    int unprotectedErrors; /* accept unprotected error responses */
+    int unprotectedErrors; /* accept negative responses with no/invalid prot. */
     int ignore_keyusage; /* ignore key usage entry in certs */
     int lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP, or -1 */
     /* TODO: this should be a stack since there could be more than one */
