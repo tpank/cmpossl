@@ -767,7 +767,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     /* check any present CertId in optional revCerts field */
     if (rrep->certId != NULL) {
         OSSL_CRMF_CERTID *cid;
-        OSSL_CRMF_CERTTEMPLATE *tmpl = 
+        OSSL_CRMF_CERTTEMPLATE *tmpl =
             sk_OSSL_CMP_REVDETAILS_value(rr->body->value.rr, rsid)->certDetails;
         X509_NAME *issuer = OSSL_CRMF_CERTTEMPLATE_get0_issuer(tmpl);
         ASN1_INTEGER *serial = OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(tmpl);

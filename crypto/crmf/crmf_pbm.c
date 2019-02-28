@@ -163,7 +163,7 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
         goto err;
     }
 
-    /* compute the basekey of the salted secret */
+    /* compute the base key of the salted secret */
     if (!EVP_DigestInit_ex(ctx, m, NULL))
         goto err;
     /* first the secret */

@@ -264,7 +264,7 @@ int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb)
 }
 
 /*
- * Set argument, respecively a pointer to a structure containing arguments,
+ * Set argument, respectively a pointer to a structure containing arguments,
  * optionally to be used by the certConf callback
  * returns 1 on success, 0 on error
  */
@@ -279,7 +279,7 @@ int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void* arg)
 }
 
 /*
- * Get argument, respecively the pointer to a structure containing arguments,
+ * Get argument, respectively the pointer to a structure containing arguments,
  * optionally to be used by certConf callback
  * returns callback argument set previously (NULL if not set or on error)
  */
@@ -446,7 +446,7 @@ int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID)
         goto err;
 
     if ((policy = OBJ_txt2obj(policyOID, 1)) == 0)
-        return -1; /* parse eror */
+        return -1; /* parse error */
 
     if ((ctx->policies == NULL) &&
         ((ctx->policies = CERTIFICATEPOLICIES_new()) == NULL))
@@ -474,7 +474,7 @@ int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_ITAV *itav
 }
 
 /*
- * add an itav for the body of outgoing generalmessages
+ * add an itav for the body of outgoing general messages
  */
 int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_ITAV *itav)
 {
