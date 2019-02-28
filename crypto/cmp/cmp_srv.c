@@ -40,7 +40,7 @@ struct OSSL_cmp_srv_ctx_st {
     int checkAfterTime;         /* time to wait for the next poll in seconds */
     int grantImplicitConfirm;   /* Grant implicit confirmation if requested */
     int sendError;              /* Always send error if true */
-    int sendUnprotectedErrors;  /* Send error and rejection msgs uprotected */
+    int sendUnprotectedErrors;  /* Send error and rejection msgs unprotected */
     int acceptUnprotectedRequests; /* Accept unprotected request messages */
     int acceptRAVerified;       /* Accept ir/cr/kur with POPO RAVerified */
     int encryptcert;            /* Encrypt certs in cert response message */

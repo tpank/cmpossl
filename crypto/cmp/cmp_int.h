@@ -62,7 +62,7 @@ struct OSSL_cmp_ctx_st {
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
     STACK_OF(X509) *caPubs; /* CA certs received from server (in IP message) */
 #if 0
-    OSSL_CMP_PKIFREETEXT *freeText; /* textis intended for human consumption,
+    OSSL_CMP_PKIFREETEXT *freeText; /* text is intended for human consumption,
                    this may be used to indicate context-specific instructions */
 #endif
     OSSL_CMP_PKIFREETEXT *lastStatusString;
@@ -93,7 +93,7 @@ struct OSSL_cmp_ctx_st {
     int setSubjectAltNameCritical;
     int setPoliciesCritical;
     int digest; /* NID of digest used in MSG_SIG_ALG, defaults to SHA256 */
-    int popoMethod;  /* Proof-of-posession mechanism used.
+    int popoMethod;  /* Proof-of-possession mechanism used.
                         Defaults to signature (POPOsigningKey) */
     int revocationReason; /* Revocation reason code to be included in RR */
     int permitTAInExtraCertsForIR; /* whether to include root certs from
