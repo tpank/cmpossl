@@ -101,8 +101,9 @@ static void message_add_error_data(OSSL_CMP_MSG *msg)
  * evaluate whether there's an standard-violating exception configured for
  * handling errors without protection or with invalid protection
  */
-static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
-                                 int invalid_protection, const OSSL_CMP_MSG *rep)
+static int unprotected_exception(const OSSL_CMP_CTX *ctx,
+                                 const OSSL_CMP_MSG *rep,
+                                 int invalid_protection, int expected_type)
 {
     int rcvd_type = OSSL_CMP_MSG_get_bodytype(rep);
     char *msg_type = NULL;
@@ -205,8 +206,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     }
 
     OSSL_CMP_info(ctx, "got response");
-    if((rcvd_type = OSSL_CMP_MSG_check_received(ctx, *rep, expected_type,
-                                                unprotected_exception)) < 0)
+    if((rcvd_type = OSSL_CMP_MSG_check_received(ctx, *rep, unprotected_exception,
+                                                expected_type)) < 0)
         return 0;
 
     /* catch if received message type isn't one of expected ones (e.g. error) */

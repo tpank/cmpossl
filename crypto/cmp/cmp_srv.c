@@ -41,7 +41,7 @@ struct OSSL_cmp_srv_ctx_st {
     int grantImplicitConfirm;   /* Grant implicit confirmation if requested */
     int sendError;              /* Always send error if true */
     int sendUnprotectedErrors;  /* Send error and rejection msgs unprotected */
-    int acceptUnprotectedRequests; /* Accept unprotected request messages */
+    int acceptUnprotectedRequests; /* Accept requests with no/invalid prot. */
     int acceptRAVerified;       /* Accept ir/cr/kur with POPO RAVerified */
     int encryptcert;            /* Encrypt certs in cert response message */
     /* callbacks for message processing */
@@ -469,12 +469,14 @@ static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
  * Determines whether missing protection is allowed
  */
 static int unprotected_exception(const OSSL_CMP_CTX *ctx,
-                                 int accept_unprotected_requests,
+                                 const OSSL_CMP_MSG *req,
                                  int invalid_protection,
-                                 const OSSL_CMP_MSG *req)
+                                 int accept_unprotected_requests)
 {
-    if (accept_unprotected_requests || invalid_protection) {
-        OSSL_CMP_warn(ctx, "ignoring missing/invalid protection of request message");
+    if (accept_unprotected_requests) {
+        OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN,
+                        "ignoring %s protection of request message",
+                        invalid_protection ? "invalid" : "missing");
         return 1;
     }
     if (req->body->type == OSSL_CMP_PKIBODY_ERROR && ctx->unprotectedErrors) {
@@ -512,9 +514,8 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *req,
         return 0;
     }
 
-    if (OSSL_CMP_MSG_check_received(ctx, req,
-                                      srv_ctx->acceptUnprotectedRequests,
-                                      unprotected_exception) < 0) {
+    if (OSSL_CMP_MSG_check_received(ctx, req, unprotected_exception,
+                                    srv_ctx->acceptUnprotectedRequests) < 0) {
         CMPerr(CMP_F_PROCESS_REQUEST, CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE);
         return 0;
     }

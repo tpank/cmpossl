@@ -71,10 +71,11 @@ OSSL_CMP_X509_STORE_get1_certs
   int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
   STACK_OF(X509) *OSSL_CMP_build_cert_chain(X509_STORE *store,
                                             const X509 *cert);
-  int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *prev,
-                                  const OSSL_CMP_MSG *msg, int callback_arg,
-                                  int (*allow_unprotected)(const OSSL_CMP_CTX *,
-                                  int, int, const OSSL_CMP_MSG *));
+  typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
+                                         const OSSL_CMP_MSG *msg,
+                                         int invalid_protection, int arg);
+  int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
+                                  allow_unprotected_cb_t cb, int cb_arg);
   int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                  const ASN1_OCTET_STRING *src);
   int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
@@ -175,10 +176,13 @@ certificates and optionally the (possible) trust anchor(s).
 
 OSSL_CMP_MSG_check_received() checks for the given message received (i.e.,
 response by server or request from client) whether it has a valid body type,
-its protection can be validated or is absent (allowed only if callback function
-is present and function yields positive result using also supplied argument),
+its protection is accepted,
 its transaction ID matches the one of the previous message (if any), and
 its recipNonce matches the senderNonce of the previous message (if any).
+The message protection is accepted if it is present and can be validated,
+but also if it is absent or invalid and the callback function B<cb> is not NULL
+and yields non-zero result using B<ctx>, B<msg>, a flag whether the message
+protection is present but invalid, and the supplied argument B<cb_arg>.
 If so, learns from the message received the senderNonce and the transaction ID
 if not yet present in the ctx.  It returns the body type (which is >= 0) of the
 message on success, -1 on error.

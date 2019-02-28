@@ -490,9 +490,11 @@ int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
 char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
 STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
                                           const X509 *cert);
+typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
+                                       const OSSL_CMP_MSG *msg, 
+                                       int invalid_protection, int arg);
 int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-    int callback_arg,
-    int (*allow_unprot)(const OSSL_CMP_CTX *, int, int, const OSSL_CMP_MSG *));
+                                allow_unprotected_cb_t cb, int cb_arg);
 
 int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                     const ASN1_OCTET_STRING *src);

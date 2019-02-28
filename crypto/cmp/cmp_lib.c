@@ -1736,10 +1736,8 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store)
  * returns body type (which is >= 0) of the message on success, -1 on error
  */
 int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-                                int callback_arg,
-                                int (*allow_unprotected)(const OSSL_CMP_CTX *,
-                                                         int, int,
-                                                         const OSSL_CMP_MSG *))
+                                allow_unprotected_cb_t allow_unprotected,
+                                int cb_arg)
 {
     int rcvd_type;
 
@@ -1748,18 +1746,18 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
 
     /* validate message protection */
     if (msg->header->protectionAlg != 0) {
+        /* detect explicitly permitted exceptions for invalid protection */
         if (!OSSL_CMP_validate_msg(ctx, msg) &&
-            (allow_unprotected == NULL ||
-             !(*allow_unprotected)(ctx, callback_arg, 1, msg))) {
-            /* validation failed */
+            (allow_unprotected == NULL
+             || !(*allow_unprotected)(ctx, msg, 1, cb_arg))) {
              CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                     CMP_R_ERROR_VALIDATING_PROTECTION);
              return -1;
          }
     } else {
-        /* detect explicitly permitted exceptions */
-        if (allow_unprotected == NULL ||
-            !(*allow_unprotected)(ctx, callback_arg, 0, msg)) {
+        /* detect explicitly permitted exceptions for missing protection */
+        if (allow_unprotected == NULL
+            || !(*allow_unprotected)(ctx, msg, 0, cb_arg)) {
             CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                    CMP_R_MISSING_PROTECTION);
             return -1;
