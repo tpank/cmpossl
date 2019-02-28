@@ -99,34 +99,29 @@ static void message_add_error_data(OSSL_CMP_MSG *msg)
 
 /*
  * evaluate whether there's an standard-violating exception configured for
- * handling unprotected errors
+ * handling errors without protection or with invalid protection
  */
 static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
-                                 const OSSL_CMP_MSG *rep)
+                                 int invalid_protection, const OSSL_CMP_MSG *rep)
 {
-    int exception = 0;
     int rcvd_type = OSSL_CMP_MSG_get_bodytype(rep);
+    char *msg_type = NULL;
 
     if (ctx->unprotectedErrors) {
         if (rcvd_type == OSSL_CMP_PKIBODY_ERROR) {
-            OSSL_CMP_warn(ctx, "ignoring missing protection of error response");
-            exception = 1;
+            msg_type = "error response";
         }
-        if (rcvd_type == OSSL_CMP_PKIBODY_RP &&
+        else if (rcvd_type == OSSL_CMP_PKIBODY_RP &&
             OSSL_CMP_PKISI_PKIStatus_get(
             CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp,
                                                 OSSL_CMP_REVREQSID))
                 == OSSL_CMP_PKISTATUS_rejection) {
-            OSSL_CMP_warn(ctx,
-                          "ignoring missing protection of revocation response message with rejection status");
-            exception = 1;
+            msg_type = "revocation response message with rejection status";
         }
-        if (rcvd_type == OSSL_CMP_PKIBODY_PKICONF) {
-            OSSL_CMP_warn(ctx,
-                          "ignoring missing protection of PKI Confirmation message");
-            exception = 1;
+        else if (rcvd_type == OSSL_CMP_PKIBODY_PKICONF) {
+            msg_type = "PKI Confirmation message";
         }
-        if (rcvd_type == expected_type && IS_ENOLLMENT(rcvd_type)) {
+        else if (rcvd_type == expected_type && IS_ENOLLMENT(rcvd_type)) {
             OSSL_CMP_CERTREPMESSAGE *crepmsg = rep->body->value.ip;
             OSSL_CMP_CERTRESPONSE *crep =
                 CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, -1);
@@ -144,13 +139,15 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
             }
             if (OSSL_CMP_PKISI_PKIStatus_get(crep->status) ==
                 OSSL_CMP_PKISTATUS_rejection) {
-                OSSL_CMP_warn(ctx,
-                              "ignoring missing protection of CertRepMessage with rejection status");
-                exception = 1;
+                msg_type = "CertRepMessage with rejection status";
             }
         }
     }
-    return exception;
+    if (msg_type == NULL)
+        return 0;
+    OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN, "ignoring %s protection of %s",
+                  invalid_protection ? "invalid" : "missing", msg_type);
+    return 1;
 }
 
 
