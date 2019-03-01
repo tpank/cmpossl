@@ -101,8 +101,9 @@ static void message_add_error_data(OSSL_CMP_MSG *msg)
  * evaluate whether there's an standard-violating exception configured for
  * handling errors without protection or with invalid protection
  */
-static int unprotected_exception(const OSSL_CMP_CTX *ctx, int expected_type,
-                                 int invalid_protection, const OSSL_CMP_MSG *rep)
+static int unprotected_exception(const OSSL_CMP_CTX *ctx,
+                                 const OSSL_CMP_MSG *rep,
+                                 int invalid_protection, int expected_type)
 {
     int rcvd_type = OSSL_CMP_MSG_get_bodytype(rep);
     char *msg_type = NULL;
@@ -205,8 +206,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     }
 
     OSSL_CMP_info(ctx, "got response");
-    if((rcvd_type = OSSL_CMP_MSG_check_received(ctx, *rep, expected_type,
-                                                unprotected_exception)) < 0)
+    if((rcvd_type = OSSL_CMP_MSG_check_received(ctx, *rep, unprotected_exception,
+                                                expected_type)) < 0)
         return 0;
 
     /* catch if received message type isn't one of expected ones (e.g. error) */
@@ -290,7 +291,6 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             if (ctx->totaltimeout != 0) { /* total timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
                 int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
-
                 if (time_left <= 0) {
                     CMPerr(CMP_F_POLLFORRESPONSE, CMP_R_TOTAL_TIMEOUT);
                     goto err;
@@ -681,7 +681,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
  * in particular oldCert, the certificate to be revoked.
  *
  * TODO: this function can only revoke one certificate so far,
- * should be possible for several according to 5.3.9
+ * should be possible for several (num_RevDetails > 1) according to 5.3.9
  *
  * The RFC is vague in which PKIStatus should be returned by the server, so we
  * take "accepted, "grantedWithMods", and "revocationWarning" as success,
@@ -696,6 +696,9 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_MSG *rr = NULL;
     OSSL_CMP_MSG *rp = NULL;
+    const int num_RevDetails = 1;
+    const int rsid = OSSL_CMP_REVREQSID;
+    OSSL_CMP_REVREPCONTENT *rrep = NULL;
     OSSL_CMP_PKISI *si = NULL;
     X509 *result = NULL;
 
@@ -709,15 +712,20 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     /* check if all necessary options are set is done in OSSL_CMP_rr_new */
     /* create Revocation Request - ir */
     if ((rr = OSSL_CMP_rr_new(ctx)) == NULL)
-        goto err;
+        goto end;
 
     if (!send_receive_check(ctx, rr, "rr", CMP_F_OSSL_CMP_EXEC_RR_SES,
                             &rp, OSSL_CMP_PKIBODY_RP, CMP_R_RP_NOT_RECEIVED))
-        goto err;
+        goto end;
+
+    rrep = rp->body->value.rp;
+    if (sk_OSSL_CMP_PKISI_num(rrep->status) != num_RevDetails) {
+        CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_WRONG_RP_COMPONENT_COUNT);
+        goto end;
+    }
 
     /* evaluate PKIStatus field */
-    si = CMP_REVREPCONTENT_PKIStatusInfo_get(rp->body->value.rp,
-                                             OSSL_CMP_REVREQSID);
+    si = CMP_REVREPCONTENT_PKIStatusInfo_get(rrep, rsid);
     if (!save_statusInfo(ctx, si))
         goto err;
     switch (OSSL_CMP_PKISI_PKIStatus_get(si)) {
@@ -753,6 +761,39 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         goto err;
     }
 
+    /* check any present CertId in optional revCerts field */
+    if (rrep->certId != NULL) {
+        OSSL_CRMF_CERTID *cid;
+        OSSL_CRMF_CERTTEMPLATE *tmpl =
+            sk_OSSL_CMP_REVDETAILS_value(rr->body->value.rr, rsid)->certDetails;
+        X509_NAME *issuer = OSSL_CRMF_CERTTEMPLATE_get0_issuer(tmpl);
+        ASN1_INTEGER *serial = OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(tmpl);
+
+        if (sk_OSSL_CRMF_CERTID_num(rrep->certId) != num_RevDetails) {
+            CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_WRONG_RP_COMPONENT_COUNT);
+            result = NULL;
+            goto err;
+        }
+        if ((cid = CMP_REVREPCONTENT_CertId_get(rrep, rsid)) == NULL) {
+            result = NULL;
+            goto err;
+        }
+        if (X509_NAME_cmp(issuer, OSSL_CRMF_CERTID_get0_issuer(cid)) != 0
+            || ASN1_INTEGER_cmp(serial,
+                                OSSL_CRMF_CERTID_get0_serialNumber(cid)) != 0) {
+            CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_WRONG_CERTID_IN_RP);
+            result = NULL;
+            goto err;
+        }
+    }
+
+    /* check number of any optionally present crls */
+    if (rrep->crls != NULL && sk_X509_CRL_num(rrep->crls) != num_RevDetails) {
+        CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_WRONG_RP_COMPONENT_COUNT);
+        result = NULL;
+        goto err;
+    }
+
  err:
     /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
     if (result == NULL) {
@@ -764,6 +805,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
             OPENSSL_free(tempbuf);
         }
     }
+ end:
     OSSL_CMP_MSG_free(rr);
     OSSL_CMP_MSG_free(rp);
     return result;

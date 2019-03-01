@@ -62,7 +62,7 @@ struct OSSL_cmp_ctx_st {
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
     STACK_OF(X509) *caPubs; /* CA certs received from server (in IP message) */
 #if 0
-    OSSL_CMP_PKIFREETEXT *freeText; /* textis intended for human consumption,
+    OSSL_CMP_PKIFREETEXT *freeText; /* text is intended for human consumption,
                    this may be used to indicate context-specific instructions */
 #endif
     OSSL_CMP_PKIFREETEXT *lastStatusString;
@@ -93,7 +93,7 @@ struct OSSL_cmp_ctx_st {
     int setSubjectAltNameCritical;
     int setPoliciesCritical;
     int digest; /* NID of digest used in MSG_SIG_ALG, defaults to SHA256 */
-    int popoMethod;  /* Proof-of-posession mechanism used.
+    int popoMethod;  /* Proof-of-possession mechanism used.
                         Defaults to signature (POPOsigningKey) */
     int revocationReason; /* Revocation reason code to be included in RR */
     int permitTAInExtraCertsForIR; /* whether to include root certs from
@@ -103,7 +103,7 @@ struct OSSL_cmp_ctx_st {
     int disableConfirm;  /* disable confirmation messages in IR/KUR/CR
                             message exchanges to cope with broken server */
     int unprotectedSend; /* send unprotected PKI messages */
-    int unprotectedErrors; /* accept unprotected error responses */
+    int unprotectedErrors; /* accept negative responses with no/invalid prot. */
     int ignore_keyusage; /* ignore key usage entry in certs */
     int lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP, or -1 */
     /* TODO: this should be a stack since there could be more than one */
@@ -327,7 +327,7 @@ DEFINE_STACK_OF(OSSL_CMP_REVDETAILS)
 struct OSSL_cmp_revrepcontent_st {
     STACK_OF(OSSL_CMP_PKISI) *status;
     STACK_OF(OSSL_CRMF_CERTID) *certId;
-    STACK_OF(X509) *crls;
+    STACK_OF(X509_CRL) *crls;
 } /* OSSL_CMP_REVREPCONTENT */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_REVREPCONTENT)
 
@@ -724,6 +724,14 @@ RevRepContent with the given request/sequence id inside a revocation response
 */
 OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
                                                     int rsid);
+/*
+OSSL_CMP_REVREPCONTENT_CertId_get() returns the CertId field of the
+RevRepContent with the given request/sequence id inside a revocation response
+(matching the sequence id as sent in the RevReqContent), or NULL on error.
+*/
+OSSL_CRMF_CERTID *CMP_REVREPCONTENT_CertId_get(OSSL_CMP_REVREPCONTENT *rrep,
+                                               int rsid);
+
 /*
 OSSL_CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
 using the same hash algorithm as is used to create and verify the

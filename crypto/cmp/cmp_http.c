@@ -352,7 +352,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         hbio = bio;
     }
 
-    /* TODO: it looks like bio_connect() is superflous except for maybe
+    /* TODO: it looks like bio_connect() is superfluous except for maybe
        better error/timeout handling and reporting? Remove next 9 lines? */
     /* tentatively set error, which allows accumulating diagnostic info */
     (void)ERR_set_mark();

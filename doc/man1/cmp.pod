@@ -266,16 +266,18 @@ else C<digitalSignature> must be allowed for signer certificate.
 
 =item B<-unprotectederrors>
 
-Accept missing or invalid protection for responses received from the server.
-This applies to the following message types:
+Accept missing or invalid protection of negative responses from the server.
+This applies to the following message types and contents:
 
 =over 4
 
 =item * error messages
 
-=item * negative certificate responses (IP/CP/KUP) and revocation responses (RP)
+=item * negative certificate responses (IP/CP/KUP)
 
-=item * PKIConf
+=item * negative revocation responses (RP)
+
+=item * negative PKIConf messages
 
 =back
 

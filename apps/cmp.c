@@ -364,11 +364,11 @@ OPTIONS cmp_options[] = {
     {"ignore_keyusage", OPT_IGNORE_KEYUSAGE, '-',
      "Ignore CMP signer cert key usage, else 'digitalSignature' must be allowed"},
     {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-',
-     "Accept missing or invalid protection for regular error messages, PKIConf,"},
+     "Accept missing or invalid protection of regular error messages and negative"},
     {OPT_MORE_STR, 0, 0,
-     "negative certificate responses (ip/cp/kup), and revocation responses (rp)"},
+     "certificate responses (ip/cp/kup), revocation responses (rp), and PKIConf"},
     {OPT_MORE_STR, 0, 0,
-     "WARNING: This setting leads to behaviour allowing violation of RFC 4210"},
+     "WARNING: This setting leads to behavior allowing violation of RFC 4210"},
     {"extracertsout", OPT_EXTRACERTSOUT, 's',
      "File to save received extra certificates"},
     {"cacertsout", OPT_CACERTSOUT, 's',
@@ -527,7 +527,7 @@ OPTIONS cmp_options[] = {
     {"rsp_extracerts", OPT_RSP_EXTRACERTS, 's',
      "Extra certificates to be included in mock certification responses"},
     {"rsp_capubs", OPT_RSP_CAPUBS, 's',
-     "CA certifiates to be included in mock ip response"},
+     "CA certificates to be included in mock ip response"},
     {"poll_count", OPT_POLL_COUNT, 'n',
      "How many times the client must poll before receiving a certificate"},
     {"checkafter", OPT_CHECKAFTER, 'n',
@@ -551,9 +551,9 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "certificate responses (ip/cp/kup), and revocation responses (rp)."},
     {OPT_MORE_STR, 0, 0,
-     "WARNING: This setting leads to behaviour violating RFC 4210"},
+     "WARNING: This setting leads to behavior violating RFC 4210"},
     {"accept_unprotected", OPT_ACCEPT_UNPROTECTED, '-',
-     "Accept unprotected requests"},
+     "Accept missing or invalid protection of requests"},
     {"accept_unprot_err", OPT_ACCEPT_UNPROT_ERR, '-',
      "Accept unprotected error messages from client"},
 #endif
@@ -2576,7 +2576,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
                     goto oom;
                 }
                 if (OSSL_CMP_expired(X509_CRL_get0_nextUpdate(crl), vpm)) {
-              /* well, should ignore expiry of base CRL if delta CRL is valid */
+          /* well, should ignore expiration of base CRL if delta CRL is valid */
                     char *issuer =
                         X509_NAME_oneline(X509_CRL_get_issuer(crl), NULL, 0);
                     OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN,
