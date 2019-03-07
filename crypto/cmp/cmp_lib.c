@@ -47,10 +47,10 @@
 
 /* TODO DvO push this function upstream to crypto/err (PR #add_error_txt) */
 /*
- * Appends text to the extra error data field of the last error message in
- * OpenSSL's error queue, after adding the given separator string. Note that,
- * in contrast, ERR_add_error_data() simply overwrites the previous contents
- * of the error data.
+ * Appends text to the extra data field of the last error message in the queue,
+ * after adding the optional separator unless data has been empty so far.
+ * Note that, in contrast, ERR_add_error_data() simply
+ * overwrites the previous contents of the data field.
  */
 void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
 {
@@ -60,6 +60,8 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
     int flags;
     unsigned long err = ERR_peek_last_error();
 
+    if (separator == NULL)
+        separator = "";
     if (err == 0) {
         ERR_PUT_error(ERR_LIB_CMP, 0, err, "", 0);
     }
@@ -838,7 +840,7 @@ int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 
     /* add any additional certificates from ctx->extraCertsOut */
     OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
-                                1/*no dups*/);
+                                1 /* no dups */);
 
     /* if none was found avoid empty ASN.1 sequence */
     if (sk_X509_num(msg->extraCerts) == 0) {
@@ -1788,6 +1790,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                CMP_R_RECIPNONCE_UNMATCHED);
         return -1;
     }
+
     /*
      * RFC 4210 section 5.1.1 states: the recipNonce is copied from
      * the senderNonce of the previous message in the transaction.

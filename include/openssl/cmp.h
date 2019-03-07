@@ -411,10 +411,13 @@ int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
 STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store);
 
 /* cmp_vfy.c */
-int OSSL_CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm);
+/* TODO better push OSSL_CMP_cmp_timeframe() to crypto/x509/x509_vfy.c */
+int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
+                           const ASN1_TIME *end,  const X509_VERIFY_PARAM *vpm);
 int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg);
 int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
                                 const X509_STORE *trusted_store,
+                                const STACK_OF(X509) *extra_untrusted,
                                 const X509 *cert, int defer_errors);
 int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int fail_info,

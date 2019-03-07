@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-OSSL_CMP_expired,
+OSSL_CMP_cmp_timeframe,
 OSSL_CMP_validate_msg,
 OSSL_CMP_validate_cert_path,
 OSSL_CMP_print_cert_verify_cb
@@ -11,10 +11,12 @@ OSSL_CMP_print_cert_verify_cb
 =head1 SYNOPSIS
 
  #include <openssl/cmp.h>
- int OSSL_CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm);
+ int OSSL_CMP_check_time(const ASN1_TIME *start,
+                         const ASN1_TIME *end,  const X509_VERIFY_PARAM *vpm);
  int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
  int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
                                  const X509_STORE *trusted_store,
+                                 const STACK_OF(X509) *extra_untrusted,
                                  const X509 *cert, int defer_errors);
  int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
@@ -24,8 +26,9 @@ This is the API for validating the protection of CMP messages,
 which includes validating CMP server certificates and their paths
 while optionally checking the revocation status of the certificates(s).
 
-OSSL_CMP_expired() is a helper function checking if expiration should be checked
-according to the given verification parameters and the given time has passed.
+OSSL_CMP_cmp_timeframe() compares the given time period with the current time.
+If verification parameters are given and X509_V_FLAG_USE_CHECK_TIME is set
+the reference time included there is used instead of the current time.
 
 OSSL_CMP_validate_msg() validates the protection of the given PKIMessage
 using either password-based mac (PBM) or a signature algorithm.
@@ -38,20 +41,23 @@ ctx->untrusted_certs, and ctx->trusted_store.  The first candidate that can be
 validated against ctx->trusted_store, utilizing ctx->untrusted_certs and
 extraCerts, is used.
 
+If none of the candidate certs can be validated this way and B<msg> is a CMP
+I<IP> message and exceptional handling according to 3GPP TS 33.310 is enabled
+via B<OSSL_CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR> and the issued certificate
+can be validated taking the self-signed certificates from the extraCerts field
+as trust anchor then a second try is made for the same list of candidate certs
+taking the self-signed extraCerts as trust anchor.
+
 In case of successful validation of PBM protection of a certificate response,
 the certificates in the caPubs field (if any) are added to ctx->trusted_store,
 to be available for validating future messages in the same context.
 Those could e.g. apply to later Polling Responses (pollRep) or PKI Confirmation
 (PKIConf) messages in the same transaction.
 
-If ctx->permitTAInExtraCertsForIR is true, a self-signed certificate from the
-PKIMessage's extraCerts field may also be used as trust anchor during
-protection validation if it can be used to validate the issued certificate
-returned in IP.  This is according to 3GPP TS 33.310.
-
 OSSL_CMP_validate_cert_path() attempts to validate the given certificate and its
 path using the given store of trusted certs (possibly including CRLs and a cert
-verification callback) and non-trusted intermediate certs from the B<ctx>.
+verification callback) and non-trusted intermediate certs from the B<ctx>
+and from any given list B<extra_untrusted>.
 The B<defer_errors> parameter needs to be set when used in a certConf callback
 because any following certConf exchange will likely clear the OpenSSL error
 queue.
@@ -69,8 +75,9 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-OSSL_CMP_expired() returns 1 if expiration should be checked
-and the given time has passed, and 0 otherwise.
+OSSL_CMP_cmp_timeframe() returns 0 if X509_V_FLAG_NO_CHECK_TIME is set in the
+given verification parameters or the reference time is within the given bounds,
+1 if it is past the end time, and -1 if it is before the start time.
 
 OSSL_CMP_validate_msg() returns 1 on success, 0 on error or validation failed.
 
