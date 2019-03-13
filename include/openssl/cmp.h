@@ -72,7 +72,15 @@ DECLARE_STACK_OF(ASN1_UTF8STRING)
 #   define X509_get0_extensions(x) ((x)->cert_info->extensions)
 #  endif
 #  if OPENSSL_VERSION_NUMBER < 0x1010001fL
-#   define OPENSSL_zalloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
+#   define OPENSSL_zalloc(num) CRYPTO_zalloc(num, __FILE__, __LINE__)
+#   include <string.h>
+static inline void *CRYPTO_zalloc(size_t num, const char *file, int line)
+{
+    void *ret = CRYPTO_malloc((int)num, file, line);
+    if(ret)
+        memset(ret, 0, num);
+    return ret;
+}
 #   define X509_up_ref(x)((x)->references++)
 #   define X509_STORE_up_ref(x)((x)->references++)
 #   define ASN1_STRING_get0_data ASN1_STRING_data
