@@ -30,7 +30,7 @@ ifeq ($(OPENSSL_DIR),)
 endif
 ifeq ($(shell echo $(OPENSSL_DIR) | grep "^/"),)
 # $(OPENSSL_DIR) is relative path
-    OPENSSL=$(LIBCMP_OUT)/$(OPENSSL_DIR)
+    OPENSSL=$(OPENSSL_DIR)
     OPENSSL_LIB=$(OPENSSL)
     OPENSSL_RPATH=$(OPENSSL)
     OPENSSL_RPATH_LIB=$(OPENSSL)
@@ -97,7 +97,7 @@ $(LIBCMP): $(LIBCMP_INC)/openssl $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 
 clean:
 	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP)
-	@#rm $(LIBCMP)$(VERSION)
+	rm -f $(LIBCMP) # $(LIBCMP)$(VERSION)
 	rmdir $(LIBCMP_INC)/openssl $(LIBCMP_INC) 2>/dev/null || true
 
 SYSTEM_LIB=/usr/lib
