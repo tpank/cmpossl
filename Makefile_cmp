@@ -43,7 +43,7 @@ else
 endif
 
 ifeq ($(findstring clean,$(MAKECMDGOALS)),)
-OPENSSL_VERSION=$(shell $(MAKE) -s -f OpenSSL_version.mk LIB=h OPENSSL_DIR="$(OPENSSL_DIR)")
+OPENSSL_VERSION=$(shell $(MAKE) --no-print-directory -f OpenSSL_version.mk LIB=h OPENSSL_DIR="$(OPENSSL_DIR)")
 ifeq ($(OPENSSL_VERSION),)
     $(warning cannot determine version of OpenSSL in directory '$(OPENSSL_DIR)', assuming 1.0.2)
     OPENSSL_VERSION=1.0
