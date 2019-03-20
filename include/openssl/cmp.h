@@ -485,7 +485,7 @@ int OSSL_CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
 void OSSL_CMP_ITAV_free(OSSL_CMP_ITAV *itav);
 void OSSL_CMP_MSG_free(OSSL_CMP_MSG *msg);
 void OSSL_CMP_PKISI_free(OSSL_CMP_PKISI *si);
-OSSL_CMP_MSG *OSSL_CMP_MSG_dup(OSSL_CMP_MSG *x);
+OSSL_CMP_MSG *OSSL_CMP_MSG_dup(const OSSL_CMP_MSG *x);
 
 /* from cmp_ctx.c */
 OSSL_CMP_CTX *OSSL_CMP_CTX_create(void);
@@ -594,7 +594,7 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
          ASN1_i2d_bio_of(OSSL_CMP_MSG, i2d_OSSL_CMP_MSG, bp, o)
 OSSL_CMP_MSG *d2i_OSSL_CMP_MSG(OSSL_CMP_MSG **,
                                const unsigned char **, long);
-int i2d_OSSL_CMP_MSG(OSSL_CMP_MSG *, unsigned char **);
+int i2d_OSSL_CMP_MSG(const OSSL_CMP_MSG *, unsigned char **);
 
 #   ifdef  __cplusplus
 }
