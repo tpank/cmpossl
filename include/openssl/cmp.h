@@ -693,7 +693,7 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
          ASN1_i2d_bio_of(OSSL_CMP_MSG, i2d_OSSL_CMP_MSG, bp, o)
 OSSL_CMP_MSG *d2i_OSSL_CMP_MSG(OSSL_CMP_MSG **,
                                const unsigned char **, long);
-int i2d_OSSL_CMP_MSG(OSSL_CMP_MSG *, unsigned char **);
+int i2d_OSSL_CMP_MSG(const OSSL_CMP_MSG *, unsigned char **);
 
 #   ifdef  __cplusplus
 }

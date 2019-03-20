@@ -249,6 +249,7 @@ struct OSSL_cmp_itav_st {
 } /* OSSL_CMP_ITAV */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
 DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_ITAV)
+DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_ITAV)
 
 typedef struct OSSL_cmp_certorenccert_st {
     int type;
