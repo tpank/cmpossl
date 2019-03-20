@@ -15,9 +15,9 @@
 # define OSSL_HEADER_CMP_UTIL_H
 
 # include <openssl/opensslconf.h>
+# include <openssl/trace.h>
 # ifndef OPENSSL_NO_CMP
 
-#  include <openssl/trace.h>
 #  include <openssl/x509.h>
 
 #  ifdef  __cplusplus
@@ -25,8 +25,30 @@ extern "C" {
 #  endif
 
 /*
- * convenience functions for CMP-specific logging via the trace API
+ * logging - could be generally useful
  */
+
+
+# if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
+#  define OSSL_CMP_FUNC __func__
+# elif defined(__STDC__) && defined(PEDANTIC)
+#  define OSSL_CMP_FUNC "(PEDANTIC disallows function name)"
+# elif defined(WIN32) || defined(__GNUC__) || defined(__GNUG__)
+#  define OSSL_CMP_FUNC __FUNCTION__
+# elif defined(__FUNCSIG__)
+#  define OSSL_CMP_FUNC __FUNCSIG__
+# else
+#  define OSSL_CMP_FUNC "(unknown function)"
+# endif
+# define OSSL_CMP_FUNC_FILE_LINE OSSL_CMP_FUNC, OPENSSL_FILE, OPENSSL_LINE
+# define OSSL_CMP_FL_EMERG OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_EMERG
+# define OSSL_CMP_FL_ALERT OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_ALERT
+# define OSSL_CMP_FL_CRIT  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_CRIT
+# define OSSL_CMP_FL_ERR   OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_ERR
+# define OSSL_CMP_FL_WARN  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_WARNING
+# define OSSL_CMP_FL_NOTE  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_NOTICE
+# define OSSL_CMP_FL_INFO  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_INFO
+# define OSSL_CMP_FL_DEBUG OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_DEBUG
 
 int  OSSL_CMP_log_open(void);
 void OSSL_CMP_log_close(void);
@@ -37,15 +59,15 @@ void OSSL_CMP_log_close(void);
 #  define OSSL_CMP_info(msg)  OSSL_CMP_log(INFO, msg)
 #  define OSSL_CMP_debug(msg) OSSL_CMP_log(DEBUG, msg)
 #  define OSSL_CMP_log(level, msg) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": %s\n", msg))
+    OSSL_TRACEV(CMP, level, (trc_out, OSSL_CMP_LOG_PREFIX#level ": %s\n", msg))
 #  define OSSL_CMP_log1(level, fmt, arg1) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1))
+    OSSL_TRACEV(CMP, level, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1))
 #  define OSSL_CMP_log2(level, fmt, arg1, arg2) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2))
+    OSSL_TRACEV(CMP, level, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2))
 #  define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2, arg3))
+    OSSL_TRACEV(CMP, level, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2, arg3))
 #  define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2, arg3, arg4))
+    OSSL_TRACEV(CMP, level, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2, arg3, arg4))
 
 /*
  * generalized logging/error callback mirroring the severity levels of syslog.h
@@ -62,17 +84,15 @@ typedef int OSSL_CMP_severity;
 typedef int (*OSSL_cmp_log_cb_t)(const char *func, const char *file, int line,
                                  OSSL_CMP_severity level, const char *msg);
 
-/*
- * enhancements of the error queue and use of the logging callback for it
- */
 void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
 # define OSSL_CMP_add_error_data(txt) OSSL_CMP_add_error_txt(" : ", txt)
 # define OSSL_CMP_add_error_line(txt) OSSL_CMP_add_error_txt("\n", txt)
 void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
 
 /*
- * functions manipulating lists of certificates etc.
+ * misc other functions that could be generally useful
  */
+
 int OSSL_CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert,
                                 int not_duplicate, int prepend);
 int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
@@ -80,7 +100,12 @@ int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
 int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed);
 STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store);
-STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs, X509 *cert);
+X509_EXTENSIONS *OSSL_CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *e);
+int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+                                    const ASN1_OCTET_STRING *src);
+int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
+                                          const unsigned char *bytes,
+                                          size_t len);
 
 #   ifdef  __cplusplus
 }

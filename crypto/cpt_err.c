@@ -26,6 +26,8 @@ static const ERR_STRING_DATA CRYPTO_str_reasons[] = {
     "insufficient secure data space"},
     {ERR_PACK(ERR_LIB_CRYPTO, 0, CRYPTO_R_INVALID_NULL_ARGUMENT),
     "invalid null argument"},
+    {ERR_PACK(ERR_LIB_CRYPTO, 0, CRYPTO_R_INVALID_OSSL_PARAM_TYPE),
+    "invalid ossl param type"},
     {ERR_PACK(ERR_LIB_CRYPTO, 0, CRYPTO_R_ODD_NUMBER_OF_DIGITS),
     "odd number of digits"},
     {ERR_PACK(ERR_LIB_CRYPTO, 0, CRYPTO_R_PROVIDER_ALREADY_EXISTS),

@@ -401,3 +401,174 @@ int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
     }
     return ossl_cmp_asn1_octet_string_set1(tgt, new);
 }
+
+/*
+ * returns the PKIStatus of the given PKIStatusInfo
+ * returns -1 on error
+ */
+static int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si)
+{
+    if (si == NULL || si->status == NULL) {
+        CMPerr(0, CMP_R_ERROR_PARSING_PKISTATUS);
+        return -1;
+    }
+    return ossl_cmp_asn1_get_int(si->status);
+}
+
+/*
+ * internal function
+ *
+ * convert PKIStatus to human-readable string
+ *
+ * returns pointer to character array containing a sting representing the
+ * PKIStatus of the given PKIStatusInfo
+ * returns NULL on error
+ */
+static char *CMP_PKISI_PKIStatus_get_string(OSSL_CMP_PKISI *si)
+{
+    int PKIStatus;
+
+    if ((PKIStatus = OSSL_CMP_PKISI_PKIStatus_get(si)) < 0)
+        return NULL;
+    switch (PKIStatus) {
+    case OSSL_CMP_PKISTATUS_accepted:
+        return "PKIStatus: accepted";
+    case OSSL_CMP_PKISTATUS_grantedWithMods:
+        return "PKIStatus: granted with mods";
+    case OSSL_CMP_PKISTATUS_rejection:
+        return "PKIStatus: rejection";
+    case OSSL_CMP_PKISTATUS_waiting:
+        return "PKIStatus: waiting";
+    case OSSL_CMP_PKISTATUS_revocationWarning:
+        return "PKIStatus: revocation warning";
+    case OSSL_CMP_PKISTATUS_revocationNotification:
+        return "PKIStatus: revocation notification";
+    case OSSL_CMP_PKISTATUS_keyUpdateWarning:
+        return "PKIStatus: key update warning";
+    default:
+        CMPerr(0, CMP_R_ERROR_PARSING_PKISTATUS);
+    }
+    return NULL;
+}
+
+/*
+ * internal function
+ * convert PKIFailureInfo bit to human-readable string or empty string if not set
+ *
+ * returns pointer to static string
+ * returns NULL on error
+ */
+static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi,
+                                                int i)
+{
+    if (fi == NULL)
+        return NULL;
+    if (0 <= i && i <= OSSL_CMP_PKIFAILUREINFO_MAX) {
+        if (ASN1_BIT_STRING_get_bit(fi, i)) {
+            switch (i) {
+            case OSSL_CMP_PKIFAILUREINFO_badAlg:
+                return "PKIFailureInfo: badAlg";
+            case OSSL_CMP_PKIFAILUREINFO_badMessageCheck:
+                return "PKIFailureInfo: badMessageCheck";
+            case OSSL_CMP_PKIFAILUREINFO_badRequest:
+                return "PKIFailureInfo: badRequest";
+            case OSSL_CMP_PKIFAILUREINFO_badTime:
+                return "PKIFailureInfo: badTime";
+            case OSSL_CMP_PKIFAILUREINFO_badCertId:
+                return "PKIFailureInfo: badCertId";
+            case OSSL_CMP_PKIFAILUREINFO_badDataFormat:
+                return "PKIFailureInfo: badDataFormat";
+            case OSSL_CMP_PKIFAILUREINFO_wrongAuthority:
+                return "PKIFailureInfo: wrongAuthority";
+            case OSSL_CMP_PKIFAILUREINFO_incorrectData:
+                return "PKIFailureInfo: incorrectData";
+            case OSSL_CMP_PKIFAILUREINFO_missingTimeStamp:
+                return "PKIFailureInfo: missingTimeStamp";
+            case OSSL_CMP_PKIFAILUREINFO_badPOP:
+                return "PKIFailureInfo: badPOP";
+            case OSSL_CMP_PKIFAILUREINFO_certRevoked:
+                return "PKIFailureInfo: certRevoked";
+            case OSSL_CMP_PKIFAILUREINFO_certConfirmed:
+                return "PKIFailureInfo: certConfirmed";
+            case OSSL_CMP_PKIFAILUREINFO_wrongIntegrity:
+                return "PKIFailureInfo: wrongIntegrity";
+            case OSSL_CMP_PKIFAILUREINFO_badRecipientNonce:
+                return "PKIFailureInfo: badRecipientNonce";
+            case OSSL_CMP_PKIFAILUREINFO_timeNotAvailable:
+                return "PKIFailureInfo: timeNotAvailable";
+            case OSSL_CMP_PKIFAILUREINFO_unacceptedPolicy:
+                return "PKIFailureInfo: unacceptedPolicy";
+            case OSSL_CMP_PKIFAILUREINFO_unacceptedExtension:
+                return "PKIFailureInfo: unacceptedExtension";
+            case OSSL_CMP_PKIFAILUREINFO_addInfoNotAvailable:
+                return "PKIFailureInfo: addInfoNotAvailable";
+            case OSSL_CMP_PKIFAILUREINFO_badSenderNonce:
+                return "PKIFailureInfo: badSenderNonce";
+            case OSSL_CMP_PKIFAILUREINFO_badCertTemplate:
+                return "PKIFailureInfo: badCertTemplate";
+            case OSSL_CMP_PKIFAILUREINFO_signerNotTrusted:
+                return "PKIFailureInfo: signerNotTrusted";
+            case OSSL_CMP_PKIFAILUREINFO_transactionIdInUse:
+                return "PKIFailureInfo: transactionIdInUse";
+            case OSSL_CMP_PKIFAILUREINFO_unsupportedVersion:
+                return "PKIFailureInfo: unsupportedVersion";
+            case OSSL_CMP_PKIFAILUREINFO_notAuthorized:
+                return "PKIFailureInfo: notAuthorized";
+            case OSSL_CMP_PKIFAILUREINFO_systemUnavail:
+                return "PKIFailureInfo: systemUnavail";
+            case OSSL_CMP_PKIFAILUREINFO_systemFailure:
+                return "PKIFailureInfo: systemFailure";
+            case OSSL_CMP_PKIFAILUREINFO_duplicateCertReq:
+                return "PKIFailureInfo: duplicateCertReq";
+            }
+        } else {
+            return ""; /* bit is not set */
+        }
+    }
+    return NULL; /* illegal bit position */
+}
+
+/*
+ * place human-readable error string created from PKIStatusInfo in given buffer
+ * returns pointer to the same buffer containing the string, or NULL on error
+ */
+char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
+{
+    const char *status, *failure;
+    int i;
+    int n = 0;
+
+    if (si == NULL
+            || (status = CMP_PKISI_PKIStatus_get_string(si)) == NULL)
+        return NULL;
+    BIO_snprintf(buf, bufsize, "%s; ", status);
+
+    /* PKIFailure is optional and may be empty */
+    if (si->failInfo != NULL) {
+        for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++) {
+            failure = OSSL_CMP_PKIFAILUREINFO_get_string(si->failInfo, i);
+            if (failure == NULL)
+                return NULL;
+            if (failure[0] != '\0')
+                BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "%s%s",
+                             n > 0 ? ", " : "", failure);
+            n += (int)strlen(failure);
+        }
+    }
+    if (n == 0)
+        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "<no failure info>");
+
+    /* StatusString sequence is optional and may be empty */
+    n = sk_ASN1_UTF8STRING_num(si->statusString);
+    if (n > 0) {
+        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf),
+                     "; StatusString%s: ", n > 1 ? "s" : "");
+        for (i = 0; i < n; i++) {
+            ASN1_UTF8STRING *text = sk_ASN1_UTF8STRING_value(si->statusString, i);
+            BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "\"%s\"%s",
+                         ASN1_STRING_get0_data(text), i < n-1 ? ", " : "");
+        }
+    }
+    return buf;
+}
+
