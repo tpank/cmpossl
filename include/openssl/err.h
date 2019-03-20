@@ -97,6 +97,7 @@ typedef struct err_state_st {
 # define ERR_LIB_ESS             54
 # define ERR_LIB_PROP            55
 # define ERR_LIB_CRMF            56
+# define ERR_LIB_CMP             57
 
 # define ERR_LIB_USER            128
 
@@ -131,6 +132,7 @@ typedef struct err_state_st {
 # define FIPSerr(f,r) ERR_PUT_error(ERR_LIB_FIPS,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define CMSerr(f,r) ERR_PUT_error(ERR_LIB_CMS,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define CRMFerr(f,r) ERR_PUT_error(ERR_LIB_CRMF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+# define CMPerr(f,r) ERR_PUT_error(ERR_LIB_CMP,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define TSerr(f,r) ERR_PUT_error(ERR_LIB_TS,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define HMACerr(f,r) ERR_PUT_error(ERR_LIB_HMAC,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define CTerr(f,r) ERR_PUT_error(ERR_LIB_CT,(f),(r),OPENSSL_FILE,OPENSSL_LINE)

@@ -321,6 +321,22 @@ $config{libdir}="";
 my $auto_threads=1;    # enable threads automatically? true by default
 my $default_ranlib;
 
+# Top level directories to build
+$config{dirs} = [ "crypto", "ssl", "engines", "apps", "test", "util", "tools", "fuzz" ];
+# crypto/ subdirectories to build
+$config{sdirs} = [
+    "objects",
+    "md2", "md4", "md5", "sha", "mdc2", "hmac", "ripemd", "whrlpool", "poly1305", "blake2", "siphash", "sm3",
+    "des", "aes", "rc2", "rc4", "rc5", "idea", "aria", "bf", "cast", "camellia", "seed", "sm4", "chacha", "modes",
+    "bn", "ec", "rsa", "dsa", "dh", "sm2", "dso", "engine",
+    "buffer", "bio", "stack", "lhash", "rand", "err",
+    "evp", "asn1", "pem", "x509", "x509v3", "conf", "txt_db", "pkcs7", "pkcs12", "comp", "ocsp", "ui",
+    "crmf", "cmp",
+    "cms", "ts", "srp", "cmac", "ct", "async", "kdf", "store"
+    ];
+# test/ subdirectories to build
+$config{tdirs} = [ "ossl_shim" ];
+
 # Known TLS and DTLS protocols
 my @tls = qw(ssl3 tls1 tls1_1 tls1_2 tls1_3);
 my @dtls = qw(dtls1 dtls1_2);
@@ -348,6 +364,7 @@ my @disablables = (
     "chacha",
     "cmac",
     "cms",
+    "cmp",
     "comp",
     "crmf",
     "crypto-mdebug",
@@ -520,6 +537,8 @@ my @disable_cascades = (
     sub { !$disabled{"msan"} } => [ "asm" ],
 
     sub { $disabled{cmac}; } => [ "siv" ],
+
+    "crmf"              => [ "cmp" ],
     );
 
 # Avoid protocol support holes.  Also disable all versions below N, if version
