@@ -300,6 +300,7 @@ typedef struct OSSL_cmp_ctx_st OSSL_CMP_CTX;
 typedef struct OSSL_cmp_pkiheader_st OSSL_CMP_HDR;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_HDR)
 typedef struct OSSL_cmp_msg_st OSSL_CMP_MSG;
+DECLARE_ASN1_ENCODE_FUNCTIONS_only(OSSL_CMP_MSG, OSSL_CMP_MSG)
 typedef struct OSSL_cmp_certstatus_st OSSL_CMP_CERTSTATUS;
 DEFINE_STACK_OF(OSSL_CMP_CERTSTATUS)
 typedef struct OSSL_cmp_itav_st OSSL_CMP_ITAV;
@@ -691,9 +692,6 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
                          d2i_OSSL_CMP_MSG, bp, p)
 #  define OSSL_i2d_CMP_MSG_bio(bp, o) \
          ASN1_i2d_bio_of(OSSL_CMP_MSG, i2d_OSSL_CMP_MSG, bp, o)
-OSSL_CMP_MSG *d2i_OSSL_CMP_MSG(OSSL_CMP_MSG **,
-                               const unsigned char **, long);
-int i2d_OSSL_CMP_MSG(const OSSL_CMP_MSG *, unsigned char **);
 
 #   ifdef  __cplusplus
 }
