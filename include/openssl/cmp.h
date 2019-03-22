@@ -226,6 +226,12 @@ extern "C" {
 #  define OSSL_CMP_PKIFAILUREINFO_systemFailure 25
 #  define OSSL_CMP_PKIFAILUREINFO_duplicateCertReq 26
 #  define OSSL_CMP_PKIFAILUREINFO_MAX 26
+#  define OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN \
+    ( (1<<(OSSL_CMP_PKIFAILUREINFO_MAX+1)) - 1)
+#  if OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN > INT_MAX
+#   error  CMP_PKIFAILUREINFO_MAX bit pattern does not fit in type int
+#  endif
+
 typedef ASN1_BIT_STRING OSSL_CMP_PKIFAILUREINFO;
 
 #  define OSSL_CMP_CTX_FAILINFO_badAlg (1 << 0)
@@ -530,6 +536,8 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int fail_info,
  * simplifying also other uses, e.g., in query_responder() in apps/ocsp.c
  */
 #  if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
+                           BIO *bio_err, const char *prog);
 int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                               OSSL_CMP_MSG **out);
 int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
