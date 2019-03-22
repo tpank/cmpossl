@@ -3,6 +3,7 @@
 =head1 NAME
 
 OSSL_CMP_MSG_http_perform
+OSSL_CMP_proxy_connect
 - implementation of HTTP transfer for CMP messages
 
 =head1 SYNOPSIS
@@ -12,6 +13,8 @@ OSSL_CMP_MSG_http_perform
  int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
                                const OSSL_CMP_MSG *req,
                                OSSL_CMP_MSG **res);
+ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
+                            BIO *bio_err, const char *prog);
 
 =head1 DESCRIPTION
 
@@ -21,6 +24,11 @@ Protocol) over HTTP(S) with OpenSSL.
 OSSL_CMP_MSG_http_perform() sends the given PKIMessage req to the CMP server
 specified in ctx. On success (return 0), assigns the server's response to *res.
 
+OSSL_CMP_proxy_connect() uses the CONNECT method to access the HTTPS server
+given in the ctx via the TLS-capable proxy referenced in the given bio.
+Any message timeout contanined the ctx is respected.
+The bio_err and prog arguments are used just for error printing.
+
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
@@ -29,6 +37,8 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 OSSL_CMP_MSG_http_perform() returns 0 on success or else an error reason code.
 It uses ctx->http_cb if set and respects ctx->msgTimeOut.
+
+OSSL_CMP_proxy_connect() returns 1 on success and 0 on error.
 
 =head1 SEE ALSO
 

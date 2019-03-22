@@ -56,7 +56,7 @@
  * simplifying also other uses of select(), e.g., in query_responder()
  * in apps/ocsp.c
  */
-/* returns < 0 on error, 0 on timeout, > 0 on success */
+/* wait if timeout > 0. returns < 0 on error, 0 on timeout, > 0 on success */
 static int socket_wait(int fd, int for_read, int timeout)
 {
     fd_set confds;
@@ -78,7 +78,7 @@ static int socket_wait(int fd, int for_read, int timeout)
  * simplifying also other uses of select(), e.g., in query_responder()
  * in apps/ocsp.c
  */
-/* returns < 0 on error, 0 on timeout, > 0 on success */
+/* wait if timeout > 0. returns < 0 on error, 0 on timeout, > 0 on success */
 static int bio_wait(BIO *bio, int timeout) {
     int fd;
 
@@ -126,6 +126,112 @@ static int bio_connect(BIO *bio, int timeout) {
             goto retry;
     }
     return rv;
+}
+
+/* adapted from apps/s_client.c */
+#undef BUFSIZZ
+#define BUFSIZZ 1024*8
+#define HTTP_PREFIX "HTTP/"
+#define HTTP_VERSION "1." /* or, e.g., "1.1" */
+#define HTTP_VERSION_MAX_LEN 3
+int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
+                           BIO *bio_err, const char *prog)
+{
+    char *mbuf = OPENSSL_malloc(BUFSIZZ);
+    char *mbufp;
+    int mbuf_len = 0;
+    int rv;
+    int ret = 0;
+    BIO *fbio = BIO_new(BIO_f_buffer());
+    time_t max_time = ctx->msgtimeout > 0 ? time(NULL) + ctx->msgtimeout : 0;
+
+    if (mbuf == NULL || fbio == NULL) {
+        BIO_printf(bio_err, "%s: out of memory", prog);
+        goto end;
+    }
+    BIO_push(fbio, bio);
+    /* CONNECT seems only to be specified for HTTP/1.1 in RFC 2817/7231 */
+    BIO_printf(fbio, "CONNECT %s:%d "HTTP_PREFIX"1.1\r\n",
+               ctx->serverName, ctx->serverPort);
+
+    /*
+     * Workaround for broken proxies which would otherwise close
+     * the connection when entering tunnel mode (eg Squid 2.6)
+     */
+    BIO_printf(fbio, "Proxy-Connection: Keep-Alive\r\n");
+
+#ifdef OSSL_CMP_SUPPORT_PROXYUSER /* TODO is not yet supported */
+    /* Support for basic (base64) proxy authentication */
+    if (proxyuser != NULL) {
+        size_t l;
+        char *proxyauth, *proxyauthenc;
+
+        l = strlen(proxyuser);
+        if (proxypass != NULL)
+            l += strlen(proxypass);
+        proxyauth = OPENSSL_malloc(l + 2);
+        snprintf(proxyauth, l + 2, "%s:%s", proxyuser, (proxypass != NULL) ? proxypass : "");
+        proxyauthenc = base64encode(proxyauth, strlen(proxyauth));
+        BIO_printf(fbio, "Proxy-Authorization: Basic %s\r\n", proxyauthenc);
+        OPENSSL_clear_free(proxyauth, strlen(proxyauth));
+        OPENSSL_clear_free(proxyauthenc, strlen(proxyauthenc));
+    }
+#endif
+    BIO_printf(fbio, "\r\n");
+flush_retry:
+    if (!BIO_flush(fbio))
+        /* potentially needs to be retried if BIO is non-blocking */
+        if (BIO_should_retry(fbio))
+                goto flush_retry;
+retry:
+    rv = bio_wait(fbio, (int)(max_time - time(NULL)));
+    if (rv <= 0) {
+        BIO_printf(bio_err, "%s: HTTP CONNECT %s\n", prog,
+                   rv == 0 ? "timed out" : "failed waiting for data");
+        goto end;
+    }
+
+    mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
+    /* as the BIO doesn't block, we need to wait that the first line comes in */
+    if (mbuf_len < (int)strlen(HTTP_PREFIX""HTTP_VERSION" 200")) {
+        goto retry;
+    }
+    /* RFC 7231 4.3.6: any 2xx status code is valid */
+    if (strncmp(mbuf, HTTP_PREFIX, strlen(HTTP_PREFIX) != 0)) {
+        BIO_printf(bio_err, "%s: HTTP CONNECT failed, non-HTTP response\n",
+                   prog);
+        goto end;
+    }
+    mbufp = mbuf + strlen(HTTP_PREFIX);
+    if (strncmp(mbufp, HTTP_VERSION, strlen(HTTP_VERSION)) != 0) {
+        BIO_printf(bio_err, "%s: HTTP CONNECT failed, bad HTTP version %.*s\n",
+                   prog, HTTP_VERSION_MAX_LEN, mbufp);
+        goto end;
+    }
+    mbufp += HTTP_VERSION_MAX_LEN;
+    if (strncmp(mbufp, " 2", strlen(" 2")) != 0) {
+        mbufp += 1;
+        BIO_printf(bio_err, "%s: HTTP CONNECT failed: %.*s ",
+                   prog, mbuf_len - (mbufp - mbuf), mbufp);
+        goto end;
+    }
+
+    /* TODO: this does not necessarily catch the case when the full HTTP
+             response came in in more than a single TCP message */
+    /* Read past all following headers */
+    do {
+        mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
+    } while (mbuf_len > 2);
+
+    ret = 1;
+end:
+    if (fbio != NULL) {
+        (void)BIO_flush(fbio);
+        BIO_pop(fbio);
+        BIO_free(fbio);
+    }
+    OPENSSL_free(mbuf);
+    return ret;
 }
 
 /*
