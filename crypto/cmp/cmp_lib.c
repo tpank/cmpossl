@@ -583,7 +583,6 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 
     int l;
     size_t prot_part_der_len;
-    unsigned int mac_len;
     unsigned char *prot_part_der = NULL;
     size_t sig_len;
     unsigned char *protection = NULL;
@@ -621,9 +620,8 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 
             if (!(OSSL_CRMF_pbm_new(pbm, prot_part_der, prot_part_der_len,
                                     secret->data, secret->length,
-                                    &protection, &mac_len)))
+                                    &protection, &sig_len)))
                 goto err;
-            sig_len = mac_len;
         } else {
             CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_WRONG_ALGORITHM_OID);
             goto err;
