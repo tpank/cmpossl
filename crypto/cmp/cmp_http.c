@@ -212,7 +212,7 @@ retry:
     if (strncmp(mbufp, " 2", strlen(" 2")) != 0) {
         mbufp += 1;
         BIO_printf(bio_err, "%s: HTTP CONNECT failed: %.*s ",
-                   prog, mbuf_len - (mbufp - mbuf), mbufp);
+                   prog, (int)(mbuf_len - (mbufp - mbuf)), mbufp);
         goto end;
     }
 
