@@ -69,4 +69,4 @@ endif # $(LIB)
 .phony: detect
 
 detect:
-	@echo "$(OPENSSL_VERSION)"
+	$(info $(OPENSSL_VERSION))
