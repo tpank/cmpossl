@@ -89,8 +89,8 @@ $(LIBCMP_INC)/openssl:
 	@mkdir -p $(LIBCMP_OUT)
 	@mkdir -p $(LIBCMP_INC)/openssl
 
-$(LIBCMP_INC_HDRS): $(LIBCMP_INC)/openssl $(LIBCMP_HDRS)
-	cp --preserve=timestamps $(LIBCMP_HDRS) $(LIBCMP_INC)/openssl
+$(LIBCMP_INC_HDRS): $(LIBCMP_HDRS) | $(LIBCMP_INC)/openssl
+	cp $(LIBCMP_HDRS) $(LIBCMP_INC)/openssl # --preserve=timestamps has no effect on WSL
 	@cd $(LIBCMP_INC)/openssl && ((mv crmf.h tmp2.h && /bin/echo -e "#undef CMP_STANDALONE\n#define CMP_STANDALONE\n" >tmp1.h && cat tmp1.h tmp2.h >crmf.h && touch -r tmp2.h crmf.h); rm -f tmp1.h tmp2.h)
 
 $(LIBCMP): $(LIBCMP_INC_HDRS) $(LIBCMP_HDRS) $(LIBCMP_SRCS)
