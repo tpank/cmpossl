@@ -109,7 +109,7 @@ int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, int rid);
 int OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
 int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm, X509_EXTENSIONS *exts);
 
-int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm, const X509_EXTENSION *ext);
+int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm, X509_EXTENSION *ext);
 #  define OSSL_CRMF_POPO_NONE      -1
 #  define OSSL_CRMF_POPO_RAVERIFIED 0
 #  define OSSL_CRMF_POPO_SIGNATURE  1
@@ -122,6 +122,8 @@ int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
 OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get0_tmpl(const OSSL_CRMF_MSG *crm);
 ASN1_INTEGER *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *t);
 X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl);
+X509_NAME *OSSL_CRMF_CERTID_get0_issuer(const OSSL_CRMF_CERTID *cid);
+ASN1_INTEGER *OSSL_CRMF_CERTID_get0_serialNumber(const OSSL_CRMF_CERTID *cid);
 int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
                                 EVP_PKEY *pubkey,
                                 const X509_NAME *subject,

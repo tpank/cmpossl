@@ -347,7 +347,7 @@ int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm,
 
 
 int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm,
-                                  const X509_EXTENSION *ext)
+                                  X509_EXTENSION *ext)
 {
     int new = 0;
     OSSL_CRMF_CERTTEMPLATE *tmpl = OSSL_CRMF_MSG_get0_tmpl(crm);
@@ -363,7 +363,7 @@ int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm,
         new = 1;
     }
 
-    if (!sk_X509_EXTENSION_push(tmpl->extensions, (X509_EXTENSION *)ext))
+    if (!sk_X509_EXTENSION_push(tmpl->extensions, ext))
         goto oom;
     return 1;
  oom:
@@ -608,7 +608,20 @@ X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl)
     return tmpl != NULL ? tmpl->issuer : NULL;
 }
 
-/*
+/* retrieves the issuer name of the given CertId or NULL on error */
+X509_NAME *OSSL_CRMF_CERTID_get0_issuer(const OSSL_CRMF_CERTID *cid)
+{
+    return cid != NULL && cid->issuer->type == GEN_DIRNAME ?
+        cid->issuer->d.directoryName : NULL;
+}
+
+/* retrieves the serialNumber of the given CertId or NULL on error */
+ASN1_INTEGER *OSSL_CRMF_CERTID_get0_serialNumber(const OSSL_CRMF_CERTID *cid)
+{
+    return cid != NULL ? cid->serialNumber : NULL;
+}
+
+/*-
  * fill in certificate template.
  * Any value argument that is NULL will leave the respective field unchanged.
  */
