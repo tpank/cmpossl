@@ -16,7 +16,6 @@
 
 # include <openssl/opensslconf.h>
 # ifndef OPENSSL_NO_CMP
-
 #  include <openssl/crmf.h>
 #  include <openssl/cmperr.h>
 
