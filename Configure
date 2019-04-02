@@ -345,9 +345,9 @@ my @disablables = (
     "cast",
     "chacha",
     "cmac",
+    "cmp",
     "cms",
     "comp",
-    "crmf",
     "crypto-mdebug",
     "crypto-mdebug-backtrace",
     "ct",
@@ -1230,6 +1230,9 @@ foreach my $what (sort keys %disabled) {
         # fix-up crypto/directory name(s)
         $skipdir = "ripemd" if $what eq "rmd160";
         $skipdir = "whrlpool" if $what eq "whirlpool";
+
+        # no-cmp also disables building of crmf
+        $skipdir{"crypto/crmf"} = $what if $what eq "cmp";
 
         my $macro = $disabled_info{$what}->{macro} = "OPENSSL_NO_$WHAT";
         push @{$config{openssl_feature_defines}}, $macro;
