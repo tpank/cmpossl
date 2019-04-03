@@ -72,7 +72,6 @@ int ERR_load_strings_const(const ERR_STRING_DATA *str);
 #    define ERR_R_PASSED_INVALID_ARGUMENT CRMF_R_NULL_ARGUMENT
 #   define int64_t long
 #   define ASN1_INTEGER_get_int64(pvar, a) ((*(pvar)=ASN1_INTEGER_get(a)) != -1)
-#   define ASN1_INTEGER_set_int64(a, v) ASN1_INTEGER_set(a, v)
 #   define static_ASN1_SEQUENCE_END(T) ASN1_SEQUENCE_END(T)
 #   define ASN1_R_TOO_SMALL ASN1_R_INVALID_NUMBER
 #   define ASN1_R_TOO_LARGE ASN1_R_INVALID_NUMBER
