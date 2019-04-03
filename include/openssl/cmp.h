@@ -18,8 +18,106 @@
 
 # ifndef OPENSSL_NO_CMP
 #  include <openssl/crmf.h>
+
+#  ifdef CMP_STANDALONE
+#   include <openssl/err.h>
+#  endif
+#  if OPENSSL_VERSION_NUMBER >= 0x10101000L || defined(CMP_STANDALONE)
 #  include <openssl/cmperr.h>
+#  endif
+
+#  if OPENSSL_VERSION_NUMBER < 0x10101000L
+#   define X509_V_ERR_OCSP_VERIFY_NEEDED 73 /* Need OCSP verification */
+#   define X509_V_ERR_OCSP_VERIFY_FAILED 74 /* Could not verify cert via OCSP */
+#  endif
+#  if OPENSSL_VERSION_NUMBER >= 0x10100007L
 #  define OPENSSL_CMP_CONST const
+#  else
+#   define OPENSSL_CMP_CONST
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100004L
+#   define OPENSSL_FILE __FILE__
+#   define OPENSSL_LINE __LINE__
+#  endif
+#  if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#   define OpenSSL_version_num() ((unsigned long) \
+                                  ((OPENSSL_version_major()<<28) \
+                                  |(OPENSSL_version_minor()<<20) \
+                                  |(OPENSSL_version_patch()<<4L) \
+                                  |_OPENSSL_VERSION_PRE_RELEASE ))
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100000L
+#   define OpenSSL_version_num SSLeay
+#   define X509_get0_subject_key_id(x) (X509_check_purpose((x),-1,-1),(x)->skid)
+#   define X509_STORE_CTX_get1_crls X509_STORE_get1_crls
+#   define OPENSSL_strndup strndup
+#   define SSL_AD_REASON_OFFSET 1000
+#   define TLS1_AD_UNKNOWN_CA     48
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100005L
+#   define X509_REQ_get0_pubkey(x) X509_PUBKEY_get0((x)->req_info->pubkey)
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100006L
+#   define EVP_PKEY_up_ref(x)((x)->references++)
+    typedef int (*X509_STORE_CTX_check_revocation_fn) (X509_STORE_CTX *ctx);
+#   ifdef CMP_STANDALONE
+DECLARE_STACK_OF(ASN1_UTF8STRING)
+#   endif
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100007L
+#   define X509_get0_notBefore X509_get_notBefore
+#   define X509_get0_notAfter X509_get_notAfter
+#   define X509_get_issuer_name(x) ((x)->cert_info->issuer)
+#   define X509_get0_serialNumber(x) ((x)->cert_info->serialNumber)
+#   define X509_get0_extensions(x) ((x)->cert_info->extensions)
+#  endif
+#  if OPENSSL_VERSION_NUMBER < 0x1010001fL
+#   define OPENSSL_zalloc(num) CRYPTO_zalloc(num, __FILE__, __LINE__)
+#   include <string.h>
+static inline void *CRYPTO_zalloc(size_t num, const char *file, int line)
+{
+    void *ret = CRYPTO_malloc((int)num, file, line);
+    if(ret)
+        memset(ret, 0, num);
+    return ret;
+}
+#   define X509_up_ref(x)((x)->references++)
+#   define X509_STORE_up_ref(x)((x)->references++)
+#   define ASN1_STRING_get0_data ASN1_STRING_data
+#   define X509_OBJECT_get0_X509(obj) ((obj) == NULL || \
+                          (obj)->type != X509_LU_X509 ? NULL : (obj)->data.x509)
+#   define X509_STORE_get0_objects(store) ((store)->objs)
+#   define X509_STORE_CTX_get0_untrusted(ctx) ((ctx)->untrusted)
+#   define X509_STORE_CTX_get0_chain X509_STORE_CTX_get_chain
+#   define X509_STORE_CTX_get_by_subject X509_STORE_get_by_subject
+#   define X509_STORE_CTX_set_current_cert(ctx, x) { (ctx)->current_cert = (x); }
+#   define X509_STORE_CTX_set_error_depth(ctx, n) { (ctx)->error_depth = (n); }
+    typedef int (*X509_STORE_CTX_verify_cb)(int, X509_STORE_CTX *);
+#   define X509_STORE_CTX_get_verify_cb(ctx) ((ctx)->verify_cb)
+#   define X509_STORE_CTX_set0_verified_chain(ctx, sk) { \
+        sk_X509_pop_free((ctx)->chain, X509_free); (ctx)->chain = (sk); }
+#   define X509_STORE_CTX_get_check_revocation(ctx) ((ctx)->check_revocation)
+#   define X509_STORE_get_verify_cb(store) ((store)->verify_cb)
+#   define X509_STORE_get0_param(ctx) ((ctx)->param)
+#   define X509_STORE_set_ex_data(ctx, idx, data) \
+       CRYPTO_set_ex_data(&(ctx)->ex_data, (idx), (data))
+#   define X509_STORE_get_ex_data(ctx, idx) \
+       CRYPTO_get_ex_data(&(ctx)->ex_data, (idx))
+#   define X509_STORE_get_check_revocation(st)    ((st)->check_revocation)
+#   define X509_STORE_set_check_revocation(st, f) {(st)->check_revocation=(f);}
+#   if OPENSSL_VERSION_NUMBER < 0x10002090L
+#    define X509_V_ERR_STORE_LOOKUP 70 /* from x509_vfy.h */
+#   endif
+#   define X509_STORE_set_lookup_crls X509_STORE_set_lookup_crls_cb
+#   define X509_VERIFY_PARAM_get_time(param) ((param)->check_time)
+#   define X509_V_FLAG_NO_CHECK_TIME 0x200000
+#   define X509_set_proxy_flag(x) { (x)->ex_flags |= EXFLAG_PROXY; }
+#   define X509_CRL_get0_lastUpdate X509_CRL_get_lastUpdate
+#   define X509_CRL_get0_nextUpdate X509_CRL_get_nextUpdate
+#   define X509_get_key_usage(x) ((X509_check_purpose((x), -1, -1), \
+           (x)->ex_flags & EXFLAG_KUSAGE) ? (x)->ex_kusage : (unsigned long) ~0)
+#   define TLS_client_method SSLv23_client_method
+#  endif
 
 /* explicit #includes not strictly needed since implied by the above: */
 #  include <openssl/ossl_typ.h>
@@ -610,3 +708,14 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
 #   endif
 # endif /* !defined OPENSSL_NO_CMP */
 #endif /* !defined OSSL_HEADER_CMP_H */
+
+#if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(OSSL_HEADER_CMP_ERROR_CODES)
+# define OSSL_HEADER_CMP_ERROR_CODES
+# ifdef  __cplusplus
+extern "C" {
+# endif
+/* BEGIN ERROR CODES */
+# ifdef  __cplusplus
+}
+# endif
+#endif

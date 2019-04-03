@@ -21,7 +21,11 @@
 #include <openssl/asn1t.h>
 #include <openssl/crmf.h>
 #include <openssl/err.h>
+#if OPENSSL_VERSION_NUMBER >= 0x10102000L
 #include <openssl/evp.h>
+#else
+#include <openssl/hmac.h>
+#endif
 
 /*-
  * creates and initializes OSSL_CRMF_PBMPARAMETER (section 4.4)
@@ -130,7 +134,9 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
     int64_t iterations;
     unsigned char *mac_res = 0;
     int ok = 0;
+#if OPENSSL_VERSION_NUMBER >= 0x10102000L
     EVP_MAC_CTX *mctx = NULL;
+#endif
 
     if (mac == NULL || pbmp == NULL || pbmp->mac == NULL
             || pbmp->mac->algorithm == NULL || msg == NULL || sec == NULL) {
@@ -198,6 +204,7 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
         goto err;
     }
 
+#if OPENSSL_VERSION_NUMBER >= 0x10102000L
     if ((mctx = EVP_MAC_CTX_new(EVP_get_macbyname("HMAC"))) == NULL
             || EVP_MAC_ctrl(mctx, EVP_MAC_CTRL_SET_MD, m) <= 0
             || EVP_MAC_ctrl(mctx, EVP_MAC_CTRL_SET_KEY, basekey, bklen) <= 0
@@ -207,11 +214,22 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
         goto err;
 
     ok = 1;
+#else
+    {
+        unsigned int maclen_;
+        if (HMAC(m, basekey, bklen, msg, msglen, mac_res, &maclen_) != NULL) {
+            *maclen = (size_t)maclen_;
+            ok = 1;
+        }
+    }
+#endif
 
  err:
     /* cleanup */
     OPENSSL_cleanse(basekey, bklen);
+#if OPENSSL_VERSION_NUMBER >= 0x10102000L
     EVP_MAC_CTX_free(mctx);
+#endif
     EVP_MD_CTX_free(ctx);
 
     if (ok == 1) {
