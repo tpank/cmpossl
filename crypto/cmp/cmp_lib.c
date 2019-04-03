@@ -1323,7 +1323,7 @@ OSSL_CRMF_CERTID *CMP_REVREPCONTENT_CertId_get(OSSL_CMP_REVREPCONTENT *rrep,
     if (rrep == NULL)
         return NULL;
 
-    if ((cid = sk_OSSL_CRMF_CERTID_value(rrep->certId, rsid)) != NULL) {
+    if ((cid = sk_OSSL_CRMF_CERTID_value(rrep->revCert, rsid)) != NULL) {
         return cid;
     }
 

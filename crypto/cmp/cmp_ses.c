@@ -764,14 +764,14 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     }
 
     /* check any present CertId in optional revCerts field */
-    if (rrep->certId != NULL) {
+    if (rrep->revCert != NULL) {
         OSSL_CRMF_CERTID *cid;
         OSSL_CRMF_CERTTEMPLATE *tmpl =
             sk_OSSL_CMP_REVDETAILS_value(rr->body->value.rr, rsid)->certDetails;
         X509_NAME *issuer = OSSL_CRMF_CERTTEMPLATE_get0_issuer(tmpl);
         ASN1_INTEGER *serial = OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(tmpl);
 
-        if (sk_OSSL_CRMF_CERTID_num(rrep->certId) != num_RevDetails) {
+        if (sk_OSSL_CRMF_CERTID_num(rrep->revCert) != num_RevDetails) {
             CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_WRONG_RP_COMPONENT_COUNT);
             result = NULL;
             goto err;
@@ -790,7 +790,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     }
 
     /* check number of any optionally present crls */
-    if (rrep->crls != NULL && sk_X509_CRL_num(rrep->crls) != num_RevDetails) {
+    if (rrep->crl != NULL && sk_X509_CRL_num(rrep->crl) != num_RevDetails) {
         CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_WRONG_RP_COMPONENT_COUNT);
         result = NULL;
         goto err;

@@ -580,9 +580,9 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
         goto oom;
     sk_OSSL_CMP_PKISI_push(rep->status, si1);
 
-    if ((rep->certId = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
+    if ((rep->revCert = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
         goto oom;
-    sk_OSSL_CRMF_CERTID_push(rep->certId, cid);
+    sk_OSSL_CRMF_CERTID_push(rep->revCert, cid);
     cid = NULL;
 
     if (!(unprot_err &&
