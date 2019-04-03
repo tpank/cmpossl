@@ -117,18 +117,6 @@ ASN1_ADB(OSSL_CMP_ITAV) = {
     ADB_ENTRY(NID_id_it_suppLangTags,
               ASN1_SEQUENCE_OF_OPT(OSSL_CMP_ITAV, infoValue.suppLangTagsValue,
                                    ASN1_UTF8STRING)),
-#if 0
-    /* this is what CL likes for KUR - not in the RFC */
-    ADB_ENTRY(NID_id_smime_aa_signingCertificate,
-            ASN1_SET_OF(OSSL_CMP_ITAV, infoValue.signingCertificate,
-                        ESS_SIGNING_CERT))
-    /*-
-     * this is how signingCertificate should probably be actually used
-     * ADB_ENTRY(NID_id_smime_aa_signingCertificate,
-     *           ASN1_SIMPLE(OSSL_CMP_ITAV, infoValue.signingCertificate,
-     *                       ESS_SIGNING_CERT))
-     */
-#endif
 } ASN1_ADB_END(OSSL_CMP_ITAV, 0, infoType, 0,
                &infotypeandvalue_default_tt, NULL);
 
