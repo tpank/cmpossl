@@ -320,6 +320,7 @@ typedef struct OSSL_cmp_pollrep_st OSSL_CMP_POLLREP;
 typedef STACK_OF(OSSL_CMP_POLLREP) OSSL_CMP_POLLREPCONTENT;
 typedef struct OSSL_cmp_certresponse_st OSSL_CMP_CERTRESPONSE;
 DEFINE_STACK_OF(OSSL_CMP_CERTRESPONSE)
+typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
 
 /*
  * logging
@@ -379,7 +380,6 @@ typedef BIO *(*OSSL_cmp_http_cb_t) (OSSL_CMP_CTX *ctx, BIO *hbio,
 typedef int (*OSSL_cmp_transfer_cb_t) (OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_MSG *req,
                                        OSSL_CMP_MSG **res);
-typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
 
 /*
  * function DECLARATIONS
