@@ -16,9 +16,7 @@
 
 #include "apps.h"
 #include "s_apps.h"
-#if OPENSSL_VERSION_NUMBER >= 0x10101000L
 #include "progs.h"
-#endif
 
 /* tweaks needed due to missing unistd.h on Windows */
 #ifdef _WIN32
@@ -221,16 +219,11 @@ static int opt_ocsp_check_all = 0;
 static int opt_ocsp_use_aia = 0;
 static char *opt_ocsp_url = NULL;
 static int opt_ocsp_timeout = 10;
-# if OPENSSL_VERSION_NUMBER < 0x10101000L
-#  define X509_V_ERR_OCSP_VERIFY_NEEDED 73 /* Need OCSP verification */
-#  define X509_V_ERR_OCSP_VERIFY_FAILED 74 /* Could not verify cert via OCSP */
-# endif
 # define X509_V_FLAG_OCSP_STAPLING  0x20000 /* Use OCSP stapling (for TLS) */
 # define X509_V_FLAG_OCSP_CHECK     0x40000 /* Check certificate with OCSP */
 # define X509_V_FLAG_OCSP_CHECK_ALL 0x80000 /* Check whole chain with OCSP */
 static X509_STORE_CTX_check_revocation_fn check_revocation = NULL;
 static int opt_ocsp_status = 0;
-/* value of opt_ocsp_status stays 0 if OPENSSL_VERSION_NUMBER < 0x10101000L */
 #endif
 
 static char *opt_ownform_s = "PEM";
@@ -269,98 +262,6 @@ static int opt_cmd = -1;
 static char *opt_infotype_s = NULL;
 static int opt_infotype = NID_undef;
 static char *opt_geninfo = NULL;
-
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-int cmp_main(int argc, char *argv[]);
-const char OPT_HELP_STR[] = "--";
-const char OPT_MORE_STR[] = "---";
-typedef struct options_st {
-    const char *name;
-    int retval;
-    /*
-     * value type: - no value (also the value zero), n number, p positive
-     * number, u unsigned, l long, s string, < input file, > output file,
-     * f any format, F der/pem format , E der/pem/engine format identifier.
-     * l, n and u include zero; p does not.
-     */
-    int valtype;
-    const char *helpstr;
-} OPTIONS;
-
-/*
- * Common verification options.
- */
-# define OPT_V_ENUM \
-        OPT_V__FIRST=2000, \
-        OPT_V_POLICY, OPT_V_PURPOSE, OPT_V_VERIFY_NAME, OPT_V_VERIFY_DEPTH, \
-        OPT_V_ATTIME, OPT_V_VERIFY_HOSTNAME, OPT_V_VERIFY_EMAIL, \
-        OPT_V_VERIFY_IP, OPT_V_IGNORE_CRITICAL, OPT_V_ISSUER_CHECKS, \
-        OPT_V_CRL_CHECK, OPT_V_CRL_CHECK_ALL, OPT_V_POLICY_CHECK, \
-        OPT_V_EXPLICIT_POLICY, OPT_V_INHIBIT_ANY, OPT_V_INHIBIT_MAP, \
-        OPT_V_X509_STRICT, OPT_V_EXTENDED_CRL, OPT_V_USE_DELTAS, \
-        OPT_V_POLICY_PRINT, OPT_V_CHECK_SS_SIG, OPT_V_TRUSTED_FIRST, \
-        OPT_V_SUITEB_128_ONLY, OPT_V_SUITEB_128, OPT_V_SUITEB_192, \
-        OPT_V_PARTIAL_CHAIN, OPT_V_NO_ALT_CHAINS, OPT_V_NO_CHECK_TIME, \
-        OPT_V_VERIFY_AUTH_LEVEL, OPT_V_ALLOW_PROXY_CERTS, \
-        OPT_V__LAST
-
-# define OPT_V_OPTIONS \
-        { "policy", OPT_V_POLICY, 's', \
-            "adds policy to the acceptable policy set"},    \
-        { "purpose", OPT_V_PURPOSE, 's', \
-            "certificate chain purpose"}, \
-        { "verify_name", OPT_V_VERIFY_NAME, 's', "verification policy name"}, \
-        { "verify_depth", OPT_V_VERIFY_DEPTH, 'n', \
-            "chain depth limit" }, \
-        { "auth_level", OPT_V_VERIFY_AUTH_LEVEL, 'n', \
-            "chain authentication security level" }, \
-        { "attime", OPT_V_ATTIME, 'M', "verification epoch time" }, \
-        { "verify_hostname", OPT_V_VERIFY_HOSTNAME, 's', \
-            "expected DNS Subject Alternative Name or else Common Name" }, \
-        { "verify_email", OPT_V_VERIFY_EMAIL, 's', \
-            "expected peer email" }, \
-        { "verify_ip", OPT_V_VERIFY_IP, 's', \
-            "expected peer IP address" }, \
-        { "ignore_critical", OPT_V_IGNORE_CRITICAL, '-', \
-            "permit unhandled critical extensions"}, \
-        { "issuer_checks", OPT_V_ISSUER_CHECKS, '-', "(deprecated)"}, \
-        { "crl_check", OPT_V_CRL_CHECK, '-', \
-            "check leaf certificate revocation" }, \
-        { "crl_check_all", OPT_V_CRL_CHECK_ALL, '-', \
-            "check full chain revocation" }, \
-        { "policy_check", OPT_V_POLICY_CHECK, '-', \
-             "perform rfc5280 policy checks"}, \
-        { "explicit_policy", OPT_V_EXPLICIT_POLICY, '-', \
-            "set policy variable require-explicit-policy"}, \
-        { "inhibit_any", OPT_V_INHIBIT_ANY, '-', \
-            "set policy variable inhibit-any-policy"}, \
-        { "inhibit_map", OPT_V_INHIBIT_MAP, '-', \
-            "set policy variable inhibit-policy-mapping"}, \
-        { "x509_strict", OPT_V_X509_STRICT, '-', \
-            "disable certificate compatibility work-arounds"}, \
-        { "extended_crl", OPT_V_EXTENDED_CRL, '-', \
-            "enable extended CRL features"}, \
-        { "use_deltas", OPT_V_USE_DELTAS, '-', \
-            "use delta CRLs"}, \
-        { "policy_print", OPT_V_POLICY_PRINT, '-', \
-            "print policy processing diagnostics"}, \
-        { "check_ss_sig", OPT_V_CHECK_SS_SIG, '-', \
-            "check root CA self-signatures"}, \
-        { "trusted_first", OPT_V_TRUSTED_FIRST, '-', \
-            "search trust store first (default)" }, \
-        { "suiteB_128_only", OPT_V_SUITEB_128_ONLY, '-', \
-            "Suite B 128-bit-only mode"},  \
-        { "suiteB_128", OPT_V_SUITEB_128, '-', \
-            "Suite B 128-bit mode allowing 192-bit algorithms"}, \
-        { "suiteB_192", OPT_V_SUITEB_192, '-', "Suite B 192-bit-only mode" }, \
-        { "partial_chain", OPT_V_PARTIAL_CHAIN, '-', \
-            "accept chains anchored by intermediate trust-store CAs"}, \
-        { "no_alt_chains", OPT_V_NO_ALT_CHAINS, '-', "(deprecated)" }, \
-        { "no_check_time", OPT_V_NO_CHECK_TIME, '-', \
-            "ignore certificate validity time" }, \
-        { "allow_proxy_certs", OPT_V_ALLOW_PROXY_CERTS, '-', \
-            "allow the use of proxy certificates" }
-#endif
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
@@ -418,16 +319,12 @@ typedef enum OPTION_choice {
     OPT_OCSP_USE_AIA,
     OPT_OCSP_URL,
     OPT_OCSP_TIMEOUT,
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
     OPT_OCSP_STATUS,
-# endif
 #endif
     OPT_V_ENUM                  /* OPT_CRLALL etc. */
 } OPTION_CHOICE;
 
-#if OPENSSL_VERSION_NUMBER >= 0x10101000L
 const
-#endif
 OPTIONS cmp_options[] = {
     /* OPTION_CHOICE values must be in the same order as enumerated above!! */
     {"help", OPT_HELP, '-', "Display this summary"},
@@ -688,10 +585,8 @@ OPTIONS cmp_options[] = {
      "for at least the leaf cert using OCSP, with CRLs as fallback if enabled"},
     {"ocsp_timeout", OPT_OCSP_TIMEOUT, 'n',
      "Timeout for retrieving OCSP responses (or 0 for none). Default 10 seconds"},
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
     {"ocsp_status", OPT_OCSP_STATUS, '-',
      "Enable certificate status from TLS server via OCSP (not multi-)stapling"},
-# endif
 #endif
 
     {OPT_MORE_STR, 0, 0, "\nStandard certificate verification options:"},
@@ -770,9 +665,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 #ifndef OPENSSL_NO_OCSP
     {(char **)&opt_ocsp_check_all}, {(char **)&opt_ocsp_use_aia},
     {&opt_ocsp_url}, {(char **)&opt_ocsp_timeout},
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
     {(char **)&opt_ocsp_status},
-# endif
 #endif
     /* virtually at this point: OPT_CRLALL etc. */
     {NULL}
@@ -889,7 +782,6 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
 #endif
         goto end;
     }
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     if (file == NULL) {
         unbuffer(stdin);
         cert = dup_bio_in(format);
@@ -897,27 +789,6 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
         cert = bio_open_default(file, 'r', format);
     if (cert == NULL)
         goto end;
-#else
-    if ((cert = BIO_new(BIO_s_file())) == NULL) {
-        ERR_print_errors(bio_err);
-        goto end;
-    }
-
-    if (file == NULL) {
-# ifdef _IONBF
-#  ifndef OPENSSL_NO_SETVBUF_IONBF
-        setvbuf(stdin, NULL, _IONBF, 0);
-#  endif
-# endif
-        BIO_set_fp(cert, stdin, BIO_NOCLOSE);
-    } else {
-        if (BIO_read_filename(cert, file) <= 0) {
-            BIO_printf(bio_err, "error opening %s '%s'\n", cert_descrip, file);
-            ERR_print_errors(bio_err);
-            goto end;
-        }
-    }
-#endif
     if (format == FORMAT_ASN1)
         x = d2i_X509_bio(cert, NULL);
     else if (format == FORMAT_PEM)
@@ -950,23 +821,9 @@ static X509_REQ *load_csr(const char *file, int format, const char *desc)
     X509_REQ *req = NULL;
     BIO *in;
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     in = bio_open_default(file, 'r', format);
     if (in == NULL)
         goto end;
-#else
-    in = BIO_new(BIO_s_file());
-    if (in == NULL)
-        goto end;
-    if (file == NULL)
-        BIO_set_fp(in, stdin, BIO_NOCLOSE);
-    else {
-        if (BIO_read_filename(in, file) <= 0) {
-            perror(file);
-            goto end;
-        }
-    }
-#endif
 
     if (format == FORMAT_ASN1)
         req = d2i_X509_REQ_bio(in, NULL);
@@ -981,33 +838,6 @@ static X509_REQ *load_csr(const char *file, int format, const char *desc)
     BIO_free(in);
     return req;
 }
-
-#if OPENSSL_VERSION_NUMBER < 0x10100003L/* limited compatibility declarations */
-static int load_crls_(BIO *err, const char *file, int format,
-                      STACK_OF(X509_CRL) **crls, const char *pass, ENGINE *e,
-                      const char *desc)
-{
-    if (*crls != NULL)
-        return 0;
-    *crls = load_crls(err, file, format, pass, e, desc);
-    return *crls != NULL;
-}
-
-static int load_certs_(BIO *err, const char *file, int format,
-                       STACK_OF(X509) **certs, const char *pass, ENGINE *e,
-                       const char *desc)
-{
-    if (*certs != NULL)
-        return 0;
-    *certs = load_certs(err, file, format, pass, e, desc);
-    return *certs != NULL;
-}
-
-# define load_crls( f, c, t,    p,    d) load_crls_ (bio_err, f, t, c, p, 0, d)
-# define load_certs(f, c, t,    p,    d) load_certs_(bio_err, f, t, c, p, 0, d)
-# define load_cert( f,    t,          d) load_cert  (bio_err, f, t, NULL, 0, d)
-# define load_key(  f,    t, i, p, e, d) load_key   (bio_err, f, t, i, p, e, d)
-#endif
 
 /* TODO DvO push this and related functions upstream (PR #autofmt) */
 static int adjust_format(const char **infile, int format, int engine_ok)
@@ -1050,11 +880,7 @@ static char *get_passwd(const char *pass, const char *desc)
 {
     char *result = NULL;
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-    if (!app_passwd(bio_err, (char *)pass, NULL, &result, NULL)) {
-#else
     if (!app_passwd((char *)pass, NULL, &result, NULL)) {
-#endif
         BIO_printf(bio_err, "error getting password for %s\n", desc);
     }
     if (pass != NULL && result == NULL) {
@@ -1064,28 +890,6 @@ static char *get_passwd(const char *pass, const char *desc)
     }
     return result;
 }
-
-#if OPENSSL_VERSION_NUMBER < 0x100020b0L
-static void release_engine(ENGINE *e)
-{
-# ifndef OPENSSL_NO_ENGINE
-    if (e != NULL)
-        /* Free our "structural" reference. */
-        ENGINE_free(e);
-# endif
-}
-#endif
-
-#if OPENSSL_VERSION_NUMBER < 0x1010001fL
-static void OPENSSL_clear_free(void *str, size_t num)
-{
-    if (str == NULL)
-        return;
-    if (num)
-        OPENSSL_cleanse(str, num);
-    CRYPTO_free(str);
-}
-#endif
 
 static void cleanse(char *str) {
     if (str != NULL) {
@@ -1189,11 +993,7 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
     int i;
 
     if (format == FORMAT_PKCS12) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
         BIO *bio = bio_open_default(file, 'r', format);
-#else
-        BIO *bio = BIO_new_file(file, "rb");
-#endif
         if (bio != NULL) {
             EVP_PKEY *pkey = NULL;  /* &pkey is required for matching cert */
             PW_CB_DATA cb_data;
@@ -1597,17 +1397,6 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
         return -1;
     }
 
-# if OPENSSL_VERSION_NUMBER < 0x100020d0L
-    {   /*
-         * workaround for a meanwhile fixed bug in OCSP_basic_verify()
-         * neglecting the certs argument if br->certs is NULL
-         */
-        X509 *dummy = X509_new();
-        if (dummy)
-            (void)OCSP_basic_add1_cert(br, dummy);
-        X509_free(dummy);
-    }
-# endif
     {
         /* must not do revocation checking on OCSP responder cert chain */
         const X509_STORE_CTX_check_revocation_fn bak_fn =
@@ -1736,9 +1525,6 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
 # endif
     /* process_responder is defined ocsp.c */
     resp = process_responder(
-# if OPENSSL_VERSION_NUMBER < 0x1010001fL
-                             bio_err,
-# endif
                              req, host, path, port, use_ssl, NULL, timeout);
     if (resp == NULL) {
         BIO_puts(bio_err, "cert_status: error querying OCSP responder\n");
@@ -1881,7 +1667,6 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
     return 1;
 }
 
-# if OPENSSL_VERSION_NUMBER >= 0x1010001fL
 /*
  * callback function for verifying stapled OCSP responses
  * Returns 1 on success, 0 on rejection (i.e., cert revoked), -1 on error
@@ -1926,7 +1711,6 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
     OCSP_RESPONSE_free(rsp);
     return ret;
 }
-# endif
 
 /*
  * Check revocation status on each cert in ctx->chain. As a generalization of
@@ -2580,7 +2364,6 @@ static int transform_opts(OSSL_CMP_CTX *ctx) {
         return 0;
     }
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     if (opt_keyform_s != NULL &&
         !opt_format(opt_keyform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
 # ifndef OPENSSL_NO_ENGINE
@@ -2610,19 +2393,6 @@ static int transform_opts(OSSL_CMP_CTX *ctx) {
         OSSL_CMP_err(ctx, "unknown option given for CRL format");
         return 0;
     }
-#else
-    if (opt_keyform_s)
-        opt_keyform = str2fmt(opt_keyform_s);
-
-    if (opt_ownform_s)
-        opt_ownform = str2fmt(opt_ownform_s);
-
-    if (opt_otherform_s)
-        opt_otherform = str2fmt(opt_otherform_s);
-
-    if (opt_crlform_s)
-        opt_crlform = str2fmt(opt_crlform_s);
-#endif
 
     return 1;
 }
@@ -2994,12 +2764,6 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     X509_STORE *store = NULL;
     SSL_CTX *ssl_ctx;
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-    /* initialize OpenSSL's SSL lib */
-    OpenSSL_add_ssl_algorithms();
-    SSL_load_error_strings();
-#endif
-
     ssl_ctx = SSL_CTX_new(TLS_client_method());
     if (ssl_ctx == NULL) {
         goto oom;
@@ -3011,17 +2775,6 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
 
 #ifndef OPENSSL_NO_OCSP
     if (opt_ocsp_status) {
-# if OPENSSL_VERSION_NUMBER < 0x1010001fL
-/* The following does not work:
- *  #define SSL_CTX_set_tlsext_status_type(ssl, type) \
- *          SSL_CTX_ctrl(ssl, SSL_CTRL_SET_TLSEXT_STATUS_REQ_TYPE, type, NULL)
- * Instead, we'd have to set TLSEXT_STATUSTYPE_ocsp directly in the SSL struct:
- *          SSL_set_tlsext_status_type(ssl, TLSEXT_STATUSTYPE_ocsp);
- */
-        BIO_printf(bio_err,
-                   "OCSP stapling not supported for OpenSSL version <1.1\n");
-        goto err;
-# else
         SSL_CTX_set_tlsext_status_type(ssl_ctx, TLSEXT_STATUSTYPE_ocsp);
         SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_stapling_cb);
 /*
@@ -3029,7 +2782,6 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
  * insufficient from SSL_get0_verified_chain(ssl) and OCSP_resp_get0_certs(br):
  */
         SSL_CTX_set_tlsext_status_arg(ssl_ctx, untrusted_certs);
-# endif
     }
 #endif /* OPENSSL_NO_OCSP */
 
@@ -3042,13 +2794,11 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         SSL_CTX_set_cert_store(ssl_ctx, store);
         if (!set1_store_parameters_crls(store, all_crls))
             goto oom;
-#if OPENSSL_VERSION_NUMBER >= 0x10002000
         /* enable and parameterize server hostname/IP address check */
         if (!truststore_set_host_etc(store, opt_tls_host != NULL ?
                                             opt_tls_host : opt_server))
             /* TODO: is the server host name correct for TLS via proxy? */
             goto oom;
-#endif
         SSL_CTX_set_verify(ssl_ctx,
                            SSL_VERIFY_PEER |
                            SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
@@ -3826,17 +3576,8 @@ static int read_config(void)
                 /* not NULL */
             }
             if (conf_argc > 1) {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
                 (void)opt_init(conf_argc, conf_argv, cmp_options);
                 if (!opt_verify(opt_next(), vpm))
-#else
-                char **conf_argvp = conf_argv + 1;
-                int badarg = 0;
-
-                (void)args_verify(&conf_argvp, &conf_argc, &badarg, bio_err,
-                                  &vpm);
-                if (badarg)
-#endif
                 {
                     BIO_printf(bio_err,
                           "error for option '%s' in config file section '%s'\n",
@@ -3871,47 +3612,6 @@ static int read_config(void)
     return 1;
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-static CONF *app_load_config(const char *filename)
-{
-    long errorline = -1;
-    CONF *conf_ = NCONF_new(NULL);
-    if (conf_ && NCONF_load(conf_, filename, &errorline) > 0)
-        return conf_;
-
-    if (errorline <= 0)
-        BIO_printf(bio_err, "error loading the config file '%s'\n", filename);
-    else
-        BIO_printf(bio_err, "error on line %ld of config file '%s'\n",
-                   errorline, filename);
-    NCONF_free(conf_);
-    return NULL;
-}
-
-static void opt_help(const OPTIONS *unused_arg)
-{
-    const int ALIGN_COL = 22;
-    const OPTIONS *opt;
-    int i = 0;
-    int j = 0;
-    int initlen;
-
-    BIO_printf(bio_err, "\nusage: openssl %s args\n", prog);
-    for (i = 0, opt = cmp_options; opt->name; i++, opt++) {
-        if (!strcmp(opt->name, OPT_MORE_STR))
-            initlen = 0;
-        else {
-            BIO_printf(bio_err, " -%s", opt->name);
-            initlen = 2 + strlen(opt->name);
-        }
-        for (j = ALIGN_COL - initlen; j > 0; j--)
-            BIO_puts(bio_err, " ");
-        BIO_printf(bio_err, " %s\n", opt->helpstr);
-    }
-}
-#endif
-
-#if OPENSSL_VERSION_NUMBER >= 0x1010001fL
 static char *opt_str(char *opt)
 {
     char *arg = opt_arg();
@@ -3936,12 +3636,10 @@ static int opt_nat(void)
                    opt_arg());
     return result;
 }
-#endif
 
 /* returns 0 on success, 1 on error, -1 on -help (i.e., stop with success) */
 static int get_opts(int argc, char **argv)
 {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     OPTION_CHOICE o;
 
     prog = opt_init(argc, argv, cmp_options);
@@ -4076,11 +3774,9 @@ static int get_opts(int argc, char **argv)
             if ((opt_ocsp_timeout = opt_nat()) < 0)
                 goto opt_err;
             break;
-#  if OPENSSL_VERSION_NUMBER >= 0x10100000L
         case OPT_OCSP_STATUS:
             opt_ocsp_status = 1;
             break;
-#  endif
 # endif
         case OPT_V_CASES /* OPT_CRLALL etc. */ :
             if (!opt_verify(o, vpm))
@@ -4280,98 +3976,6 @@ static int get_opts(int argc, char **argv)
         BIO_printf(bio_err, "%s: unknown parameter %s\n", prog, argv[0]);
         goto opt_err;
     }
-#else /* OPENSSL_VERSION_NUMBER */
-    /* parse commandline options */
-    ++argv;
-    while (--argc > 0) {
-        int i;
-        int badarg = 0;
-        int found = 0;
-        const OPTIONS *opt;
-        char *arg;
-
-        if (args_verify(&argv, &argc, &badarg, bio_err, &vpm)) {
-            /* OPT_CRLALL etc. */
-            if (badarg)
-                goto opt_err;
-            continue;
-        }
-        arg = *argv;
-
-        if (*arg == 0 || *arg++ != '-') {
-            BIO_printf(bio_err, "option '%.40s' must start with: '-'\n", *argv);
-            goto opt_err;
-        }
-        if (*arg == '-')
-            arg++;
-
-        /*
-         * starting with index 0 to consume also OPT_CONFIG and OPT_SECTION,
-         * which have already been handled
-         */
-        for (i = 0, opt = &cmp_options[0 + OPT_HELP]; opt->name; i++, opt++) {
-            if (!strcmp(opt->name, OPT_HELP_STR)
-                || !strcmp(opt->name, OPT_MORE_STR)) {
-                i--;
-                continue;
-            }
-            if (OPT_V__FIRST < opt->retval && opt->retval < OPT_V__LAST)
-                opt += (OPT_V__LAST - 1) - (OPT_V__FIRST + 1);
-            if (opt->name && !strcmp(arg, opt->name)) {
-                if (argc <= 1 && opt->valtype != '-') {
-                    BIO_printf(bio_err, "missing argument for '-%s'\n",
-                               opt->name);
-                    goto opt_err;
-                }
-                switch (opt->valtype) {
-                case '-':
-                    *cmp_vars[i].num = 1;
-                    break;
-                case 'n':
-                    if ((*cmp_vars[i].num = atoint(*++argv)) == INT_MIN) {
-                        BIO_printf(bio_err, "Can't parse %s as integer argument for '-%s'\n",
-                                   *argv, opt->name);
-                        goto opt_err;
-                    }
-                    argc--;
-                    break;
-                case 'l':
-                    *cmp_vars[i].num_long = atol(*++argv);
-                    argc--;
-                    break;
-                case 's':
-                    *cmp_vars[i].txt = *++argv;
-                    if (**argv == '\0') {
-                        BIO_printf(bio_err,
-      "%s: warning: argument of -%s option is empty string, resetting option\n",
-                                   prog, opt->name);
-                        *cmp_vars[i].txt = NULL;
-                    } else if (**argv == '-') {
-                        BIO_printf(bio_err,
-                     "%s: warning: argument of -%s option starts with hyphen\n",
-                                   prog, opt->name);
-                    }
-                    argc--;
-                    break;
-                default:
-                    BIO_printf(bio_err, "internal error parsing arguments\n");
-                    goto opt_err;
-                }
-                found = 1;
-            }
-        }
-
-        if (!found) {
-            if (strcmp(arg, "help") == 0) {
-                opt_help(cmp_options);
-                return -1;
-            }
-            BIO_printf(bio_err, "unknown argument: '%s'\n", *argv);
-            goto opt_err;
-        }
-        ++argv;
-    }
-#endif /* OPENSSL_VERSION_NUMBER */
     return 0;
 
  opt_err:
