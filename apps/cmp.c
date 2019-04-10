@@ -106,7 +106,7 @@ static ENGINE *setup_engine_no_default(const char *engine, int debug)
             return NULL;
         if (!ENGINE_ctrl_cmd(e, "SET_USER_INTERFACE", 0, ui_method, 0, 1))
             return NULL;
-# if 0
+# if defined SET_ENGINE_METHOD_ALL
         if (!ENGINE_set_default(e, ENGINE_METHOD_ALL)) {
             BIO_printf(bio_err, "can't use that engine\n");
             ERR_print_errors(bio_err);
@@ -1032,10 +1032,6 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
                        "warning: certificate with subject '%s' %s\n", s,
                        cmp > 0 ? "has expired" : "not yet valid");
             OPENSSL_free(s);
-#if 0
-            sk_X509_pop_free(*certs, X509_free);
-            ret = 0;
-#endif
         }
     }
     return ret;
@@ -1164,7 +1160,7 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format,
 
 static void DEBUG_print(const char *msg, const char *s1, const char *s2)
 {
-#if 1 && !defined NDEBUG
+#if !defined NDEBUG
     BIO_printf(bio_err, "DEBUG: %s %s %s\n", msg,
                s1 != NULL ? s1 : "", s2 != NULL ? s2 : "");
 #endif
@@ -1378,7 +1374,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
     if (resp == NULL)
         return -1;
 
-# if 0 && !defined NDEBUG
+# if defined VERBOSE_DEBUG && !defined NDEBUG
     BIO_puts(bio_c_out, "debug: OCSP response:\n");
     BIO_puts(bio_c_out, "======================================\n");
     OCSP_RESPONSE_print(bio_c_out, resp, 0);
@@ -1511,7 +1507,7 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
     id = NULL;
     if (!OCSP_request_add1_nonce(req, NULL, -1))
         goto end;
-# if 0
+# if defined OCSP_REQUEST_ADD_EXTS
     STACK_OF(X509_EXTENSION) *exts;
     int i;
 
@@ -1906,13 +1902,13 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             ret = CMP_R_ERROR_TRANSFERRING_IN;
             if ((req_new = read_PKIMESSAGE(ctx, &opt_reqin)) == NULL)
                 goto err;
-# if 0
           /*
            * The transaction ID in req_new may not be fresh. In this case the
            * Insta Demo CA correctly complains: "Transaction id already in use."
            * The following workaround unfortunately requires re-protection.
            * --> GitHub issue#8
            */
+# if defined USE_TRANSACTIONID_WORKAROUND
             OSSL_CMP_HDR_set1_transactionID(OSSL_CMP_MSG_get0_header
                                             (req_new), NULL);
             OSSL_CMP_MSG_protect((OSSL_CMP_CTX *)ctx, req_new);
@@ -2561,11 +2557,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
     else if (X509_VERIFY_PARAM_get_flags(vpm) & X509_V_FLAG_CRL_CHECK) {
         OSSL_CMP_err(ctx,
                      "must use -crl_download or -crls when -crl_check is given");
-#if 0
-        X509_VERIFY_PARAM_clear_flags(vpm, X509_V_FLAG_CRL_CHECK);
-#else
         goto err;
-#endif
     }
     {  /* just as a precaution in case CRL_CHECK_ALL is set without CRL_CHECK */
         unsigned long flags = X509_VERIFY_PARAM_get_flags(vpm);
@@ -2605,10 +2597,6 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
                                     opt_crls, issuer,
                                     cmp > 0 ? "has expired" : "not yet valid");
                     OPENSSL_free(issuer);
-#if 0
-                    sk_X509_CRL_pop_free(crls, X509_CRL_free);
-                    goto err;
-#endif
                 }
                 if (!sk_X509_CRL_push(*all_crls, crl)) {
                     sk_X509_CRL_pop_free(crls, X509_CRL_free);
@@ -2628,7 +2616,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
     if (opt_ocsp_use_aia || opt_ocsp_url != NULL || opt_ocsp_status) {
         X509_STORE_CTX *tmp_ctx = X509_STORE_CTX_new();
 
-# if 0 && !defined NDEBUG
+# if defined VERBOSE_DEBUG && !defined NDEBUG
         OSSL_CMP_printf(cmp_ctx, OSSL_CMP_FL_INFO,
                         "Will try %s%s for certificate status checking",
                         (opt_ocsp_use_aia || opt_ocsp_url != NULL) &&
