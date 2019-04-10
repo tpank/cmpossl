@@ -341,8 +341,11 @@ int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
     } else if ((flags & X509_V_FLAG_NO_CHECK_TIME) != 0) {
         return 0; /* ok */
     }
-    return (end   != NULL && X509_cmp_time(end  , ptime) < 0) ? +1 :
-           (start != NULL && X509_cmp_time(start, ptime) > 0) ? -1 : 0;
+    if (end != NULL && X509_cmp_time(end, ptime) < 0)
+        return 1;
+    if (start != NULL && X509_cmp_time(start, ptime) > 0)
+        return -1;
+    return 0;
 }
 
 static void add_name_mismatch_data(const char *error_prefix,
