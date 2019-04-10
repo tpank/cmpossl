@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-OSSL_CMP_expired,
+OSSL_CMP_cmp_timeframe,
 OSSL_CMP_validate_msg,
 OSSL_CMP_validate_cert_path,
 OSSL_CMP_print_cert_verify_cb
@@ -11,7 +11,8 @@ OSSL_CMP_print_cert_verify_cb
 =head1 SYNOPSIS
 
  #include <openssl/cmp.h>
- int OSSL_CMP_expired(const ASN1_TIME *endtime, const X509_VERIFY_PARAM *vpm);
+ int OSSL_CMP_check_time(const ASN1_TIME *start,
+                         const ASN1_TIME *end,  const X509_VERIFY_PARAM *vpm);
  int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
  int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
                                  const X509_STORE *trusted_store,
@@ -24,8 +25,9 @@ This is the API for validating the protection of CMP messages,
 which includes validating CMP server certificates and their paths
 while optionally checking the revocation status of the certificates(s).
 
-OSSL_CMP_expired() is a helper function checking if expiration should be checked
-according to the given verification parameters and the given time has passed.
+OSSL_CMP_cmp_timeframe() compares the given time period with the current time.
+If verification parameters are given and X509_V_FLAG_USE_CHECK_TIME is set
+the reference time included there is used instead of the current time.
 
 OSSL_CMP_validate_msg() validates the protection of the given PKIMessage
 using either password-based mac (PBM) or a signature algorithm.
@@ -69,8 +71,9 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-OSSL_CMP_expired() returns 1 if expiration should be checked
-and the given time has passed, and 0 otherwise.
+OSSL_CMP_cmp_timeframe() returns 0 if X509_V_FLAG_NO_CHECK_TIME is set in the
+given verification parameters or the reference time is within the given bounds,
+1 if it is past the end time, and -1 if it is before the start time.
 
 OSSL_CMP_validate_msg() returns 1 on success, 0 on error or validation failed.
 
