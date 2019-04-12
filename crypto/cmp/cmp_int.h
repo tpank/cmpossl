@@ -200,7 +200,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CAKEYUPDANNCONTENT)
 
 /*-
  * declared already here as it will be used in OSSL_CMP_MSG (nested) and
- * infotype and * value
+ * infoType and infoValue
  */
 typedef STACK_OF(OSSL_CMP_MSG) OSSL_CMP_MSGS;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_MSGS)
