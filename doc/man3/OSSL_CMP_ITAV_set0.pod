@@ -64,7 +64,14 @@ included in the requests' PKIHeader's genInfo field.
     OSSL_CMP_ITAV_set0(itav, type, val);
 
     OSSL_CMP_CTX *ctx = OSSL_CMP_CTX_new();
-    OSSL_CMP_CTX_geninfo_itav_push0(ctx, itav);
+    if (!OSSL_CMP_CTX_geninfo_itav_push0(ctx, itav)) {
+        OSSL_CMP_ITAV_free(itav);
+        goto err;
+    }
+
+    ...
+
+    OSSL_CMP_CTX_delete(cmp_ctx); /* also frees itav */
 
 =head1 SEE ALSO
 
