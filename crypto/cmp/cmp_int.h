@@ -491,7 +491,7 @@ struct OSSL_cmp_pkiheader_st {
     ASN1_OCTET_STRING *recipNonce; /* 6 */
     OSSL_CMP_PKIFREETEXT *freeText; /* 7 */
     STACK_OF(OSSL_CMP_ITAV) *generalInfo; /* 8 */
-} /* OSSL_CMP_HDR */;
+} /* OSSL_CMP_PKIHEADER */;
 
 typedef STACK_OF(OSSL_CMP_CHALLENGE) OSSL_CMP_POPODECKEYCHALLCONTENT;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_POPODECKEYCHALLCONTENT)
@@ -619,7 +619,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIBODY)
  *   }
  */
 struct OSSL_cmp_msg_st {
-    OSSL_CMP_HDR *header;
+    OSSL_CMP_PKIHEADER *header;
     OSSL_CMP_PKIBODY *body;
     ASN1_BIT_STRING *protection; /* 0 */
     /* OSSL_CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
@@ -634,7 +634,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_MSG)
  * }
  */
 typedef struct cmp_protectedpart_st {
-    OSSL_CMP_HDR *header;
+    OSSL_CMP_PKIHEADER *header;
     OSSL_CMP_PKIBODY *body;
 } CMP_PROTECTEDPART;
 DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)

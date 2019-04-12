@@ -1888,7 +1888,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                                OSSL_CMP_MSG **res)
 {
     OSSL_CMP_MSG *req_new = NULL;
-    OSSL_CMP_HDR *hdr;
+    OSSL_CMP_PKIHEADER *hdr;
     int ret = CMP_R_ERROR_TRANSFERRING_OUT;
 
     if (req != NULL && opt_reqout != NULL &&

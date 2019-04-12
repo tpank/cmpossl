@@ -125,13 +125,13 @@ int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a)
 }
 
 /* returns the header of the given CMP message or NULL on error */
-OSSL_CMP_HDR *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
+OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
 {
     return msg != NULL ? msg->header : NULL;
 }
 
 /* returns the pvno of the given PKIHeader or -1 on error */
-int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr)
+int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr)
 {
     if (hdr == NULL) {
         CMPerr(CMP_F_OSSL_CMP_HDR_GET_PVNO, CMP_R_NULL_ARGUMENT);
@@ -141,19 +141,19 @@ int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr)
 }
 
 /* returns the transactionID of the given PKIHeader or NULL on error */
-ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_HDR *hdr)
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr)
 {
     return hdr != NULL ? hdr->transactionID : NULL;
 }
 
 /* returns the senderNonce of the given PKIHeader or NULL on error */
-ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_senderNonce(const OSSL_CMP_HDR *hdr)
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr)
 {
     return hdr != NULL ? hdr->senderNonce : NULL;
 }
 
 /* returns the recipNonce of the given PKIHeader or NULL on error */
-ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_HDR *hdr)
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr)
 {
     return hdr != NULL ? hdr->recipNonce : NULL;
 }
@@ -162,7 +162,7 @@ ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_HDR *hdr)
  * Sets the protocol version number in PKIHeader.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_set_pvno(OSSL_CMP_HDR *hdr, int pvno)
+int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno)
 {
     if (hdr == NULL) {
         CMPerr(CMP_F_OSSL_CMP_HDR_SET_PVNO, CMP_R_NULL_ARGUMENT);
@@ -218,7 +218,7 @@ static int set1_general_name(GENERAL_NAME **tgt, const X509_NAME *src)
  * when nm is NULL, recipient is set to an empty string
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_HDR *hdr, const X509_NAME *nm)
+int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
 {
     if (hdr == NULL)
         return 0;
@@ -231,7 +231,7 @@ int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_HDR *hdr, const X509_NAME *nm)
  * when nm is NULL, sender is set to an empty string
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_set1_sender(OSSL_CMP_HDR *hdr, const X509_NAME *nm)
+int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
 {
     if (hdr == NULL)
         return 0;
@@ -334,7 +334,7 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_HDR *hdr,
+int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
                                 const ASN1_OCTET_STRING *senderKID)
 {
     if (hdr == NULL)
@@ -354,7 +354,7 @@ int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_HDR *hdr,
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_HDR *hdr)
+int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_PKIHEADER *hdr)
 {
     if (hdr == NULL)
         goto err;
@@ -377,7 +377,7 @@ int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_HDR *hdr)
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_HDR *hdr, ASN1_UTF8STRING *text)
+int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
     if (hdr == NULL)
         goto err;
@@ -403,7 +403,7 @@ int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_HDR *hdr, ASN1_UTF8STRING *text)
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_HDR *hdr, ASN1_UTF8STRING *text)
+int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
     if (hdr == NULL || text == NULL) {
         CMPerr(CMP_F_OSSL_CMP_HDR_PUSH1_FREETEXT, CMP_R_NULL_ARGUMENT);
@@ -451,7 +451,7 @@ OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_HDR *hdr)
+int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
 {
     X509_NAME *sender;
     X509_NAME *rcp = NULL;
@@ -943,7 +943,7 @@ int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg)
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_HDR *hdr, OSSL_CMP_ITAV *itav)
+int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr, OSSL_CMP_ITAV *itav)
 {
     if (hdr == NULL)
         goto err;
