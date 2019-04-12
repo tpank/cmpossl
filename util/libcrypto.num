@@ -4765,7 +4765,7 @@ OSSL_CMP_SRV_CTX_set_send_error         4717	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_checkAfterTime     4718	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_pollCount          4719	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_accept_raverified  4720	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_ITAV_set                       4721	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_ITAV_set0                      4721	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_ITAV_get0_type                 4722	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_ITAV_get0_value                4723	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_ITAV_stack_item_push0          4724	3_0_0	EXIST::FUNCTION:CMP

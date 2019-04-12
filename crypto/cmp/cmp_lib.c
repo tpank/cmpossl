@@ -903,7 +903,7 @@ int OSSL_CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg)
         goto err;
 
     if ((itav = OSSL_CMP_ITAV_gen(OBJ_nid2obj(NID_id_it_implicitConfirm),
-                                  (const ASN1_TYPE *)ASN1_NULL_new())) == NULL)
+                                  (ASN1_TYPE *)ASN1_NULL_new())) == NULL)
         goto err;
     if (!OSSL_CMP_HDR_generalInfo_item_push0(msg->header, itav))
         goto err;
@@ -943,8 +943,7 @@ int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg)
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_HDR *hdr,
-                                         const OSSL_CMP_ITAV *itav)
+int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_HDR *hdr, OSSL_CMP_ITAV *itav)
 {
     if (hdr == NULL)
         goto err;
@@ -988,8 +987,7 @@ int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg,
-                                 const OSSL_CMP_ITAV *itav)
+int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
 {
     int bodytype;
 
@@ -1076,14 +1074,13 @@ int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
  * Creates a new OSSL_CMP_ITAV structure and fills it in
  * returns a pointer to the structure on success, NULL on error
  */
-OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(const ASN1_OBJECT *type,
-                                 const ASN1_TYPE *value)
+OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(ASN1_OBJECT *type, ASN1_TYPE *value)
 {
     OSSL_CMP_ITAV *itav;
 
     if (type == NULL || (itav = OSSL_CMP_ITAV_new()) == NULL)
         return NULL;
-    OSSL_CMP_ITAV_set(itav, type, value);
+    OSSL_CMP_ITAV_set0(itav, type, value);
     return itav;
 }
 

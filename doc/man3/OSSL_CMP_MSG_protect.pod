@@ -42,7 +42,7 @@ OSSL_CMP_X509_STORE_get1_certs
 
   void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
   int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_HDR *hdr,
-                                          const OSSL_CMP_ITAV *itav);
+                                          OSSL_CMP_ITAV *itav);
   int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
                                            STACK_OF(OSSL_CMP_ITAV) *itavs);
   int OSSL_CMP_HDR_push0_freeText( OSSL_CMP_HDR *hdr, ASN1_UTF8STRING *text);
@@ -60,8 +60,7 @@ OSSL_CMP_X509_STORE_get1_certs
   int OSSL_CMP_HDR_set_pvno(OSSL_CMP_HDR *hdr, int pvno);
   int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr);
   int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg);
-  int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg,
-                                   const OSSL_CMP_ITAV *itav);
+  int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
   int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
                                     STACK_OF(OSSL_CMP_ITAV) *itavs);
   int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
