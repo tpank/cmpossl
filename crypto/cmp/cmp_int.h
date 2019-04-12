@@ -215,31 +215,31 @@ struct OSSL_cmp_itav_st {
     ASN1_OBJECT *infoType;
     union {
         char *ptr;
-        /* NID_id_it_caProtEncCert - CA Protocol Encryption Certificate  */
+        /* NID_id_it_caProtEncCert - CA Protocol Encryption Certificate */
         X509 *caProtEncCert;
-        /* NID_id_it_signKeyPairTypes - Signing Key Pair Types  */
+        /* NID_id_it_signKeyPairTypes - Signing Key Pair Types */
         STACK_OF(X509_ALGOR) *signKeyPairTypes;
         /* NID_id_it_encKeyPairTypes - Encryption/Key Agreement Key Pair Types*/
         STACK_OF(X509_ALGOR) *encKeyPairTypes;
-        /* NID_id_it_preferredSymmAlg - Preferred Symmetric Algorithm  */
+        /* NID_id_it_preferredSymmAlg - Preferred Symmetric Algorithm */
         X509_ALGOR *preferredSymmAlg;
         /* NID_id_it_caKeyUpdateInfo - Updated CA Key Pair */
         OSSL_CMP_CAKEYUPDANNCONTENT *caKeyUpdateInfo;
-        /* NID_id_it_currentCRL - CRL  */
+        /* NID_id_it_currentCRL - CRL */
         X509_CRL *currentCRL;
         /* NID_id_it_unsupportedOIDs - Unsupported Object Identifiers */
         STACK_OF(ASN1_OBJECT) *unsupportedOIDs;
         /* NID_id_it_keyPairParamReq - Key Pair Parameters Request */
         ASN1_OBJECT *keyPairParamReq;
-        /* NID_id_it_keyPairParamRep - Key Pair Parameters Response  */
+        /* NID_id_it_keyPairParamRep - Key Pair Parameters Response */
         X509_ALGOR *keyPairParamRep;
         /* NID_id_it_revPassphrase - Revocation Passphrase */
         OSSL_CRMF_ENCRYPTEDVALUE *revPassphrase;
-        /* NID_id_it_implicitConfirm - ImplicitConfirm  */
+        /* NID_id_it_implicitConfirm - ImplicitConfirm */
         ASN1_NULL *implicitConfirm;
-        /* NID_id_it_confirmWaitTime - ConfirmWaitTime  */
+        /* NID_id_it_confirmWaitTime - ConfirmWaitTime */
         ASN1_GENERALIZEDTIME *confirmWaitTime;
-        /* NID_id_it_origPKIMessage - origPKIMessage  */
+        /* NID_id_it_origPKIMessage - origPKIMessage */
         OSSL_CMP_MSGS *origPKIMessage;
         /* NID_id_it_suppLangTags - Supported Language Tags */
         STACK_OF(ASN1_UTF8STRING) *suppLangTagsValue;
@@ -342,6 +342,7 @@ typedef struct OSSL_cmp_keyrecrepcontent_st {
     STACK_OF(OSSL_CMP_CERTIFIEDKEYPAIR) *keyPairHist;
 } OSSL_CMP_KEYRECREPCONTENT;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_KEYRECREPCONTENT)
+
 /*-
  *   ErrorMsgContent ::= SEQUENCE {
  *       pKIStatusInfo          PKIStatusInfo,
