@@ -14,8 +14,7 @@
 #ifndef OSSL_HEADER_CMP_INT_H
 # define OSSL_HEADER_CMP_INT_H
 
-# define DECIMAL_SIZE(type) ((sizeof(type)*8+2)/3+1) /* this avoids dependency
-                      on internal header file: #include "internal/cryptlib.h" */
+#include "internal/cryptlib.h"
 
 # include <openssl/cmp.h>
 # include <openssl/err.h>
