@@ -577,7 +577,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 {
     ASN1_BIT_STRING *prot = NULL;
     CMP_PROTECTEDPART prot_part;
-    OPENSSL_CMP_CONST ASN1_OBJECT *algorOID = NULL;
+    const ASN1_OBJECT *algorOID = NULL;
 
     int l;
     size_t prot_part_der_len;
@@ -585,7 +585,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
     size_t sig_len;
     unsigned char *protection = NULL;
 
-    OPENSSL_CMP_CONST void *ppval = NULL;
+    const void *ppval = NULL;
     int pptype = 0;
 
     OSSL_CRMF_PBMPARAMETER *pbm = NULL;

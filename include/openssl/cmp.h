@@ -19,7 +19,6 @@
 # ifndef OPENSSL_NO_CMP
 #  include <openssl/crmf.h>
 #  include <openssl/cmperr.h>
-#  define OPENSSL_CMP_CONST const
 
 /* explicit #includes not strictly needed since implied by the above: */
 #  include <openssl/ossl_typ.h>

@@ -349,8 +349,8 @@ int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
 }
 
 static void add_name_mismatch_data(const char *error_prefix,
-                                   OPENSSL_CMP_CONST X509_NAME *actual_name,
-                                   OPENSSL_CMP_CONST X509_NAME *expected_name)
+                                   const X509_NAME *actual_name,
+                                   const X509_NAME *expected_name)
 {
     char *expected = X509_NAME_oneline(expected_name, NULL, 0);
     char *actual = actual_name != NULL ? X509_NAME_oneline(actual_name, NULL, 0)
@@ -652,7 +652,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
     X509_ALGOR *alg;
     int nid = NID_undef, pk_nid = NID_undef;
-    OPENSSL_CMP_CONST ASN1_OBJECT *algorOID = NULL;
+    const ASN1_OBJECT *algorOID = NULL;
     X509 *scrt = NULL;
 
     if (ctx == NULL || msg == NULL || msg->header == NULL) {
