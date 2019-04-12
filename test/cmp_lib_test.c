@@ -84,11 +84,11 @@ static OSSL_CMP_MSG *ir_unprotected, *ir_protected, *ir_rmprotection;
 
 static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
 {
-    OSSL_CMP_HDR *header = NULL;
+    OSSL_CMP_PKIHEADER *header = NULL;
     ASN1_OCTET_STRING *header_nonce = NULL;
     ASN1_OCTET_STRING *ctx_nonce = NULL;
     int res = 0;
-    if (!TEST_ptr(header = OSSL_CMP_HDR_new()))
+    if (!TEST_ptr(header = OSSL_CMP_PKIHEADER_new()))
         return 0;
     if (!TEST_int_eq(fixture->expected,
                      OSSL_CMP_HDR_init(fixture->cmp_ctx, header)))
@@ -115,7 +115,7 @@ static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
     res = 1;
 
  err:
-    OSSL_CMP_HDR_free(header);
+    OSSL_CMP_PKIHEADER_free(header);
     return res;
 }
 
@@ -183,7 +183,7 @@ static int execute_check_received_test(CMP_LIB_TEST_FIXTURE *fixture)
         return 0;
 
     if (fixture->expected >= 0) {
-        const OSSL_CMP_HDR *header = OSSL_CMP_MSG_get0_header(fixture->msg);
+        const OSSL_CMP_PKIHEADER *header = OSSL_CMP_MSG_get0_header(fixture->msg);
         if (!TEST_int_eq(0,
               ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_senderNonce(header),
                                     OSSL_CMP_CTX_get0_recipNonce(fixture->

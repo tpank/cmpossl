@@ -14,8 +14,7 @@
 #ifndef OSSL_HEADER_CMP_INT_H
 # define OSSL_HEADER_CMP_INT_H
 
-# define DECIMAL_SIZE(type) ((sizeof(type)*8+2)/3+1) /* this avoids dependency
-                      on internal header file: #include "internal/cryptlib.h" */
+# include "internal/cryptlib.h"
 
 # include <openssl/cmp.h>
 # include <openssl/err.h>
@@ -200,7 +199,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CAKEYUPDANNCONTENT)
 
 /*-
  * declared already here as it will be used in OSSL_CMP_MSG (nested) and
- * infotype and * value
+ * infoType and infoValue
  */
 typedef STACK_OF(OSSL_CMP_MSG) OSSL_CMP_MSGS;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_MSGS)
@@ -215,31 +214,31 @@ struct OSSL_cmp_itav_st {
     ASN1_OBJECT *infoType;
     union {
         char *ptr;
-        /* NID_id_it_caProtEncCert - CA Protocol Encryption Certificate  */
+        /* NID_id_it_caProtEncCert - CA Protocol Encryption Certificate */
         X509 *caProtEncCert;
-        /* NID_id_it_signKeyPairTypes - Signing Key Pair Types  */
+        /* NID_id_it_signKeyPairTypes - Signing Key Pair Types */
         STACK_OF(X509_ALGOR) *signKeyPairTypes;
         /* NID_id_it_encKeyPairTypes - Encryption/Key Agreement Key Pair Types*/
         STACK_OF(X509_ALGOR) *encKeyPairTypes;
-        /* NID_id_it_preferredSymmAlg - Preferred Symmetric Algorithm  */
+        /* NID_id_it_preferredSymmAlg - Preferred Symmetric Algorithm */
         X509_ALGOR *preferredSymmAlg;
         /* NID_id_it_caKeyUpdateInfo - Updated CA Key Pair */
         OSSL_CMP_CAKEYUPDANNCONTENT *caKeyUpdateInfo;
-        /* NID_id_it_currentCRL - CRL  */
+        /* NID_id_it_currentCRL - CRL */
         X509_CRL *currentCRL;
         /* NID_id_it_unsupportedOIDs - Unsupported Object Identifiers */
         STACK_OF(ASN1_OBJECT) *unsupportedOIDs;
         /* NID_id_it_keyPairParamReq - Key Pair Parameters Request */
         ASN1_OBJECT *keyPairParamReq;
-        /* NID_id_it_keyPairParamRep - Key Pair Parameters Response  */
+        /* NID_id_it_keyPairParamRep - Key Pair Parameters Response */
         X509_ALGOR *keyPairParamRep;
         /* NID_id_it_revPassphrase - Revocation Passphrase */
         OSSL_CRMF_ENCRYPTEDVALUE *revPassphrase;
-        /* NID_id_it_implicitConfirm - ImplicitConfirm  */
+        /* NID_id_it_implicitConfirm - ImplicitConfirm */
         ASN1_NULL *implicitConfirm;
-        /* NID_id_it_confirmWaitTime - ConfirmWaitTime  */
+        /* NID_id_it_confirmWaitTime - ConfirmWaitTime */
         ASN1_GENERALIZEDTIME *confirmWaitTime;
-        /* NID_id_it_origPKIMessage - origPKIMessage  */
+        /* NID_id_it_origPKIMessage - origPKIMessage */
         OSSL_CMP_MSGS *origPKIMessage;
         /* NID_id_it_suppLangTags - Supported Language Tags */
         STACK_OF(ASN1_UTF8STRING) *suppLangTagsValue;
@@ -342,6 +341,7 @@ typedef struct OSSL_cmp_keyrecrepcontent_st {
     STACK_OF(OSSL_CMP_CERTIFIEDKEYPAIR) *keyPairHist;
 } OSSL_CMP_KEYRECREPCONTENT;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_KEYRECREPCONTENT)
+
 /*-
  *   ErrorMsgContent ::= SEQUENCE {
  *       pKIStatusInfo          PKIStatusInfo,
@@ -491,7 +491,7 @@ struct OSSL_cmp_pkiheader_st {
     ASN1_OCTET_STRING *recipNonce; /* 6 */
     OSSL_CMP_PKIFREETEXT *freeText; /* 7 */
     STACK_OF(OSSL_CMP_ITAV) *generalInfo; /* 8 */
-} /* OSSL_CMP_HDR */;
+} /* OSSL_CMP_PKIHEADER */;
 
 typedef STACK_OF(OSSL_CMP_CHALLENGE) OSSL_CMP_POPODECKEYCHALLCONTENT;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_POPODECKEYCHALLCONTENT)
@@ -619,7 +619,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIBODY)
  *   }
  */
 struct OSSL_cmp_msg_st {
-    OSSL_CMP_HDR *header;
+    OSSL_CMP_PKIHEADER *header;
     OSSL_CMP_PKIBODY *body;
     ASN1_BIT_STRING *protection; /* 0 */
     /* OSSL_CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
@@ -634,7 +634,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_MSG)
  * }
  */
 typedef struct cmp_protectedpart_st {
-    OSSL_CMP_HDR *header;
+    OSSL_CMP_PKIHEADER *header;
     OSSL_CMP_PKIBODY *body;
 } CMP_PROTECTEDPART;
 DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)

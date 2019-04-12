@@ -1,7 +1,7 @@
 /*
- * Copyright 2007-2018 The OpenSSL Project Authors. All Rights Reserved.
- * Copyright Nokia 2007-2018
- * Copyright Siemens AG 2015-2018
+ * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright Nokia 2007-2019
+ * Copyright Siemens AG 2015-2019
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -19,7 +19,6 @@
 # ifndef OPENSSL_NO_CMP
 #  include <openssl/crmf.h>
 #  include <openssl/cmperr.h>
-#  define OPENSSL_CMP_CONST const
 
 /* explicit #includes not strictly needed since implied by the above: */
 #  include <openssl/ossl_typ.h>
@@ -205,8 +204,8 @@ DECLARE_ASN1_ITEM(OSSL_CMP_PKISTATUS)
 
 /* data type declarations */
 typedef struct OSSL_cmp_ctx_st OSSL_CMP_CTX;
-typedef struct OSSL_cmp_pkiheader_st OSSL_CMP_HDR;
-DECLARE_ASN1_FUNCTIONS(OSSL_CMP_HDR)
+typedef struct OSSL_cmp_pkiheader_st OSSL_CMP_PKIHEADER;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIHEADER)
 typedef struct OSSL_cmp_msg_st OSSL_CMP_MSG;
 DECLARE_ASN1_ENCODE_FUNCTIONS(OSSL_CMP_MSG, OSSL_CMP_MSG, OSSL_CMP_MSG)
 typedef struct OSSL_cmp_certstatus_st OSSL_CMP_CERTSTATUS;
@@ -352,26 +351,26 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
 /* TODO: move those elsewhere? used in test/cmp_lib_test.c */
 #  define OSSL_CMP_TRANSACTIONID_LENGTH 16
 #  define OSSL_CMP_SENDERNONCE_LENGTH 16
-OSSL_CMP_HDR *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
-ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_HDR *hdr);
-ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_senderNonce(const OSSL_CMP_HDR *hdr);
-ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_HDR *hdr);
+OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr);
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr);
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
 
-int OSSL_CMP_HDR_set_pvno(OSSL_CMP_HDR *hdr, int pvno);
-int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_HDR *hdr);
-int OSSL_CMP_HDR_set1_sender(OSSL_CMP_HDR *hdr, const X509_NAME *nm);
-int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_HDR *hdr, const X509_NAME *nm);
-int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_HDR *hdr);
-int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_HDR *hdr,
+int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
+int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr);
+int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
+int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
+int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_PKIHEADER *hdr);
+int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
                                 const ASN1_OCTET_STRING *senderKID);
 int OSSL_CMP_CTX_set1_expected_sender(OSSL_CMP_CTX *ctx, const X509_NAME *name);
-int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_HDR *hdr,
+int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr,
                                 ASN1_UTF8STRING *text);
-int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_HDR *hdr,
+int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
-int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_HDR *hdr,
-                                         const OSSL_CMP_ITAV *itav);
-int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_HDR *hdr);
+int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr, 
+                                        OSSL_CMP_ITAV *itav);
+int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
 
 int OSSL_CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg);
 int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg);
@@ -379,12 +378,10 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
                                          STACK_OF(OSSL_CMP_ITAV) *itavs);
-int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg,
-                                 const OSSL_CMP_ITAV *itav);
+int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
 int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
                                   STACK_OF(OSSL_CMP_ITAV) *itavs);
-OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(const ASN1_OBJECT *type,
-                                 const ASN1_TYPE *value);
+OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(ASN1_OBJECT *type, ASN1_TYPE *value);
 OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
                                         const char *text);
 int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *statusInfo);
@@ -485,13 +482,12 @@ int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx,
                                            int raverified);
 
 /* from cmp_asn.c */
-void OSSL_CMP_ITAV_set(OSSL_CMP_ITAV *itav,
-                       const ASN1_OBJECT *type,
-                       const ASN1_TYPE *value);
+void OSSL_CMP_ITAV_set0(OSSL_CMP_ITAV *itav, ASN1_OBJECT *type,
+                        ASN1_TYPE *value);
 ASN1_OBJECT *OSSL_CMP_ITAV_get0_type(const OSSL_CMP_ITAV *itav);
 ASN1_TYPE *OSSL_CMP_ITAV_get0_value(const OSSL_CMP_ITAV *itav);
 int OSSL_CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
-                                   const OSSL_CMP_ITAV *itav);
+                                   OSSL_CMP_ITAV *itav);
 void OSSL_CMP_ITAV_free(OSSL_CMP_ITAV *itav);
 void OSSL_CMP_MSG_free(OSSL_CMP_MSG *msg);
 void OSSL_CMP_PKISI_free(OSSL_CMP_PKISI *si);
@@ -531,8 +527,8 @@ int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx, const GENERAL_NAME *nam
 STACK_OF(X509) *OSSL_CMP_CTX_caPubs_get1(const OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
 int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID);
-int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_ITAV *itav);
-int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_ITAV *itav);
+int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav);
+int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav);
 
 int OSSL_CMP_CTX_set1_extraCertsOut(OSSL_CMP_CTX *ctx,
                                     STACK_OF(X509) *extraCertsOut);
