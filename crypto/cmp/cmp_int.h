@@ -14,7 +14,7 @@
 #ifndef OSSL_HEADER_CMP_INT_H
 # define OSSL_HEADER_CMP_INT_H
 
-#include "internal/cryptlib.h"
+# include "internal/cryptlib.h"
 
 # include <openssl/cmp.h>
 # include <openssl/err.h>
