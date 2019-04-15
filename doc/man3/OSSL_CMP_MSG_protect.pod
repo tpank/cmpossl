@@ -81,9 +81,10 @@ OSSL_CMP_X509_STORE_get1_certs
   int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
                                        const unsigned char *bytes, size_t len);
   int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
-                                 int not_duplicate);
-  int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
-                             int no_self_signed, int no_duplicates);
+                                 int not_duplicate, int prepend);
+  int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk,
+                                  const STACK_OF(X509) *certs,
+                                  int no_self_signed, int no_duplicates);
   int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                 int only_self_signed);
   STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store);
@@ -196,11 +197,12 @@ OSSL_CMP_ASN1_OCTET_STRING_set1_bytes() frees any previous value of the variable
 referenced via the first argument and assigns either a copy of the given byte
 string (with the given length) or NULL. It returns 1 on success, 0 on error.
 
-OSSL_CMP_sk_X509_add1_cert() adds a certificate to given stack, optionally only
-if not already contained.
+OSSL_CMP_sk_X509_add1_cert() appends or prepends (depending on the B<prepend>
+argument) a certificate to the given list,
+optionally only if it is not already contained.
 
-OSSL_CMP_sk_X509_add1_certs() adds certificates to given stack, optionally only
-if not self-signed and optionally only if not already contained.
+OSSL_CMP_sk_X509_add1_certs() appenda a list of certificates to the given list,
+optionally only if not self-signed and optionally only if not already contained.
 
 OSSL_CMP_X509_STORE_add1_certs() adds all or only self-signed certificates from
 the given stack to given store.

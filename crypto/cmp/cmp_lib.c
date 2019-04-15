@@ -97,7 +97,7 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
                 ERR_add_error_data(3, data, separator, tmp);
                 OPENSSL_free(tmp);
             }
-            ERR_PUT_error(ERR_LIB_CMP, 0/* func */, err, file, line);
+            ERR_PUT_error(ERR_LIB_CMP, 0 /* func */, err, file, line);
             txt = curr;
         } else {
             ERR_add_error_data(3, data, separator, txt);
@@ -832,15 +832,15 @@ int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
             STACK_OF(X509) *chain =
                 OSSL_CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
             res = OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain,
-                                              1/* no self-signed */,
-                                              1/* no dups */);
+                                              1 /* no self-signed */,
+                                              1 /* no duplicates */);
             sk_X509_pop_free(chain, X509_free);
         }
     }
 
     /* add any additional certificates from ctx->extraCertsOut */
     OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
-                                1/*no dups*/);
+                                1 /* no duplicates */);
 
     /* if none was found avoid empty ASN.1 sequence */
     if (sk_X509_num(msg->extraCerts) == 0) {
@@ -1612,8 +1612,8 @@ STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
     /* result list to store the up_ref'ed not self-signed certificates */
     if ((result = sk_X509_new_null()) == NULL)
         goto err;
-    OSSL_CMP_sk_X509_add1_certs(result, chain, 1/* no self-signed */,
-                                1/* no dups */);
+    OSSL_CMP_sk_X509_add1_certs(result, chain,
+                                1 /* no self-signed */, 1 /* no duplicates */);
 
  err:
     X509_STORE_free(store);
@@ -1621,12 +1621,12 @@ STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
     return result;
 }
 
-/*
- * Add certificate to given stack, optionally only if not already contained
+/*-
+ * Append/prepend cert to given list, optionally only if not already contained
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
-                               int not_duplicate)
+                               int not_duplicate, int prepend)
 {
     if (not_duplicate) {
         /* not using sk_X509_set_cmp_func() and sk_X509_find()
@@ -1636,15 +1636,16 @@ int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
             if (X509_cmp(sk_X509_value(sk, i), cert) == 0)
                 return 1;
     }
-    if (!sk_X509_push(sk, cert))
+    if (!sk_X509_insert(sk, cert, prepend ? 0 : -1))
         return 0;
     return X509_up_ref(cert);
 }
 
-/*
- * Add certificates from 'certs' to given stack,
+/*-
+ * Append list of certificates from 'certs' to given list,
  * optionally only if not self-signed and
- * optionally only if not already contained* certs parameter may be NULL.
+ * optionally only if not already contained.
+ * The certs parameter may be NULL.
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
@@ -1660,7 +1661,7 @@ int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
     for (i = 0; i < sk_X509_num(certs); i++) {
         X509 *cert = sk_X509_value(certs, i);
         if (!no_self_signed || X509_check_issued(cert, cert) != X509_V_OK) {
-            if (!OSSL_CMP_sk_X509_add1_cert(sk, cert, no_duplicates))
+            if (!OSSL_CMP_sk_X509_add1_cert(sk, cert, no_duplicates, 0))
                 return 0;
         }
     }
@@ -1719,8 +1720,25 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store)
     return sk;
 }
 
+/* prepend list of certs to given sk as far as not yet present in sk */
+static int sk_prepend1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs)
+{
+    int i;
+
+    if (sk == NULL)
+        return 0;
+
+    for (i = sk_X509_num(certs) - 1; i >= 0 ; i--) {
+        if (!OSSL_CMP_sk_X509_add1_cert(sk, sk_X509_value(certs, i),
+                                        1 /* no_duplicates */, 1 /* prepend */))
+            return 0;
+    }
+    return 1;
+}
+
 /*
  * Checks received message (i.e., response by server or request from client)
+ * Any msg->extraCerts are prepended to ctx->untrusted_certs
  *
  * Ensures that:
  * it has a valid body type,
@@ -1744,6 +1762,20 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     if (ctx == NULL || msg == NULL)
         return -1;
 
+    if (sk_X509_num(msg->extraCerts) > 10)
+        OSSL_CMP_warn(ctx,
+                      "received CMP message contains more than 10 extraCerts");
+    /*-
+     * Store any provided extraCerts in ctx for validation and for future use,
+     * such that they are also available to ctx->certConf_cb and the peer does
+     * not need to send them again in the same transaction.
+     * Note that it would not be more secure to add them after checking the msg
+     * since they are untrusted and not covered by the CMP protection anyway.
+     * For efficiency, the extraCerts are prepended so they get used first.
+     */
+    if (!sk_prepend1_certs(ctx->untrusted_certs, msg->extraCerts))
+        return -1;
+
     /* validate message protection */
     if (msg->header->protectionAlg != 0) {
         /* detect explicitly permitted exceptions for invalid protection */
@@ -1762,7 +1794,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                    CMP_R_MISSING_PROTECTION);
             return -1;
         }
-        OSSL_CMP_warn(ctx, "received message is not protected");
+        OSSL_CMP_warn(ctx, "received CMP message is not protected");
     }
 
     /* check CMP version number in header */
@@ -1790,6 +1822,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                CMP_R_RECIPNONCE_UNMATCHED);
         return -1;
     }
+
     /*
      * RFC 4210 section 5.1.1 states: the recipNonce is copied from
      * the senderNonce of the previous message in the transaction.

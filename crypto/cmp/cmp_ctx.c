@@ -353,7 +353,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(const OSSL_CMP_CTX *ctx)
 }
 
 /*
- * Copies the given stack of inbound X509 certificates to extraCertsIn of
+ * Copies any given stack of inbound X509 certificates to extraCertsIn of
  * the OSSL_CMP_CTX structure so that they may be retrieved later.
  * returns 1 on success, 0 on error
  */
@@ -363,7 +363,7 @@ int OSSL_CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
     if (ctx == NULL)
         goto err;
     if (extraCertsIn == NULL)
-        goto err;
+        return 1;
 
     /* if there are already inbound extraCerts on the stack delete them */
     if (ctx->extraCertsIn != NULL) {
