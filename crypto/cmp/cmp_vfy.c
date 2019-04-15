@@ -500,7 +500,7 @@ static int find_server_cert(const X509_STORE *ts,
     STACK_OF(X509) *trusted;
 
     if (ts == NULL || msg == NULL || found_certs == NULL)
-        return NULL; /* maybe better flag and handle this as fatal error */
+        return 0; /* maybe better flag and handle this as fatal error */
 
     if (!find_acceptable_certs(untrusted, msg, ts, found_certs))
         return 0;
