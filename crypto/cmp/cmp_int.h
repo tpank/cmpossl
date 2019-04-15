@@ -27,6 +27,133 @@
 # include <openssl/x509v3.h>
 
 /*
+ * this structure is used to store the context for CMP sessions
+ */
+struct OSSL_cmp_ctx_st {
+    OSSL_cmp_log_cb_t log_cb; /* log callback for error/debug/etc. output */
+    char *log_func; /* name of function that logged last */
+    char *log_file; /* name of source file of that function */
+    int log_line;   /* line in source file of that function */
+    OSSL_CMP_severity log_level; /* last logging level */
+
+    /* message transfer */
+    OSSL_cmp_transfer_cb_t transfer_cb; /* default: OSSL_CMP_MSG_http_perform */
+    void *transfer_cb_arg; /* allows to store optional argument to cb */
+    /* HTTP-based transfer */
+    char *serverPath;
+    char *serverName;
+    int serverPort;
+    char *proxyName;
+    int proxyPort;
+    int msgtimeout; /* max seconds to wait for each CMP message round trip */
+    int totaltimeout; /*
+                       * maximum number seconds an enrollment may take, incl.
+                       * attempts polling for a response if a 'waiting'
+                       * PKIStatus is received
+                       */
+    time_t end_time; /* session start time + totaltimeout */
+    OSSL_cmp_http_cb_t http_cb;
+    void *http_cb_arg; /* allows to store optional argument to cb */
+
+    /* server authentication */
+    int unprotectedErrors; /*
+                            * accept negative responses with no or invalid
+                            * protection to cope with broken server
+                            */
+    X509 *srvCert; /* certificate used to identify the server */
+    X509 *validatedSrvCert; /* caches an already validated server cert */
+    X509_NAME *expected_sender; /* expected sender in pkiheader of response */
+    X509_STORE *trusted_store; /*
+                                * store for trusted (root) certificates and
+                                * possibly CRLs and cert verify callback
+                                */
+    STACK_OF(X509) *untrusted_certs; /* untrusted (intermediate) certs */
+    int ignore_keyusage; /* ignore key usage entry when validating certs */
+    int permitTAInExtraCertsForIR; /*
+                                    * whether to include root certs from
+                                    * extracerts when validating?
+                                    * Used for 3GPP-style E.7
+                                    */
+
+    /* client authentication */
+    int unprotectedSend; /* send unprotected PKI messages */
+    X509 *clCert; /* client cert used to identify and sign for MSG_SIG_ALG */
+    EVP_PKEY *pkey; /* the key pair corresponding to clCert */
+    ASN1_OCTET_STRING *referenceValue; /* optional user name for MSG_MAC_ALG */
+    ASN1_OCTET_STRING *secretValue; /* password/shared secret for MSG_MAC_ALG */
+    /* PBMParameters for MSG_MAC_ALG */
+    size_t pbm_slen; /* currently fixed to 16 */
+    int pbm_owf; /* currently fixed to SHA256 */
+    int pbm_itercnt; /* currently fixed to 500 */
+    int pbm_mac; /* currently fixed to HMAC-SHA1 as per RFC 4210 */
+
+    /* CMP message header and extra certificates */
+    X509_NAME *recipient; /* to set in recipient in pkiheader */
+    int digest; /* NID of digest used in MSG_SIG_ALG and POPO, default SHA256 */
+    ASN1_OCTET_STRING *transactionID; /* the current transaction ID */
+    ASN1_OCTET_STRING *last_senderNonce; /* last nonce sent */
+    ASN1_OCTET_STRING *recipNonce; /* last nonce received */
+    STACK_OF(OSSL_CMP_ITAV) *geninfo_itavs;
+    int implicitConfirm; /* set implicitConfirm in IR/KUR/CR messages */
+    int disableConfirm; /*
+                         * disable confirmation messages in IR/KUR/CR
+                         * transactions to cope with broken server
+                         */
+    STACK_OF(X509) *extraCertsOut; /* to be included in request messages */
+
+    /* certificate template */
+    EVP_PKEY *newPkey; /* new key pair for a cert to be enrolled */
+    X509_NAME *issuer; /* issuer name to used in cert template */
+    int days; /* Number of days new certificates are asked to be valid for */
+    X509_NAME *subjectName; /*
+                             * subject name to be used in the cert template.
+                             * NB: could also be taken from clcert
+                             */
+    STACK_OF(GENERAL_NAME) *subjectAltNames; /*
+                                              * names to be added to the cert
+                                              * template as the subjectAltName
+                                              * extension
+                                              */
+    int SubjectAltName_nodefault;
+    int setSubjectAltNameCritical;
+    X509_EXTENSIONS *reqExtensions; /* exts to be added to cert template */
+    CERTIFICATEPOLICIES *policies; /* policies to be included in extensions */
+    int setPoliciesCritical;
+    int popoMethod; /*
+                     * Proof-of-possession mechanism used.
+                     * Defaults to signature (POPOsigningKey)
+                     */
+    X509 *oldClCert; /*
+                      * for KUR: certificate to be updated;
+                      * for RR: certificate to be revoked
+                      */
+    X509_REQ *p10CSR; /* for P10CR: PKCS#10 CSR to be sent */
+
+    /* misc body contents */
+    int revocationReason; /* revocation reason code to be included in RR */
+    STACK_OF(OSSL_CMP_ITAV) *genm_itavs; /* content of general message */
+
+    /* result returned in responses */
+    int lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP, or -1 */
+    /* TODO: this should be a stack since there could be more than one */
+    OSSL_CMP_PKIFREETEXT *lastStatusString;
+    int failInfoCode; /* failInfoCode of last received IP/CP/KUP */
+    /* TODO: this should be a stack since there could be more than one */
+    X509 *newClCert; /* newly enrolled cert received from the CA */
+    /* TODO: this should be a stack since there could be more than one */
+    STACK_OF(X509) *caPubs; /* CA certs received from server (in IP message) */
+    STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
+
+    /* certificate confirmation */
+    OSSL_cmp_certConf_cb_t certConf_cb; /*
+                                         * callback for letting the app check
+                                         * the received certificate and reject
+                                         * if necessary
+                                         */
+    void *certConf_cb_arg; /* allows to store an argument individual to cb */
+} /* OSSL_CMP_CTX */;
+
+/*
  * ##########################################################################
  * ASN.1 DECLARATIONS
  * ##########################################################################
@@ -585,5 +712,27 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  *           -- self-signed certificate with the identifier certID.
  *   }
  */
+
+/*
+ * functions
+ */
+/* from cmp_util.c */
+int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+                               const ASN1_OCTET_STRING *src);
+int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
+                                     const unsigned char *bytes, size_t len);
+X509_EXTENSIONS *CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *exts);
+/* from cmp_ctx.c */
+ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
+int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
+                            const ASN1_OCTET_STRING *nonce);
+ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx);
+int CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
+X509 *CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
+int CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
+int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
+                              STACK_OF(X509) *extraCertsIn);
+int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
+                             OSSL_CMP_PKIFAILUREINFO *fail_info);
 
 #endif /* !defined OSSL_HEADER_CMP_INT_H */

@@ -11,6 +11,10 @@
 #ifndef HEADER_CMPERR_H
 # define HEADER_CMPERR_H
 
+# ifndef HEADER_SYMHACKS_H
+#  include <openssl/symhacks.h>
+# endif
+
 # include <openssl/opensslconf.h>
 
 # ifndef OPENSSL_NO_CMP
@@ -23,10 +27,50 @@ int ERR_load_CMP_strings(void);
 /*
  * CMP function codes.
  */
+#  define CMP_F_CMP_ASN1_OCTET_STRING_SET1                 123
+#  define CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES           124
+#  define CMP_F_CMP_CTX_SET1_CAPUBS                        105
+#  define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  106
+#  define CMP_F_CMP_CTX_SET1_NEWCLCERT                     107
+#  define CMP_F_CMP_CTX_SET1_RECIPNONCE                    108
+#  define CMP_F_OSSL_CMP_CTX_GENINFO_PUSH0_ITAV            200
+#  define CMP_F_OSSL_CMP_CTX_GENM_PUSH0_ITAV               201
+#  define CMP_F_OSSL_CMP_CTX_GET1_CAPUBS                   128
+#  define CMP_F_OSSL_CMP_CTX_GET1_EXTRACERTSIN             129
+#  define CMP_F_OSSL_CMP_CTX_PUSH1_EXTRACERTSOUT           130
+#  define CMP_F_OSSL_CMP_CTX_PUSH1_POLICYOID               202
+#  define CMP_F_OSSL_CMP_CTX_PUSH1_SUBJECTALTNAME          155
+#  define CMP_F_OSSL_CMP_CTX_REQEXTENSIONS_HAVE_SAN        203
+#  define CMP_F_OSSL_CMP_CTX_SET0_NEWPKEY                  132
+#  define CMP_F_OSSL_CMP_CTX_SET0_PKEY                     133
+#  define CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS            134
+#  define CMP_F_OSSL_CMP_CTX_SET1_CLCERT                   135
+#  define CMP_F_OSSL_CMP_CTX_SET1_EXPECTED_SENDER          136
+#  define CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSOUT            137
+#  define CMP_F_OSSL_CMP_CTX_SET1_ISSUER                   138
+#  define CMP_F_OSSL_CMP_CTX_SET1_LAST_SENDERNONCE         139
+#  define CMP_F_OSSL_CMP_CTX_SET1_OLDCLCERT                141
+#  define CMP_F_OSSL_CMP_CTX_SET1_P10CSR                   142
+#  define CMP_F_OSSL_CMP_CTX_SET1_PROXYNAME                144
+#  define CMP_F_OSSL_CMP_CTX_SET1_RECIPIENT                145
+#  define CMP_F_OSSL_CMP_CTX_SET1_REFERENCEVALUE           146
+#  define CMP_F_OSSL_CMP_CTX_SET1_REQEXTENSIONS            204
+#  define CMP_F_OSSL_CMP_CTX_SET1_SECRETVALUE              147
+#  define CMP_F_OSSL_CMP_CTX_SET1_SERVERNAME               148
+#  define CMP_F_OSSL_CMP_CTX_SET1_SERVERPATH               149
+#  define CMP_F_OSSL_CMP_CTX_SET1_SRVCERT                  150
+#  define CMP_F_OSSL_CMP_CTX_SET1_SUBJECTNAME              151
+#  define CMP_F_OSSL_CMP_CTX_SET1_TRANSACTIONID            152
+#  define CMP_F_OSSL_CMP_CTX_SET_OPTION                    205
+#  define CMP_F_OSSL_CMP_CTX_SET_PROXYPORT                 153
+#  define CMP_F_OSSL_CMP_CTX_SET_SERVERPORT                154
 
 /*
  * CMP reason codes.
  */
+#  define CMP_R_INVALID_ARGS                               149
+#  define CMP_R_MULTIPLE_SAN_SOURCES                       157
+#  define CMP_R_NULL_ARGUMENT                              161
 
 # endif
 #endif
