@@ -156,9 +156,9 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
  * as any following certConf exchange will likely clear the OpenSSL error queue.
  * Returns 1 on successful validation and 0 otherwise.
  */
-int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
-                                const X509_STORE *trusted_store,
-                                const X509 *cert, int defer_errors)
+int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
+                                X509_STORE *trusted_store,
+                                X509 *cert, int defer_errors)
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
@@ -527,7 +527,7 @@ static int find_server_cert(const X509_STORE *ts,
  * trust anchor to validate server cert - provided it also can validate the
  * newly enrolled certificate
  */
-static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, const X509 *scrt,
+static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
                                const OSSL_CMP_MSG *msg) {
     int valid = 0;
     X509_STORE *store = X509_STORE_new();
@@ -553,6 +553,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, const X509 *scrt,
     return valid;
 }
 
+/* find and validate any potentially usable server cert */
 static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
     X509 *scrt = NULL;
@@ -800,7 +801,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
  * Note: While often handy, there is no hard requirement by CMP that
  * an EE must be able to validate the certificates it gets enrolled.
  */
-int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int fail_info,
+int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
                          const char **text)
 {
     X509_STORE *out_trusted = OSSL_CMP_CTX_get_certConf_cb_arg(ctx);
@@ -809,15 +810,12 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int fail_info,
     if (fail_info != 0) /* accept any error flagged by CMP core library */
         return fail_info;
 
-    /* TODO: load caPubs [OSSL_CMP_CTX_caPubs_get1(ctx)] as additional trusted
-    certs during IR and if PBMAC (shared secret) is used, cf. RFC 4210, 5.3.2 */
-
     if (out_trusted != NULL &&
         !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
 
     if (fail_info != 0) {
-        char *str = X509_NAME_oneline(X509_get_subject_name((X509 *)cert),
+        char *str = X509_NAME_oneline(X509_get_subject_name(cert),
                                       NULL, 0);
         OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
                "failed to validate newly enrolled certificate with subject: %s",
