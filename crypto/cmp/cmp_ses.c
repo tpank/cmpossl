@@ -518,7 +518,6 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     const char *txt = NULL;
     OSSL_CMP_CERTREPMESSAGE *crepmsg;
     OSSL_CMP_CERTRESPONSE *crep;
-    STACK_OF(X509) *extracerts;
     int ret = 1;
 
  retry:
@@ -572,16 +571,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         return 0;
 
     /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
-    if ((extracerts = (*resp)->extraCerts) != NULL) {
-        if (!OSSL_CMP_CTX_set1_extraCertsIn(ctx, extracerts) ||
-        /*
-         * merge them also into the untrusted certs, such that the peer does
-         * not need to send them again (in this and any further transaction)
-         */
-            !OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, extracerts,
-                                         0, 1/* no dups */))
-            return 0;
-    }
+    if (!OSSL_CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts))
+        return 0;
 
     if (!(X509_check_private_key(ctx->newClCert,
                                  ctx->newPkey != NULL ? ctx->newPkey
