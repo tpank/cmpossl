@@ -307,7 +307,6 @@ int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
     ctx->proxyPort = 8080;
     ctx->msgtimeout = 2 * 60;
     ctx->totaltimeout = 0;
- /* ctx->end_time = */
     ctx->http_cb = NULL;
     ctx->http_cb_arg = NULL;
     ctx->transfer_cb =
