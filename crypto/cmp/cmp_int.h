@@ -60,10 +60,6 @@ struct OSSL_cmp_ctx_st {
     STACK_OF(X509) *extraCertsOut; /* to be included in PKI messages */
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
     STACK_OF(X509) *caPubs; /* CA certs received from server (in IP message) */
-#if 0
-    OSSL_CMP_PKIFREETEXT *freeText; /* text is intended for human consumption,
-                   this may be used to indicate context-specific instructions */
-#endif
     OSSL_CMP_PKIFREETEXT *lastStatusString;
     X509 *newClCert; /* *new* CLIENT certificate received from the CA
      * TODO: this should be a stack since there could be more than one */
@@ -697,7 +693,6 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  */
 
 /* from cmp_msg.c */
-X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin);
 
 /* from cmp_lib.c */
 /* get ASN.1 encoded integer, return -1 on error */
@@ -782,6 +777,8 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 int CMP_log_printf(const char *file, int line, OSSL_CMP_severity level,
                    const char *fmt,...);
 #endif
+
+X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin);
 
 /* from cmp_vfy.c */
 void put_cert_verify_err(int func, int err);

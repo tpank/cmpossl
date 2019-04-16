@@ -495,6 +495,12 @@ void OSSL_CMP_PKISI_free(OSSL_CMP_PKISI *si);
 DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
 
 /* from cmp_ctx.c */
+int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+                                    const ASN1_OCTET_STRING *src);
+int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
+                                          const unsigned char *bytes,
+                                          size_t len);
+
 OSSL_CMP_CTX *OSSL_CMP_CTX_create(void);
 int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx);
 X509_STORE *OSSL_CMP_CTX_get0_trustedStore(const OSSL_CMP_CTX *ctx);
@@ -589,9 +595,6 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx);
 #  define OSSL_CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT 13
 #  define OSSL_CMP_CTX_OPT_POLICIES_CRITICAL 14
 int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
-#  if 0 /* held for future implementation */
-/* int OSSL_CMP_CTX_push_freeText(OSSL_CMP_CTX *ctx, const char *text); */
-#  endif /* 0 */
 
 /* BIO definitions */
 #  define OSSL_d2i_CMP_MSG_bio(bp, p) \
