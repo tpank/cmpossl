@@ -179,26 +179,6 @@ err:
     return NULL;
 }
 
-X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin /* may be NULL */)
-{
-    X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
-
-    if (exts == NULL)
-        goto err;
-    if (extin != NULL) {
-        int i;
-        for (i = 0; i < sk_X509_EXTENSION_num(extin); i++)
-            if (!sk_X509_EXTENSION_push(exts, X509_EXTENSION_dup(
-                                        sk_X509_EXTENSION_value(extin, i))))
-                goto err;
-    }
-    return exts;
-
- err:
-    sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
-    return NULL;
-}
-
 #define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 || \
                       OSSL_CMP_CTX_reqExtensions_have_SAN(ctx))
 static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,

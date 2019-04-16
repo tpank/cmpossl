@@ -360,10 +360,10 @@ int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
 int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr);
 int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
+int OSSL_CMP_CTX_set1_expected_sender(OSSL_CMP_CTX *ctx, const X509_NAME *name);
 int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_PKIHEADER *hdr);
 int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
                                 const ASN1_OCTET_STRING *senderKID);
-int OSSL_CMP_CTX_set1_expected_sender(OSSL_CMP_CTX *ctx, const X509_NAME *name);
 int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr,
                                 ASN1_UTF8STRING *text);
 int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr,
@@ -406,10 +406,6 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
 int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
                                           const unsigned char *bytes,
                                           size_t len);
-int OSSL_CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert,
-                                int not_duplicate, int prepend);
-int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
-                                int no_self_signed, int no_duplicates);
 int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed);
 STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store);
@@ -495,6 +491,10 @@ void OSSL_CMP_PKISI_free(OSSL_CMP_PKISI *si);
 DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
 
 /* from cmp_ctx.c */
+int OSSL_CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert,
+                                int not_duplicate, int prepend);
+int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
+                                int no_self_signed, int no_duplicates);
 int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                     const ASN1_OCTET_STRING *src);
 int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,

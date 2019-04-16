@@ -768,6 +768,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      EVP_PKEY *pkey);
 
 /* from cmp_ctx.c */
+X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin);
 #ifdef CMP_POOR_LOG
 #define CMP_LOG(x)  CMP_log_printf x /* poor man's variadic macro for C90;
    calls need argument(s) in doubly nested parentheses: LOG((args)) */
@@ -777,8 +778,6 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 int CMP_log_printf(const char *file, int line, OSSL_CMP_severity level,
                    const char *fmt,...);
 #endif
-
-X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin);
 
 /* from cmp_vfy.c */
 void put_cert_verify_err(int func, int err);
