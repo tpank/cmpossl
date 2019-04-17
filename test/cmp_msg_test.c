@@ -41,10 +41,10 @@ static CMP_MSG_TEST_FIXTURE *set_up(const char *const test_case_name)
         goto err;
     fixture->test_case_name = test_case_name;
 
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create()) ||
-        !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1)) ||
-        !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create())
+           || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
+                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1))
+           || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
                                                sizeof(ref))))
         goto err;
 
@@ -133,11 +133,11 @@ static int test_cmp_create_ir_protection_set(void)
     fixture->bodytype = OSSL_CMP_PKIBODY_IR;
     fixture->err_code = CMP_R_ERROR_CREATING_IR;
     fixture->expected = 1;
-    if (!TEST_int_eq(1, RAND_bytes(secret, sizeof(secret))) ||
-        !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
-        !TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey)) ||
-        !TEST_true(OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, secret,
+    if (!TEST_int_eq(1, RAND_bytes(secret, sizeof(secret)))
+            || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
+                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0))
+            || !TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey))
+            || !TEST_true(OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, secret,
                                             sizeof(secret)))) {
         tear_down(fixture);
         fixture = NULL;
@@ -152,10 +152,10 @@ static int test_cmp_create_ir_protection_fails(void)
     fixture->bodytype = OSSL_CMP_PKIBODY_IR;
     fixture->err_code = CMP_R_ERROR_CREATING_IR;
     fixture->expected = 0;
-    if (!TEST_true(OSSL_CMP_CTX_set1_pkey(fixture->cmp_ctx, newkey)) ||
-        !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
-        !TEST_true(OSSL_CMP_CTX_set1_clCert(fixture->cmp_ctx, cert))) {
+    if (!TEST_true(OSSL_CMP_CTX_set1_pkey(fixture->cmp_ctx, newkey))
+            || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
+                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0))
+            || !TEST_true(OSSL_CMP_CTX_set1_clCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -209,9 +209,9 @@ static int test_cmp_create_p10cr(void)
     fixture->bodytype = OSSL_CMP_PKIBODY_P10CR;
     fixture->err_code = CMP_R_ERROR_CREATING_P10CR;
     fixture->expected = 1;
-    if (!TEST_ptr(p10cr = load_csr(pkcs10_f)) ||
-        !TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey)) ||
-        !TEST_true(OSSL_CMP_CTX_set1_p10CSR(fixture->cmp_ctx, p10cr))) {
+    if (!TEST_ptr(p10cr = load_csr(pkcs10_f))
+            || !TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey))
+            || !TEST_true(OSSL_CMP_CTX_set1_p10CSR(fixture->cmp_ctx, p10cr))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -240,8 +240,8 @@ static int test_cmp_create_kur(void)
     fixture->bodytype = OSSL_CMP_PKIBODY_KUR;
     fixture->err_code = CMP_R_ERROR_CREATING_KUR;
     fixture->expected = 1;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey)) ||
-        !TEST_true(OSSL_CMP_CTX_set1_oldClCert(fixture->cmp_ctx, cert))) {
+    if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey))
+           || !TEST_true(OSSL_CMP_CTX_set1_oldClCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -442,16 +442,16 @@ void cleanup_tests(void)
 
 int setup_tests(void)
 {
-    if (!TEST_ptr(server_cert_f = test_get_argument(0)) ||
-        !TEST_ptr(pkcs10_f = test_get_argument(1))) {
+    if (!TEST_ptr(server_cert_f = test_get_argument(0))
+            || !TEST_ptr(pkcs10_f = test_get_argument(1))) {
         TEST_error("usage: cmp_msg_test server.crt pkcs10.der\n");
         return 0;
     }
 
-    if (!TEST_ptr(newkey = gen_rsa()) ||
-        !TEST_ptr(cert =
-                  load_pem_cert(server_cert_f)) ||
-        !TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))))
+    if (!TEST_ptr(newkey = gen_rsa())
+           || !TEST_ptr(cert =
+                        load_pem_cert(server_cert_f))
+            || !TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))))
         return 0;
 
     /* Message creation tests */

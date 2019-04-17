@@ -73,8 +73,8 @@ static int add_crl_reason_extension(X509_EXTENSIONS **exts, int reason_code)
     X509_EXTENSION *ext = NULL;
     int ret = 0;
 
-    if (((val = ASN1_ENUMERATED_new()) != NULL) &&
-        ASN1_ENUMERATED_set(val, reason_code))
+    if (((val = ASN1_ENUMERATED_new()) != NULL)
+            && ASN1_ENUMERATED_set(val, reason_code))
         ext = X509V3_EXT_i2d(NID_crl_reason, 0, val);
     ret = add_extension(exts, ext);
     ASN1_ENUMERATED_free(val);
@@ -98,10 +98,10 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype)
 
     if ((msg = OSSL_CMP_MSG_new()) == NULL)
         goto oom;
-    if (!OSSL_CMP_HDR_init(ctx, msg->header) ||
-        !OSSL_CMP_MSG_set_bodytype(msg, bodytype) ||
-        (ctx->geninfo_itavs != NULL &&
-         !OSSL_CMP_MSG_generalInfo_items_push1(msg, ctx->geninfo_itavs)))
+    if (!OSSL_CMP_HDR_init(ctx, msg->header)
+            || !OSSL_CMP_MSG_set_bodytype(msg, bodytype)
+            || (ctx->geninfo_itavs != NULL
+             && !OSSL_CMP_MSG_generalInfo_items_push1(msg, ctx->geninfo_itavs)))
         goto err;
 
     switch (bodytype) {
@@ -179,15 +179,15 @@ err:
     return NULL;
 }
 
-#define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 || \
-                      OSSL_CMP_CTX_reqExtensions_have_SAN(ctx))
+#define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 \
+                          || OSSL_CMP_CTX_reqExtensions_have_SAN(ctx))
 static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
                                  int bodytype) {
     if (ctx->subjectName != NULL) {
         return ctx->subjectName;
     }
-    if (refcert != NULL &&
-        (bodytype == OSSL_CMP_PKIBODY_KUR || !HAS_SAN(ctx)))
+    if (refcert != NULL
+            && (bodytype == OSSL_CMP_PKIBODY_KUR || !HAS_SAN(ctx)))
         /*
          * For KUR, copy subjectName from reference certificate.
          * For IR or CR, do the same only if there is no subjectAltName.
@@ -219,13 +219,14 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     }
     if ((crm = OSSL_CRMF_MSG_new()) == NULL)
         goto oom;
-    if (!OSSL_CRMF_MSG_set_certReqId(crm, rid) ||
+    if (!OSSL_CRMF_MSG_set_certReqId(crm, rid)
 
     /* fill certTemplate, corresponding to PKCS#10 CertificationRequestInfo */
             /* rkey cannot be NULL so far - but it can be when
              * centralized key creation is supported --> GitHub issue#68 */
-        !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
-                                     subject, ctx->issuer, NULL/* serial */))
+            || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
+                                            subject, ctx->issuer,
+                                            NULL/* serial */))
         goto err;
     if (ctx->days != 0) {
         time_t notBefore, notAfter;
@@ -242,13 +243,13 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     /* exts are copied from ctx to allow reuse */
     if ((exts = CMP_exts_dup(ctx->reqExtensions)) == NULL)
         goto oom;
-    if ((sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 &&
-         !ADD_SANs(&exts, ctx->subjectAltNames, crit)) ||
-        (!HAS_SAN(ctx) && default_sans != NULL &&
-         !ADD_SANs(&exts, default_sans, crit)) ||
-        (ctx->policies != NULL &&
-         !ADD_POLICIES(&exts, ctx->policies, ctx->setPoliciesCritical)) ||
-        !OSSL_CRMF_MSG_set0_extensions(crm, exts))
+    if ((sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0
+             && !ADD_SANs(&exts, ctx->subjectAltNames, crit))
+             || (!HAS_SAN(ctx) && default_sans != NULL
+                 && !ADD_SANs(&exts, default_sans, crit))
+                 || (ctx->policies != NULL &&
+         !ADD_POLICIES(&exts, ctx->policies, ctx->setPoliciesCritical))
+            || !OSSL_CRMF_MSG_set0_extensions(crm, exts))
         goto err;
     sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
     exts = NULL;
@@ -289,11 +290,11 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CRMF_MSG *crm = NULL;
 
-    if (ctx == NULL ||
-        (type != OSSL_CMP_PKIBODY_P10CR && ctx->pkey == NULL &&
-         ctx->newPkey == NULL) ||
-         (type != OSSL_CMP_PKIBODY_IR && type != OSSL_CMP_PKIBODY_CR &&
-          type != OSSL_CMP_PKIBODY_KUR && type != OSSL_CMP_PKIBODY_P10CR)) {
+    if (ctx == NULL
+          || (type != OSSL_CMP_PKIBODY_P10CR && ctx->pkey == NULL
+            && ctx->newPkey == NULL)
+          || (type != OSSL_CMP_PKIBODY_IR && type != OSSL_CMP_PKIBODY_CR
+            && type != OSSL_CMP_PKIBODY_KUR && type != OSSL_CMP_PKIBODY_P10CR)) {
         CMPerr(CMP_F_OSSL_CMP_CERTREQ_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
@@ -312,11 +313,11 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
         EVP_PKEY *rkey = ctx->newPkey != NULL ? ctx->newPkey
             : ctx->pkey; /* default is currenty client key */
 
-        if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID, rkey)) == NULL ||
-            !OSSL_CRMF_MSG_create_popo(crm, rkey, ctx->digest,
-                                       ctx->popoMethod) ||
+        if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID, rkey)) == NULL
+                || !OSSL_CRMF_MSG_create_popo(crm, rkey, ctx->digest,
+                                       ctx->popoMethod)
                       /* value.ir is same for cr and kur */
-            !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
+                || !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
             goto err;
         crm = NULL;
         /* TODO: here optional 2nd certreqmsg could be pushed to the stack */
@@ -366,14 +367,14 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
     if ((resp = OSSL_CMP_CERTRESPONSE_new()) == NULL)
         goto oom;
     OSSL_CMP_PKISI_free(resp->status);
-    if ((resp->status = OSSL_CMP_PKISI_dup(si)) == NULL ||
-        !ASN1_INTEGER_set(resp->certReqId, certReqId)) {
+    if ((resp->status = OSSL_CMP_PKISI_dup(si)) == NULL
+            || !ASN1_INTEGER_set(resp->certReqId, certReqId)) {
         goto oom;
     }
 
     status = OSSL_CMP_PKISI_PKIStatus_get(resp->status);
-    if (status != OSSL_CMP_PKISTATUS_rejection &&
-        status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
+    if (status != OSSL_CMP_PKISTATUS_rejection
+	&& status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
         if (encrypted) {
             CMPerr(CMP_F_OSSL_CMP_CERTREP_NEW, CMP_R_INVALID_PARAMETERS);
             goto err;
@@ -394,16 +395,16 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
     resp = NULL;
     /* TODO: here optional 2nd certrep could be pushed to the stack */
 
-    if (bodytype == OSSL_CMP_PKIBODY_IP && caPubs != NULL &&
-        (repMsg->caPubs = X509_chain_up_ref(caPubs)) == NULL)
+    if (bodytype == OSSL_CMP_PKIBODY_IP && caPubs != NULL
+        && (repMsg->caPubs = X509_chain_up_ref(caPubs)) == NULL)
         goto oom;
-    if (chain != NULL &&
-        !OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain, 0, 1))
+    if (chain != NULL
+        && !OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain, 0, 1))
         goto oom;
 
-    if (!(unprotectedErrors &&
-          OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection) &&
-        !OSSL_CMP_MSG_protect(ctx, msg))
+    if (!(unprotectedErrors
+        && OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection)
+        && !OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
 
     return msg;
@@ -426,14 +427,14 @@ OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int crid)
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_POLLREQ *preq = NULL;
 
-    if (ctx == NULL ||
-        (msg = OSSL_CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_POLLREQ)) == NULL)
+    if (ctx == NULL
+          || (msg = OSSL_CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_POLLREQ)) == NULL)
         goto err;
 
     /* TODO: support multiple cert request IDs to poll */
-    if ((preq = OSSL_CMP_POLLREQ_new()) == NULL ||
-        !ASN1_INTEGER_set(preq->certReqId, crid) ||
-        !sk_OSSL_CMP_POLLREQ_push(msg->body->value.pollReq, preq))
+    if ((preq = OSSL_CMP_POLLREQ_new()) == NULL
+            || !ASN1_INTEGER_set(preq->certReqId, crid)
+            || !sk_OSSL_CMP_POLLREQ_push(msg->body->value.pollReq, preq))
         goto err;
 
     preq = NULL;
@@ -565,9 +566,9 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     sk_OSSL_CRMF_CERTID_push(rep->revCerts, cid);
     cid = NULL;
 
-    if (!(unprot_err &&
-          OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection) &&
-        !OSSL_CMP_MSG_protect(ctx, msg))
+    if (!(unprot_err
+          && OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection)
+          && !OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
     return msg;
 

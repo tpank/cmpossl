@@ -23,8 +23,8 @@ static OSSL_CMP_CTX_TEST_FIXTURE *set_up(const char *const test_case_name)
     OSSL_CMP_CTX_TEST_FIXTURE *fixture;
     int setup_ok = 0;
     /* Allocate memory owned by the fixture, exit on error */
-    if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))) ||
-        !TEST_ptr(fixture->exts = sk_X509_EXTENSION_new_null()))
+    if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture)))
+            || !TEST_ptr(fixture->exts = sk_X509_EXTENSION_new_null()))
         goto err;
     fixture->test_case_name = test_case_name;
 
@@ -67,13 +67,13 @@ static int test_cmp_ctx_reqextensions_have_san(void)
     ASN1_OCTET_STRING *data = NULL;
     X509_EXTENSION *ext = NULL;
 
-    if (!TEST_int_eq(1, RAND_bytes(str, len)) ||
-        !TEST_ptr(data = ASN1_OCTET_STRING_new()) ||
-        !TEST_true(ASN1_OCTET_STRING_set(data, str, len)) ||
-        !TEST_ptr(ext =
+    if (!TEST_int_eq(1, RAND_bytes(str, len))
+            || !TEST_ptr(data = ASN1_OCTET_STRING_new())
+            || !TEST_true(ASN1_OCTET_STRING_set(data, str, len))
+            || !TEST_ptr(ext =
                   X509_EXTENSION_create_by_NID(NULL, NID_subject_alt_name, 0,
                                                data))
-        || !TEST_true(sk_X509_EXTENSION_push(fixture->exts, ext))) {
+            || !TEST_true(sk_X509_EXTENSION_push(fixture->exts, ext))) {
         X509_EXTENSION_free(ext);
         tear_down(fixture);
         fixture = NULL;

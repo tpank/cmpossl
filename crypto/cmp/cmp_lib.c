@@ -79,8 +79,8 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
         }
         len = (int)strlen(data);
         curr = next = txt;
-        while (*next != '\0' &&
-               len + strlen(separator) + (next - txt) < MAX_DATA_LEN) {
+        while (*next != '\0'
+               && len + strlen(separator) + (next - txt) < MAX_DATA_LEN) {
             curr = next;
             if (*separator != '\0') {
                 next = strstr(curr, separator);
@@ -423,8 +423,8 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
     if (ctx->srvCert != NULL) {
         rcp = X509_get_subject_name(ctx->srvCert);
         /* set also as expected_sender of responses unless set explicitly */
-        if (ctx->expected_sender == NULL && rcp != NULL &&
-            !OSSL_CMP_CTX_set1_expected_sender(ctx, rcp))
+        if (ctx->expected_sender == NULL && rcp != NULL
+                && !OSSL_CMP_CTX_set1_expected_sender(ctx, rcp))
         goto err;
     }
     else if (ctx->recipient != NULL)
@@ -455,8 +455,8 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
      * 128 bits of (pseudo-) random data for the start of a transaction to
      * reduce the probability of having the transactionID in use at the server.
      */
-    if (ctx->transactionID == NULL &&
-        !set1_aostr_else_random(&ctx->transactionID,NULL,
+    if (ctx->transactionID == NULL
+            && !set1_aostr_else_random(&ctx->transactionID,NULL,
                                 OSSL_CMP_TRANSACTIONID_LENGTH))
         goto err;
     if (!OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID,
@@ -664,8 +664,8 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
     if (ctx->secretValue != NULL) {
         if ((msg->header->protectionAlg = CMP_create_pbmac_algor(ctx)) == NULL)
             goto err;
-        if (ctx->referenceValue != NULL &&
-            !OSSL_CMP_HDR_set1_senderKID(msg->header, ctx->referenceValue))
+        if (ctx->referenceValue != NULL
+              && !OSSL_CMP_HDR_set1_senderKID(msg->header, ctx->referenceValue))
             goto err;
 
         /*
@@ -713,8 +713,8 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
              * to section 5.1.1
              */
             subjKeyIDStr = X509_get0_subject_key_id(ctx->clCert);
-            if (subjKeyIDStr != NULL &&
-                !OSSL_CMP_HDR_set1_senderKID(msg->header, subjKeyIDStr))
+            if (subjKeyIDStr != NULL
+                    && !OSSL_CMP_HDR_set1_senderKID(msg->header, subjKeyIDStr))
                 goto err;
 
             /* Add ctx->clCert followed, if possible, by its chain built
@@ -1044,11 +1044,11 @@ OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
         goto err;
 
     if (text != NULL) {
-        if ((utf8_text = ASN1_UTF8STRING_new()) == NULL ||
-            !ASN1_STRING_set(utf8_text, text, (int)strlen(text)))
+        if ((utf8_text = ASN1_UTF8STRING_new()) == NULL
+                || !ASN1_STRING_set(utf8_text, text, (int)strlen(text)))
             goto err;
-        if (si->statusString == NULL &&
-            (si->statusString = sk_ASN1_UTF8STRING_new_null()) == NULL)
+        if (si->statusString == NULL
+                && (si->statusString = sk_ASN1_UTF8STRING_new_null()) == NULL)
             goto err;
         if (!sk_ASN1_UTF8STRING_push(si->statusString, utf8_text))
             goto err;
@@ -1058,8 +1058,8 @@ OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
 
     for (failure = 0; failure <= OSSL_CMP_PKIFAILUREINFO_MAX; failure++) {
         if ((fail_info & (1 << failure)) != 0) {
-            if (si->failInfo == NULL &&
-                (si->failInfo = ASN1_BIT_STRING_new()) == NULL)
+            if (si->failInfo == NULL
+                    && (si->failInfo = ASN1_BIT_STRING_new()) == NULL)
                 goto err;
             if (!ASN1_BIT_STRING_set_bit(si->failInfo, failure, 1))
                 goto err;
@@ -1467,8 +1467,8 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
                CMP_R_INVALID_ARGS);
         goto err;
     }
-    if (crep->certifiedKeyPair &&
-        (coec = crep->certifiedKeyPair->certOrEncCert)) {
+    if (crep->certifiedKeyPair
+            && (coec = crep->certifiedKeyPair->certOrEncCert)) {
         switch (coec->type) {
         case OSSL_CMP_CERTORENCCERT_CERTIFICATE:
             crt = X509_dup(coec->value.certificate);
@@ -1668,9 +1668,9 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     /* validate message protection */
     if (msg->header->protectionAlg != 0) {
         /* detect explicitly permitted exceptions for invalid protection */
-        if (!OSSL_CMP_validate_msg(ctx, msg) &&
-            (allow_unprotected == NULL
-             || !(*allow_unprotected)(ctx, msg, 1, cb_arg))) {
+        if (!OSSL_CMP_validate_msg(ctx, msg)
+                && (allow_unprotected == NULL
+                || !(*allow_unprotected)(ctx, msg, 1, cb_arg))) {
              CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                     CMP_R_ERROR_VALIDATING_PROTECTION);
              return -1;
@@ -1693,19 +1693,19 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     }
 
     /* compare received transactionID with the expected one in previous msg */
-    if (ctx->transactionID != NULL &&
-        (msg->header->transactionID == NULL ||
-            ASN1_OCTET_STRING_cmp(ctx->transactionID,
-                                  msg->header->transactionID) != 0)) {
+    if (ctx->transactionID != NULL
+            && (msg->header->transactionID == NULL
+        	|| ASN1_OCTET_STRING_cmp(ctx->transactionID,
+                                         msg->header->transactionID) != 0)) {
         CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                CMP_R_TRANSACTIONID_UNMATCHED);
         return -1;
     }
 
     /* compare received nonce with the one we sent */
-    if (ctx->last_senderNonce != NULL &&
-        (msg->header->recipNonce == NULL ||
-         ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
+    if (ctx->last_senderNonce != NULL
+            && (msg->header->recipNonce == NULL
+        	|| ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
                                msg->header->recipNonce) != 0)) {
         CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                CMP_R_RECIPNONCE_UNMATCHED);
@@ -1720,8 +1720,8 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
         return -1;
 
     /* if not yet present, learn transactionID */
-    if (ctx->transactionID == NULL &&
-        !OSSL_CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
+    if (ctx->transactionID == NULL
+           && !OSSL_CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
         return -1;
 
     if ((rcvd_type = OSSL_CMP_MSG_get_bodytype(msg)) < 0) {

@@ -142,8 +142,8 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
     }
 
     if (bytes != NULL) {
-        if (!(new = ASN1_OCTET_STRING_new()) ||
-            !(ASN1_OCTET_STRING_set(new, bytes, (int)len))) {
+        if (!(new = ASN1_OCTET_STRING_new())
+                || !(ASN1_OCTET_STRING_set(new, bytes, (int)len))) {
             CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES,
                    ERR_R_MALLOC_FAILURE);
             goto err;
@@ -523,9 +523,9 @@ int OSSL_CMP_CTX_extraCertsOut_push1(OSSL_CMP_CTX *ctx, const X509 *val)
 {
     if (ctx == NULL)
         goto err;
-    if ((ctx->extraCertsOut == NULL &&
-         (ctx->extraCertsOut = sk_X509_new_null()) == NULL) ||
-         (!sk_X509_push(ctx->extraCertsOut, X509_dup(val)))) {
+    if ((ctx->extraCertsOut == NULL
+             && (ctx->extraCertsOut = sk_X509_new_null()) == NULL)
+             || (!sk_X509_push(ctx->extraCertsOut, X509_dup(val)))) {
         CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -580,8 +580,8 @@ int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID)
     if ((policy = OBJ_txt2obj(policyOID, 1)) == 0)
         return -1; /* parse error */
 
-    if ((ctx->policies == NULL) &&
-        ((ctx->policies = CERTIFICATEPOLICIES_new()) == NULL))
+    if ((ctx->policies == NULL)
+            && ((ctx->policies = CERTIFICATEPOLICIES_new()) == NULL))
         goto err;
 
     if ((pinfo = POLICYINFO_new()) == NULL)
@@ -786,8 +786,8 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
         CMPerr(CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_NULL_ARGUMENT);
         goto err;
     }
-    if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 && exts != NULL &&
-        X509v3_get_ext_by_NID(exts, NID_subject_alt_name, -1) >= 0) {
+    if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 && exts != NULL
+            && X509v3_get_ext_by_NID(exts, NID_subject_alt_name, -1) >= 0) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_MULTIPLE_SAN_SOURCES);
         goto err;
     }
@@ -843,10 +843,10 @@ int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
         goto err;
     }
 
-    if ((ctx->subjectAltNames == NULL &&
-         (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL) ||
-         !sk_GENERAL_NAME_push(ctx->subjectAltNames,
-         GENERAL_NAME_dup(name))) {
+    if ((ctx->subjectAltNames == NULL
+             && (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL)
+	     || !sk_GENERAL_NAME_push(ctx->subjectAltNames,
+                                      GENERAL_NAME_dup(name))) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, ERR_R_MALLOC_FAILURE);
         goto err;
     }

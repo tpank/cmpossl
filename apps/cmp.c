@@ -69,8 +69,8 @@ static ENGINE *try_load_engine(const char *engine)
     ENGINE *e = ENGINE_by_id("dynamic");
 
     if (e != NULL) {
-        if (!ENGINE_ctrl_cmd_string(e, "SO_PATH", engine, 0) ||
-            !ENGINE_ctrl_cmd_string(e, "LOAD", NULL, 0)) {
+        if (!ENGINE_ctrl_cmd_string(e, "SO_PATH", engine, 0)
+                || !ENGINE_ctrl_cmd_string(e, "LOAD", NULL, 0)) {
             ENGINE_free(e);
             e = NULL;
         }
@@ -96,8 +96,8 @@ static ENGINE *setup_engine_no_default(const char *engine, int debug)
             ENGINE_register_all_complete();
             return NULL;
         }
-        if ((e = ENGINE_by_id(engine)) == NULL &&
-            (e = try_load_engine(engine)) == NULL) {
+        if ((e = ENGINE_by_id(engine)) == NULL
+        		 && (e = try_load_engine(engine)) == NULL) {
             BIO_printf(bio_err, "invalid engine \"%s\"\n", engine);
             ERR_print_errors(bio_err);
             return NULL;
@@ -744,8 +744,8 @@ static int load_pkcs12(BIO *in, const char *desc,
         int i; /* other certs are for some reason in reverted order */
         STACK_OF(X509) *certs = sk_X509_new_null();
         for (i = 0; i < sk_X509_num(*ca); i++)
-            if (certs == NULL ||
-                !sk_X509_insert(certs, sk_X509_value(*ca, i), 0)) {
+            if (certs == NULL
+                    || !sk_X509_insert(certs, sk_X509_value(*ca, i), 0)) {
                 sk_X509_pop_free(certs, X509_free);
                 sk_X509_pop_free(*ca, X509_free);
                 X509_free(*cert);
@@ -857,13 +857,13 @@ static int adjust_format(const char **infile, int format, int engine_ok)
         if (strlen(*infile) >= 4) {
             const char *extension = (*infile + strlen(*infile) - 4);
 
-            if (strncmp(extension, ".crt", 4) == 0 ||
-                strncmp(extension, ".pem", 4) == 0)
+            if (strncmp(extension, ".crt", 4) == 0
+                    || strncmp(extension, ".pem", 4) == 0)
                 /* weak recognition of PEM format */
                 format = FORMAT_PEM;
-            else if (strncmp(extension, ".cer", 4) == 0 ||
-                     strncmp(extension, ".der", 4) == 0 ||
-                     strncmp(extension, ".crl", 4) == 0)
+            else if (strncmp(extension, ".cer", 4) == 0
+                         || strncmp(extension, ".der", 4) == 0
+                         || strncmp(extension, ".crl", 4) == 0)
                 /* weak recognition of DER format */
                 format = FORMAT_ASN1;
             else if (strncmp(extension, ".p12", 4) == 0)
@@ -1178,9 +1178,9 @@ static int truststore_set_host_etc(X509_STORE *ts, char *host)
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
 
     /* first clear any host names, IP, and email addresses */
-    if (!X509_VERIFY_PARAM_set1_host(ts_vpm, NULL, 0) ||
-        !X509_VERIFY_PARAM_set1_ip(ts_vpm, NULL, 0) ||
-        !X509_VERIFY_PARAM_set1_email(ts_vpm, NULL, 0)) {
+    if (!X509_VERIFY_PARAM_set1_host(ts_vpm, NULL, 0)
+            || !X509_VERIFY_PARAM_set1_ip(ts_vpm, NULL, 0)
+            || !X509_VERIFY_PARAM_set1_email(ts_vpm, NULL, 0)) {
         return 0;
     }
     X509_VERIFY_PARAM_set_hostflags(ts_vpm,
@@ -1193,8 +1193,8 @@ static int truststore_set_host_etc(X509_STORE *ts, char *host)
      */
     if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, host))
         return 0;
-    return (host && X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host)) ||
-           X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
+    return (host && X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host))
+               || X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
 }
 
 static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */ ,
@@ -1402,9 +1402,9 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
         X509_STORE_set_check_revocation(ts, NULL);
 
         /* must not do host/ip/email checking on OCSP responder cert chain */
-        if ((bak_vpm = X509_VERIFY_PARAM_new()) == NULL || /* copy vpm: */
-            !X509_VERIFY_PARAM_inherit(bak_vpm, X509_STORE_get0_param(ts)) ||
-            !truststore_set_host_etc(ts, NULL))
+        if ((bak_vpm = X509_VERIFY_PARAM_new()) == NULL /* copy vpm: */
+               || !X509_VERIFY_PARAM_inherit(bak_vpm, X509_STORE_get0_param(ts))
+               || !truststore_set_host_etc(ts, NULL))
             goto end;
 
         res = OCSP_basic_verify(br, untrusted, ts, OCSP_TRUSTOTHER);
@@ -1634,9 +1634,9 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
             ok = -2; /* inconclusive */
         if (ok == 1) /* cert status ok */
             return 1;
-        if (ok == 0  /* cert revoked, thus clear failure or */ ||
+        if (ok == 0  /* cert revoked, thus clear failure or */
             /* OCSP stapling was inconclusive: ok < 0 and is the only check */
-            (ok < 0 && !ocsp_check && !crl_check))
+                || (ok < 0 && !ocsp_check && !crl_check))
             return verify_cb_cert(ctx, cert, OCSP_err(ok));
     }
     /* OCSP stapling is disabled or inconclusive */
@@ -1650,9 +1650,9 @@ static int check_cert_revocation(X509_STORE_CTX *ctx, OCSP_RESPONSE *resp)
 
         if (ok == 1)        /* cert status ok */
             return 1;
-        if (ok == 0 ||      /* cert revoked, thus clear failure */
+        if (ok == 0         /* cert revoked, thus clear failure */
             /* OCSP is the only check and it was inconclusive: ok < 0 */
-            (ok < 0 && !crl_check)) {
+                || (ok < 0 && !crl_check)) {
             return verify_cb_cert(ctx, cert, OCSP_err(ok));
         }
     }
@@ -1752,8 +1752,7 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
          * then OCSP, then CRLs
          */
 
-        if (ssl != NULL &&
-            i == 0 && ocsp_stapling) { /* OCSP (not multi-)stapling */
+        if (ssl != NULL && i == 0 && ocsp_stapling) { /* OCSP (not multi-)stapling */
         /* We were called from ssl_verify_cert_chain() at state TLS_ST_CR_CERT.
            Stapled OCSP response becomes available only at TLS_ST_CR_CERT_STATUS
            and ocsp_stapling_cb() is called even later, at TLS_ST_CR_SRVR_DONE.
@@ -1891,8 +1890,8 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     OSSL_CMP_PKIHEADER *hdr;
     int ret = CMP_R_ERROR_TRANSFERRING_OUT;
 
-    if (req != NULL && opt_reqout != NULL &&
-        !write_PKIMESSAGE(ctx, req, &opt_reqout))
+    if (req != NULL && opt_reqout != NULL
+            && !write_PKIMESSAGE(ctx, req, &opt_reqout))
         goto err;
 
     if (opt_reqin != NULL) {
@@ -1940,9 +1939,9 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         goto err;
     ret = ERR_R_MALLOC_FAILURE;
     hdr = OSSL_CMP_MSG_get0_header(*res);
-    if ((opt_reqin != NULL || opt_rspin != NULL) &&
+    if ((opt_reqin != NULL || opt_rspin != NULL)
         /* need to satisfy nonce and transactionID checks */
-        (!OSSL_CMP_CTX_set1_last_senderNonce(ctx,
+            && (!OSSL_CMP_CTX_set1_last_senderNonce(ctx,
                                              OSSL_CMP_HDR_get0_recipNonce(hdr))
          || !OSSL_CMP_CTX_set1_transactionID(ctx,
                                              OSSL_CMP_HDR_get0_transactionID(hdr))
@@ -2147,8 +2146,8 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
 
     X509_STORE_set_verify_cb(ts, cert_verify_cb);
 
-    if (crls != NULL &&
-        !add_crls_store(ts, crls)) /* ups the references to crls */
+    if (crls != NULL
+	&& !add_crls_store(ts, crls)) /* ups the references to crls */
         return 0;
 
     if (opt_crl_download)
@@ -2360,8 +2359,8 @@ static int transform_opts(OSSL_CMP_CTX *ctx) {
         return 0;
     }
 
-    if (opt_keyform_s != NULL &&
-        !opt_format(opt_keyform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
+    if (opt_keyform_s != NULL
+            && !opt_format(opt_keyform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
 # ifndef OPENSSL_NO_ENGINE
                                     | OPT_FMT_ENGINE
 # endif
@@ -2370,22 +2369,22 @@ static int transform_opts(OSSL_CMP_CTX *ctx) {
         return 0;
     }
 
-    if (opt_ownform_s != NULL &&
-        !opt_format(opt_ownform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
+    if (opt_ownform_s != NULL
+            && !opt_format(opt_ownform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
                     &opt_ownform)) {
         OSSL_CMP_err(ctx, "unknown option given for own certificate format");
         return 0;
     }
 
-    if (opt_otherform_s != NULL &&
-        !opt_format(opt_otherform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
+    if (opt_otherform_s != NULL
+            && !opt_format(opt_otherform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
                     &opt_otherform)) {
         OSSL_CMP_err(ctx, "unknown option given for certificate store format");
         return 0;
     }
 
-    if (opt_crlform_s != NULL &&
-        !opt_format(opt_crlform_s, OPT_FMT_PEMDER, &opt_crlform)) {
+    if (opt_crlform_s != NULL
+            && !opt_format(opt_crlform_s, OPT_FMT_PEMDER, &opt_crlform)) {
         OSSL_CMP_err(ctx, "unknown option given for CRL format");
         return 0;
     }
@@ -2416,10 +2415,10 @@ static int setup_srv_ctx(ENGINE *e)
             cleanse(opt_srv_secret);
             res = OSSL_CMP_CTX_set1_referenceValue(ctx,
                                                    (unsigned char *)opt_srv_ref,
-                                                   strlen(opt_srv_ref)) &&
-                  OSSL_CMP_CTX_set1_secretValue(ctx,
-                                                (unsigned char *)pass_string,
-                                                strlen(pass_string));
+                                                   strlen(opt_srv_ref))
+                  && OSSL_CMP_CTX_set1_secretValue(ctx,
+                                                   (unsigned char *)pass_string,
+                                                    strlen(pass_string));
             OPENSSL_clear_free(pass_string, strlen(pass_string));
             if (res == 0)
                 goto err;
@@ -2430,8 +2429,8 @@ static int setup_srv_ctx(ENGINE *e)
         goto err;
     }
 
-    if (opt_srv_secret == NULL &&
-        ((opt_srv_cert == NULL) != (opt_srv_key == NULL))) {
+    if (opt_srv_secret == NULL
+            && ((opt_srv_cert == NULL) != (opt_srv_key == NULL))) {
         OSSL_CMP_err(ctx,
                      "must give both -srv_cert and -srv_key options or neither");
             goto err;
@@ -2459,9 +2458,9 @@ static int setup_srv_ctx(ENGINE *e)
     if (opt_srv_trusted != NULL) {
         X509_STORE *ts =
             load_certstore(opt_srv_trusted, "server trusted certificates");
-        if (!set1_store_parameters_crls(ts/* may be NULL */, NULL/*no CRLs*/) ||
-            !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
-            !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
+        if (!set1_store_parameters_crls(ts/* may be NULL */, NULL/*no CRLs*/)
+            || !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/)
+            || !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
             goto err;
         }
@@ -2561,8 +2560,8 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
     }
     {  /* just as a precaution in case CRL_CHECK_ALL is set without CRL_CHECK */
         unsigned long flags = X509_VERIFY_PARAM_get_flags(vpm);
-        if ((flags & X509_V_FLAG_CRL_CHECK_ALL) &&
-            !(flags & X509_V_FLAG_CRL_CHECK))
+        if ((flags & X509_V_FLAG_CRL_CHECK_ALL)
+                && !(flags & X509_V_FLAG_CRL_CHECK))
             OSSL_CMP_warn(ctx,
                           "-crl_check_all has no effect without -crls, -crl_download, or -crl_check");
     }
@@ -2619,8 +2618,8 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
 # if defined VERBOSE_DEBUG && !defined NDEBUG
         OSSL_CMP_printf(cmp_ctx, OSSL_CMP_FL_INFO,
                         "Will try %s%s for certificate status checking",
-                        (opt_ocsp_use_aia || opt_ocsp_url != NULL) &&
-                        opt_ocsp_status ? "OCSP stapling then OCSP" :
+                        (opt_ocsp_use_aia || opt_ocsp_url != NULL)
+                          && opt_ocsp_status ? "OCSP stapling then OCSP" :
                         opt_ocsp_status ? "OCSP stapling" : "OCSP",
                         (opt_crl_download || opt_crls != NULL) ?
                         " then CRLs" : "");
@@ -2676,9 +2675,9 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
         if (opt_trusted != NULL &&
             (ts = load_certstore(opt_trusted, "trusted certificates")) == NULL)
             goto err;
-        if (!set1_store_parameters_crls(ts, *all_crls) ||
-            !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/) ||
-            !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
+        if (!set1_store_parameters_crls(ts, *all_crls)
+            || !truststore_set_host_etc(ts, NULL/* for CMP level, no host etc*/)
+            || !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
             goto oom;
         }
@@ -2834,8 +2833,8 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
             STACK_OF(X509) *tls_extra =
                 load_certs_multifile(opt_tls_extra, opt_ownform, opt_otherpass,
                                      "extra certificates for TLS");
-            if (tls_extra == NULL ||
-                !SSL_CTX_add_extra_chain_free(ssl_ctx, tls_extra))
+            if (tls_extra == NULL
+                    || !SSL_CTX_add_extra_chain_free(ssl_ctx, tls_extra))
                 goto err;
         }
 
@@ -2915,8 +2914,8 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
             OSSL_CMP_warn(ctx,
                           "no signature-based protection used since -secret is given");
     }
-    if (opt_ref != NULL &&
-        !OSSL_CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
+    if (opt_ref != NULL
+            && !OSSL_CMP_CTX_set1_referenceValue(ctx, (unsigned char *)opt_ref,
                                           strlen(opt_ref)))
         goto err;
 
@@ -2930,8 +2929,8 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
             goto err;
         }
     }
-    if ((opt_cert != NULL || opt_unprotectedRequests) &&
-        !(opt_srvcert != NULL || opt_trusted != NULL)) {
+    if ((opt_cert != NULL || opt_unprotectedRequests)
+            && !(opt_srvcert != NULL || opt_trusted != NULL)) {
         OSSL_CMP_err(ctx, "no server certificate or trusted certificates set");
         goto err;
     }
@@ -3000,8 +2999,8 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
  * Returns pointer on success, NULL on error
  */
 static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
-    if (!set_name(opt_subject, OSSL_CMP_CTX_set1_subjectName, ctx, "subject") ||
-        !set_name(opt_issuer, OSSL_CMP_CTX_set1_issuer, ctx, "issuer"))
+    if (!set_name(opt_subject, OSSL_CMP_CTX_set1_subjectName, ctx, "subject")
+            || !set_name(opt_issuer, OSSL_CMP_CTX_set1_issuer, ctx, "issuer"))
         goto err;
 
     if (opt_newkey != NULL) {
@@ -3142,9 +3141,9 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
                 parse_addr(ctx, &opt_server, server_port, "server")) == 0) {
         goto err;
     }
-    if (!OSSL_CMP_CTX_set1_serverName(ctx, opt_server) ||
-        !OSSL_CMP_CTX_set_serverPort(ctx, server_port) ||
-        !OSSL_CMP_CTX_set1_serverPath(ctx, opt_path))
+    if (!OSSL_CMP_CTX_set1_serverName(ctx, opt_server)
+            || !OSSL_CMP_CTX_set_serverPort(ctx, server_port)
+            || !OSSL_CMP_CTX_set1_serverPath(ctx, opt_path))
         goto oom;
 
     if (opt_proxy != NULL) {
@@ -3198,8 +3197,8 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
 
-    if (opt_recipient == NULL && opt_srvcert == NULL && opt_issuer == NULL &&
-        opt_oldcert == NULL && opt_cert == NULL) {
+    if (opt_recipient == NULL && opt_srvcert == NULL && opt_issuer == NULL
+            && opt_oldcert == NULL && opt_cert == NULL) {
         OSSL_CMP_warn(ctx,
                       "missing -recipient, -srvcert, -issuer, -oldcert or -cert; recipient will be set to \"NULL-DN\"");
     }
@@ -3256,8 +3255,8 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto err;
 
 
-    if (!set_name(opt_recipient, OSSL_CMP_CTX_set1_recipient, ctx, "recipient") ||
-        !set_name(opt_expect_sender, OSSL_CMP_CTX_set1_expected_sender, ctx,
+    if (!set_name(opt_recipient, OSSL_CMP_CTX_set1_recipient, ctx, "recipient")
+         || !set_name(opt_expect_sender, OSSL_CMP_CTX_set1_expected_sender, ctx,
                   "expected sender"))
         goto oom;
 
@@ -3325,8 +3324,8 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_TOTALTIMEOUT,
                                       opt_totaltimeout);
 
-    if (opt_reqin != NULL || opt_reqout != NULL ||
-        opt_rspin != NULL || opt_rspout != NULL
+    if (opt_reqin != NULL || opt_reqout != NULL
+            || opt_rspin != NULL || opt_rspout != NULL
 #ifndef NDEBUG
         || opt_mock_srv
 #endif
@@ -3384,8 +3383,8 @@ static int save_certs(OSSL_CMP_CTX *ctx,
         OSSL_CMP_warn(cmp_ctx,
                       "saving more than one certificate in non-PEM format");
 
-    if (destFile == NULL || (bio = BIO_new(BIO_s_file())) == NULL ||
-        !BIO_write_filename(bio, (char *)destFile)) {
+    if (destFile == NULL || (bio = BIO_new(BIO_s_file())) == NULL
+            || !BIO_write_filename(bio, (char *)destFile)) {
         OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
                         "could not open file '%s' for writing", destFile);
         n = -1;
@@ -3503,8 +3502,8 @@ static int read_config(void)
      */
     for (i = OPT_SECTION - OPT_HELP, opt = &cmp_options[OPT_SECTION];
          opt->name; i++, opt++) {
-        if (!strcmp(opt->name, OPT_HELP_STR) ||
-            !strcmp(opt->name, OPT_MORE_STR)) {
+        if (!strcmp(opt->name, OPT_HELP_STR)
+                || !strcmp(opt->name, OPT_MORE_STR)) {
             i--;
             continue;
         }
@@ -3839,10 +3838,10 @@ static int get_opts(int argc, char **argv)
             opt_oldcert = opt_str("oldcert");
             break;
         case OPT_REVREASON:
-            if (!opt_int(opt_arg(), &opt_revreason) ||
-                    opt_revreason < CRL_REASON_NONE ||
-                    opt_revreason > CRL_REASON_AA_COMPROMISE ||
-                    opt_revreason == 7) {
+            if (!opt_int(opt_arg(), &opt_revreason)
+                   || opt_revreason < CRL_REASON_NONE
+                   || opt_revreason > CRL_REASON_AA_COMPROMISE
+                   || opt_revreason == 7) {
                 BIO_printf(bio_err,
                            "error: invalid revreason. Valid values are -1..6, 8..10.");
                 goto opt_err;
@@ -4123,8 +4122,8 @@ int cmp_main(int argc, char **argv)
 
     if (opt_cacertsout != NULL) {
         STACK_OF(X509) *certs = OSSL_CMP_CTX_caPubs_get1(cmp_ctx);
-        if (sk_X509_num(certs) > 0 &&
-            save_certs(cmp_ctx, certs, opt_cacertsout, "CA") < 0) {
+        if (sk_X509_num(certs) > 0
+                && save_certs(cmp_ctx, certs, opt_cacertsout, "CA") < 0) {
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }
@@ -4133,8 +4132,8 @@ int cmp_main(int argc, char **argv)
 
     if (opt_extracertsout != NULL) {
         STACK_OF(X509) *certs = OSSL_CMP_CTX_extraCertsIn_get1(cmp_ctx);
-        if (sk_X509_num(certs) > 0 &&
-            save_certs(cmp_ctx, certs, opt_extracertsout, "extra") < 0) {
+        if (sk_X509_num(certs) > 0
+                && save_certs(cmp_ctx, certs, opt_extracertsout, "extra") < 0) {
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }
@@ -4143,8 +4142,8 @@ int cmp_main(int argc, char **argv)
 
     if (opt_certout != NULL && newcert != NULL) {
         STACK_OF(X509) *certs = sk_X509_new_null();
-        if (certs == NULL || !sk_X509_push(certs, X509_dup(newcert)) ||
-            save_certs(cmp_ctx, certs, opt_certout, "enrolled") < 0) {
+        if (certs == NULL || !sk_X509_push(certs, X509_dup(newcert))
+                || save_certs(cmp_ctx, certs, opt_certout, "enrolled") < 0) {
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }

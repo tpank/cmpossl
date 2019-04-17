@@ -73,10 +73,10 @@ EVP_PKEY *gen_rsa(void)
 {
     EVP_PKEY_CTX *ctx = NULL;
     EVP_PKEY *pkey = NULL;
-    (void)(TEST_ptr(ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL)) &&
-           TEST_int_gt(EVP_PKEY_keygen_init(ctx), 0) &&
-           TEST_int_gt(EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 2048), 0) &&
-           TEST_int_gt(EVP_PKEY_keygen(ctx, &pkey), 0));
+    (void)(TEST_ptr(ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL))
+               && TEST_int_gt(EVP_PKEY_keygen_init(ctx), 0)
+               && TEST_int_gt(EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 2048), 0)
+               && TEST_int_gt(EVP_PKEY_keygen(ctx, &pkey), 0));
     EVP_PKEY_CTX_free(ctx);
     return pkey;
 }

@@ -92,8 +92,8 @@ static int execute_calc_protection_test(CMP_INT_TEST_FIXTURE *fixture)
     ASN1_BIT_STRING *protection = NULL;
     int res =
         TEST_ptr(protection = CMP_calc_protection(fixture->msg, fixture->secret,
-                                                  fixture->privkey)) &&
-        TEST_true(ASN1_STRING_cmp(protection,
+                                                  fixture->privkey))
+           && TEST_true(ASN1_STRING_cmp(protection,
                                   fixture->msg->protection) == 0);
     ASN1_BIT_STRING_free(protection);
     return res;
@@ -114,12 +114,12 @@ static int verify_signature(OSSL_CMP_MSG *msg,
     prot_part.header = OSSL_CMP_MSG_get0_header(msg);
     prot_part.body = msg->body;
     res =
-        TEST_int_ge(l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der), 0) &&
-        TEST_ptr(ctx = EVP_MD_CTX_create()) &&
-        TEST_true(EVP_VerifyInit_ex
-                  (ctx, (EVP_MD *)EVP_get_digestbynid(digest_nid), NULL))
-        && TEST_true(EVP_VerifyUpdate(ctx, prot_part_der, l))
-        && TEST_int_eq(EVP_VerifyFinal(ctx, protection->data,
+        TEST_int_ge(l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der), 0)
+            && TEST_ptr(ctx = EVP_MD_CTX_create())
+            && TEST_true(EVP_VerifyInit_ex
+                        (ctx, (EVP_MD *)EVP_get_digestbynid(digest_nid), NULL))
+            && TEST_true(EVP_VerifyUpdate(ctx, prot_part_der, l))
+            && TEST_int_eq(EVP_VerifyFinal(ctx, protection->data,
                                        protection->length, pkey), 1);
     /* cleanup */
     EVP_MD_CTX_destroy(ctx);
@@ -134,10 +134,10 @@ static int execute_calc_protection_signature_test(CMP_INT_TEST_FIXTURE *
     ASN1_BIT_STRING *protection = NULL;
     int ret = (TEST_ptr(protection =
                         CMP_calc_protection(fixture->msg, NULL,
-                                                 fixture->privkey)) &&
-               TEST_true(verify_signature(fixture->msg, protection,
-                                           fixture->pubkey,
-                                          fixture->cmp_ctx->digest)));
+                                                 fixture->privkey))
+                   && TEST_true(verify_signature(fixture->msg, protection,
+                                                 fixture->pubkey,
+                                                 fixture->cmp_ctx->digest)));
     ASN1_BIT_STRING_free(protection);
     return ret;
 }
@@ -148,8 +148,8 @@ static int test_cmp_calc_protection_no_key_no_secret(void)
     SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
      * side effects */
-    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_unprotected_f)) ||
-        !TEST_ptr(fixture->msg->header->protectionAlg = X509_ALGOR_new())) {
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_unprotected_f))
+         || !TEST_ptr(fixture->msg->header->protectionAlg = X509_ALGOR_new())) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -164,9 +164,9 @@ static int test_cmp_calc_protection_pkey(void)
     SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
     fixture->pubkey = loadedpubkey;
     fixture->privkey = loadedprivkey;
-    if (!TEST_true(EVP_PKEY_up_ref(loadedpubkey)) ||
-        !TEST_true(EVP_PKEY_up_ref(loadedprivkey)) ||
-        !TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))) {
+    if (!TEST_true(EVP_PKEY_up_ref(loadedpubkey))
+            || !TEST_true(EVP_PKEY_up_ref(loadedprivkey))
+            || !TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -179,10 +179,10 @@ static int test_cmp_calc_protection_pbmac(void)
     SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
     unsigned char sec_insta[] = { 'i', 'n', 's', 't', 'a' };
 
-    if (!TEST_ptr(fixture->secret = ASN1_OCTET_STRING_new()) ||
-        !TEST_true(ASN1_OCTET_STRING_set
-                   (fixture->secret, sec_insta, sizeof(sec_insta))) ||
-        !TEST_ptr(fixture->msg = load_pkimsg(ip_PBM_f))) {
+    if (!TEST_ptr(fixture->secret = ASN1_OCTET_STRING_new())
+            || !TEST_true(ASN1_OCTET_STRING_set
+                   (fixture->secret, sec_insta, sizeof(sec_insta)))
+            || !TEST_ptr(fixture->msg = load_pkimsg(ip_PBM_f))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -198,10 +198,10 @@ void cleanup_tests(void)
 
 int setup_tests(void)
 {
-    if (!TEST_ptr(server_f = test_get_argument(0)) ||
-        !TEST_ptr(ir_protected_f = test_get_argument(1)) ||
-        !TEST_ptr(ir_unprotected_f = test_get_argument(2)) ||
-        !TEST_ptr(ip_PBM_f = test_get_argument(3))) {
+    if (!TEST_ptr(server_f = test_get_argument(0))
+            || !TEST_ptr(ir_protected_f = test_get_argument(1))
+            || !TEST_ptr(ir_unprotected_f = test_get_argument(2))
+            || !TEST_ptr(ip_PBM_f = test_get_argument(3))) {
         TEST_error("usage: cmp_internal_test server.pem"
                    "IR_protected.der IR_unprotected.der IP_PBM.der\n");
         return 0;

@@ -111,8 +111,8 @@ static int bio_connect(BIO *bio, int timeout) {
      * when non-blocking, BIO_do_connect() timed out early
      * with rv == -1 and errno == 0
      */
-    if (rv <= 0 && (errno == ETIMEDOUT ||
-                    ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT)) {
+    if (rv <= 0 && (errno == ETIMEDOUT
+                        || ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT)) {
         ERR_clear_error();
         (void)BIO_reset(bio);
         /*
@@ -444,8 +444,9 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     int err = ERR_R_MALLOC_FAILURE;
     time_t max_time;
 
-    if (ctx == NULL || req == NULL || res == NULL ||
-        ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort)
+    if (ctx == NULL || req == NULL || res == NULL
+            || ctx->serverName == NULL || ctx->serverPath == NULL
+            || !ctx->serverPort)
         return CMP_R_NULL_ARGUMENT;
 
     max_time = ctx->msgtimeout > 0 ? time(NULL) + ctx->msgtimeout : 0;

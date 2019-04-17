@@ -46,8 +46,8 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     }
 
     /* verify that keyUsage, if present, contains digitalSignature */
-    if (!cmp_ctx->ignore_keyusage &&
-        (X509_get_key_usage(cert) & X509v3_KU_DIGITAL_SIGNATURE) == 0) {
+    if (!cmp_ctx->ignore_keyusage
+            && (X509_get_key_usage(cert) & X509v3_KU_DIGITAL_SIGNATURE) == 0) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE,
                CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE);
         err = 2;
@@ -72,10 +72,10 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 
     /* verify signature of protected part */
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),
-                                         &digest_nid, &pk_nid) ||
-        digest_nid == NID_undef ||
-        pk_nid == NID_undef ||
-        (digest = (EVP_MD *)EVP_get_digestbynid(digest_nid)) == NULL) {
+                                         &digest_nid, &pk_nid)
+            || digest_nid == NID_undef
+            || pk_nid == NID_undef
+            || (digest = (EVP_MD *)EVP_get_digestbynid(digest_nid)) == NULL) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_ALGORITHM_NOT_SUPPORTED);
         err = 2;
         goto cleanup;
@@ -92,9 +92,9 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, ERR_R_MALLOC_FAILURE);
         goto cleanup;
     }
-    err = (EVP_VerifyInit_ex(ctx, digest, NULL) &&
-           EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len) &&
-           EVP_VerifyFinal(ctx, msg->protection->data,
+    err = (EVP_VerifyInit_ex(ctx, digest, NULL)
+               && EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len)
+               && EVP_VerifyFinal(ctx, msg->protection->data,
                            msg->protection->length, pubkey) == 1)
         ? 0 : 2;
 
@@ -108,8 +108,8 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
         X509_STORE *ts = cmp_ctx->trusted_store; /* may be empty, not NULL */
         X509_STORE_CTX *csc = X509_STORE_CTX_new();
         X509_STORE_CTX_verify_cb verify_cb = X509_STORE_get_verify_cb(ts);
-        if (csc != NULL && verify_cb != NULL &&
-            X509_STORE_CTX_init(csc, ts, NULL, NULL)) {
+        if (csc != NULL && verify_cb != NULL
+                && X509_STORE_CTX_init(csc, ts, NULL, NULL)) {
             X509_STORE_CTX_set_current_cert(csc, cert);
             X509_STORE_CTX_set_error_depth(csc, -1);
             X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
@@ -168,8 +168,9 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
         goto end;
     }
 
-    if ((csc = X509_STORE_CTX_new()) == NULL ||
-           !X509_STORE_CTX_init(csc, trusted_store, cert, ctx->untrusted_certs))
+    if ((csc = X509_STORE_CTX_new()) == NULL
+           || !X509_STORE_CTX_init(csc, trusted_store,
+                                   cert, ctx->untrusted_certs))
         goto end;
 
     valid = X509_verify_cert(csc) > 0;
@@ -295,13 +296,13 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
                        X509_verify_cert_error_string(cert_error));
         BIO_printf(cert_verify_err_bio, "failure for:\n");
         print_cert(cert_verify_err_bio, cert, X509_FLAG_NO_EXTENSIONS);
-        if (cert_error == X509_V_ERR_CERT_UNTRUSTED ||
-            cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
-            cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN ||
-            cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT ||
-            cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
-            cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER ||
-            cert_error == X509_V_ERR_STORE_LOOKUP) {
+        if (cert_error == X509_V_ERR_CERT_UNTRUSTED
+                || cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT
+                || cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN
+                || cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT
+                || cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
+                || cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER
+                || cert_error == X509_V_ERR_STORE_LOOKUP) {
             BIO_printf(cert_verify_err_bio, "non-trusted certs:\n");
             print_certs(cert_verify_err_bio, X509_STORE_CTX_get0_untrusted(ctx));
             BIO_printf(cert_verify_err_bio, "trust store:\n");
@@ -470,8 +471,8 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
         OSSL_CMP_add_error_txt(" and issuer = ", str);
         OPENSSL_free(str);
 
-        if (cert_acceptable(cert, msg, ts) &&
-            !OSSL_CMP_sk_X509_add1_cert(sk, cert, 1 /* no duplicates */, 0))
+        if (cert_acceptable(cert, msg, ts)
+                && !OSSL_CMP_sk_X509_add1_cert(sk, cert, 1 /* no duplicates */, 0))
             return 0;
     }
 
@@ -528,8 +529,8 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
     int valid = 0;
     X509_STORE *store = X509_STORE_new();
 
-    if (store != NULL && /* store does not include CRLs */
-        OSSL_CMP_X509_STORE_add1_certs(store, msg->extraCerts,
+    if (store != NULL /* store does not include CRLs */
+            && OSSL_CMP_X509_STORE_add1_certs(store, msg->extraCerts,
                                        1/* self-signed only */)) {
         valid = OSSL_CMP_validate_cert_path(ctx, store, scrt, 0);
     }
@@ -609,8 +610,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         }
 
         /* exceptional 3GPP TS 33.310 handling */
-        if (!valid && ctx->permitTAInExtraCertsForIR &&
-                OSSL_CMP_MSG_get_bodytype(msg) == OSSL_CMP_PKIBODY_IP) {
+        if (!valid && ctx->permitTAInExtraCertsForIR
+                && OSSL_CMP_MSG_get_bodytype(msg) == OSSL_CMP_PKIBODY_IP) {
             for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
                 scrt = sk_X509_value(found_crts, i);
                 valid = srv_cert_valid_3gpp(ctx, scrt, msg);
@@ -707,8 +708,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
          * -> check all possible options from OpenSSL, should there be macro?
          */
     default:
-        if (!OBJ_find_sigid_algs(OBJ_obj2nid(alg->algorithm), NULL, &pk_nid) ||
-            pk_nid == NID_undef) {
+        if (!OBJ_find_sigid_algs(OBJ_obj2nid(alg->algorithm), NULL, &pk_nid)
+                || pk_nid == NID_undef) {
             CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNKNOWN_ALGORITHM_ID);
             break;
         }
@@ -801,8 +802,8 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
     if (fail_info != 0) /* accept any error flagged by CMP core library */
         return fail_info;
 
-    if (out_trusted != NULL &&
-        !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))
+    if (out_trusted != NULL
+            && !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
 
     if (fail_info != 0) {

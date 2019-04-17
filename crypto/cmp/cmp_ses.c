@@ -94,8 +94,9 @@ static void message_add_error_data(OSSL_CMP_MSG *msg)
     }
 }
 
-#define IS_ENOLLMENT(t) (t == OSSL_CMP_PKIBODY_IP || \
-                         t == OSSL_CMP_PKIBODY_CP || t == OSSL_CMP_PKIBODY_KUP)
+#define IS_ENOLLMENT(t) (t == OSSL_CMP_PKIBODY_IP \
+                             || t == OSSL_CMP_PKIBODY_CP \
+                             || t == OSSL_CMP_PKIBODY_KUP)
 
 /*
  * evaluate whether there's an standard-violating exception configured for
@@ -112,8 +113,8 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
         if (rcvd_type == OSSL_CMP_PKIBODY_ERROR) {
             msg_type = "error response";
         }
-        else if (rcvd_type == OSSL_CMP_PKIBODY_RP &&
-            OSSL_CMP_PKISI_PKIStatus_get(
+        else if (rcvd_type == OSSL_CMP_PKIBODY_RP
+                && OSSL_CMP_PKISI_PKIStatus_get(
             CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp,
                                                 OSSL_CMP_REVREQSID))
                 == OSSL_CMP_PKISTATUS_rejection) {
@@ -167,8 +168,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     int msgtimeout = ctx->msgtimeout; /* backup original value */
     int err, rcvd_type;
 
-    if ((expected_type == OSSL_CMP_PKIBODY_POLLREP ||
-         IS_ENOLLMENT(expected_type))
+    if ((expected_type == OSSL_CMP_PKIBODY_POLLREP
+             || IS_ENOLLMENT(expected_type))
         && ctx->totaltimeout != 0) { /* total timeout is not infinite */
         int64_t time_left = (int64_t)(ctx->end_time - time(NULL));
         if (time_left <= 0) {
@@ -192,9 +193,9 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     ctx->msgtimeout = msgtimeout; /* restore original value */
 
     if (err != 0) {
-        if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
-            err == CMP_R_READ_TIMEOUT ||
-            err == CMP_R_ERROR_DECODING_MESSAGE) {
+        if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE
+                || err == CMP_R_READ_TIMEOUT
+                || err == CMP_R_ERROR_DECODING_MESSAGE) {
             CMPerr(func, not_received);
         }
         else {

@@ -272,8 +272,8 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         certOut = srv_ctx->certOut;
         chainOut = srv_ctx->chainOut;
         caPubs = srv_ctx->caPubsOut;
-        if (OSSL_CMP_MSG_check_implicitConfirm(certReq) &&
-            srv_ctx->grantImplicitConfirm)
+        if (OSSL_CMP_MSG_check_implicitConfirm(certReq)
+                && srv_ctx->grantImplicitConfirm)
             OSSL_CMP_CTX_set_option(srv_ctx->ctx,
                                     OSSL_CMP_CTX_OPT_IMPLICITCONFIRM, 1);
         if ((si = OSSL_CMP_PKISI_dup(srv_ctx->pkiStatusOut)) == NULL)
@@ -320,9 +320,9 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
     tmpl = details->certDetails;
     issuer = OSSL_CRMF_CERTTEMPLATE_get0_issuer(tmpl);
     serial = OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(tmpl);
-    if (X509_NAME_cmp(issuer, X509_get_issuer_name(srv_ctx->certOut)) != 0 ||
-        ASN1_INTEGER_cmp(serial,
-                         X509_get0_serialNumber(srv_ctx->certOut)) != 0) {
+    if (X509_NAME_cmp(issuer, X509_get_issuer_name(srv_ctx->certOut)) != 0
+            || ASN1_INTEGER_cmp(serial,
+                               X509_get0_serialNumber(srv_ctx->certOut)) != 0) {
         CMPerr(CMP_F_PROCESS_RR, CMP_R_REQUEST_NOT_ACCEPTED);
         return NULL;
     }
