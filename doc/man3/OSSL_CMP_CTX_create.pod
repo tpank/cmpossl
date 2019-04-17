@@ -157,8 +157,6 @@ OSSL_CMP_CTX_subjectAltName_push1
  int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx);
 
  int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb);
- int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
-                          const char **text);
  int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void *arg);
  void *OSSL_CMP_CTX_get_certConf_cb_arg(OSSL_CMP_CTX *ctx);
 
@@ -524,13 +522,6 @@ Typically, the callback will check at least that the certificate can be verified
 using a set of trusted certificates.
 It also could compare the subject DN and other fields of the newly
 enrolled certificate with the certificate template of the request.
-
-OSSL_CMP_certConf_cb() is a basic example certConf callback validating that
-the new certificate can be verified with the trusted/untrusted certificates
-in B<ctx>. As there is no requirement in RFC 4210 that the certificate can be
-validated by the client, this callback is not set by default in the context.
-It returns B<fail_info> if it is !=0, 0 on successful validation, or else a bit
-field with the OSSL_CMP_PKIFAILUREINFO_incorrectData bit set.
 
 OSSL_CMP_CTX_set_certConf_cb_arg() sets an argument, respecively a pointer to a
 structure containing arguments, optionally to be used by the certConf callback.
