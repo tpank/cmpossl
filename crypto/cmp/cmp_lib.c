@@ -199,7 +199,7 @@ static int set1_general_name(GENERAL_NAME **tgt, const X509_NAME *src)
     if (src == NULL) { /* NULL DN */
         if ((gen->d.directoryName = X509_NAME_new()) == NULL)
             goto oom;
-    } else if (!(X509_NAME_set(&gen->d.directoryName, (X509_NAME *)src))) {
+    } else if (!(X509_NAME_set(&gen->d.directoryName, src))) {
     oom:
         CMPerr(CMP_F_SET1_GENERAL_NAME, ERR_R_MALLOC_FAILURE);
         goto err;
@@ -554,7 +554,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                 goto err;
 
             pbm_str = (ASN1_STRING *)ppval;
-            pbm_str_uc = (unsigned char *)pbm_str->data;
+            pbm_str_uc = pbm_str->data;
             pbm = d2i_OSSL_CRMF_PBMPARAMETER(NULL, &pbm_str_uc, pbm_str->length);
 
             if (!(OSSL_CRMF_pbm_new(pbm, prot_part_der, prot_part_der_len,
@@ -984,7 +984,7 @@ int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
  * returns 1 on success, 0 on error
  */
 int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
-                              const OSSL_CMP_ITAV *itav)
+                              OSSL_CMP_ITAV *itav)
 {
     int created = 0;
 
@@ -998,7 +998,7 @@ int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
         created = 1;
     }
     if (itav != NULL) {
-        if (!sk_OSSL_CMP_ITAV_push(*itav_sk_p, (OSSL_CMP_ITAV *)itav))
+        if (!sk_OSSL_CMP_ITAV_push(*itav_sk_p, itav))
             goto err;
     }
     return 1;
@@ -1516,8 +1516,8 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
  *      - the (self-signed) trust anchor is not included
  *      returns NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
-                                          const X509 *cert)
+STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs,
+                                          X509 *cert)
 {
     STACK_OF(X509) *chain = NULL, *result = NULL;
     X509_STORE *store = X509_STORE_new();
@@ -1530,8 +1530,8 @@ STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
     if (csc == NULL)
         goto err;
 
-    OSSL_CMP_X509_STORE_add1_certs(store, (STACK_OF(X509) *)certs, 0);
-    if (!X509_STORE_CTX_init(csc, store, (X509 *)cert, NULL))
+    OSSL_CMP_X509_STORE_add1_certs(store, certs, 0);
+    if (!X509_STORE_CTX_init(csc, store, cert, NULL))
         goto err;
 
     (void)ERR_set_mark();
@@ -1585,7 +1585,7 @@ int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
  * Retrieves a copy of all certificates in the given store.
  * returns NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store)
+STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store)
 {
     int i;
     STACK_OF(X509) *sk;
@@ -1595,7 +1595,7 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store)
         return NULL;
     if ((sk = sk_X509_new_null()) == NULL)
         return NULL;
-    objs = X509_STORE_get0_objects((X509_STORE *)store);
+    objs = X509_STORE_get0_objects(store);
     for (i = 0; i < sk_X509_OBJECT_num(objs); i++) {
         X509 *cert = X509_OBJECT_get0_X509(sk_X509_OBJECT_value(objs, i));
         if (cert != NULL) {

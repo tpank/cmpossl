@@ -109,7 +109,7 @@ int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, int rid);
 int OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
 int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm, X509_EXTENSIONS *exts);
 
-int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm, const X509_EXTENSION *ext);
+int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm, X509_EXTENSION *ext);
 #  define OSSL_CRMF_POPO_NONE      -1
 #  define OSSL_CRMF_POPO_RAVERIFIED 0
 #  define OSSL_CRMF_POPO_SIGNATURE  1

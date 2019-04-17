@@ -28,7 +28,7 @@
  * returns 0 on error
  */
 static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
-                                const OSSL_CMP_MSG *msg, const X509 *cert)
+                                const OSSL_CMP_MSG *msg, X509 *cert)
 {
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART prot_part;
@@ -47,14 +47,14 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 
     /* verify that keyUsage, if present, contains digitalSignature */
     if (!cmp_ctx->ignore_keyusage &&
-        (X509_get_key_usage((X509 *)cert) & X509v3_KU_DIGITAL_SIGNATURE) == 0) {
+        (X509_get_key_usage(cert) & X509v3_KU_DIGITAL_SIGNATURE) == 0) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE,
                CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE);
         err = 2;
         goto cert_err;
     }
 
-    pubkey = X509_get_pubkey((X509 *)cert);
+    pubkey = X509_get_pubkey(cert);
     if (pubkey == NULL) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_FAILED_EXTRACTING_PUBKEY);
         err = 2;
@@ -110,7 +110,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
         X509_STORE_CTX_verify_cb verify_cb = X509_STORE_get_verify_cb(ts);
         if (csc != NULL && verify_cb != NULL &&
             X509_STORE_CTX_init(csc, ts, NULL, NULL)) {
-            X509_STORE_CTX_set_current_cert(csc, (X509 *)cert);
+            X509_STORE_CTX_set_current_cert(csc, cert);
             X509_STORE_CTX_set_error_depth(csc, -1);
             X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
             (void)(*verify_cb)(0, csc);
@@ -188,20 +188,20 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
  * helper functions for improving certificate verification error diagnostics
  */
 
-static void print_cert(BIO *bio, const X509 *cert, unsigned long neg_cflags) {
+static void print_cert(BIO *bio, X509 *cert, unsigned long neg_cflags) {
     if (cert != NULL) {
         unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
             XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
 
         BIO_printf(bio, "    certificate\n");
-        X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_SUBJECT);
-        if (X509_check_issued((X509 *)cert, (X509 *)cert) == X509_V_OK) {
+        X509_print_ex(bio, cert, flags, ~X509_FLAG_NO_SUBJECT);
+        if (X509_check_issued((X509 *)cert, cert) == X509_V_OK) {
             BIO_printf(bio, "        self-signed\n");
         } else {
             BIO_printf(bio, " ");
-            X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_ISSUER);
+            X509_print_ex(bio, cert, flags, ~X509_FLAG_NO_ISSUER);
         }
-        X509_print_ex(bio, (X509 *)cert, flags,
+        X509_print_ex(bio, cert, flags,
                            ~(X509_FLAG_NO_SERIAL | X509_FLAG_NO_VALIDITY));
         if (X509_cmp_current_time(X509_get0_notBefore(cert)) > 0) {
             BIO_printf(bio, "        not yet valid\n");
@@ -209,7 +209,7 @@ static void print_cert(BIO *bio, const X509 *cert, unsigned long neg_cflags) {
         if (X509_cmp_current_time(X509_get0_notAfter(cert)) < 0) {
             BIO_printf(bio, "        no more valid\n");
         }
-        X509_print_ex(bio, (X509 *)cert, flags, ~(neg_cflags));
+        X509_print_ex(bio, cert, flags, ~(neg_cflags));
     } else {
         BIO_printf(bio, "    (no certificate)\n");
     }
@@ -326,11 +326,11 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
 /* return 0 if time should not be checked or reference time is within frame,
    or else 1 if it s past the end, or -1 if it is before the start */
 int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
-                           const ASN1_TIME *end, const X509_VERIFY_PARAM *vpm)
+                           const ASN1_TIME *end, X509_VERIFY_PARAM *vpm)
 {
     time_t check_time, *ptime = NULL;
     unsigned long flags = vpm == NULL ? 0 :
-                          X509_VERIFY_PARAM_get_flags((X509_VERIFY_PARAM*)vpm);
+                          X509_VERIFY_PARAM_get_flags(vpm);
 
     if ((flags & X509_V_FLAG_USE_CHECK_TIME) != 0) {
         check_time = X509_VERIFY_PARAM_get_time(vpm);
@@ -404,12 +404,12 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid, int fn)
  * returns 0 on error or not acceptable, else 1
  */
 static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
-                           const X509_STORE *ts) {
+                           X509_STORE *ts) {
     X509_NAME *sender_name = NULL;
     X509_VERIFY_PARAM *vpm = NULL;
     int time_cmp;
 
-    vpm = ts != NULL ? X509_STORE_get0_param((X509_STORE *)ts) : NULL;
+    vpm = ts != NULL ? X509_STORE_get0_param(ts) : NULL;
     if (cert == NULL || msg == NULL || (ts != NULL && vpm == NULL))
         return 0; /* TODO better flag and handle this as fatal internal error */
 
@@ -452,7 +452,7 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
  */
 static int find_acceptable_certs(STACK_OF(X509) *certs,
                                  const OSSL_CMP_MSG *msg,
-                                 const X509_STORE *ts, STACK_OF(X509) *sk)
+                                 X509_STORE *ts, STACK_OF(X509) *sk)
 {
     int i;
 
@@ -491,7 +491,7 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
  *
  * returns 0 on (out of memory) error, else 1
  */
-static int find_server_cert(const X509_STORE *ts,
+static int find_server_cert(X509_STORE *ts,
                             STACK_OF(X509) *untrusted, /* may be NULL */
                             const OSSL_CMP_MSG *msg,
                             STACK_OF(X509) *found_certs)

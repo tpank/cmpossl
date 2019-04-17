@@ -102,7 +102,7 @@ X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin /* may be NULL */)
  * returns 1 on success, 0 on error.
  */
 int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
-                               const ASN1_OCTET_STRING *src)
+                                    const ASN1_OCTET_STRING *src)
 {
     if (tgt == NULL) {
         CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1, CMP_R_NULL_ARGUMENT);
@@ -113,7 +113,7 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
     ASN1_OCTET_STRING_free(*tgt);
 
     if (src != NULL) {
-        if (!(*tgt = ASN1_OCTET_STRING_dup((ASN1_OCTET_STRING *)src))) {
+        if (!(*tgt = ASN1_OCTET_STRING_dup(src))) {
             CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1, ERR_R_MALLOC_FAILURE);
             goto err;
         }
@@ -525,7 +525,7 @@ int OSSL_CMP_CTX_extraCertsOut_push1(OSSL_CMP_CTX *ctx, const X509 *val)
         goto err;
     if ((ctx->extraCertsOut == NULL &&
          (ctx->extraCertsOut = sk_X509_new_null()) == NULL) ||
-         (!sk_X509_push(ctx->extraCertsOut, X509_dup((X509 *)val)))) {
+         (!sk_X509_push(ctx->extraCertsOut, X509_dup(val)))) {
         CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -674,7 +674,7 @@ int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, const X509 *cert)
     if (cert == NULL)
         return 1; /* srvCert has been cleared */
 
-    if ((ctx->srvCert = X509_dup((X509 *)cert)) == NULL) {
+    if ((ctx->srvCert = X509_dup(cert)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SRVCERT, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -696,7 +696,7 @@ int OSSL_CMP_CTX_set1_recipient(OSSL_CMP_CTX *ctx, const X509_NAME *name)
     X509_NAME_free(ctx->recipient);
     ctx->recipient = NULL;
 
-    if ((ctx->recipient = X509_NAME_dup((X509_NAME *)name)) == NULL) {
+    if ((ctx->recipient = X509_NAME_dup(name)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_RECIPIENT, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -721,7 +721,7 @@ int OSSL_CMP_CTX_set1_expected_sender(OSSL_CMP_CTX *ctx, const X509_NAME *name)
     if (name == NULL)
         return 1;
 
-    if ((ctx->expected_sender = X509_NAME_dup((X509_NAME *)name)) == NULL) {
+    if ((ctx->expected_sender = X509_NAME_dup(name)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXPECTED_SENDER, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -743,7 +743,7 @@ int OSSL_CMP_CTX_set1_issuer(OSSL_CMP_CTX *ctx, const X509_NAME *name)
     X509_NAME_free(ctx->issuer);
     ctx->issuer = NULL;
 
-    if ((ctx->issuer = X509_NAME_dup( (X509_NAME*)name)) == NULL) {
+    if ((ctx->issuer = X509_NAME_dup(name)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_ISSUER, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -766,7 +766,7 @@ int OSSL_CMP_CTX_set1_subjectName(OSSL_CMP_CTX *ctx, const X509_NAME *name)
     X509_NAME_free(ctx->subjectName);
     ctx->subjectName = NULL;
 
-    if ((ctx->subjectName = X509_NAME_dup((X509_NAME *)name)) == NULL) {
+    if ((ctx->subjectName = X509_NAME_dup(name)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SUBJECTNAME, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -805,7 +805,7 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
 int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
 {
     int res;
-    X509_EXTENSIONS *exts_copy = CMP_exts_dup((X509_EXTENSIONS *)exts);
+    X509_EXTENSIONS *exts_copy = CMP_exts_dup(exts);
 
     if (exts_copy == NULL)
         return 0;
@@ -846,7 +846,7 @@ int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
     if ((ctx->subjectAltNames == NULL &&
          (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL) ||
          !sk_GENERAL_NAME_push(ctx->subjectAltNames,
-         GENERAL_NAME_dup((GENERAL_NAME *)name))) {
+         GENERAL_NAME_dup(name))) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, ERR_R_MALLOC_FAILURE);
         goto err;
     }
@@ -869,7 +869,7 @@ int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, const X509 *cert)
     X509_free(ctx->clCert);
     ctx->clCert = NULL;
 
-    if ((ctx->clCert = X509_dup((X509 *)cert)) == NULL) {
+    if ((ctx->clCert = X509_dup(cert)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CLCERT, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -894,7 +894,7 @@ int OSSL_CMP_CTX_set1_oldClCert(OSSL_CMP_CTX *ctx, const X509 *cert)
     X509_free(ctx->oldClCert);
     ctx->oldClCert = NULL;
 
-    if ((ctx->oldClCert = X509_dup((X509 *)cert)) == NULL) {
+    if ((ctx->oldClCert = X509_dup(cert)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_OLDCLCERT, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -916,7 +916,7 @@ int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
     X509_REQ_free(ctx->p10CSR);
     ctx->p10CSR = NULL;
 
-    if ((ctx->p10CSR = X509_REQ_dup((X509_REQ *)csr)) == NULL) {
+    if ((ctx->p10CSR = X509_REQ_dup(csr)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_P10CSR, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -931,7 +931,7 @@ int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
  * returns 1 on success, 0 on error
  * TODO: this only permits for one client cert to be received...
  */
-int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, const X509 *cert)
+int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL || cert == NULL)
         goto err;
@@ -939,9 +939,9 @@ int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, const X509 *cert)
     X509_free(ctx->newClCert);
     ctx->newClCert = NULL;
 
-    if (!X509_up_ref((X509 *)cert))
+    if (!X509_up_ref(cert))
         goto err;
-    ctx->newClCert = (X509 *)cert;
+    ctx->newClCert = cert;
     return 1;
  err:
     CMPerr(CMP_F_OSSL_CMP_CTX_SET1_NEWCLCERT, CMP_R_NULL_ARGUMENT);
@@ -964,16 +964,16 @@ X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx)
  * so the given pointer is not used directly.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
+int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
     if (ctx == NULL || pkey == NULL)
         goto err;
 
-    if (!EVP_PKEY_up_ref((EVP_PKEY *)pkey))
+    if (!EVP_PKEY_up_ref(pkey))
         return 0;
     if (OSSL_CMP_CTX_set0_pkey(ctx, pkey))
         return 1;
-    EVP_PKEY_free((EVP_PKEY *)pkey); /* down ref */
+    EVP_PKEY_free(pkey); /* down ref */
     return 0;
 
  err:
@@ -986,7 +986,7 @@ int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
  * the given pointer directly!
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
+int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
     if (ctx == NULL || pkey == NULL)
         goto err;
@@ -994,7 +994,7 @@ int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
     EVP_PKEY_free(ctx->pkey);
     ctx->pkey = NULL;
 
-    ctx->pkey = (EVP_PKEY *)pkey;
+    ctx->pkey = pkey;
     return 1;
  err:
     CMPerr(CMP_F_OSSL_CMP_CTX_SET0_PKEY, CMP_R_NULL_ARGUMENT);
@@ -1006,16 +1006,16 @@ int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
  * The key is duplicated so the original pointer is not directly used.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
+int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
     if (ctx == NULL || pkey == NULL)
         goto err;
 
-    if (!EVP_PKEY_up_ref((EVP_PKEY *)pkey))
+    if (!EVP_PKEY_up_ref(pkey))
         return 0;
     if (OSSL_CMP_CTX_set0_newPkey(ctx, pkey))
        return 1;
-    EVP_PKEY_free((EVP_PKEY *)pkey); /* down ref */
+    EVP_PKEY_free(pkey); /* down ref */
     return 0;
 
  err:
@@ -1028,7 +1028,7 @@ int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
  * NOTE: uses the pointer directly!
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
+int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
     if (ctx == NULL || pkey == NULL)
         goto err;
@@ -1036,7 +1036,7 @@ int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
     EVP_PKEY_free(ctx->newPkey);
     ctx->newPkey = NULL;
 
-    ctx->newPkey = (EVP_PKEY *)pkey;
+    ctx->newPkey = pkey;
     return 1;
  err:
     CMPerr(CMP_F_OSSL_CMP_CTX_SET0_NEWPKEY, CMP_R_NULL_ARGUMENT);

@@ -21,7 +21,7 @@
 #include <openssl/err.h>
 
 typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
-                      (OSSL_CMP_SRV_CTX *ctx, const OSSL_CMP_MSG *msg);
+                      (OSSL_CMP_SRV_CTX *ctx, OSSL_CMP_MSG *msg);
 
 /*
  * this structure is used to store the context for the CMP mock server
@@ -212,7 +212,7 @@ static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *msg)
  * returns an ip/cp/kup on success and NULL on error
  */
 static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
-                                              const OSSL_CMP_MSG *certReq)
+                                              OSSL_CMP_MSG *certReq)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_PKISI *si = NULL;
@@ -265,14 +265,14 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
                                           OSSL_CMP_CERTREQID, NULL)) == NULL)
             goto oom;
         OSSL_CMP_MSG_free(srv_ctx->certReq);
-        if ((srv_ctx->certReq = OSSL_CMP_MSG_dup((OSSL_CMP_MSG *)certReq))
+        if ((srv_ctx->certReq = OSSL_CMP_MSG_dup(certReq))
             == NULL)
             goto oom;
     } else {
         certOut = srv_ctx->certOut;
         chainOut = srv_ctx->chainOut;
         caPubs = srv_ctx->caPubsOut;
-        if (OSSL_CMP_MSG_check_implicitConfirm((OSSL_CMP_MSG *) certReq) &&
+        if (OSSL_CMP_MSG_check_implicitConfirm(certReq) &&
             srv_ctx->grantImplicitConfirm)
             OSSL_CMP_CTX_set_option(srv_ctx->ctx,
                                     OSSL_CMP_CTX_OPT_IMPLICITCONFIRM, 1);
@@ -296,7 +296,7 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
-                                const OSSL_CMP_MSG *req)
+                                OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg;
     OSSL_CMP_REVDETAILS *details;
@@ -339,7 +339,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
-                                      const OSSL_CMP_MSG *req)
+                                      OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTSTATUS *status = NULL;
@@ -405,7 +405,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
-                                   const OSSL_CMP_MSG *req)
+                                   OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg = OSSL_CMP_pkiconf_new(srv_ctx->ctx);
 
@@ -419,7 +419,7 @@ static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
-                                     const OSSL_CMP_MSG *req)
+                                     OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg = NULL;
 
@@ -445,7 +445,7 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
  * incoming message
  */
 static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
-                                  const OSSL_CMP_MSG *req)
+                                  OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg = NULL;
 
@@ -491,7 +491,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
  * srv_ctx is the context of the server
  * returns 1 if a message was created and 0 on error
  */
-static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *req,
+static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req,
                            OSSL_CMP_MSG **rsp)
 {
     cmp_srv_process_cb_t process_cb = NULL;
@@ -587,7 +587,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
         return CMP_R_ERROR_TRANSFERRING_OUT;
 
     /* OSSL_CMP_MSG_dup en- and decodes ASN.1, used for checking encoding */
-    if ((srv_req = OSSL_CMP_MSG_dup((OSSL_CMP_MSG *)req)) == NULL)
+    if ((srv_req = OSSL_CMP_MSG_dup(req)) == NULL)
         error = CMP_R_ERROR_DECODING_MESSAGE;
 
     if (process_request(srv_ctx, srv_req, &srv_rsp) == 0) {

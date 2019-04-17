@@ -723,7 +723,7 @@ static int load_pkcs12(BIO *in, const char *desc,
         pass = "";
     else {
         if (pem_cb == NULL)
-            pem_cb = (pem_password_cb *)password_callback;
+            pem_cb = wrap_password_callback;
         len = pem_cb(tpass, PEM_BUFSIZE, 0, cb_data);
         if (len < 0) {
             BIO_printf(bio_err, "passphrase callback error for %s\n", desc);
@@ -793,12 +793,12 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
         x = d2i_X509_bio(cert, NULL);
     else if (format == FORMAT_PEM)
         x = PEM_read_bio_X509_AUX(cert, NULL,
-                                  (pem_password_cb *)password_callback,
+                                  wrap_password_callback,
                                   &cb_data);
     else if (format == FORMAT_PKCS12) {
         EVP_PKEY *pkey = NULL;  /* &pkey is required for matching cert */
 
-        load_pkcs12(cert, cert_descrip, (pem_password_cb *)password_callback,
+        load_pkcs12(cert, cert_descrip, wrap_password_callback,
                     &cb_data, &pkey, &x, NULL);
         EVP_PKEY_free(pkey);
     } else {
@@ -855,7 +855,7 @@ static int adjust_format(const char **infile, int format, int engine_ok)
          * or PKCS12 as the input format for files
          */
         if (strlen(*infile) >= 4) {
-            char *extension = (char *)(*infile + strlen(*infile) - 4);
+            const char *extension = (*infile + strlen(*infile) - 4);
 
             if (strncmp(extension, ".crt", 4) == 0 ||
                 strncmp(extension, ".pem", 4) == 0)
@@ -880,7 +880,7 @@ static char *get_passwd(const char *pass, const char *desc)
 {
     char *result = NULL;
 
-    if (!app_passwd((char *)pass, NULL, &result, NULL)) {
+    if (!app_passwd(pass, NULL, &result, NULL)) {
         BIO_printf(bio_err, "error getting password for %s\n", desc);
     }
     if (pass != NULL && result == NULL) {
@@ -893,7 +893,7 @@ static char *get_passwd(const char *pass, const char *desc)
 
 static void cleanse(char *str) {
     if (str != NULL) {
-        OPENSSL_cleanse((void *)str, strlen(str));
+        OPENSSL_cleanse(str, strlen(str));
     }
 }
 
@@ -1000,7 +1000,7 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
 
             cb_data.password = pass;
             cb_data.prompt_info = file;
-            ret = load_pkcs12(bio, desc, (pem_password_cb *)password_callback,
+            ret = load_pkcs12(bio, desc, wrap_password_callback,
                               &cb_data, &pkey, &cert, certs);
             EVP_PKEY_free(pkey);
             BIO_free(bio);
@@ -1173,7 +1173,7 @@ static void DEBUG_print(const char *msg, const char *s1, const char *s2)
  */
 #define X509_STORE_EX_DATA_HOST 0
 #define X509_STORE_EX_DATA_SBIO 1
-static int truststore_set_host_etc(X509_STORE *ts, const char *host)
+static int truststore_set_host_etc(X509_STORE *ts, char *host)
 {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
 
@@ -1191,7 +1191,7 @@ static int truststore_set_host_etc(X509_STORE *ts, const char *host)
      * ip entries in X509_VERIFY_PARAM. So we store the host value in ex_data
      * for use in cert_verify_cb() below.
      */
-    if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, (void *)host))
+    if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, host))
         return 0;
     return (host && X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host)) ||
            X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
@@ -1339,9 +1339,9 @@ static STACK_OF(X509_CRL) *get_crls_cb(X509_STORE_CTX *ctx, X509_NAME *nm)
 }
 
 #ifndef OPENSSL_NO_OCSP
-static void DEBUG_print_cert(const char *msg, const X509 *cert)
+static void DEBUG_print_cert(const char *msg, X509 *cert)
 {
-    char *s = X509_NAME_oneline(X509_get_subject_name((X509 *)cert), NULL, 0);
+    char *s = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
     DEBUG_print(msg, "for cert with subject =", s);
     OPENSSL_free(s);
 }
@@ -1469,7 +1469,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
  * such as the OCSP certificate IDs and minimise the number of OCSP responses
  * by caching them until they were considered "expired".
  */
-static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
+static OCSP_RESPONSE *get_ocsp_resp(X509 *cert, X509 *issuer,
                                     char *url, int use_aia, int timeout)
 {
     char *host = NULL;
@@ -1483,7 +1483,7 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
     OCSP_RESPONSE *resp = NULL;
     OCSP_BASICRESP *br = NULL;
 
-    aia = X509_get1_ocsp((X509 *)cert);
+    aia = X509_get1_ocsp(cert);
     if (aia != NULL && use_aia)
         url = sk_OPENSSL_STRING_value(aia, 0);
     if (url == NULL) {
@@ -1500,7 +1500,7 @@ static OCSP_RESPONSE *get_ocsp_resp(const X509 *cert, const X509 *issuer,
 
     if ((req = OCSP_REQUEST_new()) == NULL)
         goto end;
-    if ((id = OCSP_cert_to_id(NULL, (X509 *)cert, (X509 *)issuer)) == NULL)
+    if ((id = OCSP_cert_to_id(NULL, cert, issuer)) == NULL)
         goto end;
     if (!OCSP_request_add0_id(req, (id_copy = id)))
         goto end;
@@ -1593,12 +1593,12 @@ static int check_cert(X509_STORE_CTX *ctx)
  * emulate the internal verify_cb_cert() of crypto/cmp/x509_vfy.c;
  * depth already set
  */
-static int verify_cb_cert(X509_STORE_CTX *ctx, const X509 *cert, int err)
+static int verify_cb_cert(X509_STORE_CTX *ctx, X509 *cert, int err)
 {
     X509_STORE_CTX_verify_cb verify_cb = X509_STORE_CTX_get_verify_cb(ctx);
 
     X509_STORE_CTX_set_error(ctx, err);
-    X509_STORE_CTX_set_current_cert(ctx, (X509 *)cert);
+    X509_STORE_CTX_set_current_cert(ctx, cert);
     return verify_cb && (*verify_cb) (0, ctx);
 }
 
@@ -1684,7 +1684,7 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
         rsp = d2i_OCSP_RESPONSE(NULL, &resp, len);
         if (rsp == NULL) {
             BIO_puts(bio_err, "error parsing stapled OCSP response\n");
-            BIO_dump_indent(bio_err, (char *)resp, len, 4);
+            BIO_dump_indent(bio_err, resp, len, 4);
             /* well, this is likely not an internal error (malloc failure) */
             goto end;
         }
@@ -1801,7 +1801,7 @@ static int write_PKIMESSAGE(OSSL_CMP_CTX *ctx,
                         "cannot open file '%s' for writing", file);
     else {
         unsigned char *out = NULL;
-        int len = i2d_OSSL_CMP_MSG((OSSL_CMP_MSG *)msg, &out);
+        int len = i2d_OSSL_CMP_MSG(msg, &out);
 
         if (len >= 0) {
             if ((size_t)len == fwrite(out, sizeof(*out), len, f))
@@ -1911,7 +1911,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 # if defined USE_TRANSACTIONID_WORKAROUND
             OSSL_CMP_HDR_set1_transactionID(OSSL_CMP_MSG_get0_header
                                             (req_new), NULL);
-            OSSL_CMP_MSG_protect((OSSL_CMP_CTX *)ctx, req_new);
+            OSSL_CMP_MSG_protect(ctx, req_new);
 # endif
         }
     }
@@ -2139,7 +2139,7 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
         return 0;
 
     /* copy vpm to store */
-    if (!X509_STORE_set1_param(ts, (X509_VERIFY_PARAM *)vpm)) {
+    if (!X509_STORE_set1_param(ts, vpm)) {
         BIO_printf(bio_err, "error setting verification parameters\n");
         ERR_print_errors(bio_err);
         return 0;
@@ -2174,7 +2174,7 @@ static int set_name(const char *str,
                     OSSL_CMP_CTX *ctx, const char *desc)
 {
     if (str != NULL) {
-        X509_NAME *n = parse_name((char *)str, MBSTRING_ASC, 0);
+        X509_NAME *n = parse_name(str, MBSTRING_ASC, 0);
 
         if (n == NULL) {
             OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
@@ -3428,7 +3428,7 @@ static void print_itavs(STACK_OF(OSSL_CMP_ITAV) *itavs)
 
 static char opt_item[SECTION_NAME_MAX+1];
 /* get previous name from a comma-separated list of names */
-static char *prev_item(const char *opt, const char *end)
+static const char *prev_item(const char *opt, const char *end)
 {
     const char *beg;
     int len;
@@ -3450,15 +3450,15 @@ static char *prev_item(const char *opt, const char *end)
     }
     while (beg != opt && (beg[-1] == ',' || isspace(beg[-1])))
         beg--;
-    return (char *)beg;
+    return beg;
 }
 
 /* get str value for name from a comma-separated hierarchy of config sections */
-static char *conf_get_string(const CONF *conf_, const char *groups,
+static char *conf_get_string(const CONF *conf_,const char *groups,
                             const char *name)
 {
     char *res = NULL;
-    char *end = (char *)groups + strlen(groups);
+    const char *end = groups + strlen(groups);
 
     while ((end = prev_item(groups, end)) != NULL) {
         if ((res = NCONF_get_string(conf_, opt_item, name)) != NULL)
@@ -4031,7 +4031,7 @@ int cmp_main(int argc, char **argv)
                                     opt_section, configfile);
                 }
             } else {
-                char *end = opt_section + strlen(opt_section);
+                const char *end = opt_section + strlen(opt_section);
                 while ((end = prev_item(opt_section, end)) != NULL) {
                     if (!NCONF_get_section(conf, opt_item)) {
                         OSSL_CMP_printf(cmp_ctx, OSSL_CMP_FL_ERR,

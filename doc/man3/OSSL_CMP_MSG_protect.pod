@@ -69,7 +69,7 @@ OSSL_CMP_X509_STORE_get1_certs
   int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
   int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
   STACK_OF(X509) *OSSL_CMP_build_cert_chain(X509_STORE *store,
-                                            const X509 *cert);
+                                            X509 *cert);
   typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
                                          const OSSL_CMP_MSG *msg,
                                          int invalid_protection, int arg);
@@ -86,7 +86,7 @@ OSSL_CMP_X509_STORE_get1_certs
                                   int no_self_signed, int no_duplicates);
   int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                 int only_self_signed);
-  STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store);
+  STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store);
 
 =head1 DESCRIPTION
 

@@ -13,7 +13,7 @@ OSSL_CMP_certConf_cb
 
  #include <openssl/cmp.h>
  int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start, const ASN1_TIME *end,
-                            const X509_VERIFY_PARAM *vpm);
+                            X509_VERIFY_PARAM *vpm);
  int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
  int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
                                  X509_STORE *trusted_store,

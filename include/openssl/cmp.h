@@ -392,8 +392,8 @@ int OSSL_CMP_MSG_set_bodytype(OSSL_CMP_MSG *msg, int type);
 int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
 #  define OSSL_CMP_PKISI_BUFLEN 1024
 char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
-STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
-                                          const X509 *cert);
+STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs,
+                                          X509 *cert);
 typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_MSG *msg, 
                                        int invalid_protection, int arg);
@@ -407,12 +407,12 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
                                           size_t len);
 int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed);
-STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store);
+STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store);
 
 /* cmp_vfy.c */
 /* TODO better push OSSL_CMP_cmp_timeframe() to crypto/x509/x509_vfy.c */
 int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
-                           const ASN1_TIME *end,  const X509_VERIFY_PARAM *vpm);
+                           const ASN1_TIME *end, X509_VERIFY_PARAM *vpm);
 int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg);
 int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
                                 X509_STORE *trusted_store,
@@ -544,12 +544,12 @@ STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(const OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                                    STACK_OF(X509) *extraCertsIn);
 
-int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, const X509 *cert);
+int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
 X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
-int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey);
-int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey);
-int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey);
-int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey);
+int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
+int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
+int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
+int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
 EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
                                     const ASN1_OCTET_STRING *id);

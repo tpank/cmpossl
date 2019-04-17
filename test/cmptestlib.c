@@ -86,7 +86,7 @@ EVP_PKEY *gen_rsa(void)
  */
 int valid_asn1_encoding(const OSSL_CMP_MSG *msg)
 {
-    return msg != NULL ? i2d_OSSL_CMP_MSG((OSSL_CMP_MSG *)msg, NULL) > 0 : 0;
+    return msg != NULL ? i2d_OSSL_CMP_MSG(msg, NULL) > 0 : 0;
 }
 
 /*
