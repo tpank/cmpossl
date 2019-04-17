@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-OSSL_CMP_MSG_http_perform
+OSSL_CMP_MSG_http_perform,
 OSSL_CMP_proxy_connect
 - implementation of HTTP transfer for CMP messages
 
