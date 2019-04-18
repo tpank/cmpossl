@@ -1695,7 +1695,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     /* compare received transactionID with the expected one in previous msg */
     if (ctx->transactionID != NULL
             && (msg->header->transactionID == NULL
-        	|| ASN1_OCTET_STRING_cmp(ctx->transactionID,
+                || ASN1_OCTET_STRING_cmp(ctx->transactionID,
                                          msg->header->transactionID) != 0)) {
         CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                CMP_R_TRANSACTIONID_UNMATCHED);
@@ -1705,7 +1705,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     /* compare received nonce with the one we sent */
     if (ctx->last_senderNonce != NULL
             && (msg->header->recipNonce == NULL
-        	|| ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
+                || ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
                                msg->header->recipNonce) != 0)) {
         CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                CMP_R_RECIPNONCE_UNMATCHED);

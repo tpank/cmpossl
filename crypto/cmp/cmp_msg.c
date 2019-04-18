@@ -374,7 +374,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
 
     status = OSSL_CMP_PKISI_PKIStatus_get(resp->status);
     if (status != OSSL_CMP_PKISTATUS_rejection
-	&& status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
+        && status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
         if (encrypted) {
             CMPerr(CMP_F_OSSL_CMP_CERTREP_NEW, CMP_R_INVALID_PARAMETERS);
             goto err;

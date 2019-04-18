@@ -367,7 +367,7 @@ int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr,
                                 ASN1_UTF8STRING *text);
 int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
-int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr, 
+int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
                                         OSSL_CMP_ITAV *itav);
 int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
 

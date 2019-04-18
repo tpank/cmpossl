@@ -845,7 +845,7 @@ int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
 
     if ((ctx->subjectAltNames == NULL
              && (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL)
-	     || !sk_GENERAL_NAME_push(ctx->subjectAltNames,
+             || !sk_GENERAL_NAME_push(ctx->subjectAltNames,
                                       GENERAL_NAME_dup(name))) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, ERR_R_MALLOC_FAILURE);
         goto err;

@@ -88,7 +88,7 @@ static void message_add_error_data(OSSL_CMP_MSG *msg)
             ERR_add_error_data(1, "got invalid message type out of sane range");
         } else {
             ERR_add_error_data(3, "got unexpected message type '",
-                                  V_CMP_TABLE[bt], "'");
+                               V_CMP_TABLE[bt], "'");
         }
         break;
     }
