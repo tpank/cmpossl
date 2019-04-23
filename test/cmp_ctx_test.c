@@ -71,8 +71,9 @@ static int test_cmp_ctx_reqextensions_have_san(void)
             || !TEST_ptr(data = ASN1_OCTET_STRING_new())
             || !TEST_true(ASN1_OCTET_STRING_set(data, str, len))
             || !TEST_ptr(ext =
-                  X509_EXTENSION_create_by_NID(NULL, NID_subject_alt_name, 0,
-                                               data))
+                         X509_EXTENSION_create_by_NID(NULL,
+                                                      NID_subject_alt_name, 0,
+                                                      data))
             || !TEST_true(sk_X509_EXTENSION_push(fixture->exts, ext))) {
         X509_EXTENSION_free(ext);
         tear_down(fixture);

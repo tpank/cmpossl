@@ -525,7 +525,7 @@ int OSSL_CMP_CTX_extraCertsOut_push1(OSSL_CMP_CTX *ctx, const X509 *val)
         goto err;
     if ((ctx->extraCertsOut == NULL
              && (ctx->extraCertsOut = sk_X509_new_null()) == NULL)
-             || (!sk_X509_push(ctx->extraCertsOut, X509_dup(val)))) {
+            || !sk_X509_push(ctx->extraCertsOut, X509_dup(val))) {
         CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -580,8 +580,8 @@ int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID)
     if ((policy = OBJ_txt2obj(policyOID, 1)) == 0)
         return -1; /* parse error */
 
-    if ((ctx->policies == NULL)
-            && ((ctx->policies = CERTIFICATEPOLICIES_new()) == NULL))
+    if (ctx->policies == NULL
+            && (ctx->policies = CERTIFICATEPOLICIES_new()) == NULL)
         goto err;
 
     if ((pinfo = POLICYINFO_new()) == NULL)
@@ -845,8 +845,8 @@ int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
 
     if ((ctx->subjectAltNames == NULL
              && (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL)
-             || !sk_GENERAL_NAME_push(ctx->subjectAltNames,
-                                      GENERAL_NAME_dup(name))) {
+            || !sk_GENERAL_NAME_push(ctx->subjectAltNames,
+                                     GENERAL_NAME_dup(name))) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, ERR_R_MALLOC_FAILURE);
         goto err;
     }

@@ -80,7 +80,7 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
         len = (int)strlen(data);
         curr = next = txt;
         while (*next != '\0'
-               && len + strlen(separator) + (next - txt) < MAX_DATA_LEN) {
+                   && len + strlen(separator) + (next - txt) < MAX_DATA_LEN) {
             curr = next;
             if (*separator != '\0') {
                 next = strstr(curr, separator);
@@ -457,7 +457,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
      */
     if (ctx->transactionID == NULL
             && !set1_aostr_else_random(&ctx->transactionID,NULL,
-                                OSSL_CMP_TRANSACTIONID_LENGTH))
+                                       OSSL_CMP_TRANSACTIONID_LENGTH))
         goto err;
     if (!OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID,
                                          ctx->transactionID))
@@ -575,12 +575,12 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
             goto end;
         }
         if ((evp_ctx = EVP_MD_CTX_create()) == NULL
-            || EVP_DigestSignInit(evp_ctx, NULL, md, NULL, pkey) <= 0
-            || EVP_DigestSignUpdate(evp_ctx, prot_part_der,
-                                    prot_part_der_len) <= 0
-            || EVP_DigestSignFinal(evp_ctx, NULL, &sig_len) <= 0
-            || (protection = OPENSSL_malloc(sig_len)) == NULL
-            || EVP_DigestSignFinal(evp_ctx, protection, &sig_len) <= 0)
+                || EVP_DigestSignInit(evp_ctx, NULL, md, NULL, pkey) <= 0
+                || EVP_DigestSignUpdate(evp_ctx, prot_part_der,
+                                        prot_part_der_len) <= 0
+                || EVP_DigestSignFinal(evp_ctx, NULL, &sig_len) <= 0
+                || (protection = OPENSSL_malloc(sig_len)) == NULL
+                || EVP_DigestSignFinal(evp_ctx, protection, &sig_len) <= 0)
                 goto err;
     } else {
         CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_INVALID_ARGS);
@@ -755,14 +755,15 @@ int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 
     if (ctx == NULL || msg == NULL)
         goto err;
-    if (msg->extraCerts == NULL && !(msg->extraCerts = sk_X509_new_null()))
+    if (msg->extraCerts == NULL
+            && (msg->extraCerts = sk_X509_new_null()) == NULL)
         goto err;
 
     res = 1;
     if (ctx->clCert != NULL) {
         /* Make sure that our own cert gets sent, in the first position */
         res = sk_X509_push(msg->extraCerts, ctx->clCert)
-            && X509_up_ref(ctx->clCert);
+                  && X509_up_ref(ctx->clCert);
 
         /*
          * if we have untrusted store, try to add intermediate certs
@@ -813,7 +814,7 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
      * -- as is used to create and verify the certificate signature
      */
     if (OBJ_find_sigid_algs(X509_get_signature_nid(cert), &md_NID, NULL)
-        && (md = EVP_get_digestbynid(md_NID))) {
+            && (md = EVP_get_digestbynid(md_NID)) != NULL) {
         if (!X509_digest(cert, md, hash, &len))
             goto err;
         if (!OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&certStatus->certHash,
@@ -1279,7 +1280,7 @@ int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index)
 
     if (fail_info == NULL) /* this can also indicate si == NULL */
         return -1;
-    if ((bit_index < 0) || (bit_index > OSSL_CMP_PKIFAILUREINFO_MAX))
+    if (bit_index < 0 || bit_index > OSSL_CMP_PKIFAILUREINFO_MAX)
         return -1;
 
     return ASN1_BIT_STRING_get_bit(fail_info, bit_index);
@@ -1418,8 +1419,8 @@ char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
     int i;
     int n = 0;
 
-    if (si == NULL ||
-        (status = CMP_PKISI_PKIStatus_get_string(si)) == NULL)
+    if (si == NULL
+            || (status = CMP_PKISI_PKIStatus_get_string(si)) == NULL)
         return NULL;
     BIO_snprintf(buf, bufsize, "%s; ", status);
 
@@ -1468,7 +1469,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
         goto err;
     }
     if (crep->certifiedKeyPair
-            && (coec = crep->certifiedKeyPair->certOrEncCert)) {
+            && (coec = crep->certifiedKeyPair->certOrEncCert) != NULL) {
         switch (coec->type) {
         case OSSL_CMP_CERTORENCCERT_CERTIFICATE:
             crt = X509_dup(coec->value.certificate);
@@ -1670,7 +1671,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
         /* detect explicitly permitted exceptions for invalid protection */
         if (!OSSL_CMP_validate_msg(ctx, msg)
                 && (allow_unprotected == NULL
-                || !(*allow_unprotected)(ctx, msg, 1, cb_arg))) {
+                        || !(*allow_unprotected)(ctx, msg, 1, cb_arg))) {
              CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                     CMP_R_ERROR_VALIDATING_PROTECTION);
              return -1;
@@ -1678,7 +1679,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     } else {
         /* detect explicitly permitted exceptions for missing protection */
         if (allow_unprotected == NULL
-            || !(*allow_unprotected)(ctx, msg, 0, cb_arg)) {
+                || !(*allow_unprotected)(ctx, msg, 0, cb_arg)) {
             CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                    CMP_R_MISSING_PROTECTION);
             return -1;
@@ -1705,8 +1706,8 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     /* compare received nonce with the one we sent */
     if (ctx->last_senderNonce != NULL
             && (msg->header->recipNonce == NULL
-                || ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
-                               msg->header->recipNonce) != 0)) {
+                    || ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
+                                             msg->header->recipNonce) != 0)) {
         CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                CMP_R_RECIPNONCE_UNMATCHED);
         return -1;

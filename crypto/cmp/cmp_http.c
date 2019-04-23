@@ -39,7 +39,7 @@
 /* from apps.h */
 # ifndef openssl_fdset
 #  if defined(OPENSSL_SYSNAME_WIN32) \
-   || defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)
+          || defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)
 #   define openssl_fdset(a,b) FD_SET((unsigned int)a, b)
 #  else
 #   define openssl_fdset(a,b) FD_SET(a, b)
@@ -486,7 +486,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
      * allowed when using a proxy
      */
     if (ctx->http_cb == NULL /* no TLS */
-        && ctx->proxyName != NULL && ctx->proxyPort != 0)
+            && ctx->proxyName != NULL && ctx->proxyPort != 0)
         pos = BIO_snprintf(path, pathlen-1, "http://%s:%d",
                            ctx->serverName, ctx->serverPort);
 
@@ -515,7 +515,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             err = CMP_R_TLS_ERROR;
         CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, err);
         if (err == CMP_R_TLS_ERROR || err == CMP_R_CONNECT_TIMEOUT
-                                   || err == CMP_R_ERROR_CONNECTING)
+                || err == CMP_R_ERROR_CONNECTING)
             add_conn_error_hint(ctx, ERR_peek_error());
     }
 

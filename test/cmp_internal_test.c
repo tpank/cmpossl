@@ -41,6 +41,7 @@ static CMP_INT_TEST_FIXTURE *set_up(const char *const test_case_name)
 {
     CMP_INT_TEST_FIXTURE *fixture;
     int setup_ok = 0;
+
     /* Allocate memory owned by the fixture, exit on error */
     if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
         goto err;
@@ -78,10 +79,10 @@ static EVP_PKEY *loadedpubkey = NULL;
 
 static int execute_calc_protection_fails_test(CMP_INT_TEST_FIXTURE *fixture)
 {
-    ASN1_BIT_STRING *protection = NULL;
-    int res = TEST_ptr_null(protection =
-                            CMP_calc_protection(fixture->msg, fixture->secret,
-                                                fixture->privkey));
+    ASN1_BIT_STRING *protection =
+        CMP_calc_protection(fixture->msg, fixture->secret, fixture->privkey);
+    int res = TEST_ptr_null(protection);
+
     ASN1_BIT_STRING_free(protection);
     return res;
 }
@@ -89,12 +90,12 @@ static int execute_calc_protection_fails_test(CMP_INT_TEST_FIXTURE *fixture)
 /* TODO internal test*/
 static int execute_calc_protection_test(CMP_INT_TEST_FIXTURE *fixture)
 {
-    ASN1_BIT_STRING *protection = NULL;
-    int res =
-        TEST_ptr(protection = CMP_calc_protection(fixture->msg, fixture->secret,
-                                                  fixture->privkey))
-           && TEST_true(ASN1_STRING_cmp(protection,
-                                  fixture->msg->protection) == 0);
+    ASN1_BIT_STRING *protection =
+        CMP_calc_protection(fixture->msg, fixture->secret, fixture->privkey);
+    int res = TEST_ptr(protection)
+                  && TEST_true(ASN1_STRING_cmp(protection,
+                                               fixture->msg->protection) == 0);
+
     ASN1_BIT_STRING_free(protection);
     return res;
 }
@@ -117,10 +118,10 @@ static int verify_signature(OSSL_CMP_MSG *msg,
         TEST_int_ge(l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der), 0)
             && TEST_ptr(ctx = EVP_MD_CTX_create())
             && TEST_true(EVP_VerifyInit_ex
-                        (ctx, (EVP_MD *)EVP_get_digestbynid(digest_nid), NULL))
+                         (ctx, (EVP_MD *)EVP_get_digestbynid(digest_nid), NULL))
             && TEST_true(EVP_VerifyUpdate(ctx, prot_part_der, l))
             && TEST_int_eq(EVP_VerifyFinal(ctx, protection->data,
-                                       protection->length, pkey), 1);
+                                           protection->length, pkey), 1);
     /* cleanup */
     EVP_MD_CTX_destroy(ctx);
     OPENSSL_free(prot_part_der);
@@ -131,13 +132,13 @@ static int verify_signature(OSSL_CMP_MSG *msg,
 static int execute_calc_protection_signature_test(CMP_INT_TEST_FIXTURE *
                                                   fixture)
 {
-    ASN1_BIT_STRING *protection = NULL;
-    int ret = (TEST_ptr(protection =
-                        CMP_calc_protection(fixture->msg, NULL,
-                                                 fixture->privkey))
+    ASN1_BIT_STRING *protection =
+        CMP_calc_protection(fixture->msg, NULL, fixture->privkey);
+    int ret = (TEST_ptr(protection)
                    && TEST_true(verify_signature(fixture->msg, protection,
                                                  fixture->pubkey,
                                                  fixture->cmp_ctx->digest)));
+
     ASN1_BIT_STRING_free(protection);
     return ret;
 }
@@ -176,12 +177,12 @@ static int test_cmp_calc_protection_pkey(void)
 
 static int test_cmp_calc_protection_pbmac(void)
 {
-    SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
     unsigned char sec_insta[] = { 'i', 'n', 's', 't', 'a' };
 
+    SETUP_TEST_FIXTURE(CMP_INT_TEST_FIXTURE, set_up);
     if (!TEST_ptr(fixture->secret = ASN1_OCTET_STRING_new())
             || !TEST_true(ASN1_OCTET_STRING_set
-                   (fixture->secret, sec_insta, sizeof(sec_insta)))
+                          (fixture->secret, sec_insta, sizeof(sec_insta)))
             || !TEST_ptr(fixture->msg = load_pkimsg(ip_PBM_f))) {
         tear_down(fixture);
         fixture = NULL;

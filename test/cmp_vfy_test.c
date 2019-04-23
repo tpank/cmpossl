@@ -35,6 +35,7 @@ static CMP_VFY_TEST_FIXTURE *set_up(const char *const test_case_name)
 {
     CMP_VFY_TEST_FIXTURE *fixture;
     int setup_ok = 0;
+
     /* Allocate memory owned by the fixture, exit on error */
     if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
         goto err;
@@ -75,6 +76,7 @@ static int execute_validation_test(CMP_VFY_TEST_FIXTURE *fixture)
 static int execute_cmp_validate_cert_path_test(CMP_VFY_TEST_FIXTURE *fixture)
 {
     X509_STORE *ts = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx);
+
     return TEST_int_eq(fixture->expected,
                        OSSL_CMP_validate_cert_path(fixture->cmp_ctx,
                                                    ts, fixture->cert, 0));
@@ -88,11 +90,11 @@ static int test_cmp_validate_msg_mac_alg_protection(void)
         { '9', 'p', 'p', '8', '-', 'b', '3', '5', 'i', '-', 'X', 'd', '3',
         'Q', '-', 'u', 'd', 'N', 'R'
     };
-    fixture->expected = 1;
 
-    if (!TEST_true
-        (OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, sec_1, sizeof(sec_1)))
-        || !TEST_ptr(fixture->msg = load_pkimsg(ip_waiting_f))) {
+    fixture->expected = 1;
+    if (!TEST_true(OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, sec_1,
+                                                 sizeof(sec_1)))
+            || !TEST_ptr(fixture->msg = load_pkimsg(ip_waiting_f))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -109,10 +111,9 @@ static int test_cmp_validate_msg_mac_alg_protection_bad(void)
     };
     fixture->expected = 0;
 
-    if (!TEST_true
-        (OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, sec_bad,
-                                       sizeof(sec_bad)))
-        || !TEST_ptr(fixture->msg = load_pkimsg(ip_waiting_f))) {
+    if (!TEST_true(OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, sec_bad,
+                                                 sizeof(sec_bad)))
+            || !TEST_ptr(fixture->msg = load_pkimsg(ip_waiting_f))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -123,13 +124,15 @@ static int test_cmp_validate_msg_mac_alg_protection_bad(void)
 static int test_cmp_validate_msg_signature_trusted(int expired)
 {
     X509_STORE *trusted = NULL;
+
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
      * side effects */
     fixture->expected = !expired;
+    trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx);
     if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))
-       || !TEST_true(trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx))
-       || !TEST_true(X509_STORE_add_cert(trusted, srvcert))) {
+            || !TEST_true(trusted)
+            || !TEST_true(X509_STORE_add_cert(trusted, srvcert))) {
         tear_down(fixture);
         fixture = NULL;
     } else {
@@ -236,15 +239,17 @@ static int test_cmp_validate_cert_path_ok(void)
 {
     STACK_OF(X509) *untrusted = NULL;
     X509_STORE *trusted = NULL;
+
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->cert = endentity2;
     fixture->expected = 1;
+    trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx);
     if (!TEST_ptr(untrusted =
                   OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx))
-       || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1))
-       || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate))
-       || !TEST_true(trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx))
-       || !TEST_true(X509_STORE_add_cert(trusted, root))) {
+            || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1))
+            || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate))
+            || !TEST_true(trusted)
+            || !TEST_true(X509_STORE_add_cert(trusted, root))) {
         tear_down(fixture);
         fixture = NULL;
     } else {
@@ -259,16 +264,18 @@ static int test_cmp_validate_cert_path_no_anchor(void)
 {
     STACK_OF(X509) *untrusted = NULL;
     X509_STORE *trusted = NULL;
+
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->cert = endentity2;
     fixture->expected = 0;
+    trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx);
     if (!TEST_ptr(untrusted =
                   OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx))
-       || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1))
-       || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate))
-       || !TEST_true(trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx))
-        /* Wrong anchor */
-       || !TEST_true(X509_STORE_add_cert(trusted, srvcert))) {
+           || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1))
+           || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate))
+           || !TEST_true(trusted)
+           /* Wrong anchor */
+           || !TEST_true(X509_STORE_add_cert(trusted, srvcert))) {
         tear_down(fixture);
         fixture = NULL;
     } else {
@@ -283,15 +290,17 @@ static int test_cmp_validate_cert_path_expired(void)
 {
     STACK_OF(X509) *untrusted = NULL;
     X509_STORE *trusted = NULL;
+
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->cert = endentity2;
     fixture->expected = 0;
+    trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx);
     if (!TEST_ptr(untrusted =
                   OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx))
-       || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1))
-       || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate))
-       || !TEST_true(trusted = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx))
-       || !TEST_true(X509_STORE_add_cert(trusted, root))) {
+            || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1))
+            || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate))
+            || !TEST_true(trusted)
+            || !TEST_true(X509_STORE_add_cert(trusted, root))) {
         tear_down(fixture);
         fixture = NULL;
     } else {
@@ -317,6 +326,7 @@ int setup_tests(void)
 {
     /* Set test time stamps */
     struct tm ts = { 0 };
+
     ts.tm_year = 2018 - 1900;
     ts.tm_mon = 1;              /* February */
     ts.tm_mday = 18;

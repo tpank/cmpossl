@@ -114,10 +114,10 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
             msg_type = "error response";
         }
         else if (rcvd_type == OSSL_CMP_PKIBODY_RP
-                && OSSL_CMP_PKISI_PKIStatus_get(
-            CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp,
-                                                OSSL_CMP_REVREQSID))
-                == OSSL_CMP_PKISTATUS_rejection) {
+                     && OSSL_CMP_PKISI_PKIStatus_get(
+                        CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp,
+                                                            OSSL_CMP_REVREQSID))
+                        == OSSL_CMP_PKISTATUS_rejection) {
             msg_type = "revocation response message with rejection status";
         }
         else if (rcvd_type == OSSL_CMP_PKIBODY_PKICONF) {
@@ -170,7 +170,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     if ((expected_type == OSSL_CMP_PKIBODY_POLLREP
              || IS_ENOLLMENT(expected_type))
-        && ctx->totaltimeout != 0) { /* total timeout is not infinite */
+            && ctx->totaltimeout != 0) { /* total timeout is not infinite */
         int64_t time_left = (int64_t)(ctx->end_time - time(NULL));
         if (time_left <= 0) {
             CMPerr(CMP_F_SEND_RECEIVE_CHECK, CMP_R_TOTAL_TIMEOUT);
@@ -214,8 +214,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     /* catch if received message type isn't one of expected ones (e.g. error) */
     if (rcvd_type != expected_type
         /* as an answer to polling, there could be IP/CP/KUP */
-        && !(expected_type == OSSL_CMP_PKIBODY_POLLREP
-          && IS_ENOLLMENT(rcvd_type))) {
+            && !(expected_type == OSSL_CMP_PKIBODY_POLLREP
+                     && IS_ENOLLMENT(rcvd_type))) {
         CMPerr(CMP_F_SEND_RECEIVE_CHECK,
                rcvd_type == OSSL_CMP_PKIBODY_ERROR ? CMP_R_RECEIVED_ERROR :
                CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
@@ -568,7 +568,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
      * to the context so that they can be retrieved if necessary
      */
     if (crepmsg->caPubs != NULL
-        && !OSSL_CMP_CTX_set1_caPubs(ctx, crepmsg->caPubs))
+            && !OSSL_CMP_CTX_set1_caPubs(ctx, crepmsg->caPubs))
         return 0;
 
     /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
@@ -598,8 +598,9 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
      * which can determine whether to accept a newly enrolled certificate.
      * It may overrule the pre-decision reflected in 'fail_info' and '*txt'.
      */
-    if (ctx->certConf_cb && (fail_info = ctx->certConf_cb(ctx, ctx->newClCert,
-                                                       fail_info, &txt)) != 0) {
+    if (ctx->certConf_cb
+            && (fail_info = ctx->certConf_cb(ctx, ctx->newClCert,
+                                             fail_info, &txt)) != 0) {
         if (txt == NULL)
             txt = "CMP client application did not accept newly enrolled certificate";
     }

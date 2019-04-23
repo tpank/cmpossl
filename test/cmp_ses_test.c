@@ -51,32 +51,35 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
     CMP_SES_TEST_FIXTURE *fixture;
     OSSL_CMP_CTX *srv_cmp_ctx = NULL;
     int setup_ok = 0;
+
     /* Allocate memory owned by the fixture, exit on error */
     if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
         goto err;
     fixture->test_case_name = test_case_name;
     if (!TEST_ptr(fixture->srv_ctx = OSSL_CMP_SRV_CTX_create())
-            || !TEST_true(OSSL_CMP_SRV_CTX_set_accept_unprotected(fixture->srv_ctx, 1))
+            || !TEST_true(OSSL_CMP_SRV_CTX_set_accept_unprotected(
+                                                           fixture->srv_ctx, 1))
             || !TEST_true(OSSL_CMP_SRV_CTX_set1_certOut(fixture->srv_ctx, cert))
-            || !TEST_ptr(srv_cmp_ctx = OSSL_CMP_SRV_CTX_get0_ctx(fixture->srv_ctx))
+            || !TEST_ptr(srv_cmp_ctx = OSSL_CMP_SRV_CTX_get0_ctx(
+                                                              fixture->srv_ctx))
             || !TEST_true(OSSL_CMP_CTX_set1_clCert(srv_cmp_ctx, cert))
             || !TEST_true(OSSL_CMP_CTX_set1_pkey(srv_cmp_ctx, key)))
         goto err;
 
     if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create())
             || !TEST_true(OSSL_CMP_CTX_set_transfer_cb(fixture->cmp_ctx,
-                                           OSSL_CMP_mock_server_perform))
+                                                  OSSL_CMP_mock_server_perform))
             || !TEST_true(OSSL_CMP_CTX_set_transfer_cb_arg(fixture->cmp_ctx,
-                                               fixture->srv_ctx))
+                                                           fixture->srv_ctx))
             || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1))
+                                          OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1))
             || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                     OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS, 1))
+                                        OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS, 1))
             || !TEST_true(OSSL_CMP_CTX_set1_oldClCert(fixture->cmp_ctx, cert))
             || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, cert))
             || !TEST_true(OSSL_CMP_CTX_set1_pkey(fixture->cmp_ctx, key))
-            || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(
-                fixture->cmp_ctx, ref, sizeof(ref))))
+            || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx,
+                                                           ref, sizeof(ref))))
         goto err;
 
     fixture->exec_cert_ses_cb = NULL;
@@ -110,6 +113,7 @@ static int execute_cmp_exec_genm_ses_test(CMP_SES_TEST_FIXTURE *fixture)
 static int execute_cmp_exec_certrequest_ses_test(CMP_SES_TEST_FIXTURE *fixture)
 {
     X509 *res = NULL;
+
     if (fixture->expected != 0) {
         if (TEST_ptr(res = fixture->exec_cert_ses_cb(fixture->cmp_ctx))
                 && (res == cert || TEST_int_eq(X509_cmp(res, cert), 0))) {
@@ -165,9 +169,10 @@ static int test_cmp_exec_ir_ses(void)
 
 static int test_cmp_exec_ir_ses_poll(void)
 {
-    SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     const int pollCount = 2;
     const int checkAfter = 1;
+
+    SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
     fixture->expected = 1;
 
@@ -180,10 +185,11 @@ static int test_cmp_exec_ir_ses_poll(void)
 
 static int test_cmp_exec_ir_ses_poll_timeout(void)
 {
-    SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     const int pollCount = 3;
     const int checkAfter = 1;
     const int timeout = pollCount * checkAfter;
+
+    SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
     fixture->expected = 0;
     OSSL_CMP_SRV_CTX_set_pollCount(fixture->srv_ctx, pollCount + 1);
@@ -227,8 +233,9 @@ static int test_cmp_exec_kur_ses(void)
 
 static int test_cmp_exec_p10cr_ses(void)
 {
-    SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     X509_REQ *req = NULL;
+
+    SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_P10CR_ses;
     fixture->expected = 1;
     if (!TEST_ptr(req = load_csr(pkcs10_f))

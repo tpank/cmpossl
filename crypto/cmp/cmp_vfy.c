@@ -95,7 +95,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     err = (EVP_VerifyInit_ex(ctx, digest, NULL)
                && EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len)
                && EVP_VerifyFinal(ctx, msg->protection->data,
-                           msg->protection->length, pubkey) == 1)
+                                  msg->protection->length, pubkey) == 1)
         ? 0 : 2;
 
  cleanup:
@@ -169,8 +169,8 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
     }
 
     if ((csc = X509_STORE_CTX_new()) == NULL
-           || !X509_STORE_CTX_init(csc, trusted_store,
-                                   cert, ctx->untrusted_certs))
+            || !X509_STORE_CTX_init(csc, trusted_store,
+                                    cert, ctx->untrusted_certs))
         goto end;
 
     valid = X509_verify_cert(csc) > 0;
@@ -472,7 +472,7 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
         OPENSSL_free(str);
 
         if (cert_acceptable(cert, msg, ts)
-                && !OSSL_CMP_sk_X509_add1_cert(sk, cert, 1 /* no duplicates */, 0))
+                && !OSSL_CMP_sk_X509_add1_cert(sk, cert, 1 /* no dups */, 0))
             return 0;
     }
 
@@ -531,7 +531,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
 
     if (store != NULL /* store does not include CRLs */
             && OSSL_CMP_X509_STORE_add1_certs(store, msg->extraCerts,
-                                       1/* self-signed only */)) {
+                                              1 /* self-signed only */)) {
         valid = OSSL_CMP_validate_cert_path(ctx, store, scrt, 0);
     }
     if (valid) {
@@ -570,8 +570,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
      * used for validating any further msgs where extraCerts may be left out
      */
     (void)ERR_set_mark();
-    if (ctx->validatedSrvCert != NULL &&
-        cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted_store)) {
+    if (ctx->validatedSrvCert != NULL
+            && cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted_store)) {
         (void)ERR_pop_to_mark();
         scrt = ctx->validatedSrvCert;
         valid = 1;
@@ -660,8 +660,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    if ((alg = msg->header->protectionAlg) == NULL || /* unprotected message */
-        msg->protection == NULL || msg->protection->data == NULL) {
+    if ((alg = msg->header->protectionAlg) == NULL /* unprotected message */
+            || msg->protection == NULL || msg->protection->data == NULL) {
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_MISSING_PROTECTION);
         return 0;
     }

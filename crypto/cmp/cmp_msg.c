@@ -33,8 +33,8 @@ static int add_extension(X509_EXTENSIONS **exts, X509_EXTENSION *ext)
         CMPerr(CMP_F_ADD_EXTENSION, CMP_R_NULL_ARGUMENT);
         goto end;
     }
-    if (ext == NULL || /* malloc did not work for ext in caller */
-        !X509v3_add_ext(exts, ext, 0)) {
+    if (ext == NULL /* malloc did not work for ext in caller */
+            || !X509v3_add_ext(exts, ext, 0)) {
         CMPerr(CMP_F_ADD_EXTENSION, ERR_R_MALLOC_FAILURE);
         goto end;
     }
@@ -101,7 +101,8 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype)
     if (!OSSL_CMP_HDR_init(ctx, msg->header)
             || !OSSL_CMP_MSG_set_bodytype(msg, bodytype)
             || (ctx->geninfo_itavs != NULL
-             && !OSSL_CMP_MSG_generalInfo_items_push1(msg, ctx->geninfo_itavs)))
+                && !OSSL_CMP_MSG_generalInfo_items_push1(msg,
+                                                         ctx->geninfo_itavs)))
         goto err;
 
     switch (bodytype) {
@@ -212,8 +213,8 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     /* RFC5280: subjectAltName MUST be critical if subject is null */
     X509_EXTENSIONS *exts = NULL;
 
-    if (rkey == NULL ||
-        (bodytype == OSSL_CMP_PKIBODY_KUR && refcert == NULL)) {
+    if (rkey == NULL
+            || (bodytype == OSSL_CMP_PKIBODY_KUR && refcert == NULL)) {
         CMPerr(CMP_F_CRM_NEW, CMP_R_INVALID_ARGS);
         goto err;
     }
@@ -243,13 +244,16 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     /* exts are copied from ctx to allow reuse */
     if ((exts = CMP_exts_dup(ctx->reqExtensions)) == NULL)
         goto oom;
-    if ((sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0
-             && !ADD_SANs(&exts, ctx->subjectAltNames, crit))
-             || (!HAS_SAN(ctx) && default_sans != NULL
-                 && !ADD_SANs(&exts, default_sans, crit))
-                 || (ctx->policies != NULL &&
-         !ADD_POLICIES(&exts, ctx->policies, ctx->setPoliciesCritical))
-            || !OSSL_CRMF_MSG_set0_extensions(crm, exts))
+    if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0
+            && !ADD_SANs(&exts, ctx->subjectAltNames, crit))
+        goto err;
+    if (!HAS_SAN(ctx) && default_sans != NULL
+            && !ADD_SANs(&exts, default_sans, crit))
+        goto err;
+    if (ctx->policies != NULL
+            && !ADD_POLICIES(&exts, ctx->policies, ctx->setPoliciesCritical))
+        goto err;
+    if (!OSSL_CRMF_MSG_set0_extensions(crm, exts))
         goto err;
     sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
     exts = NULL;
@@ -292,9 +296,10 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
 
     if (ctx == NULL
           || (type != OSSL_CMP_PKIBODY_P10CR && ctx->pkey == NULL
-            && ctx->newPkey == NULL)
+                  && ctx->newPkey == NULL)
           || (type != OSSL_CMP_PKIBODY_IR && type != OSSL_CMP_PKIBODY_CR
-            && type != OSSL_CMP_PKIBODY_KUR && type != OSSL_CMP_PKIBODY_P10CR)) {
+                  && type != OSSL_CMP_PKIBODY_KUR
+                  && type != OSSL_CMP_PKIBODY_P10CR)) {
         CMPerr(CMP_F_OSSL_CMP_CERTREQ_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
@@ -315,8 +320,8 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
 
         if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID, rkey)) == NULL
                 || !OSSL_CRMF_MSG_create_popo(crm, rkey, ctx->digest,
-                                       ctx->popoMethod)
-                      /* value.ir is same for cr and kur */
+                                              ctx->popoMethod)
+                /* value.ir is same for cr and kur */
                 || !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
             goto err;
         crm = NULL;
@@ -374,7 +379,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
 
     status = OSSL_CMP_PKISI_PKIStatus_get(resp->status);
     if (status != OSSL_CMP_PKISTATUS_rejection
-        && status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
+            && status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
         if (encrypted) {
             CMPerr(CMP_F_OSSL_CMP_CERTREP_NEW, CMP_R_INVALID_PARAMETERS);
             goto err;
@@ -396,15 +401,15 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
     /* TODO: here optional 2nd certrep could be pushed to the stack */
 
     if (bodytype == OSSL_CMP_PKIBODY_IP && caPubs != NULL
-        && (repMsg->caPubs = X509_chain_up_ref(caPubs)) == NULL)
+            && (repMsg->caPubs = X509_chain_up_ref(caPubs)) == NULL)
         goto oom;
     if (chain != NULL
-        && !OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain, 0, 1))
+            && !OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain, 0, 1))
         goto oom;
 
     if (!(unprotectedErrors
-        && OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection)
-        && !OSSL_CMP_MSG_protect(ctx, msg))
+            && OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection)
+            && !OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
 
     return msg;
@@ -521,8 +526,9 @@ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
         goto err;
 
     /* revocation reason code is optional */
-    if (ctx->revocationReason != CRL_REASON_NONE &&
-        !add_crl_reason_extension(&rd->crlEntryDetails, ctx->revocationReason))
+    if (ctx->revocationReason != CRL_REASON_NONE
+            && !add_crl_reason_extension(&rd->crlEntryDetails,
+                                         ctx->revocationReason))
         goto err;
 
     /*

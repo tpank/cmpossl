@@ -53,6 +53,7 @@ X509 *load_pem_cert(const char *file)
 OSSL_CMP_MSG *load_pkimsg(const char *file)
 {
     OSSL_CMP_MSG *msg;
+
     (void)TEST_ptr((msg = OSSL_CMP_MSG_load(file)));
     return msg;
 }
@@ -73,6 +74,7 @@ EVP_PKEY *gen_rsa(void)
 {
     EVP_PKEY_CTX *ctx = NULL;
     EVP_PKEY *pkey = NULL;
+
     (void)(TEST_ptr(ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL))
                && TEST_int_gt(EVP_PKEY_keygen_init(ctx), 0)
                && TEST_int_gt(EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 2048), 0)
@@ -124,6 +126,7 @@ int STACK_OF_X509_cmp(const STACK_OF(X509) *sk1, const STACK_OF(X509) *sk2)
 int STACK_OF_X509_push1(STACK_OF(X509) *sk, X509 *cert)
 {
     int res;
+
     if (sk == NULL || cert == NULL)
         return -1;
     if (!X509_up_ref(cert))
