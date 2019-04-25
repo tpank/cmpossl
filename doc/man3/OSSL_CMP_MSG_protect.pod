@@ -7,6 +7,8 @@ OSSL_CMP_HDR_generalInfo_item_push0,
 OSSL_CMP_MSG_generalInfo_items_push1,
 OSSL_CMP_HDR_push0_freeText,
 OSSL_CMP_HDR_push1_freeText,
+OSSL_CMP_MSG_create,
+OSSL_CMP_MSG_load,
 OSSL_CMP_MSG_get0_header,
 OSSL_CMP_HDR_get0_transactionID,
 OSSL_CMP_HDR_get0_senderNonce,
@@ -60,6 +62,8 @@ OSSL_CMP_X509_STORE_get1_certs
   int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
   int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr);
   int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg);
+  OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype);
+  OSSL_CMP_MSG *OSSL_CMP_MSG_load(const char *file);
   int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
   int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
                                     STACK_OF(OSSL_CMP_ITAV) *itavs);
@@ -114,6 +118,13 @@ hdr->freeText and consumes the given pointer.
 
 OSSL_CMP_HDR_push1_freeText() pushes an ASN1_UTF8STRING to
 hdr->freeText and does not consume the pointer.
+
+OSSL_CMP_MSG_create() creates and initializes a OSSL_CMP_MSG structure, 
+using B<ctx> for the header and B<bodytype> for the body.
+Returns pointer to created OSSL_CMP_MSG on success, NULL on error.
+
+OSSL_CMP_MSG *OSSL_CMP_MSG_load() loads a OSSL_CMP_MSG from a B<file>. 
+Returns pointer to created OSSL_CMP_MSG on success, NULL on error.
 
 OSSL_CMP_MSG_get0_header returns the header of the given CMP message.
 
@@ -223,7 +234,7 @@ See the individual functions above.
 
 =head1 SEE ALSO
 
-L<OSSL_CMP_CTX_create(3)>, L<OSSL_CMP_exec_IRses(3)>,
+L<OSSL_CMP_CTX_create(3)>, L<OSSL_CMP_exec_IR_ses(3)>,
 L<OSSL_CMP_certreq_new(3)>, L<OSSL_CMP_MSG_http_perform(3)>
 
 =head1 COPYRIGHT

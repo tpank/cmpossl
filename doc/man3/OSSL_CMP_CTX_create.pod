@@ -19,9 +19,13 @@ OSSL_CMP_CTX_set0_pkey,
 OSSL_CMP_CTX_set0_newPkey,
 OSSL_CMP_CTX_set1_pkey,
 OSSL_CMP_CTX_set1_newPkey,
+OSSL_CMP_CTX_get0_newPkey,
 OSSL_CMP_CTX_set1_transactionID,
+OSSL_CMP_CTX_get0_transactionID,
 OSSL_CMP_CTX_set1_recipNonce,
+OSSL_CMP_CTX_get0_recipNonce,
 OSSL_CMP_CTX_set1_last_senderNonce,
+OSSL_CMP_CTX_get0_last_senderNonce,
 OSSL_CMP_CTX_set_option,
 OSSL_CMP_CTX_caPubs_get1,
 OSSL_CMP_CTX_set1_caPubs,
@@ -90,12 +94,16 @@ OSSL_CMP_CTX_subjectAltName_push1
  int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
  int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
  int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
+ EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
                                      const ASN1_OCTET_STRING *id);
+ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
                                   const ASN1_OCTET_STRING *nonce);
+ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
                                         const ASN1_OCTET_STRING *nonce);
+ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_set1_serverName(OSSL_CMP_CTX *ctx, const char *name);
  int OSSL_CMP_CTX_set_serverPort(OSSL_CMP_CTX *ctx, int port);
  STACK_OF(X509) *OSSL_CMP_CTX_caPubs_get1(const OSSL_CMP_CTX *ctx);
@@ -231,14 +239,25 @@ structure
 OSSL_CMP_CTX_set1_newPkey() is the same as OSSL_CMP_CTX_set0_newPkey(),
 except that it does not consume the pointer.
 
+OSSL_CMP_CTX_get0_newPkey() gets the newPkey from the context, or NULL on error.
+
 OSSL_CMP_CTX_set1_transactionID() sets the given transaction ID in the given
 OSSL_CMP_CTX structure.
+
+OSSL_CMP_CTX_get0_transactionID() gets the transactionID from the context.
+Returns a pointer to the transactionID on success, NULL on error.
 
 OSSL_CMP_CTX_set1_recipNonce() sets the given recipient nonce in the given
 OSSL_CMP_CTX structure.
 
+OSSL_CMP_CTX_get0_recipNonce() gets the recipient nonce of the given context.
+Returns a pointer to the nonce on success, NULL on error.
+
 OSSL_CMP_CTX_set1_last_senderNonce() stores the last sent sender B<nonce> in
 the B<ctx>. This will be used to validate the recipNonce in incoming messages.
+
+OSSL_CMP_CTX_get0_last_senderNonce() gets the sender B<nonce> of the last 
+message sent. NULL if not set or on function parameter error.
 
 OSSL_CMP_CTX_set1_serverName() sets the given server Address (as IP or name)
 in the given OSSL_CMP_CTX structure.
