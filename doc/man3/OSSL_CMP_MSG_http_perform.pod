@@ -3,7 +3,8 @@
 =head1 NAME
 
 OSSL_CMP_MSG_http_perform,
-OSSL_CMP_proxy_connect
+OSSL_CMP_proxy_connect,
+OSSL_CMP_load_cert_crl_http_timeout
 - implementation of HTTP transfer for CMP messages
 
 =head1 SYNOPSIS
