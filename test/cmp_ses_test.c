@@ -66,7 +66,7 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
             || !TEST_true(OSSL_CMP_CTX_set1_pkey(srv_cmp_ctx, key)))
         goto err;
 
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_init())
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create())
             || !TEST_true(OSSL_CMP_CTX_set_transfer_cb(fixture->cmp_ctx,
                                                   OSSL_CMP_mock_server_perform))
             || !TEST_true(OSSL_CMP_CTX_set_transfer_cb_arg(fixture->cmp_ctx,

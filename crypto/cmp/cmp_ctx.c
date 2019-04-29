@@ -119,12 +119,11 @@ int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
 }
 
 /*
- * Allocates and initializes a OSSL_CMP_CTX context structure with some
- * default values.
+ * Allocates and initializes OSSL_CMP_CTX context structure with default values.
  * OpenSSL ASN.1 types are initialized to NULL by the call to OSSL_CMP_CTX_new()
  * returns new context on success, NULL on error
  */
-OSSL_CMP_CTX *OSSL_CMP_CTX_init(void)
+OSSL_CMP_CTX *OSSL_CMP_CTX_create(void)
 {
   OSSL_CMP_CTX *ctx = NULL;
 
@@ -652,7 +651,7 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
 int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
 {
     int res;
-    X509_EXTENSIONS *exts_copy = CMP_exts_dup(exts);
+    X509_EXTENSIONS *exts_copy = OSSL_CMP_X509_EXTENSIONS_dup(exts);
 
     if (exts_copy == NULL)
         return 0;

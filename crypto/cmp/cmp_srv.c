@@ -639,7 +639,7 @@ OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void)
     if ((ctx = OSSL_CMP_SRV_CTX_new()) == NULL)
         return NULL;
     ctx->certReqId = -1;
-    if ((ctx->ctx = OSSL_CMP_CTX_init()) == NULL)
+    if ((ctx->ctx = OSSL_CMP_CTX_create()) == NULL)
         goto err;
     ctx->pollCount = 0;
     ctx->checkAfterTime = 1;

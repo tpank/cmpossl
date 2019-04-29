@@ -40,7 +40,7 @@ static CMP_VFY_TEST_FIXTURE *set_up(const char *const test_case_name)
     if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
         goto err;
     fixture->test_case_name = test_case_name;
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_init()))
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create()))
         goto err;
 
     setup_ok = 1;

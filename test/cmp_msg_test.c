@@ -42,7 +42,7 @@ static CMP_MSG_TEST_FIXTURE *set_up(const char *const test_case_name)
         goto err;
     fixture->test_case_name = test_case_name;
 
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_init())
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create())
            || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
                                       OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1))
            || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,

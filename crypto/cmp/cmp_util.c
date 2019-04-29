@@ -65,7 +65,7 @@ int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
     return 1;
 }
 
-X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin /* may be NULL */)
+X509_EXTENSIONS *OSSL_CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *extin)
 {
     X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
 

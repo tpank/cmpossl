@@ -4769,7 +4769,7 @@ OSSL_CMP_ITAV_free                      4721	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_free                       4722	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_PKISI_free                     4723	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_dup                        4724	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_CTX_init                       4725	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_CTX_create                     4725	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_delete                     4726	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_get0_trustedStore          4727	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set0_trustedStore          4728	3_0_0	EXIST::FUNCTION:CMP
@@ -4832,7 +4832,7 @@ OSSL_CMP_CTX_get0_recipNonce            4784	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set_option                 4785	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_sk_X509_add1_cert              4786	3_0_0	EXIST::FUNCTION:
 OSSL_CMP_sk_X509_add1_certs             4787	3_0_0	EXIST::FUNCTION:
-CMP_exts_dup                            4788	3_0_0	EXIST::FUNCTION:
+OSSL_CMP_X509_EXTENSIONS_dup            4788	3_0_0	EXIST::FUNCTION:
 OSSL_CMP_ASN1_OCTET_STRING_set1         4789	3_0_0	EXIST::FUNCTION:
 OSSL_CMP_ASN1_OCTET_STRING_set1_bytes   4790	3_0_0	EXIST::FUNCTION:
 ERR_load_CMP_strings                    4791	3_0_0	EXIST::FUNCTION:CMP

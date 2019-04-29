@@ -4018,7 +4018,7 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-    cmp_ctx = OSSL_CMP_CTX_init();
+    cmp_ctx = OSSL_CMP_CTX_create();
     vpm = X509_VERIFY_PARAM_new();
     if (cmp_ctx == NULL || vpm == NULL) {
         BIO_printf(bio_err, "%s: out of memory\n", prog);
