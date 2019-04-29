@@ -17,10 +17,12 @@
 # include <openssl/cmp.h>
 # include <openssl/pem.h>
 # include <openssl/rand.h>
+
+#include "../include/openssl/cmp_util.h"
 # include "testutil.h"
 
 # ifndef OPENSSL_NO_CMP
-#  define CMP_TEST_REFVALUE_LENGTH 15 /* arbitary value */
+#  define CMP_TEST_REFVALUE_LENGTH 15 /* arbitrary value */
 EVP_PKEY *load_pem_key(const char *file);
 X509 *load_pem_cert(const char *file);
 X509_REQ *load_csr(const char *file);

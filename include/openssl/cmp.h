@@ -400,11 +400,6 @@ typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
 int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                                 allow_unprotected_cb_t cb, int cb_arg);
 
-int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
-                                    const ASN1_OCTET_STRING *src);
-int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                          const unsigned char *bytes,
-                                          size_t len);
 int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed);
 STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store);
@@ -490,29 +485,13 @@ void OSSL_CMP_PKISI_free(OSSL_CMP_PKISI *si);
 DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
 
 /* from cmp_ctx.c */
-int OSSL_CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert,
-                                int not_duplicate, int prepend);
-int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
-                                int no_self_signed, int no_duplicates);
-int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
-                                    const ASN1_OCTET_STRING *src);
-int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                          const unsigned char *bytes,
-                                          size_t len);
-
-OSSL_CMP_CTX *OSSL_CMP_CTX_create(void);
-int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx);
+OSSL_CMP_CTX *OSSL_CMP_CTX_init(void);
+void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx);
 X509_STORE *OSSL_CMP_CTX_get0_trustedStore(const OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store);
-/*
- * There must not be a space between 'STACK_OF' and '(X509)', otherwise mkdef.pl
- * does not recognize it correctly which leads to the file not being global in
- * the shared object when building with GNU.
- */
 STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(const OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
                                       const STACK_OF(X509) *certs);
-void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
 int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb);
 int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void *arg);

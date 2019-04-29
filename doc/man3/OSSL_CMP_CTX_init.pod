@@ -2,7 +2,6 @@
 
 =head1 NAME
 
-OSSL_CMP_CTX_create,
 OSSL_CMP_CTX_init,
 OSSL_CMP_CTX_delete,
 OSSL_CMP_CTX_set1_referenceValue,
@@ -74,7 +73,7 @@ OSSL_CMP_CTX_subjectAltName_push1
 
  #include <openssl/cmp.h>
 
- OSSL_CMP_CTX *OSSL_CMP_CTX_create();
+ OSSL_CMP_CTX *OSSL_CMP_CTX_init(void);
  int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx);
  void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx);
 
@@ -176,10 +175,9 @@ OSSL_CMP_CTX_subjectAltName_push1
 This is the context API for using CMP (Certificate Management Protocol) with
 OpenSSL.
 
-OSSL_CMP_CTX_create() allocates and initialized an OSSL_CMP_CTX structure.
-
-OSSL_CMP_CTX_init() initializes the context to default values.
-Transfer is set to HTTP, proof-of-possession method to POPOSigningKey
+OSSL_CMP_CTX_init() allocates and initializes an OSSL_CMP_CTX structure to
+default values.
+Transfer is set to HTTP, proof-of-possession method to POPOSigningKey.
 
 OSSL_CMP_CTX_delete() frees any allocated non-ASN1 fields of OSSL_CMP_CTX and
 calls the ASN1 defined OSSL_CMP_CTX_free() function to free the rest.

@@ -19,6 +19,7 @@
 
 #include <openssl/asn1t.h>
 
+#include <openssl/cmp_util.h>
 #include "cmp_int.h"
 
 /* explicit #includes not strictly needed since implied by the above: */
@@ -27,137 +28,6 @@
 #include <openssl/err.h>
 #include <openssl/x509v3.h>
 
-/* start generic helper functions */
-
-/*-
- * Append/prepend cert to given list, optionally only if not already contained
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
-                               int not_duplicate, int prepend)
-{
-    if (not_duplicate) {
-        /* not using sk_X509_set_cmp_func() and sk_X509_find()
-           because this re-orders the certs on the stack */
-        int i;
-        for (i = 0; i < sk_X509_num(sk); i++)
-            if (X509_cmp(sk_X509_value(sk, i), cert) == 0)
-                return 1;
-    }
-    if (!sk_X509_insert(sk, cert, prepend ? 0 : -1))
-        return 0;
-    return X509_up_ref(cert);
-}
-
-/*-
- * Append list of certificates from 'certs' to given list,
- * optionally only if not self-signed and
- * optionally only if not already contained.
- * The certs parameter may be NULL.
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
-                                int no_self_signed, int no_duplicates)
-{
-    int i;
-
-    if (sk == NULL)
-        return 0;
-
-    if (certs == NULL)
-        return 1;
-    for (i = 0; i < sk_X509_num(certs); i++) {
-        X509 *cert = sk_X509_value(certs, i);
-        if (!no_self_signed || X509_check_issued(cert, cert) != X509_V_OK) {
-            if (!OSSL_CMP_sk_X509_add1_cert(sk, cert, no_duplicates, 0))
-                return 0;
-        }
-    }
-    return 1;
-}
-
-X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin /* may be NULL */)
-{
-    X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
-
-    if (exts == NULL)
-        goto err;
-    if (extin != NULL) {
-        int i;
-        for (i = 0; i < sk_X509_EXTENSION_num(extin); i++)
-            if (!sk_X509_EXTENSION_push(exts, X509_EXTENSION_dup(
-                                        sk_X509_EXTENSION_value(extin, i))))
-                goto err;
-    }
-    return exts;
-
- err:
-    sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
-    return NULL;
-}
-
-/*
- * free any previous value of the variable referenced via tgt
- * and assign either a copy of the src ASN1_OCTET_STRING or NULL.
- * returns 1 on success, 0 on error.
- */
-int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
-                                    const ASN1_OCTET_STRING *src)
-{
-    if (tgt == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1, CMP_R_NULL_ARGUMENT);
-        goto err;
-    }
-    if (*tgt == src) /* self-assignment */
-        return 1;
-    ASN1_OCTET_STRING_free(*tgt);
-
-    if (src != NULL) {
-        if (!(*tgt = ASN1_OCTET_STRING_dup(src))) {
-            CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1, ERR_R_MALLOC_FAILURE);
-            goto err;
-        }
-    } else
-        *tgt = NULL;
-
-    return 1;
- err:
-    return 0;
-}
-
-/*
- * free any previous value of the variable referenced via tgt
- * and assign either a copy of the byte string (with given length) or NULL.
- * returns 1 on success, 0 on error.
- */
-int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                          const unsigned char *bytes, size_t len)
-{
-    ASN1_OCTET_STRING *new = NULL;
-    int res = 0;
-
-    if (tgt == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_NULL_ARGUMENT);
-        goto err;
-    }
-
-    if (bytes != NULL) {
-        if (!(new = ASN1_OCTET_STRING_new())
-                || !(ASN1_OCTET_STRING_set(new, bytes, (int)len))) {
-            CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES,
-                   ERR_R_MALLOC_FAILURE);
-            goto err;
-        }
-
-    }
-    res = OSSL_CMP_ASN1_OCTET_STRING_set1(tgt, new);
-
- err:
-    ASN1_OCTET_STRING_free(new);
-    return res;
-}
-
-/* end generic helper functions */
 
 
 /*
@@ -252,18 +122,14 @@ int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
  * Allocates and initializes a OSSL_CMP_CTX context structure with some
  * default values.
  * OpenSSL ASN.1 types are initialized to NULL by the call to OSSL_CMP_CTX_new()
- * returns 1 on success, 0 on error
+ * returns new context on success, NULL on error
  */
-int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
+OSSL_CMP_CTX *OSSL_CMP_CTX_init(void)
 {
-    if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_INIT, CMP_R_INVALID_CONTEXT);
-        goto err;
-    }
+  OSSL_CMP_CTX *ctx = NULL;
 
-#ifdef OpenSSL_add_all_algorithms
-    OpenSSL_add_all_algorithms(); /* needed for SHA256 with OpenSSL 1.0.2 */
-#endif
+    if ((ctx = OSSL_CMP_CTX_new()) == NULL)
+       goto err;
 
     /* all other elements are initialized through ASN1 macros */
     ctx->pkey = NULL;
@@ -316,10 +182,11 @@ int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
         NULL;
 #endif
     ctx->transfer_cb_arg = NULL;
-    return 1;
+    return ctx;
 
  err:
-    return 0;
+    OSSL_CMP_CTX_free(ctx);
+    return NULL;
 }
 
 /*
@@ -340,26 +207,6 @@ void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx)
     X509_STORE_free(ctx->trusted_store);
     sk_X509_pop_free(ctx->untrusted_certs, X509_free);
     OSSL_CMP_CTX_free(ctx);
-}
-
-/*
- * creates and initializes a OSSL_CMP_CTX structure
- * returns pointer to created OSSL_CMP_CTX on success, NULL on error
- */
-OSSL_CMP_CTX *OSSL_CMP_CTX_create(void)
-{
-    OSSL_CMP_CTX *ctx = NULL;
-
-    if ((ctx = OSSL_CMP_CTX_new()) == NULL)
-        goto err;
-    if (!(OSSL_CMP_CTX_init(ctx)))
-        goto err;
-
-    return ctx;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_CREATE, ERR_R_MALLOC_FAILURE);
-    OSSL_CMP_CTX_free(ctx);
-    return NULL;
 }
 
 /*

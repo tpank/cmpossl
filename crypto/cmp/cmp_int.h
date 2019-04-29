@@ -768,7 +768,6 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      EVP_PKEY *pkey);
 
 /* from cmp_ctx.c */
-X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin);
 #ifdef CMP_POOR_LOG
 #define CMP_LOG(x)  CMP_log_printf x /* poor man's variadic macro for C90;
    calls need argument(s) in doubly nested parentheses: LOG((args)) */

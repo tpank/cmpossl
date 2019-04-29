@@ -16,6 +16,7 @@
 /* explicit #includes not strictly needed since implied by the above: */
 #include <openssl/asn1t.h>
 #include <openssl/cmp.h>
+#include <openssl/cmp_util.h>
 #include <openssl/crmf.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>

@@ -637,10 +637,10 @@ OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void)
     OSSL_CMP_SRV_CTX *ctx = NULL;
 
     if ((ctx = OSSL_CMP_SRV_CTX_new()) == NULL)
-        goto oom;
+        return NULL;
     ctx->certReqId = -1;
-    if ((ctx->ctx = OSSL_CMP_CTX_create()) == NULL)
-        goto oom;
+    if ((ctx->ctx = OSSL_CMP_CTX_init()) == NULL)
+        goto err;
     ctx->pollCount = 0;
     ctx->checkAfterTime = 1;
     ctx->grantImplicitConfirm = 0;
@@ -660,8 +660,7 @@ OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void)
     ctx->process_pollreq_cb = process_pollReq;
     ctx->process_genm_cb = process_genm;
     return ctx;
- oom:
-    CMPerr(CMP_F_OSSL_CMP_SRV_CTX_CREATE, ERR_R_MALLOC_FAILURE);
+ err:
     OSSL_CMP_SRV_CTX_free(ctx);
     return NULL;
 }

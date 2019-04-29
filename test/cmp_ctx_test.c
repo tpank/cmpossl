@@ -48,7 +48,7 @@ static int execute_cmp_ctx_reqextensions_have_san_test(OSSL_CMP_CTX_TEST_FIXTURE
 {
     int good = 0;
     OSSL_CMP_CTX *ctx = NULL;
-    if (!TEST_ptr(ctx = OSSL_CMP_CTX_create()))
+    if (!TEST_ptr(ctx = OSSL_CMP_CTX_init()))
         return good;
     if (TEST_false(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx)))
         if (TEST_true(OSSL_CMP_CTX_set0_reqExtensions(ctx, fixture->exts))) {

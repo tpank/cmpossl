@@ -36,6 +36,7 @@
 #include <time.h>
 #include <openssl/asn1t.h>
 #include <openssl/cmp.h>
+#include <openssl/cmp_util.h>
 #include <openssl/crmf.h>
 #include <openssl/err.h> /* needed in case config no-deprecated */
 #include <openssl/engine.h>

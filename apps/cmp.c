@@ -41,6 +41,7 @@
 #include <openssl/pem.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
+#include <openssl/cmp_util.h>
 
 static char *opt_config = NULL;
 #define CMP_SECTION "cmp"
@@ -4017,7 +4018,7 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-    cmp_ctx = OSSL_CMP_CTX_create();
+    cmp_ctx = OSSL_CMP_CTX_init();
     vpm = X509_VERIFY_PARAM_new();
     if (cmp_ctx == NULL || vpm == NULL) {
         BIO_printf(bio_err, "%s: out of memory\n", prog);
