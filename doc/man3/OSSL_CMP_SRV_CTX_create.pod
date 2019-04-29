@@ -6,17 +6,17 @@ OSSL_CMP_mock_server_perform,
 OSSL_CMP_SRV_CTX_create,
 OSSL_CMP_SRV_CTX_delete,
 OSSL_CMP_SRV_CTX_get0_ctx,
-OSSL_CMP_SRV_CTX_set1_caPubsOut,
 OSSL_CMP_SRV_CTX_set1_certOut,
 OSSL_CMP_SRV_CTX_set1_chainOut,
-OSSL_CMP_SRV_CTX_set_accept_raverified,
-OSSL_CMP_SRV_CTX_set_accept_unprotected,
+OSSL_CMP_SRV_CTX_set1_caPubsOut,
+OSSL_CMP_SRV_CTX_set_statusInfo,
 OSSL_CMP_SRV_CTX_set_checkAfterTime,
-OSSL_CMP_SRV_CTX_set_grant_implicit_confirm,
 OSSL_CMP_SRV_CTX_set_pollCount,
 OSSL_CMP_SRV_CTX_set_send_error,
 OSSL_CMP_SRV_CTX_set_send_unprotected_errors,
-OSSL_CMP_SRV_CTX_set_statusInfo
+OSSL_CMP_SRV_CTX_set_accept_unprotected,
+OSSL_CMP_SRV_CTX_set_accept_raverified,
+OSSL_CMP_SRV_CTX_set_grant_implicit_confirm
 - functions to control a CMP mock server
 
 =head1 SYNOPSIS
@@ -28,68 +28,72 @@ OSSL_CMP_SRV_CTX_set_statusInfo
   OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void);
   void OSSL_CMP_SRV_CTX_delete(OSSL_CMP_SRV_CTX *srv_ctx);
   OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx);
-  int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
-                                                  int value);
-  int OSSL_CMP_SRV_CTX_set_accept_unprotected(OSSL_CMP_SRV_CTX *srv_ctx,
-                                              int value);
-  int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx,
-                                                   int value);
-  int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
-                                      int fail_info, const char *text);
+
   int OSSL_CMP_SRV_CTX_set1_certOut(OSSL_CMP_SRV_CTX *srv_ctx, X509 *cert);
   int OSSL_CMP_SRV_CTX_set1_chainOut(OSSL_CMP_SRV_CTX *srv_ctx,
                                      STACK_OF(X509) *chain);
   int OSSL_CMP_SRV_CTX_set1_caPubsOut(OSSL_CMP_SRV_CTX *srv_ctx,
                                       STACK_OF(X509) *caPubs);
-  int OSSL_CMP_SRV_CTX_set_send_error(OSSL_CMP_SRV_CTX *srv_ctx, int error);
-  int OSSL_CMP_SRV_CTX_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx, 
+
+  int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
+                                      int fail_info, const char *text);
+  int OSSL_CMP_SRV_CTX_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx,
                                           int64_t sec);
   int OSSL_CMP_SRV_CTX_set_pollCount(OSSL_CMP_SRV_CTX *srv_ctx, int64_t count);
+
+  int OSSL_CMP_SRV_CTX_set_send_error(OSSL_CMP_SRV_CTX *srv_ctx, int error);
+  int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx,
+                                                   int value);
+  int OSSL_CMP_SRV_CTX_set_accept_unprotected(OSSL_CMP_SRV_CTX *srv_ctx,
+                                              int value);
   int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx,
                                              int raverified);
-
+  int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
+                                                  int value);
 
 =head1 DESCRIPTION
 
 
 OSSL_CMP_mock_server_perform() mocks the server connection.
-Works similar to OSSL_CMP_MSG_http_perform.
-A OSSL_CMP_SRV_CTX must be set as B<transfer_cb_arg>
-Returns 0 on success and else a CMP error reason code defined in cmp.h
+It is used similarly to B<OSSL_CMP_MSG_http_perform()>.
+A B<OSSL_CMP_SRV_CTX> must be set as B<transfer_cb_arg>.
+Returns 0 on success and else a CMP error reason code defined in cmp.h.
 
 OSSL_CMP_SRV_CTX_create() creates and initializes a OSSL_CMP_SRV_CTX structure
-and returns pointer to created CMP_SRV_ on success, NULL on error.
- 
-OSSL_CMP_SRV_CTX_delete() deletes the B<srv_ctx>.
+and returns a pointer to it on success, NULL on error.
+
+OSSL_CMP_SRV_CTX_delete() deletes the given B<srv_ctx>.
 
 OSSL_CMP_SRV_CTX_get0_ctx() returns the B<OSSL_CMP_CTX> from the B<srv_ctx>.
 
-OSSL_CMP_SRV_CTX_set_grant_implicit_confirm() Grants or denies implicit
-confirmation if requested.
-
-OSSL_CMP_SRV_CTX_set_accept_unprotected() allows or disallows to accept
-requests with no/invalid prot.
- 
-OSSL_CMP_SRV_CTX_set_send_unprotected_errors() enables or disables sending error
-and rejection msgs unprotected.
- 
-OSSL_CMP_SRV_CTX_set_statusInfo() sets the status info.
-
 OSSL_CMP_SRV_CTX_set1_certOut() sets the certificate to be returned in
 cp/ip/kup.
- 
-OSSL_CMP_SRV_CTX_set1_chainOut() sets the Cert chain useful to validate certOut.
 
-OSSL_CMP_SRV_CTX_set1_caPubsOut() sets the caPubs for ip.
+OSSL_CMP_SRV_CTX_set1_chainOut() sets the certificate chain to be added to
+the extraCerts in a cp/ip/kup. It should to useful to validate B<certOut>.
 
-OSSL_CMP_SRV_CTX_set_send_error() enables error responses.
+OSSL_CMP_SRV_CTX_set1_caPubsOut() sets the caPubs to be returned in an ip.
 
-OSSL_CMP_SRV_CTX_set_checkAfterTime() sets the time to wait for the next poll
-in seconds.
+OSSL_CMP_SRV_CTX_set_statusInfo() sets the status info to be returned.
+
+OSSL_CMP_SRV_CTX_set_checkAfterTime() sets the time the client should wait
+for the next poll in seconds.
+
 OSSL_CMP_SRV_CTX_set_pollCount() sets the number of polls before cert response.
 
-OSSL_CMP_SRV_CTX_set_accept_raverified() grants or denies acceptance of
-ir/cr/kur with POPO RAVerified.
+OSSL_CMP_SRV_CTX_set_send_error() enables enforcement of error responses.
+
+OSSL_CMP_SRV_CTX_set_send_unprotected_errors() enables sending error messages
+and other forms of negative responses unprotected.
+
+OSSL_CMP_SRV_CTX_set_accept_unprotected() enables acceptance of requests
+with no or invalid protection.
+
+OSSL_CMP_SRV_CTX_set_accept_raverified() enables acceptance of ir/cr/kur
+with POPO 'RAVerified'.
+
+OSSL_CMP_SRV_CTX_set_grant_implicit_confirm() enables granting implicit
+confirmation if requested.
 
 =head1 NOTES
 
@@ -97,18 +101,18 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
+OSSL_CMP_mock_server_perform() returns 0 on success and else a CMP error
+reason code defined in cmp.h.
+
+OSSL_CMP_SRV_CTX_create() returns a B<OSSL_CMP_SRV_CTX> structure on success,
+NULL on error.
+
 OSSL_CMP_SRV_CTX_delete() does not return a value.
 
-OSSL_CMP_SRV_CTX_create() returns a OSSL_CMP_SRV_CTX structure on success,
+OSSL_CMP_SRV_CTX_get0_ctx() returns a B<OSSL_CMP_CTX> structure on success,
 NULL on error.
 
-OSSL_CMP_SRV_CTX_get0_ctx() returns a OSSL_CMP_CTX structure on success,
-NULL on error.
-
-OSSL_CMP_mock_server_perform() returns 0 on success and else a CMP error 
-reason code defined in cmp.h
-
-All other OSSL_CMP_SRV_CTX_*() functions return 1 on success, 0 on error.
+All other functions return 1 on success, 0 on error.
 
 =head1 EXAMPLE
 
