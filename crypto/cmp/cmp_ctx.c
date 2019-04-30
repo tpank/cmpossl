@@ -28,48 +28,6 @@
 #include <openssl/err.h>
 #include <openssl/x509v3.h>
 
-
-
-/*
- * NAMING
- * The 0 version uses the supplied structure pointer directly in the parent and
- * it will be freed up when the parent is freed. In the above example crl would
- * be freed but rev would not.
- *
- * The 1 function uses a copy of the supplied structure pointer (or in some
- * cases increases its link count) in the parent and so both (x and obj above)
- * should be freed up.
- */
-
-/* OpenSSL ASN.1 macros in CTX struct */
-ASN1_SEQUENCE(OSSL_CMP_CTX) = {
-    ASN1_OPT(OSSL_CMP_CTX, referenceValue, ASN1_OCTET_STRING),
-    ASN1_OPT(OSSL_CMP_CTX, secretValue, ASN1_OCTET_STRING),
-    ASN1_OPT(OSSL_CMP_CTX, srvCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, validatedSrvCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, clCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, oldClCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, p10CSR, X509_REQ),
-    ASN1_OPT(OSSL_CMP_CTX, issuer, X509_NAME),
-    ASN1_OPT(OSSL_CMP_CTX, subjectName, X509_NAME),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, subjectAltNames, GENERAL_NAME),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, policies, POLICYINFO),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, reqExtensions, X509_EXTENSION),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, extraCertsOut, X509),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, extraCertsIn, X509),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, caPubs, X509),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, lastStatusString, ASN1_UTF8STRING),
-    ASN1_OPT(OSSL_CMP_CTX, newClCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, recipient, X509_NAME),
-    ASN1_OPT(OSSL_CMP_CTX, expected_sender, X509_NAME),
-    ASN1_OPT(OSSL_CMP_CTX, transactionID, ASN1_OCTET_STRING),
-    ASN1_OPT(OSSL_CMP_CTX, recipNonce, ASN1_OCTET_STRING),
-    ASN1_OPT(OSSL_CMP_CTX, last_senderNonce, ASN1_OCTET_STRING),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, geninfo_itavs, OSSL_CMP_ITAV),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, genm_itavs, OSSL_CMP_ITAV),
-} static_ASN1_SEQUENCE_END(OSSL_CMP_CTX)
-IMPLEMENT_STATIC_ASN1_ALLOC_FUNCTIONS(OSSL_CMP_CTX)
-
 /*
  * Get current certificate store containing trusted root CA certs
  */
@@ -120,92 +78,99 @@ int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
 
 /*
  * Allocates and initializes OSSL_CMP_CTX context structure with default values.
- * OpenSSL ASN.1 types are initialized to NULL by the call to OSSL_CMP_CTX_new()
- * returns new context on success, NULL on error
+ * Returns new context on success, NULL on error
  */
-OSSL_CMP_CTX *OSSL_CMP_CTX_create(void)
+OSSL_CMP_CTX *OSSL_CMP_CTX_create(void) /* TODO rename to _new */
 {
-  OSSL_CMP_CTX *ctx = NULL;
+    OSSL_CMP_CTX *ctx = OPENSSL_zalloc(sizeof(OSSL_CMP_CTX));
 
-    if ((ctx = OSSL_CMP_CTX_new()) == NULL)
+    if (ctx == NULL)
        goto err;
 
-    /* all other elements are initialized through ASN1 macros */
-    ctx->pkey = NULL;
-    ctx->newPkey = NULL;
-
-    ctx->pbm_slen = 16;
-    ctx->pbm_owf = NID_sha256;
-    ctx->pbm_itercnt = 500;
-    ctx->pbm_mac = NID_hmac_sha1;
-
-    ctx->days = 0;
-    ctx->SubjectAltName_nodefault = 0;
-    ctx->setSubjectAltNameCritical = 0;
-    ctx->setPoliciesCritical = 0;
-    ctx->digest = NID_sha256;
-    ctx->popoMethod = OSSL_CRMF_POPO_SIGNATURE;
-    ctx->revocationReason = CRL_REASON_NONE;
-    ctx->permitTAInExtraCertsForIR = 0;
-    ctx->implicitConfirm = 0;
-    ctx->disableConfirm = 0;
-    ctx->unprotectedSend = 0;
-    ctx->unprotectedErrors = 0;
-    ctx->ignore_keyusage = 0;
-
-    ctx->lastPKIStatus = 0;
-    ctx->failInfoCode = 0;
-
-    ctx->log_cb = NULL;
-    ctx->certConf_cb = NULL;
-    ctx->certConf_cb_arg = NULL;
-    ctx->trusted_store = X509_STORE_new();
-    ctx->untrusted_certs = sk_X509_new_null();
-
-    ctx->serverName = NULL;
-    ctx->serverPort = 8080;
-    /* serverPath must be an empty string if not set since it's not mandatory */
-    ctx->serverPath = OPENSSL_zalloc(1); /* freed by OSSL_CMP_CTX_delete() */
-    if (ctx->serverPath == NULL)
-        goto err;
-    ctx->proxyName = NULL;
-    ctx->proxyPort = 8080;
-    ctx->msgtimeout = 2 * 60;
-    ctx->totaltimeout = 0;
-    ctx->http_cb = NULL;
-    ctx->http_cb_arg = NULL;
     ctx->transfer_cb =
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
         OSSL_CMP_MSG_http_perform;
 #else
         NULL;
 #endif
-    ctx->transfer_cb_arg = NULL;
+    /* serverPath must be an empty string if not set since it's not mandatory */
+    if ((ctx->serverPath = OPENSSL_zalloc(1)) == NULL)
+        goto err;
+    ctx->serverPort = 8080;
+    ctx->proxyPort = 8080;
+    ctx->msgtimeout = 2 * 60;
+
+    if ((ctx->trusted_store = X509_STORE_new()) == NULL)
+        goto err;
+    if ((ctx->untrusted_certs = sk_X509_new_null()) == NULL)
+        goto err;
+
+    ctx->pbm_slen = 16;
+    ctx->pbm_owf = NID_sha256;
+    ctx->pbm_itercnt = 500;
+    ctx->pbm_mac = NID_hmac_sha1;
+
+    ctx->digest = NID_sha256;
+    ctx->popoMethod = OSSL_CRMF_POPO_SIGNATURE;
+    ctx->revocationReason = CRL_REASON_NONE;
+
+    /* all other elements are initialized to 0 or NULL, respectively */
     return ctx;
 
  err:
-    OSSL_CMP_CTX_free(ctx);
+    OPENSSL_free(ctx);
     return NULL;
 }
 
 /*
- * frees OSSL_CMP_CTX variables allocated in CMP_CTX_init and calls CMP_CTX_free
+ * Frees OSSL_CMP_CTX variables allocated in OSSL_CMP_CTX_new()
  */
-void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx)
+void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx) /* TODO rename to _free */
 {
     if (ctx == NULL)
         return;
-    EVP_PKEY_free(ctx->pkey);
-    EVP_PKEY_free(ctx->newPkey);
-    if (ctx->secretValue != NULL)
-        OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
 
-    OPENSSL_free(ctx->serverName);
     OPENSSL_free(ctx->serverPath);
+    OPENSSL_free(ctx->serverName);
     OPENSSL_free(ctx->proxyName);
+
+    X509_free(ctx->srvCert);
+    X509_free(ctx->validatedSrvCert);
+    X509_NAME_free(ctx->expected_sender);
     X509_STORE_free(ctx->trusted_store);
     sk_X509_pop_free(ctx->untrusted_certs, X509_free);
-    OSSL_CMP_CTX_free(ctx);
+
+    X509_free(ctx->clCert);
+    EVP_PKEY_free(ctx->pkey);
+    ASN1_OCTET_STRING_free(ctx->referenceValue);
+    if (ctx->secretValue != NULL)
+        OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
+    ASN1_OCTET_STRING_free(ctx->secretValue);
+
+    X509_NAME_free(ctx->recipient);
+    ASN1_OCTET_STRING_free(ctx->transactionID);
+    ASN1_OCTET_STRING_free(ctx->last_senderNonce);
+    ASN1_OCTET_STRING_free(ctx->recipNonce);
+    sk_OSSL_CMP_ITAV_pop_free(ctx->geninfo_itavs, OSSL_CMP_ITAV_free);
+    sk_X509_pop_free(ctx->extraCertsOut, X509_free);
+
+    EVP_PKEY_free(ctx->newPkey);
+    X509_NAME_free(ctx->issuer);
+    X509_NAME_free(ctx->subjectName);
+    sk_GENERAL_NAME_pop_free(ctx->subjectAltNames, GENERAL_NAME_free);
+    sk_X509_EXTENSION_pop_free(ctx->reqExtensions, X509_EXTENSION_free);
+    sk_POLICYINFO_pop_free(ctx->policies, POLICYINFO_free);
+    X509_free(ctx->oldClCert);
+    X509_REQ_free(ctx->p10CSR);
+
+    sk_OSSL_CMP_ITAV_pop_free(ctx->genm_itavs, OSSL_CMP_ITAV_free);
+
+    sk_ASN1_UTF8STRING_pop_free(ctx->lastStatusString, ASN1_UTF8STRING_free);
+    X509_free(ctx->newClCert);
+    sk_X509_pop_free(ctx->caPubs, X509_free);
+    sk_X509_pop_free(ctx->extraCertsIn, X509_free);
+
+    OPENSSL_free(ctx);
 }
 
 /*
