@@ -37,7 +37,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_PKISI_PKISTATUS_GET_STRING             107
 #  define CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0            108
 #  define CMP_F_CMP_POLLREQ_NEW                            206
-#  define CMP_F_CMP_PROCESS_CERT_REQUEST                   109
+#  define CMP_F_PROCESS_CERT_REQUEST                       109
 #  define CMP_F_CMP_REVREPCONTENT_CERTID_GET               208
 #  define CMP_F_CMP_REVREPCONTENT_PKISTATUSINFO_GET        110
 #  define CMP_F_CMP_RR_NEW                                 207

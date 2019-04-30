@@ -25,55 +25,39 @@ typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
 
 /*
  * this structure is used to store the context for the CMP mock server
- * partly using OpenSSL ASN.1 types in order to ease handling it - such ASN.1
- * entries must be given first, in same order as ASN1_SEQUENCE(OSSL_CMP_SRV_CTX)
  */
 struct OSSL_cmp_srv_ctx_st {
+    OSSL_CMP_CTX *ctx;          /* Client CMP context, partly reused for srv */
+
+    OSSL_CMP_PKISI *pkiStatusOut; /* PKIStatusInfo to be returned */
     X509 *certOut;              /* Certificate to be returned in cp/ip/kup */
     STACK_OF(X509) *chainOut;   /* Cert chain useful to validate certOut */
     STACK_OF(X509) *caPubsOut;  /* caPubs for ip */
-    OSSL_CMP_PKISI *pkiStatusOut; /* PKI Status Info to be returned */
+
     OSSL_CMP_MSG *certReq;      /* ir/cr/p10cr/kur saved in case of polling */
     int certReqId;              /* id saved in case of polling */
-    OSSL_CMP_CTX *ctx;          /* client cmp context, partly reused for srv */
     unsigned int pollCount;     /* Number of polls before cert response */
     int64_t checkAfterTime;     /* time to wait for the next poll in seconds */
+
     int grantImplicitConfirm;   /* Grant implicit confirmation if requested */
     int sendError;              /* Always send error if true */
     int sendUnprotectedErrors;  /* Send error and rejection msgs unprotected */
     int acceptUnprotectedRequests; /* Accept requests with no/invalid prot. */
     int acceptRAVerified;       /* Accept ir/cr/kur with POPO RAVerified */
     int encryptcert;            /* Encrypt certs in cert response message */
+
     /* callbacks for message processing */
     cmp_srv_process_cb_t process_ir_cb;
     cmp_srv_process_cb_t process_cr_cb;
     cmp_srv_process_cb_t process_p10cr_cb;
     cmp_srv_process_cb_t process_kur_cb;
-    cmp_srv_process_cb_t process_rr_cb;
-    cmp_srv_process_cb_t process_certconf_cb;
-    cmp_srv_process_cb_t process_error_cb;
     cmp_srv_process_cb_t process_pollreq_cb;
+    cmp_srv_process_cb_t process_certconf_cb;
+    cmp_srv_process_cb_t process_rr_cb;
+    cmp_srv_process_cb_t process_error_cb;
     cmp_srv_process_cb_t process_genm_cb;
 
 } /* OSSL_CMP_SRV_CTX */ ;
-
-ASN1_SEQUENCE(OSSL_CMP_SRV_CTX) = {
-    ASN1_OPT(OSSL_CMP_SRV_CTX, certOut, X509),
-        ASN1_SEQUENCE_OF_OPT(OSSL_CMP_SRV_CTX, chainOut, X509),
-        ASN1_SEQUENCE_OF_OPT(OSSL_CMP_SRV_CTX, caPubsOut, X509),
-        ASN1_SIMPLE(OSSL_CMP_SRV_CTX, pkiStatusOut, OSSL_CMP_PKISI),
-        ASN1_OPT(OSSL_CMP_SRV_CTX, certReq, OSSL_CMP_MSG)
-} static_ASN1_SEQUENCE_END(OSSL_CMP_SRV_CTX)
-IMPLEMENT_STATIC_ASN1_ALLOC_FUNCTIONS(OSSL_CMP_SRV_CTX)
-
-void OSSL_CMP_SRV_CTX_delete(OSSL_CMP_SRV_CTX *srv_ctx)
-{
-    if (srv_ctx == NULL)
-        return;
-    OSSL_CMP_CTX_delete(srv_ctx->ctx);
-    srv_ctx->ctx = NULL;
-    OSSL_CMP_SRV_CTX_free(srv_ctx);
-}
 
 OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx)
 {
@@ -211,8 +195,8 @@ static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *msg)
  * Only handles the first certification request contained in certReq
  * returns an ip/cp/kup on success and NULL on error
  */
-static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
-                                              OSSL_CMP_MSG *certReq)
+static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
+                                          OSSL_CMP_MSG *certReq)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_PKISI *si = NULL;
@@ -222,7 +206,7 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     int bodytype;
 
     if (srv_ctx == NULL || certReq == NULL) {
-        CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_PROCESS_CERT_REQUEST, CMP_R_INVALID_ARGS);
         return NULL;
     }
     switch (certReq->body->type) {
@@ -237,7 +221,7 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         bodytype = OSSL_CMP_PKIBODY_KUP;
         break;
     default:
-        CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_UNEXPECTED_PKIBODY);
+        CMPerr(CMP_F_PROCESS_CERT_REQUEST, CMP_R_UNEXPECTED_PKIBODY);
         return NULL;
     }
 
@@ -247,7 +231,7 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         if ((crm =
              sk_OSSL_CRMF_MSG_value(certReq->body->value.cr,
                                     OSSL_CMP_CERTREQID)) == NULL) {
-            CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_CERTREQMSG_NOT_FOUND);
+            CMPerr(CMP_F_PROCESS_CERT_REQUEST, CMP_R_CERTREQMSG_NOT_FOUND);
             return NULL;
         }
         srv_ctx->certReqId = OSSL_CRMF_MSG_get_certReqId(crm);
@@ -284,13 +268,13 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
                                certOut, chainOut, caPubs, srv_ctx->encryptcert,
                                srv_ctx->sendUnprotectedErrors);
     if (msg == NULL)
-        CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, CMP_R_ERROR_CREATING_CERTREP);
+        CMPerr(CMP_F_PROCESS_CERT_REQUEST, CMP_R_ERROR_CREATING_CERTREP);
 
     OSSL_CMP_PKISI_free(si);
     return msg;
 
  oom:
-    CMPerr(CMP_F_CMP_PROCESS_CERT_REQUEST, ERR_R_MALLOC_FAILURE);
+    CMPerr(CMP_F_PROCESS_CERT_REQUEST, ERR_R_MALLOC_FAILURE);
     OSSL_CMP_PKISI_free(si);
     return NULL;
 }
@@ -429,7 +413,7 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
         return NULL;
     }
     if (srv_ctx->pollCount == 0) {
-        if ((msg = CMP_process_cert_request(srv_ctx, srv_ctx->certReq)) == NULL)
+        if ((msg = process_cert_request(srv_ctx, srv_ctx->certReq)) == NULL)
             CMPerr(CMP_F_PROCESS_POLLREQ, CMP_R_ERROR_PROCESSING_CERTREQ);
     } else {
         srv_ctx->pollCount--;
@@ -632,35 +616,49 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
  * creates and initializes a OSSL_CMP_SRV_CTX structure
  * returns pointer to created CMP_SRV_ on success, NULL on error
  */
-OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void)
+OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void) /* TODO rename to _new */
 {
-    OSSL_CMP_SRV_CTX *ctx = NULL;
+    OSSL_CMP_SRV_CTX *ctx = OPENSSL_zalloc(sizeof(OSSL_CMP_SRV_CTX));
 
-    if ((ctx = OSSL_CMP_SRV_CTX_new()) == NULL)
-        return NULL;
-    ctx->certReqId = -1;
+    if (ctx == NULL)
+        goto err;
+
     if ((ctx->ctx = OSSL_CMP_CTX_create()) == NULL)
         goto err;
-    ctx->pollCount = 0;
-    ctx->checkAfterTime = 1;
-    ctx->grantImplicitConfirm = 0;
-    ctx->sendError = 0;
-    ctx->sendUnprotectedErrors = 0;
-    ctx->acceptUnprotectedRequests = 0;
-    ctx->encryptcert = 0;
-    ctx->acceptRAVerified = 0;
+
+    if ((ctx->pkiStatusOut = OSSL_CMP_PKISI_new()) == NULL)
+        goto err;
+
     ctx->certReqId = OSSL_CMP_CERTREQID;
-    ctx->process_ir_cb = CMP_process_cert_request;
-    ctx->process_cr_cb = CMP_process_cert_request;
-    ctx->process_p10cr_cb = CMP_process_cert_request;
-    ctx->process_kur_cb = CMP_process_cert_request;
-    ctx->process_certconf_cb = process_certConf;
-    ctx->process_error_cb = process_error;
-    ctx->process_rr_cb = process_rr;
+    ctx->checkAfterTime = 1;
+
+    ctx->process_ir_cb = process_cert_request;
+    ctx->process_cr_cb = process_cert_request;
+    ctx->process_p10cr_cb = process_cert_request;
+    ctx->process_kur_cb = process_cert_request;
     ctx->process_pollreq_cb = process_pollReq;
+    ctx->process_certconf_cb = process_certConf;
+    ctx->process_rr_cb = process_rr;
+    ctx->process_error_cb = process_error;
     ctx->process_genm_cb = process_genm;
+
+    /* all other elements are initialized to 0 or NULL, respectively */
     return ctx;
  err:
-    OSSL_CMP_SRV_CTX_free(ctx);
+    OSSL_CMP_SRV_CTX_delete(ctx);
     return NULL;
+}
+
+void OSSL_CMP_SRV_CTX_delete(OSSL_CMP_SRV_CTX *srv_ctx) /* TODO rename to _free  */
+{
+    if (srv_ctx == NULL)
+        return;
+
+    X509_free(srv_ctx->certOut);
+    sk_X509_pop_free(srv_ctx->chainOut, X509_free);
+    sk_X509_pop_free(srv_ctx->caPubsOut, X509_free);
+    OSSL_CMP_PKISI_free(srv_ctx->pkiStatusOut);
+    OSSL_CMP_MSG_free(srv_ctx->certReq);
+    OSSL_CMP_CTX_delete(srv_ctx->ctx);
+    OPENSSL_free(srv_ctx);
 }
