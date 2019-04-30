@@ -26,16 +26,16 @@
  *
  * returns 1 on success, 0 on error
  */
-static int add_extension(X509_EXTENSIONS **exts, X509_EXTENSION *ext)
+static int add_extension(X509_EXTENSIONS **pexts, X509_EXTENSION *ext)
 {
     int ret = 0;
 
-    if (exts == NULL) {
+    if (pexts == NULL) {
         CMPerr(CMP_F_ADD_EXTENSION, CMP_R_NULL_ARGUMENT);
         goto end;
     }
     if (ext == NULL /* malloc did not work for ext in caller */
-            || !X509v3_add_ext(exts, ext, 0)) {
+            || !X509v3_add_ext(pexts, ext, 0)) {
         CMPerr(CMP_F_ADD_EXTENSION, ERR_R_MALLOC_FAILURE);
         goto end;
     }
@@ -47,28 +47,28 @@ static int add_extension(X509_EXTENSIONS **exts, X509_EXTENSION *ext)
 }
 
 /*
- * Takes a stack of GENERAL_NAMEs and adds them to the given extension stack.
- * this is used to setting subject alternate names to a certTemplate
+ * Adds a stack of GENERAL_NAMEs to the given extension stack, which may
+ * be NULL. This is used to setting subject alternate names to a certTemplate.
  *
  * returns 1 on success, 0 on error
  */
-#define ADD_SANs(exts, sans, critical) \
-    add_extension(exts, X509V3_EXT_i2d(NID_subject_alt_name, critical, sans))
+#define ADD_SANs(pexts, sans, critical) \
+    add_extension(pexts, X509V3_EXT_i2d(NID_subject_alt_name, critical, sans))
 
 /*
- * Takes a CERTIFICATEPOLICIES structure and adds it to the given extension
- * stack. This is used to setting certificate policy OIDs to a certTemplate
+ * Adds a CERTIFICATEPOLICIES structure to the given extension stack, which may
+ * be NULL. This is used to setting certificate policy OIDs to a certTemplate.
  *
  * returns 1 on success, 0 on error
  */
-#define ADD_POLICIES(exts, policies, critical) add_extension(exts, \
+#define ADD_POLICIES(pexts, policies, critical) add_extension(pexts, \
                X509V3_EXT_i2d(NID_certificate_policies, critical, policies))
 
 /*
  * Adds a CRL revocation reason code to an extension stack (which may be NULL)
  * returns 1 on success, 0 on error
  */
-static int add_crl_reason_extension(X509_EXTENSIONS **exts, int reason_code)
+static int add_crl_reason_extension(X509_EXTENSIONS **pexts, int reason_code)
 {
     ASN1_ENUMERATED *val = NULL;
     X509_EXTENSION *ext = NULL;
@@ -77,7 +77,7 @@ static int add_crl_reason_extension(X509_EXTENSIONS **exts, int reason_code)
     if (((val = ASN1_ENUMERATED_new()) != NULL)
             && ASN1_ENUMERATED_set(val, reason_code))
         ext = X509V3_EXT_i2d(NID_crl_reason, 0, val);
-    ret = add_extension(exts, ext);
+    ret = add_extension(pexts, ext);
     ASN1_ENUMERATED_free(val);
     return ret;
 }
@@ -243,7 +243,8 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         default_sans = X509V3_get_d2i(X509_get0_extensions(refcert),
                                       NID_subject_alt_name, NULL, NULL);
     /* exts are copied from ctx to allow reuse */
-    if ((exts = OSSL_CMP_X509_EXTENSIONS_dup(ctx->reqExtensions)) == NULL)
+    exts = OSSL_CMP_X509_EXTENSIONS_dup(ctx->reqExtensions);
+    if (ctx->reqExtensions != NULL && exts == NULL)
         goto oom;
     if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0
             && !ADD_SANs(&exts, ctx->subjectAltNames, crit))

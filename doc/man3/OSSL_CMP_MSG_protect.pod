@@ -210,7 +210,7 @@ referenced via the first argument and assigns either a copy of the given byte
 string (with the given length) or NULL. It returns 1 on success, 0 on error.
 
 OSSL_CMP_X509_EXTENSIONS_dup() copies a list of X.509 v3 extensions.
-If the input list ist NULL and empty list ist returned. Returns NULL on error.
+Returns NULL in case the input list is NULL and on error.
 
 OSSL_CMP_sk_X509_add1_cert() appends or prepends (depending on the B<prepend>
 argument) a certificate to the given list,
