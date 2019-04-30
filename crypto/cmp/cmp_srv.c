@@ -616,14 +616,14 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
  * creates and initializes a OSSL_CMP_SRV_CTX structure
  * returns pointer to created CMP_SRV_ on success, NULL on error
  */
-OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void) /* TODO rename to _new */
+OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void) /* TODO rename to _new */
 {
     OSSL_CMP_SRV_CTX *ctx = OPENSSL_zalloc(sizeof(OSSL_CMP_SRV_CTX));
 
     if (ctx == NULL)
         goto err;
 
-    if ((ctx->ctx = OSSL_CMP_CTX_create()) == NULL)
+    if ((ctx->ctx = OSSL_CMP_CTX_new()) == NULL)
         goto err;
 
     if ((ctx->pkiStatusOut = OSSL_CMP_PKISI_new()) == NULL)
@@ -645,11 +645,11 @@ OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void) /* TODO rename to _new */
     /* all other elements are initialized to 0 or NULL, respectively */
     return ctx;
  err:
-    OSSL_CMP_SRV_CTX_delete(ctx);
+    OSSL_CMP_SRV_CTX_free(ctx);
     return NULL;
 }
 
-void OSSL_CMP_SRV_CTX_delete(OSSL_CMP_SRV_CTX *srv_ctx) /* TODO rename to _free  */
+void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx) /* TODO rename to _free  */
 {
     if (srv_ctx == NULL)
         return;
@@ -659,6 +659,6 @@ void OSSL_CMP_SRV_CTX_delete(OSSL_CMP_SRV_CTX *srv_ctx) /* TODO rename to _free 
     sk_X509_pop_free(srv_ctx->caPubsOut, X509_free);
     OSSL_CMP_PKISI_free(srv_ctx->pkiStatusOut);
     OSSL_CMP_MSG_free(srv_ctx->certReq);
-    OSSL_CMP_CTX_delete(srv_ctx->ctx);
+    OSSL_CMP_CTX_free(srv_ctx->ctx);
     OPENSSL_free(srv_ctx);
 }

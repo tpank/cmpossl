@@ -2400,7 +2400,7 @@ static int transform_opts(OSSL_CMP_CTX *ctx)
 static int setup_srv_ctx(ENGINE *e)
 {
     OSSL_CMP_CTX *ctx = NULL;
-    srv_ctx = OSSL_CMP_SRV_CTX_create();
+    srv_ctx = OSSL_CMP_SRV_CTX_new();
 
     if (srv_ctx == NULL)
         return 0;
@@ -2537,7 +2537,7 @@ static int setup_srv_ctx(ENGINE *e)
     return 1;
 
  err:
-    OSSL_CMP_SRV_CTX_delete(srv_ctx);
+    OSSL_CMP_SRV_CTX_free(srv_ctx);
     srv_ctx = NULL;
     return 0;
 }
@@ -4018,7 +4018,7 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-    cmp_ctx = OSSL_CMP_CTX_create();
+    cmp_ctx = OSSL_CMP_CTX_new();
     vpm = X509_VERIFY_PARAM_new();
     if (cmp_ctx == NULL || vpm == NULL) {
         BIO_printf(bio_err, "%s: out of memory\n", prog);
@@ -4177,14 +4177,14 @@ int cmp_main(int argc, char **argv)
 #ifndef NDEBUG
     cleanse(opt_srv_keypass);
     cleanse(opt_srv_secret);
-    OSSL_CMP_SRV_CTX_delete(srv_ctx);
+    OSSL_CMP_SRV_CTX_free(srv_ctx);
 #endif
     if (ret > 0)
         ERR_print_errors_fp(stderr);
 
     SSL_CTX_free(OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx));
     X509_STORE_free(OSSL_CMP_CTX_get_certConf_cb_arg(cmp_ctx));
-    OSSL_CMP_CTX_delete(cmp_ctx);
+    OSSL_CMP_CTX_free(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);
     release_engine(e);
 

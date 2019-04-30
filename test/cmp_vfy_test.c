@@ -40,7 +40,7 @@ static CMP_VFY_TEST_FIXTURE *set_up(const char *const test_case_name)
     if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
         goto err;
     fixture->test_case_name = test_case_name;
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create()))
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new()))
         goto err;
 
     setup_ok = 1;
@@ -55,7 +55,7 @@ static CMP_VFY_TEST_FIXTURE *set_up(const char *const test_case_name)
 static void tear_down(CMP_VFY_TEST_FIXTURE *fixture)
 {
     OSSL_CMP_MSG_free(fixture->msg);
-    OSSL_CMP_CTX_delete(fixture->cmp_ctx);
+    OSSL_CMP_CTX_free(fixture->cmp_ctx);
     OPENSSL_free(fixture);
 }
 

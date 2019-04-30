@@ -47,7 +47,7 @@ static CMP_INT_TEST_FIXTURE *set_up(const char *const test_case_name)
         goto err;
     fixture->test_case_name = test_case_name;
 
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create()))
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new()))
         goto err;
 
     setup_ok = 1;
@@ -63,7 +63,7 @@ static void tear_down(CMP_INT_TEST_FIXTURE *fixture)
 {
     /* ERR_print_errors_fp(stderr);
        Free any memory owned by the fixture, etc. */
-    OSSL_CMP_CTX_delete(fixture->cmp_ctx);
+    OSSL_CMP_CTX_free(fixture->cmp_ctx);
     OSSL_CMP_MSG_free(fixture->msg);
     ASN1_OCTET_STRING_free(fixture->secret);
     EVP_PKEY_free(fixture->privkey);

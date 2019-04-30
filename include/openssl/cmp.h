@@ -435,8 +435,8 @@ int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
 typedef struct OSSL_cmp_srv_ctx_st OSSL_CMP_SRV_CTX;
 int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
                                  OSSL_CMP_MSG **res);
-OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void);
-void OSSL_CMP_SRV_CTX_delete(OSSL_CMP_SRV_CTX *srv_ctx);
+OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void);
+void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx);
 OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx);
 int OSSL_CMP_SRV_CTX_set1_certOut(OSSL_CMP_SRV_CTX *srv_ctx, X509 *cert);
 int OSSL_CMP_SRV_CTX_set1_chainOut(OSSL_CMP_SRV_CTX *srv_ctx,
@@ -470,8 +470,8 @@ void OSSL_CMP_PKISI_free(OSSL_CMP_PKISI *si);
 DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
 
 /* from cmp_ctx.c */
-OSSL_CMP_CTX *OSSL_CMP_CTX_create(void);
-void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx);
+OSSL_CMP_CTX *OSSL_CMP_CTX_new(void);
+void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
 /* various CMP options: */
 typedef enum {
   OSSL_CMP_CTX_OPT_MSGTIMEOUT,

@@ -43,7 +43,7 @@ static CMP_MSG_TEST_FIXTURE *set_up(const char *const test_case_name)
         goto err;
     fixture->test_case_name = test_case_name;
 
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create())
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new())
            || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
                                       OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1))
            || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
@@ -63,7 +63,7 @@ static void tear_down(CMP_MSG_TEST_FIXTURE *fixture)
 {
     /* ERR_print_errors_fp(stderr);
        Free any memory owned by the fixture, etc. */
-    OSSL_CMP_CTX_delete(fixture->cmp_ctx);
+    OSSL_CMP_CTX_free(fixture->cmp_ctx);
     OSSL_CMP_MSG_free(fixture->msg);
     OSSL_CMP_PKISI_free(fixture->si);
     OPENSSL_free(fixture);

@@ -3,8 +3,8 @@
 =head1 NAME
 
 OSSL_CMP_mock_server_perform,
-OSSL_CMP_SRV_CTX_create,
-OSSL_CMP_SRV_CTX_delete,
+OSSL_CMP_SRV_CTX_new,
+OSSL_CMP_SRV_CTX_free,
 OSSL_CMP_SRV_CTX_get0_ctx,
 OSSL_CMP_SRV_CTX_set1_certOut,
 OSSL_CMP_SRV_CTX_set1_chainOut,
@@ -25,8 +25,8 @@ OSSL_CMP_SRV_CTX_set_grant_implicit_confirm
   int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx,
                                    const OSSL_CMP_MSG *req,
                                    OSSL_CMP_MSG **res);
-  OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void);
-  void OSSL_CMP_SRV_CTX_delete(OSSL_CMP_SRV_CTX *srv_ctx);
+  OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void);
+  void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx);
   OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx);
 
   int OSSL_CMP_SRV_CTX_set1_certOut(OSSL_CMP_SRV_CTX *srv_ctx, X509 *cert);
@@ -59,10 +59,10 @@ It is used similarly to B<OSSL_CMP_MSG_http_perform()>.
 A B<OSSL_CMP_SRV_CTX> must be set as B<transfer_cb_arg>.
 Returns 0 on success and else a CMP error reason code defined in cmp.h.
 
-OSSL_CMP_SRV_CTX_create() creates and initializes a OSSL_CMP_SRV_CTX structure
+OSSL_CMP_SRV_CTX_new() creates and initializes a OSSL_CMP_SRV_CTX structure
 and returns a pointer to it on success, NULL on error.
 
-OSSL_CMP_SRV_CTX_delete() deletes the given B<srv_ctx>.
+OSSL_CMP_SRV_CTX_free() deletes the given B<srv_ctx>.
 
 OSSL_CMP_SRV_CTX_get0_ctx() returns the B<OSSL_CMP_CTX> from the B<srv_ctx>.
 
@@ -104,10 +104,10 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 OSSL_CMP_mock_server_perform() returns 0 on success and else a CMP error
 reason code defined in cmp.h.
 
-OSSL_CMP_SRV_CTX_create() returns a B<OSSL_CMP_SRV_CTX> structure on success,
+OSSL_CMP_SRV_CTX_new() returns a B<OSSL_CMP_SRV_CTX> structure on success,
 NULL on error.
 
-OSSL_CMP_SRV_CTX_delete() does not return a value.
+OSSL_CMP_SRV_CTX_free() does not return a value.
 
 OSSL_CMP_SRV_CTX_get0_ctx() returns a B<OSSL_CMP_CTX> structure on success,
 NULL on error.

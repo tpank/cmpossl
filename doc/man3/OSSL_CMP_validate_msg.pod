@@ -94,7 +94,7 @@ bit set.
 
 =head1 SEE ALSO
 
-L<OSSL_CMP_CTX_create(3)>, L<OSSL_CMP_exec_IR_ses(3)>
+L<OSSL_CMP_CTX_new(3)>, L<OSSL_CMP_exec_IR_ses(3)>
 
 =head1 COPYRIGHT
 

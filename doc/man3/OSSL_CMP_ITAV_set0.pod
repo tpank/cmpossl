@@ -76,11 +76,11 @@ included in the requests' PKIHeader's genInfo field.
 
     ...
 
-    OSSL_CMP_CTX_delete(cmp_ctx); /* also frees itav */
+    OSSL_CMP_CTX_free(cmp_ctx); /* also frees itav */
 
 =head1 SEE ALSO
 
-L<OSSL_CMP_CTX_create(3)>, L<ASN1_TYPE_set(3)>
+L<OSSL_CMP_CTX_new(3)>, L<ASN1_TYPE_set(3)>
 
 =head1 COPYRIGHT
 

@@ -41,8 +41,8 @@ static unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
 
 static void tear_down(CMP_SES_TEST_FIXTURE *fixture)
 {
-    OSSL_CMP_CTX_delete(fixture->cmp_ctx);
-    OSSL_CMP_SRV_CTX_delete(fixture->srv_ctx);
+    OSSL_CMP_CTX_free(fixture->cmp_ctx);
+    OSSL_CMP_SRV_CTX_free(fixture->srv_ctx);
     sk_X509_free(fixture->ca_pubs);
     OPENSSL_free(fixture);
 }
@@ -57,7 +57,7 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
     if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
         goto err;
     fixture->test_case_name = test_case_name;
-    if (!TEST_ptr(fixture->srv_ctx = OSSL_CMP_SRV_CTX_create())
+    if (!TEST_ptr(fixture->srv_ctx = OSSL_CMP_SRV_CTX_new())
             || !TEST_true(OSSL_CMP_SRV_CTX_set_accept_unprotected(
                                                            fixture->srv_ctx, 1))
             || !TEST_true(OSSL_CMP_SRV_CTX_set1_certOut(fixture->srv_ctx, cert))
@@ -67,7 +67,7 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
             || !TEST_true(OSSL_CMP_CTX_set1_pkey(srv_cmp_ctx, key)))
         goto err;
 
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create())
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new())
             || !TEST_true(OSSL_CMP_CTX_set_transfer_cb(fixture->cmp_ctx,
                                                   OSSL_CMP_mock_server_perform))
             || !TEST_true(OSSL_CMP_CTX_set_transfer_cb_arg(fixture->cmp_ctx,

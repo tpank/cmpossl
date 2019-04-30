@@ -177,7 +177,7 @@ the generated message on success, or NULL on error.
 
 =head1 SEE ALSO
 
-L<OSSL_CMP_CTX_create(3)>, L<ERR_load_strings(3)>
+L<OSSL_CMP_CTX_new(3)>, L<ERR_load_strings(3)>
 
 =head1 COPYRIGHT
 

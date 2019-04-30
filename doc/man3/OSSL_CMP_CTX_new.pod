@@ -2,8 +2,8 @@
 
 =head1 NAME
 
-OSSL_CMP_CTX_create,
-OSSL_CMP_CTX_delete,
+OSSL_CMP_CTX_new,
+OSSL_CMP_CTX_free,
 OSSL_CMP_CTX_set_option,
 OSSL_CMP_CTX_set_log_cb,
 OSSL_CMP_CTX_set1_serverPath,
@@ -65,8 +65,8 @@ OSSL_CMP_print_errors
 
  #include <openssl/cmp.h>
 
- OSSL_CMP_CTX *OSSL_CMP_CTX_create(void);
- void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx);
+ OSSL_CMP_CTX *OSSL_CMP_CTX_new(void);
+ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_ctx_option opt, int val);
  typedef int (*OSSL_cmp_log_cb_t) (const char *component,
                                    const char *file, int lineno,
@@ -155,17 +155,17 @@ OSSL_CMP_print_errors
                    const char *func, const char *file, int lineno,
                    OSSL_CMP_severity level, const char *fmt, ...);
  void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx);
- 
+
 =head1 DESCRIPTION
 
 This is the context API for using CMP (Certificate Management Protocol) with
 OpenSSL.
 
-OSSL_CMP_CTX_create() allocates and initializes an OSSL_CMP_CTX structure to
+OSSL_CMP_CTX_new() allocates and initializes an OSSL_CMP_CTX structure to
 default values.
 Transfer is set to HTTP, proof-of-possession method to POPOSigningKey.
 
-OSSL_CMP_CTX_delete() frees any allocated non-ASN1 fields of OSSL_CMP_CTX and
+OSSL_CMP_CTX_free() frees any allocated non-ASN1 fields of OSSL_CMP_CTX and
 calls the ASN1 defined OSSL_CMP_CTX_free() function to free the rest.
 
 OSSL_CMP_CTX_set_option() sets the given value for the given option
@@ -540,9 +540,9 @@ might change every release!
 
 =head1 RETURN VALUES
 
-OSSL_CMP_CTX_create() returns a pointer to an initialized OSSL_CMP_CTX structure.
+OSSL_CMP_CTX_new() returns a pointer to an initialized OSSL_CMP_CTX structure.
 
-OSSL_CMP_CTX_delete() does not return anything.
+OSSL_CMP_CTX_free() does not return anything.
 
 OSSL_CMP_CTX_get_http_cb_arg() returns the http connect/disconnect callback
 argument set previously. NULL if not set or on function parameter error.
@@ -590,7 +590,7 @@ All other functions return 1 on success, 0 on error.
 
 The following code does an Initialization Request:
 
-        cmp_ctx = OSSL_CMP_CTX_create();
+        cmp_ctx = OSSL_CMP_CTX_new();
         OSSL_CMP_CTX_set1_serverName(cmp_ctx, opt_serverName);
         OSSL_CMP_CTX_set1_referenceValue(cmp_ctx, ref, ref_len);
         OSSL_CMP_CTX_set1_secretValue(cmp_ctx, sec, sec_len);
@@ -602,7 +602,7 @@ The following code does an Initialization Request:
 The following code does an Initialization Request using an
 external identity certificate (RFC 4210, Appendix E.7):
 
-        cmp_ctx = OSSL_CMP_CTX_create();
+        cmp_ctx = OSSL_CMP_CTX_new();
         OSSL_CMP_CTX_set1_serverName(cmp_ctx, sname);
         OSSL_CMP_CTX_set1_clCert(cmp_ctx, cl_cert);
         OSSL_CMP_CTX_set0_pkey(cmp_ctx, pkey);
@@ -617,7 +617,7 @@ which is trusted by the current CA the code will connect to.
 
 The following code does a Key Update Request:
 
-        cmp_ctx = OSSL_CMP_CTX_create();
+        cmp_ctx = OSSL_CMP_CTX_new();
         OSSL_CMP_CTX_set1_serverName(cmp_ctx, sname);
         OSSL_CMP_CTX_set0_pkey(cmp_ctx, pkey);
         OSSL_CMP_CTX_set0_newPkey(cmp_ctx, new_pkey);
@@ -629,7 +629,7 @@ The following code does a Key Update Request:
 The following code (which omits error handling) sends a genm including, as an
 example, the id-it-signKeyPairTypes OID and prints info on the genp contents.
 
-    cmp_ctx = OSSL_CMP_CTX_create();
+    cmp_ctx = OSSL_CMP_CTX_new();
     OSSL_CMP_CTX_set1_serverName(cmp_ctx, sname);
     OSSL_CMP_CTX_set1_referenceValue(cmp_ctx, ref, ref_len);
     OSSL_CMP_CTX_set1_secretValue(cmp_ctx, sec, sec_len);

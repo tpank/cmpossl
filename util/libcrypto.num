@@ -4746,8 +4746,8 @@ OSSL_CMP_exec_GENM_ses                  4698	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_exchange_certConf              4699	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_exchange_error                 4700	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_mock_server_perform            4701	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_SRV_CTX_create                 4702	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_SRV_CTX_delete                 4703	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_SRV_CTX_new                    4702	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_SRV_CTX_free                   4703	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_get0_ctx               4704	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set1_certOut           4705	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set1_chainOut          4706	3_0_0	EXIST::FUNCTION:CMP
@@ -4768,8 +4768,8 @@ OSSL_CMP_ITAV_free                      4720	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_free                       4721	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_PKISI_free                     4722	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_dup                        4723	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_CTX_create                     4724	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_CTX_delete                     4725	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_CTX_new                        4724	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_CTX_free                       4725	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set_option                 4726	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set_log_cb                 4727	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_serverPath            4728	3_0_0	EXIST::FUNCTION:CMP

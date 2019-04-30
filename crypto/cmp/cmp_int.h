@@ -57,7 +57,7 @@ struct OSSL_cmp_ctx_st {
     X509_STORE *trusted_store; /* store for trusted (root) certificates and
                                   possibly CRLs and cert verify callback */
     STACK_OF(X509) *untrusted_certs; /* untrusted (intermediate) certs */
-    int ignore_keyusage; /* ignore key usage entry whan validating certs */
+    int ignore_keyusage; /* ignore key usage entry when validating certs */
     int permitTAInExtraCertsForIR; /* whether to include root certs from
                      extracerts when validating? Used for 3GPP-style E.7 */
 

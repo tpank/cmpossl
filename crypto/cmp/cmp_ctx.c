@@ -80,7 +80,7 @@ int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
  * Allocates and initializes OSSL_CMP_CTX context structure with default values.
  * Returns new context on success, NULL on error
  */
-OSSL_CMP_CTX *OSSL_CMP_CTX_create(void) /* TODO rename to _new */
+OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
 {
     OSSL_CMP_CTX *ctx = OPENSSL_zalloc(sizeof(OSSL_CMP_CTX));
 
@@ -125,7 +125,7 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_create(void) /* TODO rename to _new */
 /*
  * Frees OSSL_CMP_CTX variables allocated in OSSL_CMP_CTX_new()
  */
-void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx) /* TODO rename to _free */
+void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx) /* TODO rename to _free */
 {
     if (ctx == NULL)
         return;
