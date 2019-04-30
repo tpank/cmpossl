@@ -770,6 +770,17 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      EVP_PKEY *pkey);
 
 /* from cmp_ctx.c */
+ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
+int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
+                            const ASN1_OCTET_STRING *nonce);
+ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx);
+int CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
+X509 *CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
+int CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
+int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
+                              STACK_OF(X509) *extraCertsIn);
+int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
+                             OSSL_CMP_PKIFAILUREINFO *fail_info);
 #ifdef CMP_POOR_LOG
 #define CMP_LOG(x)  CMP_log_printf x /* poor man's variadic macro for C90;
    calls need argument(s) in doubly nested parentheses: LOG((args)) */

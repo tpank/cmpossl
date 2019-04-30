@@ -12,6 +12,7 @@
  */
 
 #include "cmptestlib.h"
+#include "../crypto/cmp/cmp_int.h"
 
 #ifndef NDEBUG /* tests need mock server, which is available only if !NDEBUG */
 
@@ -276,7 +277,7 @@ static int test_exchange_certconf(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
+    if (!TEST_true(CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
         fixture = NULL;
     }

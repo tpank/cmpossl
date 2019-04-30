@@ -12,6 +12,7 @@
  */
 
 #include "cmptestlib.h"
+#include "../crypto/cmp/cmp_int.h"
 
 static const char *server_cert_f;
 static const char *pkcs10_f;
@@ -274,7 +275,7 @@ static int test_cmp_create_certconf(void)
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->fail_info = 0;
     fixture->expected = 1;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
+    if (!TEST_true(CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -287,7 +288,7 @@ static int test_cmp_create_certconf_badAlg(void)
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_badAlg;
     fixture->expected = 1;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
+    if (!TEST_true(CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -300,7 +301,7 @@ static int test_cmp_create_certconf_fail_info_max(void)
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_MAX;
     fixture->expected = 1;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
+    if (!TEST_true(CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
         fixture = NULL;
     }

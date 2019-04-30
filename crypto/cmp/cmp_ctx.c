@@ -300,7 +300,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(const OSSL_CMP_CTX *ctx)
  * the OSSL_CMP_CTX structure so that they may be retrieved later.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
+int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                                    STACK_OF(X509) *extraCertsIn)
 {
     if (ctx == NULL)
@@ -315,13 +315,13 @@ int OSSL_CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
     }
 
     if ((ctx->extraCertsIn = X509_chain_up_ref(extraCertsIn)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSIN, ERR_R_MALLOC_FAILURE);
+        CMPerr(CMP_F_CMP_CTX_SET1_EXTRACERTSIN, ERR_R_MALLOC_FAILURE);
         return 0;
     }
 
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSIN, CMP_R_NULL_ARGUMENT);
+    CMPerr(CMP_F_CMP_CTX_SET1_EXTRACERTSIN, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 
@@ -449,7 +449,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_caPubs_get1(const OSSL_CMP_CTX *ctx)
  * OSSL_CMP_CTX structure so that they may be retrieved later.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
+int CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
 {
     if ((ctx == NULL) || (caPubs == NULL))
         goto err;
@@ -458,13 +458,13 @@ int OSSL_CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
     ctx->caPubs = NULL;
 
     if ((ctx->caPubs = X509_chain_up_ref(caPubs)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CAPUBS, ERR_R_MALLOC_FAILURE);
+        CMPerr(CMP_F_CMP_CTX_SET1_CAPUBS, ERR_R_MALLOC_FAILURE);
         return 0;
     }
 
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CAPUBS, CMP_R_NULL_ARGUMENT);
+    CMPerr(CMP_F_CMP_CTX_SET1_CAPUBS, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 
@@ -613,7 +613,7 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
  * sets the X.509v3 certificate request extensions to be used in IR/CR/KUR
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
+int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, const X509_EXTENSIONS *exts)
 {
     int res;
     X509_EXTENSIONS *exts_copy = OSSL_CMP_X509_EXTENSIONS_dup(exts);
@@ -622,7 +622,7 @@ int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
         return 0;
     res = OSSL_CMP_CTX_set0_reqExtensions(ctx, exts_copy);
     if (res == 0)
-        sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
+        sk_X509_EXTENSION_pop_free(exts_copy, X509_EXTENSION_free);
     return res;
 }
 
@@ -742,7 +742,7 @@ int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
  * returns 1 on success, 0 on error
  * TODO: this only permits for one client cert to be received...
  */
-int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
+int CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL || cert == NULL)
         goto err;
@@ -755,7 +755,7 @@ int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
     ctx->newClCert = cert;
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_NEWCLCERT, CMP_R_NULL_ARGUMENT);
+    CMPerr(CMP_F_CMP_CTX_SET1_NEWCLCERT, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 
@@ -763,7 +763,7 @@ int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
  * Get the (newly received in IP/KUP/CP) client certificate from the context
  * TODO: this only permits for one client cert to be received...
  */
-X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx)
+X509 *CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;
@@ -892,7 +892,7 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx)
  * created.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
+int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
                                  const ASN1_OCTET_STRING *nonce)
 {
     if (ctx == NULL || nonce == NULL)
@@ -901,7 +901,7 @@ int OSSL_CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
     return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->recipNonce, nonce);
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_RECIPNONCE, CMP_R_NULL_ARGUMENT);
+    CMPerr(CMP_F_CMP_CTX_SET1_RECIPNONCE, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 
@@ -909,7 +909,7 @@ int OSSL_CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
  * gets the recipNonce of the given context
  * returns a pointer to the nonce on success, NULL on error
  */
-ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx)
+ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx)
 {
     return ctx == NULL ? NULL : ctx->recipNonce;
 }
@@ -935,7 +935,7 @@ int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
  * gets the sender nonce of the last message sent
  * returns a pointer to the nonce on success, NULL on error
  */
-ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx)
+ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx)
 {
     return ctx == NULL ? NULL : ctx->last_senderNonce;
 }
@@ -1142,7 +1142,7 @@ int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
  * OSSL_CMP_PKIFAILUREINFO structure, which is allowed to be NULL
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
+int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
                                   OSSL_CMP_PKIFAILUREINFO *fail_info)
 {
     int i;
@@ -1195,7 +1195,7 @@ int OSSL_CMP_CTX_push_freeText(OSSL_CMP_CTX *ctx, const char *text)
  * sets a BOOLEAN or INT option of the context to the "val" arg
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
+int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_ctx_option opt, int val) {
     if (ctx == NULL)
         goto err;
     switch (opt) {

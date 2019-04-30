@@ -1718,7 +1718,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
      * RFC 4210 section 5.1.1 states: the recipNonce is copied from
      * the senderNonce of the previous message in the transaction.
      * --> Store for setting in next message */
-    if (!OSSL_CMP_CTX_set1_recipNonce(ctx, msg->header->senderNonce))
+    if (!CMP_CTX_set1_recipNonce(ctx, msg->header->senderNonce))
         return -1;
 
     /* if not yet present, learn transactionID */

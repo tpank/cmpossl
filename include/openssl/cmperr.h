@@ -11,6 +11,10 @@
 #ifndef HEADER_CMPERR_H
 # define HEADER_CMPERR_H
 
+# ifndef HEADER_SYMHACKS_H
+#  include <openssl/symhacks.h>
+# endif
+
 # include <openssl/opensslconf.h>
 
 # ifndef OPENSSL_NO_CMP

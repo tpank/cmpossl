@@ -406,7 +406,7 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
     if ((ctx->lastPKIStatus = OSSL_CMP_PKISI_PKIStatus_get(si) < 0))
         return 0;
 
-    if (!OSSL_CMP_CTX_set_failInfoCode(ctx, si->failInfo))
+    if (!CMP_CTX_set_failInfoCode(ctx, si->failInfo))
         return 0;
 
     sk_ASN1_UTF8STRING_pop_free(ctx->lastStatusString,ASN1_UTF8STRING_free);
@@ -568,11 +568,11 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
      * to the context so that they can be retrieved if necessary
      */
     if (crepmsg->caPubs != NULL
-            && !OSSL_CMP_CTX_set1_caPubs(ctx, crepmsg->caPubs))
+            && !CMP_CTX_set1_caPubs(ctx, crepmsg->caPubs))
         return 0;
 
     /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
-    if (!OSSL_CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts))
+    if (!CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts))
         return 0;
 
     if (!(X509_check_private_key(ctx->newClCert,

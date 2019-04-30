@@ -12,6 +12,7 @@
  */
 
 #include "cmptestlib.h"
+#include "../crypto/cmp/cmp_int.h"
 
 static const char *server_key_f;
 static const char *server_cert_f;
@@ -99,13 +100,13 @@ static int execute_cmp_pkiheader_init_test(CMP_LIB_TEST_FIXTURE *fixture)
         if (!TEST_int_eq(OSSL_CMP_HDR_get_pvno(header), OSSL_CMP_PVNO)
                 || !TEST_true(0 == ASN1_OCTET_STRING_cmp(
                        OSSL_CMP_HDR_get0_senderNonce(header),
-                       OSSL_CMP_CTX_get0_last_senderNonce(fixture->cmp_ctx)))
+                       CMP_CTX_get0_last_senderNonce(fixture->cmp_ctx)))
                 || !TEST_true(0 ==  ASN1_OCTET_STRING_cmp(
                             OSSL_CMP_HDR_get0_transactionID(header),
                             OSSL_CMP_CTX_get0_transactionID(fixture->cmp_ctx))))
             goto err;
         header_nonce = OSSL_CMP_HDR_get0_recipNonce(header);
-        ctx_nonce = OSSL_CMP_CTX_get0_recipNonce(fixture->cmp_ctx);
+        ctx_nonce = CMP_CTX_get0_recipNonce(fixture->cmp_ctx);
         if (ctx_nonce != NULL
                  && (!TEST_ptr(header_nonce)
                          || !TEST_int_eq(0, ASN1_OCTET_STRING_cmp(header_nonce,
@@ -191,8 +192,8 @@ static int execute_check_received_test(CMP_LIB_TEST_FIXTURE *fixture)
         const OSSL_CMP_PKIHEADER *header = OSSL_CMP_MSG_get0_header(fixture->msg);
         if (!TEST_int_eq(0,
               ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_senderNonce(header),
-                                    OSSL_CMP_CTX_get0_recipNonce(fixture->
-                                                                 cmp_ctx))))
+                                    CMP_CTX_get0_recipNonce(fixture->
+                                                            cmp_ctx))))
             return 0;
         if (!TEST_int_eq(0,
            ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),
