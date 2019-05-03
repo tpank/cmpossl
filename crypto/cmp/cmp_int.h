@@ -781,6 +781,7 @@ int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                               STACK_OF(X509) *extraCertsIn);
 int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
                              OSSL_CMP_PKIFAILUREINFO *fail_info);
+int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg);
 #ifdef CMP_POOR_LOG
 #define CMP_LOG(x)  CMP_log_printf x /* poor man's variadic macro for C90;
    calls need argument(s) in doubly nested parentheses: LOG((args)) */

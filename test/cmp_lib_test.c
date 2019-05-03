@@ -318,7 +318,7 @@ execute_cmp_pkimessage_set_and_check_implicit_confirm_test(CMP_LIB_TEST_FIXTURE
                                                            * fixture)
 {
     return TEST_false(OSSL_CMP_MSG_check_implicitConfirm(fixture->msg))
-               && TEST_true(OSSL_CMP_MSG_set_implicitConfirm(fixture->msg))
+               && TEST_true(CMP_MSG_set_implicitConfirm(fixture->msg))
                && TEST_true(OSSL_CMP_MSG_check_implicitConfirm(fixture->msg));
 }
 

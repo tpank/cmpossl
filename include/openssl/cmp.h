@@ -345,7 +345,7 @@ int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
 int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr);
 int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
-int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_PKIHEADER *hdr);
+int OSSL_CMP_HDR_update_messageTime(OSSL_CMP_PKIHEADER *hdr);
 int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
                                 const ASN1_OCTET_STRING *senderKID);
 int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr,
@@ -356,7 +356,6 @@ int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
                                         OSSL_CMP_ITAV *itav);
 int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
 
-int OSSL_CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg);
 int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg);
 int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);

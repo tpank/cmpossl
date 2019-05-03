@@ -80,7 +80,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_CTX_SET1_PKEY                     142
 #  define CMP_F_OSSL_CMP_CTX_SET1_PROXYNAME                143
 #  define CMP_F_OSSL_CMP_CTX_SET1_RECIPIENT                131
-#  define CMP_F_OSSL_CMP_CTX_SET1_RECIPNONCE               145
 #  define CMP_F_OSSL_CMP_CTX_SET1_REFERENCEVALUE           146
 #  define CMP_F_OSSL_CMP_CTX_SET1_SECRETVALUE              147
 #  define CMP_F_OSSL_CMP_CTX_SET1_SERVERNAME               148
@@ -107,6 +106,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_HDR_PUSH1_FREETEXT                169
 #  define CMP_F_OSSL_CMP_HDR_SET_MESSAGETIME               170
 #  define CMP_F_OSSL_CMP_HDR_SET_PVNO                      171
+#  define CMP_F_OSSL_CMP_HDR_UPDATE_MESSAGETIME            134
 #  define CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED                172
 #  define CMP_F_OSSL_CMP_MSG_CREATE                        173
 #  define CMP_F_OSSL_CMP_MSG_GENERALINFO_ITEMS_PUSH1       174

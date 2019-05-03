@@ -17,7 +17,7 @@ OSSL_CMP_HDR_init,
 OSSL_CMP_HDR_set1_recipient,
 OSSL_CMP_HDR_set1_sender,
 OSSL_CMP_HDR_set1_senderKID,
-OSSL_CMP_HDR_set_messageTime,
+OSSL_CMP_HDR_update_messageTime,
 OSSL_CMP_HDR_set_pvno,
 OSSL_CMP_HDR_get_pvno,
 OSSL_CMP_MSG_check_implicitConfirm,
@@ -25,7 +25,6 @@ OSSL_CMP_MSG_genm_item_push0,
 OSSL_CMP_MSG_genm_items_push1,
 OSSL_CMP_MSG_get_bodytype,
 OSSL_CMP_MSG_set_bodytype,
-OSSL_CMP_MSG_set_implicitConfirm,
 OSSL_CMP_MSG_protect,
 OSSL_CMP_MSG_add_extraCerts,
 OSSL_CMP_build_cert_chain,
@@ -59,7 +58,7 @@ OSSL_CMP_X509_STORE_get1_certs
   int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
   int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
                                   const ASN1_OCTET_STRING *senderKID);
-  int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_PKIHEADER *hdr);
+  int OSSL_CMP_HDR_update_messageTime(OSSL_CMP_PKIHEADER *hdr);
   int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
   int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr);
   int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg);
@@ -70,7 +69,6 @@ OSSL_CMP_X509_STORE_get1_certs
                                     STACK_OF(OSSL_CMP_ITAV) *itavs);
   int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
   int OSSL_CMP_MSG_set_bodytype( OSSL_CMP_MSG *msg, int type);
-  int OSSL_CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg);
   int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
   int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
   STACK_OF(X509) *OSSL_CMP_build_cert_chain(X509_STORE *store,
@@ -150,7 +148,8 @@ OSSL_CMP_HDR_set1_senderKID() Sets hdr->senderKID to the given
 string. In IR this is the reference number issued by the CA. In KUR
 this is set to the public key ID from the previously enrolled certificate.
 
-OSSL_CMP_HDR_set_messageTime() sets the messageTime to the current system time.
+OSSL_CMP_HDR_update_messageTime() sets the messageTime to the current system
+time.
 
 OSSL_CMP_HDR_set_pvno() sets hdr->pvno to the given B<pvno>.
 
@@ -172,9 +171,6 @@ ASN1_OCTET_STRING *OSSL_CMP_MSG_get_transactionID(const OSSL_CMP_MSG *msg)
 
 OSSL_CMP_MSG_set_bodytype() sets the type of the message contained in
 the PKIMessage body field.
-
-OSSL_CMP_MSG_set_implicitConfirm() sets implicitConfirm in the
-generalInfo field of the header.
 
 OSSL_CMP_MSG_protect() protects the given message deciding on the algorithm
 depending on the available context information:  If there is a secretValue it

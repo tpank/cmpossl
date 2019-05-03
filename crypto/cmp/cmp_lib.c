@@ -296,7 +296,7 @@ int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_PKIHEADER *hdr)
+int OSSL_CMP_HDR_update_messageTime(OSSL_CMP_PKIHEADER *hdr)
 {
     if (hdr == NULL)
         goto err;
@@ -310,7 +310,7 @@ int OSSL_CMP_HDR_set_messageTime(OSSL_CMP_PKIHEADER *hdr)
     return 1;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_HDR_SET_MESSAGETIME, ERR_R_MALLOC_FAILURE);
+    CMPerr(CMP_F_OSSL_CMP_HDR_UPDATE_MESSAGETIME, ERR_R_MALLOC_FAILURE);
     return 0;
 }
 
@@ -440,7 +440,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         goto err;
 
     /* set current time as message time */
-    if (!OSSL_CMP_HDR_set_messageTime(hdr))
+    if (!OSSL_CMP_HDR_update_messageTime(hdr))
         goto err;
 
     if (ctx->recipNonce != NULL)
@@ -838,7 +838,7 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
  *
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg)
+int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg)
 {
     OSSL_CMP_ITAV *itav = NULL;
 
