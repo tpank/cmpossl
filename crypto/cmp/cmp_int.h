@@ -796,5 +796,8 @@ int CMP_log_printf(const char *file, int line, OSSL_CMP_severity level,
 void put_cert_verify_err(int func, int err);
 
 /* from cmp_ses.c */
+int CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info, const char *txt);
+int CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
+                            const char *txt);
 
 #endif /* !defined OSSL_HEADER_CMP_INT_H */

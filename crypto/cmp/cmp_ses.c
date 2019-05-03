@@ -332,7 +332,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
  * send certConf for IR, CR or KUR sequences and check response
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,const char *txt)
+int CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,const char *txt)
 {
     OSSL_CMP_MSG *certConf = NULL;
     OSSL_CMP_MSG *PKIconf = NULL;
@@ -344,7 +344,7 @@ int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,const char *txt)
         goto err;
 
     success = send_receive_check(ctx, certConf, "certConf",
-                                 CMP_F_OSSL_CMP_EXCHANGE_CERTCONF, &PKIconf,
+                                 CMP_F_CMP_EXCHANGE_CERTCONF, &PKIconf,
                                  OSSL_CMP_PKIBODY_PKICONF,
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
@@ -361,7 +361,7 @@ int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,const char *txt)
  * send given error and check response
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
+int CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
                             const char *txt)
 {
     OSSL_CMP_MSG *error = NULL;
@@ -377,7 +377,7 @@ int OSSL_CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
         goto err;
 
     success = send_receive_check(ctx, error, "error",
-                                 CMP_F_OSSL_CMP_EXCHANGE_ERROR,
+                                 CMP_F_CMP_EXCHANGE_ERROR,
                                  &PKIconf, OSSL_CMP_PKIBODY_PKICONF,
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
@@ -581,7 +581,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
         txt = "public key in new certificate does not match our private key";
 #if 0 /* better leave this for any ctx->certConf_cb to decide */
-        (void)OSSL_CMP_exchange_error(ctx, OSSL_CMP_PKISTATUS_rejection,
+        (void)CMP_exchange_error(ctx, OSSL_CMP_PKISTATUS_rejection,
                                       fail_info, txt);
         /*
          * cannot flag fail_info earlier as send_receive_check() indirectly
@@ -608,7 +608,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     /* TODO: better move certConf exchange to do_certreq_seq() such that
        also more low-level errors with CertReqMessages get reported to server */
     if (!ctx->disableConfirm && !OSSL_CMP_MSG_check_implicitConfirm(*resp))
-        if (!OSSL_CMP_exchange_certConf(ctx, fail_info, txt))
+        if (!CMP_exchange_certConf(ctx, fail_info, txt))
             ret = 0;
 
     if (fail_info != 0) {

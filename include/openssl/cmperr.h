@@ -39,6 +39,8 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_CTX_SET1_NEWCLCERT                     211
 #  define CMP_F_CMP_CTX_SET1_RECIPNONCE                    212
 #  define CMP_F_CMP_ERROR_NEW                              204
+#  define CMP_F_CMP_EXCHANGE_CERTCONF                      138
+#  define CMP_F_CMP_EXCHANGE_ERROR                         144
 #  define CMP_F_CMP_GENM_NEW                               205
 #  define CMP_F_CMP_GEN_NEW                                105
 #  define CMP_F_CMP_PKIFREETEXT_PUSH_STR                   106
@@ -104,7 +106,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_HDR_INIT                          167
 #  define CMP_F_OSSL_CMP_HDR_PUSH0_FREETEXT                168
 #  define CMP_F_OSSL_CMP_HDR_PUSH1_FREETEXT                169
-#  define CMP_F_OSSL_CMP_HDR_SET_MESSAGETIME               170
 #  define CMP_F_OSSL_CMP_HDR_SET_PVNO                      171
 #  define CMP_F_OSSL_CMP_HDR_UPDATE_MESSAGETIME            134
 #  define CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED                172
