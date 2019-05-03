@@ -93,8 +93,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_CTX_SET_SERVERPORT                154
 #  define CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1          155
 #  define CMP_F_OSSL_CMP_ERROR_NEW                         156
-#  define CMP_F_OSSL_CMP_EXCHANGE_CERTCONF                 157
-#  define CMP_F_OSSL_CMP_EXCHANGE_ERROR                    158
 #  define CMP_F_OSSL_CMP_EXEC_CR_SES                       159
 #  define CMP_F_OSSL_CMP_EXEC_GENM_SES                     160
 #  define CMP_F_OSSL_CMP_EXEC_IR_SES                       161
