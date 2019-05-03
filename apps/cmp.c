@@ -3318,7 +3318,7 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             goto oom;
         }
         ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
-        itav = OSSL_CMP_ITAV_gen(type, val);
+        itav = OSSL_CMP_ITAV_create(type, val);
         if (itav == NULL) {
             ASN1_TYPE_free(val);
             goto oom;
@@ -4119,7 +4119,7 @@ int cmp_main(int argc, char **argv)
 
             if (opt_infotype != NID_undef) {
                 OSSL_CMP_ITAV *itav =
-                    OSSL_CMP_ITAV_gen(OBJ_nid2obj(opt_infotype), NULL);
+                    OSSL_CMP_ITAV_create(OBJ_nid2obj(opt_infotype), NULL);
                 if (itav == NULL)
                     goto err;
                 OSSL_CMP_CTX_genm_itav_push0(cmp_ctx, itav);

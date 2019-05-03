@@ -4714,7 +4714,7 @@ OSSL_CMP_MSG_add_extraCerts             4666	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_generalInfo_items_push1    4667	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_genm_item_push0            4668	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_genm_items_push1           4669	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_ITAV_gen                       4670	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_ITAV_create                    4670	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_statusInfo_new                 4671	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_PKISI_PKIStatus_get            4672	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_PKISI_PKIFailureInfo_get       4673	3_0_0	EXIST::FUNCTION:CMP

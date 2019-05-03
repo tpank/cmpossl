@@ -317,7 +317,6 @@ int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
 int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
 int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
                                   STACK_OF(OSSL_CMP_ITAV) *itavs);
-OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(ASN1_OBJECT *type, ASN1_TYPE *value);
 OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
                                         const char *text);
 int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *statusInfo);
@@ -329,8 +328,7 @@ int OSSL_CMP_MSG_set_bodytype(OSSL_CMP_MSG *msg, int type);
 int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
 #  define OSSL_CMP_PKISI_BUFLEN 1024
 char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
-STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs,
-                                          X509 *cert);
+STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs, X509 *cert);
 typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_MSG *msg,
                                        int invalid_protection, int arg);
@@ -402,6 +400,7 @@ int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
                                                 int value);
 
 /* from cmp_asn.c */
+OSSL_CMP_ITAV *OSSL_CMP_ITAV_create(ASN1_OBJECT *type, ASN1_TYPE *value);
 void OSSL_CMP_ITAV_set0(OSSL_CMP_ITAV *itav, ASN1_OBJECT *type,
                         ASN1_TYPE *value);
 ASN1_OBJECT *OSSL_CMP_ITAV_get0_type(const OSSL_CMP_ITAV *itav);
