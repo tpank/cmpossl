@@ -433,8 +433,8 @@ typedef enum {
   OSSL_CMP_OPT_UNPROTECTED_ERRORS,
   OSSL_CMP_OPT_IGNORE_KEYUSAGE,
   OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR
-} OSSL_CMP_option;
-int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_CMP_option opt, int val);
+} OSSL_cmp_option;
+int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_cmp_option opt, int val);
 /* logging: */
 int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
 #  define OSSL_CMP_err(ctx, msg)   OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)

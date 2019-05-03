@@ -66,7 +66,7 @@ OSSL_CMP_CTX_set1_last_senderNonce
 
  OSSL_CMP_CTX *OSSL_CMP_CTX_new(void);
  void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
- int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_CMP_option opt, int val);
+ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_cmp_option opt, int val);
 
  /* logging: */
  int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
@@ -174,7 +174,7 @@ OSSL_CMP_CTX_free() frees any allocated non-ASN1 fields of OSSL_CMP_CTX and
 calls the ASN1 defined OSSL_CMP_CTX_free() function to free the rest.
 
 OSSL_CMP_CTX_set_option() sets the given value for the given option
-(e.g. OSSL_CMP_OPT_IMPLICITCONFIRM) in the given OSSL_CMP_CTX structure.
+(e.g., OSSL_CMP_OPT_IMPLICITCONFIRM) in the given OSSL_CMP_CTX structure.
 
 The following options can be set:
     OSSL_CMP_OPT_MSGTIMEOUT
