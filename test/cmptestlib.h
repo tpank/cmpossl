@@ -18,7 +18,6 @@
 # include <openssl/pem.h>
 # include <openssl/rand.h>
 
-# include "../include/openssl/cmp_util.h"
 # include "testutil.h"
 
 # ifndef OPENSSL_NO_CMP

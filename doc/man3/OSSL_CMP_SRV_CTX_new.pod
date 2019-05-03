@@ -114,12 +114,6 @@ NULL on error.
 
 All other functions return 1 on success, 0 on error.
 
-=head1 EXAMPLE
-
-
-=head1 SEE ALSO
-
-
 =head1 COPYRIGHT
 
 Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.

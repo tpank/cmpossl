@@ -11,7 +11,6 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#include <string.h>
 #include <stdio.h>
 #ifndef _WIN32
 #include <dirent.h>
@@ -19,14 +18,12 @@
 
 #include <openssl/asn1t.h>
 
-#include <openssl/cmp_util.h>
 #include "cmp_int.h"
 
 /* explicit #includes not strictly needed since implied by the above: */
 #include <openssl/cmp.h>
 #include <openssl/crmf.h>
 #include <openssl/err.h>
-#include <openssl/x509v3.h>
 
 /*
  * Get current certificate store containing trusted root CA certs
@@ -1195,54 +1192,54 @@ int OSSL_CMP_CTX_push_freeText(OSSL_CMP_CTX *ctx, const char *text)
  * sets a BOOLEAN or INT option of the context to the "val" arg
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_ctx_option opt, int val) {
+int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_CMP_option opt, int val) {
     if (ctx == NULL)
         goto err;
     switch (opt) {
-    case OSSL_CMP_CTX_OPT_IMPLICITCONFIRM:
+    case OSSL_CMP_OPT_IMPLICITCONFIRM:
         ctx->implicitConfirm = val;
         break;
     /* to cope with broken server ignoring implicit confirmation */
-    case OSSL_CMP_CTX_OPT_DISABLECONFIRM:
+    case OSSL_CMP_OPT_DISABLECONFIRM:
         ctx->disableConfirm = val;
         break;
-    case OSSL_CMP_CTX_OPT_UNPROTECTED_SEND:
+    case OSSL_CMP_OPT_UNPROTECTED_SEND:
         ctx->unprotectedSend = val;
         break;
-    case OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS:
+    case OSSL_CMP_OPT_UNPROTECTED_ERRORS:
         ctx->unprotectedErrors = val;
         break;
-    case OSSL_CMP_CTX_OPT_VALIDITYDAYS:
+    case OSSL_CMP_OPT_VALIDITYDAYS:
         ctx->days = val;
         break;
-    case OSSL_CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT:
+    case OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT:
         ctx->SubjectAltName_nodefault = val;
         break;
-    case OSSL_CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL:
+    case OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL:
         ctx->setSubjectAltNameCritical = val;
         break;
-    case OSSL_CMP_CTX_OPT_POLICIES_CRITICAL:
+    case OSSL_CMP_OPT_POLICIES_CRITICAL:
         ctx->setPoliciesCritical = val;
         break;
-    case OSSL_CMP_CTX_OPT_IGNORE_KEYUSAGE:
+    case OSSL_CMP_OPT_IGNORE_KEYUSAGE:
         ctx->ignore_keyusage = val;
         break;
-    case OSSL_CMP_CTX_OPT_POPOMETHOD:
+    case OSSL_CMP_OPT_POPOMETHOD:
         ctx->popoMethod = val;
         break;
-    case OSSL_CMP_CTX_OPT_DIGEST_ALGNID:
+    case OSSL_CMP_OPT_DIGEST_ALGNID:
         ctx->digest = val;
         break;
-    case OSSL_CMP_CTX_OPT_MSGTIMEOUT:
+    case OSSL_CMP_OPT_MSGTIMEOUT:
         ctx->msgtimeout = val;
         break;
-    case OSSL_CMP_CTX_OPT_TOTALTIMEOUT:
+    case OSSL_CMP_OPT_TOTALTIMEOUT:
         ctx->totaltimeout = val;
         break;
-    case OSSL_CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR:
+    case OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR:
         ctx->permitTAInExtraCertsForIR = val;
         break;
-    case OSSL_CMP_CTX_OPT_REVOCATION_REASON:
+    case OSSL_CMP_OPT_REVOCATION_REASON:
         ctx->revocationReason = val;
         break;
     default:
@@ -1254,120 +1251,26 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_ctx_option opt, int val) {
     return 0;
 }
 
-int OSSL_CMP_log_init(void)
-{
-    return 1;
-}
-
-void OSSL_CMP_log_close(void)
-{
-    ;
-}
-
-/* prints log messages to given stream fd */
-static int CMP_log_fd(const char *component, const char *file, int lineno,
-                      OSSL_CMP_severity level, const char *msg, FILE *fd)
-{
-    char *lvl = NULL;
-    int msg_len;
-    int msg_nl;
-    char loc[256];
-    int len = 0;
-
-    if (component == NULL)
-        component = "(no component)";
-    if (file == NULL)
-        file = "(no file)";
-    if (msg == NULL)
-        msg = "(no message)";
-
-#ifndef NDEBUG
-    len  = snprintf(loc+len , sizeof(loc)-len, "%s():", component);
-    len += snprintf(loc+len , sizeof(loc)-len, "%s:", file);
-    len += snprintf(loc+len , sizeof(loc)-len, "%d:", lineno);
-#else
-    if (level == OSSL_LOG_DEBUG)
-        return 1;
-    len += snprintf(loc+len , sizeof(loc)-len, "CMP");
-#endif
-
-    switch(level) {
-    case OSSL_LOG_EMERG  : lvl = "EMERGENCY"; break;
-    case OSSL_LOG_ALERT  : lvl = "ALERT"; break;
-    case OSSL_LOG_CRIT   : lvl = "CRITICAL" ; break;
-    case OSSL_LOG_ERR    : lvl = "ERROR"; break;
-    case OSSL_LOG_WARNING: lvl = "WARNING" ; break;
-    case OSSL_LOG_NOTICE : lvl = "NOTICE" ; break;
-    case OSSL_LOG_INFO   : lvl = "INFO" ; break;
-#ifndef NDEBUG
-    case OSSL_LOG_DEBUG  : lvl = "DEBUG"; break;
-#endif
-    default: break;
-    }
-
-    if (lvl != NULL)
-        len += snprintf(loc+len , sizeof(loc)-len, " %s", lvl);
-    msg_len = strlen(msg);
-    msg_nl = msg_len > 0 && msg[msg_len-1] == '\n';
-    len = fprintf(fd, "%s: %s%s", loc, msg, msg_nl != 0 ? "" : "\n");
-
-    return fflush(fd) != EOF && len >= 0;
-}
-
-/* prints errors and warnings to stderr, info and debug messages to stdout */
-int OSSL_CMP_puts(const char *component, const char *file, int lineno,
-                  OSSL_CMP_severity level, const char *msg)
-{
-#ifndef OPENSSL_NO_STDIO
-    FILE *fd = level <= OSSL_LOG_WARNING ? stderr : stdout;
-    return CMP_log_fd(component, file, lineno, level, msg, fd);
-#endif
-}
-
 /*
- * Function used for outputting error/warn/debug messages depending on callback.
- * By default or if the callback is NULL the function OSSL_CMP_puts() is used.
+ * Function used for outputting error/warn/debug messages depending on
+ * log callback in ctx. By default the function OSSL_CMP_puts() is used.
  */
 int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
                     const char *func, const char *file, int lineno,
                     OSSL_CMP_severity level, const char *fmt, ...)
 {
-    va_list arg_ptr;
-    char component[256];
-    char msg[1024];
+    va_list argp;
     int res;
-    OSSL_cmp_log_cb_t log_fn =
-        ctx == NULL || ctx->log_cb == NULL ? OSSL_CMP_puts : ctx->log_cb;
+    OSSL_cmp_log_cb_t log_fn = ctx == NULL ? NULL : ctx->log_cb;
 
-    BIO_snprintf(component, sizeof(component), "OpenSSL:%s", func);
-    va_start(arg_ptr, fmt);
-    BIO_vsnprintf(msg, sizeof(msg), fmt, arg_ptr);
-    res = (*log_fn)(component, file, lineno, level, msg);
-    va_end(arg_ptr);
+    va_start(argp, fmt);
+    res = OSSL_CMP_log_printf(log_fn, func, file, lineno, level, fmt, argp);
+    va_end(argp);
     return res;
 }
 
-/* print OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
+/* print OpenSSL and CMP errors via the log cb of the ctx or OSSL_CMP_puts */
 void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx)
 {
-    unsigned long err;
-    char component[256];
-    char msg[4096];
-    const char *file, *data;
-    int line, flags;
-    OSSL_cmp_log_cb_t log_fn =
-        ctx == NULL || ctx->log_cb == NULL ? OSSL_CMP_puts : ctx->log_cb;
-
-    while ((err = ERR_get_error_line_data(&file, &line, &data, &flags)) != 0) {
-        if (!(flags & ERR_TXT_STRING))
-            data = NULL;
-        BIO_snprintf(component, sizeof(component), "OpenSSL:%s",
-                     /* ERR_lib_error_string(err), */
-                     ERR_func_error_string(err));
-        BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
-                     data == NULL ? "" : " : ", data == NULL ? "" : data);
-        if (log_fn(component, file, line, OSSL_LOG_ERR, msg) <= 0)
-            break;              /* abort outputting the error report */
-    }
+    OSSL_CMP_print_errors_cb(ctx == NULL ? NULL : ctx->log_cb);
 }
-

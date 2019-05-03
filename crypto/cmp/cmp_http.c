@@ -539,7 +539,7 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     BIO *bio = NULL;
     OCSP_REQ_CTX *rctx = NULL;
     int use_ssl;
-    int rv = 0;
+    int rv = -4;
     time_t max_time = req_timeout > 0 ? time(NULL) + req_timeout : 0;
 
     if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl))

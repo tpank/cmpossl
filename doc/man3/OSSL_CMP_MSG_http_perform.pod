@@ -16,6 +16,9 @@ OSSL_CMP_load_cert_crl_http_timeout
                                OSSL_CMP_MSG **res);
  int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
                             BIO *bio_err, const char *prog);
+ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
+                                         X509 **pcert, X509_CRL **pcrl,
+                                         BIO *bio_err);
 
 =head1 DESCRIPTION
 
@@ -30,6 +33,13 @@ given in the ctx via the TLS-capable proxy referenced in the given bio.
 Any message timeout contanined the ctx is respected.
 The bio_err and prog arguments are used just for error printing.
 
+OSSL_CMP_load_cert_crl_http_timeout() is a generalization of
+B<load_cert_crl_http()> from B<apps/apps.c>.
+It loads a certificate (if B<pcert> != NULL) or else a CRL via the given URL
+with the given timeout. Any errors are reported via B<bio_err> (if not NULL).
+On success the resulting cert or CRL is assigned to B<*pcert> or B<*pcrl>,
+respectively.
+
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
@@ -40,6 +50,9 @@ OSSL_CMP_MSG_http_perform() returns 0 on success or else an error reason code.
 It uses ctx->http_cb if set and respects ctx->msgTimeOut.
 
 OSSL_CMP_proxy_connect() returns 1 on success and 0 on error.
+
+OSSL_CMP_load_cert_crl_http_timeout() returns 1 on success, 0 on timeout, -1 on
+parse error, -2 on a receive error, -3 on send error, or -4 on other error.
 
 =head1 SEE ALSO
 
