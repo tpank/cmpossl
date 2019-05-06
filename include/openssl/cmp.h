@@ -227,7 +227,7 @@ typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
 /*
  * function DECLARATIONS
  */
-/* cmp_lib.c */
+/* cmp_lib.c *//* TODO make all internal: */
 int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *statusInfo);
 OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(const OSSL_CMP_PKISI *si);
 ASN1_BIT_STRING *OSSL_CMP_PKISI_failInfo_get0(const OSSL_CMP_PKISI *si);
@@ -238,7 +238,7 @@ char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
 OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
                                         const char *text);
 
-/* cmp_msg.c */
+/* cmp_msg.c *//* TODO make all internal: */
 /* OSSL_CMP_MSG bodytype ASN.1 choice IDs */
 #  define OSSL_CMP_PKIBODY_IR        0
 #  define OSSL_CMP_PKIBODY_IP        1
@@ -301,12 +301,14 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
 OSSL_CMP_MSG *OSSL_CMP_MSG_load(const char *file);
 
 /* cmp_hdr.c */
+/* exported for testing and debugging purposes: */
 OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr);
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
+/* TODO make all following of cmp_hdr.c internal: */
 int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
 int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr);
-ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr);
 ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr);
-ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
 int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int OSSL_CMP_HDR_update_messageTime(OSSL_CMP_PKIHEADER *hdr);
