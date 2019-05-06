@@ -694,35 +694,70 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  * functions
  */
 
-/* from cmp_msg.c */
-
 /* from cmp_lib.c */
 /* get ASN.1 encoded integer, return -1 on error */
 int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a);
 
 /*
-OSSL_CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
-to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
-It returns the new/updated freeText. On error it frees ft and returns NULL.
-*/
-OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
-                                               const char *text);
-
-/*
-OSSL_CMP_REVREPCONTENT_PKIStatusInfo_get() returns the status field of the
+CMP_REVREPCONTENT_PKIStatusInfo_get() returns the status field of the
 RevRepContent with the given request/sequence id inside a revocation response
 (matching the sequence id as sent in the RevReqContent), or NULL on error.
 */
 OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
                                                     int rsid);
 /*
-OSSL_CMP_REVREPCONTENT_CertId_get() returns the CertId field of the
+CMP_REVREPCONTENT_CertId_get() returns the CertId field of the
 RevRepContent with the given request/sequence id inside a revocation response
 (matching the sequence id as sent in the RevReqContent), or NULL on error.
 */
 OSSL_CRMF_CERTID *CMP_REVREPCONTENT_CertId_get(OSSL_CMP_REVREPCONTENT *rrep,
                                                int rsid);
+/*
+CMP_POLLREPCONTENT_pollRep_get0() returns a pointer to the PollRep
+with the given certReqId (or the first one in case -1) inside a PollRepContent.
+If no suitable PollRep is available or if there is an error, it returns NULL.
+*/
+OSSL_CMP_POLLREP
+ *CMP_POLLREPCONTENT_pollRep_get0(const OSSL_CMP_POLLREPCONTENT *prc, int rid);
 
+/*
+CMP_CERTREPMESSAGE_certResponse_get0() returns a pointer to the CertResponse
+with the given certReqId (or the first one in case -1 inside a CertRepMessage.
+If no suitable CertResponse is available or there is an error, it returns NULL.
+*/
+OSSL_CMP_CERTRESPONSE
+ *CMP_CERTREPMESSAGE_certResponse_get0(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
+                                       int rid);
+
+/*
+CMP_CERTRESPONSE_get_certificate() attempts to retrieve the returned
+certificate from the given certResponse B<crep>.
+Takes the newKey in case of indirect POP from B<ctx>.
+Returns a pointer to a copy of the found certificate, or NULL if not found.
+*/
+X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
+                                       const OSSL_CMP_CERTRESPONSE *crep);
+
+/* from cmp_hdr.c */
+
+/*
+CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
+to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
+It returns the new/updated freeText. On error it frees ft and returns NULL.
+*/
+OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
+                                          const char *text);
+int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg);
+
+/* from cmp_msg.c */
+/*
+CMP_calc_protection() calculates the protection for a PKImessage using the given
+credentials and the algorithm parameters set inside the header's protectionAlg.
+Does PBMAC in case B<secret> is non-NULL and signature using B<pkey> otherwise.
+*/
+ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
+                                     const ASN1_OCTET_STRING *secret,
+                                     EVP_PKEY *pkey);
 /*
 OSSL_CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
 using the same hash algorithm as is used to create and verify the
@@ -732,42 +767,6 @@ example, to confirm that the certificate was received successfully.
 */
 int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
                                 const X509 *cert);
-int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **
-                              itav_sk_p, OSSL_CMP_ITAV *itav);
-
-/*
-OSSL_CMP_CERTRESPONSE_get_certificate() attempts to retrieve the returned
-certificate from the given certResponse B<crep>.
-Takes the newKey in case of indirect POP from B<ctx>.
-Returns a pointer to a copy of the found certificate, or NULL if not found.
-*/
-X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
-                                       const OSSL_CMP_CERTRESPONSE *crep);
-/*
-OSSL_CMP_POLLREPCONTENT_pollRep_get0() returns a pointer to the PollRep
-with the given certReqId (or the first one in case -1) inside a PollRepContent.
-If no suitable PollRep is available or if there is an error, it returns NULL.
-*/
-OSSL_CMP_POLLREP
-*CMP_POLLREPCONTENT_pollRep_get0(const OSSL_CMP_POLLREPCONTENT *prc, int rid);
-/*
-OSSL_CMP_CERTREPMESSAGE_certResponse_get0() returns a pointer to the
-CertResponse
-with the given certReqId (or the first one in case -1 inside a CertRepMessage.
-If no suitable CertResponse is available or there is an error, it returns NULL.
-*/
-OSSL_CMP_CERTRESPONSE
-*CMP_CERTREPMESSAGE_certResponse_get0(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
-                                      int rid);
-/*
-OSSL_CMP_calc_protection()
-calculates the protection for given PKImessage utilizing the given credentials
-and the algorithm parameters set inside the message header's protectionAlg.
-Does PBMAC in case B<secret> is non-NULL and signature using B<pkey> otherwise.
-*/
-ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
-                                     const ASN1_OCTET_STRING *secret,
-                                     EVP_PKEY *pkey);
 
 /* from cmp_ctx.c */
 ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
@@ -781,7 +780,6 @@ int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                               STACK_OF(X509) *extraCertsIn);
 int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
                              OSSL_CMP_PKIFAILUREINFO *fail_info);
-int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg);
 #ifdef CMP_POOR_LOG
 #define CMP_LOG(x)  CMP_log_printf x /* poor man's variadic macro for C90;
    calls need argument(s) in doubly nested parentheses: LOG((args)) */

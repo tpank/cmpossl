@@ -11,6 +11,8 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
+/* CMP functions for PKIMessage checking */
+
 #include "cmp_int.h"
 
 /* explicit #includes not strictly needed since implied by the above: */
@@ -815,4 +817,123 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
         OPENSSL_free(str);
     }
     return fail_info;
+}
+
+/* prepend list of certs to given sk as far as not yet present in sk */
+static int sk_prepend1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs)
+{
+    int i;
+
+    if (sk == NULL)
+        return 0;
+
+    for (i = sk_X509_num(certs) - 1; i >= 0 ; i--) {
+        if (!OSSL_CMP_sk_X509_add1_cert(sk, sk_X509_value(certs, i),
+                                        1 /* no_duplicates */, 1 /* prepend */))
+            return 0;
+    }
+    return 1;
+}
+
+/*
+ * Checks received message (i.e., response by server or request from client)
+ * Any msg->extraCerts are prepended to ctx->untrusted_certs
+ *
+ * Ensures that:
+ * it has a valid body type,
+ * its protection is valid or absent (allowed only if callback function is
+ * present and function yields positive result using also supplied argument),
+ * its transaction ID matches stored in ctx (if any),
+ * and its recipNonce matches the senderNonce in ctx.
+ *
+ * If everything is fine:
+ * learns the senderNonce from the received message,
+ * learns the transaction ID if it is not yet in ctx.
+ *
+ * returns body type (which is >= 0) of the message on success, -1 on error
+ */
+int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
+                                OSSL_cmp_allow_unprotected_cb_t cb, int cb_arg)
+{
+    int rcvd_type;
+
+    if (ctx == NULL || msg == NULL)
+        return -1;
+
+    if (sk_X509_num(msg->extraCerts) > 10)
+        OSSL_CMP_warn(ctx,
+                      "received CMP message contains more than 10 extraCerts");
+    /*-
+     * Store any provided extraCerts in ctx for validation and for future use,
+     * such that they are also available to ctx->certConf_cb and the peer does
+     * not need to send them again in the same transaction.
+     * Note that it would not be more secure to add them after checking the msg
+     * since they are untrusted and not covered by the CMP protection anyway.
+     * For efficiency, the extraCerts are prepended so they get used first.
+     */
+    if (!sk_prepend1_certs(ctx->untrusted_certs, msg->extraCerts))
+        return -1;
+
+    /* validate message protection */
+    if (msg->header->protectionAlg != 0) {
+        /* detect explicitly permitted exceptions for invalid protection */
+        if (!OSSL_CMP_validate_msg(ctx, msg)
+                && (cb == NULL || !(*cb)(ctx, msg, 1, cb_arg))) {
+             CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
+                    CMP_R_ERROR_VALIDATING_PROTECTION);
+             return -1;
+         }
+    } else {
+        /* detect explicitly permitted exceptions for missing protection */
+        if (cb == NULL || !(*cb)(ctx, msg, 0, cb_arg)) {
+            CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
+                   CMP_R_MISSING_PROTECTION);
+            return -1;
+        }
+        OSSL_CMP_warn(ctx, "received CMP message is not protected");
+    }
+
+    /* check CMP version number in header */
+    if (OSSL_CMP_HDR_get_pvno(OSSL_CMP_MSG_get0_header(msg)) != OSSL_CMP_PVNO) {
+        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED, CMP_R_UNEXPECTED_PVNO);
+        return -1;
+    }
+
+    /* compare received transactionID with the expected one in previous msg */
+    if (ctx->transactionID != NULL
+            && (msg->header->transactionID == NULL
+                || ASN1_OCTET_STRING_cmp(ctx->transactionID,
+                                         msg->header->transactionID) != 0)) {
+        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
+               CMP_R_TRANSACTIONID_UNMATCHED);
+        return -1;
+    }
+
+    /* compare received nonce with the one we sent */
+    if (ctx->last_senderNonce != NULL
+            && (msg->header->recipNonce == NULL
+                    || ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
+                                             msg->header->recipNonce) != 0)) {
+        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
+               CMP_R_RECIPNONCE_UNMATCHED);
+        return -1;
+    }
+
+    /*
+     * RFC 4210 section 5.1.1 states: the recipNonce is copied from
+     * the senderNonce of the previous message in the transaction.
+     * --> Store for setting in next message */
+    if (!CMP_CTX_set1_recipNonce(ctx, msg->header->senderNonce))
+        return -1;
+
+    /* if not yet present, learn transactionID */
+    if (ctx->transactionID == NULL
+           && !OSSL_CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
+        return -1;
+
+    if ((rcvd_type = OSSL_CMP_MSG_get_bodytype(msg)) < 0) {
+        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED, CMP_R_PKIBODY_ERROR);
+        return -1;
+    }
+    return rcvd_type;
 }

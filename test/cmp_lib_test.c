@@ -29,7 +29,7 @@ typedef struct test_fixture {
     int expected;
     OSSL_CMP_CTX *cmp_ctx;
     OSSL_CMP_MSG *msg;
-    allow_unprotected_cb_t allow_unprotected_cb;
+    OSSL_cmp_allow_unprotected_cb_t allow_unprotected_cb;
     int callback_arg;
     X509 *cert;
     STACK_OF(X509) *certs;
