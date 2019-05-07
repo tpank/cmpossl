@@ -392,7 +392,7 @@ static void add_expected_rid(int rid)
  * returns NULL on error or if no suitable PollResponse available
  */
 OSSL_CMP_POLLREP
- *CMP_POLLREPCONTENT_pollRep_get0(const OSSL_CMP_POLLREPCONTENT *prc, int rid)
+*CMP_POLLREPCONTENT_pollRep_get0(const OSSL_CMP_POLLREPCONTENT *prc, int rid)
 {
     OSSL_CMP_POLLREP *pollRep = NULL;
     int i;
@@ -420,8 +420,8 @@ OSSL_CMP_POLLREP
  * returns NULL on error or if no suitable CertResponse available
  */
 OSSL_CMP_CERTRESPONSE
- *CMP_CERTREPMESSAGE_certResponse_get0(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
-                                       int rid)
+*CMP_CERTREPMESSAGE_certResponse_get0(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
+                                      int rid)
 {
     OSSL_CMP_CERTRESPONSE *crep = NULL;
     int i;
@@ -445,9 +445,11 @@ OSSL_CMP_CERTRESPONSE
 }
 
 /*
- * Retrieve a copy of the certificate, if any, from the given CertResponse.
- * returns NULL if not found or on error
- */
+CMP_CERTRESPONSE_get_certificate() attempts to retrieve the returned
+certificate from the given certResponse B<crep>.
+Takes the newKey in case of indirect POP from B<ctx>.
+Returns a pointer to a copy of the found certificate, or NULL if not found.
+*/
 X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_CERTRESPONSE *crep)
 {
