@@ -8,10 +8,7 @@ OSSL_CMP_HDR_push0_freeText,
 OSSL_CMP_HDR_push1_freeText,
 OSSL_CMP_MSG_create,
 OSSL_CMP_MSG_load,
-OSSL_CMP_MSG_get0_header,
-OSSL_CMP_HDR_get0_transactionID,
 OSSL_CMP_HDR_get0_senderNonce,
-OSSL_CMP_HDR_get0_recipNonce,
 OSSL_CMP_HDR_init,
 OSSL_CMP_HDR_set1_recipient,
 OSSL_CMP_HDR_set1_sender,
@@ -25,9 +22,7 @@ OSSL_CMP_MSG_genm_items_push1,
 OSSL_CMP_MSG_get_bodytype,
 OSSL_CMP_MSG_set_bodytype,
 OSSL_CMP_MSG_protect,
-OSSL_CMP_MSG_add_extraCerts,
-OSSL_CMP_build_cert_chain,
-OSSL_CMP_MSG_check_received
+OSSL_CMP_MSG_add_extraCerts
 - functions manipulating CMP messages
 
 =head1 SYNOPSIS
@@ -40,10 +35,7 @@ OSSL_CMP_MSG_check_received
                                            STACK_OF(OSSL_CMP_ITAV) *itavs);
   int OSSL_CMP_HDR_push0_freeText( OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
   int OSSL_CMP_HDR_push1_freeText( OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
-  OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
-  ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr);
   ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr);
-  ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
   int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
   int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
   int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
@@ -62,13 +54,9 @@ OSSL_CMP_MSG_check_received
   int OSSL_CMP_MSG_set_bodytype( OSSL_CMP_MSG *msg, int type);
   int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
   int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
-  STACK_OF(X509) *OSSL_CMP_build_cert_chain(X509_STORE *store,
-                                            X509 *cert);
   typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
                                          const OSSL_CMP_MSG *msg,
                                          int invalid_protection, int arg);
-  int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-                                  allow_unprotected_cb_t cb, int cb_arg);
 
 =head1 DESCRIPTION
 
@@ -92,14 +80,7 @@ Returns pointer to created OSSL_CMP_MSG on success, NULL on error.
 OSSL_CMP_MSG *OSSL_CMP_MSG_load() loads a OSSL_CMP_MSG from a B<file>.
 Returns pointer to created OSSL_CMP_MSG on success, NULL on error.
 
-OSSL_CMP_MSG_get0_header returns the header of the given CMP message.
-
-OSSL_CMP_HDR_get0_transactionID returns the transaction ID of the given
-PKIHeader.
-
 OSSL_CMP_HDR_get0_senderNonce returns the sender nonce of the given PKIHeader.
-
-OSSL_CMP_HDR_get0_recipNonce returns the recipient nonce of the given PKIHeader.
 
 OSSL_CMP_HDR_init() initializes a PKIHeader structure based on the
 values in the given OSSL_CMP_CTX structure.
@@ -144,23 +125,6 @@ selects PBMAC. If not and there is a clCert it selects Signature.  Generates and
 sets the protection to the given message.
 
 OSSL_CMP_MSG_add_extraCerts() fills the extraCerts field in the message.
-
-OSSL_CMP_build_cert_chain() builds up the certificate chain of cert as high up
-as possible using the given X509_STORE containing all possible intermediate
-certificates and optionally the (possible) trust anchor(s).
-
-OSSL_CMP_MSG_check_received() checks for the given message received (i.e.,
-response by server or request from client) whether it has a valid body type,
-its protection is accepted,
-its transaction ID matches the one of the previous message (if any), and
-its recipNonce matches the senderNonce of the previous message (if any).
-The message protection is accepted if it is present and can be validated,
-but also if it is absent or invalid and the callback function B<cb> is not NULL
-and yields non-zero result using B<ctx>, B<msg>, a flag whether the message
-protection is present but invalid, and the supplied argument B<cb_arg>.
-If so, learns from the message received the senderNonce and the transaction ID
-if not yet present in the ctx.  It returns the body type (which is >= 0) of the
-message on success, -1 on error.
 
 =head1 NOTES
 
