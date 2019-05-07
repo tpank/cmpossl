@@ -721,85 +721,125 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
 /*
  * functions
  */
-
 /* from cmp_lib.c */
-/* get ASN.1 encoded integer, return -1 on error */
 int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a);
-
-/*
-CMP_REVREPCONTENT_PKIStatusInfo_get() returns the status field of the
-RevRepContent with the given request/sequence id inside a revocation response
-(matching the sequence id as sent in the RevReqContent), or NULL on error.
-*/
+int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *statusInfo);
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(const OSSL_CMP_PKISI *si);
+ASN1_BIT_STRING *OSSL_CMP_PKISI_failInfo_get0(const OSSL_CMP_PKISI *si);
+int OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si);
+int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index);
+#  define OSSL_CMP_PKISI_BUFLEN 1024
+char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
+OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
+                                        const char *text);
 OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
                                                     int rsid);
-/*
-CMP_REVREPCONTENT_CertId_get() returns the CertId field of the
-RevRepContent with the given request/sequence id inside a revocation response
-(matching the sequence id as sent in the RevReqContent), or NULL on error.
-*/
 OSSL_CRMF_CERTID *CMP_REVREPCONTENT_CertId_get(OSSL_CMP_REVREPCONTENT *rrep,
                                                int rsid);
-/*
-CMP_POLLREPCONTENT_pollRep_get0() returns a pointer to the PollRep
-with the given certReqId (or the first one in case -1) inside a PollRepContent.
-If no suitable PollRep is available or if there is an error, it returns NULL.
-*/
 OSSL_CMP_POLLREP
  *CMP_POLLREPCONTENT_pollRep_get0(const OSSL_CMP_POLLREPCONTENT *prc, int rid);
-
-/*
-CMP_CERTREPMESSAGE_certResponse_get0() returns a pointer to the CertResponse
-with the given certReqId (or the first one in case -1 inside a CertRepMessage.
-If no suitable CertResponse is available or there is an error, it returns NULL.
-*/
 OSSL_CMP_CERTRESPONSE
  *CMP_CERTREPMESSAGE_certResponse_get0(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
                                        int rid);
-
-/*
-CMP_CERTRESPONSE_get_certificate() attempts to retrieve the returned
-certificate from the given certResponse B<crep>.
-Takes the newKey in case of indirect POP from B<ctx>.
-Returns a pointer to a copy of the found certificate, or NULL if not found.
-*/
 X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_CERTRESPONSE *crep);
 
 /* from cmp_hdr.c */
-
-/*
-CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
-to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
-It returns the new/updated freeText. On error it frees ft and returns NULL.
-*/
+int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
+int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr);
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr);
+int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
+int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
+int OSSL_CMP_HDR_update_messageTime(OSSL_CMP_PKIHEADER *hdr);
+int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
+                                const ASN1_OCTET_STRING *senderKID);
+int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr,
+                                ASN1_UTF8STRING *text);
+int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr,
+                                 ASN1_UTF8STRING *text);
 OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
                                           const char *text);
+int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
+                                        OSSL_CMP_ITAV *itav);
+int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
+                                         STACK_OF(OSSL_CMP_ITAV) *itavs);
 int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg);
+int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg);
+#  define OSSL_CMP_TRANSACTIONID_LENGTH 16
+#  define OSSL_CMP_SENDERNONCE_LENGTH 16
+int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
 
 /* from cmp_msg.c */
-/*
-CMP_calc_protection() calculates the protection for a PKImessage using the given
-credentials and the algorithm parameters set inside the header's protectionAlg.
-Does PBMAC in case B<secret> is non-NULL and signature using B<pkey> otherwise.
-*/
+/* OSSL_CMP_MSG bodytype ASN.1 choice IDs */
+#  define OSSL_CMP_PKIBODY_IR        0
+#  define OSSL_CMP_PKIBODY_IP        1
+#  define OSSL_CMP_PKIBODY_CR        2
+#  define OSSL_CMP_PKIBODY_CP        3
+#  define OSSL_CMP_PKIBODY_P10CR     4
+#  define OSSL_CMP_PKIBODY_POPDECC   5
+#  define OSSL_CMP_PKIBODY_POPDECR   6
+#  define OSSL_CMP_PKIBODY_KUR       7
+#  define OSSL_CMP_PKIBODY_KUP       8
+#  define OSSL_CMP_PKIBODY_KRR       9
+#  define OSSL_CMP_PKIBODY_KRP      10
+#  define OSSL_CMP_PKIBODY_RR       11
+#  define OSSL_CMP_PKIBODY_RP       12
+#  define OSSL_CMP_PKIBODY_CCR      13
+#  define OSSL_CMP_PKIBODY_CCP      14
+#  define OSSL_CMP_PKIBODY_CKUANN   15
+#  define OSSL_CMP_PKIBODY_CANN     16
+#  define OSSL_CMP_PKIBODY_RANN     17
+#  define OSSL_CMP_PKIBODY_CRLANN   18
+#  define OSSL_CMP_PKIBODY_PKICONF  19
+#  define OSSL_CMP_PKIBODY_NESTED   20
+#  define OSSL_CMP_PKIBODY_GENM     21
+#  define OSSL_CMP_PKIBODY_GENP     22
+#  define OSSL_CMP_PKIBODY_ERROR    23
+#  define OSSL_CMP_PKIBODY_CERTCONF 24
+#  define OSSL_CMP_PKIBODY_POLLREQ  25
+#  define OSSL_CMP_PKIBODY_POLLREP  26
+int OSSL_CMP_MSG_set_bodytype(OSSL_CMP_MSG *msg, int type);
+int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
+OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype);
 ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      const ASN1_OCTET_STRING *secret,
                                      EVP_PKEY *pkey);
-/*
-OSSL_CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
-using the same hash algorithm as is used to create and verify the
-certificate signature, and places the hash into the certHash field of a
-OSSL_CMP_CERTSTATUS structure. This is used in the certConf message, for
-example, to confirm that the certificate was received successfully.
-*/
+int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
+int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
+OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype,
+                                   int err_code);
+OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
+                                   int certReqId, OSSL_CMP_PKISI *si,
+                                   X509 *cert, STACK_OF(X509) *chain,
+                                   STACK_OF(X509) *caPubs, int encrypted,
+                                   int unprotectedErrors);
+OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx);
+OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
+                              OSSL_CRMF_CERTID *certId,
+                              int unprot_err);
+OSSL_CMP_MSG *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
+int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
+int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
+                                  STACK_OF(OSSL_CMP_ITAV) *itavs);
+OSSL_CMP_MSG *OSSL_CMP_genm_new(OSSL_CMP_CTX *ctx);
+OSSL_CMP_MSG *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx);
+OSSL_CMP_MSG *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
+                                 int errorCode,
+                                 OSSL_CMP_PKIFREETEXT *errorDetails,
+                                 int unprotected);
 int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
                                 const X509 *cert);
+OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
+                                    const char *text);
+OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int crid);
+OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
+                                   int64_t poll_after);
+OSSL_CMP_MSG *OSSL_CMP_MSG_load(const char *file);
 
 /* from cmp_ctx.c */
-ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
 int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
                             const ASN1_OCTET_STRING *nonce);
+ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
 ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx);
 int CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
 X509 *CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
@@ -808,20 +848,6 @@ int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                               STACK_OF(X509) *extraCertsIn);
 int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
                              OSSL_CMP_PKIFAILUREINFO *fail_info);
-#ifdef CMP_POOR_LOG
-#define CMP_LOG(x)  CMP_log_printf x /* poor man's variadic macro for C90;
-                                      * calls need argument(s) in doubly nested
-                                      * parentheses: LOG((args))
-                                      */
-/*
- * C99 would allow  #define LOG(...) log_print(__VA_ARGS__)  where
- * the argument(s) could be given in normal parentheses: LOG(args)
- */
-/* See also, e.g., https://en.wikipedia.org/wiki/Variadic_macro */
-int CMP_log_printf(const char *file, int line, OSSL_CMP_severity level,
-                   const char *fmt,...);
-#endif
-
 /* from cmp_vfy.c */
 void put_cert_verify_err(int func, int err);
 

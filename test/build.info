@@ -451,7 +451,7 @@ IF[{- !$disabled{tests} -}]
 
   SOURCE[cmp_vfy_test]=cmp_vfy_test.c cmptestlib.c
   INCLUDE[cmp_vfy_test]=.. ../include ../apps/include
-  DEPEND[cmp_vfy_test]=../libcrypto libtestutil.a
+  DEPEND[cmp_vfy_test]=../libcrypto.a libtestutil.a
 
   SOURCE[cmp_lib_test]=cmp_lib_test.c cmptestlib.c
   INCLUDE[cmp_lib_test]=.. ../include ../apps/include
@@ -459,7 +459,7 @@ IF[{- !$disabled{tests} -}]
 
   SOURCE[cmp_ctx_test]=cmp_ctx_test.c cmptestlib.c
   INCLUDE[cmp_ctx_test]=.. ../include ../apps/include
-  DEPEND[cmp_ctx_test]=../libcrypto libtestutil.a
+  DEPEND[cmp_ctx_test]=../libcrypto.a libtestutil.a
 
   SOURCE[cmp_ses_test]=cmp_ses_test.c cmptestlib.c
   INCLUDE[cmp_ses_test]=.. ../include ../apps/include

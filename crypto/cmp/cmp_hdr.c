@@ -243,10 +243,10 @@ int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 }
 
 /*
- * Pushes the given text string (unless it is NULL) to the given ft or to a
- * newly allocated freeText if ft is NULL.
- * Returns the new/updated freeText. On error frees ft and returns NULL
- */
+CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
+to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
+It returns the new/updated freeText. On error it frees ft and returns NULL.
+*/
 OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
                                                const char *text)
 {

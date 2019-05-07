@@ -990,7 +990,13 @@ OSSL_CMP_MSG *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     return NULL;
 }
 
-/* set cert hash in certStatus of certConf messages according to 5.3.18 */
+/*
+OSSL_CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
+using the same hash algorithm as is used to create and verify the
+certificate signature, and places the hash into the certHash field of a
+OSSL_CMP_CERTSTATUS structure. This is used in the certConf message, for
+example, to confirm that the certificate was received successfully.
+*/
 int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
                                 const X509 *cert)
 {
