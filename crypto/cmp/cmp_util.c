@@ -274,7 +274,7 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store)
     return sk;
 }
 
-/*
+/*-
  * Builds up the certificate chain of certs as high up as possible using
  * the given list of certs containing all possible intermediate certificates and
  * optionally the (possible) trust anchor(s). See also ssl_add_cert_chain().

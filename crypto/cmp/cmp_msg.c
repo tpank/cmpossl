@@ -852,7 +852,6 @@ OSSL_CMP_MSG *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx)
 
 /*
  * push given InfoTypeAndValue item to the stack in a general message (GenMsg).
- *
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
@@ -876,7 +875,6 @@ int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
 
 /*
  * push a copy of the given itav stack the body of a general message (GenMsg).
- *
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
@@ -991,12 +989,12 @@ OSSL_CMP_MSG *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
 }
 
 /*
-OSSL_CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
-using the same hash algorithm as is used to create and verify the
-certificate signature, and places the hash into the certHash field of a
-OSSL_CMP_CERTSTATUS structure. This is used in the certConf message, for
-example, to confirm that the certificate was received successfully.
-*/
+ * OSSL_CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
+ * using the same hash algorithm as is used to create and verify the
+ * certificate signature, and places the hash into the certHash field of a
+ * OSSL_CMP_CERTSTATUS structure. This is used in the certConf message, for
+ * example, to confirm that the certificate was received successfully.
+ */
 int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
                                 const X509 *cert)
 {

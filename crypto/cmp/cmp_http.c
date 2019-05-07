@@ -216,9 +216,11 @@ retry:
         goto end;
     }
 
-    /* TODO: this does not necessarily catch the case when the full HTTP
-             response came in in more than a single TCP message */
-    /* Read past all following headers */
+    /*
+     * TODO: this does not necessarily catch the case when the full HTTP
+     * response came in in more than a single TCP message
+     * Read past all following headers
+     */
     do {
         mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
     } while (mbuf_len > 2);
@@ -454,9 +456,11 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     if ((hbio = CMP_new_http_bio(ctx)) == NULL)
         goto err;
 
-    /* TODO: it looks like bio_connect() is superfluous except for maybe
-       better error/timeout handling and reporting? Remove next 9 lines? */
-    /* tentatively set error, which allows accumulating diagnostic info */
+    /*
+     * TODO: it looks like bio_connect() is superfluous except for maybe
+     * better error/timeout handling and reporting? Remove next 9 lines?
+     * tentatively set error, which allows accumulating diagnostic info
+     */
 #if 1
     (void)ERR_set_mark();
     CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);

@@ -273,7 +273,7 @@ char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
  * Creates a new PKIStatusInfo structure and fills it in
  * returns a pointer to the structure on success, NULL on error
  * note: strongly overlaps with TS_RESP_CTX_set_status_info()
- *       and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
+ * and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
  */
 OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
                                         const char *text)
@@ -444,12 +444,11 @@ OSSL_CMP_CERTRESPONSE
     return NULL;
 }
 
-/*
-CMP_CERTRESPONSE_get_certificate() attempts to retrieve the returned
-certificate from the given certResponse B<crep>.
-Takes the newKey in case of indirect POP from B<ctx>.
-Returns a pointer to a copy of the found certificate, or NULL if not found.
-*/
+/* CMP_CERTRESPONSE_get_certificate() attempts to retrieve the returned
+ * certificate from the given certResponse B<crep>.
+ * Takes the newKey in case of indirect POP from B<ctx>.
+ * Returns a pointer to a copy of the found certificate, or NULL if not found.
+ */
 X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_CERTRESPONSE *crep)
 {

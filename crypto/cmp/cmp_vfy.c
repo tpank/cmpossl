@@ -327,7 +327,8 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
 }
 
 /* return 0 if time should not be checked or reference time is within frame,
-   or else 1 if it s past the end, or -1 if it is before the start */
+ * or else 1 if it s past the end, or -1 if it is before the start
+ */
 int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
                            const ASN1_TIME *end, X509_VERIFY_PARAM *vpm)
 {
@@ -750,7 +751,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             if (ctx->srvCert != NULL)
                 (void)cert_acceptable(scrt, msg, ctx->trusted_store);
 
-            /* potentially the server cert finding algorithm took wrong cert:
+            /*
+             * potentially the server cert finding algorithm took wrong cert:
              * the server certificate may not have a subject key identifier
              * (including such in EE certs is only a "SHOULD" requirement in
              * RFC 5280, section 4.2.1.2) or the CMP server is not conforming
@@ -778,7 +780,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 }
 
 
-/*
+/*-
  * callback validating that the new certificate can be verified, using
  * ctx->certConf_cb_arg, which has been initialized using opt_out_trusted, and
  * ctx->untrusted_certs, which at this point already contains ctx->extraCertsIn.
