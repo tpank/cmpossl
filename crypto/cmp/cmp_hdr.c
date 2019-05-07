@@ -243,37 +243,6 @@ int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 }
 
 /*
- * CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
- * to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
- * It returns the new/updated freeText. On error it frees ft and returns NULL.
- */
-OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
-                                               const char *text)
-{
-    ASN1_UTF8STRING *utf8string = NULL;
-
-    if (text == NULL) {
-        return ft;
-    }
-
-    if (ft == NULL && (ft = sk_ASN1_UTF8STRING_new_null()) == NULL)
-        goto oom;
-    if ((utf8string = ASN1_UTF8STRING_new()) == NULL)
-        goto oom;
-    if (!ASN1_STRING_set(utf8string, text, (int)strlen(text)))
-        goto oom;
-    if (!(sk_ASN1_UTF8STRING_push(ft, utf8string)))
-        goto oom;
-    return ft;
-
- oom:
-    CMPerr(CMP_F_CMP_PKIFREETEXT_PUSH_STR, ERR_R_MALLOC_FAILURE);
-    sk_ASN1_UTF8STRING_pop_free(ft, ASN1_UTF8STRING_free);
-    ASN1_UTF8STRING_free(utf8string);
-    return NULL;
-}
-
-/*
  * push given itav to message header
  * returns 1 on success, 0 on error
  */
@@ -291,7 +260,7 @@ int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr, OSSL_CMP_ITAV *
     return 0;
 }
 
-int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
+int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_MSG *msg,
                                          STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
@@ -310,7 +279,7 @@ int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
 
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_MSG_GENERALINFO_ITEMS_PUSH1,
+    CMPerr(CMP_F_OSSL_CMP_HDR_GENERALINFO_ITEMS_PUSH1,
            CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS);
     return 0;
 }
@@ -319,7 +288,7 @@ int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
  * sets implicitConfirm in the generalInfo field of the PKIMessage header
  * returns 1 on success, 0 on error
  */
-int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg)
+int CMP_HDR_set_implicitConfirm(OSSL_CMP_MSG *msg)
 {
     OSSL_CMP_ITAV *itav = NULL;
 
@@ -341,7 +310,7 @@ int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg)
  * checks if implicitConfirm in the generalInfo field of the header is set
  * returns 1 if it is set, 0 if not
  */
-int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg)
+int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_MSG *msg)
 {
     int itavCount;
     int i;

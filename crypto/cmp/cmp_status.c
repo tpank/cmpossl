@@ -27,6 +27,8 @@
 #include <openssl/objects.h>
 #include <openssl/x509.h>
 
+/* CMP functions related to PKIStatus */
+
 /* get ASN.1 encoded integer, return -1 on error */
 int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a)
 {

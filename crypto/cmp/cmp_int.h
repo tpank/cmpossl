@@ -721,7 +721,7 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
 /*
  * functions
  */
-/* from cmp_lib.c */
+/* from cmp_status.c */
 int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a);
 int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *statusInfo);
 OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(const OSSL_CMP_PKISI *si);
@@ -757,14 +757,12 @@ int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr,
                                 ASN1_UTF8STRING *text);
 int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
-OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
-                                          const char *text);
 int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
                                         OSSL_CMP_ITAV *itav);
-int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
+int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_MSG *msg,
                                          STACK_OF(OSSL_CMP_ITAV) *itavs);
-int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg);
-int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg);
+int CMP_HDR_set_implicitConfirm(OSSL_CMP_MSG *msg);
+int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_MSG *msg);
 #  define OSSL_CMP_TRANSACTIONID_LENGTH 16
 #  define OSSL_CMP_SENDERNONCE_LENGTH 16
 int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
@@ -801,11 +799,6 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
 int OSSL_CMP_MSG_set_bodytype(OSSL_CMP_MSG *msg, int type);
 int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
 OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype);
-ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
-                                     const ASN1_OCTET_STRING *secret,
-                                     EVP_PKEY *pkey);
-int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
-int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype,
                                    int err_code);
 OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
@@ -834,6 +827,8 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
 OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int crid);
 OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
                                    int64_t poll_after);
+OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
+                                               const char *text);
 OSSL_CMP_MSG *OSSL_CMP_MSG_load(const char *file);
 
 /* from cmp_ctx.c */
@@ -855,5 +850,10 @@ void put_cert_verify_err(int func, int err);
 int CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info, const char *txt);
 int CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
                             const char *txt);
-
+/* from cmp_protect.c */
+ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
+                                     const ASN1_OCTET_STRING *secret,
+                                     EVP_PKEY *pkey);
+int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
+int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 #endif /* !defined OSSL_HEADER_CMP_INT_H */

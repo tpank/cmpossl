@@ -317,9 +317,9 @@ static int
 execute_cmp_pkimessage_set_and_check_implicit_confirm_test(CMP_LIB_TEST_FIXTURE
                                                            * fixture)
 {
-    return TEST_false(OSSL_CMP_MSG_check_implicitConfirm(fixture->msg))
-               && TEST_true(CMP_MSG_set_implicitConfirm(fixture->msg))
-               && TEST_true(OSSL_CMP_MSG_check_implicitConfirm(fixture->msg));
+    return TEST_false(OSSL_CMP_HDR_check_implicitConfirm(fixture->msg))
+               && TEST_true(CMP_HDR_set_implicitConfirm(fixture->msg))
+               && TEST_true(OSSL_CMP_HDR_check_implicitConfirm(fixture->msg));
 }
 
 static int test_cmp_protection_unprotected_request(void)
