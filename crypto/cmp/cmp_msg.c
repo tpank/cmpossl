@@ -22,6 +22,11 @@
 #include <openssl/err.h>
 #include <openssl/x509.h>
 
+OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
+{
+    return msg != NULL ? msg->header : NULL;
+}
+
 int OSSL_CMP_MSG_set_bodytype(OSSL_CMP_MSG *msg, int type)
 {
     if (msg == NULL || msg->body == NULL)
@@ -120,7 +125,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype)
     if (!OSSL_CMP_HDR_init(ctx, msg->header)
             || !OSSL_CMP_MSG_set_bodytype(msg, bodytype)
             || (ctx->geninfo_itavs != NULL
-                && !OSSL_CMP_HDR_generalInfo_items_push1(msg,
+                && !OSSL_CMP_HDR_generalInfo_items_push1(msg->header,
                                                          ctx->geninfo_itavs)))
         goto err;
 
@@ -329,7 +334,7 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
 
     /* header */
     if (ctx->implicitConfirm)
-        if (!CMP_HDR_set_implicitConfirm(msg))
+        if (!CMP_HDR_set_implicitConfirm(msg->header))
             goto err;
 
     /* body */
@@ -385,7 +390,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
     repMsg = msg->body->value.ip; /* value.ip is same for cp and kup */
 
     /* header */
-    if (ctx->implicitConfirm && !CMP_HDR_set_implicitConfirm(msg))
+    if (ctx->implicitConfirm && !CMP_HDR_set_implicitConfirm(msg->header))
         goto oom;
 
     /* body */
@@ -861,37 +866,6 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
  err:
     CMPerr(CMP_F_OSSL_CMP_POLLREP_NEW, CMP_R_ERROR_CREATING_POLLREP);
     OSSL_CMP_MSG_free(msg);
-    return NULL;
-}
-
-/*
- * CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
- * to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
- * It returns the new/updated freeText. On error it frees ft and returns NULL.
- */
-OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
-                                               const char *text)
-{
-    ASN1_UTF8STRING *utf8string = NULL;
-
-    if (text == NULL) {
-        return ft;
-    }
-
-    if (ft == NULL && (ft = sk_ASN1_UTF8STRING_new_null()) == NULL)
-        goto oom;
-    if ((utf8string = ASN1_UTF8STRING_new()) == NULL)
-        goto oom;
-    if (!ASN1_STRING_set(utf8string, text, (int)strlen(text)))
-        goto oom;
-    if (!(sk_ASN1_UTF8STRING_push(ft, utf8string)))
-        goto oom;
-    return ft;
-
- oom:
-    CMPerr(CMP_F_CMP_PKIFREETEXT_PUSH_STR, ERR_R_MALLOC_FAILURE);
-    sk_ASN1_UTF8STRING_pop_free(ft, ASN1_UTF8STRING_free);
-    ASN1_UTF8STRING_free(utf8string);
     return NULL;
 }
 
