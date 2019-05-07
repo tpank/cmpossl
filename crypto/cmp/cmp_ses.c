@@ -131,7 +131,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                 /* a specific error could be misleading here */
                 return 0;
             }
-            /*
+            /*-
              * TODO: handle multiple CertResponses in CertRepMsg, in case
              *       multiple requests have been sent -->  GitHub issue#67
              */
@@ -183,7 +183,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO, "sending %s", type_string);
     if (ctx->transfer_cb != NULL)
         err = (ctx->transfer_cb)(ctx, req, rep);
-        /* may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
+        /*-
+         * may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
          *                 or CMP_R_ERROR_TRANSFERRING_IN
          * DO NOT DELETE the two error reason codes in this comment, they are
          * for mkerr.pl
@@ -265,7 +266,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             int64_t check_after;
             OSSL_CMP_POLLREPCONTENT *prc = prep->body->value.pollRep;
 
-            /*
+            /*-
              * TODO: handle multiple PollRepContent elements, in case
              *       multiple requests have been sent -->  GitHub issue#67
              */
@@ -338,8 +339,10 @@ int CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,const char *txt)
     OSSL_CMP_MSG *PKIconf = NULL;
     int success = 0;
 
-    /* check if all necessary options are set done by OSSL_CMP_certConf_new */
-    /* create Certificate Confirmation - certConf */
+    /*
+     * check if all necessary options are set done by OSSL_CMP_certConf_new */
+    /* create Certificate Confirmation - certConf
+     */
     if ((certConf = OSSL_CMP_certConf_new(ctx, fail_info, txt)) == NULL)
         goto err;
 
@@ -369,8 +372,10 @@ int CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
     OSSL_CMP_MSG *PKIconf = NULL;
     int success = 0;
 
-    /* check if all necessary options are set is done in OSSL_CMP_error_new */
-    /* create Error Message - error */
+    /*
+     * check if all necessary options are set is done in OSSL_CMP_error_new
+     * create Error Message - error
+     */
     if ((si = OSSL_CMP_statusInfo_new(status, fail_info, txt)) == NULL)
         goto err;
     if ((error = OSSL_CMP_error_new(ctx, si, -1, NULL, 0)) == NULL)
@@ -605,8 +610,10 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
             txt = "CMP client application did not accept newly enrolled certificate";
     }
 
-    /* TODO: better move certConf exchange to do_certreq_seq() such that
-       also more low-level errors with CertReqMessages get reported to server */
+    /*
+     * TODO: better move certConf exchange to do_certreq_seq() such that
+     * also more low-level errors with CertReqMessages get reported to server
+     */
     if (!ctx->disableConfirm && !OSSL_CMP_MSG_check_implicitConfirm(*resp))
         if (!CMP_exchange_certConf(ctx, fail_info, txt))
             ret = 0;

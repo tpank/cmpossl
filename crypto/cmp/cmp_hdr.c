@@ -243,10 +243,10 @@ int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 }
 
 /*
-CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
-to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
-It returns the new/updated freeText. On error it frees ft and returns NULL.
-*/
+ * CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
+ * to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
+ * It returns the new/updated freeText. On error it frees ft and returns NULL.
+ */
 OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
                                                const char *text)
 {
@@ -275,7 +275,6 @@ OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
 
 /*
  * push given itav to message header
- *
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr, OSSL_CMP_ITAV *itav)
@@ -318,7 +317,6 @@ int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
 
 /*
  * sets implicitConfirm in the generalInfo field of the PKIMessage header
- *
  * returns 1 on success, 0 on error
  */
 int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg)
@@ -341,7 +339,6 @@ int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg)
 
 /*
  * checks if implicitConfirm in the generalInfo field of the header is set
- *
  * returns 1 if it is set, 0 if not
  */
 int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg)
@@ -367,7 +364,6 @@ int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg)
 /*
  * Initialize the given PkiHeader structure with values set in the OSSL_CMP_CTX
  * This starts a new transaction in case ctx->transactionID is NULL.
- *
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
@@ -441,7 +437,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
                                          ctx->transactionID))
         goto err;
 
-    /*
+    /*-
      * set random senderNonce
      * according to section 5.1.1:
      *
@@ -461,10 +457,10 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
     OSSL_CMP_CTX_set1_last_senderNonce(ctx, hdr->senderNonce);
 
 #if 0
-    /*
-       freeText                [7] PKIFreeText                         OPTIONAL,
-       -- this may be used to indicate context-specific instructions
-       -- (this field is intended for human consumption)
+    /*-
+     * freeText                [7] PKIFreeText OPTIONAL,
+     * -- this may be used to indicate context-specific instructions
+     * -- (this field is intended for human consumption)
      */
     if (ctx->freeText != NULL)
         if (!OSSL_CMP_HDR_push1_freeText(hdr, ctx->freeText))
