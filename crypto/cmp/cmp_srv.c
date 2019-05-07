@@ -258,7 +258,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         certOut = srv_ctx->certOut;
         chainOut = srv_ctx->chainOut;
         caPubs = srv_ctx->caPubsOut;
-        if (OSSL_CMP_MSG_check_implicitConfirm(certReq)
+        if (OSSL_CMP_HDR_check_implicitConfirm(certReq)
                 && srv_ctx->grantImplicitConfirm)
             OSSL_CMP_CTX_set_option(srv_ctx->ctx,
                                     OSSL_CMP_OPT_IMPLICITCONFIRM, 1);

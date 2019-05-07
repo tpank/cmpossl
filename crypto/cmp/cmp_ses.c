@@ -614,7 +614,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
      * TODO: better move certConf exchange to do_certreq_seq() such that
      * also more low-level errors with CertReqMessages get reported to server
      */
-    if (!ctx->disableConfirm && !OSSL_CMP_MSG_check_implicitConfirm(*resp))
+    if (!ctx->disableConfirm && !OSSL_CMP_HDR_check_implicitConfirm(*resp))
         if (!CMP_exchange_certConf(ctx, fail_info, txt))
             ret = 0;
 

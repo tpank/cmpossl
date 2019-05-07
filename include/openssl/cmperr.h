@@ -63,10 +63,10 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_CERTREP_NEW                       120
 #  define CMP_F_OSSL_CMP_CERTREQ_NEW                       121
 #  define CMP_F_OSSL_CMP_CTX_CAPUBS_GET1                   122
-#  define CMP_F_OSSL_CMP_CTX_NEW                           123
 #  define CMP_F_OSSL_CMP_CTX_EXTRACERTSIN_GET1             124
 #  define CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1           125
 #  define CMP_F_OSSL_CMP_CTX_INIT                          126
+#  define CMP_F_OSSL_CMP_CTX_NEW                           123
 #  define CMP_F_OSSL_CMP_CTX_PUSH_FREETEXT                 127
 #  define CMP_F_OSSL_CMP_CTX_SET0_NEWPKEY                  128
 #  define CMP_F_OSSL_CMP_CTX_SET0_PKEY                     129
@@ -99,6 +99,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_EXEC_KUR_SES                      162
 #  define CMP_F_OSSL_CMP_EXEC_P10CR_SES                    163
 #  define CMP_F_OSSL_CMP_EXEC_RR_SES                       164
+#  define CMP_F_OSSL_CMP_HDR_GENERALINFO_ITEMS_PUSH1       145
 #  define CMP_F_OSSL_CMP_HDR_GENERALINFO_ITEM_PUSH0        165
 #  define CMP_F_OSSL_CMP_HDR_GET_PVNO                      166
 #  define CMP_F_OSSL_CMP_HDR_INIT                          167
