@@ -753,16 +753,18 @@ int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
 int OSSL_CMP_HDR_update_messageTime(OSSL_CMP_PKIHEADER *hdr);
 int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
                                 const ASN1_OCTET_STRING *senderKID);
+OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
+                                               const char *text);
 int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr,
                                 ASN1_UTF8STRING *text);
 int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
 int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
                                         OSSL_CMP_ITAV *itav);
-int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_MSG *msg,
+int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_PKIHEADER *hdr,
                                          STACK_OF(OSSL_CMP_ITAV) *itavs);
-int CMP_HDR_set_implicitConfirm(OSSL_CMP_MSG *msg);
-int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_MSG *msg);
+int CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr);
+int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_PKIHEADER *hdr);
 #  define OSSL_CMP_TRANSACTIONID_LENGTH 16
 #  define OSSL_CMP_SENDERNONCE_LENGTH 16
 int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
@@ -827,8 +829,6 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
 OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int crid);
 OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
                                    int64_t poll_after);
-OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
-                                               const char *text);
 OSSL_CMP_MSG *OSSL_CMP_MSG_load(const char *file);
 
 /* from cmp_ctx.c */

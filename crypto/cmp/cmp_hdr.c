@@ -22,11 +22,6 @@
 #include <openssl/cmp.h>
 #include <openssl/err.h>
 
-OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
-{
-    return msg != NULL ? msg->header : NULL;
-}
-
 /*
  * Sets the protocol version number in PKIHeader.
  * returns 1 on success, 0 on error
@@ -208,6 +203,37 @@ int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
     return OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->senderKID, senderKID);
 }
 
+/*
+ * CMP_PKIFREETEXT_push_str() pushes the given text string (unless it is NULL)
+ * to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
+ * It returns the new/updated freeText. On error it frees ft and returns NULL.
+ */
+OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
+                                               const char *text)
+{
+    ASN1_UTF8STRING *utf8string = NULL;
+
+    if (text == NULL) {
+        return ft;
+    }
+
+    if (ft == NULL && (ft = sk_ASN1_UTF8STRING_new_null()) == NULL)
+        goto oom;
+    if ((utf8string = ASN1_UTF8STRING_new()) == NULL)
+        goto oom;
+    if (!ASN1_STRING_set(utf8string, text, (int)strlen(text)))
+        goto oom;
+    if (!(sk_ASN1_UTF8STRING_push(ft, utf8string)))
+        goto oom;
+    return ft;
+
+ oom:
+    CMPerr(CMP_F_CMP_PKIFREETEXT_PUSH_STR, ERR_R_MALLOC_FAILURE);
+    sk_ASN1_UTF8STRING_pop_free(ft, ASN1_UTF8STRING_free);
+    ASN1_UTF8STRING_free(utf8string);
+    return NULL;
+}
+
 /* push given ASN1_UTF8STRING to hdr->freeText and consume the given pointer */
 int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
@@ -260,18 +286,18 @@ int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr, OSSL_CMP_ITAV *
     return 0;
 }
 
-int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_MSG *msg,
+int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_PKIHEADER *hdr,
                                          STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
     OSSL_CMP_ITAV *itav = NULL;
 
-    if (msg == NULL)
+    if (hdr == NULL)
         goto err;
 
     for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
         itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i));
-        if (!OSSL_CMP_HDR_generalInfo_item_push0(msg->header, itav)) {
+        if (!OSSL_CMP_HDR_generalInfo_item_push0(hdr, itav)) {
             OSSL_CMP_ITAV_free(itav);
             goto err;
         }
@@ -288,17 +314,17 @@ int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_MSG *msg,
  * sets implicitConfirm in the generalInfo field of the PKIMessage header
  * returns 1 on success, 0 on error
  */
-int CMP_HDR_set_implicitConfirm(OSSL_CMP_MSG *msg)
+int CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
 {
     OSSL_CMP_ITAV *itav = NULL;
 
-    if (msg == NULL)
+    if (hdr == NULL)
         goto err;
 
     if ((itav = OSSL_CMP_ITAV_create(OBJ_nid2obj(NID_id_it_implicitConfirm),
                                      (ASN1_TYPE *)ASN1_NULL_new())) == NULL)
         goto err;
-    if (!OSSL_CMP_HDR_generalInfo_item_push0(msg->header, itav))
+    if (!OSSL_CMP_HDR_generalInfo_item_push0(hdr, itav))
         goto err;
     return 1;
  err:
@@ -310,19 +336,19 @@ int CMP_HDR_set_implicitConfirm(OSSL_CMP_MSG *msg)
  * checks if implicitConfirm in the generalInfo field of the header is set
  * returns 1 if it is set, 0 if not
  */
-int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_MSG *msg)
+int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
 {
     int itavCount;
     int i;
     OSSL_CMP_ITAV *itav = NULL;
 
-    if (msg == NULL)
+    if (hdr == NULL)
         return 0;
 
-    itavCount = sk_OSSL_CMP_ITAV_num(msg->header->generalInfo);
+    itavCount = sk_OSSL_CMP_ITAV_num(hdr->generalInfo);
 
     for (i = 0; i < itavCount; i++) {
-        itav = sk_OSSL_CMP_ITAV_value(msg->header->generalInfo, i);
+        itav = sk_OSSL_CMP_ITAV_value(hdr->generalInfo, i);
         if (OBJ_obj2nid(itav->infoType) == NID_id_it_implicitConfirm)
             return 1;
     }
