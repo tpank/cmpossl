@@ -2,122 +2,18 @@
 
 =head1 NAME
 
-OSSL_CMP_HDR_generalInfo_item_push0,
-OSSL_CMP_MSG_generalInfo_items_push1,
-OSSL_CMP_HDR_push0_freeText,
-OSSL_CMP_HDR_push1_freeText,
-OSSL_CMP_MSG_create,
-OSSL_CMP_MSG_load,
-OSSL_CMP_HDR_get0_senderNonce,
-OSSL_CMP_HDR_init,
-OSSL_CMP_HDR_set1_recipient,
-OSSL_CMP_HDR_set1_sender,
-OSSL_CMP_HDR_set1_senderKID,
-OSSL_CMP_HDR_update_messageTime,
-OSSL_CMP_HDR_set_pvno,
-OSSL_CMP_HDR_get_pvno,
-OSSL_CMP_MSG_check_implicitConfirm,
-OSSL_CMP_MSG_genm_item_push0,
-OSSL_CMP_MSG_genm_items_push1,
-OSSL_CMP_MSG_get_bodytype,
-OSSL_CMP_MSG_set_bodytype,
 OSSL_CMP_MSG_protect,
 OSSL_CMP_MSG_add_extraCerts
-- functions manipulating CMP messages
+- functions manipulating CMP message protection
 
 =head1 SYNOPSIS
 
-  #include <openssl/cmp.h>
+  #include "cmp_int.h"
 
-  int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
-                                          OSSL_CMP_ITAV *itav);
-  int OSSL_CMP_MSG_generalInfo_items_push1(OSSL_CMP_MSG *msg,
-                                           STACK_OF(OSSL_CMP_ITAV) *itavs);
-  int OSSL_CMP_HDR_push0_freeText( OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
-  int OSSL_CMP_HDR_push1_freeText( OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
-  ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr);
-  int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
-  int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
-  int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm);
-  int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
-                                  const ASN1_OCTET_STRING *senderKID);
-  int OSSL_CMP_HDR_update_messageTime(OSSL_CMP_PKIHEADER *hdr);
-  int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
-  int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr);
-  int OSSL_CMP_MSG_check_implicitConfirm(OSSL_CMP_MSG *msg);
-  OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype);
-  OSSL_CMP_MSG *OSSL_CMP_MSG_load(const char *file);
-  int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
-  int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
-                                    STACK_OF(OSSL_CMP_ITAV) *itavs);
-  int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
-  int OSSL_CMP_MSG_set_bodytype( OSSL_CMP_MSG *msg, int type);
   int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
   int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
-  typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
-                                         const OSSL_CMP_MSG *msg,
-                                         int invalid_protection, int arg);
 
 =head1 DESCRIPTION
-
-OSSL_CMP_HDR_generalInfo_item_push0() adds the given InfoTypeAndValue
-item to the hdr->generalInfo stack. Consumes the B<itav> pointer.
-
-OSSL_CMP_MSG_generalInfo_items_push1() adds a copy of the B<itavs> stack to
-the generalInfo field of PKIheader of the B<msg>. Does not consume the B<itavs>
-pointer.
-
-OSSL_CMP_HDR_push0_freeText() pushes an ASN1_UTF8STRING to
-hdr->freeText and consumes the given pointer.
-
-OSSL_CMP_HDR_push1_freeText() pushes an ASN1_UTF8STRING to
-hdr->freeText and does not consume the pointer.
-
-OSSL_CMP_MSG_create() creates and initializes a OSSL_CMP_MSG structure,
-using B<ctx> for the header and B<bodytype> for the body.
-Returns pointer to created OSSL_CMP_MSG on success, NULL on error.
-
-OSSL_CMP_MSG *OSSL_CMP_MSG_load() loads a OSSL_CMP_MSG from a B<file>.
-Returns pointer to created OSSL_CMP_MSG on success, NULL on error.
-
-OSSL_CMP_HDR_get0_senderNonce returns the sender nonce of the given PKIHeader.
-
-OSSL_CMP_HDR_init() initializes a PKIHeader structure based on the
-values in the given OSSL_CMP_CTX structure.
-
-OSSL_CMP_HDR_set1_recipient() sets the recipient field in the given
-PKIHeader to the given X509 Name value, without consuming the pointer.
-
-OSSL_CMP_HDR_set1_sender() sets the sender field in the given PKIHeader
-to the given X509 Name value, without consuming the pointer.
-
-OSSL_CMP_HDR_set1_senderKID() Sets hdr->senderKID to the given
-string. In IR this is the reference number issued by the CA. In KUR
-this is set to the public key ID from the previously enrolled certificate.
-
-OSSL_CMP_HDR_update_messageTime() sets the messageTime to the current system
-time.
-
-OSSL_CMP_HDR_set_pvno() sets hdr->pvno to the given B<pvno>.
-
-OSSL_CMP_HDR_get_pvno() returns the pvno of the given B<hdr> or -1 on error.
-
-OSSL_CMP_MSG_check_implicitConfirm() returns 1 if implicitConfirm is
-set in the given PKIMessage, 0 if not.
-
-OSSL_CMP_MSG_genm_item_push0() pushes the B<itav> to the body of the
-of the PKIMessage B<msg> of GenMsg type. Consumes the B<itavs> pointer.
-
-OSSL_CMP_MSG_genm_items_push1() adds a copy of the B<itavs> stack to the body
-of the PKIMessage B<msg> of GenMsg type. Does not consume the B<itavs> pointer.
-
-OSSL_CMP_MSG_get_bodytype() returns the body type of the given
-PKIMessage.
-
-ASN1_OCTET_STRING *OSSL_CMP_MSG_get_transactionID(const OSSL_CMP_MSG *msg)
-
-OSSL_CMP_MSG_set_bodytype() sets the type of the message contained in
-the PKIMessage body field.
 
 OSSL_CMP_MSG_protect() protects the given message deciding on the algorithm
 depending on the available context information:  If there is a secretValue it
@@ -136,11 +32,6 @@ might change every release!
 =head1 RETURN VALUES
 
 See the individual functions above.
-
-=head1 SEE ALSO
-
-L<OSSL_CMP_CTX_new(3)>, L<OSSL_CMP_exec_IR_ses(3)>,
-L<OSSL_CMP_certreq_new(3)>, L<OSSL_CMP_MSG_http_perform(3)>
 
 =head1 COPYRIGHT
 
