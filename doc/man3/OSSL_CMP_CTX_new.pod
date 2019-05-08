@@ -7,6 +7,10 @@ OSSL_CMP_CTX_free,
 OSSL_CMP_CTX_set_option,
 OSSL_CMP_CTX_set_log_cb,
 OSSL_CMP_printf,
+OSSL_CMP_err,
+OSSL_CMP_warn,
+OSSL_CMP_info,
+OSSL_CMP_debug,
 OSSL_CMP_print_errors,
 OSSL_CMP_CTX_set1_serverPath,
 OSSL_CMP_CTX_set1_serverName,
@@ -73,6 +77,10 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
                      const char *func, const char *file, int lineno,
                      OSSL_CMP_severity level, const char *fmt, ...);
+ #define OSSL_CMP_err(ctx, msg)   OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)
+ #define OSSL_CMP_warn(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN , msg)
+ #define OSSL_CMP_info(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO , msg)
+ #define OSSL_CMP_debug(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_DEBUG, msg)
  void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx);
 
  /* message transfer: */
@@ -258,6 +266,11 @@ The message text is given using a format string B<fmt>
 with variable number of arguments as with printf. In debug mode
 optional information in B<func>, B<file>, and B<lineno> parameters is included.
 Output is sent to the log callback if set in B<ctx>, else to L<OSSL_CMP_puts(3)>.
+
+OSSL_CMP_err() outputs a simple error message via B<OSSL_CMP_printf()>.
+OSSL_CMP_warn() outputs a simple warning message via B<OSSL_CMP_printf()>.
+OSSL_CMP_info() outputs a simple info message via B<OSSL_CMP_printf()>.
+OSSL_CMP_debug() outputs a simple debug message via B<OSSL_CMP_printf()>.
 
 OSSL_CMP_print_errors() outputs any entries in the OpenSSL error queue.
 It uses the log callback function if set in the B<ctx>, else L<OSSL_CMP_puts(3)>.
