@@ -144,8 +144,8 @@ OSSL_CMP_rr_new() creates a Revocation Request message from the
 information set via OSSL_CMP_CTX_set1_oldClCert().
 
 OSSL_CMP_rp_new() creates a Revocation Response message with status set to
-B<si> and CertID set to B<cid>. Consumes B<cid>. Accepts unprottected errors if
-B<uprot_err> != 0;
+B<si> and CertID set to B<cid>. Consumes B<cid>.
+Accepts unprotected errors if B<uprot_err> != 0.
 
 OSSL_CMP_certConf_new() creates a Certificate Confirmation message for the last
 received certificate. PKIStatus defaults to B<accepted> if the B<fail_info> bit
@@ -160,11 +160,12 @@ B<crid>.
 OSSL_CMP_pollRep_new() creates a Polling Response message with certReqId set to
 B<crid> and pollAfter to B<poll_after>.
 
-OSSL_CMP_genm_new() creates a new General Message.
+OSSL_CMP_genm_new() creates a new General Message with an empty ITAV stack.
 
-OSSL_CMP_genp_new() creates a new General Response.
+OSSL_CMP_genp_new() creates a new General Response with an empty ITAV stack.
 
-OSSL_CMP_error_new() creates a new Error Message.
+OSSL_CMP_error_new() creates a new Error Message with the given contents,
+copying B<si> and B<errorDetails>.
 
 =head1 NOTES
 

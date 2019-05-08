@@ -4,7 +4,7 @@
 
 OSSL_CMP_MSG_protect,
 OSSL_CMP_MSG_add_extraCerts
-- functions manipulating CMP message protection
+- functions for producing CMP message protection
 
 =head1 SYNOPSIS
 
@@ -15,23 +15,27 @@ OSSL_CMP_MSG_add_extraCerts
 
 =head1 DESCRIPTION
 
-OSSL_CMP_MSG_protect() protects the given message deciding on the algorithm
-depending on the available context information:  If there is a secretValue it
-selects PBMAC. If not and there is a clCert it selects Signature.  Generates and
-sets the protection to the given message.
+OSSL_CMP_MSG_protect() protects the given message B<msg> using an algorithm
+depending on the available context information given in the B<ctx>.
+If there is a secretValue it selects PBMAC. Else if there is a clCert
+it selects Signature and uses B<OSSL_CMP_MSG_add_extraCerts()>.
+It also sets the protectionAlg field in the message header accordingly.
 
-OSSL_CMP_MSG_add_extraCerts() fills the extraCerts field in the message.
+OSSL_CMP_MSG_add_extraCerts() adds elements to the extraCerts field in the given
+message B<msg>. It tries to build the certificate chain of the client cert in
+the B<ctx> if present by using certificates in ctx->untrusted_certs;
+if no untrusted certs are set, it will at least add the client certificate.
+In any case all the certificates explicitly specified to be sent out (i.e.,
+B<ctx->extraCertsOut>) are added. Note that it will NOT add the root certificate
+of the chain, i.e, the trust anchor (unless it is part of extraCertsOut).
 
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
-The implementation of CMP for OpenSSL is still work in progress. The API
-might change every release!
-
 =head1 RETURN VALUES
 
-See the individual functions above.
+All functions return 1 on success, 0 on error.
 
 =head1 COPYRIGHT
 

@@ -11,7 +11,7 @@
  * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-/* CMP functions related to protection and extraCert handling */
+/* CMP functions for producing msg protection including filling in extraCerts */
 
 #include "cmp_int.h"
 
@@ -21,18 +21,18 @@
 #include <openssl/crmf.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
+
 /*
- * also used for verification from cmp_vfy
+ * This function is also used for verification from cmp_vfy.
  *
- * calculate protection for given PKImessage utilizing the given credentials
+ * Calculate protection for given PKImessage utilizing the given credentials
  * and the algorithm parameters set inside the message header's protectionAlg.
  *
  * Either secret or pkey must be set, the other must be NULL. Attempts doing
  * PBMAC in case 'secret' is set and signature if 'pkey' is set - but will only
  * do the protection already marked in msg->header->protectionAlg.
  *
- * returns pointer to ASN1_BIT_STRING containing protection on success, NULL on
- * error
+ * returns ptr to ASN1_BIT_STRING containing protection on success, else NULL
  */
 ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      const ASN1_OCTET_STRING *secret,
@@ -128,18 +128,6 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
     return prot;
 }
 
-/*
- * Adds the certificates to the extraCerts field in the given message. For
- * this it tries to build the certificate chain of our client cert (ctx->clCert)
- * by using certificates in ctx->untrusted_certs. If no untrusted certs are set,
- * it will at least place the client certificate into extraCerts.
- * In any case all the certificates explicitly specified to be sent out
- * (i.e., ctx->extraCertsOut) are added.
- *
- * Note: it will NOT add the trust anchor (unless it is part of extraCertsOut).
- *
- * returns 1 on success, 0 on error
- */
 int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     int res = 0;
@@ -156,9 +144,7 @@ int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         res = sk_X509_push(msg->extraCerts, ctx->clCert)
                   && X509_up_ref(ctx->clCert);
 
-        /*
-         * if we have untrusted store, try to add intermediate certs
-         */
+        /* if we have untrusted store, try to add intermediate certs */
         if (res != 0 && ctx->untrusted_certs != NULL) {
             STACK_OF(X509) *chain =
                 OSSL_CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
@@ -183,7 +169,6 @@ int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 }
 
 /*
- * internal function
  * Create an X509_ALGOR structure for PasswordBasedMAC protection based on
  * the pbm settings in the context
  * returns pointer to X509_ALGOR on success, NULL on error
@@ -219,13 +204,7 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
     OSSL_CRMF_PBMPARAMETER_free(pbm);
     return NULL;
 }
-/*
- * Determines which kind of protection should be created, based on the ctx.
- * Sets this into the protectionAlg field in the message header.
- * Calculates the protection and sets it in the protection field.
- *
- * returns 1 on success, 0 on error
- */
+
 int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     if (ctx == NULL)
@@ -292,8 +271,10 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
                     && !OSSL_CMP_HDR_set1_senderKID(msg->header, subjKeyIDStr))
                 goto err;
 
-            /* Add ctx->clCert followed, if possible, by its chain built
-             * from ctx->untrusted_certs, and then ctx->extraCertsOut */
+            /*
+             * Add ctx->clCert followed, if possible, by its chain built
+             * from ctx->untrusted_certs, and then ctx->extraCertsOut
+             */
             OSSL_CMP_MSG_add_extraCerts(ctx, msg);
 
             if ((msg->protection =

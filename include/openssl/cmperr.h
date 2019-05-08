@@ -100,8 +100,8 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_HDR_UPDATE_MESSAGETIME            170
 #  define CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED                171
 #  define CMP_F_OSSL_CMP_MSG_CREATE                        172
-#  define CMP_F_OSSL_CMP_MSG_GENM_ITEMS_PUSH1              173
-#  define CMP_F_OSSL_CMP_MSG_GENM_ITEM_PUSH0               174
+#  define CMP_F_OSSL_CMP_MSG_GEN_ITAVS_PUSH1               173
+#  define CMP_F_OSSL_CMP_MSG_GEN_ITAV_PUSH0                174
 #  define CMP_F_OSSL_CMP_MSG_HTTP_PERFORM                  175
 #  define CMP_F_OSSL_CMP_MSG_PROTECT                       176
 #  define CMP_F_OSSL_CMP_PKICONF_NEW                       177
@@ -168,7 +168,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_ERROR_PROTECTING_MESSAGE                   134
 #  define CMP_R_ERROR_PUSHING_GENERALINFO_ITEM             135
 #  define CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS            136
-#  define CMP_R_ERROR_PUSHING_GENM_ITEMS                   137
 #  define CMP_R_ERROR_SENDING_REQUEST                      138
 #  define CMP_R_ERROR_SETTING_CERTHASH                     139
 #  define CMP_R_ERROR_TRANSFERRING_IN                      140
