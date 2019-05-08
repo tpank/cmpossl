@@ -22,10 +22,6 @@
 #include <openssl/cmp.h>
 #include <openssl/err.h>
 
-/*
- * Sets the protocol version number in PKIHeader.
- * returns 1 on success, 0 on error
- */
 int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno)
 {
     if (hdr == NULL) {
@@ -44,7 +40,6 @@ int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno)
     return 0;
 }
 
-/* returns the pvno of the given PKIHeader or -1 on error */
 int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr)
 {
     int64_t pvno;
@@ -118,11 +113,6 @@ int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
     return set1_general_name(&hdr->sender, nm);
 }
 
-/*
- * Set the recipient name of PKIHeader.
- * when nm is NULL, recipient is set to an empty string
- * returns 1 on success, 0 on error
- */
 int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
 {
     if (hdr == NULL)
@@ -131,18 +121,6 @@ int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
     return set1_general_name(&hdr->recipient, nm);
 }
 
-/*
- * (re-)set the messageTime to the current system time
- *
- * as in 5.1.1:
- *
- * The messageTime field contains the time at which the sender created
- * the message.  This may be useful to allow end entities to
- * correct/check their local time for consistency with the time on a
- * central system.
- *
- * returns 1 on success, 0 on error
- */
 int OSSL_CMP_HDR_update_messageTime(OSSL_CMP_PKIHEADER *hdr)
 {
     if (hdr == NULL)
@@ -186,15 +164,6 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
     return res;
 }
 
-/*
- * (re-)set given senderKID to given header
- *
- * senderKID: keyIdentifier of the sender's certificate or PBMAC reference value
- *       -- the reference number which the CA has previously issued
- *       -- to the end entity (together with the MACing key)
- *
- * returns 1 on success, 0 on error
- */
 int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
                                 const ASN1_OCTET_STRING *senderKID)
 {
@@ -234,7 +203,6 @@ OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
     return NULL;
 }
 
-/* push given ASN1_UTF8STRING to hdr->freeText and consume the given pointer */
 int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
     if (hdr == NULL)
@@ -256,7 +224,6 @@ int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
     return 0;
 }
 
-/* push an ASN1_UTF8STRING to hdr->freeText not consuming the given pointer */
 int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
     if (hdr == NULL || text == NULL) {
@@ -268,10 +235,6 @@ int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
     return hdr->freeText != NULL;
 }
 
-/*
- * push given itav to message header
- * returns 1 on success, 0 on error
- */
 int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr, OSSL_CMP_ITAV *itav)
 {
     if (hdr == NULL)
@@ -310,10 +273,6 @@ int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_PKIHEADER *hdr,
     return 0;
 }
 
-/*
- * sets implicitConfirm in the generalInfo field of the PKIMessage header
- * returns 1 on success, 0 on error
- */
 int CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
 {
     OSSL_CMP_ITAV *itav = NULL;
@@ -356,11 +315,6 @@ int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
     return 0;
 }
 
-/*
- * Initialize the given PkiHeader structure with values set in the OSSL_CMP_CTX
- * This starts a new transaction in case ctx->transactionID is NULL.
- * returns 1 on success, 0 on error
- */
 int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
 {
     X509_NAME *sender;

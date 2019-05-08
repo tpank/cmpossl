@@ -785,9 +785,9 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
                               OSSL_CRMF_CERTID *certId,
                               int unprot_err);
 OSSL_CMP_MSG *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
-int OSSL_CMP_MSG_genm_item_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
-int OSSL_CMP_MSG_genm_items_push1(OSSL_CMP_MSG *msg,
-                                  STACK_OF(OSSL_CMP_ITAV) *itavs);
+int OSSL_CMP_MSG_gen_ITAV_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
+int OSSL_CMP_MSG_gen_ITAVs_push1(OSSL_CMP_MSG *msg,
+                                 STACK_OF(OSSL_CMP_ITAV) *itavs);
 OSSL_CMP_MSG *OSSL_CMP_genm_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_MSG *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_MSG *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
