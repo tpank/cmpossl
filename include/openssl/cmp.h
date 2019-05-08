@@ -227,12 +227,13 @@ typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
 /*
  * function DECLARATIONS
  */
-/* cmp_msg.c */
-OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
 /* cmp_hdr.c */
 /* exported for testing and debugging purposes: */
 ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr);
 ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
+/* cmp_msg.c */
+/* exported for testing and debugging purposes: */
+OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
 /* cmp_vfy.c */
 /* TODO better push OSSL_CMP_cmp_timeframe() to crypto/x509/x509_vfy.c */
 int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
