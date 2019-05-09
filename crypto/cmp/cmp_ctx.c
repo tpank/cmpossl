@@ -12,8 +12,9 @@
  */
 
 #include <stdio.h>
-#ifndef _WIN32
-#include <dirent.h>
+#if defined OPENSSL_SYS_UNIX || defined DJGPP \
+    || (defined __VMS_VER && __VMS_VER >= 70000000)
+# include <dirent.h>
 #endif
 
 #include <openssl/asn1t.h>
