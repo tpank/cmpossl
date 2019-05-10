@@ -68,7 +68,8 @@ int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
                                       const STACK_OF(X509) *certs)
 {
     sk_X509_pop_free(ctx->untrusted_certs, X509_free);
-    ctx->untrusted_certs = sk_X509_new_null();
+    if ((ctx->untrusted_certs = sk_X509_new_null()) == NULL)
+        return 0;
     return OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, certs, 0, 1);
 }
 
@@ -81,7 +82,7 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
     OSSL_CMP_CTX *ctx = OPENSSL_zalloc(sizeof(OSSL_CMP_CTX));
 
     if (ctx == NULL)
-       goto err;
+        goto err;
 
     ctx->transfer_cb =
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
