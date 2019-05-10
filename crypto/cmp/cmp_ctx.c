@@ -44,8 +44,7 @@ X509_STORE *OSSL_CMP_CTX_get0_trustedStore(const OSSL_CMP_CTX *ctx)
  */
 int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store)
 {
-    if (ctx->trusted_store)
-        X509_STORE_free(ctx->trusted_store);
+    X509_STORE_free(ctx->trusted_store);
     ctx->trusted_store = store != NULL ? store : X509_STORE_new();;
     return ctx->trusted_store != NULL;
 }
@@ -68,8 +67,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(const OSSL_CMP_CTX *ctx)
 int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
                                       const STACK_OF(X509) *certs)
 {
-    if (ctx->untrusted_certs)
-        sk_X509_pop_free(ctx->untrusted_certs, X509_free);
+    sk_X509_pop_free(ctx->untrusted_certs, X509_free);
     ctx->untrusted_certs = sk_X509_new_null();
     return OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, certs, 0, 1);
 }
@@ -307,11 +305,7 @@ int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
         return 1;
 
     /* if there are already inbound extraCerts on the stack delete them */
-    if (ctx->extraCertsIn != NULL) {
-        sk_X509_pop_free(ctx->extraCertsIn, X509_free);
-        ctx->extraCertsIn = NULL;
-    }
-
+    sk_X509_pop_free(ctx->extraCertsIn, X509_free);
     if ((ctx->extraCertsIn = X509_chain_up_ref(extraCertsIn)) == NULL) {
         CMPerr(CMP_F_CMP_CTX_SET1_EXTRACERTSIN, ERR_R_MALLOC_FAILURE);
         return 0;
@@ -356,12 +350,7 @@ int OSSL_CMP_CTX_set1_extraCertsOut(OSSL_CMP_CTX *ctx,
         goto err;
     if (extraCertsOut == NULL)
         goto err;
-
-    if (ctx->extraCertsOut) {
-        sk_X509_pop_free(ctx->extraCertsOut, X509_free);
-        ctx->extraCertsOut = NULL;
-    }
-
+    sk_X509_pop_free(ctx->extraCertsOut, X509_free);
     if ((ctx->extraCertsOut = X509_chain_up_ref(extraCertsOut)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSOUT, ERR_R_MALLOC_FAILURE);
         return 0;
