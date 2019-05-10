@@ -286,7 +286,7 @@ IF[{- !$disabled{tests} -}]
   INCLUDE[ssl_test_ctx.o]=../include
   INCLUDE[handshake_helper.o]=.. ../include
   INCLUDE[ssltestlib.o]=.. ../include
-  INCLUDE[cmptestlib.o]=.. ../include ../apps/include
+  INCLUDE[cmp_testlib.o]=.. ../include ../apps/include
 
   SOURCE[x509aux]=x509aux.c
   INCLUDE[x509aux]=../include ../apps/include
@@ -445,23 +445,23 @@ IF[{- !$disabled{tests} -}]
     PROGRAMS{noinst}=cmp_ctx_test cmp_lib_test cmp_msg_test cmp_ses_test cmp_vfy_test
   ENDIF
 
-  SOURCE[cmp_msg_test]=cmp_msg_test.c cmptestlib.c
+  SOURCE[cmp_msg_test]=cmp_msg_test.c cmp_testlib.c
   INCLUDE[cmp_msg_test]=.. ../include ../apps/include
   DEPEND[cmp_msg_test]=../libcrypto.a libtestutil.a
 
-  SOURCE[cmp_vfy_test]=cmp_vfy_test.c cmptestlib.c
+  SOURCE[cmp_vfy_test]=cmp_vfy_test.c cmp_testlib.c
   INCLUDE[cmp_vfy_test]=.. ../include ../apps/include
   DEPEND[cmp_vfy_test]=../libcrypto.a libtestutil.a
 
-  SOURCE[cmp_lib_test]=cmp_lib_test.c cmptestlib.c
+  SOURCE[cmp_lib_test]=cmp_lib_test.c cmp_testlib.c
   INCLUDE[cmp_lib_test]=.. ../include ../apps/include
   DEPEND[cmp_lib_test]=../libcrypto.a libtestutil.a
 
-  SOURCE[cmp_ctx_test]=cmp_ctx_test.c cmptestlib.c
+  SOURCE[cmp_ctx_test]=cmp_ctx_test.c cmp_testlib.c
   INCLUDE[cmp_ctx_test]=.. ../include ../apps/include
   DEPEND[cmp_ctx_test]=../libcrypto.a libtestutil.a
 
-  SOURCE[cmp_ses_test]=cmp_ses_test.c cmptestlib.c
+  SOURCE[cmp_ses_test]=cmp_ses_test.c cmp_testlib.c
   INCLUDE[cmp_ses_test]=.. ../include ../apps/include
   DEPEND[cmp_ses_test]=../libcrypto.a libtestutil.a
 
@@ -539,7 +539,7 @@ IF[{- !$disabled{tests} -}]
     INCLUDE[sparse_array_test]=../crypto/include ../include ../apps/include
     DEPEND[sparse_array_test]=../libcrypto.a libtestutil.a
 
-    SOURCE[cmp_internal_test]=cmp_internal_test.c cmptestlib.c
+    SOURCE[cmp_internal_test]=cmp_internal_test.c cmp_testlib.c
     INCLUDE[cmp_internal_test]=.. ../include ../apps/include
     DEPEND[cmp_internal_test]=../libcrypto.a libtestutil.a
 

@@ -11,8 +11,7 @@
  * CMP tests by Martin Peylo, Tobias Pankert, and David von Oheimb.
  */
 
-#include "cmptestlib.h"
-#include "../crypto/cmp/cmp_int.h"
+#include "cmp_testlib.h"
 
 static const char *server_cert_f;
 static const char *pkcs10_f;
