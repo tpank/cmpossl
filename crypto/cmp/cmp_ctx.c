@@ -1190,7 +1190,7 @@ int OSSL_CMP_CTX_push_freeText(OSSL_CMP_CTX *ctx, const char *text)
  * sets a BOOLEAN or INT option of the context to the "val" arg
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_cmp_option opt, int val) {
+int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
     if (ctx == NULL)
         goto err;
     switch (opt) {
