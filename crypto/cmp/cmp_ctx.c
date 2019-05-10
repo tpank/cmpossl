@@ -200,11 +200,9 @@ OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_statusString_get(OSSL_CMP_CTX *ctx)
 int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb)
 {
     if (ctx == NULL)
-        goto err;
+        return 0;
     ctx->certConf_cb = cb;
     return 1;
- err:
-    return 0;
 }
 
 /*
@@ -215,11 +213,9 @@ int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb)
 int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void* arg)
 {
     if (ctx == NULL)
-        goto err;
+        return 0;
     ctx->certConf_cb_arg = arg;
     return 1;
- err:
-    return 0;
 }
 
 /*
@@ -241,11 +237,9 @@ void *OSSL_CMP_CTX_get_certConf_cb_arg(OSSL_CMP_CTX *ctx)
 int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
 {
     if (ctx == NULL)
-        goto err;
+        return 0;
     ctx->log_cb = cb;
     return 1;
- err:
-    return 0;
 }
 
 /*
@@ -378,23 +372,20 @@ int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID)
     POLICYINFO *pinfo = NULL;
 
     if ((ctx == NULL) || (policyOID == NULL))
-        goto err;
+        return 0;
 
     if ((policy = OBJ_txt2obj(policyOID, 1)) == 0)
         return -1; /* parse error */
 
     if (ctx->policies == NULL
             && (ctx->policies = CERTIFICATEPOLICIES_new()) == NULL)
-        goto err;
+        return 0;
 
     if ((pinfo = POLICYINFO_new()) == NULL)
-        goto err;
+        return 0;
     pinfo->policyid = policy;
 
     return sk_POLICYINFO_push(ctx->policies, pinfo);
-
- err:
-    return 0; /* out of memory */
 }
 
 /*
@@ -587,18 +578,15 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
 {
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_NULL_ARGUMENT);
-        goto err;
+        return 0;
     }
     if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 && exts != NULL
             && X509v3_get_ext_by_NID(exts, NID_subject_alt_name, -1) >= 0) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_MULTIPLE_SAN_SOURCES);
-        goto err;
+        return 0;
     }
     ctx->reqExtensions = exts;
     return 1;
-
- err:
-    return 0;
 }
 
 /*
@@ -640,13 +628,13 @@ int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
 {
     if (ctx == NULL || name == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, CMP_R_NULL_ARGUMENT);
-        goto err;
+        return 0;
     }
 
     if (OSSL_CMP_CTX_reqExtensions_have_SAN(ctx)) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1,
                CMP_R_MULTIPLE_SAN_SOURCES);
-        goto err;
+        return 0;
     }
 
     if ((ctx->subjectAltNames == NULL
@@ -654,12 +642,9 @@ int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
             || !sk_GENERAL_NAME_push(ctx->subjectAltNames,
                                      GENERAL_NAME_dup(name))) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, ERR_R_MALLOC_FAILURE);
-        goto err;
+        return 0;
     }
     return 1;
-
- err:
-    return 0;
 }
 
 /*
@@ -1006,12 +991,9 @@ int OSSL_CMP_CTX_set_proxyPort(OSSL_CMP_CTX *ctx, int port)
 int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_http_cb_t cb)
 {
     if (ctx == NULL)
-        goto err;
-
+        return 0;
     ctx->http_cb = cb;
     return 1;
- err:
-    return 0;
 }
 
 /*
@@ -1021,12 +1003,10 @@ int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_http_cb_t cb)
 int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
     if (ctx == NULL)
-        goto err;
+        return 0;
 
     ctx->http_cb_arg = arg;
     return 1;
- err:
-    return 0;
 }
 
 /*
@@ -1048,12 +1028,10 @@ void *OSSL_CMP_CTX_get_http_cb_arg(OSSL_CMP_CTX *ctx)
 int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_transfer_cb_t cb)
 {
     if (ctx == NULL)
-        goto err;
+        return 0;
 
     ctx->transfer_cb = cb;
     return 1;
- err:
-    return 0;
 }
 
 /*
@@ -1063,12 +1041,10 @@ int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_transfer_cb_t cb)
 int OSSL_CMP_CTX_set_transfer_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
     if (ctx == NULL)
-        goto err;
+        return 0;
 
     ctx->transfer_cb_arg = arg;
     return 1;
- err:
-    return 0;
 }
 
 /*
@@ -1192,7 +1168,7 @@ int OSSL_CMP_CTX_push_freeText(OSSL_CMP_CTX *ctx, const char *text)
  */
 int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
     if (ctx == NULL)
-        goto err;
+        return 0;
     switch (opt) {
     case OSSL_CMP_OPT_IMPLICITCONFIRM:
         ctx->implicitConfirm = val;
@@ -1241,12 +1217,10 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
         ctx->revocationReason = val;
         break;
     default:
-        goto err;
+        return 0;
     }
 
     return 1;
-  err:
-    return 0;
 }
 
 /*
