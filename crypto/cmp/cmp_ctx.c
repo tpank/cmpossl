@@ -44,6 +44,8 @@ X509_STORE *OSSL_CMP_CTX_get0_trustedStore(const OSSL_CMP_CTX *ctx)
  */
 int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store)
 {
+    if (ctx == NULL)
+       return 0;
     X509_STORE_free(ctx->trusted_store);
     ctx->trusted_store = store != NULL ? store : X509_STORE_new();;
     return ctx->trusted_store != NULL;
@@ -67,6 +69,8 @@ STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(const OSSL_CMP_CTX *ctx)
 int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
                                       const STACK_OF(X509) *certs)
 {
+    if (ctx == NULL)
+       return 0;
     sk_X509_pop_free(ctx->untrusted_certs, X509_free);
     if ((ctx->untrusted_certs = sk_X509_new_null()) == NULL)
         return 0;
@@ -604,6 +608,9 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
 int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, const X509_EXTENSIONS *exts)
 {
     int res;
+
+    if (ctx == NULL)
+       return 0;
     X509_EXTENSIONS *exts_copy = OSSL_CMP_X509_EXTENSIONS_dup(exts);
 
     if (exts != NULL && exts_copy == NULL)
