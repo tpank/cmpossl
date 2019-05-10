@@ -70,7 +70,7 @@ OSSL_CMP_CTX_set1_last_senderNonce
 
  OSSL_CMP_CTX *OSSL_CMP_CTX_new(void);
  void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
- int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_cmp_option opt, int val);
+ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
 
  /* logging: */
  int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
