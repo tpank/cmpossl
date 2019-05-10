@@ -254,7 +254,7 @@ RFC 4210.
         Else, 'digitalSignature' must be allowed by CMP signer certificates.
 
     OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR
-        Allow retrieving a trust anchor from extraCers and using that
+        Allow retrieving a trust anchor from extraCerts and using that
         to validate the certificate chain of an IP message.
 
 OSSL_CMP_CTX_set_log_cb() sets in B<ctx> the log callback function B<cb> for

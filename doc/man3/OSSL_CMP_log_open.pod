@@ -57,7 +57,7 @@ a line number (or 0) indicating the source code location, and a string
 describing the nature of the event.
 
 Even when an activity is successful some warnings may be useful and some degree
-of logging may be required. Therefore thelogging callback function has a
+of logging may be required. Therefore the logging callback function has a
 B<level> parameter indicating the severity level, such that error, warning,
 info, debug, etc. can be treated differently.
 
@@ -76,7 +76,7 @@ whereas if prints note, info, and debug messages to stdout.
 The nature of the message is specified by the B<level> parameter.
 In debug mode the message B<msg> is preceded by any component identifier
 B<component>, source file path name B<file>, and line number B<lineno>.
-It is also proceded by any given severity indication, namely, "EMERGENCY",
+It is also preceded by any given severity indication, namely, "EMERGENCY",
 "ALERT", "CRITICAL", "ERROR", "WARNING", "NOTICE", "INFO", or "DEBUG".
 
 OSSL_CMP_log_printf() outputs alert/error/warning/note/info/debug messages.
