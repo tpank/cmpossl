@@ -416,7 +416,6 @@ DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
 OSSL_CMP_CTX *OSSL_CMP_CTX_new(void);
 void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
 /* various CMP options: */
-
 #  define OSSL_CMP_OPT_MSGTIMEOUT 1
 #  define OSSL_CMP_OPT_TOTALTIMEOUT 2
 #  define OSSL_CMP_OPT_VALIDITYDAYS 3
@@ -432,7 +431,6 @@ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
 #  define OSSL_CMP_OPT_UNPROTECTED_ERRORS 13
 #  define OSSL_CMP_OPT_IGNORE_KEYUSAGE 14
 #  define OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR 15
-
 int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
 /* logging: */
 int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
