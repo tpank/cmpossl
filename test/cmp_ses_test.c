@@ -11,8 +11,7 @@
  * CMP tests by Martin Peylo, Tobias Pankert, and David von Oheimb.
  */
 
-#include "cmptestlib.h"
-#include "../crypto/cmp/cmp_int.h"
+#include "cmp_testlib.h"
 
 #ifndef NDEBUG /* tests need mock server, which is available only if !NDEBUG */
 

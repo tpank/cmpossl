@@ -11,7 +11,7 @@
  * CMP tests by Martin Peylo, Tobias Pankert, and David von Oheimb.
  */
 
-#include "cmptestlib.h"
+#include "cmp_testlib.h"
 
 typedef struct test_fixture {
     const char *test_case_name;

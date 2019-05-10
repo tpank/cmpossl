@@ -11,7 +11,7 @@
  * CMP tests by Martin Peylo, Tobias Pankert, and David von Oheimb.
  */
 
-#include "cmptestlib.h"
+#include "cmp_testlib.h"
 
 static const char *server_f;
 static const char *client_f;
