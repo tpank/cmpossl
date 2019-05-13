@@ -42,24 +42,34 @@ struct OSSL_cmp_ctx_st {
     char *proxyName;
     int proxyPort;
     int msgtimeout; /* max seconds to wait for each CMP message round trip */
-    int totaltimeout; /* maximum number seconds an enrollment may take, incl.
-         attempts polling for a response if a 'waiting' PKIStatus is received */
+    int totaltimeout; /*
+                       * maximum number seconds an enrollment may take, incl.
+                       * attempts polling for a response if a 'waiting'
+                       * PKIStatus is received
+                       */
     time_t end_time; /* session start time + totaltimeout */
     OSSL_cmp_http_cb_t http_cb;
     void *http_cb_arg; /* allows to store optional argument to cb */
 
     /* server authentication */
-    int unprotectedErrors; /* accept negative responses with no or invalid
-                              protection to cope with broken server */
+    int unprotectedErrors; /*
+                            * accept negative responses with no or invalid
+                            * protection to cope with broken server
+                            */
     X509 *srvCert; /* certificate used to identify the server */
     X509 *validatedSrvCert; /* caches an already validated server cert */
     X509_NAME *expected_sender; /* expected sender in pkiheader of response */
-    X509_STORE *trusted_store; /* store for trusted (root) certificates and
-                                  possibly CRLs and cert verify callback */
+    X509_STORE *trusted_store; /*
+                                * store for trusted (root) certificates and
+                                * possibly CRLs and cert verify callback
+                                */
     STACK_OF(X509) *untrusted_certs; /* untrusted (intermediate) certs */
     int ignore_keyusage; /* ignore key usage entry when validating certs */
-    int permitTAInExtraCertsForIR; /* whether to include root certs from
-                     extracerts when validating? Used for 3GPP-style E.7 */
+    int permitTAInExtraCertsForIR; /*
+                                    * whether to include root certs from
+                                    * extracerts when validating?
+                                    * Used for 3GPP-style E.7
+                                    */
 
     /* client authentication */
     int unprotectedSend; /* send unprotected PKI messages */
@@ -81,27 +91,38 @@ struct OSSL_cmp_ctx_st {
     ASN1_OCTET_STRING *recipNonce; /* last nonce received */
     STACK_OF(OSSL_CMP_ITAV) *geninfo_itavs;
     int implicitConfirm; /* set implicitConfirm in IR/KUR/CR messages */
-    int disableConfirm; /* disable confirmation messages in IR/KUR/CR
-                           transactions to cope with broken server */
+    int disableConfirm; /*
+                         * disable confirmation messages in IR/KUR/CR
+                         * transactions to cope with broken server
+                         */
     STACK_OF(X509) *extraCertsOut; /* to be included in request messages */
 
     /* certificate template */
     EVP_PKEY *newPkey; /* new key pair for a cert to be enrolled */
     X509_NAME *issuer; /* issuer name to used in cert template */
     int days; /* Number of days new certificates are asked to be valid for */
-    X509_NAME *subjectName; /* subject name to be used in the cert template.
-                               NB: could also be taken from clcert */
-    STACK_OF(GENERAL_NAME) *subjectAltNames; /* names to be added to the
-                            cert template as the subjectAltName extension */
+    X509_NAME *subjectName; /*
+                             * subject name to be used in the cert template.
+                             * NB: could also be taken from clcert
+                             */
+    STACK_OF(GENERAL_NAME) *subjectAltNames; /*
+                                              * names to be added to the cert
+                                              * template as the subjectAltName
+                                              * extension
+                                              */
     int SubjectAltName_nodefault;
     int setSubjectAltNameCritical;
     X509_EXTENSIONS *reqExtensions; /* exts to be added to cert template */
     CERTIFICATEPOLICIES *policies; /* policies to be included in extensions */
     int setPoliciesCritical;
-    int popoMethod; /* Proof-of-possession mechanism used.
-                       Defaults to signature (POPOsigningKey) */
-    X509 *oldClCert; /* for KUR: certificate to be updated;
-                        for RR: certificate to be revoked */
+    int popoMethod; /*
+                     * Proof-of-possession mechanism used.
+                     * Defaults to signature (POPOsigningKey)
+                     */
+    X509 *oldClCert; /*
+                      * for KUR: certificate to be updated;
+                      * for RR: certificate to be revoked
+                      */
     X509_REQ *p10CSR; /* for P10CR: PKCS#10 CSR to be sent */
 
     /* misc body contents */
@@ -120,8 +141,11 @@ struct OSSL_cmp_ctx_st {
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
 
     /* certificate confirmation */
-    OSSL_cmp_certConf_cb_t certConf_cb; /* callback for letting the app check
-                           the received certificate and reject if necessary */
+    OSSL_cmp_certConf_cb_t certConf_cb; /*
+                                         * callback for letting the app check
+                                         * the received certificate and reject
+                                         * if necessary
+                                         */
     void *certConf_cb_arg; /* allows to store an argument individual to cb */
 } /* OSSL_CMP_CTX */;
 
@@ -542,8 +566,10 @@ typedef struct OSSL_cmp_pkibody_st {
         OSSL_CRMF_MSGS *cr; /* 2 */
         OSSL_CMP_CERTREPMESSAGE *cp; /* 3 */
         /* p10cr      [4]  CertificationRequest,     --imported from [PKCS10] */
-        /* PKCS10_CERTIFICATIONREQUEST is effectively X509_REQ
-           so it is used directly */
+        /*
+         * PKCS10_CERTIFICATIONREQUEST is effectively X509_REQ
+         * so it is used directly
+         */
         X509_REQ *p10cr; /* 4 */
         /* popdecc    [5]  POPODecKeyChallContent, --pop Challenge */
         /* POPODecKeyChallContent ::= SEQUENCE OF Challenge */
@@ -579,8 +605,10 @@ typedef struct OSSL_cmp_pkibody_st {
         /* pkiconf    [19] PKIConfirmContent,        --Confirmation */
         /* OSSL_CMP_PKICONFIRMCONTENT would be only a typedef of ASN1_NULL */
         /* OSSL_CMP_CONFIRMCONTENT *pkiconf; */
-        /* NOTE: this should ASN1_NULL according to the RFC
-           but there might be a struct in it when sent from faulty servers... */
+        /*
+         * NOTE: this should ASN1_NULL according to the RFC
+         * but there might be a struct in it when sent from faulty servers...
+         */
         ASN1_TYPE *pkiconf; /* 19 */
         /* nested     [20] NestedMessageContent,     --Nested Message */
         /* NestedMessageContent ::= PKIMessages */
@@ -784,9 +812,13 @@ int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
 int CMP_MSG_set_implicitConfirm(OSSL_CMP_MSG *msg);
 #ifdef CMP_POOR_LOG
 #define CMP_LOG(x)  CMP_log_printf x /* poor man's variadic macro for C90;
-   calls need argument(s) in doubly nested parentheses: LOG((args)) */
-/* C99 would allow  #define LOG(...) log_print(__VA_ARGS__)  where
-   the argument(s) could be given in normal parentheses: LOG(args) */
+                                      * calls need argument(s) in doubly nested
+                                      * parentheses: LOG((args))
+                                      */
+/*
+ * C99 would allow  #define LOG(...) log_print(__VA_ARGS__)  where
+ * the argument(s) could be given in normal parentheses: LOG(args)
+ */
 /* See also, e.g., https://en.wikipedia.org/wiki/Variadic_macro */
 int CMP_log_printf(const char *file, int line, OSSL_CMP_severity level,
                    const char *fmt,...);

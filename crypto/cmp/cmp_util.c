@@ -199,8 +199,10 @@ int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
                                int not_duplicate, int prepend)
 {
     if (not_duplicate) {
-        /* not using sk_X509_set_cmp_func() and sk_X509_find()
-           because this re-orders the certs on the stack */
+        /*
+         * not using sk_X509_set_cmp_func() and sk_X509_find()
+         * because this re-orders the certs on the stack
+         */
         int i;
         for (i = 0; i < sk_X509_num(sk); i++)
             if (X509_cmp(sk_X509_value(sk, i), cert) == 0)

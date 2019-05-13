@@ -126,7 +126,7 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
 /*
  * Frees OSSL_CMP_CTX variables allocated in OSSL_CMP_CTX_new()
  */
-void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx) /* TODO rename to _free */
+void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return;
