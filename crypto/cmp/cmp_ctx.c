@@ -264,7 +264,7 @@ int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
 int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
                                   const size_t len)
 {
-    if (ctx == NULL){
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SECRETVALUE, CMP_R_NULL_ARGUMENT);
         return 0;
     }
@@ -295,7 +295,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(const OSSL_CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  */
 int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
-                                   STACK_OF(X509) *extraCertsIn)
+                              STACK_OF(X509) *extraCertsIn)
 {
     if (ctx == NULL) {
         CMPerr(CMP_F_CMP_CTX_SET1_EXTRACERTSIN, CMP_R_NULL_ARGUMENT);
@@ -840,7 +840,7 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  */
 int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
-                                 const ASN1_OCTET_STRING *nonce)
+                            const ASN1_OCTET_STRING *nonce)
 {
     if (ctx == NULL || nonce == NULL) {
         CMPerr(CMP_F_CMP_CTX_SET1_RECIPNONCE, CMP_R_NULL_ARGUMENT);
@@ -1067,7 +1067,7 @@ int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
  * returns 1 on success, 0 on error
  */
 int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
-                                  OSSL_CMP_PKIFAILUREINFO *fail_info)
+                             OSSL_CMP_PKIFAILUREINFO *fail_info)
 {
     int i;
 
