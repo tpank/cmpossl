@@ -27,7 +27,6 @@ EVP_PKEY *load_pem_key(const char *file)
 
     if (!TEST_ptr(bio = BIO_new(BIO_s_file())))
         return NULL;
-    /* BIO_new_file(file, "r"); */
     if (TEST_int_gt(BIO_read_filename(bio, file), 0))
         (void)TEST_ptr(key = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL));
 
@@ -42,7 +41,6 @@ X509 *load_pem_cert(const char *file)
 
     if (!TEST_ptr(bio = BIO_new(BIO_s_file())))
         return NULL;
-    /* BIO_new_file(file, "r"); */
     if (TEST_int_gt(BIO_read_filename(bio, file), 0))
         (void)TEST_ptr(cert = PEM_read_bio_X509(bio, NULL, NULL, NULL));
 
