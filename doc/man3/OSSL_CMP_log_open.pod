@@ -87,9 +87,9 @@ optional information in B<func>, B<file>, and B<lineno> parameters is included.
 It uses the log callback function if given, else B<OSSL_CMP_puts()>.
 
 OSSL_CMP_add_error_txt() appends text to the extra data field of the last
-error message in the queue, after adding the optional separator unless data
-has been empty so far. Note that, in contrast, L<ERR_add_error_data(3)> simply
-overwrites the previous contents of the data field.
+error message in the OpenSSL error queue, after adding the optional separator
+unless data has been empty so far. Note that, in contrast,
+L<ERR_add_error_data(3)> simply overwrites previous contents of the data field.
 
 OSSL_CMP_add_error_data() is a macro calling
 B<OSSL_CMP_add_error_txt()> with the separator being ":".

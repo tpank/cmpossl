@@ -39,7 +39,7 @@ OSSL_CMP_sk_X509_add1_certs() appends a list of certificates to the given list,
 optionally only if not self-signed and optionally only if not already contained.
 
 OSSL_CMP_X509_STORE_add1_certs() adds all or only self-signed certificates from
-the given stack to given store.
+the given stack to given store. The C<certs> parameter may be NULL.
 
 OSSL_CMP_X509_STORE_get1_certs() retrieves a copy of all certificates in the
 given store.
@@ -47,12 +47,12 @@ given store.
 OSSL_CMP_X509_EXTENSIONS_dup() copies a list of X.509 v3 extensions.
 
 OSSL_CMP_ASN1_OCTET_STRING_set1() frees any previous value of the variable
-referenced via the first argument and assigns either a copy of
-the src ASN1_OCTET_STRING given as the second argument or NULL.
+referenced via the C<tgt> argument and assigns either a copy of
+the ASN1_OCTET_STRING given as the C<src> argument or C<NULL>.
 It returns 1 on success, 0 on error.
 
 OSSL_CMP_ASN1_OCTET_STRING_set1_bytes() frees any previous value of the variable
-referenced via the first argument and assigns either a copy of the given byte
+referenced via the C<tgt> argument and assigns either a copy of the given byte
 string (with the given length) or NULL. It returns 1 on success, 0 on error.
 
 =head1 RETURN VALUES
