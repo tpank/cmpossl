@@ -387,7 +387,7 @@ static int test_cmp_create_genm(void)
     fixture->expected = 1;
     itv = OSSL_CMP_ITAV_create(OBJ_nid2obj(NID_id_it_implicitConfirm), NULL);
     if (!TEST_ptr(itv)
-            || !TEST_true(OSSL_CMP_CTX_genm_itav_push0(fixture->cmp_ctx, itv))) {
+            || !TEST_true(OSSL_CMP_CTX_genm_push0_ITAV(fixture->cmp_ctx, itv))) {
         OSSL_CMP_ITAV_free(itv);
         tear_down(fixture);
         fixture = NULL;

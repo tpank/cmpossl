@@ -178,7 +178,7 @@ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
  * returns the PKIStatus from the last CertRepMessage
  * or Revocation Response, -1 on error
  */
-int OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx)
+int OSSL_CMP_CTX_get_status(OSSL_CMP_CTX *ctx)
 {
     return ctx != NULL ? ctx->lastPKIStatus : -1;
 }
@@ -187,7 +187,7 @@ int OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx)
  * returns the statusString from the last CertRepMessage
  * or Revocation Response, NULL on error
  */
-OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_statusString_get(OSSL_CMP_CTX *ctx)
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(OSSL_CMP_CTX *ctx)
 {
     return ctx != NULL ? ctx->lastStatusString : NULL;
 }
@@ -278,10 +278,10 @@ int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
  * The stack is duplicated so the caller must handle freeing it!
  * returns pointer to created stack on success, NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(const OSSL_CMP_CTX *ctx)
+STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSIN_GET1, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_OSSL_CMP_CTX_GET1_EXTRACERTSIN, CMP_R_INVALID_ARGS);
         return NULL;
     }
     if (ctx->extraCertsIn == NULL)
@@ -319,16 +319,16 @@ int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
  * outbound certificates to send in the extraCerts field.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_extraCertsOut_push1(OSSL_CMP_CTX *ctx, const X509 *val)
+int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, const X509 *val)
 {
     if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_EXTRACERTSOUT, CMP_R_INVALID_ARGS);
         return 0;
     }
     if ((ctx->extraCertsOut == NULL
              && (ctx->extraCertsOut = sk_X509_new_null()) == NULL)
             || !sk_X509_push(ctx->extraCertsOut, X509_dup(val))) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1, ERR_R_MALLOC_FAILURE);
+        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_EXTRACERTSOUT, ERR_R_MALLOC_FAILURE);
         return 0;
     }
     return 1;
@@ -356,11 +356,11 @@ int OSSL_CMP_CTX_set1_extraCertsOut(OSSL_CMP_CTX *ctx,
 }
 
 /*
- * OSSL_CMP_CTX_policyOID_push1() adds the certificate policy OID given by the
+ * OSSL_CMP_CTX_push1_policyOID() adds the certificate policy OID given by the
  * string to the X509_EXTENSIONS of the requested certificate template.
  * returns 1 on success, -1 on parse error, and 0 on other error.
  */
-int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID)
+int OSSL_CMP_CTX_push1_policyOID(OSSL_CMP_CTX *ctx, const char *policyOID)
 {
     ASN1_OBJECT *policy;
     POLICYINFO *pinfo = NULL;
@@ -385,23 +385,23 @@ int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID)
 /*
  * add an itav for geninfo of the PKI message header
  */
-int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
+int OSSL_CMP_CTX_geninfo_push0_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
     if (ctx == NULL)
         return 0;
 
-    return OSSL_CMP_ITAV_stack_item_push0(&ctx->geninfo_itavs, itav);
+    return OSSL_CMP_ITAV_push0_stack_item(&ctx->geninfo_itavs, itav);
 }
 
 /*
  * add an itav for the body of outgoing general messages
  */
-int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
+int OSSL_CMP_CTX_genm_push0_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
     if (ctx == NULL)
         return 0;
 
-    return OSSL_CMP_ITAV_stack_item_push0(&ctx->genm_itavs, itav);
+    return OSSL_CMP_ITAV_push0_stack_item(&ctx->genm_itavs, itav);
 }
 
 /*
@@ -409,10 +409,10 @@ int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
  * were received in the caPubs field of the last response message.
  * returns NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_CTX_caPubs_get1(const OSSL_CMP_CTX *ctx)
+STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_CAPUBS_GET1, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_OSSL_CMP_CTX_GET1_CAPUBS, CMP_R_INVALID_ARGS);
         return NULL;
     }
     if (ctx->caPubs == NULL)
@@ -607,16 +607,16 @@ int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx)
  * request's extensions field to request subject alternative names.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
+int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
                                       const GENERAL_NAME *name)
 {
     if (ctx == NULL || name == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_SUBJECTALTNAME, CMP_R_NULL_ARGUMENT);
         return 0;
     }
 
     if (OSSL_CMP_CTX_reqExtensions_have_SAN(ctx)) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1,
+        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_SUBJECTALTNAME,
                CMP_R_MULTIPLE_SAN_SOURCES);
         return 0;
     }
@@ -625,7 +625,7 @@ int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
              && (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL)
             || !sk_GENERAL_NAME_push(ctx->subjectAltNames,
                                      GENERAL_NAME_dup(name))) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, ERR_R_MALLOC_FAILURE);
+        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_SUBJECTALTNAME, ERR_R_MALLOC_FAILURE);
         return 0;
     }
     return 1;
@@ -1089,7 +1089,7 @@ int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
  * Get the failinfo error code bits in OSSL_CMP_CTX
  * returns bit string as integer on success, -1 on error
  */
-int OSSL_CMP_CTX_failInfoCode_get(OSSL_CMP_CTX *ctx)
+int OSSL_CMP_CTX_get_failInfoCode(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return -1;

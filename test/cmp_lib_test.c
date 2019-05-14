@@ -293,16 +293,16 @@ static int execute_cmp_pkistatusinfo_test(CMP_LIB_TEST_FIXTURE *fixture)
                                           fixture->pkifailure, fixture->text)))
         goto end;
     if (!TEST_int_eq(fixture->pkistatus,
-                     OSSL_CMP_PKISI_PKIStatus_get(si))
+                     OSSL_CMP_PKISI_get_PKIStatus(si))
             || !TEST_int_eq(fixture->pkifailure,
-                            OSSL_CMP_PKISI_PKIFailureInfo_get(si)))
+                            OSSL_CMP_PKISI_get_PKIFailureInfo(si)))
         goto end;
     for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
         if (!TEST_int_eq(fixture->pkifailure >> i & 1,
                          OSSL_CMP_PKISI_PKIFailureInfo_check(si, i)))
             goto end;
     statusString =
-        sk_ASN1_UTF8STRING_value(OSSL_CMP_PKISI_statusString_get0(si), 0);
+        sk_ASN1_UTF8STRING_value(OSSL_CMP_PKISI_get0_statusString(si), 0);
     if (!TEST_ptr(statusString)
             || !TEST_str_eq(fixture->text, (char *)statusString->data))
         goto end;

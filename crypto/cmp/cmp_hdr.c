@@ -235,21 +235,21 @@ int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
     return hdr->freeText != NULL;
 }
 
-int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr, OSSL_CMP_ITAV *itav)
+int OSSL_CMP_HDR_generalInfo_push0_item(OSSL_CMP_PKIHEADER *hdr, OSSL_CMP_ITAV *itav)
 {
     if (hdr == NULL)
         goto err;
 
-    if (!OSSL_CMP_ITAV_stack_item_push0(&hdr->generalInfo, itav))
+    if (!OSSL_CMP_ITAV_push0_stack_item(&hdr->generalInfo, itav))
         goto err;
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_HDR_GENERALINFO_ITEM_PUSH0,
+    CMPerr(CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH0_ITEM,
            CMP_R_ERROR_PUSHING_GENERALINFO_ITEM);
     return 0;
 }
 
-int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_PKIHEADER *hdr,
+int OSSL_CMP_HDR_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
                                          STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
@@ -260,7 +260,7 @@ int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_PKIHEADER *hdr,
 
     for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
         itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i));
-        if (!OSSL_CMP_HDR_generalInfo_item_push0(hdr, itav)) {
+        if (!OSSL_CMP_HDR_generalInfo_push0_item(hdr, itav)) {
             OSSL_CMP_ITAV_free(itav);
             goto err;
         }
@@ -268,7 +268,7 @@ int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_PKIHEADER *hdr,
 
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_HDR_GENERALINFO_ITEMS_PUSH1,
+    CMPerr(CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH1_ITEMS,
            CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS);
     return 0;
 }
@@ -283,7 +283,7 @@ int CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
     if ((itav = OSSL_CMP_ITAV_create(OBJ_nid2obj(NID_id_it_implicitConfirm),
                                      (ASN1_TYPE *)ASN1_NULL_new())) == NULL)
         goto err;
-    if (!OSSL_CMP_HDR_generalInfo_item_push0(hdr, itav))
+    if (!OSSL_CMP_HDR_generalInfo_push0_item(hdr, itav))
         goto err;
     return 1;
  err:

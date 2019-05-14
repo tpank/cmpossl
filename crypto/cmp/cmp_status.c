@@ -49,14 +49,14 @@ int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a)
     return (int)res;
 }
 
-int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si)
+int OSSL_CMP_PKISI_get_PKIStatus(OSSL_CMP_PKISI *si)
 {
     if (si == NULL || si->status == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET,
+        CMPerr(CMP_F_OSSL_CMP_PKISI_GET_PKISTATUS,
                CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
     }
-    return CMP_ASN1_get_int(CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET, si->status);
+    return CMP_ASN1_get_int(CMP_F_OSSL_CMP_PKISI_GET_PKISTATUS, si->status);
 }
 
 /*
@@ -72,7 +72,7 @@ static char *CMP_PKISI_PKIStatus_get_string(OSSL_CMP_PKISI *si)
 {
     int PKIStatus;
 
-    if ((PKIStatus = OSSL_CMP_PKISI_PKIStatus_get(si)) < 0)
+    if ((PKIStatus = OSSL_CMP_PKISI_get_PKIStatus(si)) < 0)
         return NULL;
     switch (PKIStatus) {
     case OSSL_CMP_PKISTATUS_accepted:
@@ -100,7 +100,7 @@ static char *CMP_PKISI_PKIStatus_get_string(OSSL_CMP_PKISI *si)
  * returns a pointer to the statusString contained in a PKIStatusInfo
  * returns NULL on error
  */
-OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(const OSSL_CMP_PKISI *si)
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_get0_statusString(const OSSL_CMP_PKISI *si)
 {
     return si == NULL ? NULL : si->statusString;
 }
@@ -109,7 +109,7 @@ OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(const OSSL_CMP_PKISI *si)
  * returns a pointer to the failInfo contained in a PKIStatusInfo
  * returns NULL on error
  */
-OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_failInfo_get0(const OSSL_CMP_PKISI *si)
+OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_get0_failInfo(const OSSL_CMP_PKISI *si)
 {
     return si == NULL ? NULL : si->failInfo;
 }
@@ -118,13 +118,13 @@ OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_failInfo_get0(const OSSL_CMP_PKISI *si)
  * returns the FailureInfo bits of the given PKIStatusInfo
  * returns -1 on error
  */
-int OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si)
+int OSSL_CMP_PKISI_get_PKIFailureInfo(OSSL_CMP_PKISI *si)
 {
     int i;
     int res = 0;
 
     if (si == NULL || si->failInfo == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_PKISI_PKIFAILUREINFO_GET,
+        CMPerr(CMP_F_OSSL_CMP_PKISI_GET_PKIFAILUREINFO,
                CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
     }
@@ -217,7 +217,7 @@ static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi,
  */
 int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index)
 {
-    ASN1_BIT_STRING *fail_info = OSSL_CMP_PKISI_failInfo_get0(si);
+    ASN1_BIT_STRING *fail_info = OSSL_CMP_PKISI_get0_failInfo(si);
 
     if (fail_info == NULL) /* this can also indicate si == NULL */
         return -1;
@@ -327,7 +327,7 @@ OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
  * RevReqContent.
  * returns NULL on error
  */
-OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
+OSSL_CMP_PKISI *CMP_REVREPCONTENT_get_PKIStatusInfo(OSSL_CMP_REVREPCONTENT *rrep,
                                                     int rsid)
 {
     OSSL_CMP_PKISI *status = NULL;
@@ -339,7 +339,7 @@ OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep
         return status;
     }
 
-    CMPerr(CMP_F_CMP_REVREPCONTENT_PKISTATUSINFO_GET,
+    CMPerr(CMP_F_CMP_REVREPCONTENT_GET_PKISTATUSINFO,
            CMP_R_PKISTATUSINFO_NOT_FOUND);
     return NULL;
 }
@@ -351,7 +351,7 @@ OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep
  * RevReqContent.
  * returns NULL on error
  */
-OSSL_CRMF_CERTID *CMP_REVREPCONTENT_CertId_get(OSSL_CMP_REVREPCONTENT *rrep,
+OSSL_CRMF_CERTID *CMP_REVREPCONTENT_get_CertId(OSSL_CMP_REVREPCONTENT *rrep,
                                                int rsid)
 {
     OSSL_CRMF_CERTID *cid = NULL;
@@ -363,7 +363,7 @@ OSSL_CRMF_CERTID *CMP_REVREPCONTENT_CertId_get(OSSL_CMP_REVREPCONTENT *rrep,
         return cid;
     }
 
-    CMPerr(CMP_F_CMP_REVREPCONTENT_CERTID_GET, CMP_R_CERTID_NOT_FOUND);
+    CMPerr(CMP_F_CMP_REVREPCONTENT_GET_CERTID, CMP_R_CERTID_NOT_FOUND);
     return NULL;
 }
 
@@ -394,24 +394,24 @@ static void add_expected_rid(int rid)
  * returns NULL on error or if no suitable PollResponse available
  */
 OSSL_CMP_POLLREP
-*CMP_POLLREPCONTENT_pollRep_get0(const OSSL_CMP_POLLREPCONTENT *prc, int rid)
+*CMP_POLLREPCONTENT_get0_pollRep(const OSSL_CMP_POLLREPCONTENT *prc, int rid)
 {
     OSSL_CMP_POLLREP *pollRep = NULL;
     int i;
 
     if (prc == NULL) {
-        CMPerr(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_CMP_POLLREPCONTENT_GET0_POLLREP, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
     for (i = 0; i < sk_OSSL_CMP_POLLREP_num(prc); i++) {
         pollRep = sk_OSSL_CMP_POLLREP_value(prc, i);
-        if (suitable_rid(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0,
+        if (suitable_rid(CMP_F_CMP_POLLREPCONTENT_GET0_POLLREP,
                          pollRep->certReqId, rid))
             return pollRep;
     }
 
-    CMPerr(CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0, CMP_R_CERTRESPONSE_NOT_FOUND);
+    CMPerr(CMP_F_CMP_POLLREPCONTENT_GET0_POLLREP, CMP_R_CERTRESPONSE_NOT_FOUND);
     add_expected_rid(rid);
     return NULL;
 }
@@ -422,25 +422,25 @@ OSSL_CMP_POLLREP
  * returns NULL on error or if no suitable CertResponse available
  */
 OSSL_CMP_CERTRESPONSE
-*CMP_CERTREPMESSAGE_certResponse_get0(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
+*CMP_CERTREPMESSAGE_get0_certResponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
                                       int rid)
 {
     OSSL_CMP_CERTRESPONSE *crep = NULL;
     int i;
 
     if (crepmsg == NULL || crepmsg->response == NULL) {
-        CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET0_CERTRESPONSE, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
     for (i = 0; i < sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response); i++) {
         crep = sk_OSSL_CMP_CERTRESPONSE_value(crepmsg->response, i);
-        if (suitable_rid(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
+        if (suitable_rid(CMP_F_CMP_CERTREPMESSAGE_GET0_CERTRESPONSE,
                          crep->certReqId, rid))
             return crep;
     }
 
-    CMPerr(CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0,
+    CMPerr(CMP_F_CMP_CERTREPMESSAGE_GET0_CERTRESPONSE,
            CMP_R_CERTRESPONSE_NOT_FOUND);
     add_expected_rid(rid);
     return NULL;

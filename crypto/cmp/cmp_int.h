@@ -723,23 +723,23 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  */
 /* from cmp_status.c */
 int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a);
-int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *statusInfo);
-OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(const OSSL_CMP_PKISI *si);
-ASN1_BIT_STRING *OSSL_CMP_PKISI_failInfo_get0(const OSSL_CMP_PKISI *si);
-int OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si);
+int OSSL_CMP_PKISI_get_PKIStatus(OSSL_CMP_PKISI *statusInfo);
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_get0_statusString(const OSSL_CMP_PKISI *si);
+ASN1_BIT_STRING *OSSL_CMP_PKISI_get0_failInfo(const OSSL_CMP_PKISI *si);
+int OSSL_CMP_PKISI_get_PKIFailureInfo(OSSL_CMP_PKISI *si);
 int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index);
 #  define OSSL_CMP_PKISI_BUFLEN 1024
 char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
 OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
                                         const char *text);
-OSSL_CMP_PKISI *CMP_REVREPCONTENT_PKIStatusInfo_get(OSSL_CMP_REVREPCONTENT *rrep,
+OSSL_CMP_PKISI *CMP_REVREPCONTENT_get_PKIStatusInfo(OSSL_CMP_REVREPCONTENT *rrep,
                                                     int rsid);
-OSSL_CRMF_CERTID *CMP_REVREPCONTENT_CertId_get(OSSL_CMP_REVREPCONTENT *rrep,
+OSSL_CRMF_CERTID *CMP_REVREPCONTENT_get_CertId(OSSL_CMP_REVREPCONTENT *rrep,
                                                int rsid);
 OSSL_CMP_POLLREP
- *CMP_POLLREPCONTENT_pollRep_get0(const OSSL_CMP_POLLREPCONTENT *prc, int rid);
+ *CMP_POLLREPCONTENT_get0_pollRep(const OSSL_CMP_POLLREPCONTENT *prc, int rid);
 OSSL_CMP_CERTRESPONSE
- *CMP_CERTREPMESSAGE_certResponse_get0(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
+ *CMP_CERTREPMESSAGE_get0_certResponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
                                        int rid);
 X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_CERTRESPONSE *crep);
@@ -759,9 +759,9 @@ int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr,
                                 ASN1_UTF8STRING *text);
 int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr,
                                  ASN1_UTF8STRING *text);
-int OSSL_CMP_HDR_generalInfo_item_push0(OSSL_CMP_PKIHEADER *hdr,
+int OSSL_CMP_HDR_generalInfo_push0_item(OSSL_CMP_PKIHEADER *hdr,
                                         OSSL_CMP_ITAV *itav);
-int OSSL_CMP_HDR_generalInfo_items_push1(OSSL_CMP_PKIHEADER *hdr,
+int OSSL_CMP_HDR_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
                                          STACK_OF(OSSL_CMP_ITAV) *itavs);
 int CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr);
 int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_PKIHEADER *hdr);
@@ -813,8 +813,8 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
                               OSSL_CRMF_CERTID *certId,
                               int unprot_err);
 OSSL_CMP_MSG *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx);
-int OSSL_CMP_MSG_gen_ITAV_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
-int OSSL_CMP_MSG_gen_ITAVs_push1(OSSL_CMP_MSG *msg,
+int OSSL_CMP_MSG_gen_push0_ITAV(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
+int OSSL_CMP_MSG_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
                                  STACK_OF(OSSL_CMP_ITAV) *itavs);
 OSSL_CMP_MSG *OSSL_CMP_genm_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_MSG *OSSL_CMP_genp_new(OSSL_CMP_CTX *ctx);

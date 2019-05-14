@@ -3051,7 +3051,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
 
     if (!set_gennames(opt_sans, GEN_DNS,
-                      OSSL_CMP_CTX_subjectAltName_push1, ctx,
+                      OSSL_CMP_CTX_push1_subjectAltName, ctx,
                       "Subject Alternative Name"))
         goto err;
 
@@ -3073,7 +3073,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 
     while (opt_policies != NULL) {
         char *next = next_item(opt_policies);
-        int res = OSSL_CMP_CTX_policyOID_push1(ctx, opt_policies);
+        int res = OSSL_CMP_CTX_push1_policyOID(ctx, opt_policies);
 
         if (res <= 0) {
             OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR, "cannot %s policy OID '%s'",
@@ -3324,7 +3324,7 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             goto oom;
         }
 
-        if (!OSSL_CMP_CTX_geninfo_itav_push0(ctx, itav)) {
+        if (!OSSL_CMP_CTX_geninfo_push0_ITAV(ctx, itav)) {
             OSSL_CMP_ITAV_free(itav);
             goto err;
         }
@@ -4122,7 +4122,7 @@ int cmp_main(int argc, char **argv)
                     OSSL_CMP_ITAV_create(OBJ_nid2obj(opt_infotype), NULL);
                 if (itav == NULL)
                     goto err;
-                OSSL_CMP_CTX_genm_itav_push0(cmp_ctx, itav);
+                OSSL_CMP_CTX_genm_push0_ITAV(cmp_ctx, itav);
             }
 
             if ((itavs = OSSL_CMP_exec_GENM_ses(cmp_ctx)) == NULL)
@@ -4136,7 +4136,7 @@ int cmp_main(int argc, char **argv)
     }
 
     if (opt_cacertsout != NULL) {
-        STACK_OF(X509) *certs = OSSL_CMP_CTX_caPubs_get1(cmp_ctx);
+        STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_caPubs(cmp_ctx);
         if (sk_X509_num(certs) > 0
                 && save_certs(cmp_ctx, certs, opt_cacertsout, "CA") < 0) {
             sk_X509_pop_free(certs, X509_free);
@@ -4146,7 +4146,7 @@ int cmp_main(int argc, char **argv)
     }
 
     if (opt_extracertsout != NULL) {
-        STACK_OF(X509) *certs = OSSL_CMP_CTX_extraCertsIn_get1(cmp_ctx);
+        STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_extraCertsIn(cmp_ctx);
         if (sk_X509_num(certs) > 0
                 && save_certs(cmp_ctx, certs, opt_extracertsout, "extra") < 0) {
             sk_X509_pop_free(certs, X509_free);

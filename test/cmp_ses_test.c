@@ -119,7 +119,7 @@ static int execute_cmp_exec_certrequest_ses_test(CMP_SES_TEST_FIXTURE *fixture)
                 && (res == cert || TEST_int_eq(X509_cmp(res, cert), 0))) {
             if (fixture->ca_pubs != NULL) {
                 STACK_OF(X509) *ca_pubs =
-                    OSSL_CMP_CTX_caPubs_get1(fixture->cmp_ctx);
+                    OSSL_CMP_CTX_get1_caPubs(fixture->cmp_ctx);
                 int ret = TEST_int_eq(0,
                         STACK_OF_X509_cmp(fixture->ca_pubs, ca_pubs));
                 sk_X509_pop_free(ca_pubs, X509_free);

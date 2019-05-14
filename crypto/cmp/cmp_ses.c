@@ -114,8 +114,8 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
             msg_type = "error response";
         }
         else if (rcvd_type == OSSL_CMP_PKIBODY_RP
-                     && OSSL_CMP_PKISI_PKIStatus_get(
-                        CMP_REVREPCONTENT_PKIStatusInfo_get(rep->body->value.rp,
+                     && OSSL_CMP_PKISI_get_PKIStatus(
+                        CMP_REVREPCONTENT_get_PKIStatusInfo(rep->body->value.rp,
                                                             OSSL_CMP_REVREQSID))
                         == OSSL_CMP_PKISTATUS_rejection) {
             msg_type = "revocation response message with rejection status";
@@ -126,7 +126,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
         else if (rcvd_type == expected_type && IS_ENOLLMENT(rcvd_type)) {
             OSSL_CMP_CERTREPMESSAGE *crepmsg = rep->body->value.ip;
             OSSL_CMP_CERTRESPONSE *crep =
-                CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, -1);
+                CMP_CERTREPMESSAGE_get0_certResponse(crepmsg, -1);
             if (sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response) > 1) {
                 /* a specific error could be misleading here */
                 return 0;
@@ -139,7 +139,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                 /* a specific error could be misleading here */
                 return 0;
             }
-            if (OSSL_CMP_PKISI_PKIStatus_get(crep->status) ==
+            if (OSSL_CMP_PKISI_get_PKIStatus(crep->status) ==
                 OSSL_CMP_PKISTATUS_rejection) {
                 msg_type = "CertRepMessage with rejection status";
             }
@@ -275,7 +275,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
                        CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED);
                 goto err;
             }
-            if ((pollRep = CMP_POLLREPCONTENT_pollRep_get0(prc, rid)) == NULL)
+            if ((pollRep = CMP_POLLREPCONTENT_get0_pollRep(prc, rid)) == NULL)
                 goto err;
             if (!ASN1_INTEGER_get_int64(&check_after, pollRep->checkAfter)) {
                 CMPerr(CMP_F_POLLFORRESPONSE, CMP_R_BAD_CHECKAFTER_IN_POLLREP);
@@ -408,7 +408,7 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
         return 0;
     }
 
-    if ((ctx->lastPKIStatus = OSSL_CMP_PKISI_PKIStatus_get(si) < 0))
+    if ((ctx->lastPKIStatus = OSSL_CMP_PKISI_get_PKIStatus(si) < 0))
         return 0;
 
     if (!CMP_CTX_set_failInfoCode(ctx, si->failInfo))
@@ -449,7 +449,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         return NULL;
     }
 
-    switch (OSSL_CMP_PKISI_PKIStatus_get(crep->status)) {
+    switch (OSSL_CMP_PKISI_get_PKIStatus(crep->status)) {
     case OSSL_CMP_PKISTATUS_waiting:
         OSSL_CMP_err(ctx,
                      "received \"waiting\" status for cert when actually aiming to extract cert");
@@ -536,7 +536,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
      * TODO handle multiple CertResponses in CertRepMsg (in case multiple
      * requests have been sent) -->  GitHub issue#67
      */
-    if ((crep = CMP_CERTREPMESSAGE_certResponse_get0(crepmsg, rid)) == NULL)
+    if ((crep = CMP_CERTREPMESSAGE_get0_certResponse(crepmsg, rid)) == NULL)
         return 0;
     if (rid == -1) {
         /* for OSSL_CMP_PKIBODY_P10CR learn CertReqId from response */
@@ -547,7 +547,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         }
     }
 
-    if (OSSL_CMP_PKISI_PKIStatus_get(crep->status) ==
+    if (OSSL_CMP_PKISI_get_PKIStatus(crep->status) ==
         OSSL_CMP_PKISTATUS_waiting) {
         OSSL_CMP_MSG_free(*resp);
         if (pollForResponse(ctx, rid, resp)) {
@@ -728,10 +728,10 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     }
 
     /* evaluate PKIStatus field */
-    si = CMP_REVREPCONTENT_PKIStatusInfo_get(rrep, rsid);
+    si = CMP_REVREPCONTENT_get_PKIStatusInfo(rrep, rsid);
     if (!save_statusInfo(ctx, si))
         goto err;
-    switch (OSSL_CMP_PKISI_PKIStatus_get(si)) {
+    switch (OSSL_CMP_PKISI_get_PKIStatus(si)) {
     case OSSL_CMP_PKISTATUS_accepted:
         OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=accepted)");
         result = ctx->oldClCert;
@@ -777,7 +777,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
             result = NULL;
             goto err;
         }
-        if ((cid = CMP_REVREPCONTENT_CertId_get(rrep, rsid)) == NULL) {
+        if ((cid = CMP_REVREPCONTENT_get_CertId(rrep, rsid)) == NULL) {
             result = NULL;
             goto err;
         }

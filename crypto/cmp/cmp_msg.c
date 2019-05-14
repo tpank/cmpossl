@@ -120,7 +120,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype)
     if (!OSSL_CMP_HDR_init(ctx, msg->header)
             || !OSSL_CMP_MSG_set_bodytype(msg, bodytype)
             || (ctx->geninfo_itavs != NULL
-                && !OSSL_CMP_HDR_generalInfo_items_push1(msg->header,
+                && !OSSL_CMP_HDR_generalInfo_push1_items(msg->header,
                                                          ctx->geninfo_itavs)))
         goto err;
 
@@ -389,7 +389,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
         goto oom;
     }
 
-    status = OSSL_CMP_PKISI_PKIStatus_get(resp->status);
+    status = OSSL_CMP_PKISI_get_PKIStatus(resp->status);
     if (status != OSSL_CMP_PKISTATUS_rejection
             && status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
         if (encrypted) {
@@ -420,7 +420,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
         goto oom;
 
     if (!(unprotectedErrors
-            && OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection)
+            && OSSL_CMP_PKISI_get_PKIStatus(si) == OSSL_CMP_PKISTATUS_rejection)
             && !OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
 
@@ -510,7 +510,7 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     cid = NULL;
 
     if (!(unprot_err
-          && OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection)
+          && OSSL_CMP_PKISI_get_PKIStatus(si) == OSSL_CMP_PKISTATUS_rejection)
           && !OSSL_CMP_MSG_protect(ctx, msg))
         goto err;
     return msg;
@@ -539,7 +539,7 @@ OSSL_CMP_MSG *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx)
     return NULL;
 }
 
-int OSSL_CMP_MSG_gen_ITAV_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
+int OSSL_CMP_MSG_gen_push0_ITAV(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
 {
     int bodytype;
 
@@ -550,16 +550,16 @@ int OSSL_CMP_MSG_gen_ITAV_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
         goto err;
 
     /* value.genp has the same structure, so this works for genp as well */
-    if (!OSSL_CMP_ITAV_stack_item_push0(&msg->body->value.genm, itav))
+    if (!OSSL_CMP_ITAV_push0_stack_item(&msg->body->value.genm, itav))
         goto err;
     return 1;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_MSG_GEN_ITAV_PUSH0, CMP_R_INVALID_ARGS);
+    CMPerr(CMP_F_OSSL_CMP_MSG_GEN_PUSH0_ITAV, CMP_R_INVALID_ARGS);
     return 0;
 }
 
-int OSSL_CMP_MSG_gen_ITAVs_push1(OSSL_CMP_MSG *msg,
+int OSSL_CMP_MSG_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
                                  STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
@@ -570,7 +570,7 @@ int OSSL_CMP_MSG_gen_ITAVs_push1(OSSL_CMP_MSG *msg,
 
     for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
         itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i));
-        if (!OSSL_CMP_MSG_gen_ITAV_push0(msg, itav)) {
+        if (!OSSL_CMP_MSG_gen_push0_ITAV(msg, itav)) {
             OSSL_CMP_ITAV_free(itav);
             goto err;
         }
@@ -578,7 +578,7 @@ int OSSL_CMP_MSG_gen_ITAVs_push1(OSSL_CMP_MSG *msg,
     return 1;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_MSG_GEN_ITAVS_PUSH1, CMP_R_INVALID_ARGS);
+    CMPerr(CMP_F_OSSL_CMP_MSG_GEN_PUSH1_ITAVS, CMP_R_INVALID_ARGS);
     return 0;
 }
 
@@ -600,7 +600,7 @@ static OSSL_CMP_MSG *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type,
         goto err;
 
     if (ctx->genm_itavs)
-        if (!OSSL_CMP_MSG_gen_ITAVs_push1(msg, ctx->genm_itavs))
+        if (!OSSL_CMP_MSG_gen_push1_ITAVs(msg, ctx->genm_itavs))
             goto err;
 
     if (!OSSL_CMP_MSG_protect(ctx, msg))

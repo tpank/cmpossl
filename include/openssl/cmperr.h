@@ -29,7 +29,7 @@ int ERR_load_CMP_strings(void);
  */
 #  define CMP_F_ADD_EXTENSION                              100
 #  define CMP_F_CMP_CALC_PROTECTION                        101
-#  define CMP_F_CMP_CERTREPMESSAGE_CERTRESPONSE_GET0       102
+#  define CMP_F_CMP_CERTREPMESSAGE_GET0_CERTRESPONSE       102
 #  define CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE           103
 #  define CMP_F_CMP_CERTSTATUS_SET_CERTHASH                104
 #  define CMP_F_CMP_CTX_SET1_CAPUBS                        105
@@ -41,9 +41,9 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_GEN_NEW                                111
 #  define CMP_F_CMP_PKIFREETEXT_PUSH_STR                   112
 #  define CMP_F_CMP_PKISI_PKISTATUS_GET_STRING             113
-#  define CMP_F_CMP_POLLREPCONTENT_POLLREP_GET0            114
-#  define CMP_F_CMP_REVREPCONTENT_CERTID_GET               115
-#  define CMP_F_CMP_REVREPCONTENT_PKISTATUSINFO_GET        116
+#  define CMP_F_CMP_POLLREPCONTENT_GET0_POLLREP            114
+#  define CMP_F_CMP_REVREPCONTENT_GET_CERTID               115
+#  define CMP_F_CMP_REVREPCONTENT_GET_PKISTATUSINFO        116
 #  define CMP_F_CMP_VERIFY_PBMAC                           117
 #  define CMP_F_CMP_VERIFY_POPO                            118
 #  define CMP_F_CMP_VERIFY_SIGNATURE                       119
@@ -55,9 +55,9 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_CERTCONF_NEW                      125
 #  define CMP_F_OSSL_CMP_CERTREP_NEW                       126
 #  define CMP_F_OSSL_CMP_CERTREQ_NEW                       127
-#  define CMP_F_OSSL_CMP_CTX_CAPUBS_GET1                   128
-#  define CMP_F_OSSL_CMP_CTX_EXTRACERTSIN_GET1             129
-#  define CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1           130
+#  define CMP_F_OSSL_CMP_CTX_GET1_CAPUBS                   128
+#  define CMP_F_OSSL_CMP_CTX_GET1_EXTRACERTSIN             129
+#  define CMP_F_OSSL_CMP_CTX_PUSH1_EXTRACERTSOUT           130
 #  define CMP_F_OSSL_CMP_CTX_PUSH_FREETEXT                 131
 #  define CMP_F_OSSL_CMP_CTX_SET0_NEWPKEY                  132
 #  define CMP_F_OSSL_CMP_CTX_SET0_PKEY                     133
@@ -82,7 +82,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_CTX_SET1_TRANSACTIONID            152
 #  define CMP_F_OSSL_CMP_CTX_SET_PROXYPORT                 153
 #  define CMP_F_OSSL_CMP_CTX_SET_SERVERPORT                154
-#  define CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1          155
+#  define CMP_F_OSSL_CMP_CTX_PUSH1_SUBJECTALTNAME          155
 #  define CMP_F_OSSL_CMP_ERROR_NEW                         156
 #  define CMP_F_OSSL_CMP_EXEC_CR_SES                       157
 #  define CMP_F_OSSL_CMP_EXEC_GENM_SES                     158
@@ -90,8 +90,8 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_EXEC_KUR_SES                      160
 #  define CMP_F_OSSL_CMP_EXEC_P10CR_SES                    161
 #  define CMP_F_OSSL_CMP_EXEC_RR_SES                       162
-#  define CMP_F_OSSL_CMP_HDR_GENERALINFO_ITEMS_PUSH1       163
-#  define CMP_F_OSSL_CMP_HDR_GENERALINFO_ITEM_PUSH0        164
+#  define CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH1_ITEMS       163
+#  define CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH0_ITEM        164
 #  define CMP_F_OSSL_CMP_HDR_GET_PVNO                      165
 #  define CMP_F_OSSL_CMP_HDR_INIT                          166
 #  define CMP_F_OSSL_CMP_HDR_PUSH0_FREETEXT                167
@@ -100,13 +100,13 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_HDR_UPDATE_MESSAGETIME            170
 #  define CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED                171
 #  define CMP_F_OSSL_CMP_MSG_CREATE                        172
-#  define CMP_F_OSSL_CMP_MSG_GEN_ITAVS_PUSH1               173
-#  define CMP_F_OSSL_CMP_MSG_GEN_ITAV_PUSH0                174
+#  define CMP_F_OSSL_CMP_MSG_GEN_PUSH1_ITAVS               173
+#  define CMP_F_OSSL_CMP_MSG_GEN_PUSH0_ITAV                174
 #  define CMP_F_OSSL_CMP_MSG_HTTP_PERFORM                  175
 #  define CMP_F_OSSL_CMP_MSG_PROTECT                       176
 #  define CMP_F_OSSL_CMP_PKICONF_NEW                       177
-#  define CMP_F_OSSL_CMP_PKISI_PKIFAILUREINFO_GET          178
-#  define CMP_F_OSSL_CMP_PKISI_PKISTATUS_GET               179
+#  define CMP_F_OSSL_CMP_PKISI_GET_PKIFAILUREINFO          178
+#  define CMP_F_OSSL_CMP_PKISI_GET_PKISTATUS               179
 #  define CMP_F_OSSL_CMP_POLLREP_NEW                       180
 #  define CMP_F_OSSL_CMP_POLLREQ_NEW                       181
 #  define CMP_F_OSSL_CMP_PRINT_CERT_VERIFY_CB              182
