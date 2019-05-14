@@ -1096,23 +1096,6 @@ int OSSL_CMP_CTX_get_failInfoCode(OSSL_CMP_CTX *ctx)
     return ctx->failInfoCode;
 }
 
-#if 0
-/*
- * pushes a given 0-terminated character string to ctx->freeText
- * this is intended for human consumption
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_push_freeText(OSSL_CMP_CTX *ctx, const char *text)
-{
-    if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH_FREETEXT, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
-    ctx->freeText = CMP_PKIFREETEXT_push_str(ctx->freeText, text);
-    return ctx->freeText != NULL;
-}
-#endif
-
 /*
  * sets a BOOLEAN or INT option of the context to the "val" arg
  * returns 1 on success, 0 on error
