@@ -4157,12 +4157,14 @@ int cmp_main(int argc, char **argv)
 
     if (opt_certout != NULL && newcert != NULL) {
         STACK_OF(X509) *certs = sk_X509_new_null();
-        if (certs == NULL || !sk_X509_push(certs, X509_dup(newcert))
+        if (certs == NULL || !sk_X509_push(certs, newcert)
                 || save_certs(cmp_ctx, certs, opt_certout, "enrolled") < 0) {
             sk_X509_pop_free(certs, X509_free);
             goto err;
         }
         sk_X509_pop_free(certs, X509_free);
+        if (!X509_up_ref(newcert))
+            goto err;
     }
 
     ret = 0;

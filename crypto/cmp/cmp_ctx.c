@@ -319,7 +319,7 @@ int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
  * outbound certificates to send in the extraCerts field.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, const X509 *val)
+int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, X509 *val)
 {
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_EXTRACERTSOUT, CMP_R_INVALID_ARGS);
@@ -327,11 +327,11 @@ int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, const X509 *val)
     }
     if ((ctx->extraCertsOut == NULL
              && (ctx->extraCertsOut = sk_X509_new_null()) == NULL)
-            || !sk_X509_push(ctx->extraCertsOut, X509_dup(val))) {
+            || !sk_X509_push(ctx->extraCertsOut, val)) {
         CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_EXTRACERTSOUT, ERR_R_MALLOC_FAILURE);
         return 0;
     }
-    return 1;
+    return X509_up_ref(val);
 }
 
 /*
@@ -448,7 +448,7 @@ int CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
  * Cert pointer is not consumed. It may be NULL to clear the entry.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, const X509 *cert)
+int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SRVCERT, CMP_R_NULL_ARGUMENT);
@@ -460,12 +460,8 @@ int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, const X509 *cert)
     if (cert == NULL)
         return 1; /* srvCert has been cleared */
 
-    if ((ctx->srvCert = X509_dup(cert)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SRVCERT, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
-
+    ctx->srvCert = cert;
+    return X509_up_ref(cert);
 }
 
 /*
@@ -636,20 +632,15 @@ int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
  * doing the IR with existing certificate.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, const X509 *cert)
+int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL || cert == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CLCERT, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     X509_free(ctx->clCert);
-    ctx->clCert = NULL;
-
-    if ((ctx->clCert = X509_dup(cert)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CLCERT, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
+    ctx->clCert = cert;
+    return X509_up_ref(cert);
 }
 
 /*
@@ -659,20 +650,15 @@ int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, const X509 *cert)
  * and SANs. Its issuer is used as default recipient in the CMP message header.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_oldClCert(OSSL_CMP_CTX *ctx, const X509 *cert)
+int OSSL_CMP_CTX_set1_oldClCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL || cert == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_OLDCLCERT, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     X509_free(ctx->oldClCert);
-    ctx->oldClCert = NULL;
-
-    if ((ctx->oldClCert = X509_dup(cert)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_OLDCLCERT, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
+    ctx->oldClCert = cert;
+    return X509_up_ref(cert);
 }
 
 /*
