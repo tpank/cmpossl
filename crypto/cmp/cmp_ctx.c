@@ -894,7 +894,7 @@ int OSSL_CMP_CTX_set1_proxyName(OSSL_CMP_CTX *ctx, const char *name)
     OPENSSL_free(ctx->proxyName);
     ctx->proxyName = NULL;
 
-    ctx->proxyName = BUF_strdup(name);
+    ctx->proxyName = OPENSSL_strdup(name);
     if (ctx->proxyName == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_PROXYNAME, ERR_R_MALLOC_FAILURE);
         return 0;
@@ -916,7 +916,7 @@ int OSSL_CMP_CTX_set1_serverName(OSSL_CMP_CTX *ctx, const char *name)
     OPENSSL_free(ctx->serverName);
     ctx->serverName = NULL;
 
-    ctx->serverName = BUF_strdup(name);
+    ctx->serverName = OPENSSL_strdup(name);
     if (!ctx->serverName) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SERVERNAME, ERR_R_MALLOC_FAILURE);
         return 0;
@@ -1051,7 +1051,7 @@ int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
         return 1;
     }
 
-    ctx->serverPath = BUF_strdup(path);
+    ctx->serverPath = OPENSSL_strdup(path);
     if (ctx->serverPath == NULL)
         goto oom;
 
