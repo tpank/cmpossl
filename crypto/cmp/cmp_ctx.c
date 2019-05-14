@@ -917,7 +917,7 @@ int OSSL_CMP_CTX_set1_serverName(OSSL_CMP_CTX *ctx, const char *name)
     ctx->serverName = NULL;
 
     ctx->serverName = OPENSSL_strdup(name);
-    if (!ctx->serverName) {
+    if (ctx->serverName == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SERVERNAME, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -1077,9 +1077,10 @@ int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
         return 1;
 
     ctx->failInfoCode = 0;
-    for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
+    for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++) {
         if (ASN1_BIT_STRING_get_bit(fail_info, i))
             ctx->failInfoCode |= (1 << i);
+    }
 
     return 1;
 }
