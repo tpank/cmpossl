@@ -168,6 +168,7 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
  * functions manipulating lists of certificates etc.
  */
 
+/* this is similar to ERR_print_errors_cb, but uses the CMP-specific cb type */
 void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
 {
     unsigned long err;

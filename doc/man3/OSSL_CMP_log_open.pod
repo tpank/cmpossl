@@ -97,8 +97,9 @@ B<OSSL_CMP_add_error_txt()> with the separator being ":".
 OSSL_CMP_add_error_line() is a macro calling
 B<OSSL_CMP_add_error_txt()> with the separator being "\n".
 
-OSSL_CMP_print_errors_cb() outputs any entries in the OpenSSL error queue.
-It uses the log callback function if given, else B<OSSL_CMP_puts()>.
+OSSL_CMP_print_errors_cb() outputs any entries in the OpenSSL error queue
+similarly to B<ERR_print_errors_cb()>, but using the CMP log callback function
+C<log_fn> if given, else B<OSSL_CMP_puts()> for uniformity with CMP logging.
 
 =head1 RETURN VALUES
 
