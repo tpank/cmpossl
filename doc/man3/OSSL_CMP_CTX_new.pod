@@ -540,7 +540,7 @@ OSSL_CMP_CTX_FAILINFO_badAlg.
 OSSL_CMP_CTX_get1_extraCertsIn() returns a pointer to a duplicate of the stack
 of X.509 certificates received in the extraCerts field of last received
 certificate response message IP/CP/KUP which had extraCerts set.
-Returns an empty stack if no extraCerts have been received and NULL on error.
+Returns an empty stack if no extraCerts have been received or NULL on error.
 
 SSL_CMP_CTX_caPubs_get1() returns a pointer to a duplicate of the stack of
 X.509 certificates received in the caPubs field of last received certificate
@@ -600,7 +600,7 @@ if there were no caPubs as well as on error.
 OSSL_CMP_CTX_get1_caPubs() returns a pointer to a duplicate of the stack of
 X.509 certificates received in the caPubs field of last received certificate
 response message IP/CP/KUP which had caPubs set.
-Returns NULL if there were no caPubs as well as on error.
+Returns an empty list if there were no caPubs and NULL on error.
 
 All other functions return 1 on success, 0 on error.
 

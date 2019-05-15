@@ -28,6 +28,8 @@ int ERR_load_CMP_strings(void);
  * CMP function codes.
  */
 #  define CMP_F_ADD_EXTENSION                              100
+#  define CMP_F_CMP_ASN1_OCTET_STRING_SET1                 123
+#  define CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES           124
 #  define CMP_F_CMP_CALC_PROTECTION                        101
 #  define CMP_F_CMP_CERTREPMESSAGE_GET0_CERTRESPONSE       102
 #  define CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE           103
@@ -50,15 +52,18 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CRM_NEW                                    120
 #  define CMP_F_FIND_SRVCERT                               121
 #  define CMP_F_GET_CERT_STATUS                            122
-#  define CMP_F_CMP_ASN1_OCTET_STRING_SET1                 123
-#  define CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES           124
 #  define CMP_F_OSSL_CMP_CERTCONF_NEW                      125
 #  define CMP_F_OSSL_CMP_CERTREP_NEW                       126
 #  define CMP_F_OSSL_CMP_CERTREQ_NEW                       127
+#  define CMP_F_OSSL_CMP_CTX_GENINFO_PUSH0_ITAV            200
+#  define CMP_F_OSSL_CMP_CTX_GENM_PUSH0_ITAV               201
 #  define CMP_F_OSSL_CMP_CTX_GET1_CAPUBS                   128
 #  define CMP_F_OSSL_CMP_CTX_GET1_EXTRACERTSIN             129
 #  define CMP_F_OSSL_CMP_CTX_PUSH1_EXTRACERTSOUT           130
+#  define CMP_F_OSSL_CMP_CTX_PUSH1_POLICYOID               202
+#  define CMP_F_OSSL_CMP_CTX_PUSH1_SUBJECTALTNAME          155
 #  define CMP_F_OSSL_CMP_CTX_PUSH_FREETEXT                 131
+#  define CMP_F_OSSL_CMP_CTX_REQEXTENSIONS_HAVE_SAN        203
 #  define CMP_F_OSSL_CMP_CTX_SET0_NEWPKEY                  132
 #  define CMP_F_OSSL_CMP_CTX_SET0_PKEY                     133
 #  define CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS            134
@@ -74,15 +79,16 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_CTX_SET1_PROXYNAME                144
 #  define CMP_F_OSSL_CMP_CTX_SET1_RECIPIENT                145
 #  define CMP_F_OSSL_CMP_CTX_SET1_REFERENCEVALUE           146
+#  define CMP_F_OSSL_CMP_CTX_SET1_REQEXTENSIONS            204
 #  define CMP_F_OSSL_CMP_CTX_SET1_SECRETVALUE              147
 #  define CMP_F_OSSL_CMP_CTX_SET1_SERVERNAME               148
 #  define CMP_F_OSSL_CMP_CTX_SET1_SERVERPATH               149
 #  define CMP_F_OSSL_CMP_CTX_SET1_SRVCERT                  150
 #  define CMP_F_OSSL_CMP_CTX_SET1_SUBJECTNAME              151
 #  define CMP_F_OSSL_CMP_CTX_SET1_TRANSACTIONID            152
+#  define CMP_F_OSSL_CMP_CTX_SET_OPTION                    205
 #  define CMP_F_OSSL_CMP_CTX_SET_PROXYPORT                 153
 #  define CMP_F_OSSL_CMP_CTX_SET_SERVERPORT                154
-#  define CMP_F_OSSL_CMP_CTX_PUSH1_SUBJECTALTNAME          155
 #  define CMP_F_OSSL_CMP_ERROR_NEW                         156
 #  define CMP_F_OSSL_CMP_EXEC_CR_SES                       157
 #  define CMP_F_OSSL_CMP_EXEC_GENM_SES                     158
@@ -90,8 +96,8 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_EXEC_KUR_SES                      160
 #  define CMP_F_OSSL_CMP_EXEC_P10CR_SES                    161
 #  define CMP_F_OSSL_CMP_EXEC_RR_SES                       162
-#  define CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH1_ITEMS       163
 #  define CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH0_ITEM        164
+#  define CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH1_ITEMS       163
 #  define CMP_F_OSSL_CMP_HDR_GET_PVNO                      165
 #  define CMP_F_OSSL_CMP_HDR_INIT                          166
 #  define CMP_F_OSSL_CMP_HDR_PUSH0_FREETEXT                167
@@ -100,8 +106,8 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_HDR_UPDATE_MESSAGETIME            170
 #  define CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED                171
 #  define CMP_F_OSSL_CMP_MSG_CREATE                        172
-#  define CMP_F_OSSL_CMP_MSG_GEN_PUSH1_ITAVS               173
 #  define CMP_F_OSSL_CMP_MSG_GEN_PUSH0_ITAV                174
+#  define CMP_F_OSSL_CMP_MSG_GEN_PUSH1_ITAVS               173
 #  define CMP_F_OSSL_CMP_MSG_HTTP_PERFORM                  175
 #  define CMP_F_OSSL_CMP_MSG_PROTECT                       176
 #  define CMP_F_OSSL_CMP_PKICONF_NEW                       177

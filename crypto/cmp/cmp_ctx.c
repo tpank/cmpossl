@@ -31,9 +31,7 @@
  */
 X509_STORE *OSSL_CMP_CTX_get0_trustedStore(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
-        return NULL;
-    return ctx->trusted_store;
+    return ctx == NULL ? NULL : ctx->trusted_store;
 }
 
 /*
@@ -56,9 +54,7 @@ int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store)
  */
 STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
-        return NULL;
-    return ctx->untrusted_certs;
+    return ctx == NULL ? NULL : ctx->untrusted_certs;
 }
 
 /*
@@ -210,7 +206,7 @@ int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb)
  * optionally to be used by the certConf callback
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void* arg)
+int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
     if (ctx == NULL)
         return 0;
@@ -301,17 +297,12 @@ int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
         CMPerr(CMP_F_CMP_CTX_SET1_EXTRACERTSIN, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    if (extraCertsIn == NULL)
+    if (extraCertsIn == NULL) /* retains any pre-existing ctx->extraCertsIn */
         return 1;
 
     /* if there are already inbound extraCerts on the stack delete them */
     sk_X509_pop_free(ctx->extraCertsIn, X509_free);
-    if ((ctx->extraCertsIn = X509_chain_up_ref(extraCertsIn)) == NULL) {
-        CMPerr(CMP_F_CMP_CTX_SET1_EXTRACERTSIN, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-
-    return 1;
+    return (ctx->extraCertsIn = X509_chain_up_ref(extraCertsIn)) != NULL;
 }
 
 /*
@@ -321,16 +312,14 @@ int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
  */
 int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, X509 *val)
 {
-    if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_EXTRACERTSOUT, CMP_R_INVALID_ARGS);
+    if (ctx == NULL || val == NULL) {
+        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_EXTRACERTSOUT, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     if ((ctx->extraCertsOut == NULL
              && (ctx->extraCertsOut = sk_X509_new_null()) == NULL)
-            || !sk_X509_push(ctx->extraCertsOut, val)) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_EXTRACERTSOUT, ERR_R_MALLOC_FAILURE);
+            || !sk_X509_push(ctx->extraCertsOut, val))
         return 0;
-    }
     return X509_up_ref(val);
 }
 
@@ -342,17 +331,15 @@ int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, X509 *val)
 int OSSL_CMP_CTX_set1_extraCertsOut(OSSL_CMP_CTX *ctx,
                                     STACK_OF(X509) *extraCertsOut)
 {
-    if ((ctx == NULL) || (extraCertsOut == NULL)) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSOUT, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     sk_X509_pop_free(ctx->extraCertsOut, X509_free);
-    if ((ctx->extraCertsOut = X509_chain_up_ref(extraCertsOut)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSOUT, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-
-    return 1;
+    ctx->extraCertsOut = NULL;
+    if (extraCertsOut == NULL)
+        return 1;
+    return (ctx->extraCertsOut = X509_chain_up_ref(extraCertsOut)) != NULL;
 }
 
 /*
@@ -365,11 +352,15 @@ int OSSL_CMP_CTX_push1_policyOID(OSSL_CMP_CTX *ctx, const char *policyOID)
     ASN1_OBJECT *policy;
     POLICYINFO *pinfo = NULL;
 
-    if ((ctx == NULL) || (policyOID == NULL))
+    if (ctx == NULL || policyOID == NULL) {
+        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_POLICYOID, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
 
-    if ((policy = OBJ_txt2obj(policyOID, 1)) == 0)
+    if ((policy = OBJ_txt2obj(policyOID, 1)) == 0) {
+        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_POLICYOID, CMP_R_INVALID_ARGS);
         return -1; /* parse error */
+    }
 
     if (ctx->policies == NULL
             && (ctx->policies = CERTIFICATEPOLICIES_new()) == NULL)
@@ -387,9 +378,10 @@ int OSSL_CMP_CTX_push1_policyOID(OSSL_CMP_CTX *ctx, const char *policyOID)
  */
 int OSSL_CMP_CTX_geninfo_push0_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(CMP_F_OSSL_CMP_CTX_GENINFO_PUSH0_ITAV, CMP_R_NULL_ARGUMENT);
         return 0;
-
+    }
     return OSSL_CMP_ITAV_push0_stack_item(&ctx->geninfo_itavs, itav);
 }
 
@@ -398,9 +390,10 @@ int OSSL_CMP_CTX_geninfo_push0_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
  */
 int OSSL_CMP_CTX_genm_push0_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(CMP_F_OSSL_CMP_CTX_GENM_PUSH0_ITAV, CMP_R_NULL_ARGUMENT);
         return 0;
-
+    }
     return OSSL_CMP_ITAV_push0_stack_item(&ctx->genm_itavs, itav);
 }
 
@@ -412,11 +405,11 @@ int OSSL_CMP_CTX_genm_push0_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_GET1_CAPUBS, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_OSSL_CMP_CTX_GET1_CAPUBS, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
     if (ctx->caPubs == NULL)
-        return NULL;
+        return sk_X509_new_null();
     return X509_chain_up_ref(ctx->caPubs);
 }
 
@@ -427,19 +420,17 @@ STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx)
  */
 int CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
 {
-    if ((ctx == NULL) || (caPubs == NULL)) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_CMP_CTX_SET1_CAPUBS, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     sk_X509_pop_free(ctx->caPubs, X509_free);
+
     ctx->caPubs = NULL;
+    if (caPubs == NULL)
+        return 1;
+    return (ctx->caPubs = X509_chain_up_ref(caPubs)) != NULL;
 
-    if ((ctx->caPubs = X509_chain_up_ref(caPubs)) == NULL) {
-        CMPerr(CMP_F_CMP_CTX_SET1_CAPUBS, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-
-    return 1;
 }
 
 /*
@@ -455,13 +446,9 @@ int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, X509 *cert)
         return 0;
     }
     X509_free(ctx->srvCert);
-    ctx->srvCert = NULL;
-
-    if (cert == NULL)
-        return 1; /* srvCert has been cleared */
-
     ctx->srvCert = cert;
-    return X509_up_ref(cert);
+
+    return cert == NULL ? 1 : X509_up_ref(cert);
 }
 
 /*
@@ -470,19 +457,16 @@ int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, X509 *cert)
  */
 int OSSL_CMP_CTX_set1_recipient(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 {
-    if (ctx == NULL || name == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_RECIPIENT, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     X509_NAME_free(ctx->recipient);
+
     ctx->recipient = NULL;
-
-    if ((ctx->recipient = X509_NAME_dup(name)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_RECIPIENT, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
-
+    if (name == NULL)
+        return 1;
+    return (ctx->recipient = X509_NAME_dup(name)) != NULL;
 }
 
 /*
@@ -496,16 +480,11 @@ int OSSL_CMP_CTX_set1_expected_sender(OSSL_CMP_CTX *ctx, const X509_NAME *name)
         return 0;
     }
     X509_NAME_free(ctx->expected_sender);
-    ctx->expected_sender = NULL;
 
+    ctx->expected_sender = NULL;
     if (name == NULL)
         return 1;
-
-    if ((ctx->expected_sender = X509_NAME_dup(name)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXPECTED_SENDER, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
+    return (ctx->expected_sender = X509_NAME_dup(name)) != NULL;
 }
 
 /*
@@ -514,18 +493,16 @@ int OSSL_CMP_CTX_set1_expected_sender(OSSL_CMP_CTX *ctx, const X509_NAME *name)
  */
 int OSSL_CMP_CTX_set1_issuer(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 {
-    if (ctx == NULL || name == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_ISSUER, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     X509_NAME_free(ctx->issuer);
-    ctx->issuer = NULL;
 
-    if ((ctx->issuer = X509_NAME_dup(name)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_ISSUER, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
+    ctx->issuer = NULL;
+    if (name == NULL)
+        return 1;
+    return (ctx->issuer = X509_NAME_dup(name)) != NULL;
 }
 
 /*
@@ -535,18 +512,16 @@ int OSSL_CMP_CTX_set1_issuer(OSSL_CMP_CTX *ctx, const X509_NAME *name)
  */
 int OSSL_CMP_CTX_set1_subjectName(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 {
-    if (ctx == NULL || name == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SUBJECTNAME, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     X509_NAME_free(ctx->subjectName);
-    ctx->subjectName = NULL;
 
-    if ((ctx->subjectName = X509_NAME_dup(name)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SUBJECTNAME, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
+    ctx->subjectName = NULL;
+    if (name == NULL)
+        return 1;
+    return (ctx->subjectName = X509_NAME_dup(name)) != NULL;
 }
 
 /*
@@ -561,9 +536,11 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
     }
     if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 && exts != NULL
             && X509v3_get_ext_by_NID(exts, NID_subject_alt_name, -1) >= 0) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_MULTIPLE_SAN_SOURCES);
+        CMPerr(CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS,
+               CMP_R_MULTIPLE_SAN_SOURCES);
         return 0;
     }
+    sk_X509_EXTENSION_pop_free(ctx->reqExtensions, X509_EXTENSION_free);
     ctx->reqExtensions = exts;
     return 1;
 }
@@ -577,12 +554,15 @@ int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, const X509_EXTENSIONS *ex
     X509_EXTENSIONS *exts_copy;
     int res;
 
-    if (ctx == NULL)
-       return 0;
-    exts_copy = CMP_X509_EXTENSIONS_dup(exts);
+    if (ctx == NULL) {
+        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_REQEXTENSIONS, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
 
+    exts_copy = CMP_X509_EXTENSIONS_dup(exts);
     if (exts != NULL && exts_copy == NULL)
         return 0;
+
     res = OSSL_CMP_CTX_set0_reqExtensions(ctx, exts_copy);
     if (res == 0)
         sk_X509_EXTENSION_pop_free(exts_copy, X509_EXTENSION_free);
@@ -592,8 +572,10 @@ int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, const X509_EXTENSIONS *ex
 /* returns 1 if ctx contains a Subject Alternative Name extension, else 0 */
 int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL || ctx->reqExtensions == NULL)
+    if (ctx == NULL || ctx->reqExtensions == NULL) {
+        CMPerr(CMP_F_OSSL_CMP_CTX_REQEXTENSIONS_HAVE_SAN, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     return X509v3_get_ext_by_NID(ctx->reqExtensions,
                                  NID_subject_alt_name, -1) >= 0;
 }
@@ -617,14 +599,10 @@ int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
         return 0;
     }
 
-    if ((ctx->subjectAltNames == NULL
-             && (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL)
-            || !sk_GENERAL_NAME_push(ctx->subjectAltNames,
-                                     GENERAL_NAME_dup(name))) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_PUSH1_SUBJECTALTNAME, ERR_R_MALLOC_FAILURE);
+    if (ctx->subjectAltNames == NULL
+            && (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL)
         return 0;
-    }
-    return 1;
+    return sk_GENERAL_NAME_push(ctx->subjectAltNames, GENERAL_NAME_dup(name));
 }
 
 /*
@@ -634,13 +612,14 @@ int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
  */
 int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
-    if (ctx == NULL || cert == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CLCERT, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     X509_free(ctx->clCert);
+
     ctx->clCert = cert;
-    return X509_up_ref(cert);
+    return cert == NULL ? 1 : X509_up_ref(cert);
 }
 
 /*
@@ -652,13 +631,14 @@ int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, X509 *cert)
  */
 int OSSL_CMP_CTX_set1_oldClCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
-    if (ctx == NULL || cert == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_OLDCLCERT, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     X509_free(ctx->oldClCert);
+
     ctx->oldClCert = cert;
-    return X509_up_ref(cert);
+    return cert == NULL ? 1 : X509_up_ref(cert);
 }
 
 /*
@@ -667,18 +647,16 @@ int OSSL_CMP_CTX_set1_oldClCert(OSSL_CMP_CTX *ctx, X509 *cert)
  */
 int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
 {
-    if (ctx == NULL || csr == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_P10CSR, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     X509_REQ_free(ctx->p10CSR);
-    ctx->p10CSR = NULL;
 
-    if ((ctx->p10CSR = X509_REQ_dup(csr)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_P10CSR, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
+    ctx->p10CSR = NULL;
+    if (csr == NULL)
+        return 1;
+    return (ctx->p10CSR = X509_REQ_dup(csr)) != NULL;
 }
 
 /*
@@ -688,19 +666,15 @@ int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
  */
 int CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
-    if (ctx == NULL || cert == NULL)
-        goto err;
+    if (ctx == NULL) {
+        CMPerr(CMP_F_CMP_CTX_SET1_NEWCLCERT, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
 
     X509_free(ctx->newClCert);
-    ctx->newClCert = NULL;
 
-    if (!X509_up_ref(cert))
-        goto err;
     ctx->newClCert = cert;
-    return 1;
- err:
-    CMPerr(CMP_F_CMP_CTX_SET1_NEWCLCERT, CMP_R_NULL_ARGUMENT);
-    return 0;
+    return cert == NULL ? 1 : X509_up_ref(cert);
 }
 
 /*
@@ -709,9 +683,7 @@ int CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
  */
 X509 *CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
-        return NULL;
-    return ctx->newClCert;
+    return ctx == NULL ? NULL : ctx->newClCert;
 }
 
 /*
@@ -721,16 +693,9 @@ X509 *CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx)
  */
 int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
-    if (ctx == NULL || pkey == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_PKEY, CMP_R_NULL_ARGUMENT);
+    if (!OSSL_CMP_CTX_set0_pkey(ctx, pkey))
         return 0;
-    }
-    if (!EVP_PKEY_up_ref(pkey))
-        return 0;
-    if (OSSL_CMP_CTX_set0_pkey(ctx, pkey))
-        return 1;
-    EVP_PKEY_free(pkey); /* down ref */
-    return 0;
+    return pkey == NULL ? 1 : EVP_PKEY_up_ref(pkey);
 }
 
 /*
@@ -740,13 +705,11 @@ int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
  */
 int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
-    if (ctx == NULL || pkey == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET0_PKEY, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     EVP_PKEY_free(ctx->pkey);
-    ctx->pkey = NULL;
-
     ctx->pkey = pkey;
     return 1;
 }
@@ -758,16 +721,9 @@ int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
  */
 int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
-    if (ctx == NULL || pkey == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_NEWPKEY, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
-    if (!EVP_PKEY_up_ref(pkey))
-        return 0;
-    if (OSSL_CMP_CTX_set0_newPkey(ctx, pkey))
-       return 1;
-    EVP_PKEY_free(pkey); /* down ref */
-    return 0;
+    if (!OSSL_CMP_CTX_set0_newPkey(ctx, pkey))
+       return 0;
+    return pkey == NULL ? 1 : EVP_PKEY_up_ref(pkey);
 }
 
 /*
@@ -777,13 +733,11 @@ int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
  */
 int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
-    if (ctx == NULL || pkey == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET0_NEWPKEY, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     EVP_PKEY_free(ctx->newPkey);
-    ctx->newPkey = NULL;
-
     ctx->newPkey = pkey;
     return 1;
 }
@@ -828,7 +782,7 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx)
 int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
                             const ASN1_OCTET_STRING *nonce)
 {
-    if (ctx == NULL || nonce == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_CMP_CTX_SET1_RECIPNONCE, CMP_R_NULL_ARGUMENT);
         return 0;
     }
@@ -851,7 +805,7 @@ ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx)
 int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
                                        const ASN1_OCTET_STRING *nonce)
 {
-    if (ctx == NULL || nonce == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_LAST_SENDERNONCE, CMP_R_NULL_ARGUMENT);
         return 0;
     }
@@ -873,20 +827,16 @@ ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx)
  */
 int OSSL_CMP_CTX_set1_proxyName(OSSL_CMP_CTX *ctx, const char *name)
 {
-    if (ctx == NULL || name == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_PROXYNAME, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     OPENSSL_free(ctx->proxyName);
+
     ctx->proxyName = NULL;
-
-    ctx->proxyName = OPENSSL_strdup(name);
-    if (ctx->proxyName == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_PROXYNAME, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-
-    return 1;
+    if (name == NULL)
+        return 1;
+    return (ctx->proxyName = OPENSSL_strdup(name)) != NULL;
 }
 
 /*
@@ -895,20 +845,16 @@ int OSSL_CMP_CTX_set1_proxyName(OSSL_CMP_CTX *ctx, const char *name)
  */
 int OSSL_CMP_CTX_set1_serverName(OSSL_CMP_CTX *ctx, const char *name)
 {
-    if (ctx == NULL || name == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SERVERNAME, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     OPENSSL_free(ctx->serverName);
+
     ctx->serverName = NULL;
-
-    ctx->serverName = OPENSSL_strdup(name);
-    if (ctx->serverName == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SERVERNAME, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-
-    return 1;
+    if (name == NULL)
+        return 1;
+    return (ctx->serverName = OPENSSL_strdup(name)) != NULL;
 }
 
 /*
@@ -945,7 +891,6 @@ int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
     if (ctx == NULL)
         return 0;
-
     ctx->http_cb_arg = arg;
     return 1;
 }
@@ -958,7 +903,6 @@ void *OSSL_CMP_CTX_get_http_cb_arg(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;
-
     return ctx->http_cb_arg;
 }
 
@@ -970,7 +914,6 @@ int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_transfer_cb_t cb)
 {
     if (ctx == NULL)
         return 0;
-
     ctx->transfer_cb = cb;
     return 1;
 }
@@ -983,7 +926,6 @@ int OSSL_CMP_CTX_set_transfer_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
     if (ctx == NULL)
         return 0;
-
     ctx->transfer_cb_arg = arg;
     return 1;
 }
@@ -996,7 +938,6 @@ void *OSSL_CMP_CTX_get_transfer_cb_arg(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;
-
     return ctx->transfer_cb_arg;
 }
 
@@ -1027,24 +968,9 @@ int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
 
     /* clear the old value */
     OPENSSL_free(ctx->serverPath);
-    ctx->serverPath = NULL;
 
-    if (path == NULL) {
-        /* clear the serverPath */
-        ctx->serverPath = OPENSSL_zalloc(1);
-        if (ctx->serverPath == NULL)
-            goto oom;
-        return 1;
-    }
-
-    ctx->serverPath = OPENSSL_strdup(path);
-    if (ctx->serverPath == NULL)
-        goto oom;
-
-    return 1;
- oom:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SERVERPATH, ERR_R_MALLOC_FAILURE);
-    return 0;
+    ctx->serverPath = path == NULL ? OPENSSL_zalloc(1) : OPENSSL_strdup(path);
+    return ctx->serverPath != NULL;
 }
 
 /*
@@ -1059,15 +985,15 @@ int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
 
     if (ctx == NULL)
         return 0;
+
+    ctx->failInfoCode = 0;
     if (fail_info == NULL)
         return 1;
 
-    ctx->failInfoCode = 0;
     for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++) {
         if (ASN1_BIT_STRING_get_bit(fail_info, i))
             ctx->failInfoCode |= (1 << i);
     }
-
     return 1;
 }
 
@@ -1077,9 +1003,7 @@ int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
  */
 int OSSL_CMP_CTX_get_failInfoCode(OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
-        return -1;
-    return ctx->failInfoCode;
+    return ctx == NULL ? -1 : ctx->failInfoCode;
 }
 
 /*
@@ -1087,8 +1011,11 @@ int OSSL_CMP_CTX_get_failInfoCode(OSSL_CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(CMP_F_OSSL_CMP_CTX_SET_OPTION, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
+
     switch (opt) {
     case OSSL_CMP_OPT_IMPLICITCONFIRM:
         ctx->implicitConfirm = val;
@@ -1137,6 +1064,7 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
         ctx->revocationReason = val;
         break;
     default:
+        CMPerr(CMP_F_OSSL_CMP_CTX_SET_OPTION, CMP_R_INVALID_ARGS);
         return 0;
     }
 
