@@ -222,8 +222,8 @@ static int execute_cmp_asn1_octet_string_set_test(CMP_LIB_TEST_FIXTURE *
                                                   fixture)
 {
     if (!TEST_int_eq(fixture->expected,
-                     OSSL_CMP_ASN1_OCTET_STRING_set1(&fixture->tgt_string,
-                                                     fixture->src_string)))
+                     CMP_ASN1_OCTET_STRING_set1(&fixture->tgt_string,
+                                                fixture->src_string)))
         return 0;
     if (fixture->expected != 0)
         return TEST_int_eq(0, ASN1_OCTET_STRING_cmp(fixture->tgt_string,

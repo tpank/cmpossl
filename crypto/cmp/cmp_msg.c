@@ -686,8 +686,7 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
             && (md = EVP_get_digestbynid(md_NID)) != NULL) {
         if (!X509_digest(cert, md, hash, &len))
             goto err;
-        if (!OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&certStatus->certHash,
-                                                   hash, len))
+        if (!CMP_ASN1_OCTET_STRING_set1_bytes(&certStatus->certHash, hash, len))
             goto err;
     } else {
         CMPerr(CMP_F_CMP_CERTSTATUS_SET_CERTHASH,

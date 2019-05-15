@@ -82,11 +82,6 @@ int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
 STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store);
 STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs, X509 *cert);
 X509_EXTENSIONS *OSSL_CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *e);
-int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
-                                    const ASN1_OCTET_STRING *src);
-int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                          const unsigned char *bytes,
-                                          size_t len);
 
 #   ifdef  __cplusplus
 }

@@ -17,6 +17,8 @@
 #include <openssl/cmperr.h>
 #include <openssl/x509v3.h>
 
+#include "cmp_int.h"
+
 int OSSL_CMP_log_open(void)
 {
     return 1;
@@ -358,11 +360,11 @@ X509_EXTENSIONS *OSSL_CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *extin)
     return exts;
 }
 
-int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
-                                    const ASN1_OCTET_STRING *src)
+int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+                               const ASN1_OCTET_STRING *src)
 {
     if (tgt == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1, CMP_R_NULL_ARGUMENT);
         goto err;
     }
     if (*tgt == src) /* self-assignment */
@@ -371,7 +373,7 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
 
     if (src != NULL) {
         if ((*tgt = ASN1_OCTET_STRING_dup(src)) == NULL) {
-            CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1, ERR_R_MALLOC_FAILURE);
+            CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1, ERR_R_MALLOC_FAILURE);
             goto err;
         }
     } else {
@@ -383,27 +385,26 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
     return 0;
 }
 
-int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                          const unsigned char *bytes, size_t len)
+int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
+                                     const unsigned char *bytes, size_t len)
 {
     ASN1_OCTET_STRING *new = NULL;
     int res = 0;
 
     if (tgt == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_NULL_ARGUMENT);
         goto err;
     }
 
     if (bytes != NULL) {
         if ((new = ASN1_OCTET_STRING_new()) == NULL
                 || !(ASN1_OCTET_STRING_set(new, bytes, (int)len))) {
-            CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES,
-                   ERR_R_MALLOC_FAILURE);
+            CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, ERR_R_MALLOC_FAILURE);
             goto err;
         }
 
     }
-    res = OSSL_CMP_ASN1_OCTET_STRING_set1(tgt, new);
+    res = CMP_ASN1_OCTET_STRING_set1(tgt, new);
 
  err:
     ASN1_OCTET_STRING_free(new);

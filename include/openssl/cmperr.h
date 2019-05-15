@@ -50,8 +50,8 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CRM_NEW                                    120
 #  define CMP_F_FIND_SRVCERT                               121
 #  define CMP_F_GET_CERT_STATUS                            122
-#  define CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1            123
-#  define CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES      124
+#  define CMP_F_CMP_ASN1_OCTET_STRING_SET1                 123
+#  define CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES           124
 #  define CMP_F_OSSL_CMP_CERTCONF_NEW                      125
 #  define CMP_F_OSSL_CMP_CERTREP_NEW                       126
 #  define CMP_F_OSSL_CMP_CERTREQ_NEW                       127

@@ -254,7 +254,7 @@ int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_REFERENCEVALUE, CMP_R_INVALID_ARGS);
         return 0;
     }
-    return OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->referenceValue, ref, len);
+    return CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->referenceValue, ref, len);
 }
 
 /*
@@ -270,7 +270,7 @@ int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
     }
     if (ctx->secretValue != NULL)
         OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
-    return OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->secretValue, sec, len);
+    return CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->secretValue, sec, len);
 }
 
 /*
@@ -807,7 +807,7 @@ int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_TRANSACTIONID, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->transactionID, id);
+    return CMP_ASN1_OCTET_STRING_set1(&ctx->transactionID, id);
 
 }
 
@@ -832,7 +832,7 @@ int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
         CMPerr(CMP_F_CMP_CTX_SET1_RECIPNONCE, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->recipNonce, nonce);
+    return CMP_ASN1_OCTET_STRING_set1(&ctx->recipNonce, nonce);
 }
 
 /*
@@ -855,7 +855,7 @@ int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_LAST_SENDERNONCE, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->last_senderNonce, nonce);
+    return CMP_ASN1_OCTET_STRING_set1(&ctx->last_senderNonce, nonce);
 }
 
 /*

@@ -154,9 +154,9 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
             CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM,CMP_R_FAILURE_OBTAINING_RANDOM);
             goto err;
         }
-        res = OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(tgt, bytes, len);
+        res = CMP_ASN1_OCTET_STRING_set1_bytes(tgt, bytes, len);
     } else {
-        res = OSSL_CMP_ASN1_OCTET_STRING_set1(tgt, src);
+        res = CMP_ASN1_OCTET_STRING_set1(tgt, src);
     }
 
  err:
@@ -169,7 +169,7 @@ int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
 {
     if (hdr == NULL)
         return 0;
-    return OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->senderKID, senderKID);
+    return CMP_ASN1_OCTET_STRING_set1(&hdr->senderKID, senderKID);
 }
 
 /*
@@ -366,7 +366,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         goto err;
 
     if (ctx->recipNonce != NULL)
-        if (!OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->recipNonce, ctx->recipNonce))
+        if (!CMP_ASN1_OCTET_STRING_set1(&hdr->recipNonce, ctx->recipNonce))
             goto err;
 
     /*
@@ -382,8 +382,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
             && !set1_aostr_else_random(&ctx->transactionID,NULL,
                                        OSSL_CMP_TRANSACTIONID_LENGTH))
         goto err;
-    if (!OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID,
-                                         ctx->transactionID))
+    if (!CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID, ctx->transactionID))
         goto err;
 
     /*-

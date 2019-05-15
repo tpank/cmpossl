@@ -721,6 +721,11 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
 /*
  * functions
  */
+/* from cmp_util.c */
+int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+                               const ASN1_OCTET_STRING *src);
+int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
+                                     const unsigned char *bytes, size_t len);
 /* from cmp_status.c */
 int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a);
 int OSSL_CMP_PKISI_get_PKIStatus(OSSL_CMP_PKISI *statusInfo);
