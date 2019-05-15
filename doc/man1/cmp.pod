@@ -584,7 +584,7 @@ Reason numbers defined in RFC 5280 are:
         superseded              (4),
         cessationOfOperation    (5),
         certificateHold         (6),
-             -- value 7 is not used
+        -- value 7 is not used
         removeFromCRL           (8),
         privilegeWithdrawn      (9),
         aACompromise           (10)
@@ -752,7 +752,7 @@ Compare B<X509_V_FLAG_CRL_CHECK>.
 
 Use given CRL(s) as secondary source of certificate revocation information. The
 URLs argument may be a single element or a comma- or whitespace-separated list,
-each element starting with C<http:> or C<file:> or being simply a local file name.
+each element starting with C<http:> or C<file:> or being a file (path) name.
 
 This option enables CRL checking for, e.g., the CMP/TLS server certificate
 as it is the leaf certificate of the certificate chain.

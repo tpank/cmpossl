@@ -77,10 +77,10 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
                      const char *func, const char *file, int lineno,
                      OSSL_CMP_severity level, const char *fmt, ...);
- #define OSSL_CMP_err(ctx, msg)   OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)
- #define OSSL_CMP_warn(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN , msg)
- #define OSSL_CMP_info(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO , msg)
- #define OSSL_CMP_debug(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_DEBUG, msg)
+ #define OSSL_CMP_err(ctx, msg)
+ #define OSSL_CMP_warn(ctx, msg)
+ #define OSSL_CMP_info(ctx, msg)
+ #define OSSL_CMP_debug(ctx, msg)
  void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx);
 
  /* message transfer: */
@@ -178,36 +178,46 @@ OSSL_CMP_CTX_new() allocates and initializes an OSSL_CMP_CTX structure to
 default values.
 Transfer is set to HTTP, proof-of-possession method to POPOSigningKey.
 
-OSSL_CMP_CTX_free() frees any allocated non-ASN1 fields of OSSL_CMP_CTX and
-calls the ASN1 defined OSSL_CMP_CTX_free() function to free the rest.
+OSSL_CMP_CTX_free() deallocates an OSSL_CMP_CTX structure.
 
 OSSL_CMP_CTX_set_option() sets the given value for the given option
 (e.g., OSSL_CMP_OPT_IMPLICITCONFIRM) in the given OSSL_CMP_CTX structure.
 
 The following options can be set:
-    OSSL_CMP_OPT_MSGTIMEOUT
+
+=over 4
+
+=item B<OSSL_CMP_OPT_MSGTIMEOUT>
+
         Number of seconds (or 0 for infinite) a CMP message round trip is
         allowed to take before a timeout error is returned. Default is 120.
 
-    OSSL_CMP_OPT_TOTALTIMEOUT
+=item B<OSSL_CMP_OPT_TOTALTIMEOUT>
+
         Maximum total number of seconds an enrollment (including polling)
         may take. Default is 0 (infinite).
 
-    OSSL_CMP_OPT_VALIDITYDAYS
+=item B<OSSL_CMP_OPT_VALIDITYDAYS>
+
         Number of days new certificates are asked to be valid for.
 
-    OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT
+=item B<OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT>
+
         Do not take default Subject Alternative Names
         from the reference certificate.
 
-    OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL
+=item B<OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL>
+
         Demand that the given Subject Alternative Names are flagged as critical.
 
-    OSSL_CMP_OPT_POLICIES_CRITICAL
+=item B<OSSL_CMP_OPT_POLICIES_CRITICAL>
+
         Demand that the given policies are flagged as critical.
 
-    OSSL_CMP_OPT_POPOMETHOD
+=item B<OSSL_CMP_OPT_POPOMETHOD>
+
         Select the proof of possession method to use. Possible values are:
+
             OSSL_CRMF_POPO_NONE       - ProofOfPossession field omitted
             OSSL_CRMF_POPO_RAVERIFIED - assert that the RA has already
                                         verified the PoPo
@@ -215,31 +225,37 @@ The following options can be set:
             OSSL_CRMF_POPO_KEYENC     - decrypt the encrypted certificate
                                         ("indirect method")
 
-    OSSL_CMP_OPT_DIGEST_ALGNID
+=item B<OSSL_CMP_OPT_DIGEST_ALGNID>
+
         The digest algorithm NID to be used in RFC 4210's MSG_SIG_ALG,
         if applicable used for message protection and Proof-of-Possession.
 
-    OSSL_CMP_OPT_REVOCATION_REASON
-        The reason code to be included in revocation request (RR);
+=item B<OSSL_CMP_OPT_REVOCATION_REASON>
+
+        The reason code to be included in a Revocation Request (RR);
         values: 0..10 (RFC 5210, 5.3.1) or -1 for none (which is the default)
 
-    OSSL_CMP_OPT_IMPLICITCONFIRM
+=item B<OSSL_CMP_OPT_IMPLICITCONFIRM>
+
         Request server to enable implicit confirm mode, where the client
         does not need to send confirmation upon receiving the
         certificate. If the server does not enable implicit confirmation
         in the return message, then confirmation is sent anyway.
 
-    OSSL_CMP_OPT_DISABLECONFIRM
+=item B<OSSL_CMP_OPT_DISABLECONFIRM>
+
         Do not confirm enrolled certificates, to cope with broken servers
         not supporting implicit confirmation correctly.
 B<WARNING:> This setting leads to unspecified behavior and it is meant
 exclusively to allow interoperability with server implementations violating
 RFC 4210.
 
-    OSSL_CMP_OPT_UNPROTECTED_SEND
+=item B<OSSL_CMP_OPT_UNPROTECTED_SEND>
+
         Send messages without CMP-level protection.
 
-    OSSL_CMP_OPT_UNPROTECTED_ERRORS
+=item B<OSSL_CMP_OPT_UNPROTECTED_ERRORS>
+
         Accept unprotected error responses which are either explicitly
         unprotected or where protection verification failed. Applies to regular
         error messages as well as certificate responses (IP/CP/KUP) and
@@ -248,32 +264,36 @@ B<WARNING:> This setting leads to unspecified behavior and it is meant
 exclusively to allow interoperability with server implementations violating
 RFC 4210.
 
-    OSSL_CMP_OPT_IGNORE_KEYUSAGE
+=item B<OSSL_CMP_OPT_IGNORE_KEYUSAGE>
+
         Ignore key usage restrictions in signer certificate when
         validating signature-based protection in received CMP messages.
         Else, 'digitalSignature' must be allowed by CMP signer certificates.
 
-    OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR
+=item B<OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR>
+
         Allow retrieving a trust anchor from extraCerts and using that
         to validate the certificate chain of an IP message.
+
+=back
 
 OSSL_CMP_CTX_set_log_cb() sets in B<ctx> the log callback function B<cb> for
 error/warning/info/debug messages. For details see L<OSSL_CMP_log_printf(3)>.
 
 OSSL_CMP_printf() outputs error/warning/info/debug messages.
 The nature of the message is specified by the B<level> parameter.
-The message text is given using a format string B<fmt>
-with variable number of arguments as with printf. In debug mode
-optional information in B<func>, B<file>, and B<lineno> parameters is included.
-Output is sent to the log callback if set in B<ctx>, else to L<OSSL_CMP_puts(3)>.
+The message text is given using a format string B<fmt> with variable number of
+arguments as with printf. In debug mode optional information in B<func>,
+B<file>, and B<lineno> parameters is included. Output is sent to the
+log callback if set in B<ctx>, else to L<OSSL_CMP_puts(3)>.
 
 OSSL_CMP_err() outputs a simple error message via B<OSSL_CMP_printf()>.
 OSSL_CMP_warn() outputs a simple warning message via B<OSSL_CMP_printf()>.
 OSSL_CMP_info() outputs a simple info message via B<OSSL_CMP_printf()>.
 OSSL_CMP_debug() outputs a simple debug message via B<OSSL_CMP_printf()>.
 
-OSSL_CMP_print_errors() outputs any entries in the OpenSSL error queue.
-It uses the log callback function if set in the B<ctx>, else L<OSSL_CMP_puts(3)>.
+OSSL_CMP_print_errors() outputs any entries in the OpenSSL error queue. It uses
+the log callback function if set in the B<ctx>, else L<OSSL_CMP_puts(3)>.
 
 OSSL_CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
@@ -346,7 +366,7 @@ OSSL_CMP_CTX_set1_srvCert() pins the server certificate to be directly trusted
 (even if it is expired) for verifying response messages.
 The cert pointer is not consumed. It may be NULL to clear the entry.
 
-OOSSL_CMP_CTX_set1_expected_sender() sets the Distinguished Name (DN) expected to
+OSSL_CMP_CTX_set1_expected_sender() sets the Distinguished Name (DN) expected to
 be given in the sender response for messages protected with MSG_SIG_ALG. This
 may be used to enforce that during validation of received messages the given DN
 matches the sender field of the PKIMessage header, which in turn is used to
@@ -425,9 +445,10 @@ OSSL_CMP_CTX_set1_issuer() sets the name of the intended issuer that
 will be set in the CertTemplate, i.e., the X509 name of the CA server.
 
 OSSL_CMP_CTX_set1_subjectName() sets the subject DN that will be used in
-the CertTemplate structure when requesting a new cert. For KUR, it defaults to
-the subject DN of the reference certificate, see OSSL_CMP_CTX_set1_oldClCert().
-This default is used for IR and CR only if no SANs are set.
+the CertTemplate structure when requesting a new cert. For Key Update Requests
+(KUR), it defaults to the subject DN of the reference certificate,
+see B<OSSL_CMP_CTX_set1_oldClCert()>. This default is used for Initialization
+Requests (IR) and Certifiation Requests (CR) only if no SANs are set.
 
 If clCert is not set (e.g. in case of IR with MSG_MAC_ALG), the subject DN
 is also used as sender of the PKI message.
@@ -459,8 +480,9 @@ OSSL_CMP_CTX_push1_policyOID() adds the certificate policy OID given by the
 string to the X509_EXTENSIONS of the requested certificate template.
 Returns -1 on parse error.
 
-OSSL_CMP_CTX_set1_oldClCert() sets the old certificate to be updated in KUR or
-to be revoked in RR. It must be given for RR, else it defaults to B<clCert>.
+OSSL_CMP_CTX_set1_oldClCert() sets the old certificate to be updated in
+Key Update Requests (KUR) or to be revoked in Revocation Requests (RR).
+It must be given for RR, else it defaults to B<clCert>.
 The reference certificate determined in this way, if any, is also used for
 deriving default subject DN and Subject Alternative Names for IR, CR, and KUR.
 Its issuer, if any, is used as default recipient in the CMP message header.
@@ -641,8 +663,8 @@ example, the id-it-signKeyPairTypes OID and prints info on the genp contents.
 
 =head1 SEE ALSO
 
-L<OSSL_CMP_exec_IR_ses(3)>, L<OSSL_CMP_exec_KUR_ses(3)>, 
-L<OSSL_CMP_exec_GENM_ses(3)> 
+L<OSSL_CMP_exec_IR_ses(3)>, L<OSSL_CMP_exec_KUR_ses(3)>,
+L<OSSL_CMP_exec_GENM_ses(3)>
 
 =head1 COPYRIGHT
 

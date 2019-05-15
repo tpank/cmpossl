@@ -30,11 +30,12 @@ OSSL_CMP_print_errors_cb
                    OSSL_CMP_severity level, const char *msg);
  int OSSL_CMP_log_printf(OSSL_cmp_log_cb_t log_fn,
                          const char *func, const char *file, int lineno,
-                         OSSL_CMP_severity level, const char *fmt, va_list argp);
+                         OSSL_CMP_severity level,
+                         const char *fmt, va_list argp);
 
  void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
- #define OSSL_CMP_add_error_data(txt) OSSL_CMP_add_error_txt(" : ", txt)
- #define OSSL_CMP_add_error_line(txt) OSSL_CMP_add_error_txt("\n", txt)
+ #define OSSL_CMP_add_error_data(txt)
+ #define OSSL_CMP_add_error_line(txt)
  void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
 
 =head1 DESCRIPTION

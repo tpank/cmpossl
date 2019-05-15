@@ -324,6 +324,12 @@ OpenSSL_add_all_ciphers                 define deprecated 1.1.0
 OpenSSL_add_all_digests                 define deprecated 1.1.0
 OpenSSL_add_ssl_algorithms              define
 OSSL_PARAM_utf8_ptr                     define
+OSSL_CMP_add_error_data                 define
+OSSL_CMP_add_error_line                 define
+OSSL_CMP_debug                          define
+OSSL_CMP_err                            define
+OSSL_CMP_info                           define
+OSSL_CMP_warn                           define
 OSSL_PARAM_SIZED_BN                     define
 OSSL_PARAM_TYPE                         generic
 OSSL_PARAM_construct_TYPE               generic

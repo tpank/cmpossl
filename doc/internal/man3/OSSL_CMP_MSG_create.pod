@@ -37,7 +37,7 @@ Returns pointer to created OSSL_CMP_MSG on success, NULL on error.
 OSSL_CMP_MSG *OSSL_CMP_MSG_load() loads a OSSL_CMP_MSG from a B<file>.
 Returns pointer to created OSSL_CMP_MSG on success, NULL on error.
 
-OSSL_CMP_MSG_gen_ITAV_push0() pushes the B<itav> to the body of the 
+OSSL_CMP_MSG_gen_ITAV_push0() pushes the B<itav> to the body of the
 PKIMessage B<msg> of GenMsg or GenRep type. Consumes the B<itavs> pointer.
 Returns 1 on success, 0 on error.
 
