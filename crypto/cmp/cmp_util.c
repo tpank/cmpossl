@@ -339,25 +339,12 @@ STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs,
     return result;
 }
 
-X509_EXTENSIONS *OSSL_CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *extin)
+X509_EXTENSIONS *CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *exts)
 {
-    X509_EXTENSIONS *exts;
-    int i;
-
-    if (extin == NULL)
+    if (exts == NULL)
         return NULL;
-
-    if ((exts = sk_X509_EXTENSION_new_null()) == NULL)
-        return NULL;
-    for (i = 0; i < sk_X509_EXTENSION_num(extin); i++) {
-        X509_EXTENSION *ext = sk_X509_EXTENSION_value(extin, i);
-        if (!sk_X509_EXTENSION_push(exts, X509_EXTENSION_dup(ext)))
-        {
-            sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
-            return NULL;
-        }
-    }
-    return exts;
+    return sk_X509_EXTENSION_deep_copy(exts, X509_EXTENSION_dup,
+                                       X509_EXTENSION_free);
 }
 
 int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,

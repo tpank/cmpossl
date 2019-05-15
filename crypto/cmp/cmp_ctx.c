@@ -579,7 +579,7 @@ int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, const X509_EXTENSIONS *ex
 
     if (ctx == NULL)
        return 0;
-    exts_copy = OSSL_CMP_X509_EXTENSIONS_dup(exts);
+    exts_copy = CMP_X509_EXTENSIONS_dup(exts);
 
     if (exts != NULL && exts_copy == NULL)
         return 0;

@@ -5,11 +5,8 @@
 OSSL_CMP_sk_X509_add1_cert,
 OSSL_CMP_sk_X509_add1_certs,
 OSSL_CMP_X509_STORE_add1_certs,
-OSSL_CMP_X509_STORE_get1_certs,
-OSSL_CMP_X509_EXTENSIONS_dup,
-CMP_ASN1_OCTET_STRING_set1,
-CMP_ASN1_OCTET_STRING_set1_bytes
-- functions manipulating lists of certificates etc
+OSSL_CMP_X509_STORE_get1_certs
+- functions manipulating lists of certificates
 
 =head1 SYNOPSIS
 
@@ -23,11 +20,6 @@ CMP_ASN1_OCTET_STRING_set1_bytes
   int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                 int only_self_signed);
   STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store);
-  X509_EXTENSIONS *OSSL_CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *e);
-  int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
-                                 const ASN1_OCTET_STRING *src);
-  int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                       const unsigned char *bytes, size_t len);
 
 =head1 DESCRIPTION
 
@@ -46,23 +38,9 @@ the given stack to given store. The C<certs> parameter may be NULL.
 OSSL_CMP_X509_STORE_get1_certs() retrieves a copy of all certificates in the
 given store.
 
-OSSL_CMP_X509_EXTENSIONS_dup() copies a list of X.509 v3 extensions.
-
-CMP_ASN1_OCTET_STRING_set1() frees any previous value of the variable
-referenced via the C<tgt> argument and assigns either a copy of
-the ASN1_OCTET_STRING given as the C<src> argument or C<NULL>.
-It returns 1 on success, 0 on error.
-
-CMP_ASN1_OCTET_STRING_set1_bytes() frees any previous value of the variable
-referenced via the C<tgt> argument and assigns either a copy of the given byte
-string (with the given length) or NULL. It returns 1 on success, 0 on error.
-
 =head1 RETURN VALUES
 
 OSSL_CMP_X509_STORE_get1_certs() returns a list of certificates, NULL on error.
-
-OSSL_CMP_X509_EXTENSIONS_dup()
-returns NULL in case the input list is NULL and on error.
 
 All other functions return 1 on success, 0 on error.
 

@@ -261,7 +261,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         default_sans = X509V3_get_d2i(X509_get0_extensions(refcert),
                                       NID_subject_alt_name, NULL, NULL);
     /* exts are copied from ctx to allow reuse */
-    exts = OSSL_CMP_X509_EXTENSIONS_dup(ctx->reqExtensions);
+    exts = CMP_X509_EXTENSIONS_dup(ctx->reqExtensions);
     if (ctx->reqExtensions != NULL && exts == NULL)
         goto oom;
     if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0

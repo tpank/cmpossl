@@ -81,7 +81,6 @@ int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed);
 STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store);
 STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs, X509 *cert);
-X509_EXTENSIONS *OSSL_CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *e);
 
 #   ifdef  __cplusplus
 }
