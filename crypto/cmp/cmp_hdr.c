@@ -273,7 +273,7 @@ int OSSL_CMP_HDR_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
     return 0;
 }
 
-int CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
+int OSSL_CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
 {
     OSSL_CMP_ITAV *itav = NULL;
 

@@ -316,10 +316,11 @@ static int
 execute_cmp_pkimessage_set_and_check_implicit_confirm_test(CMP_LIB_TEST_FIXTURE
                                                            * fixture)
 {
-    return TEST_false(OSSL_CMP_HDR_check_implicitConfirm(fixture->msg->header))
-               && TEST_true(CMP_HDR_set_implicitConfirm(fixture->msg->header))
-               && TEST_true(
-                     OSSL_CMP_HDR_check_implicitConfirm(fixture->msg->header));
+    OSSL_CMP_PKIHEADER *hdr = fixture->msg->header;
+
+    return TEST_false(OSSL_CMP_HDR_check_implicitConfirm(hdr))
+               && TEST_true(OSSL_CMP_HDR_set_implicitConfirm(hdr))
+               && TEST_true(OSSL_CMP_HDR_check_implicitConfirm(hdr));
 }
 
 static int test_cmp_protection_unprotected_request(void)

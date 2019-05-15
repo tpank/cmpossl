@@ -769,7 +769,7 @@ int OSSL_CMP_HDR_generalInfo_push0_item(OSSL_CMP_PKIHEADER *hdr,
                                         OSSL_CMP_ITAV *itav);
 int OSSL_CMP_HDR_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
                                          STACK_OF(OSSL_CMP_ITAV) *itavs);
-int CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr);
+int OSSL_CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr);
 int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_PKIHEADER *hdr);
 #  define OSSL_CMP_TRANSACTIONID_LENGTH 16
 #  define OSSL_CMP_SENDERNONCE_LENGTH 16
