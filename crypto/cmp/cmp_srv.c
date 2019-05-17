@@ -354,7 +354,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         /* check cert hash by recalculating it in place */
         tmp = status->certHash;
         status->certHash = NULL;
-        if (CMP_CERTSTATUS_set_certHash(status, srv_ctx->certOut))
+        if (OSSL_CMP_CERTSTATUS_set_certHash(status, srv_ctx->certOut))
             res = status->certHash == NULL ? 0 /* avoiding SCA false positive */
                   : ASN1_OCTET_STRING_cmp(tmp, status->certHash) == 0;
         ASN1_OCTET_STRING_free(status->certHash);

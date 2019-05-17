@@ -666,7 +666,7 @@ OSSL_CMP_MSG *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
  * OSSL_CMP_CERTSTATUS structure. This is used in the certConf message,
  * for example, to confirm that the certificate was received successfully.
  */
-int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
+int OSSL_CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
                                 const X509 *cert)
 {
     unsigned int len;
@@ -689,14 +689,14 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
         if (!CMP_ASN1_OCTET_STRING_set1_bytes(&certStatus->certHash, hash, len))
             goto err;
     } else {
-        CMPerr(CMP_F_CMP_CERTSTATUS_SET_CERTHASH,
+        CMPerr(CMP_F_OSSL_CMP_CERTSTATUS_SET_CERTHASH,
                CMP_R_UNSUPPORTED_ALGORITHM);
         goto err;
     }
 
     return 1;
  err:
-    CMPerr(CMP_F_CMP_CERTSTATUS_SET_CERTHASH, CMP_R_ERROR_SETTING_CERTHASH);
+    CMPerr(CMP_F_OSSL_CMP_CERTSTATUS_SET_CERTHASH, CMP_R_ERROR_SETTING_CERTHASH);
     return 0;
 }
 
@@ -731,7 +731,7 @@ OSSL_CMP_MSG *OSSL_CMP_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
      * the hash of the certificate, using the same hash algorithm
      * as is used to create and verify the certificate signature
      */
-    if (!CMP_CERTSTATUS_set_certHash(certStatus, ctx->newClCert))
+    if (!OSSL_CMP_CERTSTATUS_set_certHash(certStatus, ctx->newClCert))
         goto err;
     /*
      * For any particular CertStatus, omission of the statusInfo field
