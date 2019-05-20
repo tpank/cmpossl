@@ -43,7 +43,7 @@ static void tear_down(OSSL_CMP_CTX_TEST_FIXTURE *fixture)
     OPENSSL_free(fixture);
 }
 
-static int execute_cmp_ctx_reqextensions_have_san_test(OSSL_CMP_CTX_TEST_FIXTURE *
+static int execute_CTX_reqExtensions_have_SAN_test(OSSL_CMP_CTX_TEST_FIXTURE *
                                                        fixture)
 {
     int good = 0;
@@ -59,7 +59,7 @@ static int execute_cmp_ctx_reqextensions_have_san_test(OSSL_CMP_CTX_TEST_FIXTURE
     return good;
 }
 
-static int test_cmp_ctx_reqextensions_have_san(void)
+static int test_CTX_reqExtensions_have_SAN(void)
 {
     SETUP_TEST_FIXTURE(OSSL_CMP_CTX_TEST_FIXTURE, set_up);
     const int len = 16;
@@ -80,7 +80,7 @@ static int test_cmp_ctx_reqextensions_have_san(void)
         fixture = NULL;
     }
     ASN1_OCTET_STRING_free(data);
-    EXECUTE_TEST(execute_cmp_ctx_reqextensions_have_san_test, tear_down);
+    EXECUTE_TEST(execute_CTX_reqExtensions_have_SAN_test, tear_down);
     return result;
 }
 
@@ -91,7 +91,7 @@ void cleanup_tests(void)
 
 int setup_tests(void)
 {
-    ADD_TEST(test_cmp_ctx_reqextensions_have_san);
+    ADD_TEST(test_CTX_reqExtensions_have_SAN);
 
     return 1;
 }

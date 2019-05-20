@@ -67,13 +67,13 @@ static X509 *clcert = NULL;
 static X509 *endentity1 = NULL, *endentity2 = NULL,
     *intermediate = NULL, *root = NULL;
 
-static int execute_validation_test(CMP_VFY_TEST_FIXTURE *fixture)
+static int execute_validate_msg_test(CMP_VFY_TEST_FIXTURE *fixture)
 {
     return TEST_int_eq(fixture->expected,
                        OSSL_CMP_validate_msg(fixture->cmp_ctx, fixture->msg));
 }
 
-static int execute_cmp_validate_cert_path_test(CMP_VFY_TEST_FIXTURE *fixture)
+static int execute_validate_cert_path_test(CMP_VFY_TEST_FIXTURE *fixture)
 {
     X509_STORE *ts = OSSL_CMP_CTX_get0_trustedStore(fixture->cmp_ctx);
 
@@ -82,7 +82,7 @@ static int execute_cmp_validate_cert_path_test(CMP_VFY_TEST_FIXTURE *fixture)
                                                    ts, fixture->cert, 0));
 }
 
-static int test_cmp_validate_msg_mac_alg_protection(void)
+static int test_validate_msg_mac_alg_protection(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* secret value belonging to cmp-test/CMP_IP_waitingStatus_PBM.der */
@@ -98,11 +98,11 @@ static int test_cmp_validate_msg_mac_alg_protection(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_validation_test, tear_down);
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
     return result;
 }
 
-static int test_cmp_validate_msg_mac_alg_protection_bad(void)
+static int test_validate_msg_mac_alg_protection_bad(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     const unsigned char sec_bad[] =
@@ -117,11 +117,11 @@ static int test_cmp_validate_msg_mac_alg_protection_bad(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_validation_test, tear_down);
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
     return result;
 }
 
-static int test_cmp_validate_msg_signature_trusted(int expired)
+static int test_validate_msg_signature_trusted(int expired)
 {
     X509_STORE *trusted = NULL;
 
@@ -139,21 +139,21 @@ static int test_cmp_validate_msg_signature_trusted(int expired)
         X509_VERIFY_PARAM_set_time(X509_STORE_get0_param(trusted),
                                    expired ? test_time_future : test_time_valid);
     }
-    EXECUTE_TEST(execute_validation_test, tear_down);
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
     return result;
 }
 
-static int test_cmp_validate_msg_signature_trusted_ok(void)
+static int test_validate_msg_signature_trusted_ok(void)
 {
-    return test_cmp_validate_msg_signature_trusted(0);
+    return test_validate_msg_signature_trusted(0);
 }
 
-static int test_cmp_validate_msg_signature_trusted_expired(void)
+static int test_validate_msg_signature_trusted_expired(void)
 {
-    return test_cmp_validate_msg_signature_trusted(1);
+    return test_validate_msg_signature_trusted(1);
 }
 
-static int test_cmp_validate_msg_signature_srvcert_ok(void)
+static int test_validate_msg_signature_srvcert_ok(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -164,11 +164,11 @@ static int test_cmp_validate_msg_signature_srvcert_ok(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_validation_test, tear_down);
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
     return result;
 }
 
-static int test_cmp_validate_msg_signature_srvcert_bad(void)
+static int test_validate_msg_signature_srvcert_bad(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -179,11 +179,11 @@ static int test_cmp_validate_msg_signature_srvcert_bad(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_validation_test, tear_down);
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
     return result;
 }
 
-static int test_cmp_validate_msg_signature_expected_sender(void)
+static int test_validate_msg_signature_expected_sender(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -197,11 +197,11 @@ static int test_cmp_validate_msg_signature_expected_sender(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_validation_test, tear_down);
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
     return result;
 }
 
-static int test_cmp_validate_msg_signature_unexpected_sender(void)
+static int test_validate_msg_signature_unexpected_sender(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -215,12 +215,12 @@ static int test_cmp_validate_msg_signature_unexpected_sender(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_validation_test, tear_down);
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
     return result;
 }
 
 
-static int test_cmp_validate_msg_unprotected_request(void)
+static int test_validate_msg_unprotected_request(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
@@ -231,11 +231,11 @@ static int test_cmp_validate_msg_unprotected_request(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_validation_test, tear_down);
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
     return result;
 }
 
-static int test_cmp_validate_cert_path_ok(void)
+static int test_validate_cert_path_ok(void)
 {
     STACK_OF(X509) *untrusted = NULL;
     X509_STORE *trusted = NULL;
@@ -256,11 +256,11 @@ static int test_cmp_validate_cert_path_ok(void)
         X509_VERIFY_PARAM_set_time(X509_STORE_get0_param(trusted),
                                    test_time_valid);
     }
-    EXECUTE_TEST(execute_cmp_validate_cert_path_test, tear_down);
+    EXECUTE_TEST(execute_validate_cert_path_test, tear_down);
     return result;
 }
 
-static int test_cmp_validate_cert_path_no_anchor(void)
+static int test_validate_cert_path_no_anchor(void)
 {
     STACK_OF(X509) *untrusted = NULL;
     X509_STORE *trusted = NULL;
@@ -282,11 +282,11 @@ static int test_cmp_validate_cert_path_no_anchor(void)
         X509_VERIFY_PARAM_set_time(X509_STORE_get0_param(trusted),
                                    test_time_valid);
     }
-    EXECUTE_TEST(execute_cmp_validate_cert_path_test, tear_down);
+    EXECUTE_TEST(execute_validate_cert_path_test, tear_down);
     return result;
 }
 
-static int test_cmp_validate_cert_path_expired(void)
+static int test_validate_cert_path_expired(void)
 {
     STACK_OF(X509) *untrusted = NULL;
     X509_STORE *trusted = NULL;
@@ -307,7 +307,7 @@ static int test_cmp_validate_cert_path_expired(void)
         X509_VERIFY_PARAM_set_time(X509_STORE_get0_param(trusted),
                                    test_time_future);
     }
-    EXECUTE_TEST(execute_cmp_validate_cert_path_test, tear_down);
+    EXECUTE_TEST(execute_validate_cert_path_test, tear_down);
     return result;
 }
 
@@ -364,20 +364,20 @@ int setup_tests(void)
         return 0;
 
     /* Message validation tests */
-    ADD_TEST(test_cmp_validate_msg_signature_trusted_ok);
-    ADD_TEST(test_cmp_validate_msg_signature_trusted_expired);
-    ADD_TEST(test_cmp_validate_msg_signature_srvcert_ok);
-    ADD_TEST(test_cmp_validate_msg_signature_srvcert_bad);
-    ADD_TEST(test_cmp_validate_msg_signature_expected_sender);
-    ADD_TEST(test_cmp_validate_msg_signature_unexpected_sender);
-    ADD_TEST(test_cmp_validate_msg_unprotected_request);
-    ADD_TEST(test_cmp_validate_msg_mac_alg_protection);
-    ADD_TEST(test_cmp_validate_msg_mac_alg_protection_bad);
+    ADD_TEST(test_validate_msg_signature_trusted_ok);
+    ADD_TEST(test_validate_msg_signature_trusted_expired);
+    ADD_TEST(test_validate_msg_signature_srvcert_ok);
+    ADD_TEST(test_validate_msg_signature_srvcert_bad);
+    ADD_TEST(test_validate_msg_signature_expected_sender);
+    ADD_TEST(test_validate_msg_signature_unexpected_sender);
+    ADD_TEST(test_validate_msg_unprotected_request);
+    ADD_TEST(test_validate_msg_mac_alg_protection);
+    ADD_TEST(test_validate_msg_mac_alg_protection_bad);
 
     /* Cert path validation tests */
-    ADD_TEST(test_cmp_validate_cert_path_ok);
-    ADD_TEST(test_cmp_validate_cert_path_expired);
-    ADD_TEST(test_cmp_validate_cert_path_no_anchor);
+    ADD_TEST(test_validate_cert_path_ok);
+    ADD_TEST(test_validate_cert_path_expired);
+    ADD_TEST(test_validate_cert_path_no_anchor);
 
     return 1;
 }

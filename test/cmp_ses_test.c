@@ -94,13 +94,13 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
     return fixture;
 }
 
-static int execute_cmp_exec_rr_ses_test(CMP_SES_TEST_FIXTURE *fixture)
+static int execute_exec_RR_ses_test(CMP_SES_TEST_FIXTURE *fixture)
 {
     return TEST_int_eq(fixture->expected,
                        OSSL_CMP_exec_RR_ses(fixture->cmp_ctx) != NULL);
 }
 
-static int execute_cmp_exec_genm_ses_test(CMP_SES_TEST_FIXTURE *fixture)
+static int execute_exec_GENM_ses_test(CMP_SES_TEST_FIXTURE *fixture)
 {
     STACK_OF(OSSL_CMP_ITAV) *itavs = NULL;
     if (!TEST_ptr(itavs = OSSL_CMP_exec_GENM_ses(fixture->cmp_ctx)))
@@ -110,7 +110,7 @@ static int execute_cmp_exec_genm_ses_test(CMP_SES_TEST_FIXTURE *fixture)
     return 1;
 }
 
-static int execute_cmp_exec_certrequest_ses_test(CMP_SES_TEST_FIXTURE *fixture)
+static int execute_exec_certrequest_ses_test(CMP_SES_TEST_FIXTURE *fixture)
 {
     X509 *res = NULL;
 
@@ -132,15 +132,15 @@ static int execute_cmp_exec_certrequest_ses_test(CMP_SES_TEST_FIXTURE *fixture)
     return TEST_ptr_null(res = fixture->exec_cert_ses_cb(fixture->cmp_ctx));
 }
 
-static int test_cmp_exec_rr_ses(void)
+static int test_exec_RR_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
-    EXECUTE_TEST(execute_cmp_exec_rr_ses_test, tear_down);
+    EXECUTE_TEST(execute_exec_RR_ses_test, tear_down);
     return result;
 }
 
-static int test_cmp_exec_rr_ses_receive_error(void)
+static int test_exec_RR_ses_receive_error(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     OSSL_CMP_SRV_CTX_set_statusInfo(fixture->srv_ctx,
@@ -149,11 +149,11 @@ static int test_cmp_exec_rr_ses_receive_error(void)
                                     "test string");
     OSSL_CMP_SRV_CTX_set_send_error(fixture->srv_ctx, 1);
     fixture->expected = 0;
-    EXECUTE_TEST(execute_cmp_exec_rr_ses_test, tear_down);
+    EXECUTE_TEST(execute_exec_RR_ses_test, tear_down);
     return result;
 }
 
-static int test_cmp_exec_ir_ses(void)
+static int test_exec_IR_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
@@ -162,12 +162,12 @@ static int test_cmp_exec_ir_ses(void)
     sk_X509_push(fixture->ca_pubs, cert);
     sk_X509_push(fixture->ca_pubs, cert);
     OSSL_CMP_SRV_CTX_set1_caPubsOut(fixture->srv_ctx, fixture->ca_pubs);
-    EXECUTE_TEST(execute_cmp_exec_certrequest_ses_test, tear_down);
+    EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     /* TODO: check also capubs returned */
     return result;
 }
 
-static int test_cmp_exec_ir_ses_poll(void)
+static int test_exec_IR_ses_poll(void)
 {
     const int pollCount = 2;
     const int checkAfter = 1;
@@ -179,11 +179,11 @@ static int test_cmp_exec_ir_ses_poll(void)
     OSSL_CMP_SRV_CTX_set_pollCount(fixture->srv_ctx, pollCount);
     /* TODO: better use 1 second and check that session takes 2..3 seconds */
     OSSL_CMP_SRV_CTX_set_checkAfterTime(fixture->srv_ctx, checkAfter);
-    EXECUTE_TEST(execute_cmp_exec_certrequest_ses_test, tear_down);
+    EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     return result;
 }
 
-static int test_cmp_exec_ir_ses_poll_timeout(void)
+static int test_exec_IR_ses_poll_timeout(void)
 {
     const int pollCount = 3;
     const int checkAfter = 1;
@@ -195,21 +195,21 @@ static int test_cmp_exec_ir_ses_poll_timeout(void)
     OSSL_CMP_SRV_CTX_set_pollCount(fixture->srv_ctx, pollCount + 1);
     OSSL_CMP_SRV_CTX_set_checkAfterTime(fixture->srv_ctx, checkAfter);
     OSSL_CMP_CTX_set_option(fixture->cmp_ctx, OSSL_CMP_OPT_TOTALTIMEOUT, tout);
-    EXECUTE_TEST(execute_cmp_exec_certrequest_ses_test, tear_down);
+    EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     return result;
 }
 
 
-static int test_cmp_exec_cr_ses(void)
+static int test_exec_CR_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_CR_ses;
     fixture->expected = 1;
-    EXECUTE_TEST(execute_cmp_exec_certrequest_ses_test, tear_down);
+    EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     return result;
 }
 
-static int test_cmp_exec_cr_ses_implicit_confirm(void)
+static int test_exec_CR_ses_implicit_confirm(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_CR_ses;
@@ -217,20 +217,20 @@ static int test_cmp_exec_cr_ses_implicit_confirm(void)
     OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
                             OSSL_CMP_OPT_IMPLICITCONFIRM, 1);
     OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(fixture->srv_ctx, 1);
-    EXECUTE_TEST(execute_cmp_exec_certrequest_ses_test, tear_down);
+    EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     return result;
 }
 
-static int test_cmp_exec_kur_ses(void)
+static int test_exec_KUR_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_KUR_ses;
     fixture->expected = 1;
-    EXECUTE_TEST(execute_cmp_exec_certrequest_ses_test, tear_down);
+    EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     return result;
 }
 
-static int test_cmp_exec_p10cr_ses(void)
+static int test_exec_P10CR_ses(void)
 {
     X509_REQ *req = NULL;
 
@@ -243,18 +243,18 @@ static int test_cmp_exec_p10cr_ses(void)
         fixture = NULL;
     }
     X509_REQ_free(req);
-    EXECUTE_TEST(execute_cmp_exec_certrequest_ses_test, tear_down);
+    EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     return result;
 }
 
-static int test_cmp_exec_genm_ses(void)
+static int test_exec_GENM_ses(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
-    EXECUTE_TEST(execute_cmp_exec_genm_ses_test, tear_down);
+    EXECUTE_TEST(execute_exec_GENM_ses_test, tear_down);
     return result;
 }
 
-static int execute_exchange_certconf_test(CMP_SES_TEST_FIXTURE *fixture)
+static int execute_exchange_certConf_test(CMP_SES_TEST_FIXTURE *fixture)
 {
     return TEST_int_eq(fixture->expected,
                        CMP_exchange_certConf(fixture->cmp_ctx,
@@ -262,7 +262,7 @@ static int execute_exchange_certconf_test(CMP_SES_TEST_FIXTURE *fixture)
                                     "abcdefg"));
 }
 
-static int execute_exchange_errors_test(CMP_SES_TEST_FIXTURE *fixture)
+static int execute_exchange_error_test(CMP_SES_TEST_FIXTURE *fixture)
 {
     return TEST_int_eq(fixture->expected,
                        CMP_exchange_error(fixture->cmp_ctx,
@@ -271,7 +271,7 @@ static int execute_exchange_errors_test(CMP_SES_TEST_FIXTURE *fixture)
                                     "foobar"));
 }
 
-static int test_exchange_certconf(void)
+static int test_exchange_certConf(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
@@ -279,7 +279,7 @@ static int test_exchange_certconf(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_exchange_certconf_test, tear_down);
+    EXECUTE_TEST(execute_exchange_certConf_test, tear_down);
     return result;
 }
 
@@ -287,7 +287,7 @@ static int test_exchange_error(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
-    EXECUTE_TEST(execute_exchange_errors_test, tear_down);
+    EXECUTE_TEST(execute_exchange_error_test, tear_down);
     return result;
 }
 
@@ -312,17 +312,17 @@ int setup_tests(void)
             || !TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))))
         return 0;
 
-    ADD_TEST(test_cmp_exec_rr_ses);
-    ADD_TEST(test_cmp_exec_rr_ses_receive_error);
-    ADD_TEST(test_cmp_exec_cr_ses);
-    ADD_TEST(test_cmp_exec_cr_ses_implicit_confirm);
-    ADD_TEST(test_cmp_exec_ir_ses);
-    ADD_TEST(test_cmp_exec_ir_ses_poll);
-    ADD_TEST(test_cmp_exec_ir_ses_poll_timeout);
-    ADD_TEST(test_cmp_exec_kur_ses);
-    ADD_TEST(test_cmp_exec_p10cr_ses);
-    ADD_TEST(test_cmp_exec_genm_ses);
-    ADD_TEST(test_exchange_certconf);
+    ADD_TEST(test_exec_RR_ses);
+    ADD_TEST(test_exec_RR_ses_receive_error);
+    ADD_TEST(test_exec_CR_ses);
+    ADD_TEST(test_exec_CR_ses_implicit_confirm);
+    ADD_TEST(test_exec_IR_ses);
+    ADD_TEST(test_exec_IR_ses_poll);
+    ADD_TEST(test_exec_IR_ses_poll_timeout);
+    ADD_TEST(test_exec_KUR_ses);
+    ADD_TEST(test_exec_P10CR_ses);
+    ADD_TEST(test_exec_GENM_ses);
+    ADD_TEST(test_exchange_certConf);
     ADD_TEST(test_exchange_error);
     return 1;
 }
