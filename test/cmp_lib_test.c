@@ -219,7 +219,7 @@ static int execute_cmp_build_cert_chain_test(CMP_LIB_TEST_FIXTURE *fixture)
 }
 
 static int execute_CMP_ASN1_OCTET_STRING_set1_test(CMP_LIB_TEST_FIXTURE *
-                                                  fixture)
+                                                   fixture)
 {
     if (!TEST_int_eq(fixture->expected,
                      CMP_ASN1_OCTET_STRING_set1(&fixture->tgt_string,
@@ -261,8 +261,7 @@ static int test_ASN1_OCTET_STRING_set_tgt_is_src(void)
     return result;
 }
 
-static int execute_MSG_add_extraCerts_test(CMP_LIB_TEST_FIXTURE
-                                                      * fixture)
+static int execute_MSG_add_extraCerts_test(CMP_LIB_TEST_FIXTURE *fixture)
 {
     return TEST_true(OSSL_CMP_MSG_add_extraCerts(fixture->cmp_ctx,
                                                    fixture->msg));
@@ -427,8 +426,7 @@ static int test_HDR_set_and_check_implicit_confirm(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_HDR_set_and_check_implicitConfirm_test,
-                 tear_down);
+    EXECUTE_TEST(execute_HDR_set_and_check_implicitConfirm_test, tear_down);
     return result;
 }
 
@@ -584,8 +582,7 @@ static int test_HDR_get_and_check_implicit_confirm(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_HDR_set_and_check_implicitConfirm_test,
-                 tear_down);
+    EXECUTE_TEST(execute_HDR_set_and_check_implicitConfirm_test, tear_down);
     return result;
 }
 

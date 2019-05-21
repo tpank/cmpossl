@@ -44,7 +44,7 @@ static void tear_down(OSSL_CMP_CTX_TEST_FIXTURE *fixture)
 }
 
 static int execute_CTX_reqExtensions_have_SAN_test(OSSL_CMP_CTX_TEST_FIXTURE *
-                                                       fixture)
+                                                   fixture)
 {
     int good = 0;
     OSSL_CMP_CTX *ctx = NULL;
