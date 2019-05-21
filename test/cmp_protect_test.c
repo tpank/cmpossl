@@ -201,7 +201,7 @@ int setup_tests(void)
             || !TEST_ptr(ir_protected_f = test_get_argument(1))
             || !TEST_ptr(ir_unprotected_f = test_get_argument(2))
             || !TEST_ptr(ip_PBM_f = test_get_argument(3))) {
-        TEST_error("usage: cmp_internal_test server.pem"
+        TEST_error("usage: cmp_protect_test server.pem"
                    "IR_protected.der IR_unprotected.der IP_PBM.der\n");
         return 0;
     }

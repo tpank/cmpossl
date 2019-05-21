@@ -734,7 +734,7 @@ int setup_tests(void)
             || !TEST_ptr(ir_protected_f = test_get_argument(6))
             || !TEST_ptr(ir_unprotected_f = test_get_argument(7))
             || !TEST_ptr(ir_rmprotection_f = test_get_argument(8))) {
-        TEST_error("usage: cmp_lib_test server.crt server.pem "
+        TEST_error("usage: cmp_hdr_test server.crt server.pem "
                    "EndEntity1.crt EndEntity2.crt "
                    "Root_CA.crt Intermediate_CA.crt"
                    "IR_protected.der IR_unprotected.der"
