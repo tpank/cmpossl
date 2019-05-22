@@ -21,5 +21,4 @@ plan skip_all => "This test is not supported in a no-cmp build"
 
 plan tests => 1;
 
-ok(run(test(["cmp_hdr_test",
-             data_file("IR_unprotected.der")])));
+ok(run(test(["cmp_status_test"])));

@@ -28,4 +28,10 @@ ok(run(test(["cmp_protect_test",
              data_file("server.pem"),
              data_file("IR_protected.der"),
              data_file("IR_unprotected.der"),
-             data_file("IP_PBM.der")])));
+             data_file("IP_PBM.der"),
+             data_file("server.crt"),
+             data_file("server.pem"),
+             data_file("EndEntity1.crt"),
+             data_file("EndEntity2.crt"),
+             data_file("Root_CA.crt"),
+             data_file("Intermediate_CA.crt")])));

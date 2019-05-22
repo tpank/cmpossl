@@ -30,4 +30,5 @@ ok(run(test(["cmp_vfy_test",
              data_file("Root_CA.crt"),    data_file("Intermediate_CA.crt"),
              data_file("IR_protected.der"),
              data_file("IR_unprotected.der"),
-             data_file("IP_waitingStatus_PBM.der")])));
+             data_file("IP_waitingStatus_PBM.der"),
+             data_file("IR_rmprotection.der")])));
