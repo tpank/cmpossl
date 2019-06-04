@@ -77,6 +77,45 @@ static int test_CTX_reqExtensions_have_SAN(void)
     return result;
 }
 
+#ifndef OPENSSL_NO_TRACE
+static int test_log_line;
+static int test_log_ok = 0;
+static int test_log_cb(const char *func, const char *file, int line,
+                       OSSL_CMP_severity level, const char *msg)
+{
+    test_log_ok =
+#ifndef PEDANTIC
+        strcmp(func, "execute_cmp_ctx_log_cb_test") == 0 &&
+#endif
+        strcmp(file, OPENSSL_FILE) == 0 && strcmp(msg, "ok\n") == 0
+            && line == test_log_line && level == OSSL_CMP_LOG_INFO;
+    return 1;
+}
+
+static int execute_cmp_ctx_log_cb_test(OSSL_CMP_CTX_TEST_FIXTURE *fixture)
+{
+    OSSL_TRACE(ANY, "this general trace message is not shown by default\n");
+    OSSL_CMP_log_open();
+    OSSL_CMP_log_open(); /* multiple calls should be harmless */
+    OSSL_CMP_debug("this CMP debug message should not be shown");
+    OSSL_CMP_info("this CMP info message should be shown");
+    if (TEST_true(OSSL_CMP_CTX_set_log_cb(fixture->ctx, test_log_cb))) {
+        test_log_line = OPENSSL_LINE + 1;
+        OSSL_CMP_log2(INFO, "%s%c", "o", 'k');
+    }
+    OSSL_CMP_log_close();
+    OSSL_CMP_log_close(); /* multiple calls should be harmless */
+    return test_log_ok;
+}
+
+static int test_cmp_ctx_log_cb(void)
+{
+    SETUP_TEST_FIXTURE(OSSL_CMP_CTX_TEST_FIXTURE, set_up);
+    EXECUTE_TEST(execute_cmp_ctx_log_cb_test, tear_down);
+    return result;
+}
+#endif
+
 void cleanup_tests(void)
 {
     return;
@@ -85,6 +124,9 @@ void cleanup_tests(void)
 int setup_tests(void)
 {
     ADD_TEST(test_CTX_reqExtensions_have_SAN);
+#ifndef OPENSSL_NO_TRACE
+    ADD_TEST(test_cmp_ctx_log_cb);
+#endif
 
     return 1;
 }

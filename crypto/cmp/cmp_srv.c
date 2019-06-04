@@ -334,11 +334,10 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
     int num = sk_OSSL_CMP_CERTSTATUS_num(req->body->value.certConf);
 
     if (num == 0) {
-        OSSL_CMP_err(srv_ctx->ctx, "certificate rejected by client");
+        OSSL_CMP_err("certificate rejected by client");
     } else {
         if (num > 1)
-            OSSL_CMP_warn(srv_ctx->ctx,
-                     "All CertStatus but the first will be ignored");
+            OSSL_CMP_warn("All CertStatus but the first will be ignored");
         status = sk_OSSL_CMP_CERTSTATUS_value(req->body->value.certConf,
                                               OSSL_CMP_CERTREQID);
     }
@@ -370,10 +369,10 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
             char *tmpbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
             if (tmpbuf == NULL)
                 goto oom;
-            OSSL_CMP_info(srv_ctx->ctx, "certificate rejected by client:");
+            OSSL_CMP_info("certificate rejected by client:");
             if (OSSL_CMP_PKISI_snprint(status->statusInfo, tmpbuf,
                                        OSSL_CMP_PKISI_BUFLEN) != NULL)
-                OSSL_CMP_info(srv_ctx->ctx, tmpbuf);
+                OSSL_CMP_info(tmpbuf);
             OPENSSL_free(tmpbuf);
         }
     }
@@ -460,13 +459,13 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                                  int accept_unprotected_requests)
 {
     if (accept_unprotected_requests) {
-        OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN,
-                        "ignoring %s protection of request message",
-                        invalid_protection ? "invalid" : "missing");
+        OSSL_CMP_log1(WARN,
+                      "ignoring %s protection of request message",
+                      invalid_protection ? "invalid" : "missing");
         return 1;
     }
     if (req->body->type == OSSL_CMP_PKIBODY_ERROR && ctx->unprotectedErrors) {
-        OSSL_CMP_warn(ctx, "ignoring missing protection of error message");
+        OSSL_CMP_warn("ignoring missing protection of error message");
         return 1;
     }
     return 0;

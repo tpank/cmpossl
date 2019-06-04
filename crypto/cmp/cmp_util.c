@@ -13,104 +13,37 @@
 
 #include <string.h>
 #include <openssl/cmp_util.h>
-#include <openssl/err.h>
 #include <openssl/cmperr.h>
 #include <openssl/x509v3.h>
 
 #include "cmp_int.h"
 
-int OSSL_CMP_log_open(void)
-{
-    return 1;
-}
-
-void OSSL_CMP_log_close(void)
-{
-    ;
-}
-
-/* prints log messages to given stream fd */
-static int CMP_log_fd(const char *component, const char *file, int lineno,
-                      OSSL_CMP_severity level, const char *msg, FILE *fd)
-{
-    char *lvl = NULL;
-    int msg_len;
-    int msg_nl;
-    char loc[256];
-    int len = 0;
-
-    if (component == NULL)
-        component = "(no component)";
-    if (file == NULL)
-        file = "(no file)";
-    if (msg == NULL)
-        msg = "(no message)";
-
-#ifndef NDEBUG
-    len  = snprintf(loc+len , sizeof(loc)-len, "%s():", component);
-    len += snprintf(loc+len , sizeof(loc)-len, "%s:", file);
-    len += snprintf(loc+len , sizeof(loc)-len, "%d:", lineno);
-#else
-    if (level == OSSL_LOG_DEBUG)
-        return 1;
-    len += snprintf(loc+len , sizeof(loc)-len, "CMP");
-#endif
-
-    switch(level) {
-    case OSSL_LOG_EMERG  : lvl = "EMERGENCY"; break;
-    case OSSL_LOG_ALERT  : lvl = "ALERT"; break;
-    case OSSL_LOG_CRIT   : lvl = "CRITICAL" ; break;
-    case OSSL_LOG_ERR    : lvl = "ERROR"; break;
-    case OSSL_LOG_WARNING: lvl = "WARNING" ; break;
-    case OSSL_LOG_NOTICE : lvl = "NOTICE" ; break;
-    case OSSL_LOG_INFO   : lvl = "INFO" ; break;
-#ifndef NDEBUG
-    case OSSL_LOG_DEBUG  : lvl = "DEBUG"; break;
-#endif
-    default: break;
-    }
-
-    if (lvl != NULL)
-        (void)snprintf(loc+len , sizeof(loc)-len, " %s", lvl);
-    msg_len = strlen(msg);
-    msg_nl = msg_len > 0 && msg[msg_len-1] == '\n';
-    len = fprintf(fd, "%s: %s%s", loc, msg, msg_nl != 0 ? "" : "\n");
-
-    return fflush(fd) != EOF && len >= 0;
-}
-
-/* prints errors and warnings to stderr, info and debug messages to stdout */
-int OSSL_CMP_puts(const char *component, const char *file, int lineno,
-                  OSSL_CMP_severity level, const char *msg)
-{
-#ifndef OPENSSL_NO_STDIO
-    FILE *fd = level <= OSSL_LOG_WARNING ? stderr : stdout;
-    return CMP_log_fd(component, file, lineno, level, msg, fd);
-#endif
-}
-
 /*
- * Function used for outputting error/warn/debug messages depending on
- * log callback function. By default the function OSSL_CMP_puts() is used.
+ * convenience functions for CMP-specific logging via the trace API
  */
-int OSSL_CMP_log_printf(OSSL_cmp_log_cb_t log_fn,
-                        const char *func, const char *file, int lineno,
-                        OSSL_CMP_severity level, const char *fmt, va_list argp)
-{
-    char component_func[256];
-    char msg[1024];
-    int res;
 
-    if (log_fn == NULL)
-        log_fn = OSSL_CMP_puts;
-    BIO_snprintf(component_func, sizeof(component_func), "OpenSSL:%s", func);
-    BIO_vsnprintf(msg, sizeof(msg), fmt, argp);
-    res = (*log_fn)(component_func, file, lineno, level, msg);
-    return res;
+int OSSL_CMP_log_open(void) /* is designed to be idempotent */
+{
+    BIO *bio_out = NULL;
+
+    (void)OSSL_trace_set_verbosity(OSSL_TRACE_CATEGORY_CMP,
+                                   OSSL_TRACE_LEVEL_INFO);
+#ifndef OPENSSL_NO_STDIO
+    bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
+    return bio_out != NULL
+               && OSSL_trace_set_channel(OSSL_TRACE_CATEGORY_CMP, bio_out);
+#else
+    return 1;
+#endif
+}
+
+void OSSL_CMP_log_close(void) /* is designed to be idempotent */
+{
+    (void)OSSL_trace_set_channel(OSSL_TRACE_CATEGORY_CMP, NULL);
 }
 
 /*
- * auxiliary function for error reporting via the OpenSSL error queue
+ * auxiliary function for incrementally reporting texts via the error queue
  */
 
 void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
@@ -166,10 +99,6 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
     } while (*txt != '\0');
 }
 
-/*
- * functions manipulating lists of certificates etc.
- */
-
 /* this is similar to ERR_print_errors_cb, but uses the CMP-specific cb type */
 void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
 {
@@ -179,8 +108,16 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
     const char *file, *data;
     int line, flags;
 
-    if (log_fn == NULL)
-        log_fn = OSSL_CMP_puts;
+    if (log_fn == NULL) {
+#ifndef OPENSSL_NO_STDIO
+        BIO *bio_err = BIO_new_fp(stderr, BIO_NOCLOSE);
+
+        ERR_print_errors(bio_err);
+        BIO_free(bio_err);
+#endif
+        return;
+    }
+
     while ((err = ERR_get_error_line_data(&file, &line, &data, &flags)) != 0) {
         if (!(flags & ERR_TXT_STRING))
             data = NULL;
@@ -189,10 +126,14 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
                      ERR_func_error_string(err));
         BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
                      data == NULL ? "" : " : ", data == NULL ? "" : data);
-        if (log_fn(component, file, line, OSSL_LOG_ERR, msg) <= 0)
+        if (log_fn(component, file, line, OSSL_CMP_LOG_ERR, msg) <= 0)
             break;              /* abort outputting the error report */
     }
 }
+
+/*
+ * functions manipulating lists of certificates etc.
+ */
 
 int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
                                int not_duplicate, int prepend)

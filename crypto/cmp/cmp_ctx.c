@@ -17,7 +17,7 @@
 # include <dirent.h>
 #endif
 
-#include <openssl/asn1t.h>
+#include <openssl/trace.h>
 
 #include "cmp_int.h"
 
@@ -127,6 +127,9 @@ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
     if (ctx == NULL)
         return;
 
+    OPENSSL_free(ctx->log_func);
+    OPENSSL_free(ctx->log_file);
+
     OPENSSL_free(ctx->serverPath);
     OPENSSL_free(ctx->serverName);
     OPENSSL_free(ctx->proxyName);
@@ -226,16 +229,82 @@ void *OSSL_CMP_CTX_get_certConf_cb_arg(OSSL_CMP_CTX *ctx)
     return ctx->certConf_cb_arg;
 }
 
+static size_t trace_cb(const char *buf, size_t cnt,
+                       int category, int cmd, void *vdata)
+{
+    OSSL_CMP_CTX *ctx = vdata;
+    const char *func = buf;
+    const char *file = buf == NULL ? NULL : strchr(buf, ':');
+
+    if (buf == NULL || cnt == 0 || cmd != OSSL_TRACE_CTRL_WRITE || ctx == NULL)
+        return 0;
+    if (file++ != NULL) {
+        const char *line = strchr(file, ':');
+
+        if (line++ != NULL) {
+            char *level = NULL;
+            const long line_number = strtol(line, &level, 10);
+
+            if (level > line && *(level++) == ':') {
+                const char *end_level = strchr(level, ':');
+                const int len = end_level - level;
+
+                if (end_level != NULL) {
+                    /* buf contains location info; rembember it */
+                    OPENSSL_free(ctx->log_func);
+                    ctx->log_func = OPENSSL_strndup(func, file - 1 - func);
+                    OPENSSL_free(ctx->log_file);
+                    ctx->log_file = OPENSSL_strndup(file, line - 1 - file);
+                    ctx->log_line = (int)line_number;
+                    ctx->log_level =
+                        strncmp(level, "TRACE", len) == 0 ? OSSL_CMP_LOG_DEBUG :
+                        strncmp(level, "DEBUG", len) == 0 ? OSSL_CMP_LOG_DEBUG :
+                        strncmp(level, "INFO" , len) == 0 ? OSSL_CMP_LOG_INFO :
+                        strncmp(level, "WARN" , len) == 0 ? OSSL_CMP_LOG_WARNING :
+                        strncmp(level, "ERROR", len) == 0 ? OSSL_CMP_LOG_ERR :
+                        OSSL_CMP_LOG_ALERT;
+                    return cnt;
+                }
+            }
+        }
+    }
+
+    /* buf contains message text; send it to callback */
+    if (ctx->log_cb(ctx->log_func != NULL ? ctx->log_func : "(no func)",
+                    ctx->log_file != NULL ? ctx->log_file : "(no file)",
+                    ctx->log_line, ctx->log_level, buf))
+        return cnt;
+    return 0;
+}
+
 /*
  * Set a callback function for log messages.
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
 {
+    int res;
+
     if (ctx == NULL)
         return 0;
-    ctx->log_cb = cb;
-    return 1;
+    if (cb == NULL) {
+        BIO *bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
+
+        res = bio_out != NULL
+                  && OSSL_trace_set_channel(OSSL_TRACE_CATEGORY_CMP, bio_out);
+    }
+    else {
+        res = OSSL_trace_set_callback(OSSL_TRACE_CATEGORY_CMP, trace_cb, ctx);
+    }
+    if (res)
+        ctx->log_cb = cb;
+    return res;
+}
+
+/* print OpenSSL and CMP errors via the log cb of the ctx or OSSL_CMP_puts */
+void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx)
+{
+    OSSL_CMP_print_errors_cb(ctx == NULL ? NULL : ctx->log_cb);
 }
 
 /*
@@ -1069,28 +1138,4 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
     }
 
     return 1;
-}
-
-/*
- * Function used for outputting error/warn/debug messages depending on
- * log callback in ctx. By default the function OSSL_CMP_puts() is used.
- */
-int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
-                    const char *func, const char *file, int lineno,
-                    OSSL_CMP_severity level, const char *fmt, ...)
-{
-    va_list argp;
-    int res;
-    OSSL_cmp_log_cb_t log_fn = ctx == NULL ? NULL : ctx->log_cb;
-
-    va_start(argp, fmt);
-    res = OSSL_CMP_log_printf(log_fn, func, file, lineno, level, fmt, argp);
-    va_end(argp);
-    return res;
-}
-
-/* print OpenSSL and CMP errors via the log cb of the ctx or OSSL_CMP_puts */
-void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx)
-{
-    OSSL_CMP_print_errors_cb(ctx == NULL ? NULL : ctx->log_cb);
 }

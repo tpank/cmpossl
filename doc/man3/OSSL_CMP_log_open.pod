@@ -4,8 +4,24 @@
 
 OSSL_CMP_log_open,
 OSSL_CMP_log_close,
-OSSL_CMP_puts,
-OSSL_CMP_log_printf,
+OSSL_CMP_alert,
+OSSL_CMP_err,
+OSSL_CMP_warn,
+OSSL_CMP_info,
+OSSL_CMP_debug,
+OSSL_CMP_trace,
+OSSL_CMP_log,
+OSSL_CMP_log1,
+OSSL_CMP_log2,
+OSSL_CMP_severity,
+OSSL_CMP_LOG_EMERG,
+OSSL_CMP_LOG_ALERT,
+OSSL_CMP_LOG_CRIT,
+OSSL_CMP_LOG_ERR,
+OSSL_CMP_LOG_WARNING,
+OSSL_CMP_LOG_NOTICE,
+OSSL_CMP_LOG_INFO,
+OSSL_CMP_LOG_DEBUG,
 OSSL_CMP_add_error_txt,
 OSSL_CMP_add_error_data,
 OSSL_CMP_add_error_line,
@@ -16,22 +32,31 @@ OSSL_CMP_print_errors_cb
 
  #include <openssl/cmp_util.h>
 
- typedef enum {OSSL_LOG_EMERG, OSSL_LOG_ALERT, OSSL_LOG_CRIT, OSSL_LOG_ERR,
-               OSSL_LOG_WARNING, OSSL_LOG_NOTICE, OSSL_LOG_INFO, OSSL_LOG_DEBUG}
-    OSSL_CMP_severity;
- /* declarations resemble those from bio/bss_log.c and syslog.h */
- typedef int (*OSSL_cmp_log_cb_t) (const char *component,
-                                   const char *file, int lineno,
-                                   OSSL_CMP_severity level, const char *msg);
-
  int  OSSL_CMP_log_open(void);
  void OSSL_CMP_log_close(void);
- int OSSL_CMP_puts(const char *component, const char *file, int lineno,
-                   OSSL_CMP_severity level, const char *msg);
- int OSSL_CMP_log_printf(OSSL_cmp_log_cb_t log_fn,
-                         const char *func, const char *file, int lineno,
-                         OSSL_CMP_severity level,
-                         const char *fmt, va_list argp);
+ #define OSSL_CMP_alert(msg)
+ #define OSSL_CMP_err(msg)
+ #define OSSL_CMP_warn(msg)
+ #define OSSL_CMP_info(msg)
+ #define OSSL_CMP_debug(msg)
+ #define OSSL_CMP_trace(msg)
+ #define OSSL_CMP_log(level, msg)
+ #define OSSL_CMP_log1(level, fmt, arg1)
+ #define OSSL_CMP_log2(level, fmt, arg1, arg2)
+
+ /* severity level declarations resemble those from syslog.h */
+ typedef int OSSL_CMP_severity;
+ #define OSSL_CMP_LOG_EMERG   0
+ #define OSSL_CMP_LOG_ALERT   1
+ #define OSSL_CMP_LOG_CRIT    2
+ #define OSSL_CMP_LOG_ERR     3
+ #define OSSL_CMP_LOG_WARNING 4
+ #define OSSL_CMP_LOG_NOTICE  5
+ #define OSSL_CMP_LOG_INFO    6
+ #define OSSL_CMP_LOG_DEBUG   7
+ typedef int (*OSSL_cmp_log_cb_t) (const char *component,
+                                   const char *file, int line,
+                                   OSSL_CMP_severity level, const char *msg);
 
  void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
  #define OSSL_CMP_add_error_data(txt)
@@ -40,16 +65,19 @@ OSSL_CMP_print_errors_cb
 
 =head1 DESCRIPTION
 
-The logging facility described here is used so far only for
-the CMP implementation but can also be used by any other components.
+The logging and error reporting facility described here contains
+convenience functions for CMP-specific logging via the trace API,
+a generalized logging/error callback mirroring the severity levels of syslog.h,
+and enhancements of the error queue mechanism needed for large diagnostic
+messages produced by the CMP library in case of certificate validation failures.
 
-When an interesting activity is performed or an error occurs,
-some detail should be provided for debugging and auditing purposes.
+When an interesting activity is performed or an error occurs, some detail
+should be provided for user information, debugging, and auditing purposes.
 An application can obtain this information by providing a callback function
 with the following type:
 
  typedef void (*OSSL_cmp_log_cb_t)(const char *component,
-                                   const char *file, int lineno,
+                                   const char *file, int line,
                                    OSSL_CMP_severity level, const char *msg);
 
 The parameters may provide a component identifier (which may be a library
@@ -58,39 +86,31 @@ a line number (or 0) indicating the source code location, and a string
 describing the nature of the event.
 
 Even when an activity is successful some warnings may be useful and some degree
-of logging may be required. Therefore the logging callback function has a
-B<level> parameter indicating the severity level, such that error, warning,
-info, debug, etc. can be treated differently.
+of logging may be required. Therefore the logging facility has a verbosity level
+and thie callback function has a B<level> parameter indicating the severity
+level, such that error, warning, info, debug, etc. can be treated differently.
 
-Moreover, the callback function may itself do non-trivial tasks like writing to
+The callback function may itself do non-trivial tasks like writing to
 a log file or remote stream, which in turn may fail.
 Therefore the function should return 1 on success and 0 on failure.
 
-OSSL_CMP_log_open() should be called at least once at the beginning to perform
-any potential initialization of the logging facility (currently none).
+OSSL_CMP_log_open() should be called at least once at the beginning to
+initialize the CMP-specific logging facility via the trace API.
 
 OSSL_CMP_log_close() should be called when all activity is finished to flush
-any pending log output and deallocate log-related resources (currently none).
+any pending CMP-specific log output and deallocate related resources.
 
-OSSL_CMP_puts() prints alerts, errors, and warnings to stderr,
-whereas if prints note, info, and debug messages to stdout.
-The nature of the message is specified by the B<level> parameter.
-In debug mode the message B<msg> is preceded by any component identifier
-B<component>, source file path name B<file>, and line number B<lineno>.
-It is also preceded by any given severity indication, namely, "EMERGENCY",
-"ALERT", "CRITICAL", "ERROR", "WARNING", "NOTICE", "INFO", or "DEBUG".
-
-OSSL_CMP_log_printf() outputs alert/error/warning/note/info/debug messages.
-The nature of the message is specified by the B<level> parameter.
-The message text is given using a format string B<fmt> and a B<va_list>
-as with vprintf. In debug mode
-optional information in B<func>, B<file>, and B<lineno> parameters is included.
-It uses the log callback function if given, else B<OSSL_CMP_puts()>.
+OSSL_CMP_alert() outputs a simple error message via the trace API.
+OSSL_CMP_err() outputs a simple error message via the trace API.
+OSSL_CMP_warn() outputs a simple warning message via the trace API.
+OSSL_CMP_info() outputs a simple info message via the trace API.
+OSSL_CMP_debug() outputs a simple debug message via the trace API.
 
 OSSL_CMP_add_error_txt() appends text to the extra data field of the last
 error message in the OpenSSL error queue, after adding the optional separator
-unless data has been empty so far. Note that, in contrast,
-L<ERR_add_error_data(3)> simply overwrites previous contents of the data field.
+unless data has been empty so far. The text can be of arbitrary length,
+which is not possible when using L<ERR_add_error_data(3)> in conjunction with
+L<ERR_print_errors_cb(3)>.
 
 OSSL_CMP_add_error_data() is a macro calling
 B<OSSL_CMP_add_error_txt()> with the separator being ":".
@@ -100,7 +120,8 @@ B<OSSL_CMP_add_error_txt()> with the separator being "\n".
 
 OSSL_CMP_print_errors_cb() outputs any entries in the OpenSSL error queue
 similarly to B<ERR_print_errors_cb()>, but using the CMP log callback function
-C<log_fn> if given, else B<OSSL_CMP_puts()> for uniformity with CMP logging.
+C<log_fn> for uniformity with CMP logging if given. Otherwise it uses
+B<ERR_print_errors(3)> to print to STDERR (unless OPENSSL_NO_STDIO is defined).
 
 =head1 RETURN VALUES
 

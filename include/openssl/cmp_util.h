@@ -17,6 +17,7 @@
 # include <openssl/opensslconf.h>
 # ifndef OPENSSL_NO_CMP
 
+#  include <openssl/trace.h>
 #  include <openssl/x509.h>
 
 #  ifdef  __cplusplus
@@ -24,55 +25,76 @@ extern "C" {
 #  endif
 
 /*
- * logging - could be generally useful
+ * convenience functions for CMP-specific logging via the trace API
  */
-
-/* declarations resemble those from bio/bss_log.c and syslog.h */
-typedef enum {OSSL_LOG_EMERG, OSSL_LOG_ALERT, OSSL_LOG_CRIT, OSSL_LOG_ERR,
-              OSSL_LOG_WARNING, OSSL_LOG_NOTICE, OSSL_LOG_INFO, OSSL_LOG_DEBUG}
-    OSSL_CMP_severity;
-
-# if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
-#  define OSSL_CMP_FUNC __func__
-# elif defined(__STDC__) && defined(PEDANTIC)
-#  define OSSL_CMP_FUNC "(PEDANTIC disallows function name)"
-# elif defined(WIN32) || defined(__GNUC__) || defined(__GNUG__)
-#  define OSSL_CMP_FUNC __FUNCTION__
-# elif defined(__FUNCSIG__)
-#  define OSSL_CMP_FUNC __FUNCSIG__
-# else
-#  define OSSL_CMP_FUNC "(unknown function)"
-# endif
-# define OSSL_CMP_FUNC_FILE_LINE OSSL_CMP_FUNC, OPENSSL_FILE, OPENSSL_LINE
-# define OSSL_CMP_FL_EMERG OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_EMERG
-# define OSSL_CMP_FL_ALERT OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_ALERT
-# define OSSL_CMP_FL_CRIT  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_CRIT
-# define OSSL_CMP_FL_ERR   OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_ERR
-# define OSSL_CMP_FL_WARN  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_WARNING
-# define OSSL_CMP_FL_NOTE  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_NOTICE
-# define OSSL_CMP_FL_INFO  OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_INFO
-# define OSSL_CMP_FL_DEBUG OSSL_CMP_FUNC_FILE_LINE, OSSL_LOG_DEBUG
+#  ifndef ENHANCED_TRACE_API /* TODO remove this conditional section when enhancement has been merged */
+#   define OSSL_TRACE_CATEGORY_CMP OSSL_TRACE_CATEGORY_ALL
+#   define OSSL_trace_set_verbosity(category, level) /* no-op */
+#  endif
 
 int  OSSL_CMP_log_open(void);
 void OSSL_CMP_log_close(void);
-int OSSL_CMP_puts(const char *component, const char *file, int lineno,
-                  OSSL_CMP_severity level, const char *msg);
-typedef int (*OSSL_cmp_log_cb_t) (const char *component,
-                                  const char *file, int lineno,
-                                  OSSL_CMP_severity level, const char *msg);
-int OSSL_CMP_log_printf(OSSL_cmp_log_cb_t log_fn,
-                        const char *func, const char *file, int lineno,
-                        OSSL_CMP_severity level, const char *fmt, va_list argp);
+#  define OSSL_CMP_alert(msg) OSSL_CMP_log(ALERT, msg)
+#  define OSSL_CMP_err(msg)   OSSL_CMP_log(ERROR, msg)
+#  define OSSL_CMP_warn(msg)  OSSL_CMP_log(WARN , msg)
+#  define OSSL_CMP_info(msg)  OSSL_CMP_log(INFO , msg)
+#  define OSSL_CMP_debug(msg) OSSL_CMP_log(DEBUG, msg)
+#  define OSSL_CMP_trace(msg) OSSL_CMP_log(TRACE, msg)
+#  define OSSL_CMP_log(level, msg) \
+    OSSL_TRACEV(CMP, level, (trc_out, "%s\n", msg))
+#  define OSSL_CMP_log1(level, fmt, arg1) \
+    OSSL_TRACEV(CMP, level, (trc_out, fmt "\n", arg1))
+#  define OSSL_CMP_log2(level, fmt, arg1, arg2) \
+    OSSL_TRACEV(CMP, level, (trc_out, fmt "\n", arg1, arg2))
+#  define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3) \
+    OSSL_TRACEV(CMP, level, (trc_out, fmt "\n", arg1, arg2, arg3))
+#  define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4) \
+    OSSL_TRACEV(CMP, level, (trc_out, fmt "\n", arg1, arg2, arg3, arg4))
 
+#  ifndef ENHANCED_TRACE_API /* TODO remove this conditional section when enhancement has been merged */
+#  undef OSSL_CMP_log
+#  define OSSL_CMP_log(level, msg) \
+    OSSL_TRACEV(CMP, (trc_out, "%s\n", msg))
+#  undef OSSL_CMP_log1
+#  define OSSL_CMP_log1(level, fmt, arg1) \
+    OSSL_TRACEV(CMP, (trc_out, fmt "\n", arg1))
+#  undef OSSL_CMP_log2
+#  define OSSL_CMP_log2(level, fmt, arg1, arg2) \
+    OSSL_TRACEV(CMP, (trc_out, fmt "\n", arg1, arg2))
+#  undef OSSL_CMP_log3
+#  define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3) \
+    OSSL_TRACEV(CMP, (trc_out, fmt "\n", arg1, arg2, arg3))
+#  undef OSSL_CMP_log4
+#  define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4) \
+    OSSL_TRACEV(CMP, (trc_out, fmt "\n", arg1, arg2, arg3, arg4))
+#  endif
+
+/*
+ * generalized logging/error callback mirroring the severity levels of syslog.h
+ */
+typedef int OSSL_CMP_severity;
+#  define OSSL_CMP_LOG_EMERG   0
+#  define OSSL_CMP_LOG_ALERT   1
+#  define OSSL_CMP_LOG_CRIT    2
+#  define OSSL_CMP_LOG_ERR     3
+#  define OSSL_CMP_LOG_WARNING 4
+#  define OSSL_CMP_LOG_NOTICE  5
+#  define OSSL_CMP_LOG_INFO    6
+#  define OSSL_CMP_LOG_DEBUG   7
+typedef int (*OSSL_cmp_log_cb_t)(const char *func, const char *file, int line,
+                                 OSSL_CMP_severity level, const char *msg);
+
+/*
+ * enhancements of the error queue and use of the logging callback for it
+ */
 void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
 # define OSSL_CMP_add_error_data(txt) OSSL_CMP_add_error_txt(" : ", txt)
 # define OSSL_CMP_add_error_line(txt) OSSL_CMP_add_error_txt("\n", txt)
 void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
 
 /*
- * misc other functions that could be generally useful
+ * functions manipulating lists of certificates etc.
  */
-
 int OSSL_CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert,
                                 int not_duplicate, int prepend);
 int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,

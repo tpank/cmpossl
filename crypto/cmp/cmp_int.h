@@ -31,6 +31,10 @@
  */
 struct OSSL_cmp_ctx_st {
     OSSL_cmp_log_cb_t log_cb; /* log callback for error/debug/etc. output */
+    char *log_func; /* name of function that logged last */
+    char *log_file; /* name of source file of that function */
+    int log_line;   /* line in source file of that function */
+    OSSL_CMP_severity log_level; /* last logging level */
 
     /* message transfer */
     OSSL_cmp_transfer_cb_t transfer_cb; /* default: OSSL_CMP_MSG_http_perform */
@@ -862,4 +866,5 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                      EVP_PKEY *pkey);
 int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
+
 #endif /* !defined OSSL_HEADER_CMP_INT_H */

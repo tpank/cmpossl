@@ -336,15 +336,8 @@ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
 #  define OSSL_CMP_OPT_IGNORE_KEYUSAGE 14
 #  define OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR 15
 int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
-/* logging: */
+/* CMP-specific callback for logging and outputting the error queue: */
 int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
-#  define OSSL_CMP_err(ctx, msg)   OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)
-#  define OSSL_CMP_warn(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN , msg)
-#  define OSSL_CMP_info(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO , msg)
-#  define OSSL_CMP_debug(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_DEBUG, msg)
-int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
-                    const char *func, const char *file, int lineno,
-                    OSSL_CMP_severity level, const char *fmt, ...);
 void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx);
 /* message transfer: */
 int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path);

@@ -813,7 +813,7 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
     if (fail_info != 0) {
         char *str = X509_NAME_oneline(X509_get_subject_name(cert),
                                       NULL, 0);
-        OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR,
+        OSSL_CMP_log1(ERROR,
                "failed to validate newly enrolled certificate with subject: %s",
                         str);
         OPENSSL_free(str);
@@ -863,8 +863,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
         return -1;
 
     if (sk_X509_num(msg->extraCerts) > 10)
-        OSSL_CMP_warn(ctx,
-                      "received CMP message contains more than 10 extraCerts");
+        OSSL_CMP_warn("received CMP message contains more than 10 extraCerts");
     /*-
      * Store any provided extraCerts in ctx for validation and for future use,
      * such that they are also available to ctx->certConf_cb and the peer does
@@ -892,7 +891,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                    CMP_R_MISSING_PROTECTION);
             return -1;
         }
-        OSSL_CMP_warn(ctx, "received CMP message is not protected");
+        OSSL_CMP_warn("received CMP message is not protected");
     }
 
     /* check CMP version number in header */
