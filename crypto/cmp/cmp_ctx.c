@@ -250,14 +250,13 @@ static size_t trace_cb(const char *buf, size_t cnt,
                 const int len = end_level - level;
 
                 if (end_level != NULL) {
-                    /* buf contains location info; rembember it */
+                    /* buf contains location info; remember it */
                     OPENSSL_free(ctx->log_func);
                     ctx->log_func = OPENSSL_strndup(func, file - 1 - func);
                     OPENSSL_free(ctx->log_file);
                     ctx->log_file = OPENSSL_strndup(file, line - 1 - file);
                     ctx->log_line = (int)line_number;
                     ctx->log_level =
-                        strncmp(level, "TRACE", len) == 0 ? OSSL_CMP_LOG_DEBUG :
                         strncmp(level, "DEBUG", len) == 0 ? OSSL_CMP_LOG_DEBUG :
                         strncmp(level, "INFO" , len) == 0 ? OSSL_CMP_LOG_INFO :
                         strncmp(level, "WARN" , len) == 0 ? OSSL_CMP_LOG_WARNING :
@@ -313,7 +312,7 @@ void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
-                                     const unsigned char *ref, size_t len)
+                                     const unsigned char *ref, int len)
 {
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_REFERENCEVALUE, CMP_R_INVALID_ARGS);
@@ -327,7 +326,7 @@ int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
-                                  const size_t len)
+                                  const int len)
 {
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SECRETVALUE, CMP_R_NULL_ARGUMENT);

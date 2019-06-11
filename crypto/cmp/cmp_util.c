@@ -66,7 +66,7 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
         char *tmp;
 
         ERR_peek_last_error_line_data(&file, &line, &data, &flags);
-        if (!(flags & ERR_TXT_STRING)) {
+        if ((flags & ERR_TXT_STRING) == 0) {
             data = "";
             separator = "";
         }
@@ -187,6 +187,7 @@ int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
         return 1;
     for (i = 0; i < sk_X509_num(certs); i++) {
         X509 *cert = sk_X509_value(certs, i);
+
         if (!only_self_signed || X509_check_issued(cert, cert) == X509_V_OK)
             if (!X509_STORE_add_cert(store, cert)) /* ups cert ref counter */
                 return 0;
@@ -314,7 +315,7 @@ int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
 }
 
 int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                     const unsigned char *bytes, size_t len)
+                                     const unsigned char *bytes, int len)
 {
     ASN1_OCTET_STRING *new = NULL;
     int res = 0;
@@ -326,7 +327,7 @@ int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
 
     if (bytes != NULL) {
         if ((new = ASN1_OCTET_STRING_new()) == NULL
-                || !(ASN1_OCTET_STRING_set(new, bytes, (int)len))) {
+                || !(ASN1_OCTET_STRING_set(new, bytes, len))) {
             CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, ERR_R_MALLOC_FAILURE);
             goto err;
         }

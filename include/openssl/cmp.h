@@ -369,10 +369,9 @@ int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, X509 *cert);
 int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
 int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
 int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
-                                     const unsigned char *ref,
-                                     size_t len);
+                                     const unsigned char *ref, int len);
 int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
-                                  const size_t len);
+                                  const int len);
 /* CMP message header and extra certificates: */
 int OSSL_CMP_CTX_set1_recipient(OSSL_CMP_CTX *ctx, const X509_NAME *name);
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx);

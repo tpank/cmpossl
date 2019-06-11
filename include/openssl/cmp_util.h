@@ -39,7 +39,6 @@ void OSSL_CMP_log_close(void);
 #  define OSSL_CMP_warn(msg)  OSSL_CMP_log(WARN , msg)
 #  define OSSL_CMP_info(msg)  OSSL_CMP_log(INFO , msg)
 #  define OSSL_CMP_debug(msg) OSSL_CMP_log(DEBUG, msg)
-#  define OSSL_CMP_trace(msg) OSSL_CMP_log(TRACE, msg)
 #  define OSSL_CMP_log(level, msg) \
     OSSL_TRACEV(CMP, level, (trc_out, "%s\n", msg))
 #  define OSSL_CMP_log1(level, fmt, arg1) \

@@ -9,7 +9,6 @@ OSSL_CMP_err,
 OSSL_CMP_warn,
 OSSL_CMP_info,
 OSSL_CMP_debug,
-OSSL_CMP_trace,
 OSSL_CMP_log,
 OSSL_CMP_log1,
 OSSL_CMP_log2,
@@ -39,7 +38,6 @@ OSSL_CMP_print_errors_cb
  #define OSSL_CMP_warn(msg)
  #define OSSL_CMP_info(msg)
  #define OSSL_CMP_debug(msg)
- #define OSSL_CMP_trace(msg)
  #define OSSL_CMP_log(level, msg)
  #define OSSL_CMP_log1(level, fmt, arg1)
  #define OSSL_CMP_log2(level, fmt, arg1, arg2)
@@ -87,7 +85,7 @@ describing the nature of the event.
 
 Even when an activity is successful some warnings may be useful and some degree
 of logging may be required. Therefore the logging facility has a verbosity level
-and thie callback function has a B<level> parameter indicating the severity
+and the callback function has a B<level> parameter indicating the severity
 level, such that error, warning, info, debug, etc. can be treated differently.
 
 The callback function may itself do non-trivial tasks like writing to
@@ -97,7 +95,7 @@ Therefore the function should return 1 on success and 0 on failure.
 OSSL_CMP_log_open() should be called at least once at the beginning to
 initialize the CMP-specific logging facility via the trace API.
 
-OSSL_CMP_log_close() should be called when all activity is finished to flush
+OSSL_CMP_log_close() should be called when all activities are finished to flush
 any pending CMP-specific log output and deallocate related resources.
 
 OSSL_CMP_alert() outputs a simple error message via the trace API.
