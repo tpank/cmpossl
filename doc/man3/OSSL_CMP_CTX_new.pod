@@ -105,10 +105,9 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
  int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
  int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
-                                      const unsigned char *ref,
-                                      size_t len);
+                                      const unsigned char *ref, int len);
  int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
-                                   const size_t len);
+                                   const int len);
 
  /* CMP message header and extra certificates: */
  int OSSL_CMP_CTX_set1_recipient(OSSL_CMP_CTX *ctx, const X509_NAME *name);
@@ -354,9 +353,10 @@ This defaults to the subject DN of the certificate set via
 OSSL_CMP_CTX_set1_srvCert(), if any.
 
 OSSL_CMP_CTX_set0_trustedStore() sets the X509_STORE type certificate store
-containing trusted (root) CA certificates and possibly CRLs and a certificate
-verification callback function used for CMP server authentication. Any already
-existing store entry is freed. When given a NULL parameter the entry is cleared.
+containing trusted (root) CA certificates. The certificate store may also hold
+CRLs and a certificate verification callback function used for CMP server
+authentication. Any already existing store entry is freed. When given a NULL
+parameter the entry is cleared.
 
 OSSL_CMP_CTX_get0_trustedStore() returns a pointer to the certificate store
 containing trusted root CA certificates. NULL on error.
@@ -424,7 +424,7 @@ OSSL_CMP_CTX_set1_subjectName() sets the subject DN that will be used in
 the CertTemplate structure when requesting a new cert. For Key Update Requests
 (KUR), it defaults to the subject DN of the reference certificate,
 see B<OSSL_CMP_CTX_set1_oldClCert()>. This default is used for Initialization
-Requests (IR) and Certifiation Requests (CR) only if no SANs are set.
+Requests (IR) and Certification Requests (CR) only if no SANs are set.
 
 If clCert is not set (e.g. in case of IR with MSG_MAC_ALG), the subject DN
 is also used as sender of the PKI message.
@@ -620,8 +620,9 @@ The following code does a Key Update Request:
 
         updatedClCert = OSSL_CMP_exec_KUR_ses(cmp_ctx);
 
-The following code (which omits error handling) sends a genm including, as an
-example, the id-it-signKeyPairTypes OID and prints info on the genp contents.
+The following code (which omits error handling) sends a General Message
+including, as an example, the id-it-signKeyPairTypes OID and prints info on
+the General Response contents.
 
     cmp_ctx = OSSL_CMP_CTX_new();
     OSSL_CMP_CTX_set1_serverName(cmp_ctx, sname);
