@@ -26,6 +26,7 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
+#include <openssl/asn1err.h> /* for ASN1_R_TOO_SMALL and ASN1_R_TOO_LARGE */
 
 /* CMP functions related to PKIStatus */
 
@@ -136,7 +137,8 @@ int OSSL_CMP_PKISI_get_PKIFailureInfo(OSSL_CMP_PKISI *si)
 
 /*
  * internal function
- * convert PKIFailureInfo bit to human-readable string or empty string if not set
+ * convert PKIFailureInfo bit to human-readable string or empty string if not
+ * set
  *
  * returns pointer to static string
  * returns NULL on error
@@ -335,9 +337,8 @@ OSSL_CMP_PKISI *CMP_REVREPCONTENT_get_PKIStatusInfo(OSSL_CMP_REVREPCONTENT *rrep
     if (rrep == NULL)
         return NULL;
 
-    if ((status = sk_OSSL_CMP_PKISI_value(rrep->status, rsid)) != NULL) {
+    if ((status = sk_OSSL_CMP_PKISI_value(rrep->status, rsid)) != NULL)
         return status;
-    }
 
     CMPerr(CMP_F_CMP_REVREPCONTENT_GET_PKISTATUSINFO,
            CMP_R_PKISTATUSINFO_NOT_FOUND);
@@ -359,9 +360,8 @@ OSSL_CRMF_CERTID *CMP_REVREPCONTENT_get_CertId(OSSL_CMP_REVREPCONTENT *rrep,
     if (rrep == NULL)
         return NULL;
 
-    if ((cid = sk_OSSL_CRMF_CERTID_value(rrep->revCerts, rsid)) != NULL) {
+    if ((cid = sk_OSSL_CRMF_CERTID_value(rrep->revCerts, rsid)) != NULL)
         return cid;
-    }
 
     CMPerr(CMP_F_CMP_REVREPCONTENT_GET_CERTID, CMP_R_CERTID_NOT_FOUND);
     return NULL;
@@ -470,7 +470,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
         case OSSL_CMP_CERTORENCCERT_ENCRYPTEDCERT:
         /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
             crt = OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(coec->value.encryptedCert,
-                                                   ctx->newPkey);
+                                                        ctx->newPkey);
             break;
         default:
             CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
