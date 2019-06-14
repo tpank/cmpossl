@@ -459,7 +459,7 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
 
     if (ctx == NULL || crep == NULL) {
         CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE, CMP_R_INVALID_ARGS);
-        goto err;
+        return NULL;
     }
     if (crep->certifiedKeyPair
             && (coec = crep->certifiedKeyPair->certOrEncCert) != NULL) {
@@ -475,16 +475,13 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
         default:
             CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                    CMP_R_UNKNOWN_CERT_TYPE);
-            goto err;
+            return NULL;
         }
         if (crt == NULL) {
             CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
                    CMP_R_CERTIFICATE_NOT_FOUND);
-            goto err;
+            return NULL;
         }
     }
     return crt;
-
- err:
-    return NULL;
 }

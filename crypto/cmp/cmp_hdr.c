@@ -26,16 +26,13 @@ int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno)
 {
     if (hdr == NULL) {
         CMPerr(CMP_F_OSSL_CMP_HDR_SET_PVNO, CMP_R_NULL_ARGUMENT);
-        goto err;
+        return 0;
     }
     if (!ASN1_INTEGER_set(hdr->pvno, pvno)) {
         CMPerr(CMP_F_OSSL_CMP_HDR_SET_PVNO, ERR_R_MALLOC_FAILURE);
-        goto err;
+        return 0;
     }
     return 1;
-
- err:
-    return 0;
 }
 
 int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr)
@@ -322,12 +319,12 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
 
     if (ctx == NULL || hdr == NULL) {
         CMPerr(CMP_F_OSSL_CMP_HDR_INIT, CMP_R_NULL_ARGUMENT);
-        goto err;
+        return 0;
     }
 
     /* set the CMP version */
     if (!OSSL_CMP_HDR_set_pvno(hdr, OSSL_CMP_PVNO))
-        goto err;
+        return 0;
 
     /*
      * if neither client cert nor subject name given, sender name is not known
@@ -337,10 +334,10 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         X509_get_subject_name(ctx->clCert) : ctx->subjectName;
     if (sender == NULL && ctx->referenceValue == NULL) {
         CMPerr(CMP_F_OSSL_CMP_HDR_INIT, CMP_R_NO_SENDER_NO_REFERENCE);
-        goto err;
+        return 0;
     }
     if (!OSSL_CMP_HDR_set1_sender(hdr, sender))
-        goto err;
+        return 0;
 
     /* determine recipient entry in PKIHeader */
     if (ctx->srvCert != NULL) {
@@ -348,7 +345,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         /* set also as expected_sender of responses unless set explicitly */
         if (ctx->expected_sender == NULL && rcp != NULL
                 && !OSSL_CMP_CTX_set1_expected_sender(ctx, rcp))
-        goto err;
+            return 0;
     }
     else if (ctx->recipient != NULL)
         rcp = ctx->recipient;
@@ -359,15 +356,15 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
     else if (ctx->clCert != NULL)
         rcp = X509_get_issuer_name(ctx->clCert);
     if (!OSSL_CMP_HDR_set1_recipient(hdr, rcp))
-        goto err;
+        return 0;
 
     /* set current time as message time */
     if (!OSSL_CMP_HDR_update_messageTime(hdr))
-        goto err;
+        return 0;
 
     if (ctx->recipNonce != NULL)
         if (!CMP_ASN1_OCTET_STRING_set1(&hdr->recipNonce, ctx->recipNonce))
-            goto err;
+            return 0;
 
     /*
      * set ctx->transactionID in CMP header
@@ -381,9 +378,9 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
     if (ctx->transactionID == NULL
             && !set1_aostr_else_random(&ctx->transactionID,NULL,
                                        OSSL_CMP_TRANSACTIONID_LENGTH))
-        goto err;
+        return 0;
     if (!CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID, ctx->transactionID))
-        goto err;
+        return 0;
 
     /*-
      * set random senderNonce
@@ -399,7 +396,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
      */
     if (!set1_aostr_else_random(&hdr->senderNonce, NULL,
                                 OSSL_CMP_SENDERNONCE_LENGTH))
-        goto err;
+        return 0;
 
     /* store senderNonce - for cmp with recipNonce in next outgoing msg */
     OSSL_CMP_CTX_set1_last_senderNonce(ctx, hdr->senderNonce);
@@ -412,11 +409,8 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
      */
     if (ctx->freeText != NULL)
         if (!OSSL_CMP_HDR_push1_freeText(hdr, ctx->freeText))
-            goto err;
+            return 0;
 #endif
 
     return 1;
-
- err:
-    return 0;
 }
