@@ -143,7 +143,7 @@ int OSSL_CMP_PKISI_get_PKIFailureInfo(OSSL_CMP_PKISI *si)
  * returns pointer to static string
  * returns NULL on error
  */
-static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi,
+static char *CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi,
                                                 int i)
 {
     if (fi == NULL)
@@ -247,7 +247,7 @@ char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
     /* PKIFailure is optional and may be empty */
     if (si->failInfo != NULL) {
         for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++) {
-            failure = OSSL_CMP_PKIFAILUREINFO_get_string(si->failInfo, i);
+            failure = CMP_PKIFAILUREINFO_get_string(si->failInfo, i);
             if (failure == NULL)
                 return NULL;
             if (failure[0] != '\0')
