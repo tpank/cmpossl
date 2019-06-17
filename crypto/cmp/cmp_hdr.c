@@ -79,7 +79,7 @@ static int set1_general_name(GENERAL_NAME **tgt, const X509_NAME *src)
     if (src == NULL) { /* NULL DN */
         if ((gen->d.directoryName = X509_NAME_new()) == NULL)
             goto oom;
-    } else if (!(X509_NAME_set(&gen->d.directoryName, src))) {
+    } else if (!X509_NAME_set(&gen->d.directoryName, src)) {
     oom:
         CMPerr(CMP_F_SET1_GENERAL_NAME, ERR_R_MALLOC_FAILURE);
         goto err;
@@ -186,7 +186,7 @@ OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
         goto oom;
     if (!ASN1_STRING_set(utf8string, text, (int)strlen(text)))
         goto oom;
-    if (!(sk_ASN1_UTF8STRING_push(ft, utf8string)))
+    if (!sk_ASN1_UTF8STRING_push(ft, utf8string))
         goto oom;
     return ft;
 
@@ -208,7 +208,7 @@ int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
         if ((hdr->freeText = sk_ASN1_UTF8STRING_new_null()) == NULL)
             goto err;
 
-    if (!(sk_ASN1_UTF8STRING_push(hdr->freeText, text)))
+    if (!sk_ASN1_UTF8STRING_push(hdr->freeText, text))
         goto err;
 
     return 1;
