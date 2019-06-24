@@ -60,7 +60,7 @@ int ossl_cmp_pkisi_get_pkistatus(OSSL_CMP_PKISI *si)
 }
 
 
-const char *ossl_cmp__pkistatus_to_string(int status)
+const char *OSSL_CMP_PKIStatus_to_string(int status)
 {
     switch (status) {
     case OSSL_CMP_PKISTATUS_accepted:
@@ -228,7 +228,7 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize)
 
     if (ctx == NULL || buf == NULL || bufsize <= 0
             || (status = OSSL_CMP_CTX_get_status(ctx)) < 0
-            || (status_string = ossl_cmp__pkistatus_to_string(status)) == NULL)
+            || (status_string = OSSL_CMP_PKIStatus_to_string(status)) == NULL)
         return NULL;
     BIO_snprintf(buf, bufsize, "%s", status_string);
 
@@ -473,3 +473,4 @@ X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
     }
     return crt;
 }
+

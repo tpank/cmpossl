@@ -771,7 +771,6 @@ ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg
                                           int rid);
 X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
                                              const OSSL_CMP_CERTRESPONSE *crep);
-const char *ossl_cmp__pkistatus_to_string(int status);
 
 /* from cmp_hdr.c */
 int ossl_cmp_hdr_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);

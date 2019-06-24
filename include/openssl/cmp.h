@@ -414,6 +414,7 @@ int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
 
 /* from cmp_status.c */
 char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize);
+const char *OSSL_CMP_PKIStatus_to_string(int status);
 
 /* from cmp_hdr.c */
 /* exported for testing and debugging purposes: */

@@ -83,6 +83,7 @@ int ERR_load_CMP_strings(void);
 #   define CMP_F_OSSL_CMP_CTX_SET_PROXYPORT                 0
 #   define CMP_F_OSSL_CMP_CTX_SET_SERVERPORT                0
 #   define CMP_F_OSSL_CMP_ERROR_NEW                         0
+#   define CMP_F_OSSL_CMP_EXEC_RR_SES                       0
 #   define CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH0_ITEM        0
 #   define CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH1_ITEMS       0
 #   define CMP_F_OSSL_CMP_HDR_GET_PVNO                      0
