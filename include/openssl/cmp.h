@@ -413,6 +413,9 @@ int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
                                        const ASN1_OCTET_STRING *nonce);
 int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
 
+/* from cmp_status.c */
+const char *OSSL_CMP_PKIStatus_to_string(int status);
+
 /* BIO definitions */
 #  define OSSL_d2i_CMP_MSG_bio(bp, p) \
          ASN1_d2i_bio_of(OSSL_CMP_MSG, OSSL_CMP_MSG_new,\

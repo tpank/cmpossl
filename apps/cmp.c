@@ -4115,15 +4115,75 @@ int cmp_main(int argc, char **argv)
             break;
         }
 
+        if (opt_cmd == CMP_IR || opt_cmd == CMP_KUR || opt_cmd == CMP_CR
+	    || opt_cmd == CMP_P10CR) {
+            switch (OSSL_CMP_CTX_get_status(cmp_ctx)) {
+            case OSSL_CMP_PKISTATUS_accepted:
+                break;
+            case OSSL_CMP_PKISTATUS_grantedWithMods:
+                BIO_printf(bio_err, "warning: received \"%s\" for certificate\n",
+                           OSSL_CMP_PKIStatus_to_string(OSSL_CMP_CTX_get_status(cmp_ctx)));
+                break;
+            case OSSL_CMP_PKISTATUS_revocationWarning:
+                BIO_printf(bio_err, "warning: received \"%s\" - a revocation of the cert is imminent\n",
+                           OSSL_CMP_PKIStatus_to_string(OSSL_CMP_CTX_get_status(cmp_ctx)));
+                break;
+            case OSSL_CMP_PKISTATUS_rejection:
+                break;
+            case OSSL_CMP_PKISTATUS_revocationNotification:
+                BIO_printf(bio_err, "warning: received \"%s\" - a revocation of the cert has occurred\n",
+                           OSSL_CMP_PKIStatus_to_string(OSSL_CMP_CTX_get_status(cmp_ctx)));
+                break;
+            case OSSL_CMP_PKISTATUS_waiting:
+                break;
+            case OSSL_CMP_PKISTATUS_keyUpdateWarning:
+                BIO_printf(bio_err, "warning: received \"%s\" - update already done for the given oldCertId\n",
+                           OSSL_CMP_PKIStatus_to_string(OSSL_CMP_CTX_get_status(cmp_ctx)));
+                break;
+            default:
+                break;  /* TODO: implement default warning message*/
+            }
+        }
+
+        if (opt_cmd == CMP_RR) {
+            switch(OSSL_CMP_CTX_get_status(cmp_ctx)) {
+            case OSSL_CMP_PKISTATUS_accepted:
+                BIO_printf(bio_err, "info: revocation accepted \"%s\"\n",
+                           OSSL_CMP_PKIStatus_to_string(OSSL_CMP_CTX_get_status(cmp_ctx)));
+                break;
+            case OSSL_CMP_PKISTATUS_grantedWithMods:
+                 BIO_printf(bio_err, "info: revocation accepted \"%s\"\n",
+                            OSSL_CMP_PKIStatus_to_string(OSSL_CMP_CTX_get_status(cmp_ctx)));
+                break;
+            case OSSL_CMP_PKISTATUS_revocationWarning:
+                BIO_printf(bio_err, "info: revocation accepted \"%s\"\n",
+                           OSSL_CMP_PKIStatus_to_string(OSSL_CMP_CTX_get_status(cmp_ctx)));
+                break;
+            case OSSL_CMP_PKISTATUS_rejection:
+                BIO_printf(bio_err, "warning: revocation rejected  \"%s\"\n",
+                           OSSL_CMP_PKIStatus_to_string(OSSL_CMP_CTX_get_status(cmp_ctx)));
+                break;
+            case OSSL_CMP_PKISTATUS_revocationNotification:
+                BIO_printf(bio_err, "warning: revocation rejected  \"%s\"\n",
+                           OSSL_CMP_PKIStatus_to_string(OSSL_CMP_CTX_get_status(cmp_ctx)));
+                break;
+            case OSSL_CMP_PKISTATUS_waiting:
+            case OSSL_CMP_PKISTATUS_keyUpdateWarning:
+            default:
+                break;  /* TODO: implement default warning message*/
+            }
+        }
+
         if (opt_cacertsout != NULL) {
             STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_caPubs(cmp_ctx);
+
             if (sk_X509_num(certs) > 0
                     && save_certs(cmp_ctx, certs, opt_cacertsout, "CA") < 0) {
                 sk_X509_pop_free(certs, X509_free);
                 goto err;
             }
             sk_X509_pop_free(certs, X509_free);
-        }
+	}
 
         if (opt_extracertsout != NULL) {
             STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_extraCertsIn(cmp_ctx);

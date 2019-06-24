@@ -485,3 +485,25 @@ X509 *CMP_CERTRESPONSE_get1_certificate(OSSL_CMP_CTX *ctx,
     }
     return crt;
 }
+
+const char *OSSL_CMP_PKIStatus_to_string(int status) {
+    switch (status) {
+    case OSSL_CMP_PKISTATUS_accepted:
+        return "PKIStatus: accepted";
+    case OSSL_CMP_PKISTATUS_grantedWithMods:
+        return "PKIStatus: granted with mods";
+    case OSSL_CMP_PKISTATUS_rejection:
+        return "PKIStatus: rejection";
+    case OSSL_CMP_PKISTATUS_waiting:
+        return "PKIStatus: waiting";
+    case OSSL_CMP_PKISTATUS_revocationWarning:
+        return "PKIStatus: revocation warning";
+    case OSSL_CMP_PKISTATUS_revocationNotification:
+        return "PKIStatus: revocation notification";
+    case OSSL_CMP_PKISTATUS_keyUpdateWarning:
+        return "PKIStatus: key update warning";
+    default:
+        return "Default message";
+        /*TODO: implement a correct message*/
+    }
+}
