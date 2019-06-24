@@ -753,6 +753,7 @@ OSSL_CMP_CERTRESPONSE
                                        int rid);
 X509 *CMP_CERTRESPONSE_get1_certificate(OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_CERTRESPONSE *crep);
+const char *OSSL_CMP_PKIStatus_to_string(int status);
 
 /* from cmp_hdr.c */
 int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
