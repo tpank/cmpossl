@@ -338,7 +338,6 @@ my @disablables = (
     "cmac",
     "cmp",
     "cms",
-    "cmp",
     "comp",
     "crypto-mdebug",
     "crypto-mdebug-backtrace",

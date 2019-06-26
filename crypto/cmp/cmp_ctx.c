@@ -311,7 +311,7 @@ void *OSSL_CMP_CTX_get_certConf_cb_arg(OSSL_CMP_CTX *ctx)
  * Set a callback function for log messages.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
+int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_trace_cb cb)
 {
     int res = 0;
 
@@ -326,9 +326,9 @@ int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
         res = bio_out != NULL
                   && OSSL_trace_set_channel(OSSL_TRACE_CATEGORY_CMP, bio_out);
 #endif
-    } else {
-        res = OSSL_trace_set_callback(OSSL_TRACE_CATEGORY_CMP,
-                                      ossl_cmp_log_trace_cb, ctx);
+    }
+    else {
+        res = OSSL_trace_set_callback(OSSL_TRACE_CATEGORY_CMP, cb, ctx);
     }
     if (res)
         ctx->log_cb = cb;

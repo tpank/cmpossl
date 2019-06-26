@@ -18,6 +18,7 @@
 
 # include <openssl/cmp.h>
 # include <openssl/err.h>
+# include <openssl/trace.h>
 
 /* explicit #includes not strictly needed since implied by the above: */
 # include <openssl/crmf.h>
@@ -30,7 +31,7 @@
  * this structure is used to store the context for CMP sessions
  */
 struct ossl_cmp_ctx_st {
-    OSSL_cmp_log_cb_t log_cb; /* log callback for error/debug/etc. output */
+    OSSL_trace_cb log_cb; /* log callback for error/debug/etc. output */
     char *log_func; /* name of function that logged last */
     char *log_file; /* name of source file of that function */
     int log_line;   /* line in source file of that function */

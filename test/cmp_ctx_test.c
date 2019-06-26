@@ -80,17 +80,15 @@ static int test_CTX_reqExtensions_have_SAN(void)
 #ifndef OPENSSL_NO_TRACE
 static int test_log_line;
 static int test_log_ok = 0;
-static int test_log_cb(const char *func, const char *file, int line,
-                       OSSL_CMP_severity level, const char *msg)
+static size_t test_log_cb(const char *buffer, size_t count,
+                       int category, int cmd, void *data)
 {
     test_log_ok =
 #ifndef PEDANTIC
         strcmp(func, "execute_cmp_ctx_log_cb_test") == 0 &&
 #endif
-        (strcmp(file, OPENSSL_FILE) == 0 || strcmp(file, "(no file)") == 0)
-        && (line == test_log_line || line == 0)
-        && (level == OSSL_CMP_LOG_INFO || level == -1)
-        && strcmp(msg, "CMP INFO: ok\n") == 0;
+        (category == OSSL_CMP_LOG_INFO || category == -1)
+        && strcmp(data, "CMP INFO: ok\n") == 0;
     return 1;
 }
 

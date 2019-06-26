@@ -95,12 +95,6 @@ size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
             }
         }
     }
-
-    /* buf contains message text; send it to callback */
-    if (ctx->log_cb(ctx->log_func != NULL ? ctx->log_func : "(no func)",
-                    ctx->log_file != NULL ? ctx->log_file : "(no file)",
-                    ctx->log_line, ctx->log_level, buf))
-        return cnt;
     return 0;
 }
 
@@ -163,7 +157,7 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
 }
 
 /* this is similar to ERR_print_errors_cb, but uses the CMP-specific cb type */
-void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
+void OSSL_CMP_print_errors_cb(OSSL_trace_cb log_fn)
 {
     unsigned long err;
     char component[256];
@@ -189,7 +183,8 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
         /* calling ERR_func_error_string(err) meanwhile has lost its benefit */
         BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
                      data == NULL ? "" : " : ", data == NULL ? "" : data);
-        if (log_fn(component, file, line, OSSL_CMP_LOG_ERR, msg) <= 0)
+        if (log_fn(component, sizeof(component), OSSL_CMP_LOG_INFO,
+                   OSSL_TRACE_CTRL_WRITE, msg) <= 0)
             break;              /* abort outputting the error report */
     }
 }

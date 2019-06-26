@@ -1991,7 +1991,7 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
             hbio = NULL;
             goto end;
         }
-#   endif
+#  endif
         if ((ssl = SSL_new(ssl_ctx)) == NULL) {
             BIO_free(sbio);
             hbio = sbio = NULL;
