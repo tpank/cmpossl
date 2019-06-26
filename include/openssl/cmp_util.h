@@ -29,7 +29,7 @@ extern "C" {
  */
 #  ifndef ENHANCED_TRACE_API /* TODO remove this conditional section when enhancement has been merged */
 #   define OSSL_TRACE_CATEGORY_CMP OSSL_TRACE_CATEGORY_ALL
-#   define OSSL_trace_set_verbosity(category, level) /* no-op */
+#   define OSSL_trace_set_verbosity(category, level) 0 /* no-op */
 #  endif
 
 int  OSSL_CMP_log_open(void);

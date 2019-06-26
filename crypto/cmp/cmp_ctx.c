@@ -18,6 +18,7 @@
 #endif
 
 #include <openssl/trace.h>
+#include <openssl/bio.h>
 
 #include "cmp_int.h"
 
@@ -287,10 +288,12 @@ int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
     if (ctx == NULL)
         return 0;
     if (cb == NULL) {
+#ifndef OPENSSL_NO_STDIO
         BIO *bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
 
         res = bio_out != NULL
                   && OSSL_trace_set_channel(OSSL_TRACE_CATEGORY_CMP, bio_out);
+#endif
     }
     else {
         res = OSSL_trace_set_callback(OSSL_TRACE_CATEGORY_CMP, trace_cb, ctx);
