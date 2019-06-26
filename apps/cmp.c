@@ -1984,13 +1984,14 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
 
     if (detail == 1) { /* connecting */
         SSL *ssl;
-
+#  if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
         if ((opt_proxy != NULL
                  && !OSSL_CMP_proxy_connect(hbio, ctx, bio_err, prog))
                 || (sbio = BIO_new(BIO_f_ssl())) == NULL) {
             hbio = NULL;
             goto end;
         }
+#  endif
         if ((ssl = SSL_new(ssl_ctx)) == NULL) {
             BIO_free(sbio);
             hbio = sbio = NULL;

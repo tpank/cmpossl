@@ -70,7 +70,6 @@ UI                                      datatype
 UI_METHOD                               datatype
 UI_STRING                               datatype
 UI_string_types                         datatype
-UI_string_types                         datatype
 X509_STORE_CTX_cert_crl_fn              datatype
 X509_STORE_CTX_check_crl_fn             datatype
 X509_STORE_CTX_check_issued_fn          datatype
@@ -345,12 +344,13 @@ OSSL_CMP_info                           define
 OSSL_CMP_log                            define
 OSSL_CMP_log1                           define
 OSSL_CMP_log2                           define
+OSSL_CMP_log3                           define
+OSSL_CMP_log4                           define
 OSSL_CMP_severity                       datatype
 OSSL_CMP_trace                          define
 OSSL_CMP_warn                           define
 OSSL_PARAM_TYPE                         define
 OSSL_PARAM_octet_ptr                    define
-OSSL_PARAM_octet_string                 define
 OSSL_PARAM_utf8_ptr                     define
 OSSL_PARAM_BN                           define
 OSSL_PARAM_SIZED_BN                     define
@@ -358,8 +358,8 @@ OSSL_PARAM_TYPE                         generic
 OSSL_PARAM_construct_TYPE               generic
 OSSL_PARAM_octet_string                 define
 OSSL_PARAM_utf8_string                  define
-OSSL_PARAM_octet_ptr                    define
 OSSL_PARAM_get_TYPE                     generic
+OSSL_trace_set_verbosity                define
 OSSL_PARAM_END                          define
 OSSL_PARAM_set_TYPE                     generic
 PEM_FLAG_EAY_COMPATIBLE                 define

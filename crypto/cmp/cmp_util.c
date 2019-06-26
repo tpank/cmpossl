@@ -167,6 +167,7 @@ int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
         return 1;
     for (i = 0; i < sk_X509_num(certs); i++) {
         X509 *cert = sk_X509_value(certs, i);
+
         if (!no_self_signed || X509_check_issued(cert, cert) != X509_V_OK) {
             if (!OSSL_CMP_sk_X509_add1_cert(sk, cert, no_duplicates, 0))
                 return 0;

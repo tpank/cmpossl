@@ -4,6 +4,7 @@
 
 OSSL_CMP_log_open,
 OSSL_CMP_log_close,
+OSSL_trace_set_verbosity,
 OSSL_CMP_alert,
 OSSL_CMP_err,
 OSSL_CMP_warn,
@@ -12,6 +13,8 @@ OSSL_CMP_debug,
 OSSL_CMP_log,
 OSSL_CMP_log1,
 OSSL_CMP_log2,
+OSSL_CMP_log3,
+OSSL_CMP_log4,
 OSSL_CMP_severity,
 OSSL_CMP_LOG_EMERG,
 OSSL_CMP_LOG_ALERT,
@@ -33,6 +36,7 @@ OSSL_CMP_print_errors_cb
 
  int  OSSL_CMP_log_open(void);
  void OSSL_CMP_log_close(void);
+ #define OSSL_trace_set_verbosity(category, level)
  #define OSSL_CMP_alert(msg)
  #define OSSL_CMP_err(msg)
  #define OSSL_CMP_warn(msg)
@@ -41,6 +45,8 @@ OSSL_CMP_print_errors_cb
  #define OSSL_CMP_log(level, msg)
  #define OSSL_CMP_log1(level, fmt, arg1)
  #define OSSL_CMP_log2(level, fmt, arg1, arg2)
+ #define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3)
+ #define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4)
 
  /* severity level declarations resemble those from syslog.h */
  typedef int OSSL_CMP_severity;
