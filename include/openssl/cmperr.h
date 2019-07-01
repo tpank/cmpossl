@@ -32,7 +32,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES           124
 #  define CMP_F_CMP_CALC_PROTECTION                        101
 #  define CMP_F_CMP_CERTREPMESSAGE_GET0_CERTRESPONSE       102
-#  define CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE           103
+#  define CMP_F_CMP_CERTRESPONSE_GET1_CERTIFICATE          103
 #  define CMP_F_OSSL_CMP_CERTSTATUS_SET_CERTHASH           104
 #  define CMP_F_CMP_CTX_SET1_CAPUBS                        105
 #  define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  106

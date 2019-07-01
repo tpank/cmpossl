@@ -411,6 +411,7 @@ int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
                                     const ASN1_OCTET_STRING *id);
 int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
                                        const ASN1_OCTET_STRING *nonce);
+int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
 
 /* BIO definitions */
 #  define OSSL_d2i_CMP_MSG_bio(bp, p) \

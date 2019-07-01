@@ -446,19 +446,19 @@ OSSL_CMP_CERTRESPONSE
     return NULL;
 }
 
-/* CMP_CERTRESPONSE_get_certificate() attempts to retrieve the returned
+/* CMP_CERTRESPONSE_get1_certificate() attempts to retrieve the returned
  * certificate from the given certResponse B<crep>.
  * Takes the newKey in case of indirect POP from B<ctx>.
  * Returns a pointer to a copy of the found certificate, or NULL if not found.
  */
-X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
+X509 *CMP_CERTRESPONSE_get1_certificate(OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_CERTRESPONSE *crep)
 {
     OSSL_CMP_CERTORENCCERT *coec;
     X509 *crt = NULL;
 
     if (ctx == NULL || crep == NULL) {
-        CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_CMP_CERTRESPONSE_GET1_CERTIFICATE, CMP_R_INVALID_ARGS);
         return NULL;
     }
     if (crep->certifiedKeyPair
@@ -473,12 +473,12 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
                                                         ctx->newPkey);
             break;
         default:
-            CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
+            CMPerr(CMP_F_CMP_CERTRESPONSE_GET1_CERTIFICATE,
                    CMP_R_UNKNOWN_CERT_TYPE);
             return NULL;
         }
         if (crt == NULL) {
-            CMPerr(CMP_F_CMP_CERTRESPONSE_GET_CERTIFICATE,
+            CMPerr(CMP_F_CMP_CERTRESPONSE_GET1_CERTIFICATE,
                    CMP_R_CERTIFICATE_NOT_FOUND);
             return NULL;
         }

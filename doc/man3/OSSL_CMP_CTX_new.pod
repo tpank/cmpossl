@@ -56,7 +56,8 @@ OSSL_CMP_CTX_get_failInfoCode,
 OSSL_CMP_CTX_get1_extraCertsIn,
 OSSL_CMP_CTX_get1_caPubs,
 OSSL_CMP_CTX_set1_transactionID,
-OSSL_CMP_CTX_set1_last_senderNonce
+OSSL_CMP_CTX_set1_last_senderNonce,
+OSSL_CMP_CTX_reinit
 - functions for managing the CMP client context data structure
 
 =head1 SYNOPSIS
@@ -149,6 +150,7 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_CTX_get_failInfoCode(OSSL_CMP_CTX *ctx);
  STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx);
  STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx);
+ int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
 
  /* for test purposes only: */
  int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
@@ -527,6 +529,12 @@ OSSL_CMP_CTX structure.
 
 OSSL_CMP_CTX_set1_last_senderNonce() stores the last sent sender B<nonce> in
 the B<ctx>. This will be used to validate the recipNonce in incoming messages.
+
+OSSL_CMP_CTX_reinit() prepares the given B<ctx> for a further transaction by
+clearing the session status (transactionID, last_senderNonce, and recipNonce)
+and any previous results (failInfoCode, statusString, newClCert, caPubs, and
+extraCertsIn) from the last executed transaction.
+All other field values (e.g., CMP options) are retained for potential re-use.
 
 =head1 NOTES
 

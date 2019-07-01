@@ -83,6 +83,7 @@ S<[B<-reqin>]>
 S<[B<-reqout>]>
 S<[B<-rspin>]>
 S<[B<-rspout>]>
+S<[B<-repeat>]>
 
 S<[B<-crl_check>]>
 S<[B<-crl_check_all>]>
@@ -721,6 +722,11 @@ As many files are read as needed for the complete transaction.
 Save sequence of CMP responses to file(s).
 Multiple file names may be given, separated by commas and/or whitespace.
 As many files are written as needed to store the complete transaction.
+
+=item B<-repeat>
+
+Invoke the command the given number of times with the same parameters.
+Default is one invocation.
 
 =back
 

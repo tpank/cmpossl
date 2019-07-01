@@ -4938,3 +4938,4 @@ OSSL_trace_get_verbosity                4882	3_0_0	EXIST::FUNCTION:
 OSSL_trace_set_verbosity                4883	3_0_0	EXIST::FUNCTION:
 X509_set0_sm2_id                        4884	3_0_0	EXIST::FUNCTION:SM2
 X509_get0_sm2_id                        4885	3_0_0	EXIST::FUNCTION:SM2
+OSSL_CMP_CTX_reinit                     4886	3_0_0	EXIST::FUNCTION:CMP

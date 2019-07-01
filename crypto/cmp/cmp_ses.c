@@ -455,10 +455,10 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         goto err;
     case OSSL_CMP_PKISTATUS_grantedWithMods:
         OSSL_CMP_warn("received \"grantedWithMods\" for certificate");
-        crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
+        crt = CMP_CERTRESPONSE_get1_certificate(ctx, crep);
         break;
     case OSSL_CMP_PKISTATUS_accepted:
-        crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
+        crt = CMP_CERTRESPONSE_get1_certificate(ctx, crep);
         break;
 
         /* get all information in case of a rejection before going to error */
@@ -469,11 +469,11 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
 
     case OSSL_CMP_PKISTATUS_revocationWarning:
         OSSL_CMP_warn("received \"revocationWarning\" - a revocation of the cert is imminent");
-        crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
+        crt = CMP_CERTRESPONSE_get1_certificate(ctx, crep);
         break;
     case OSSL_CMP_PKISTATUS_revocationNotification:
         OSSL_CMP_warn("received \"revocationNotification\" - a revocation of the cert has occurred");
-        crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
+        crt = CMP_CERTRESPONSE_get1_certificate(ctx, crep);
         break;
     case OSSL_CMP_PKISTATUS_keyUpdateWarning:
         if (bodytype != OSSL_CMP_PKIBODY_KUR) {
@@ -481,7 +481,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
             goto err;
         }
         OSSL_CMP_warn("received \"keyUpdateWarning\" - update already done for the given oldCertId");
-        crt = CMP_CERTRESPONSE_get_certificate(ctx, crep);
+        crt = CMP_CERTRESPONSE_get1_certificate(ctx, crep);
         break;
     default:
         OSSL_CMP_log1(ERROR,
