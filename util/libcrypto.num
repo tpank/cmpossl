@@ -4780,3 +4780,4 @@ OSSL_CRMF_CERTID_get0_serialNumber      4885	3_0_0	EXIST::FUNCTION:CRMF
 OSSL_trace_get_verbosity_name           4886	3_0_0	EXIST::FUNCTION:
 OSSL_trace_get_verbosity                4887	3_0_0	EXIST::FUNCTION:
 OSSL_trace_set_verbosity                4888	3_0_0	EXIST::FUNCTION:
+OSSL_CMP_CTX_reinit                     4889	3_0_0	EXIST::FUNCTION:CMP

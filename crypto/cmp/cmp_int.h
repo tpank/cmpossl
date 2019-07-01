@@ -751,7 +751,7 @@ OSSL_CMP_POLLREP
 OSSL_CMP_CERTRESPONSE
  *CMP_CERTREPMESSAGE_get0_certResponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
                                        int rid);
-X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
+X509 *CMP_CERTRESPONSE_get1_certificate(OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_CERTRESPONSE *crep);
 
 /* from cmp_hdr.c */

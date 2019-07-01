@@ -54,13 +54,17 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 OSSL_CMP_exec_IR_ses(), OSSL_CMP_exec_CR_ses(),
 OSSL_CMP_exec_P10CR_ses(), and OSSL_CMP_exec_KUR_ses() return a
-pointer to the newly obtained X509 certificate on success, NULL on error.
+pointer to the newly obtained X509 certificate on success, NULL on error. 
+This pointer will be freed implicitly by OSSL_CMP_CTX_free() or
+CSSL_CMP_CTX_reinit().
 
 OSSL_CMP_exec_RR_ses() returns the
 pointer to the revoked certificate on success, NULL on error.
+This pointer will be freed implicitly by OSSL_CMP_CTX_free().
 
 OSSL_CMP_exec_GENM_ses() returns a
 pointer to the received B<ITAV> sequence on success, NULL on error.
+This pointer must be freed by the caller.
 
 =head1 EXAMPLE
 

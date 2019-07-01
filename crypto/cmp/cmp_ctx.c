@@ -120,6 +120,28 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
     return NULL;
 }
 
+
+/*
+ * prepare the OSSL_CMP_CTX for next use, partly re-initializing OSSL_CMP_CTX
+ */
+int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
+{
+    if (ctx == NULL)
+        return 0;
+    sk_ASN1_UTF8STRING_pop_free(ctx->lastStatusString, ASN1_UTF8STRING_free);
+    ctx->lastStatusString = NULL;
+    X509_free (ctx->newClCert);
+    ctx->newClCert = NULL;
+    sk_X509_pop_free(ctx->caPubs, X509_free);
+    ctx->caPubs = NULL;
+    sk_X509_pop_free(ctx->extraCertsIn, X509_free);
+    ctx->extraCertsIn = NULL;
+    ctx->failInfoCode = 0;
+    return OSSL_CMP_CTX_set1_transactionID(ctx, NULL)
+            && OSSL_CMP_CTX_set1_last_senderNonce(ctx, NULL)
+            && CMP_CTX_set1_recipNonce(ctx, NULL);
+}
+
 /*
  * Frees OSSL_CMP_CTX variables allocated in OSSL_CMP_CTX_new()
  */
