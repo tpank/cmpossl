@@ -175,6 +175,7 @@ static char *opt_reqin = NULL;
 static char *opt_reqout = NULL;
 static char *opt_rspin = NULL;
 static char *opt_rspout = NULL;
+static int opt_repeat = 1;
 
 #ifndef NDEBUG
 static int opt_mock_srv = 0;
@@ -298,7 +299,8 @@ typedef enum OPTION_choice {
     OPT_TLS_TRUSTED, OPT_TLS_HOST,
 
     OPT_BATCH,
-    OPT_REQIN, OPT_REQOUT, OPT_RSPOUT, OPT_RSPIN,
+    OPT_REQIN, OPT_REQOUT, OPT_RSPIN, OPT_RSPOUT,
+    OPT_REPEAT,
 
 #ifndef NDEBUG
     OPT_MOCK_SRV,
@@ -504,6 +506,8 @@ OPTIONS cmp_options[] = {
     {"rspin", OPT_RSPIN, 's',
      "Process sequence of CMP responses provided in file(s), skipping server"},
     {"rspout", OPT_RSPOUT, 's', "Save sequence of CMP responses to file(s)"},
+    {"repeat", OPT_REPEAT, 'n',
+     "Invoke the transaction the given number of times. Default 1"},
 
 #ifndef NDEBUG
     {"mock_srv", OPT_MOCK_SRV, '-', "Mock the server"},
@@ -643,6 +647,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 
     {(char **)&opt_batch},
     {&opt_reqin}, {&opt_reqout}, {&opt_rspin}, {&opt_rspout},
+    {(char **)&opt_repeat},
 
 #ifndef NDEBUG
     {(char **)&opt_mock_srv},
@@ -3870,6 +3875,9 @@ static int get_opts(int argc, char **argv)
         case OPT_RSPOUT:
             opt_rspout = opt_str("rspout");
             break;
+        case OPT_REPEAT:
+             opt_repeat = opt_nat();
+             break;
 # ifndef NDEBUG
         case OPT_MOCK_SRV:
             opt_mock_srv = 1;
@@ -4056,89 +4064,89 @@ int cmp_main(int argc, char **argv)
         OSSL_CMP_err("cannot set up CMP context");
         goto err;
     }
-
-    /*
-     * everything is ready, now connect and perform the command!
-     */
-    switch (opt_cmd) {
-    case CMP_IR:
-        newcert = OSSL_CMP_exec_IR_ses(cmp_ctx);
-        if (newcert == NULL)
-            goto err;
-        break;
-    case CMP_KUR:
-        newcert = OSSL_CMP_exec_KUR_ses(cmp_ctx);
-        if (newcert == NULL)
-            goto err;
-        break;
-    case CMP_CR:
-        newcert = OSSL_CMP_exec_CR_ses(cmp_ctx);
-        if (newcert == NULL)
-            goto err;
-        break;
-    case CMP_P10CR:
-        newcert = OSSL_CMP_exec_P10CR_ses(cmp_ctx);
-        if (newcert == NULL)
-            goto err;
-        break;
-    case CMP_RR:
-        if (OSSL_CMP_exec_RR_ses(cmp_ctx) == NULL)
-            goto err;
-        break;
-    case CMP_GENM:
-        {
-            STACK_OF(OSSL_CMP_ITAV) *itavs;
-
-            if (opt_infotype != NID_undef) {
-                OSSL_CMP_ITAV *itav =
-                    OSSL_CMP_ITAV_create(OBJ_nid2obj(opt_infotype), NULL);
-                if (itav == NULL)
-                    goto err;
-                OSSL_CMP_CTX_genm_push0_ITAV(cmp_ctx, itav);
-            }
-
-            if ((itavs = OSSL_CMP_exec_GENM_ses(cmp_ctx)) == NULL)
+    for (i = 0; i < opt_repeat; i++) {
+        /*
+         * everything is ready, now connect and perform the command!
+         */
+        switch (opt_cmd) {
+        case CMP_IR:
+            newcert = OSSL_CMP_exec_IR_ses(cmp_ctx);
+            if (newcert == NULL)
                 goto err;
-            print_itavs(itavs);
-            sk_OSSL_CMP_ITAV_pop_free(itavs, OSSL_CMP_ITAV_free);
+            break;
+        case CMP_KUR:
+            newcert = OSSL_CMP_exec_KUR_ses(cmp_ctx);
+            if (newcert == NULL)
+                goto err;
+            break;
+        case CMP_CR:
+            newcert = OSSL_CMP_exec_CR_ses(cmp_ctx);
+            if (newcert == NULL)
+                goto err;
+            break;
+        case CMP_P10CR:
+            newcert = OSSL_CMP_exec_P10CR_ses(cmp_ctx);
+            if (newcert == NULL)
+                goto err;
+            break;
+        case CMP_RR:
+            if (OSSL_CMP_exec_RR_ses(cmp_ctx) == NULL)
+                goto err;
+            break;
+        case CMP_GENM:
+            {
+                STACK_OF(OSSL_CMP_ITAV) *itavs;
+
+                if (opt_infotype != NID_undef) {
+                    OSSL_CMP_ITAV *itav =
+                        OSSL_CMP_ITAV_create(OBJ_nid2obj(opt_infotype), NULL);
+                    if (itav == NULL)
+                        goto err;
+                    OSSL_CMP_CTX_genm_push0_ITAV(cmp_ctx, itav);
+                }
+
+                if ((itavs = OSSL_CMP_exec_GENM_ses(cmp_ctx)) == NULL)
+                    goto err;
+                print_itavs(itavs);
+                sk_OSSL_CMP_ITAV_pop_free(itavs, OSSL_CMP_ITAV_free);
+                break;
+            }
+        default:
             break;
         }
-    default:
-        break;
-    }
 
-    if (opt_cacertsout != NULL) {
-        STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_caPubs(cmp_ctx);
-        if (sk_X509_num(certs) > 0
-                && save_certs(cmp_ctx, certs, opt_cacertsout, "CA") < 0) {
+        if (opt_cacertsout != NULL) {
+            STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_caPubs(cmp_ctx);
+            if (sk_X509_num(certs) > 0
+                    && save_certs(cmp_ctx, certs, opt_cacertsout, "CA") < 0) {
+                sk_X509_pop_free(certs, X509_free);
+                goto err;
+            }
             sk_X509_pop_free(certs, X509_free);
-            goto err;
         }
-        sk_X509_pop_free(certs, X509_free);
-    }
 
-    if (opt_extracertsout != NULL) {
-        STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_extraCertsIn(cmp_ctx);
-        if (sk_X509_num(certs) > 0
-                && save_certs(cmp_ctx, certs, opt_extracertsout, "extra") < 0) {
+        if (opt_extracertsout != NULL) {
+            STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_extraCertsIn(cmp_ctx);
+            if (sk_X509_num(certs) > 0
+                    && save_certs(cmp_ctx, certs, opt_extracertsout, "extra") < 0) {
+                sk_X509_pop_free(certs, X509_free);
+                goto err;
+            }
             sk_X509_pop_free(certs, X509_free);
-            goto err;
         }
-        sk_X509_pop_free(certs, X509_free);
-    }
 
-    if (opt_certout != NULL && newcert != NULL) {
-        STACK_OF(X509) *certs = sk_X509_new_null();
-        if (certs == NULL || !sk_X509_push(certs, newcert)
-                || save_certs(cmp_ctx, certs, opt_certout, "enrolled") < 0) {
-            sk_X509_pop_free(certs, X509_free);
-            goto err;
+        if (opt_certout != NULL && newcert != NULL) {
+            STACK_OF(X509) *certs = sk_X509_new_null();
+            if (certs == NULL || !sk_X509_push(certs, newcert)
+                    || save_certs(cmp_ctx, certs, opt_certout, "enrolled") < 0) {
+                sk_X509_free(certs);
+                goto err;
+            }
+            sk_X509_free(certs);
         }
-        sk_X509_pop_free(certs, X509_free);
-        if (!X509_up_ref(newcert))
+        if (!OSSL_CMP_CTX_reinit(cmp_ctx))
             goto err;
     }
-
     ret = 0;
  err:
     /*  in case we ended up here on error without proper cleaning */
