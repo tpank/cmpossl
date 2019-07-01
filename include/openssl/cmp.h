@@ -227,7 +227,7 @@ typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
 /*
  * function DECLARATIONS
  */
-#  define OPENSSL_NO_OCSP /* TODO remove when chunk 8 is contributed */
+/* #  define OPENSSL_NO_OCSP TODO remove when chunk 8 is contributed */
 /* cmp_hdr.c */
 /* exported for testing and debugging purposes: */
 ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr);
