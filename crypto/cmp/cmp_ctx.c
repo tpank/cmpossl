@@ -643,11 +643,12 @@ int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, const X509_EXTENSIONS *ex
 /* returns 1 if ctx contains a Subject Alternative Name extension, else 0 */
 int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL || ctx->reqExtensions == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_REQEXTENSIONS_HAVE_SAN, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return X509v3_get_ext_by_NID(ctx->reqExtensions,
+    return ctx->reqExtensions != NULL
+        && X509v3_get_ext_by_NID(ctx->reqExtensions,
                                  NID_subject_alt_name, -1) >= 0;
 }
 
