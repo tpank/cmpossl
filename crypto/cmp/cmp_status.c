@@ -85,11 +85,11 @@ static char *CMP_PKISI_PKIStatus_get_string(OSSL_CMP_PKISI *si)
     case OSSL_CMP_PKISTATUS_waiting:
         return "PKIStatus: waiting";
     case OSSL_CMP_PKISTATUS_revocationWarning:
-        return "PKIStatus: revocation warning";
+        return "PKIStatus: revocation warning - a revocation of the cert is imminent";
     case OSSL_CMP_PKISTATUS_revocationNotification:
-        return "PKIStatus: revocation notification";
+        return "PKIStatus: revocation notification - a revocation of the cert has occurred";
     case OSSL_CMP_PKISTATUS_keyUpdateWarning:
-        return "PKIStatus: key update warning";
+        return "PKIStatus: key update warning - update already done for the cert";
     default:
         CMPerr(CMP_F_CMP_PKISI_PKISTATUS_GET_STRING,
                CMP_R_ERROR_PARSING_PKISTATUS);
