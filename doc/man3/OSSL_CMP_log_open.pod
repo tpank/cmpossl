@@ -4,7 +4,6 @@
 
 OSSL_CMP_log_open,
 OSSL_CMP_log_close,
-OSSL_trace_set_verbosity,
 OSSL_CMP_alert,
 OSSL_CMP_err,
 OSSL_CMP_warn,
@@ -36,7 +35,6 @@ OSSL_CMP_print_errors_cb
 
  int  OSSL_CMP_log_open(void);
  void OSSL_CMP_log_close(void);
- #define OSSL_trace_set_verbosity(category, level)
  #define OSSL_CMP_alert(msg)
  #define OSSL_CMP_err(msg)
  #define OSSL_CMP_warn(msg)

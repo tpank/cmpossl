@@ -885,7 +885,6 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                    CMP_R_MISSING_PROTECTION);
             return -1;
         }
-        OSSL_CMP_warn("received CMP message is not protected");
     }
 
     /* check CMP version number in header */
