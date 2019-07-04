@@ -87,8 +87,10 @@ static int test_log_cb(const char *func, const char *file, int line,
 #ifndef PEDANTIC
         strcmp(func, "execute_cmp_ctx_log_cb_test") == 0 &&
 #endif
-        strcmp(file, OPENSSL_FILE) == 0 && strcmp(msg, "ok\n") == 0
-            && line == test_log_line && level == OSSL_CMP_LOG_INFO;
+        (strcmp(file, OPENSSL_FILE) == 0 || strcmp(file, "(no file)") == 0)
+        && (line == test_log_line || line == 0)
+        && (level == OSSL_CMP_LOG_INFO || level == -1)
+        && strcmp(msg, "CMP INFO: ok\n") == 0;
     return 1;
 }
 
@@ -97,8 +99,8 @@ static int execute_cmp_ctx_log_cb_test(OSSL_CMP_CTX_TEST_FIXTURE *fixture)
     OSSL_TRACE(ALL, "this general trace message is not shown by default\n");
     OSSL_CMP_log_open();
     OSSL_CMP_log_open(); /* multiple calls should be harmless */
-    OSSL_CMP_debug("this CMP debug message should not be shown");
-    OSSL_CMP_info("this CMP info message should be shown");
+    OSSL_CMP_debug("this should be shown as CMP debug message");
+    OSSL_CMP_warn("this should be shown as CMP warning message");
     if (TEST_true(OSSL_CMP_CTX_set_log_cb(fixture->ctx, test_log_cb))) {
         test_log_line = OPENSSL_LINE + 1;
         OSSL_CMP_log2(INFO, "%s%c", "o", 'k');

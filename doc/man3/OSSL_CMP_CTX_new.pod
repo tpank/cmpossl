@@ -504,10 +504,6 @@ CertRepMessage or Revocation Response, -1 on error.
 OSSL_CMP_CTX_get0_statusString() returns the statusString from the last
 CertRepMessage or Revocation Response, NULL on error.
 
-OSSL_CMP_CTX_set_failInfoCode() sets the failinfo error code bits in
-OSSL_CMP_CTX based on the given OSSL_CMP_PKIFAILUREINFO structure,
-which is allowed to be NULL.
-
 OSSL_CMP_CTX_get_failInfoCode() returns the CMP error code from the failInfo
 field. This is a bit field and the flags for it are specified in
 cmp.h. The flags start with OSSL_CMP_CTX_FAILINFO, for example:

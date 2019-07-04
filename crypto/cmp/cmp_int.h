@@ -717,6 +717,8 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  * functions
  */
 /* from cmp_util.c */
+size_t CMP_log_trace_cb(const char *buf, size_t cnt,
+                        int category, int cmd, void *vdata);
 int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                const ASN1_OCTET_STRING *src);
 int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
@@ -733,6 +735,6 @@ int CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
 int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                               STACK_OF(X509) *extraCertsIn);
 int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
-                             OSSL_CMP_PKIFAILUREINFO *fail_info);
+                             const OSSL_CMP_PKIFAILUREINFO *fail_info);
 
 #endif /* !defined OSSL_HEADER_CMP_INT_H */
