@@ -473,4 +473,3 @@ X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
     }
     return crt;
 }
-

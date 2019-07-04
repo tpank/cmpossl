@@ -4116,15 +4116,20 @@ int cmp_main(int argc, char **argv)
         }
 
         {
-            const int status = OSSL_CMP_CTX_get_status(cmp_ctx);
-            const char *string = OSSL_CMP_PKIStatus_to_string(status);
+            /* print PKIStatusInfo (while there was no error) */
+            int status = OSSL_CMP_CTX_get_status(cmp_ctx);
+            char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
+            const char *string =
+                OSSL_CMP_CTX_snprint_PKIStatus(cmp_ctx, buf,
+                                               OSSL_CMP_PKISI_BUFLEN);
 
             BIO_printf(bio_err, "CMP %s: received %s\n",
                        status == OSSL_CMP_PKISTATUS_accepted ? "info" :
-                       status == OSSL_CMP_PKISTATUS_rejection ? "error" :
+                       status == OSSL_CMP_PKISTATUS_rejection ? "server error" :
                        status == OSSL_CMP_PKISTATUS_waiting ? "internal error" :
                                                               "warning",
-                       string);
+                       string != NULL ? string : "<unknown PKIStatus>");
+            OPENSSL_free(buf);
         }
 
         if (opt_cacertsout != NULL) {
