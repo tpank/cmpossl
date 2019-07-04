@@ -434,21 +434,21 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
  * Take into account PKIStatusInfo of CertResponse in ctx, report it on error.
  * returns NULL if not found or on error
  */
-static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
-                             OSSL_CMP_CERTRESPONSE *crep)
+static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
+                              OSSL_CMP_CERTRESPONSE *crep)
 {
     char *buf = NULL;
     X509 *crt = NULL;
 
     if (ctx == NULL || crep == NULL) {
-        CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_INVALID_ARGS);
+        CMPerr(CMP_F_GET1_CERT_STATUS, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
     switch (ctx->lastPKIStatus) {
     case OSSL_CMP_PKISTATUS_waiting:
         OSSL_CMP_err("received \"waiting\" status for cert when actually aiming to extract cert");
-        CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_WAITING);
+        CMPerr(CMP_F_GET1_CERT_STATUS, CMP_R_ENCOUNTERED_WAITING);
         goto err;
     case OSSL_CMP_PKISTATUS_grantedWithMods:
       /*TODO OSSL_CMP_warn("received \"grantedWithMods\" for certificate");*/
@@ -461,7 +461,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         /* get all information in case of a rejection before going to error */
     case OSSL_CMP_PKISTATUS_rejection:
         OSSL_CMP_err("received \"rejection\" status rather than cert");
-        CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_REQUEST_REJECTED_BY_CA);
+        CMPerr(CMP_F_GET1_CERT_STATUS, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
 
     case OSSL_CMP_PKISTATUS_revocationWarning:
@@ -474,7 +474,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         break;
     case OSSL_CMP_PKISTATUS_keyUpdateWarning:
         if (bodytype != OSSL_CMP_PKIBODY_KUR) {
-            CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_KEYUPDATEWARNING);
+            CMPerr(CMP_F_GET1_CERT_STATUS, CMP_R_ENCOUNTERED_KEYUPDATEWARNING);
             goto err;
         }
       /*TODO OSSL_CMP_warn("received \"keyUpdateWarning\" - update already done for the given oldCertId");*/
@@ -484,11 +484,11 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         OSSL_CMP_log1(ERROR,
                       "received unsupported PKIStatus %d for certificate",
                       ctx->lastPKIStatus);
-        CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
+        CMPerr(CMP_F_GET1_CERT_STATUS, CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
         goto err;
     }
     if (crt == NULL) {/* according to PKIStatus, we can expect a cert */
-        CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_CERTIFICATE_NOT_FOUND);
+        CMPerr(CMP_F_GET1_CERT_STATUS, CMP_R_CERTIFICATE_NOT_FOUND);
     }
 
     return crt;
@@ -555,8 +555,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
 
     if (!save_statusInfo(ctx, crep->status))
         return 0;
-    cert = get_cert_status(ctx, (*resp)->body->type, crep);
-    if (!CMP_CTX_set1_newClCert(ctx, cert))
+    cert = get1_cert_status(ctx, (*resp)->body->type, crep);
+    if (!CMP_CTX_set0_newClCert(ctx, cert))
         return 0;
     if (cert == NULL) {
         OSSL_CMP_add_error_data("cannot extract certificate from response");

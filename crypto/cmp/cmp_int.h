@@ -846,7 +846,7 @@ int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
                             const ASN1_OCTET_STRING *nonce);
 ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
 ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx);
-int CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
+int CMP_CTX_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
 int CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
 int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                               STACK_OF(X509) *extraCertsIn);

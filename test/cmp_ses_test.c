@@ -275,7 +275,7 @@ static int test_exchange_certConf(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
-    if (!TEST_true(CMP_CTX_set1_newClCert(fixture->cmp_ctx, cert))) {
+    if (!TEST_true(CMP_CTX_set0_newClCert(fixture->cmp_ctx, X509_dup(cert)))) {
         tear_down(fixture);
         fixture = NULL;
     }

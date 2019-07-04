@@ -35,7 +35,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_CERTRESPONSE_GET1_CERTIFICATE          103
 #  define CMP_F_CMP_CTX_SET1_CAPUBS                        105
 #  define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  106
-#  define CMP_F_CMP_CTX_SET1_NEWCLCERT                     107
+#  define CMP_F_CMP_CTX_SET0_NEWCLCERT                     107
 #  define CMP_F_CMP_CTX_SET1_RECIPNONCE                    108
 #  define CMP_F_CMP_EXCHANGE_CERTCONF                      109
 #  define CMP_F_CMP_EXCHANGE_ERROR                         110
@@ -51,7 +51,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_VERIFY_SIGNATURE                       119
 #  define CMP_F_CRM_NEW                                    120
 #  define CMP_F_FIND_SRVCERT                               121
-#  define CMP_F_GET_CERT_STATUS                            122
+#  define CMP_F_GET1_CERT_STATUS                           122
 #  define CMP_F_OSSL_CMP_CERTCONF_NEW                      125
 #  define CMP_F_OSSL_CMP_CERTREP_NEW                       126
 #  define CMP_F_OSSL_CMP_CERTREQ_NEW                       127

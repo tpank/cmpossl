@@ -138,7 +138,7 @@ int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
     ctx->failInfoCode = -1;
 
     return CMP_CTX_set0_statusString(ctx, NULL)
-        && CMP_CTX_set1_newClCert(ctx, NULL)
+        && CMP_CTX_set0_newClCert(ctx, NULL)
         && CMP_CTX_set1_caPubs(ctx, NULL)
         && CMP_CTX_set1_extraCertsIn(ctx, NULL)
         && CMP_CTX_set0_validatedSrvCert(ctx, NULL)
@@ -783,16 +783,16 @@ int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
  * returns 1 on success, 0 on error
  * TODO: this only permits for one client cert to be received...
  */
-int CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
+int CMP_CTX_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL) {
-        CMPerr(CMP_F_CMP_CTX_SET1_NEWCLCERT, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_CMP_CTX_SET0_NEWCLCERT, CMP_R_NULL_ARGUMENT);
         return 0;
     }
 
     X509_free(ctx->newClCert);
     ctx->newClCert = cert;
-    return cert == NULL ? 1 : X509_up_ref(cert);
+    return 1;
 }
 
 /*
