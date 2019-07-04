@@ -428,8 +428,8 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
  * Take into account PKIStatusInfo of CertResponse in ctx, report it on error.
  * returns NULL if not found or on error
  */
-static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
-                             OSSL_CMP_CERTRESPONSE *crep)
+static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
+                              OSSL_CMP_CERTRESPONSE *crep)
 {
     char *buf = NULL;
     X509 *crt = NULL;
@@ -548,7 +548,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
 
     if (!save_statusInfo(ctx, crep->status))
         return 0;
-    cert = get_cert_status(ctx, (*resp)->body->type, crep);
+    cert = get1_cert_status(ctx, (*resp)->body->type, crep);
     if (!ossl_cmp_ctx_set0_newClCert(ctx, cert))
         return 0;
     if (cert == NULL) {
