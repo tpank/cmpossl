@@ -27,46 +27,25 @@ extern "C" {
 /*
  * convenience functions for CMP-specific logging via the trace API
  */
-#  ifndef ENHANCED_TRACE_API /* TODO remove this conditional section when enhancement has been merged */
-#   define OSSL_TRACE_CATEGORY_CMP OSSL_TRACE_CATEGORY_ALL
-#   define OSSL_trace_set_verbosity(category, level) 0 /* no-op */
-#  endif
 
 int  OSSL_CMP_log_open(void);
 void OSSL_CMP_log_close(void);
+#  define OSSL_CMP_LOG_PREFIX "CMP "
 #  define OSSL_CMP_alert(msg) OSSL_CMP_log(ALERT, msg)
 #  define OSSL_CMP_err(msg)   OSSL_CMP_log(ERROR, msg)
-#  define OSSL_CMP_warn(msg)  OSSL_CMP_log(WARN , msg)
-#  define OSSL_CMP_info(msg)  OSSL_CMP_log(INFO , msg)
+#  define OSSL_CMP_warn(msg)  OSSL_CMP_log(WARN, msg)
+#  define OSSL_CMP_info(msg)  OSSL_CMP_log(INFO, msg)
 #  define OSSL_CMP_debug(msg) OSSL_CMP_log(DEBUG, msg)
 #  define OSSL_CMP_log(level, msg) \
-    OSSL_TRACEV(CMP, level, (trc_out, "%s\n", msg))
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": %s\n", msg))
 #  define OSSL_CMP_log1(level, fmt, arg1) \
-    OSSL_TRACEV(CMP, level, (trc_out, fmt "\n", arg1))
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1))
 #  define OSSL_CMP_log2(level, fmt, arg1, arg2) \
-    OSSL_TRACEV(CMP, level, (trc_out, fmt "\n", arg1, arg2))
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2))
 #  define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3) \
-    OSSL_TRACEV(CMP, level, (trc_out, fmt "\n", arg1, arg2, arg3))
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2, arg3))
 #  define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4) \
-    OSSL_TRACEV(CMP, level, (trc_out, fmt "\n", arg1, arg2, arg3, arg4))
-
-#  ifndef ENHANCED_TRACE_API /* TODO remove this conditional section when enhancement has been merged */
-#  undef OSSL_CMP_log
-#  define OSSL_CMP_log(level, msg) \
-    OSSL_TRACEV(CMP, (trc_out, "%s\n", msg))
-#  undef OSSL_CMP_log1
-#  define OSSL_CMP_log1(level, fmt, arg1) \
-    OSSL_TRACEV(CMP, (trc_out, fmt "\n", arg1))
-#  undef OSSL_CMP_log2
-#  define OSSL_CMP_log2(level, fmt, arg1, arg2) \
-    OSSL_TRACEV(CMP, (trc_out, fmt "\n", arg1, arg2))
-#  undef OSSL_CMP_log3
-#  define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3) \
-    OSSL_TRACEV(CMP, (trc_out, fmt "\n", arg1, arg2, arg3))
-#  undef OSSL_CMP_log4
-#  define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4) \
-    OSSL_TRACEV(CMP, (trc_out, fmt "\n", arg1, arg2, arg3, arg4))
-#  endif
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2, arg3, arg4))
 
 /*
  * generalized logging/error callback mirroring the severity levels of syslog.h

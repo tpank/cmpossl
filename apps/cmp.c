@@ -35,6 +35,7 @@
 /* explicit #includes not strictly needed since implied by the above: */
 #include <stdlib.h>
 #include <openssl/cmp.h>
+#include <openssl/cmp_util.h>
 #include <openssl/crmf.h>
 #include <openssl/crypto.h>
 #include <openssl/err.h>
@@ -4116,15 +4117,15 @@ int cmp_main(int argc, char **argv)
         }
 
         {
-            /* print PKIStatusInfo (while there was no error) */
+            /* print PKIStatusInfo (this is in case there has been no error) */
             int status = OSSL_CMP_CTX_get_status(cmp_ctx);
             char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
             const char *string =
                 OSSL_CMP_CTX_snprint_PKIStatus(cmp_ctx, buf,
                                                OSSL_CMP_PKISI_BUFLEN);
 
-            BIO_printf(bio_err, "CMP %s: received %s\n",
-                       status == OSSL_CMP_PKISTATUS_accepted ? "info" :
+            BIO_printf(bio_out, "CMP %s: received %s\n",
+                       status == OSSL_CMP_PKISTATUS_accepted ? "INFO" :
                        status == OSSL_CMP_PKISTATUS_rejection ? "server error" :
                        status == OSSL_CMP_PKISTATUS_waiting ? "internal error" :
                                                               "warning",

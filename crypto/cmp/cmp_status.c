@@ -225,11 +225,11 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize)
             || (status = OSSL_CMP_CTX_get_status(ctx)) < 0
             || (status_string = CMP_PKIStatus_to_string(status)) == NULL)
         return NULL;
-    BIO_snprintf(buf, bufsize, "%s; ", status_string);
+    BIO_snprintf(buf, bufsize, "%s", status_string);
 
     /* failInfo is optional and may be empty */
     if ((fail_info = OSSL_CMP_CTX_get_failInfoCode(ctx)) > 0) {
-        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "PKIFailureInfo: ");
+        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "; PKIFailureInfo: ");
         for (failure = 0; failure <= OSSL_CMP_PKIFAILUREINFO_MAX; failure++) {
             if ((fail_info & (1 << failure)) != 0) {
                 failure_string = CMP_PKIFAILUREINFO_to_string(failure);
@@ -241,8 +241,9 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize)
             }
         }
     }
-    if (n == 0)
-        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "<no failure info>");
+    if (n == 0 && status != OSSL_CMP_PKISTATUS_accepted
+            && status != OSSL_CMP_PKISTATUS_grantedWithMods)
+        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "; <no failure info>");
 
     /* statusString sequence is optional and may be empty */
     status_strings = OSSL_CMP_CTX_get0_statusString(ctx);

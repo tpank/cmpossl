@@ -4,7 +4,6 @@
 
 OSSL_CMP_log_open,
 OSSL_CMP_log_close,
-OSSL_trace_set_verbosity,
 OSSL_CMP_alert,
 OSSL_CMP_err,
 OSSL_CMP_warn,
@@ -36,7 +35,6 @@ OSSL_CMP_print_errors_cb
 
  int  OSSL_CMP_log_open(void);
  void OSSL_CMP_log_close(void);
- #define OSSL_trace_set_verbosity(category, level)
  #define OSSL_CMP_alert(msg)
  #define OSSL_CMP_err(msg)
  #define OSSL_CMP_warn(msg)
@@ -71,27 +69,29 @@ OSSL_CMP_print_errors_cb
 
 The logging and error reporting facility described here contains
 convenience functions for CMP-specific logging via the trace API,
-a generalized logging/error callback mirroring the severity levels of syslog.h,
+including a string prefix mirroring the severity levels of syslog.h,
 and enhancements of the error queue mechanism needed for large diagnostic
 messages produced by the CMP library in case of certificate validation failures.
 
 When an interesting activity is performed or an error occurs, some detail
 should be provided for user information, debugging, and auditing purposes.
-An application can obtain this information by providing a callback function
+A CMP application can obtain this information by providing a callback function
 with the following type:
 
  typedef void (*OSSL_cmp_log_cb_t)(const char *component,
                                    const char *file, int line,
                                    OSSL_CMP_severity level, const char *msg);
 
-The parameters may provide a component identifier (which may be a library
-name and/or a function name, or NULL), a file path name (or NULL) and
-a line number (or 0) indicating the source code location, and a string
-describing the nature of the event.
+The parameters may provide
+a component identifier (which may be a library name or function name) or NULL,
+a file path name or NULL,
+a line number or 0 indicating the source code location,
+a severity level, and
+a message string describing the nature of the event.
 
 Even when an activity is successful some warnings may be useful and some degree
-of logging may be required. Therefore the logging facility has a verbosity level
-and the callback function has a B<level> parameter indicating the severity
+of auditing may be required. Therefore the logging facility supports a severity
+level and the callback function has a B<level> parameter indicating such a
 level, such that error, warning, info, debug, etc. can be treated differently.
 
 The callback function may itself do non-trivial tasks like writing to
@@ -104,11 +104,14 @@ initialize the CMP-specific logging facility via the trace API.
 OSSL_CMP_log_close() should be called when all activities are finished to flush
 any pending CMP-specific log output and deallocate related resources.
 
-OSSL_CMP_alert() outputs a simple error message via the trace API.
+OSSL_CMP_alert() outputs a simple alert message via the trace API.
 OSSL_CMP_err() outputs a simple error message via the trace API.
 OSSL_CMP_warn() outputs a simple warning message via the trace API.
 OSSL_CMP_info() outputs a simple info message via the trace API.
 OSSL_CMP_debug() outputs a simple debug message via the trace API.
+
+Note that due to the design of the trace API used, the log functions have no
+effect unless the B<enable-trace> option is used during build configuration.
 
 OSSL_CMP_add_error_txt() appends text to the extra data field of the last
 error message in the OpenSSL error queue, after adding the optional separator

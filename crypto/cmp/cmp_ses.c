@@ -327,7 +327,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
  * send certConf for IR, CR or KUR sequences and check response
  * returns 1 on success, 0 on error
  */
-int CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,const char *txt)
+int CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info, const char *txt)
 {
     OSSL_CMP_MSG *certConf = NULL;
     OSSL_CMP_MSG *PKIconf = NULL;

@@ -19,15 +19,13 @@
 #include "cmp_int.h"
 
 /*
- * convenience functions for CMP-specific logging via the trace API
+ * use trace API for CMP-specific logging, prefixed by "CMP " and severity
  */
 
 int OSSL_CMP_log_open(void) /* is designed to be idempotent */
 {
     BIO *bio_out = NULL;
 
-    (void)OSSL_trace_set_verbosity(OSSL_TRACE_CATEGORY_CMP,
-                                   OSSL_TRACE_LEVEL_INFO);
 #ifndef OPENSSL_NO_STDIO
     bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
     return bio_out != NULL
@@ -40,6 +38,71 @@ int OSSL_CMP_log_open(void) /* is designed to be idempotent */
 void OSSL_CMP_log_close(void) /* is designed to be idempotent */
 {
     (void)OSSL_trace_set_channel(OSSL_TRACE_CATEGORY_CMP, NULL);
+}
+
+static OSSL_CMP_severity parse_level(const char *level)
+{
+    const char *end_level = strchr(level, ':');
+    const int len = end_level - level;
+
+    if (end_level == NULL)
+        return -1;
+
+    if (strncmp(level, OSSL_CMP_LOG_PREFIX,
+                strlen(OSSL_CMP_LOG_PREFIX)) == 0)
+        level += strlen(OSSL_CMP_LOG_PREFIX);
+    return
+        strncmp(level, "EMERG", len) == 0 ? OSSL_CMP_LOG_EMERG :
+        strncmp(level, "ALERT", len) == 0 ? OSSL_CMP_LOG_ALERT :
+        strncmp(level, "CRIT", len) == 0 ? OSSL_CMP_LOG_CRIT :
+        strncmp(level, "ERROR", len) == 0 ? OSSL_CMP_LOG_ERR :
+        strncmp(level, "WARN", len) == 0 ? OSSL_CMP_LOG_WARNING :
+        strncmp(level, "NOTE", len) == 0 ? OSSL_CMP_LOG_NOTICE :
+        strncmp(level, "INFO", len) == 0 ? OSSL_CMP_LOG_INFO :
+        strncmp(level, "DEBUG", len) == 0 ? OSSL_CMP_LOG_DEBUG :
+        -1;
+}
+
+size_t CMP_log_trace_cb(const char *buf, size_t cnt,
+                        int category, int cmd, void *vdata)
+{
+    OSSL_CMP_CTX *ctx = vdata;
+    const char *func = buf;
+    const char *file = buf == NULL ? NULL : strchr(buf, ':');
+
+    if (buf == NULL || cnt == 0 || cmd != OSSL_TRACE_CTRL_WRITE || ctx == NULL)
+        return 0;
+    if (file++ != NULL) {
+        const char *line = file == NULL ? NULL : strchr(file, ':');
+
+        OPENSSL_free(ctx->log_func);
+        OPENSSL_free(ctx->log_file);
+        ctx->log_func = NULL;
+        ctx->log_file = NULL;
+        ctx->log_line = 0;
+        ctx->log_level = -1;
+        if ((ctx->log_level = parse_level(buf)) < 0 && line++ != NULL) {
+            char *level = NULL;
+            const long line_number = strtol(line, &level, 10);
+
+            if (level > line && *(level++) == ':') {
+                if ((ctx->log_level = parse_level(level)) >= 0) {
+                    /* buf contains location info; remember it */
+                    ctx->log_func = OPENSSL_strndup(func, file - 1 - func);
+                    ctx->log_file = OPENSSL_strndup(file, line - 1 - file);
+                    ctx->log_line = (int)line_number;
+                    return cnt;
+                }
+            }
+        }
+    }
+
+    /* buf contains message text; send it to callback */
+    if (ctx->log_cb(ctx->log_func != NULL ? ctx->log_func : "(no func)",
+                    ctx->log_file != NULL ? ctx->log_file : "(no file)",
+                    ctx->log_line, ctx->log_level, buf))
+        return cnt;
+    return 0;
 }
 
 /*

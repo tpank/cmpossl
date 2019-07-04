@@ -726,6 +726,8 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  * functions
  */
 /* from cmp_util.c */
+size_t CMP_log_trace_cb(const char *buf, size_t cnt,
+                        int category, int cmd, void *vdata);
 int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                const ASN1_OCTET_STRING *src);
 int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
@@ -735,7 +737,6 @@ X509_EXTENSIONS *CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *exts);
 int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a);
 int OSSL_CMP_PKISI_get_PKIStatus(OSSL_CMP_PKISI *statusInfo);
 OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_get0_statusString(const OSSL_CMP_PKISI *si);
-int CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFREETEXT *text);
 ASN1_BIT_STRING *OSSL_CMP_PKISI_get0_failInfo(const OSSL_CMP_PKISI *si);
 int OSSL_CMP_PKISI_get_PKIFailureInfo(OSSL_CMP_PKISI *si);
 int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index);
@@ -853,6 +854,7 @@ int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
 int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
                              const OSSL_CMP_PKIFAILUREINFO *fail_info);
 int CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert);
+int CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFREETEXT *text);
 
 /* from cmp_vfy.c */
 void put_cert_verify_err(int func, int err);

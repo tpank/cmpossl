@@ -4777,9 +4777,9 @@ OSSL_CMP_X509_STORE_get1_certs          4882	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_build_cert_chain               4883	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CRMF_CERTID_get0_issuer            4884	3_0_0	EXIST::FUNCTION:CRMF
 OSSL_CRMF_CERTID_get0_serialNumber      4885	3_0_0	EXIST::FUNCTION:CRMF
-OSSL_trace_get_verbosity_name           4886	3_0_0	EXIST::FUNCTION:
-OSSL_trace_get_verbosity                4887	3_0_0	EXIST::FUNCTION:
-OSSL_trace_set_verbosity                4888	3_0_0	EXIST::FUNCTION:
+OSSL_trace_get_verbosity_name           4886	3_0_0	NOEXIST::FUNCTION:
+OSSL_trace_get_verbosity                4887	3_0_0	NOEXIST::FUNCTION:
+OSSL_trace_set_verbosity                4888	3_0_0	NOEXIST::FUNCTION:
 OSSL_CMP_CTX_reinit                     4889	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_PKIStatus_to_string            4890	3_0_0	NOEXIST::FUNCTION:CMP
 OSSL_CMP_CTX_get0_newClCert             4891	3_0_0	EXIST::FUNCTION:CMP
