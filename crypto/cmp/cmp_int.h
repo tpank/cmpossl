@@ -134,10 +134,10 @@ struct OSSL_cmp_ctx_st {
     STACK_OF(OSSL_CMP_ITAV) *genm_itavs; /* content of general message */
 
     /* result returned in responses */
-    int lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP, or -1 */
+    int lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP/error or -1 */
     /* TODO: this should be a stack since there could be more than one */
-    OSSL_CMP_PKIFREETEXT *lastStatusString;
-    int failInfoCode; /* failInfoCode of last received IP/CP/KUP */
+    OSSL_CMP_PKIFREETEXT *lastStatusString; /* of last IP/CP/KUP/RP/error */
+    int failInfoCode; /* failInfoCode of last received IP/CP/KUP/error, or -1 */
     /* TODO: this should be a stack since there could be more than one */
     X509 *newClCert; /* newly enrolled cert received from the CA */
     /* TODO: this should be a stack since there could be more than one */
@@ -274,7 +274,7 @@ struct OSSL_cmp_itav_st {
 } /* OSSL_CMP_ITAV */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
 DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_ITAV)
-
+DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
 
 typedef struct OSSL_cmp_certorenccert_st {
     int type;
@@ -735,11 +735,10 @@ X509_EXTENSIONS *CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *exts);
 int CMP_ASN1_get_int(int func, const ASN1_INTEGER *a);
 int OSSL_CMP_PKISI_get_PKIStatus(OSSL_CMP_PKISI *statusInfo);
 OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_get0_statusString(const OSSL_CMP_PKISI *si);
+int CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFREETEXT *text);
 ASN1_BIT_STRING *OSSL_CMP_PKISI_get0_failInfo(const OSSL_CMP_PKISI *si);
 int OSSL_CMP_PKISI_get_PKIFailureInfo(OSSL_CMP_PKISI *si);
 int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index);
-#  define OSSL_CMP_PKISI_BUFLEN 1024
-char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
 OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
                                         const char *text);
 OSSL_CMP_PKISI *CMP_REVREPCONTENT_get_PKIStatusInfo(OSSL_CMP_REVREPCONTENT *rrep,
@@ -753,7 +752,7 @@ OSSL_CMP_CERTRESPONSE
                                        int rid);
 X509 *CMP_CERTRESPONSE_get1_certificate(OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_CERTRESPONSE *crep);
-const char *OSSL_CMP_PKIStatus_to_string(int status);
+const char *CMP_PKIStatus_to_string(int status);
 
 /* from cmp_hdr.c */
 int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
@@ -848,12 +847,13 @@ int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
 ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
 ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx);
 int CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
-X509 *CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
 int CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
 int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                               STACK_OF(X509) *extraCertsIn);
 int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
-                             OSSL_CMP_PKIFAILUREINFO *fail_info);
+                             const OSSL_CMP_PKIFAILUREINFO *fail_info);
+int CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert);
+
 /* from cmp_vfy.c */
 void put_cert_verify_err(int func, int err);
 

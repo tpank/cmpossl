@@ -598,8 +598,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         OPENSSL_free(sname);
 
         /* release any cached cert, which is no more acceptable */
-        X509_free(ctx->validatedSrvCert);
-        ctx->validatedSrvCert = NULL;
+        (void)CMP_CTX_set0_validatedSrvCert(ctx, NULL);
 
         /* find server cert candidates from any available source */
         if (!find_server_cert(ctx->trusted_store, ctx->untrusted_certs,
@@ -626,8 +625,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             clear_cert_verify_err();
             (void)ERR_pop_to_mark();
             /* store trusted srv cert for future msgs of same transaction */
-            X509_up_ref(scrt);
-            ctx->validatedSrvCert = scrt;
+            if (CMP_CTX_set0_validatedSrvCert(ctx, scrt))
+                X509_up_ref(scrt);
         } else {
             scrt = NULL;
         }

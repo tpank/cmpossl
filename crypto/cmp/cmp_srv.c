@@ -366,14 +366,12 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         }
 
         if (status->statusInfo != NULL) {
-            char *tmpbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
-            if (tmpbuf == NULL)
-                goto oom;
-            OSSL_CMP_info("certificate rejected by client:");
-            if (OSSL_CMP_PKISI_snprint(status->statusInfo, tmpbuf,
-                                       OSSL_CMP_PKISI_BUFLEN) != NULL)
-                OSSL_CMP_info(tmpbuf);
-            OPENSSL_free(tmpbuf);
+            int pki_status = OSSL_CMP_PKISI_get_PKIStatus(status->statusInfo);
+            const char *str = CMP_PKIStatus_to_string(pki_status);
+
+            OSSL_CMP_log2(INFO, "certificate rejected by client %s %s",
+                          str == NULL ? "without" : "with",
+                          str == NULL ? "PKIStatus" : str);
         }
     }
 
@@ -383,10 +381,6 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
     }
 
     return msg;
-
- oom:
-    CMPerr(CMP_F_PROCESS_CERTCONF, ERR_R_MALLOC_FAILURE);
-    return NULL;
 }
 
 static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,

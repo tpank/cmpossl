@@ -335,6 +335,7 @@ OSSL_CMP_LOG_ERR                        define
 OSSL_CMP_LOG_INFO                       define
 OSSL_CMP_LOG_NOTICE                     define
 OSSL_CMP_LOG_WARNING                    define
+OSSL_CMP_PKISI_BUFLEN                   define
 OSSL_CMP_add_error_data                 define
 OSSL_CMP_add_error_line                 define
 OSSL_CMP_alert                          define

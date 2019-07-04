@@ -33,7 +33,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_CALC_PROTECTION                        101
 #  define CMP_F_CMP_CERTREPMESSAGE_GET0_CERTRESPONSE       102
 #  define CMP_F_CMP_CERTRESPONSE_GET1_CERTIFICATE          103
-#  define CMP_F_OSSL_CMP_CERTSTATUS_SET_CERTHASH           104
 #  define CMP_F_CMP_CTX_SET1_CAPUBS                        105
 #  define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  106
 #  define CMP_F_CMP_CTX_SET1_NEWCLCERT                     107
@@ -43,6 +42,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_CMP_GEN_NEW                                111
 #  define CMP_F_CMP_PKIFREETEXT_PUSH_STR                   112
 #  define CMP_F_CMP_PKISI_PKISTATUS_GET_STRING             113
+#  define CMP_F_CMP_PKISTATUS_TO_STRING                    206
 #  define CMP_F_CMP_POLLREPCONTENT_GET0_POLLREP            114
 #  define CMP_F_CMP_REVREPCONTENT_GET_CERTID               115
 #  define CMP_F_CMP_REVREPCONTENT_GET_PKISTATUSINFO        116
@@ -55,6 +55,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_CERTCONF_NEW                      125
 #  define CMP_F_OSSL_CMP_CERTREP_NEW                       126
 #  define CMP_F_OSSL_CMP_CERTREQ_NEW                       127
+#  define CMP_F_OSSL_CMP_CERTSTATUS_SET_CERTHASH           104
 #  define CMP_F_OSSL_CMP_CTX_GENINFO_PUSH0_ITAV            200
 #  define CMP_F_OSSL_CMP_CTX_GENM_PUSH0_ITAV               201
 #  define CMP_F_OSSL_CMP_CTX_GET1_CAPUBS                   128

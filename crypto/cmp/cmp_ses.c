@@ -60,40 +60,6 @@ static char *V_CMP_TABLE[] = {
     "POLLREP",
 };
 
-/*
- * internal function
- *
- * adds error data of the given OSSL_CMP_MSG
- */
-static void message_add_error_data(OSSL_CMP_MSG *msg)
-{
-    char *buf;
-    int bt = OSSL_CMP_MSG_get_bodytype(msg);
-
-    switch (bt) {
-    case OSSL_CMP_PKIBODY_ERROR:
-        if ((buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL) {
-            if (OSSL_CMP_PKISI_snprint(msg->body->value.error->
-                                       pKIStatusInfo,
-                                       buf, OSSL_CMP_PKISI_BUFLEN) != 0)
-                ERR_add_error_data(1, buf);
-            OPENSSL_free(buf);
-        }
-        break;
-    case -1:
-        ERR_add_error_data(1, "got no message, or invalid type '-1'");
-        break;
-    default:
-        if (bt<0 || (size_t) bt >= sizeof(V_CMP_TABLE)/sizeof(V_CMP_TABLE[0])) {
-            ERR_add_error_data(1, "got invalid message type out of sane range");
-        } else {
-            ERR_add_error_data(3, "got unexpected message type '",
-                               V_CMP_TABLE[bt], "'");
-        }
-        break;
-    }
-}
-
 #define IS_ENOLLMENT(t) (t == OSSL_CMP_PKIBODY_IP \
                              || t == OSSL_CMP_PKIBODY_CP \
                              || t == OSSL_CMP_PKIBODY_KUP)
@@ -153,6 +119,8 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
 }
 
 
+static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si);
+
 /*
  * internal function
  *
@@ -166,7 +134,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                               int not_received)
 {
     int msgtimeout = ctx->msgtimeout; /* backup original value */
-    int err, rcvd_type;
+    int err, bt;
 
     if ((expected_type == OSSL_CMP_PKIBODY_POLLREP
              || IS_ENOLLMENT(expected_type))
@@ -208,19 +176,46 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     }
 
     OSSL_CMP_info("got response");
-    if((rcvd_type = OSSL_CMP_MSG_check_received(ctx, *rep, unprotected_exception,
+    if((bt = OSSL_CMP_MSG_check_received(ctx, *rep, unprotected_exception,
                                                 expected_type)) < 0)
         return 0;
 
     /* catch if received message type isn't one of expected ones (e.g. error) */
-    if (rcvd_type != expected_type
+    if (bt != expected_type
         /* as an answer to polling, there could be IP/CP/KUP */
             && !(expected_type == OSSL_CMP_PKIBODY_POLLREP
-                     && IS_ENOLLMENT(rcvd_type))) {
+                     && IS_ENOLLMENT(bt))) {
         CMPerr(CMP_F_SEND_RECEIVE_CHECK,
-               rcvd_type == OSSL_CMP_PKIBODY_ERROR ? CMP_R_RECEIVED_ERROR :
+               bt == OSSL_CMP_PKIBODY_ERROR ? CMP_R_RECEIVED_ERROR :
                CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
-        message_add_error_data(*rep);
+
+        switch (bt) {
+        case OSSL_CMP_PKIBODY_ERROR:
+            {
+                char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
+                OSSL_CMP_PKISI *si = (*rep)->body->value.error->pKIStatusInfo;
+
+                if (save_statusInfo(ctx, si) && buf != NULL
+                        && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf,
+                                                          OSSL_CMP_PKISI_BUFLEN)
+                           != NULL)
+                    ERR_add_error_data(1, buf);
+                OPENSSL_free(buf);
+            }
+            break;
+        case -1:
+            ERR_add_error_data(1, "got no message, or invalid type '-1'");
+            break;
+        default:
+            if ((size_t)bt >= sizeof(V_CMP_TABLE)/sizeof(V_CMP_TABLE[0])
+                    || bt < 0) {
+                ERR_add_error_data(1, "got invalid message type out of sane range");
+            } else {
+                ERR_add_error_data(3, "got unexpected message type '",
+                                   V_CMP_TABLE[bt], "'");
+            }
+            break;
+        }
         return 0;
     }
 
@@ -402,45 +397,47 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
     int i;
     OSSL_CMP_PKIFREETEXT *ss;
 
-    if (ctx == NULL || si == NULL) {
+    if (ctx == NULL) {
         CMPerr(CMP_F_SAVE_STATUSINFO, CMP_R_INVALID_ARGS);
         return 0;
     }
 
-    if ((ctx->lastPKIStatus = OSSL_CMP_PKISI_get_PKIStatus(si) < 0))
+    /* mark status invalid for the case of any subsequent error */
+    ctx->lastPKIStatus = -1;
+    ctx->failInfoCode = -1;
+    (void)CMP_CTX_set0_statusString(ctx, NULL);
+
+    if (si == NULL) {
+        CMPerr(CMP_F_SAVE_STATUSINFO, CMP_R_INVALID_ARGS);
+        return 0;
+    }
+
+    if ((ctx->lastPKIStatus = OSSL_CMP_PKISI_get_PKIStatus(si) < 0)
+            || !CMP_CTX_set_failInfoCode(ctx, si->failInfo)
+            || !CMP_CTX_set0_statusString(ctx, sk_ASN1_UTF8STRING_new_null())
+            || (ctx->lastStatusString == NULL))
         return 0;
 
-    if (!CMP_CTX_set_failInfoCode(ctx, si->failInfo))
-        return 0;
-
-    sk_ASN1_UTF8STRING_pop_free(ctx->lastStatusString,ASN1_UTF8STRING_free);
-    ctx->lastStatusString = NULL;
-
-    if ((ctx->lastStatusString = sk_ASN1_UTF8STRING_new_null()) == NULL)
-        goto oom;
-    ss = si->statusString;
+    ss = si->statusString; /* may be NULL */
     for (i = 0; i < sk_ASN1_UTF8STRING_num(ss); i++) {
         ASN1_UTF8STRING *str = sk_ASN1_UTF8STRING_value(ss, i);
+
         if (!sk_ASN1_UTF8STRING_push(ctx->lastStatusString,
                                      ASN1_STRING_dup(str)))
-            goto oom;
+            return 0;
     }
     return 1;
-
- oom:
-    CMPerr(CMP_F_SAVE_STATUSINFO, ERR_R_MALLOC_FAILURE);
-    return 0;
 }
 
 /*
  * Retrieve a copy of the certificate, if any, from the given CertResponse.
- * Take into account PKIStatusInfo of CertResponse and report it on error.
+ * Take into account PKIStatusInfo of CertResponse in ctx, report it on error.
  * returns NULL if not found or on error
  */
 static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
                              OSSL_CMP_CERTRESPONSE *crep)
 {
-    char *tempbuf;
+    char *buf = NULL;
     X509 *crt = NULL;
 
     if (ctx == NULL || crep == NULL) {
@@ -448,7 +445,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         return NULL;
     }
 
-    switch (OSSL_CMP_PKISI_get_PKIStatus(crep->status)) {
+    switch (ctx->lastPKIStatus) {
     case OSSL_CMP_PKISTATUS_waiting:
         OSSL_CMP_err("received \"waiting\" status for cert when actually aiming to extract cert");
         CMPerr(CMP_F_GET_CERT_STATUS, CMP_R_ENCOUNTERED_WAITING);
@@ -497,11 +494,11 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
     return crt;
 
  err:
-    if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN))) {
-        if (OSSL_CMP_PKISI_snprint(crep->status, tempbuf,OSSL_CMP_PKISI_BUFLEN))
-            ERR_add_error_data(1, tempbuf);
-        OPENSSL_free(tempbuf);
-    }
+    if ((buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL
+            && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf,
+                                              OSSL_CMP_PKISI_BUFLEN) != NULL)
+        ERR_add_error_data(1, buf);
+    OPENSSL_free(buf);
     return NULL;
 }
 
@@ -519,6 +516,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     const char *txt = NULL;
     OSSL_CMP_CERTREPMESSAGE *crepmsg;
     OSSL_CMP_CERTRESPONSE *crep;
+    X509 *cert;
     int ret = 1;
 
  retry:
@@ -557,22 +555,24 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
 
     if (!save_statusInfo(ctx, crep->status))
         return 0;
-    if ((ctx->newClCert = get_cert_status(ctx, (*resp)->body->type,
-                                          crep)) == NULL) {
+    cert = get_cert_status(ctx, (*resp)->body->type, crep);
+    if (!CMP_CTX_set1_newClCert(ctx, cert))
+        return 0;
+    if (cert == NULL) {
         OSSL_CMP_add_error_data("cannot extract certificate from response");
         return 0;
     }
 
-    /*
-     * if the CMP server returned certificates in the caPubs field, copy them
-     * to the context so that they can be retrieved if necessary
-     */
-    if (crepmsg->caPubs != NULL
-            && !CMP_CTX_set1_caPubs(ctx, crepmsg->caPubs))
+    /* copy received caPubs field to ctx->caPubs so they can be retrieved */
+    if (!CMP_CTX_set1_caPubs(ctx, crepmsg->caPubs))
         return 0;
 
-    /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
-    if (!CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts))
+    /*
+     * copy received extraCerts to ctx->extraCertsIn so they can be retrieved,
+     * yet only if they are non-NULL to retain any pre-existing ones
+     */
+    if ((*resp)->extraCerts != NULL
+            && !CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts))
         return 0;
 
     if (!(X509_check_private_key(ctx->newClCert,
@@ -698,6 +698,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     const int rsid = OSSL_CMP_REVREQSID;
     OSSL_CMP_REVREPCONTENT *rrep = NULL;
     OSSL_CMP_PKISI *si = NULL;
+    char *buf = NULL;
     X509 *result = NULL;
 
     if (ctx == NULL) {
@@ -794,14 +795,13 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
  err:
     /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
     if (result == NULL) {
-        char *tempbuf;
-        if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL) {
-            if (OSSL_CMP_PKISI_snprint(si, tempbuf,
-                                       OSSL_CMP_PKISI_BUFLEN))
-                ERR_add_error_data(1, tempbuf);
-            OPENSSL_free(tempbuf);
-        }
+        if ((buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL
+                && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf,
+                                                  OSSL_CMP_PKISI_BUFLEN) != NULL)
+            ERR_add_error_data(1, buf);
+        OPENSSL_free(buf);
     }
+
  end:
     OSSL_CMP_MSG_free(rr);
     OSSL_CMP_MSG_free(rp);
