@@ -49,7 +49,7 @@
 /*
  * Appends text to the extra data field of the last error message in the queue,
  * after adding the optional separator unless data has been empty so far.
- * Note that, in contrast, ERR_add_error_data() simply
+ * Note that before OpenSSL v3.0, in contrast, ERR_add_error_data() simply
  * overwrites the previous contents of the data field.
  */
 void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
@@ -94,13 +94,21 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
         if (*next != '\0') { /* split error msg if error data gets too long */
             if (curr != txt) {
                 tmp = OPENSSL_strndup(txt, curr - txt);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+                ERR_add_error_data(2, separator, tmp);
+#else
                 ERR_add_error_data(3, data, separator, tmp);
+#endif
                 OPENSSL_free(tmp);
             }
             ERR_PUT_error(ERR_LIB_CMP, 0/* func */, err, file, line);
             txt = curr;
         } else {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+            ERR_add_error_data(2, separator, txt);
+#else
             ERR_add_error_data(3, data, separator, txt);
+#endif
             txt = next;
         }
     } while (*txt != '\0');
