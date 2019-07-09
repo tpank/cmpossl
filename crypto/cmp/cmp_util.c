@@ -87,13 +87,13 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
         if (*next != '\0') { /* split error msg if error data gets too long */
             if (curr != txt) {
                 tmp = OPENSSL_strndup(txt, curr - txt);
-                ERR_add_error_data(3, data, separator, tmp);
+                ERR_add_error_data(2, separator, tmp);
                 OPENSSL_free(tmp);
             }
             ERR_PUT_error(ERR_LIB_CMP, 0 /* func */, err, file, line);
             txt = curr;
         } else {
-            ERR_add_error_data(3, data, separator, txt);
+            ERR_add_error_data(2, separator, txt);
             txt = next;
         }
     } while (*txt != '\0');
