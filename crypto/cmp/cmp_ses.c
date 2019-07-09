@@ -412,7 +412,7 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
         return 0;
     }
 
-    if ((ctx->lastPKIStatus = OSSL_CMP_PKISI_get_PKIStatus(si) < 0)
+    if ((ctx->lastPKIStatus = OSSL_CMP_PKISI_get_PKIStatus(si)) < 0
             || !CMP_CTX_set_failInfoCode(ctx, si->failInfo)
             || !CMP_CTX_set0_statusString(ctx, sk_ASN1_UTF8STRING_new_null())
             || (ctx->lastStatusString == NULL))
