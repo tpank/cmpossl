@@ -13,17 +13,13 @@
 
 #include "cmp_testlib.h"
 
-
-static const char *ir_unprotected_f;
-
-static OSSL_CMP_MSG *ir_unprotected;
 static unsigned char rand_data[OSSL_CMP_TRANSACTIONID_LENGTH];
 
 typedef struct test_fixture {
     const char *test_case_name;
     int expected;
     OSSL_CMP_CTX *cmp_ctx;
-    OSSL_CMP_MSG *msg;
+    OSSL_CMP_PKIHEADER *hdr;
     ASN1_OCTET_STRING *src_string;
     ASN1_OCTET_STRING *tgt_string;
 
@@ -40,6 +36,8 @@ static CMP_HDR_TEST_FIXTURE *set_up(const char *const test_case_name)
     fixture->test_case_name = test_case_name;
     if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new()))
         goto err;
+    if (!TEST_ptr(fixture->hdr = OSSL_CMP_PKIHEADER_new()))
+        goto err;
     setup_ok = 1;
  err:
     if (!setup_ok) {
@@ -51,7 +49,7 @@ static CMP_HDR_TEST_FIXTURE *set_up(const char *const test_case_name)
 
 static void tear_down(CMP_HDR_TEST_FIXTURE *fixture)
 {
-    OSSL_CMP_MSG_free(fixture->msg);
+    OSSL_CMP_PKIHEADER_free(fixture->hdr);
     OSSL_CMP_CTX_free(fixture->cmp_ctx);
     ASN1_OCTET_STRING_free(fixture->src_string);
     if (fixture->tgt_string != fixture->src_string)
@@ -63,26 +61,23 @@ static void tear_down(CMP_HDR_TEST_FIXTURE *fixture)
 
 static int execute_HDR_init_test(CMP_HDR_TEST_FIXTURE *fixture)
 {
-    OSSL_CMP_PKIHEADER *header = NULL;
     ASN1_OCTET_STRING *header_nonce = NULL;
     ASN1_OCTET_STRING *ctx_nonce = NULL;
     int res = 0;
 
-    if (!TEST_ptr(header = OSSL_CMP_PKIHEADER_new()))
-        return 0;
     if (!TEST_int_eq(fixture->expected,
-                     OSSL_CMP_HDR_init(fixture->cmp_ctx, header)))
+                     OSSL_CMP_HDR_init(fixture->cmp_ctx, fixture->hdr)))
         goto err;
     if (fixture->expected != 0) {
-        if (!TEST_int_eq(OSSL_CMP_HDR_get_pvno(header), OSSL_CMP_PVNO)
+        if (!TEST_int_eq(OSSL_CMP_HDR_get_pvno(fixture->hdr), OSSL_CMP_PVNO)
                 || !TEST_true(0 == ASN1_OCTET_STRING_cmp(
-                       OSSL_CMP_HDR_get0_senderNonce(header),
+                       OSSL_CMP_HDR_get0_senderNonce(fixture->hdr),
                        CMP_CTX_get0_last_senderNonce(fixture->cmp_ctx)))
                 || !TEST_true(0 ==  ASN1_OCTET_STRING_cmp(
-                            OSSL_CMP_HDR_get0_transactionID(header),
+                            OSSL_CMP_HDR_get0_transactionID(fixture->hdr),
                             OSSL_CMP_CTX_get0_transactionID(fixture->cmp_ctx))))
             goto err;
-        header_nonce = OSSL_CMP_HDR_get0_recipNonce(header);
+        header_nonce = OSSL_CMP_HDR_get0_recipNonce(fixture->hdr);
         ctx_nonce = CMP_CTX_get0_recipNonce(fixture->cmp_ctx);
         if (ctx_nonce != NULL
                  && (!TEST_ptr(header_nonce)
@@ -94,7 +89,6 @@ static int execute_HDR_init_test(CMP_HDR_TEST_FIXTURE *fixture)
     res = 1;
 
  err:
-    OSSL_CMP_PKIHEADER_free(header);
     return res;
 }
 
@@ -148,20 +142,14 @@ static int
 execute_HDR_set_and_check_implicitConfirm_test(CMP_HDR_TEST_FIXTURE
                                                            * fixture)
 {
-    OSSL_CMP_PKIHEADER *hdr = fixture->msg->header;
-
-    return TEST_false(OSSL_CMP_HDR_check_implicitConfirm(hdr))
-               && TEST_true(OSSL_CMP_HDR_set_implicitConfirm(hdr))
-               && TEST_true(OSSL_CMP_HDR_check_implicitConfirm(hdr));
+    return TEST_false(OSSL_CMP_HDR_check_implicitConfirm(fixture->hdr))
+               && TEST_true(OSSL_CMP_HDR_set_implicitConfirm(fixture->hdr))
+               && TEST_true(OSSL_CMP_HDR_check_implicitConfirm(fixture->hdr));
 }
 
 static int test_HDR_get_and_check_implicit_confirm(void)
 {
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
-    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))) {
-        tear_down(fixture);
-        fixture = NULL;
-    }
     EXECUTE_TEST(execute_HDR_set_and_check_implicitConfirm_test, tear_down);
     return result;
 }
@@ -169,10 +157,6 @@ static int test_HDR_get_and_check_implicit_confirm(void)
 static int test_HDR_set_and_check_implicit_confirm(void)
 {
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
-    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))) {
-        tear_down(fixture);
-        fixture = NULL;
-    }
     EXECUTE_TEST(execute_HDR_set_and_check_implicitConfirm_test, tear_down);
     return result;
 }
@@ -225,19 +209,11 @@ static int test_ASN1_OCTET_STRING_set_tgt_is_src(void)
 
 void cleanup_tests(void)
 {
-    OSSL_CMP_MSG_free(ir_unprotected);
     return;
 }
 
 int setup_tests(void)
 {
-    if (!TEST_ptr(ir_unprotected_f = test_get_argument(0))) {
-        TEST_error("usage: cmp_hdr_test IR_unprotected.der\n");
-        return 0;
-    }
-    if (!TEST_ptr(ir_unprotected = load_pkimsg(ir_unprotected_f)))
-        return 0;
-
 
     /* Message header tests */
     ADD_TEST(test_HDR_init);
