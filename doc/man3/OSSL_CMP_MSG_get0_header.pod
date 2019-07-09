@@ -3,8 +3,6 @@
 =head1 NAME
 
 OSSL_CMP_MSG_get0_header,
-OSSL_CMP_HDR_get0_transactionID,
-OSSL_CMP_HDR_get0_recipNonce,
 OSSL_CMP_MSG_check_received
 - functions manipulating CMP messages
 
@@ -13,10 +11,6 @@ OSSL_CMP_MSG_check_received
   #include <openssl/cmp.h>
 
   OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
-  ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const
-                                                     OSSL_CMP_PKIHEADER *hdr);
-  ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const
-                                                  OSSL_CMP_PKIHEADER *hdr);
   typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
                                          const OSSL_CMP_MSG *msg,
                                          int invalid_protection, int arg);
@@ -26,13 +20,6 @@ OSSL_CMP_MSG_check_received
 =head1 DESCRIPTION
 
 OSSL_CMP_MSG_get0_header returns the header of the given CMP message.
-
-OSSL_CMP_HDR_get0_transactionID returns the transaction ID of the given
-PKIHeader.
-
-OSSL_CMP_HDR_get0_recipNonce returns the recipient nonce of the given PKIHeader.
-
-ASN1_OCTET_STRING *OSSL_CMP_MSG_get_transactionID(const OSSL_CMP_MSG *msg)
 
 OSSL_CMP_MSG_check_received() checks for the given message received (i.e.,
 response by server or request from client) whether it has a valid body type,
