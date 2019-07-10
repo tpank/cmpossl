@@ -98,11 +98,14 @@ The callback function may itself do non-trivial tasks like writing to
 a log file or remote stream, which in turn may fail.
 Therefore the function should return 1 on success and 0 on failure.
 
-OSSL_CMP_log_open() should be called at least once at the beginning to
-initialize the CMP-specific logging facility via the trace API.
+OSSL_CMP_log_open() initializes the CMP-specific logging facility to output
+by default to B<stdout>. It fails if the integrated tracing is disabled or STDIO
+is not available. It should be called at least once during application startup.
+It may be called multiple times.
 
 OSSL_CMP_log_close() should be called when all activities are finished to flush
 any pending CMP-specific log output and deallocate related resources.
+It may be called multiple times.
 
 OSSL_CMP_alert() outputs a simple alert message via the trace API.
 OSSL_CMP_err() outputs a simple error message via the trace API.

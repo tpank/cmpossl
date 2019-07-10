@@ -24,15 +24,14 @@
 
 int OSSL_CMP_log_open(void) /* is designed to be idempotent */
 {
-    BIO *bio_out = NULL;
-
 #ifndef OPENSSL_NO_STDIO
-    bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
-    return bio_out != NULL
-               && OSSL_trace_set_channel(OSSL_TRACE_CATEGORY_CMP, bio_out);
-#else
-    return 1;
+    BIO *bio = BIO_new_fp(stdout, BIO_NOCLOSE);
+
+    if (bio != NULL && OSSL_trace_set_channel(OSSL_TRACE_CATEGORY_CMP, bio))
+        return 1;
+    BIO_free(bio);
 #endif
+    return 0;
 }
 
 void OSSL_CMP_log_close(void) /* is designed to be idempotent */
