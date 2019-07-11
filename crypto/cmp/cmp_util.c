@@ -282,6 +282,68 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store)
     return sk;
 }
 
+/*-
+ * Builds up the certificate chain of certs as high up as possible using
+ * the given list of certs containing all possible intermediate certificates and
+ * optionally the (possible) trust anchor(s). See also ssl_add_cert_chain().
+ *
+ * Intended use of this function is to find all the certificates above the trust
+ * anchor needed to verify an EE's own certificate.  Those are supposed to be
+ * included in the ExtraCerts field of every first sent message of a transaction
+ * when MSG_SIG_ALG is utilized.
+ *
+ * NOTE: This allocates a stack and increments the reference count of each cert,
+ * so when not needed any more the stack and all its elements should be freed.
+ * NOTE: in case there is more than one possibility for the chain,
+ * OpenSSL seems to take the first one, check X509_verify_cert() for details.
+ *
+ * returns a pointer to a stack of (up_ref'ed) X509 certificates containing:
+ *      - the EE certificate given in the function arguments (cert)
+ *      - all intermediate certificates up the chain toward the trust anchor
+ *      - the (self-signed) trust anchor is not included
+ *      returns NULL on error
+ */
+STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs,
+                                          X509 *cert)
+{
+    STACK_OF(X509) *chain = NULL, *result = NULL;
+    X509_STORE *store = X509_STORE_new();
+    X509_STORE_CTX *csc = NULL;
+
+    if (certs == NULL || cert == NULL || store == NULL)
+        goto err;
+
+    csc = X509_STORE_CTX_new();
+    if (csc == NULL)
+        goto err;
+
+    OSSL_CMP_X509_STORE_add1_certs(store, certs, 0);
+    if (!X509_STORE_CTX_init(csc, store, cert, NULL))
+        goto err;
+
+    (void)ERR_set_mark();
+    /*
+     * ignore return value as it would fail without trust anchor given in store
+     */
+    (void)X509_verify_cert(csc);
+
+    /* don't leave any new errors in the queue */
+    (void)ERR_pop_to_mark();
+
+    chain = X509_STORE_CTX_get0_chain(csc);
+
+    /* result list to store the up_ref'ed not self-signed certificates */
+    if ((result = sk_X509_new_null()) == NULL)
+        goto err;
+    OSSL_CMP_sk_X509_add1_certs(result, chain,
+                                1 /* no self-signed */, 1 /* no duplicates */);
+
+ err:
+    X509_STORE_free(store);
+    X509_STORE_CTX_free(csc);
+    return result;
+}
+
 X509_EXTENSIONS *CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *exts)
 {
     if (exts == NULL)
