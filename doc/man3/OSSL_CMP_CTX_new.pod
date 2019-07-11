@@ -151,7 +151,7 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_CTX_get_status(OSSL_CMP_CTX *ctx);
  OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_get_failInfoCode(OSSL_CMP_CTX *ctx);
- char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf,int bufsize);
+ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize);
 
  X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
  STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx);

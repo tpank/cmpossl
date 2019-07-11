@@ -858,7 +858,11 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_load(const char *file);
 
 /* from cmp_vfy.c */
 void put_cert_verify_err(int err);
-
+typedef int (*OSSL_cmp_allow_unprotected_cb_t)(const OSSL_CMP_CTX *ctx,
+                                               const OSSL_CMP_MSG *msg,
+                                               int invalid_protection, int arg);
+int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
+                                OSSL_cmp_allow_unprotected_cb_t cb, int cb_arg);
 /* from cmp_ses.c */
 int CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info, const char *txt);
 int CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
