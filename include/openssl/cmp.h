@@ -246,11 +246,6 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
 int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
                          const char **text);
-typedef int (*OSSL_cmp_allow_unprotected_cb_t)(const OSSL_CMP_CTX *ctx,
-                                               const OSSL_CMP_MSG *msg,
-                                               int invalid_protection, int arg);
-int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-                                OSSL_cmp_allow_unprotected_cb_t cb, int cb_arg);
 
 /*
  * from cmp_http.c

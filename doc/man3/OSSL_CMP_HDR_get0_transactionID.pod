@@ -4,7 +4,7 @@
 
 OSSL_CMP_HDR_get0_transactionID,
 OSSL_CMP_HDR_get0_recipNonce
-- functions manipulating CMP messages
+- functions manipulating CMP message headers
 
 =head1 SYNOPSIS
 
@@ -24,19 +24,12 @@ OSSL_CMP_HDR_get0_recipNonce returns the recipient nonce of the given PKIHeader.
 
 =head1 NOTES
 
-CMP is defined in RFC 4210 (and CRMF in RFC 4211).
-
-The implementation of CMP for OpenSSL is still work in progress. The API
-might change every release!
+CMP is defined in RFC 4210.
 
 =head1 RETURN VALUES
 
-See the individual functions above.
-
-=head1 SEE ALSO
-
-L<OSSL_CMP_CTX_new(3)>, L<OSSL_CMP_exec_IR_ses(3)>,
-L<OSSL_CMP_certreq_new(3)>, L<OSSL_CMP_MSG_http_perform(3)>
+The functions return the intended pointer value as described above
+or NULL if the respective entry does not exist and on error.
 
 =head1 COPYRIGHT
 

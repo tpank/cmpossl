@@ -836,16 +836,16 @@ static int sk_prepend1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs)
     return 1;
 }
 
-/*
+/*-
  * Checks received message (i.e., response by server or request from client)
  * Any msg->extraCerts are prepended to ctx->untrusted_certs
  *
  * Ensures that:
- * it has a valid body type,
+ * it has a valid body type
  * its protection is valid or absent (allowed only if callback function is
- * present and function yields positive result using also supplied argument),
- * its transaction ID matches stored in ctx (if any),
- * and its recipNonce matches the senderNonce in ctx.
+ *    present and function yields non-zero result using also supplied argument)
+ * its transaction ID matches the previous transaction ID stored in ctx (if any)
+ * its recipNonce matches the previous senderNonce stored in the ctx (if any)
  *
  * If everything is fine:
  * learns the senderNonce from the received message,
