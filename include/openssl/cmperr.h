@@ -30,11 +30,18 @@ int ERR_load_CMP_strings(void);
 # if !OPENSSL_API_3
 #   define CMP_F_CMP_ASN1_OCTET_STRING_SET1                 0
 #   define CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES           0
+#   define CMP_F_CMP_CERTREPMESSAGE_GET0_CERTRESPONSE       0
+#   define CMP_F_CMP_CERTRESPONSE_GET1_CERTIFICATE          0
 #   define CMP_F_CMP_CTX_SET0_NEWCLCERT                     0
 #   define CMP_F_CMP_CTX_SET1_CAPUBS                        0
 #   define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  0
 #   define CMP_F_CMP_CTX_SET1_NEWCLCERT                     0
 #   define CMP_F_CMP_CTX_SET1_RECIPNONCE                    0
+#   define CMP_F_CMP_PKIFREETEXT_PUSH_STR                   0
+#   define CMP_F_CMP_PKISTATUS_TO_STRING                    0
+#   define CMP_F_CMP_POLLREPCONTENT_GET0_POLLREP            0
+#   define CMP_F_CMP_REVREPCONTENT_GET_CERTID               0
+#   define CMP_F_CMP_REVREPCONTENT_GET_PKISTATUSINFO        0
 #   define CMP_F_OSSL_CMP_CTX_GENINFO_PUSH0_ITAV            0
 #   define CMP_F_OSSL_CMP_CTX_GENM_PUSH0_ITAV               0
 #   define CMP_F_OSSL_CMP_CTX_GET1_CAPUBS                   0
@@ -66,14 +73,38 @@ int ERR_load_CMP_strings(void);
 #   define CMP_F_OSSL_CMP_CTX_SET_OPTION                    0
 #   define CMP_F_OSSL_CMP_CTX_SET_PROXYPORT                 0
 #   define CMP_F_OSSL_CMP_CTX_SET_SERVERPORT                0
+#   define CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH0_ITEM        0
+#   define CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH1_ITEMS       0
+#   define CMP_F_OSSL_CMP_HDR_GET_PVNO                      0
+#   define CMP_F_OSSL_CMP_HDR_INIT                          0
+#   define CMP_F_OSSL_CMP_HDR_PUSH0_FREETEXT                0
+#   define CMP_F_OSSL_CMP_HDR_PUSH1_FREETEXT                0
+#   define CMP_F_OSSL_CMP_HDR_SET_PVNO                      0
+#   define CMP_F_OSSL_CMP_HDR_UPDATE_MESSAGETIME            0
+#   define CMP_F_OSSL_CMP_PKISI_GET_PKIFAILUREINFO          0
+#   define CMP_F_OSSL_CMP_PKISI_GET_PKISTATUS               0
+#   define CMP_F_OSSL_CMP_STATUSINFO_NEW                    0
+#   define CMP_F_SET1_AOSTR_ELSE_RANDOM                     0
+#   define CMP_F_SET1_GENERAL_NAME                          0
 # endif
 
 /*
  * CMP reason codes.
  */
+#  define CMP_R_BAD_REQUEST_ID                             101
+#  define CMP_R_CERTID_NOT_FOUND                           104
+#  define CMP_R_CERTIFICATE_NOT_FOUND                      105
+#  define CMP_R_CERTRESPONSE_NOT_FOUND                     106
+#  define CMP_R_ERROR_PARSING_PKISTATUS                    107
+#  define CMP_R_ERROR_PUSHING_GENERALINFO_ITEM             108
+#  define CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS            109
+#  define CMP_R_FAILURE_OBTAINING_RANDOM                   110
 #  define CMP_R_INVALID_ARGS                               100
 #  define CMP_R_MULTIPLE_SAN_SOURCES                       102
+#  define CMP_R_NO_SENDER_NO_REFERENCE                     111
 #  define CMP_R_NULL_ARGUMENT                              103
+#  define CMP_R_PKISTATUSINFO_NOT_FOUND                    112
+#  define CMP_R_UNKNOWN_CERT_TYPE                          113
 
 # endif
 #endif

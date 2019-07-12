@@ -14,10 +14,29 @@
 #ifndef OPENSSL_NO_ERR
 
 static const ERR_STRING_DATA CMP_str_reasons[] = {
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_BAD_REQUEST_ID), "bad request id"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_CERTID_NOT_FOUND), "certid not found"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_CERTIFICATE_NOT_FOUND),
+    "certificate not found"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_CERTRESPONSE_NOT_FOUND),
+    "certresponse not found"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_ERROR_PARSING_PKISTATUS),
+    "error parsing pkistatus"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_ERROR_PUSHING_GENERALINFO_ITEM),
+    "error pushing generalinfo item"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS),
+    "error pushing generalinfo items"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_FAILURE_OBTAINING_RANDOM),
+    "failure obtaining random"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_INVALID_ARGS), "invalid args"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MULTIPLE_SAN_SOURCES),
     "multiple san sources"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_SENDER_NO_REFERENCE),
+    "no sender no reference"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NULL_ARGUMENT), "null argument"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_PKISTATUSINFO_NOT_FOUND),
+    "pkistatusinfo not found"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_UNKNOWN_CERT_TYPE), "unknown cert type"},
     {0, NULL}
 };
 
