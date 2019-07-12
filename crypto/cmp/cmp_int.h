@@ -856,6 +856,13 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
                                    int64_t poll_after);
 OSSL_CMP_MSG *OSSL_CMP_MSG_load(const char *file);
 
+/* from cmp_protect.c */
+ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
+                                     const ASN1_OCTET_STRING *secret,
+                                     EVP_PKEY *pkey);
+int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
+int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
+
 /* from cmp_vfy.c */
 void put_cert_verify_err(int err);
 typedef int (*OSSL_cmp_allow_unprotected_cb_t)(const OSSL_CMP_CTX *ctx,
@@ -867,11 +874,4 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
 int CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info, const char *txt);
 int CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
                             const char *txt);
-/* from cmp_protect.c */
-ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
-                                     const ASN1_OCTET_STRING *secret,
-                                     EVP_PKEY *pkey);
-int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
-int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
-
 #endif /* !defined OSSL_HEADER_CMP_INT_H */
