@@ -54,7 +54,6 @@ OSSL_CMP_CTX_get_certConf_cb_arg,
 OSSL_CMP_CTX_get_status,
 OSSL_CMP_CTX_get0_statusString,
 OSSL_CMP_CTX_get_failInfoCode,
-OSSL_CMP_CTX_snprint_PKIStatus,
 OSSL_CMP_CTX_get0_newClCert,
 OSSL_CMP_CTX_get1_caPubs,
 OSSL_CMP_CTX_get1_extraCertsIn,
@@ -151,7 +150,6 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_CTX_get_status(OSSL_CMP_CTX *ctx);
  OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_get_failInfoCode(OSSL_CMP_CTX *ctx);
- char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize);
 
  X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
  STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx);
@@ -519,11 +517,6 @@ field of the last CertRepMessage or Revocation Response or error message.
 This is a bit field and the flags for it are specified in
 cmp.h. The flags start with OSSL_CMP_CTX_FAILINFO, for example:
 OSSL_CMP_CTX_FAILINFO_badAlg. Returns -1 if the failInfo field is unset.
-
-OSSL_CMP_CTX_snprint_PKIStatus() takes the PKIStatusInfo components contained
-in the given CMP context and places a human-readable string created from them
-in the given buffer, with the given maximal length.
-On success it returns a copy of the buffer pointer containing the string.
 
 OSSL_CMP_CTX_get0_newClCert() returns the pointer to the newly obtained
 certificate in case it is available, else NULL.
