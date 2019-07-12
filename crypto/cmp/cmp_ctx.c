@@ -125,7 +125,6 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
     return NULL;
 }
 
-
 /*
  * prepare the OSSL_CMP_CTX for next use, partly re-initializing OSSL_CMP_CTX
  */
@@ -284,7 +283,7 @@ void *OSSL_CMP_CTX_get_certConf_cb_arg(OSSL_CMP_CTX *ctx)
  */
 int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
 {
-    int res;
+    int res = 0;
 
     if (ctx == NULL)
         return 0;
@@ -607,6 +606,7 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
         CMPerr(CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_NULL_ARGUMENT);
         return 0;
     }
+
     if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 && exts != NULL
             && X509v3_get_ext_by_NID(exts, NID_subject_alt_name, -1) >= 0) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS,
