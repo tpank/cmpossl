@@ -30,6 +30,7 @@ int ERR_load_CMP_strings(void);
 # if !OPENSSL_API_3
 #   define CMP_F_CMP_ASN1_OCTET_STRING_SET1                 0
 #   define CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES           0
+#   define CMP_F_CMP_CTX_SET0_NEWCLCERT                     0
 #   define CMP_F_CMP_CTX_SET1_CAPUBS                        0
 #   define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  0
 #   define CMP_F_CMP_CTX_SET1_NEWCLCERT                     0

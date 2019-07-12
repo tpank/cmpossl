@@ -417,9 +417,6 @@ determined in the following order: issuer, issuer of old cert (oldClCert),
 issuer of client cert (clCert), else NULL-DN.
 When a response is received, its sender must match the recipient of the request.
 
-OSSL_CMP_CTX_get0_transactionID() gets the transactionID from the context.
-Returns a pointer to the transactionID on success, NULL on error.
-
 OSSL_CMP_CTX_geninfo_push0_ITAV() adds B<itav> to the stack in the B<ctx> to be
 added to the GeneralInfo field of the CMP PKIMessage header of a request
 message sent with this context.  Consumes the pointer to B<itav>.
