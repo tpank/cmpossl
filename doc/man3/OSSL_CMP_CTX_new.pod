@@ -4,6 +4,7 @@
 
 OSSL_CMP_CTX_new,
 OSSL_CMP_CTX_free,
+OSSL_CMP_CTX_reinit,
 OSSL_CMP_CTX_set_option,
 OSSL_CMP_CTX_set_log_cb,
 OSSL_CMP_print_errors,
@@ -53,8 +54,9 @@ OSSL_CMP_CTX_get_certConf_cb_arg,
 OSSL_CMP_CTX_get_status,
 OSSL_CMP_CTX_get0_statusString,
 OSSL_CMP_CTX_get_failInfoCode,
-OSSL_CMP_CTX_get1_extraCertsIn,
+OSSL_CMP_CTX_get0_newClCert,
 OSSL_CMP_CTX_get1_caPubs,
+OSSL_CMP_CTX_get1_extraCertsIn,
 OSSL_CMP_CTX_set1_transactionID,
 OSSL_CMP_CTX_set1_last_senderNonce
 - functions for managing the CMP client context data structure
@@ -65,6 +67,7 @@ OSSL_CMP_CTX_set1_last_senderNonce
 
  OSSL_CMP_CTX *OSSL_CMP_CTX_new(void);
  void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
+ int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
 
  /* logging and error reporting: */
@@ -147,8 +150,10 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_CTX_get_status(OSSL_CMP_CTX *ctx);
  OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_get_failInfoCode(OSSL_CMP_CTX *ctx);
- STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx);
+
+ X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
  STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx);
+ STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx);
 
  /* for test purposes only: */
  int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
@@ -166,6 +171,12 @@ default values.
 Transfer is set to HTTP, proof-of-possession method to POPOSigningKey.
 
 OSSL_CMP_CTX_free() deallocates an OSSL_CMP_CTX structure.
+
+OSSL_CMP_CTX_reinit() prepares the given B<ctx> for a further transaction by
+clearing the internal CMP transaction (aka session) status, PKIStatusInfo,
+and any previous results (newClCert, caPubs, and extraCertsIn)
+from the last executed transaction.
+All other field values (i.e., CMP options) are retained for potential re-use.
 
 OSSL_CMP_CTX_set_option() sets the given value for the given option
 (e.g., OSSL_CMP_OPT_IMPLICITCONFIRM) in the given OSSL_CMP_CTX structure.
@@ -309,7 +320,7 @@ needed any more. B<arg> may be NULL to clear the entry.
 
 OSSL_CMP_CTX_get_http_cb_arg() gets the argument, respectively the pointer to a
 structure containing arguments, previously set by
-OSSL_CMP_CTX_set_http_cb_arg().
+OSSL_CMP_CTX_set_http_cb_arg() or NULL if unset.
 
 OSSL_CMP_CTX_set_transfer_cb() sets the message transfer callback function,
 which has the type
@@ -335,7 +346,7 @@ needed any more. B<arg> may be NULL to clear the entry.
 
 OSSL_CMP_CTX_get_transfer_cb_arg() gets the argument, respectively the pointer
 to a structure containing arguments, previously set by
-OSSL_CMP_CTX_set_transfer_cb_arg().
+OSSL_CMP_CTX_set_transfer_cb_arg() or NULL if unset.
 
 OSSL_CMP_CTX_set1_srvCert() pins the server certificate to be directly trusted
 (even if it is expired) for verifying response messages.
@@ -359,14 +370,14 @@ authentication. Any already existing store entry is freed. When given a NULL
 parameter the entry is cleared.
 
 OSSL_CMP_CTX_get0_trustedStore() returns a pointer to the certificate store
-containing trusted root CA certificates. NULL on error.
+containing trusted root CA certificates, which may be empty if unset.
 
 OSSL_CMP_CTX_set1_untrusted_certs() takes over a list of certificates containing
 non-trusted intermediate certs used for path construction in authentication
 of the CMP server and potentially others (TLS server, newly enrolled cert).
 
 OSSL_CMP_CTX_get0_untrusted_certs(OSSL_CMP_CTX *ctx) returns a pointer to the
-list of untrusted certs.
+list of untrusted certs, which my be empty if unset.
 
 OSSL_CMP_CTX_set1_clCert() sets the given client certificate in the given
 OSSL_CMP_CTX structure. The client certificate will then be used by the
@@ -395,9 +406,6 @@ determined in the following order: issuer, issuer of old cert (oldClCert),
 issuer of client cert (clCert), else NULL-DN.
 When a response is received, its sender must match the recipient of the request.
 
-OSSL_CMP_CTX_get0_transactionID() gets the transactionID from the context.
-Returns a pointer to the transactionID on success, NULL on error.
-
 OSSL_CMP_CTX_geninfo_push0_ITAV() adds B<itav> to the stack in the B<ctx> to be
 added to the GeneralInfo field of the CMP PKIMessage header of a request
 message sent with this context.  Consumes the pointer to B<itav>.
@@ -415,7 +423,7 @@ structure
 OSSL_CMP_CTX_set1_newPkey() is the same as OSSL_CMP_CTX_set0_newPkey(),
 except that it does not consume the pointer.
 
-OSSL_CMP_CTX_get0_newPkey() gets the newPkey from the context, or NULL on error.
+OSSL_CMP_CTX_get0_newPkey() gets the newPkey from the context, or NULL if unset.
 
 OSSL_CMP_CTX_set1_issuer() sets the name of the intended issuer that
 will be set in the CertTemplate, i.e., the X509 name of the CA server.
@@ -496,27 +504,31 @@ needed any more. B<arg> may be NULL to clear the entry.
 
 OSSL_CMP_CTX_get_certConf_cb_arg() gets the argument, respectively the pointer
 to a structure containing arguments, previously set by
-OSSL_CMP_CTX_set_certConf_cb_arg().
+OSSL_CMP_CTX_set_certConf_cb_arg(), or NULL if unset.
 
 OSSL_CMP_CTX_get_status() returns the PKIstatus from the last
-CertRepMessage or Revocation Response, -1 on error.
+CertRepMessage or Revocation Response or error message, or -1 if unset.
 
 OSSL_CMP_CTX_get0_statusString() returns the statusString from the last
-CertRepMessage or Revocation Response, NULL on error.
+CertRepMessage or Revocation Response or error message, or NULL if unset.
 
 OSSL_CMP_CTX_get_failInfoCode() returns the CMP error code from the failInfo
-field. This is a bit field and the flags for it are specified in
+field of the last CertRepMessage or Revocation Response or error message.
+This is a bit field and the flags for it are specified in
 cmp.h. The flags start with OSSL_CMP_CTX_FAILINFO, for example:
-OSSL_CMP_CTX_FAILINFO_badAlg.
+OSSL_CMP_CTX_FAILINFO_badAlg. Returns -1 if the failInfo field is unset.
+
+OSSL_CMP_CTX_get0_newClCert() returns the pointer to the newly obtained
+certificate in case it is available, else NULL.
+
+OSSL_CMP_CTX_get1_caPubs() returns a pointer to a duplicate of the stack of
+X.509 certificates received in the caPubs field of last received certificate
+response message IP/CP/KUP.
 
 OSSL_CMP_CTX_get1_extraCertsIn() returns a pointer to a duplicate of the stack
-of X.509 certificates received in the extraCerts field of last received
-certificate response message IP/CP/KUP which had extraCerts set.
-Returns an empty stack if no extraCerts have been received or NULL on error.
-
-SSL_CMP_CTX_caPubs_get1() returns a pointer to a duplicate of the stack of
-X.509 certificates received in the caPubs field of last received certificate
-response message IP/CP/KUP which had caPubs set.
+of X.509 certificates received in the last received non-empty extraCerts field.
+Returns an empty stack if no extraCerts have been received in the current
+transaction.
 
 OSSL_CMP_CTX_set1_transactionID() sets the given transaction ID in the given
 OSSL_CMP_CTX structure.
@@ -530,49 +542,25 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-OSSL_CMP_CTX_new() returns a pointer to an initialized OSSL_CMP_CTX structure.
 
 OSSL_CMP_CTX_free() and OSSL_CMP_print_errors() do not return anything.
 
-OSSL_CMP_CTX_get_http_cb_arg() returns the http connect/disconnect callback
-argument set previously. NULL if not set or on function parameter error.
+OSSL_CMP_CTX_new(),
+OSSL_CMP_CTX_get_http_cb_arg(),
+OSSL_CMP_CTX_get_transfer_cb_arg(),
+OSSL_CMP_CTX_get0_trustedStore(),
+OSSL_CMP_CTX_get0_untrusted_certs(),
+OSSL_CMP_CTX_get0_newPkey(),
+OSSL_CMP_CTX_get_certConf_cb_arg(),
+OSSL_CMP_CTX_get0_statusString(),
+OSSL_CMP_CTX_get0_newClCert(),
+OSSL_CMP_CTX_get1_caPubs(), and
+OSSL_CMP_CTX_get1_extraCertsIn()
+return the intended pointer value as described above or NULL on error.
 
-OSSL_CMP_CTX_get_transfer_cb_arg() returns the transfer callback argument set
-previously. NULL if not set or on function parameter error.
-
-OSSL_CMP_CTX_get0_trustedStore() returns a pointer to the certificate store
-containing trusted root CA certificates, NULL on error.
-
-OSSL_CMP_CTX_get0_untrusted_certs(OSSL_CMP_CTX *ctx) returns a pointer to the
-stack of untrusted certificates, NULL on error.
-
-OSSL_CMP_CTX_get0_transactionID() returns the transactionID from the context,
-NULL on error.
-
-OSSL_CMP_CTX_get0_newPkey() returns the newPkey from the context,
-or NULL on error.
-
-OSSL_CMP_CTX_get_certConf_cb_arg() returns the certConf callback argument
-set previously, NULL if not set or on function parameter error.
-
-OSSL_CMP_CTX_get_status() returns the PKIStatus from the last CertRepMessage or
-Revocation Response, -1 on error.
-
-OSSL_CMP_CTX_get0_statusString() returns the statusString from the last
-CertRepMessage or Revocation Response, NULL on error.
-
-OSSL_CMP_CTX_get_failInfoCode() returns the failinfo error code bits in context
-as returns bitstring encoded as integer on success, -1 on error.
-
-OSSL_CMP_CTX_get1_extraCertsIn() returns a pointer to a duplicate of the stack
-of X.509 certificates received in the extraCerts field of last received
-certificate response message IP/CP/KUP which had extraCerts set. Returns NULL
-if there were no caPubs as well as on error.
-
-OSSL_CMP_CTX_get1_caPubs() returns a pointer to a duplicate of the stack of
-X.509 certificates received in the caPubs field of last received certificate
-response message IP/CP/KUP which had caPubs set.
-Returns an empty list if there were no caPubs and NULL on error.
+OSSL_CMP_CTX_get_status() and
+OSSL_CMP_CTX_get_failInfoCode()
+return the intended value as described above or -1 on error.
 
 All other functions return 1 on success, 0 on error.
 

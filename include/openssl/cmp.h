@@ -238,12 +238,13 @@ int OSSL_CMP_ITAV_push0_stack_item(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
                                    OSSL_CMP_ITAV *itav);
 void OSSL_CMP_ITAV_free(OSSL_CMP_ITAV *itav);
 void OSSL_CMP_MSG_free(OSSL_CMP_MSG *msg);
-void OSSL_CMP_PKISI_free(OSSL_CMP_PKISI *si);
-DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
+void OSSL_CMP_PKISI_free(OSSL_CMP_PKISI *si); /* not really needed */
+DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG) /* not really needed */
 
 /* from cmp_ctx.c */
 OSSL_CMP_CTX *OSSL_CMP_CTX_new(void);
 void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
+int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
 /* various CMP options: */
 #  define OSSL_CMP_OPT_MSGTIMEOUT 1
 #  define OSSL_CMP_OPT_TOTALTIMEOUT 2
@@ -329,8 +330,10 @@ void *OSSL_CMP_CTX_get_certConf_cb_arg(OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_get_status(OSSL_CMP_CTX *ctx);
 OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_get_failInfoCode(OSSL_CMP_CTX *ctx);
-STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx);
+#  define OSSL_CMP_PKISI_BUFLEN 1024
+X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
 STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx);
+STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx);
 /* exported for testing and debugging purposes: */
 int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
                                     const ASN1_OCTET_STRING *id);
