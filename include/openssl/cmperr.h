@@ -33,7 +33,6 @@ int ERR_load_CMP_strings(void);
 #   define CMP_F_CMP_CTX_SET0_NEWCLCERT                     0
 #   define CMP_F_CMP_CTX_SET1_CAPUBS                        0
 #   define CMP_F_CMP_CTX_SET1_EXTRACERTSIN                  0
-#   define CMP_F_CMP_CTX_SET1_NEWCLCERT                     0
 #   define CMP_F_CMP_CTX_SET1_RECIPNONCE                    0
 #   define CMP_F_OSSL_CMP_CTX_GENINFO_PUSH0_ITAV            0
 #   define CMP_F_OSSL_CMP_CTX_GENM_PUSH0_ITAV               0
