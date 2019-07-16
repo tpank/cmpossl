@@ -202,9 +202,10 @@ Each source may contain multiple certificates.
 =item B<-untrusted sources>
 
 Non-trusted intermediate certificate(s) that may be useful
-for constructing certificate chains when verifying
+for building certificate chains when verifying
 the CMP server (when checking signature-based CMP message protection),
-the TLS server (when establishing TLS connections),
+the own TLS client cert (when constructing the TLS client cert chain),
+stapled OCSP responses (when establishing TLS connections),
 and/or the newly enrolled certificate.
 These may get added to the extraCerts field sent in requests as far as needed.
 
@@ -660,7 +661,7 @@ when connecting to CMP server.
 =item B<-tls_cert filename>
 
 Client's TLS certificate. If the file includes further certificates,
-they are provided to the TLS server as the client certificate chain.
+they are used for constructing the client cert chain provided to the TLS server.
 
 =item B<-tls_key filename>
 
