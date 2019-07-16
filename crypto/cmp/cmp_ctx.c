@@ -1263,10 +1263,10 @@ int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
 
     if (ctx == NULL)
         return 0;
+    ctx->failInfoCode = 0;
     if (fail_info == NULL)
         return 1;
 
-    ctx->failInfoCode = 0;
     for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
         if (ASN1_BIT_STRING_get_bit(fail_info, i))
             ctx->failInfoCode |= (1 << i);
