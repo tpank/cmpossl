@@ -507,12 +507,12 @@ Flag the policies given with B<-policies> as critical.
 
 =item B<-popo number>
 
-Set Proof-of-Possession (POPO) method; values: C<-1>..<2> where
+Set Proof-of-Possession (POPO) method in IR/CR/KUR; values: C<-1>..<2> where
 C<-1> = NONE, C<0> = RAVERIFIED, C<1> = SIGNATURE (default), C<2> = KEYENC.
 
 =item B<-csr filename>
 
-CSR in PKCS#10 format to use in p10cr. This is for supporting legacy clients.
+CSR in PKCS#10 format to use in P10CR. This is for supporting legacy clients.
 
 =item B<-out_trusted filenames>
 
