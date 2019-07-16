@@ -155,8 +155,8 @@ int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
     ctx->unprotectedErrors = 0;
     ctx->ignore_keyusage = 0;
 
-    ctx->lastPKIStatus = 0;
-    ctx->failInfoCode = 0;
+    ctx->lastPKIStatus = -1;
+    ctx->failInfoCode = -1;
 
     ctx->log_cb = NULL;
     ctx->certConf_cb = NULL;
@@ -188,6 +188,27 @@ int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
 
  err:
     return 0;
+}
+
+/*
+ * prepare the OSSL_CMP_CTX for next use, partly re-initializing OSSL_CMP_CTX
+ */
+int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
+{
+    if (ctx == NULL)
+        return 0;
+
+    ctx->lastPKIStatus = -1;
+    ctx->failInfoCode = -1;
+
+    return OSSL_CMP_CTX_set0_statusString(ctx, NULL)
+        && OSSL_CMP_CTX_set0_newClCert(ctx, NULL)
+        && OSSL_CMP_CTX_set1_caPubs(ctx, NULL)
+        && OSSL_CMP_CTX_set1_extraCertsIn(ctx, NULL)
+        && OSSL_CMP_CTX_set0_validatedSrvCert(ctx, NULL)
+        && OSSL_CMP_CTX_set1_transactionID(ctx, NULL)
+        && OSSL_CMP_CTX_set1_last_senderNonce(ctx, NULL)
+        && OSSL_CMP_CTX_set1_recipNonce(ctx, NULL);
 }
 
 /*
@@ -248,6 +269,25 @@ OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_statusString_get(OSSL_CMP_CTX *ctx)
     return ctx != NULL ? ctx->lastStatusString : NULL;
 }
 
+int OSSL_CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFREETEXT *text)
+{
+    if (ctx == NULL)
+        return 0;
+
+    sk_ASN1_UTF8STRING_pop_free(ctx->lastStatusString, ASN1_UTF8STRING_free);
+    ctx->lastStatusString = text;
+    return 1;
+}
+
+int OSSL_CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert)
+{
+    if (ctx == NULL)
+        return 0;
+
+    X509_free(ctx->validatedSrvCert);
+    ctx->validatedSrvCert = cert;
+    return 1;
+}
 /*
  * Set callback function for checking if the cert is ok or should
  * it be rejected.
@@ -792,6 +832,23 @@ int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
  err:
     CMPerr(CMP_F_OSSL_CMP_CTX_SET1_P10CSR, CMP_R_NULL_ARGUMENT);
     return 0;
+}
+
+/*
+ * sets the (newly received in IP/KUP/CP) client Certificate to the context
+ * returns 1 on success, 0 on error
+ * TODO: this only permits for one client cert to be received...
+ */
+int OSSL_CMP_CTX_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
+{
+    if (ctx == NULL) {
+        CMPerr(CMP_F_CMP_CTX_SET0_NEWCLCERT, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
+
+    X509_free(ctx->newClCert);
+    ctx->newClCert = cert;
+    return 1;
 }
 
 /*

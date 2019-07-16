@@ -497,7 +497,7 @@ char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
 STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
                                           const X509 *cert);
 typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
-                                       const OSSL_CMP_MSG *msg, 
+                                       const OSSL_CMP_MSG *msg,
                                        int invalid_protection, int arg);
 int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                                 allow_unprotected_cb_t cb, int cb_arg);
@@ -600,6 +600,7 @@ DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
 /* from cmp_ctx.c */
 OSSL_CMP_CTX *OSSL_CMP_CTX_create(void);
 int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx);
+int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
 X509_STORE *OSSL_CMP_CTX_get0_trustedStore(const OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store);
 /*

@@ -782,6 +782,10 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 int CMP_log_printf(const char *file, int line, OSSL_CMP_severity level,
                    const char *fmt,...);
 #endif
+int OSSL_CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx,
+                                   OSSL_CMP_PKIFREETEXT *text);
+int OSSL_CMP_CTX_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
+int OSSL_CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert);
 
 /* from cmp_vfy.c */
 void put_cert_verify_err(int func, int err);
