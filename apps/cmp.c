@@ -2732,23 +2732,6 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
     return 0;
 }
 
-
-static int SSL_CTX_add_extra_chain_free(SSL_CTX *ssl_ctx, STACK_OF(X509) *certs)
-{
-    int i;
-    int res = 1;
-
-    for (i = 0; i < sk_X509_num(certs); i++) {
-        if (res != 0)
-            res = SSL_CTX_add_extra_chain_cert(ssl_ctx,
-                                               sk_X509_value(certs, i));
-    }
-    sk_X509_free(certs); /* must not free the stack elements */
-    if (res == 0)
-        BIO_printf(bio_err, "error: unable to use TLS extra certs\n");
-    return res;
-}
-
 /*
  * set up ssl_ctx for the OSSL_CMP_CTX based on options from config file/CLI.
  * Returns pointer on success, NULL on error
@@ -2759,11 +2742,12 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     EVP_PKEY *pkey = NULL;
     X509_STORE *store = NULL;
     SSL_CTX *ssl_ctx;
+    int i;
 
     ssl_ctx = SSL_CTX_new(TLS_client_method());
-    if (ssl_ctx == NULL) {
-        goto oom;
-    }
+    if (ssl_ctx == NULL)
+        goto err;
+
     SSL_CTX_set_options(ssl_ctx,
                         SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 |
                         SSL_OP_NO_TLSv1);
@@ -2773,10 +2757,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     if (opt_ocsp_status) {
         SSL_CTX_set_tlsext_status_type(ssl_ctx, TLSEXT_STATUSTYPE_ocsp);
         SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_stapling_cb);
-/*
- * help cert chain building with untrusted certs when list of certs is
- * insufficient from SSL_get0_verified_chain(ssl) and OCSP_resp_get0_certs(br):
- */
+/* untrusted certs may help chain building verifying stapled OCSP responses */
         SSL_CTX_set_tlsext_status_arg(ssl_ctx, untrusted_certs);
     }
 #endif /* OPENSSL_NO_OCSP */
@@ -2786,27 +2767,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
                                     "trusted TLS certificates")) == NULL) {
             goto err;
         }
-        /* do immediately for automatic cleanup in case of errors: */
         SSL_CTX_set_cert_store(ssl_ctx, store);
-        if (!set1_store_parameters_crls(store, all_crls))
-            goto oom;
-        /* enable and parameterize server hostname/IP address check */
-        if (!truststore_set_host_etc(store, opt_tls_host != NULL ?
-                                            opt_tls_host : opt_server))
-            /* TODO: is the server host name correct for TLS via proxy? */
-            goto oom;
-        SSL_CTX_set_verify(ssl_ctx,
-                           SSL_VERIFY_PEER |
-                           SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-    }
-
-    {
-        X509_STORE *untrusted_store = sk_X509_to_store(NULL, untrusted_certs);
-
-        /* do immediately for automatic cleanup in case of errors: */
-        if (!SSL_CTX_set0_chain_cert_store(ssl_ctx,
-                                           untrusted_store /* may be 0 */))
-            goto oom;
     }
 
     if (opt_tls_cert != NULL && opt_tls_key != NULL) {
@@ -2830,20 +2791,50 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         X509_free(cert); /* we do not need the handle any more */
 
         /*
-         * When the list of extra certificates in certs in non-empty,
-         * well send them (instead of a chain built from opt_untrusted)
-         * along with the TLS end entity certificate.
+         * Any further certs and any untrusted certs are used for constructing
+         * the client cert chain to be provided along with the TLS client cert
+         * to the TLS server.
          */
-        if (!SSL_CTX_add_extra_chain_free(ssl_ctx, certs))
+        if (!SSL_CTX_set0_chain(ssl_ctx, certs)) {
+            CMP_err("could not set TLS client cert chain");
+            sk_X509_pop_free(certs, X509_free);
             goto err;
+        }
+        for (i = 0; i < sk_X509_num(untrusted_certs); i++) {
+            cert = sk_X509_value(untrusted_certs, i);
+            if (!SSL_CTX_add1_chain_cert(ssl_ctx, cert)) {
+                CMP_err("could not add untrusted cert to TLS client cert chain");
+                goto err;
+            }
+        }
+        if (!SSL_CTX_build_cert_chain(ssl_ctx,
+                                      SSL_BUILD_CHAIN_FLAG_UNTRUSTED |
+                                      SSL_BUILD_CHAIN_FLAG_NO_ROOT)) {
+            CMP_warn("could not build cert chain for own TLS cert");
+            ERR_print_errors(bio_err);
+        }
+
         /* If present we append to the list also the certs from opt_tls_extra */
         if (opt_tls_extra != NULL) {
             STACK_OF(X509) *tls_extra =
                 load_certs_multifile(opt_tls_extra, opt_ownform, opt_otherpass,
                                      "extra certificates for TLS");
-            if (tls_extra == NULL
-                    || !SSL_CTX_add_extra_chain_free(ssl_ctx, tls_extra))
+            int res = 1;
+
+            if (tls_extra == NULL)
                 goto err;
+            for (i = 0; i < sk_X509_num(tls_extra); i++) {
+                cert = sk_X509_value(tls_extra, i);
+                if (res != 0)
+                    res = SSL_CTX_add_extra_chain_cert(ssl_ctx, cert);
+                if (res == 0)
+                    X509_free(cert);
+            }
+            sk_X509_free(tls_extra);
+            if (res == 0) {
+                BIO_printf(bio_err, "error: unable to add TLS extra certs\n");
+                goto err;
+            }
         }
 
         pkey = load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass,
@@ -2874,8 +2865,20 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     }
     return ssl_ctx;
 
- oom:
-    CMP_err("out of memory");
+    if (opt_tls_trusted != NULL) {
+        /* cannot do these before calling SSL_CTX_build_cert_chain() */
+        if (!set1_store_parameters_crls(store, all_crls))
+            goto err;
+        /* enable and parameterize server hostname/IP address check */
+        if (!truststore_set_host_etc(store, opt_tls_host != NULL ?
+                                            opt_tls_host : opt_server))
+            /* TODO: is the server host name correct for TLS via proxy? */
+            goto err;
+        SSL_CTX_set_verify(ssl_ctx,
+                           SSL_VERIFY_PEER |
+                           SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+    }
+
  err:
     SSL_CTX_free(ssl_ctx);
     return NULL;
