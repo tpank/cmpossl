@@ -512,7 +512,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
  * Regardless of success, caller is responsible for freeing *resp (unless NULL).
  */
 static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
-                         int func, int not_received)
+                         int func, int req_type, int not_received)
 {
     const EVP_PKEY *rkey = ctx->newPkey != NULL ? ctx->newPkey : ctx->pkey;
     int fail_info = 0; /* no failure */
@@ -585,7 +585,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
             return 0;
     }
 
-    if (func != CMP_F_OSSL_CMP_EXEC_P10CR_SES
+    if (req_type != OSSL_CMP_PKIBODY_P10CR
             && !(X509_check_private_key(ctx->newClCert, rkey))) {
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
         txt = "public key in new certificate does not match our private key";
@@ -667,7 +667,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
     if (!send_receive_check(ctx, req, type_string, fn, &rep, rep_type, rep_err))
         goto err;
 
-    if (!cert_response(ctx, rid, &rep, fn, rep_err))
+    if (!cert_response(ctx, rid, &rep, fn, req_type, rep_err))
         goto err;
 
     result = ctx->newClCert;
