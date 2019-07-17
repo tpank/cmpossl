@@ -165,6 +165,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                               int not_received)
 {
     int msgtimeout = ctx->msgtimeout; /* backup original value */
+    STACK_OF(X509) *extracerts;
     int err, rcvd_type;
 
     if ((expected_type == OSSL_CMP_PKIBODY_POLLREP ||
@@ -220,6 +221,22 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
         message_add_error_data(*rep);
         return 0;
+    }
+
+    /*
+     * copy received extraCerts to ctx->extraCertsIn so they can be retrieved,
+     * yet only if list is non-empty in order to retain any pre-existing ones
+     */
+    if (sk_X509_num((extracerts = (*rep)->extraCerts)) > 0) {
+        if (!OSSL_CMP_CTX_set1_extraCertsIn(ctx, extracerts) ||
+        /*
+         * merge them also into the untrusted certs, such that the peer does
+         * not need to send them again (in this and any further transaction)
+         * and such that they are also available to ctx->certConf_cb
+         */
+            !OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, extracerts,
+                                         0, 1/* no dups */))
+            return 0;
     }
 
     return 1;
@@ -519,7 +536,6 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     const char *txt = NULL;
     OSSL_CMP_CERTREPMESSAGE *crepmsg;
     OSSL_CMP_CERTRESPONSE *crep;
-    STACK_OF(X509) *extracerts;
     int ret = 1;
 
  retry:
@@ -571,19 +587,6 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     if (crepmsg->caPubs != NULL
         && !OSSL_CMP_CTX_set1_caPubs(ctx, crepmsg->caPubs))
         return 0;
-
-    /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
-    if ((extracerts = (*resp)->extraCerts) != NULL) {
-        if (!OSSL_CMP_CTX_set1_extraCertsIn(ctx, extracerts) ||
-        /*
-         * merge them also into the untrusted certs, such that the peer does
-         * not need to send them again (in this and any further transaction)
-         * and such that they are also available to ctx->certConf_cb
-         */
-            !OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, extracerts,
-                                         0, 1/* no dups */))
-            return 0;
-    }
 
     if (req_type != OSSL_CMP_PKIBODY_P10CR
             && !(X509_check_private_key(ctx->newClCert, rkey))) {
