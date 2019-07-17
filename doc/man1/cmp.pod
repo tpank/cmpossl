@@ -440,8 +440,11 @@ e.g., C<1.2.3:int:987>.
 
 =item B<-newkey filename>
 
-The file containing the private key corresponding to the requested certificate
-in IR, CR or KUR.  Default is the current client key if given.
+The file containing the private key to request a certificate for via
+a IR, CR or KUR.  Default is the current client key if given.
+The client inserts the corresponding public key in the request.
+On receiving the newly enrolled certificate it checks that
+the included public key matches the private key used for the request.
 
 =item B<-newkeypass arg>
 
