@@ -518,6 +518,8 @@ C<-1> = NONE, C<0> = RAVERIFIED, C<1> = SIGNATURE (default), C<2> = KEYENC.
 =item B<-csr filename>
 
 CSR in PKCS#10 format to use in P10CR. This is for supporting legacy clients.
+For P10CR the essence of the request is supplied via this option, while the
+above certificate request options (B<-newkey>, ..., B<-popo>) are ignored.
 
 =item B<-out_trusted filenames>
 
