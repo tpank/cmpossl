@@ -842,7 +842,7 @@ int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
 int OSSL_CMP_CTX_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL) {
-        CMPerr(CMP_F_CMP_CTX_SET0_NEWCLCERT, CMP_R_NULL_ARGUMENT);
+        CMPerr(CMP_F_OSSL_CMP_CTX_SET0_NEWCLCERT, CMP_R_NULL_ARGUMENT);
         return 0;
     }
 

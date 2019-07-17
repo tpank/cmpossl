@@ -58,6 +58,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1           125
 #  define CMP_F_OSSL_CMP_CTX_INIT                          126
 #  define CMP_F_OSSL_CMP_CTX_PUSH_FREETEXT                 127
+#  define CMP_F_OSSL_CMP_CTX_SET0_NEWCLCERT                209
 #  define CMP_F_OSSL_CMP_CTX_SET0_NEWPKEY                  128
 #  define CMP_F_OSSL_CMP_CTX_SET0_PKEY                     129
 #  define CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS            130
@@ -69,7 +70,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_F_OSSL_CMP_CTX_SET1_ISSUER                   136
 #  define CMP_F_OSSL_CMP_CTX_SET1_LAST_SENDERNONCE         137
 #  define CMP_F_OSSL_CMP_CTX_SET1_NEWCLCERT                138
-#  define CMP_F_CMP_CTX_SET0_NEWCLCERT                     209
 #  define CMP_F_OSSL_CMP_CTX_SET1_NEWPKEY                  139
 #  define CMP_F_OSSL_CMP_CTX_SET1_OLDCLCERT                140
 #  define CMP_F_OSSL_CMP_CTX_SET1_P10CSR                   141
