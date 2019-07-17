@@ -223,6 +223,14 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         return 0;
     }
 
+    /*
+     * copy received extraCerts to ctx->extraCertsIn so they can be retrieved,
+     * yet only if list is non-empty in order to retain any pre-existing ones
+     */
+    if (sk_X509_num((*rep)->extraCerts) > 0
+            && !CMP_CTX_set1_extraCertsIn(ctx, (*rep)->extraCerts))
+        return 0;
+
     return 1;
 }
 
@@ -570,10 +578,6 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
      */
     if (crepmsg->caPubs != NULL
             && !CMP_CTX_set1_caPubs(ctx, crepmsg->caPubs))
-        return 0;
-
-    /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
-    if (!CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts))
         return 0;
 
     if (req_type != OSSL_CMP_PKIBODY_P10CR
