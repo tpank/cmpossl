@@ -58,8 +58,7 @@ static int execute_PKISI_test(CMP_STATUS_TEST_FIXTURE *fixture)
                   OSSL_CMP_statusInfo_new(fixture->pkistatus,
                                           fixture->pkifailure, fixture->text)))
         goto end;
-    if (!TEST_int_eq(fixture->pkistatus,
-                     OSSL_CMP_PKISI_get_PKIStatus(si))
+    if (!TEST_int_eq(fixture->pkistatus, OSSL_CMP_PKISI_get_PKIStatus(si))
             || !TEST_int_eq(fixture->pkifailure,
                             OSSL_CMP_PKISI_get_PKIFailureInfo(si)))
         goto end;

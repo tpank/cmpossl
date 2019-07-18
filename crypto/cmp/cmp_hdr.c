@@ -25,11 +25,11 @@
 int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno)
 {
     if (hdr == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_HDR_SET_PVNO, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     if (!ASN1_INTEGER_set(hdr->pvno, pvno)) {
-        CMPerr(CMP_F_OSSL_CMP_HDR_SET_PVNO, ERR_R_MALLOC_FAILURE);
+        CMPerr(0, ERR_R_MALLOC_FAILURE);
         return 0;
     }
     return 1;
@@ -40,7 +40,7 @@ int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr)
     int64_t pvno;
 
     if (hdr == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_HDR_GET_PVNO, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return -1;
     }
     if (!ASN1_INTEGER_get_int64(&pvno, hdr->pvno) || pvno < 0 || pvno > INT_MAX)
@@ -68,7 +68,7 @@ static int set1_general_name(GENERAL_NAME **tgt, const X509_NAME *src)
     GENERAL_NAME *gen = NULL;
 
     if (tgt == NULL) {
-        CMPerr(CMP_F_SET1_GENERAL_NAME, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto err;
     }
     if ((gen = GENERAL_NAME_new()) == NULL)
@@ -81,7 +81,7 @@ static int set1_general_name(GENERAL_NAME **tgt, const X509_NAME *src)
             goto oom;
     } else if (!X509_NAME_set(&gen->d.directoryName, src)) {
     oom:
-        CMPerr(CMP_F_SET1_GENERAL_NAME, ERR_R_MALLOC_FAILURE);
+        CMPerr(0, ERR_R_MALLOC_FAILURE);
         goto err;
     }
 
@@ -130,7 +130,7 @@ int OSSL_CMP_HDR_update_messageTime(OSSL_CMP_PKIHEADER *hdr)
     return 1;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_HDR_UPDATE_MESSAGETIME, ERR_R_MALLOC_FAILURE);
+    CMPerr(0, ERR_R_MALLOC_FAILURE);
     return 0;
 }
 
@@ -142,11 +142,11 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
 
     if (src == NULL) { /* generate a random value if src == NULL */
         if ((bytes = (unsigned char *)OPENSSL_malloc(len)) == NULL) {
-            CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM, ERR_R_MALLOC_FAILURE);
+            CMPerr(0, ERR_R_MALLOC_FAILURE);
             goto err;
         }
         if (RAND_bytes(bytes, len) <= 0) {
-            CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM,CMP_R_FAILURE_OBTAINING_RANDOM);
+            CMPerr(0,CMP_R_FAILURE_OBTAINING_RANDOM);
             goto err;
         }
         res = ossl_cmp_asn1_octet_string_set1_bytes(tgt, bytes, len);
@@ -191,7 +191,7 @@ OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
     return ft;
 
  oom:
-    CMPerr(CMP_F_CMP_PKIFREETEXT_PUSH_STR, ERR_R_MALLOC_FAILURE);
+    CMPerr(0, ERR_R_MALLOC_FAILURE);
     sk_ASN1_UTF8STRING_pop_free(ft, ASN1_UTF8STRING_free);
     ASN1_UTF8STRING_free(utf8string);
     return NULL;
@@ -214,14 +214,14 @@ int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
     return 1;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_HDR_PUSH0_FREETEXT, ERR_R_MALLOC_FAILURE);
+    CMPerr(0, ERR_R_MALLOC_FAILURE);
     return 0;
 }
 
 int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
     if (hdr == NULL || text == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_HDR_PUSH1_FREETEXT, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
 
@@ -240,8 +240,7 @@ int OSSL_CMP_HDR_generalInfo_push0_item(OSSL_CMP_PKIHEADER *hdr,
     return 1;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH0_ITEM,
-           CMP_R_ERROR_PUSHING_GENERALINFO_ITEM);
+    CMPerr(0, CMP_R_ERROR_PUSHING_GENERALINFO_ITEM);
     return 0;
 }
 
@@ -264,8 +263,7 @@ int OSSL_CMP_HDR_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
     return 1;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_HDR_GENERALINFO_PUSH1_ITEMS,
-           CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS);
+    CMPerr(0, CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS);
     return 0;
 }
 
@@ -318,7 +316,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
     X509_NAME *rcp = NULL;
 
     if (ctx == NULL || hdr == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_HDR_INIT, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
 
@@ -333,7 +331,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
     sender = ctx->clCert != NULL ?
         X509_get_subject_name(ctx->clCert) : ctx->subjectName;
     if (sender == NULL && ctx->referenceValue == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_HDR_INIT, CMP_R_NO_SENDER_NO_REFERENCE);
+        CMPerr(0, CMP_R_NO_SENDER_NO_REFERENCE);
         return 0;
     }
     if (!OSSL_CMP_HDR_set1_sender(hdr, sender))

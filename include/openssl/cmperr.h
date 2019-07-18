@@ -106,5 +106,4 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_PKISTATUSINFO_NOT_FOUND                    112
 #  define CMP_R_UNKNOWN_CERT_TYPE                          113
 
-# endif
 #endif
