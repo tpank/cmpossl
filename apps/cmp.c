@@ -405,7 +405,7 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nCertificate enrollment options:"},
     {"newkey", OPT_NEWKEY, 's',
-     "Private key for the requested certificate. Default is current client's key"},
+     "Key(s) for the requested certificate. Default is current client's key"},
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
     {"subject", OPT_SUBJECT, 's',
      "Distinguished Name (DN) of subject to use in the requested cert template"},
@@ -3011,8 +3011,13 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto err;
 
     if (opt_newkey != NULL) {
-        EVP_PKEY *pkey =
-            load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e,
+        EVP_PKEY *pkey = NULL;
+        if (opt_popo == OSSL_CRMF_POPO_RAVERIFIED
+                || opt_popo == OSSL_CRMF_POPO_NONE)
+            pkey = load_pubkey(opt_newkey, opt_keyform, 0, opt_newkeypass, e,
+                             "new public key for certificate to be enrolled");
+        if (pkey == NULL)
+            pkey = load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e,
                              "new private key for certificate to be enrolled");
 
         cleanse(opt_newkeypass);
