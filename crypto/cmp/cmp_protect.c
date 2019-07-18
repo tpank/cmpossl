@@ -84,7 +84,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                     &protection, &sig_len)))
                 goto err;
         } else {
-            CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_WRONG_ALGORITHM_OID);
+            CMPerr(0, CMP_R_WRONG_ALGORITHM_OID);
             goto err;
         }
     } else if (secret == NULL && pkey != NULL) {
@@ -93,7 +93,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 
         if (!OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
             || (md = EVP_get_digestbynid(md_NID)) == NULL) {
-            CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_UNKNOWN_ALGORITHM_ID);
+            CMPerr(0, CMP_R_UNKNOWN_ALGORITHM_ID);
             goto end;
         }
         if ((evp_ctx = EVP_MD_CTX_create()) == NULL
@@ -105,7 +105,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                 || EVP_DigestSignFinal(evp_ctx, protection, &sig_len) <= 0)
                 goto err;
     } else {
-        CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_INVALID_ARGS);
         goto end;
     }
 
@@ -118,7 +118,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 
  err:
     if (prot == NULL)
-        CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_ERROR_CALCULATING_PROTECTION);
+        CMPerr(0, CMP_R_ERROR_CALCULATING_PROTECTION);
  end:
     /* cleanup */
     OSSL_CRMF_PBMPARAMETER_free(pbm);
@@ -245,8 +245,7 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 
             /* make sure that key and certificate match */
             if (!X509_check_private_key(ctx->clCert, ctx->pkey)) {
-                CMPerr(CMP_F_OSSL_CMP_MSG_PROTECT,
-                       CMP_R_CERT_AND_KEY_DO_NOT_MATCH);
+                CMPerr(0, CMP_R_CERT_AND_KEY_DO_NOT_MATCH);
                 goto err;
             }
 
@@ -255,8 +254,7 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 
             if (!OBJ_find_sigid_by_algs(&algNID, ctx->digest,
                         EVP_PKEY_id(ctx->pkey))) {
-                CMPerr(CMP_F_OSSL_CMP_MSG_PROTECT,
-                       CMP_R_UNSUPPORTED_KEY_TYPE);
+                CMPerr(0, CMP_R_UNSUPPORTED_KEY_TYPE);
                 goto err;
             }
             alg = OBJ_nid2obj(algNID);
@@ -281,15 +279,14 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
                  CMP_calc_protection(msg, NULL, ctx->pkey)) == NULL)
                 goto err;
         } else {
-            CMPerr(CMP_F_OSSL_CMP_MSG_PROTECT,
-                   CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION);
+            CMPerr(0, CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION);
             goto err;
         }
     }
 
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_MSG_PROTECT, CMP_R_ERROR_PROTECTING_MESSAGE);
+    CMPerr(0, CMP_R_ERROR_PROTECTING_MESSAGE);
     return 0;
 }
 

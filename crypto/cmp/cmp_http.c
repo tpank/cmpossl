@@ -463,7 +463,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
      */
 #if 1
     (void)ERR_set_mark();
-    CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);
+    CMPerr(0, CMP_R_ERROR_CONNECTING);
     rv = bio_connect(hbio, ctx->msgtimeout);
     if (rv <= 0) {
         err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_ERROR_CONNECTING;
@@ -517,7 +517,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     if (err != 0) {
         if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
             err = CMP_R_TLS_ERROR;
-        CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, err);
+        CMPerr(0, err);
         if (err == CMP_R_TLS_ERROR || err == CMP_R_CONNECT_TIMEOUT
                 || err == CMP_R_ERROR_CONNECTING)
             add_conn_error_hint(ctx, ERR_peek_error());

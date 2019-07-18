@@ -386,7 +386,6 @@ int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-
     if (bytes != NULL) {
         if ((new = ASN1_OCTET_STRING_new()) == NULL
                 || !(ASN1_OCTET_STRING_set(new, bytes, len))) {

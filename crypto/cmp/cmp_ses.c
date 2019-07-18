@@ -143,7 +143,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             && ctx->totaltimeout != 0) { /* total timeout is not infinite */
         int64_t time_left = (int64_t)(ctx->end_time - time(NULL));
         if (time_left <= 0) {
-            CMPerr(CMP_F_SEND_RECEIVE_CHECK, CMP_R_TOTAL_TIMEOUT);
+            CMPerr(0, CMP_R_TOTAL_TIMEOUT);
             return 0;
         }
         if (ctx->msgtimeout == 0 || time_left < ctx->msgtimeout)
@@ -167,10 +167,10 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE
                 || err == CMP_R_READ_TIMEOUT
                 || err == CMP_R_ERROR_DECODING_MESSAGE) {
-            CMPerr(func, not_received);
+            CMPerr(0, not_received);
         }
         else {
-            CMPerr(func, CMP_R_ERROR_SENDING_REQUEST);
+            CMPerr(0, CMP_R_ERROR_SENDING_REQUEST);
             OSSL_CMP_add_error_data(type_string);
         }
         *rep = NULL;
@@ -187,8 +187,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         /* as an answer to polling, there could be IP/CP/KUP */
             && !(expected_type == OSSL_CMP_PKIBODY_POLLREP
                      && IS_ENOLLMENT(bt))) {
-        CMPerr(CMP_F_SEND_RECEIVE_CHECK,
-               bt == OSSL_CMP_PKIBODY_ERROR ? CMP_R_RECEIVED_ERROR :
+        CMPerr(0, bt == OSSL_CMP_PKIBODY_ERROR ? CMP_R_RECEIVED_ERROR :
                CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
 
         switch (bt) {

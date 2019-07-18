@@ -141,7 +141,7 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
                             (const ASN1_STRING *)msg->protection) == 0;
     ASN1_BIT_STRING_free(protection);
     if (!valid)
-        CMPerr(CMP_F_CMP_VERIFY_PBMAC, CMP_R_WRONG_PBM_VALUE);
+        CMPerr(0, CMP_R_WRONG_PBM_VALUE);
 
     return valid;
  err:
@@ -164,7 +164,7 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
     X509_STORE_CTX *csc = NULL;
 
     if (ctx == NULL || trusted_store == NULL || cert == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_VALIDATE_CERT_PATH, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto end;
     }
 
@@ -361,15 +361,14 @@ static void add_name_mismatch_data(const char *error_prefix,
 }
 
 /* return 0 if skid != NULL and there is no matching subject key ID in cert */
-static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid, int fn)
+static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
 {
     if (skid != NULL) {
         const ASN1_OCTET_STRING *ckid = X509_get0_subject_key_id(cert);
 
         /* enforce that the right subject key identifier is there */
         if (ckid == NULL) {
-            if (fn != 0)
-                CMPerr(fn, CMP_R_UNEXPECTED_SENDER);
+            CMPerr(0, CMP_R_UNEXPECTED_SENDER);
             OSSL_CMP_add_error_line("  missing Subject Key Identifier in certificate");
             return 0;
         }
@@ -377,8 +376,7 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid, int fn)
 #ifdef hex_to_string
             char *str;
 #endif
-            if (fn != 0)
-                CMPerr(fn, CMP_R_UNEXPECTED_SENDER);
+            CMPerr(0, CMP_R_UNEXPECTED_SENDER);
             OSSL_CMP_add_error_line("  certificate Subject Key Identifier does not match senderKID:");
 #ifdef hex_to_string
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
@@ -436,7 +434,7 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
         }
     }
 
-    if (!check_kid(cert, msg->header->senderKID, 0))
+    if (!check_kid(cert, msg->header->senderKID))
         return 0;
     /* acceptable also if there is no senderKID in msg header */
 
@@ -559,8 +557,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     if (sender == NULL || msg->body == NULL)
         return 0; /* other NULL cases already have been checked */
     if (sender->type != GEN_DIRNAME) {
-        CMPerr(CMP_F_FIND_SRVCERT,
-               CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
+        CMPerr(0, CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
         return NULL; /* FR#42: support for more than X509_NAME */
     }
 
@@ -587,7 +584,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
         /* tentatively set error, which allows accumulating diagnostic info */
         (void)ERR_set_mark();
-        CMPerr(CMP_F_FIND_SRVCERT, CMP_R_NO_VALID_SERVER_CERT_FOUND);
+        CMPerr(0, CMP_R_NO_VALID_SERVER_CERT_FOUND);
         sname = X509_NAME_oneline(sender->d.directoryName, NULL, 0);
         OSSL_CMP_add_error_txt(NULL, "\n");
         OSSL_CMP_add_error_txt("trying to match msg sender name = ", sname);
@@ -762,11 +759,11 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             if (msg->header->senderKID == NULL)
                 OSSL_CMP_add_error_line("  no senderKID in CMP header; risk that correct server cert could not be identified");
             else /* server cert should match senderKID in header */
-                if (!check_kid(scrt, msg->header->senderKID, 0))
+                if (!check_kid(scrt, msg->header->senderKID))
                     /* here this can only happen if ctx->srvCert has been set */
                     OSSL_CMP_add_error_line("  for senderKID in CMP header there is no matching Subject Key Identifier in context-provided server cert");
         } else {
-            CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_NO_SUITABLE_SERVER_CERT);
+            CMPerr(0, CMP_R_NO_SUITABLE_SERVER_CERT);
         }
         break;
     }
@@ -874,15 +871,13 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
         /* detect explicitly permitted exceptions for invalid protection */
         if (!OSSL_CMP_validate_msg(ctx, msg)
                 && (cb == NULL || !(*cb)(ctx, msg, 1, cb_arg))) {
-             CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
-                    CMP_R_ERROR_VALIDATING_PROTECTION);
+             CMPerr(0, CMP_R_ERROR_VALIDATING_PROTECTION);
              return -1;
          }
     } else {
         /* detect explicitly permitted exceptions for missing protection */
         if (cb == NULL || !(*cb)(ctx, msg, 0, cb_arg)) {
-            CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
-                   CMP_R_MISSING_PROTECTION);
+            CMPerr(0, CMP_R_MISSING_PROTECTION);
             return -1;
         }
     }
@@ -898,8 +893,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
             && (msg->header->transactionID == NULL
                 || ASN1_OCTET_STRING_cmp(ctx->transactionID,
                                          msg->header->transactionID) != 0)) {
-        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
-               CMP_R_TRANSACTIONID_UNMATCHED);
+        CMPerr(0, CMP_R_TRANSACTIONID_UNMATCHED);
         return -1;
     }
 
@@ -908,8 +902,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
             && (msg->header->recipNonce == NULL
                     || ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
                                              msg->header->recipNonce) != 0)) {
-        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
-               CMP_R_RECIPNONCE_UNMATCHED);
+        CMPerr(0, CMP_R_RECIPNONCE_UNMATCHED);
         return -1;
     }
 
@@ -926,7 +919,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
         return -1;
 
     if ((rcvd_type = OSSL_CMP_MSG_get_bodytype(msg)) < 0) {
-        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED, CMP_R_PKIBODY_ERROR);
+        CMPerr(0, CMP_R_PKIBODY_ERROR);
         return -1;
     }
     return rcvd_type;

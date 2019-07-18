@@ -55,12 +55,12 @@ static int add_extension(X509_EXTENSIONS **pexts, X509_EXTENSION *ext)
     int ret = 0;
 
     if (pexts == NULL) {
-        CMPerr(CMP_F_ADD_EXTENSION, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto end;
     }
     if (ext == NULL /* malloc did not work for ext in caller */
             || !X509v3_add_ext(pexts, ext, 0)) {
-        CMPerr(CMP_F_ADD_EXTENSION, ERR_R_MALLOC_FAILURE);
+        CMPerr(0, ERR_R_MALLOC_FAILURE);
         goto end;
     }
     ret = 1;
@@ -111,7 +111,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype)
     OSSL_CMP_MSG *msg = NULL;
 
     if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_MSG_CREATE, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
 
@@ -134,7 +134,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype)
 
     case OSSL_CMP_PKIBODY_P10CR:
         if (ctx->p10CSR == NULL) {
-            CMPerr(CMP_F_OSSL_CMP_MSG_CREATE, CMP_R_ERROR_CREATING_P10CR);
+            CMPerr(0, CMP_R_ERROR_CREATING_P10CR);
             goto err;
         }
         if ((msg->body->value.p10cr = X509_REQ_dup(ctx->p10CSR)) == NULL)
@@ -189,11 +189,11 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype)
         return msg;
 
     default:
-        CMPerr(CMP_F_OSSL_CMP_MSG_CREATE, CMP_R_UNEXPECTED_PKIBODY);
+        CMPerr(0, CMP_R_UNEXPECTED_PKIBODY);
         goto err;
     }
 oom:
-    CMPerr(CMP_F_OSSL_CMP_MSG_CREATE, ERR_R_MALLOC_FAILURE);
+    CMPerr(0, ERR_R_MALLOC_FAILURE);
 err:
     OSSL_CMP_MSG_free(msg);
     return NULL;
@@ -234,7 +234,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
 
     if (rkey == NULL
             || (bodytype == OSSL_CMP_PKIBODY_KUR && refcert == NULL)) {
-        CMPerr(CMP_F_CRM_NEW, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_INVALID_ARGS);
         goto err;
     }
     if ((crm = OSSL_CRMF_MSG_new()) == NULL)
@@ -297,7 +297,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     return crm;
 
  oom:
-    CMPerr(CMP_F_CRM_NEW, ERR_R_MALLOC_FAILURE);
+    CMPerr(0, ERR_R_MALLOC_FAILURE);
  err:
     sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
     sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
@@ -316,7 +316,7 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
           || (type != OSSL_CMP_PKIBODY_IR && type != OSSL_CMP_PKIBODY_CR
                   && type != OSSL_CMP_PKIBODY_KUR
                   && type != OSSL_CMP_PKIBODY_P10CR)) {
-        CMPerr(CMP_F_OSSL_CMP_CERTREQ_NEW, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
@@ -350,7 +350,7 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
     return msg;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_CERTREQ_NEW, err_code);
+    CMPerr(0, err_code);
     OSSL_CRMF_MSG_free(crm);
     OSSL_CMP_MSG_free(msg);
     return NULL;
@@ -368,7 +368,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
     int status = -1;
 
     if (ctx == NULL || si == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CERTREP_NEW, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto err;
     }
 
@@ -393,7 +393,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
     if (status != OSSL_CMP_PKISTATUS_rejection
             && status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
         if (encrypted) {
-            CMPerr(CMP_F_OSSL_CMP_CERTREP_NEW, CMP_R_INVALID_PARAMETERS);
+            CMPerr(0, CMP_R_INVALID_PARAMETERS);
             goto err;
         } else {
             if ((resp->certifiedKeyPair = OSSL_CMP_CERTIFIEDKEYPAIR_new())
@@ -427,9 +427,9 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
     return msg;
 
  oom:
-    CMPerr(CMP_F_OSSL_CMP_CERTREP_NEW, ERR_R_MALLOC_FAILURE);
+    CMPerr(0, ERR_R_MALLOC_FAILURE);
  err:
-    CMPerr(CMP_F_OSSL_CMP_CERTREP_NEW, CMP_R_ERROR_CREATING_CERTREP);
+    CMPerr(0, CMP_R_ERROR_CREATING_CERTREP);
     OSSL_CMP_CERTRESPONSE_free(resp);
     OSSL_CMP_MSG_free(msg);
     return NULL;
@@ -443,7 +443,7 @@ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
     int ret;
 
     if (ctx == NULL || ctx->oldClCert == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_RR_NEW, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
@@ -483,7 +483,7 @@ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
     return msg;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_RR_NEW, CMP_R_ERROR_CREATING_RR);
+    CMPerr(0, CMP_R_ERROR_CREATING_RR);
     OSSL_CMP_MSG_free(msg);
 
     return NULL;
@@ -516,9 +516,9 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     return msg;
 
  oom:
-    CMPerr(CMP_F_OSSL_CMP_RP_NEW, ERR_R_MALLOC_FAILURE);
+    CMPerr(0, ERR_R_MALLOC_FAILURE);
  err:
-    CMPerr(CMP_F_OSSL_CMP_RP_NEW, CMP_R_ERROR_CREATING_RP);
+    CMPerr(0, CMP_R_ERROR_CREATING_RP);
     OSSL_CRMF_CERTID_free(cid);
     OSSL_CMP_MSG_free(msg);
     return NULL;
@@ -534,7 +534,7 @@ OSSL_CMP_MSG *OSSL_CMP_pkiconf_new(OSSL_CMP_CTX *ctx)
     if (OSSL_CMP_MSG_protect(ctx, msg))
         return msg;
  err:
-    CMPerr(CMP_F_OSSL_CMP_PKICONF_NEW, CMP_R_ERROR_CREATING_PKICONF);
+    CMPerr(0, CMP_R_ERROR_CREATING_PKICONF);
     OSSL_CMP_MSG_free(msg);
     return NULL;
 }
@@ -555,7 +555,7 @@ int OSSL_CMP_MSG_gen_push0_ITAV(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
     return 1;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_MSG_GEN_PUSH0_ITAV, CMP_R_INVALID_ARGS);
+    CMPerr(0, CMP_R_INVALID_ARGS);
     return 0;
 }
 
@@ -578,7 +578,7 @@ int OSSL_CMP_MSG_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
     return 1;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_MSG_GEN_PUSH1_ITAVS, CMP_R_INVALID_ARGS);
+    CMPerr(0, CMP_R_INVALID_ARGS);
     return 0;
 }
 
@@ -592,7 +592,7 @@ static OSSL_CMP_MSG *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type,
     OSSL_CMP_MSG *msg = NULL;
 
     if (ctx == NULL) {
-        CMPerr(CMP_F_CMP_GEN_NEW, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_INVALID_ARGS);
         return NULL;
     }
 
@@ -609,7 +609,7 @@ static OSSL_CMP_MSG *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type,
     return msg;
 
  err:
-    CMPerr(CMP_F_CMP_GEN_NEW, err_code);
+    CMPerr(0, err_code);
     OSSL_CMP_MSG_free(msg);
     return NULL;
 }
@@ -632,7 +632,7 @@ OSSL_CMP_MSG *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     OSSL_CMP_MSG *msg = NULL;
 
     if (ctx == NULL || si == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_ERROR_NEW, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto err;
     }
     if ((msg = OSSL_CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_ERROR)) == NULL)
@@ -654,7 +654,7 @@ OSSL_CMP_MSG *OSSL_CMP_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     return msg;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_ERROR_NEW, CMP_R_ERROR_CREATING_ERROR);
+    CMPerr(0, CMP_R_ERROR_CREATING_ERROR);
     OSSL_CMP_MSG_free(msg);
     return NULL;
 }
@@ -690,14 +690,13 @@ int OSSL_CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
                                                    len))
             goto err;
     } else {
-        CMPerr(CMP_F_OSSL_CMP_CERTSTATUS_SET_CERTHASH,
-               CMP_R_UNSUPPORTED_ALGORITHM);
+        CMPerr(0, CMP_R_UNSUPPORTED_ALGORITHM);
         goto err;
     }
 
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_CERTSTATUS_SET_CERTHASH, CMP_R_ERROR_SETTING_CERTHASH);
+    CMPerr(0, CMP_R_ERROR_SETTING_CERTHASH);
     return 0;
 }
 
@@ -782,7 +781,7 @@ OSSL_CMP_MSG *OSSL_CMP_pollReq_new(OSSL_CMP_CTX *ctx, int crid)
     return msg;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_POLLREQ_NEW, CMP_R_ERROR_CREATING_POLLREQ);
+    CMPerr(0, CMP_R_ERROR_CREATING_POLLREQ);
     OSSL_CMP_POLLREQ_free(preq);
     OSSL_CMP_MSG_free(msg);
     return NULL;
@@ -795,7 +794,7 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
     OSSL_CMP_POLLREP *prep;
 
     if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_POLLREP_NEW, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
     if ((msg = OSSL_CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_POLLREP)) == NULL)
@@ -811,7 +810,7 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
     return msg;
 
  err:
-    CMPerr(CMP_F_OSSL_CMP_POLLREP_NEW, CMP_R_ERROR_CREATING_POLLREP);
+    CMPerr(0, CMP_R_ERROR_CREATING_POLLREP);
     OSSL_CMP_MSG_free(msg);
     return NULL;
 }

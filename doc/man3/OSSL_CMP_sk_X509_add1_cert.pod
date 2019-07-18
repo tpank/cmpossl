@@ -5,8 +5,7 @@
 OSSL_CMP_sk_X509_add1_cert,
 OSSL_CMP_sk_X509_add1_certs,
 OSSL_CMP_X509_STORE_add1_certs,
-OSSL_CMP_X509_STORE_get1_certs,
-OSSL_CMP_build_cert_chain
+OSSL_CMP_X509_STORE_get1_certs
 - functions manipulating lists of certificates
 
 =head1 SYNOPSIS
@@ -21,7 +20,6 @@ OSSL_CMP_build_cert_chain
   int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                 int only_self_signed);
   STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store);
-  STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs, X509 *cert);
 
 =head1 DESCRIPTION
 
@@ -39,10 +37,6 @@ the given stack to given store. The C<certs> parameter may be NULL.
 
 OSSL_CMP_X509_STORE_get1_certs() retrieves a copy of all certificates in the
 given store.
-
-OSSL_CMP_build_cert_chain() builds up the certificate chain of cert as high up
-as possible using the given X509_STORE containing all possible intermediate
-certificates and optionally the (possible) trust anchor(s).
 
 =head1 RETURN VALUES
 
