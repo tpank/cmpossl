@@ -312,7 +312,7 @@ static int test_MSG_protect_no_key_no_secret(void)
 
 static int execute_MSG_add_extraCerts_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
-    return TEST_true(OSSL_CMP_MSG_add_extraCerts(fixture->cmp_ctx,
+    return TEST_true(CMP_MSG_add_extraCerts(fixture->cmp_ctx,
                                                    fixture->msg));
 }
 

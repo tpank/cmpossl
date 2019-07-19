@@ -89,42 +89,42 @@ do { \
  *         returns 1 if message creation returns NULL                         */
 static int execute_certreq_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(OSSL_CMP_certreq_new(fixture->cmp_ctx,
+    EXECUTE_MSG_CREATION_TEST(CMP_certreq_new(fixture->cmp_ctx,
                                               fixture->bodytype,
                                               fixture->err_code));
 }
 
 static int execute_errormsg_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(OSSL_CMP_error_new(fixture->cmp_ctx, fixture->si,
+    EXECUTE_MSG_CREATION_TEST(CMP_error_new(fixture->cmp_ctx, fixture->si,
                                                  fixture->err_code,
                                                  NULL/* fixture->free_text */, 0));
 }
 
 static int execute_rr_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(OSSL_CMP_rr_new(fixture->cmp_ctx));
+    EXECUTE_MSG_CREATION_TEST(CMP_rr_new(fixture->cmp_ctx));
 }
 
 static int execute_certconf_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(OSSL_CMP_certConf_new
+    EXECUTE_MSG_CREATION_TEST(CMP_certConf_new
                               (fixture->cmp_ctx, fixture->fail_info, NULL));
 }
 
 static int execute_genm_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(OSSL_CMP_genm_new(fixture->cmp_ctx));
+    EXECUTE_MSG_CREATION_TEST(CMP_genm_new(fixture->cmp_ctx));
 }
 
 static int execute_pollreq_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(OSSL_CMP_pollReq_new(fixture->cmp_ctx, 4711));
+    EXECUTE_MSG_CREATION_TEST(CMP_pollReq_new(fixture->cmp_ctx, 4711));
 }
 
 static int execute_pkimessage_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(OSSL_CMP_MSG_create
+    EXECUTE_MSG_CREATION_TEST(CMP_MSG_create
                               (fixture->cmp_ctx, fixture->bodytype));
 }
 

@@ -319,7 +319,7 @@ static int test_validate_cert_path_expired(void)
 
 static int execute_MSG_check_received_test(CMP_VFY_TEST_FIXTURE *fixture)
 {
-    if (!TEST_int_eq(OSSL_CMP_MSG_check_received(fixture->cmp_ctx,
+    if (!TEST_int_eq(CMP_MSG_check_received(fixture->cmp_ctx,
                                                  fixture->msg,
                                                  fixture->allow_unprotected_cb,
                                                  fixture->callback_arg),
@@ -331,7 +331,7 @@ static int execute_MSG_check_received_test(CMP_VFY_TEST_FIXTURE *fixture)
         if (!TEST_int_eq(0,
               ASN1_OCTET_STRING_cmp(ossl_cmp_hdr_get0_senderNonce(header),
                                     ossl_cmp_ctx_get0_recipNonce(fixture->
-                                                            cmp_ctx))))
+                                                                 cmp_ctx))))
             return 0;
         if (!TEST_int_eq(0,
            ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),

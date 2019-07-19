@@ -845,7 +845,7 @@ static int sk_prepend1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs)
  *
  * returns body type (which is >= 0) of the message on success, -1 on error
  */
-int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
+int CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                                 OSSL_cmp_allow_unprotected_cb_t cb, int cb_arg)
 {
     int rcvd_type;

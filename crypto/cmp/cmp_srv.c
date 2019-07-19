@@ -266,7 +266,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
             goto oom;
     }
 
-    msg = OSSL_CMP_certrep_new(srv_ctx->ctx, bodytype, srv_ctx->certReqId, si,
+    msg = CMP_certrep_new(srv_ctx->ctx, bodytype, srv_ctx->certReqId, si,
                                certOut, chainOut, caPubs, srv_ctx->encryptcert,
                                srv_ctx->sendUnprotectedErrors);
     if (msg == NULL)
@@ -281,8 +281,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     return NULL;
 }
 
-static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
-                                OSSL_CMP_MSG *req)
+static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *msg;
     OSSL_CMP_REVDETAILS *details;
@@ -318,7 +317,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
         return NULL;
     }
 
-    if ((msg = OSSL_CMP_rp_new(srv_ctx->ctx, srv_ctx->pkiStatusOut, certId,
+    if ((msg = CMP_rp_new(srv_ctx->ctx, srv_ctx->pkiStatusOut, certId,
                                srv_ctx->sendUnprotectedErrors)) == NULL)
         CMPerr(0, CMP_R_ERROR_CREATING_RR);
     return msg;
@@ -353,7 +352,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         /* check cert hash by recalculating it in place */
         tmp = status->certHash;
         status->certHash = NULL;
-        if (OSSL_CMP_CERTSTATUS_set_certHash(status, srv_ctx->certOut))
+        if (CMP_CERTSTATUS_set_certHash(status, srv_ctx->certOut))
             res = status->certHash == NULL ? 0 /* avoiding SCA false positive */
                   : ASN1_OCTET_STRING_cmp(tmp, status->certHash) == 0;
         ASN1_OCTET_STRING_free(status->certHash);
@@ -375,7 +374,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         }
     }
 
-    if ((msg = OSSL_CMP_pkiconf_new(srv_ctx->ctx)) == NULL) {
+    if ((msg = CMP_pkiconf_new(srv_ctx->ctx)) == NULL) {
         CMPerr(0, CMP_R_ERROR_CREATING_PKICONF);
         return NULL;
     }
@@ -386,7 +385,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
 static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
                                    OSSL_CMP_MSG *req)
 {
-    OSSL_CMP_MSG *msg = OSSL_CMP_pkiconf_new(srv_ctx->ctx);
+    OSSL_CMP_MSG *msg = CMP_pkiconf_new(srv_ctx->ctx);
 
     (void)req; /* TODO make use of parameter */
     if (msg == NULL) {
@@ -412,7 +411,7 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
             CMPerr(0, CMP_R_ERROR_PROCESSING_CERTREQ);
     } else {
         srv_ctx->pollCount--;
-        if ((msg = OSSL_CMP_pollRep_new(srv_ctx->ctx, srv_ctx->certReqId,
+        if ((msg = CMP_pollRep_new(srv_ctx->ctx, srv_ctx->certReqId,
                                         srv_ctx->checkAfterTime)) == NULL)
             CMPerr(0, CMP_R_ERROR_CREATING_POLLREP);
     }
@@ -437,7 +436,7 @@ static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
     /* Back up potential genm_itavs */
     tmp = srv_ctx->ctx->genm_itavs;
     srv_ctx->ctx->genm_itavs = req->body->value.genm;
-    if ((msg = OSSL_CMP_genp_new(srv_ctx->ctx)) == NULL)
+    if ((msg = CMP_genp_new(srv_ctx->ctx)) == NULL)
         CMPerr(0, ERR_R_MALLOC_FAILURE);
     /* restore genm_itavs */
     srv_ctx->ctx->genm_itavs = tmp;
@@ -493,13 +492,13 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req,
         return 0;
     }
 
-    if (OSSL_CMP_MSG_check_received(ctx, req, unprotected_exception,
+    if (CMP_MSG_check_received(ctx, req, unprotected_exception,
                                     srv_ctx->acceptUnprotectedRequests) < 0) {
         CMPerr(0, CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE);
         return 0;
     }
     if (srv_ctx->sendError) {
-        if ((*rsp = OSSL_CMP_error_new(ctx, srv_ctx->pkiStatusOut, -1, NULL,
+        if ((*rsp = CMP_error_new(ctx, srv_ctx->pkiStatusOut, -1, NULL,
                                        srv_ctx->sendUnprotectedErrors)))
             return 1;
         CMPerr(0, CMP_R_ERROR_CREATING_ERROR);
@@ -583,7 +582,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
                 CMP_PKIFREETEXT_push_str(NULL,
                                          (flags & ERR_TXT_STRING) != 0
                                          ? data : NULL);
-            srv_rsp = OSSL_CMP_error_new(cmp_ctx, si,
+            srv_rsp = CMP_error_new(cmp_ctx, si,
                                          err != 0 ? ERR_GET_REASON(err) : -1,
                                          details,
                                          srv_ctx->sendUnprotectedErrors);

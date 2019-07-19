@@ -128,7 +128,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
     return prot;
 }
 
-int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
+int CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     int res = 0;
 
@@ -227,7 +227,7 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
          * while not needed to validate the signing cert, the option to do
          * this might be handy for certain use cases
          */
-        OSSL_CMP_MSG_add_extraCerts(ctx, msg);
+        CMP_MSG_add_extraCerts(ctx, msg);
 
         if ((msg->protection =
              CMP_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
@@ -273,7 +273,7 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
              * Add ctx->clCert followed, if possible, by its chain built
              * from ctx->untrusted_certs, and then ctx->extraCertsOut
              */
-            OSSL_CMP_MSG_add_extraCerts(ctx, msg);
+            CMP_MSG_add_extraCerts(ctx, msg);
 
             if ((msg->protection =
                  CMP_calc_protection(msg, NULL, ctx->pkey)) == NULL)

@@ -178,7 +178,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     }
 
     OSSL_CMP_info("got response");
-    if((bt = OSSL_CMP_MSG_check_received(ctx, *rep, unprotected_exception,
+    if((bt = CMP_MSG_check_received(ctx, *rep, unprotected_exception,
                                                 expected_type)) < 0)
         return 0;
 
@@ -248,7 +248,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
 
     OSSL_CMP_info("received 'waiting' PKIStatus, starting to poll for response");
     for (;;) {
-        if ((preq = OSSL_CMP_pollReq_new(ctx, rid)) == NULL)
+        if ((preq = CMP_pollReq_new(ctx, rid)) == NULL)
             goto err;
 
         if (!send_receive_check(ctx, preq, "pollReq", &prep,
@@ -336,7 +336,7 @@ int CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info, const char *txt)
      * check if all necessary options are set done by OSSL_CMP_certConf_new */
     /* create Certificate Confirmation - certConf
      */
-    if ((certConf = OSSL_CMP_certConf_new(ctx, fail_info, txt)) == NULL)
+    if ((certConf = CMP_certConf_new(ctx, fail_info, txt)) == NULL)
         goto err;
 
     success = send_receive_check(ctx, certConf, "certConf", &PKIconf,
@@ -357,7 +357,7 @@ int CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info, const char *txt)
  * returns 1 on success, 0 on error
  */
 int CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
-                            const char *txt)
+                       const char *txt)
 {
     OSSL_CMP_MSG *error = NULL;
     OSSL_CMP_PKISI *si = NULL;
@@ -370,7 +370,7 @@ int CMP_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
      */
     if ((si = ossl_cmp_statusinfo_new(status, fail_info, txt)) == NULL)
         goto err;
-    if ((error = OSSL_CMP_error_new(ctx, si, -1, NULL, 0)) == NULL)
+    if ((error = CMP_error_new(ctx, si, -1, NULL, 0)) == NULL)
         goto err;
 
     success = send_receive_check(ctx, error, "error",
@@ -648,7 +648,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string,
     ctx->lastPKIStatus = -1;
 
     /* check if all necessary options are set done by OSSL_CMP_certreq_new */
-    if ((req = OSSL_CMP_certreq_new(ctx, req_type, req_err)) == NULL)
+    if ((req = CMP_certreq_new(ctx, req_type, req_err)) == NULL)
         goto err;
 
     if (!send_receive_check(ctx, req, type_string, &rep, rep_type, rep_err))
@@ -702,7 +702,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 
     /* check if all necessary options are set is done in OSSL_CMP_rr_new */
     /* create Revocation Request - ir */
-    if ((rr = OSSL_CMP_rr_new(ctx)) == NULL)
+    if ((rr = CMP_rr_new(ctx)) == NULL)
         goto end;
 
     if (!send_receive_check(ctx, rr, "rr", &rp, OSSL_CMP_PKIBODY_RP,
@@ -840,7 +840,7 @@ STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
     OSSL_CMP_MSG *genp = NULL;
     STACK_OF(OSSL_CMP_ITAV) *rcvd_itavs = NULL;
 
-    if ((genm = OSSL_CMP_genm_new(ctx)) == NULL)
+    if ((genm = CMP_genm_new(ctx)) == NULL)
         goto err;
 
     if (!send_receive_check(ctx, genm, "genm", &genp, OSSL_CMP_PKIBODY_GENP,
