@@ -31,7 +31,7 @@
 /* CMP functions related to PKIStatus */
 
 /* get ASN.1 encoded integer, return -1 on error */
-int CMP_ASN1_get_int(const ASN1_INTEGER *a)
+int ossl_cmp_asn1_get_int(const ASN1_INTEGER *a)
 {
     int64_t res;
 
@@ -50,17 +50,17 @@ int CMP_ASN1_get_int(const ASN1_INTEGER *a)
     return (int)res;
 }
 
-int OSSL_CMP_PKISI_get_PKIStatus(OSSL_CMP_PKISI *si)
+int ossl_cmp_pkisi_get_pkistatus(OSSL_CMP_PKISI *si)
 {
     if (si == NULL || si->status == NULL) {
         CMPerr(0, CMP_R_ERROR_PARSING_PKISTATUS);
         return -1;
     }
-    return CMP_ASN1_get_int(si->status);
+    return ossl_cmp_asn1_get_int(si->status);
 }
 
 
-const char *CMP_PKIStatus_to_string(int status)
+const char *ossl_cmp__pkistatus_to_string(int status)
 {
     switch (status) {
     case OSSL_CMP_PKISTATUS_accepted:
@@ -87,7 +87,7 @@ const char *CMP_PKIStatus_to_string(int status)
  * returns a pointer to the statusString contained in a PKIStatusInfo
  * returns NULL on error
  */
-OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_get0_statusString(const OSSL_CMP_PKISI *si)
+OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusstring(const OSSL_CMP_PKISI *si)
 {
     return si == NULL ? NULL : si->statusString;
 }
@@ -96,7 +96,7 @@ OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_get0_statusString(const OSSL_CMP_PKISI *si)
  * returns a pointer to the failInfo contained in a PKIStatusInfo
  * returns NULL on error
  */
-OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_get0_failInfo(const OSSL_CMP_PKISI *si)
+OSSL_CMP_PKIFAILUREINFO *ossl_cmp_pkisi_get0_failinfo(const OSSL_CMP_PKISI *si)
 {
     return si == NULL ? NULL : si->failInfo;
 }
@@ -105,7 +105,7 @@ OSSL_CMP_PKIFAILUREINFO *OSSL_CMP_PKISI_get0_failInfo(const OSSL_CMP_PKISI *si)
  * returns the FailureInfo bits of the given PKIStatusInfo
  * returns -1 on error
  */
-int OSSL_CMP_PKISI_get_PKIFailureInfo(OSSL_CMP_PKISI *si)
+int ossl_cmp_pkisi_get_pkifailureinfo(OSSL_CMP_PKISI *si)
 {
     int i;
     int res = 0;
@@ -193,9 +193,9 @@ static const char *CMP_PKIFAILUREINFO_to_string(int number)
  * checks PKIFailureInfo bits in a given PKIStatusInfo
  * returns 1 if a given bit is set, 0 if not, -1 on error
  */
-int OSSL_CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index)
+int ossl_cmp_pkisi_pkifailureinfo_check(OSSL_CMP_PKISI *si, int bit_index)
 {
-    ASN1_BIT_STRING *fail_info = OSSL_CMP_PKISI_get0_failInfo(si);
+    ASN1_BIT_STRING *fail_info = ossl_cmp_pkisi_get0_failinfo(si);
 
     if (fail_info == NULL) /* this can also indicate si == NULL */
         return -1;
@@ -220,7 +220,7 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize)
 
     if (ctx == NULL || buf == NULL || bufsize <= 0
             || (status = OSSL_CMP_CTX_get_status(ctx)) < 0
-            || (status_string = CMP_PKIStatus_to_string(status)) == NULL)
+            || (status_string = ossl_cmp__pkistatus_to_string(status)) == NULL)
         return NULL;
     BIO_snprintf(buf, bufsize, "%s", status_string);
 
@@ -263,8 +263,8 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize)
  * note: strongly overlaps with TS_RESP_CTX_set_status_info()
  * and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
  */
-OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
-                                        const char *text)
+OSSL_CMP_PKISI *ossl_cmp_statusinfo_new(int status, int fail_info,
+                                       const char *text)
 {
     OSSL_CMP_PKISI *si = NULL;
     ASN1_UTF8STRING *utf8_text = NULL;
@@ -313,8 +313,8 @@ OSSL_CMP_PKISI *OSSL_CMP_statusInfo_new(int status, int fail_info,
  * RevReqContent.
  * returns NULL on error
  */
-OSSL_CMP_PKISI *CMP_REVREPCONTENT_get_PKIStatusInfo(OSSL_CMP_REVREPCONTENT *rrep,
-                                                    int rsid)
+OSSL_CMP_PKISI *
+ossl_cmp_revrepcontent_get_pkistatusinfo(OSSL_CMP_REVREPCONTENT *rrep, int rsid)
 {
     OSSL_CMP_PKISI *status = NULL;
 
@@ -335,7 +335,7 @@ OSSL_CMP_PKISI *CMP_REVREPCONTENT_get_PKIStatusInfo(OSSL_CMP_REVREPCONTENT *rrep
  * RevReqContent.
  * returns NULL on error
  */
-OSSL_CRMF_CERTID *CMP_REVREPCONTENT_get_CertId(OSSL_CMP_REVREPCONTENT *rrep,
+OSSL_CRMF_CERTID *ossl_cmp_revrepcontent_get_CertId(OSSL_CMP_REVREPCONTENT *rrep,
                                                int rsid)
 {
     OSSL_CRMF_CERTID *cid = NULL;
@@ -355,7 +355,7 @@ static int suitable_rid(const ASN1_INTEGER *certReqId, int rid)
     if (rid == -1) {
         return 1;
     } else {
-        int trid = CMP_ASN1_get_int(certReqId);
+        int trid = ossl_cmp_asn1_get_int(certReqId);
         if (trid == -1) {
             CMPerr(0, CMP_R_BAD_REQUEST_ID);
             return 0;
@@ -376,8 +376,8 @@ static void add_expected_rid(int rid)
  * (or the first one in case -1) inside a PollRepContent
  * returns NULL on error or if no suitable PollResponse available
  */
-OSSL_CMP_POLLREP
-*CMP_POLLREPCONTENT_get0_pollRep(const OSSL_CMP_POLLREPCONTENT *prc, int rid)
+OSSL_CMP_POLLREP *
+ossl_cmp_pollrepcontent_get0_pollrep(const OSSL_CMP_POLLREPCONTENT *prc, int rid)
 {
     OSSL_CMP_POLLREP *pollRep = NULL;
     int i;
@@ -403,9 +403,9 @@ OSSL_CMP_POLLREP
  * (or the first one in case -1) inside a CertRepMessage
  * returns NULL on error or if no suitable CertResponse available
  */
-OSSL_CMP_CERTRESPONSE
-*CMP_CERTREPMESSAGE_get0_certResponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
-                                      int rid)
+OSSL_CMP_CERTRESPONSE *
+ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
+                                          int rid)
 {
     OSSL_CMP_CERTRESPONSE *crep = NULL;
     int i;
@@ -431,8 +431,8 @@ OSSL_CMP_CERTRESPONSE
  * Takes the newKey in case of indirect POP from B<ctx>.
  * Returns a pointer to a copy of the found certificate, or NULL if not found.
  */
-X509 *CMP_CERTRESPONSE_get1_certificate(OSSL_CMP_CTX *ctx,
-                                       const OSSL_CMP_CERTRESPONSE *crep)
+X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
+                                             const OSSL_CMP_CERTRESPONSE *crep)
 {
     OSSL_CMP_CERTORENCCERT *coec;
     X509 *crt = NULL;

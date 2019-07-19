@@ -22,7 +22,7 @@
 #include <openssl/cmp.h>
 #include <openssl/err.h>
 
-int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno)
+int ossl_cmp_hdr_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno)
 {
     if (hdr == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -35,7 +35,7 @@ int OSSL_CMP_HDR_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno)
     return 1;
 }
 
-int OSSL_CMP_HDR_get_pvno(const OSSL_CMP_PKIHEADER *hdr)
+int ossl_cmp_hdr_get_pvno(const OSSL_CMP_PKIHEADER *hdr)
 {
     int64_t pvno;
 
@@ -53,7 +53,7 @@ ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr
     return hdr != NULL ? hdr->transactionID : NULL;
 }
 
-ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr)
+ASN1_OCTET_STRING *ossl_cmp_hdr_get0_senderNonce(const OSSL_CMP_PKIHEADER *hdr)
 {
     return hdr != NULL ? hdr->senderNonce : NULL;
 }
@@ -100,7 +100,7 @@ static int set1_general_name(GENERAL_NAME **tgt, const X509_NAME *src)
  * when nm is NULL, sender is set to an empty string
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
+int ossl_cmp_hdr_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
 {
     if (hdr == NULL)
         return 0;
@@ -108,7 +108,7 @@ int OSSL_CMP_HDR_set1_sender(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
     return set1_general_name(&hdr->sender, nm);
 }
 
-int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
+int ossl_cmp_hdr_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
 {
     if (hdr == NULL)
         return 0;
@@ -116,7 +116,7 @@ int OSSL_CMP_HDR_set1_recipient(OSSL_CMP_PKIHEADER *hdr, const X509_NAME *nm)
     return set1_general_name(&hdr->recipient, nm);
 }
 
-int OSSL_CMP_HDR_update_messageTime(OSSL_CMP_PKIHEADER *hdr)
+int ossl_cmp_hdr_update_messageTime(OSSL_CMP_PKIHEADER *hdr)
 {
     if (hdr == NULL)
         goto err;
@@ -159,7 +159,7 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
     return res;
 }
 
-int OSSL_CMP_HDR_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
+int ossl_cmp_hdr_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
                                 const ASN1_OCTET_STRING *senderKID)
 {
     if (hdr == NULL)
@@ -197,7 +197,7 @@ OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
     return NULL;
 }
 
-int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
+int ossl_cmp_hdr_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
     if (hdr == NULL)
         goto err;
@@ -218,7 +218,7 @@ int OSSL_CMP_HDR_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
     return 0;
 }
 
-int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
+int ossl_cmp_hdr_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
 {
     if (hdr == NULL || text == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -229,7 +229,7 @@ int OSSL_CMP_HDR_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
     return hdr->freeText != NULL;
 }
 
-int OSSL_CMP_HDR_generalInfo_push0_item(OSSL_CMP_PKIHEADER *hdr,
+int ossl_cmp_hdr_generalInfo_push0_item(OSSL_CMP_PKIHEADER *hdr,
                                         OSSL_CMP_ITAV *itav)
 {
     if (hdr == NULL)
@@ -244,7 +244,7 @@ int OSSL_CMP_HDR_generalInfo_push0_item(OSSL_CMP_PKIHEADER *hdr,
     return 0;
 }
 
-int OSSL_CMP_HDR_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
+int ossl_cmp_hdr_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
                                          STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
@@ -255,7 +255,7 @@ int OSSL_CMP_HDR_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
 
     for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
         itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i));
-        if (!OSSL_CMP_HDR_generalInfo_push0_item(hdr, itav)) {
+        if (!ossl_cmp_hdr_generalInfo_push0_item(hdr, itav)) {
             OSSL_CMP_ITAV_free(itav);
             goto err;
         }
@@ -267,7 +267,7 @@ int OSSL_CMP_HDR_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
     return 0;
 }
 
-int OSSL_CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
+int ossl_cmp_hdr_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
 {
     OSSL_CMP_ITAV *itav = NULL;
 
@@ -277,7 +277,7 @@ int OSSL_CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
     if ((itav = OSSL_CMP_ITAV_create(OBJ_nid2obj(NID_id_it_implicitConfirm),
                                      (ASN1_TYPE *)ASN1_NULL_new())) == NULL)
         goto err;
-    if (!OSSL_CMP_HDR_generalInfo_push0_item(hdr, itav))
+    if (!ossl_cmp_hdr_generalInfo_push0_item(hdr, itav))
         goto err;
     return 1;
 
@@ -290,7 +290,7 @@ int OSSL_CMP_HDR_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
  * checks if implicitConfirm in the generalInfo field of the header is set
  * returns 1 if it is set, 0 if not
  */
-int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
+int ossl_cmp_hdr_check_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
 {
     int itavCount;
     int i;
@@ -310,7 +310,7 @@ int OSSL_CMP_HDR_check_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
     return 0;
 }
 
-int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
+int ossl_cmp_hdr_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
 {
     X509_NAME *sender;
     X509_NAME *rcp = NULL;
@@ -321,7 +321,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
     }
 
     /* set the CMP version */
-    if (!OSSL_CMP_HDR_set_pvno(hdr, OSSL_CMP_PVNO))
+    if (!ossl_cmp_hdr_set_pvno(hdr, OSSL_CMP_PVNO))
         return 0;
 
     /*
@@ -334,7 +334,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         CMPerr(0, CMP_R_NO_SENDER_NO_REFERENCE);
         return 0;
     }
-    if (!OSSL_CMP_HDR_set1_sender(hdr, sender))
+    if (!ossl_cmp_hdr_set1_sender(hdr, sender))
         return 0;
 
     /* determine recipient entry in PKIHeader */
@@ -353,11 +353,11 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         rcp = X509_get_issuer_name(ctx->oldClCert);
     else if (ctx->clCert != NULL)
         rcp = X509_get_issuer_name(ctx->clCert);
-    if (!OSSL_CMP_HDR_set1_recipient(hdr, rcp))
+    if (!ossl_cmp_hdr_set1_recipient(hdr, rcp))
         return 0;
 
     /* set current time as message time */
-    if (!OSSL_CMP_HDR_update_messageTime(hdr))
+    if (!ossl_cmp_hdr_update_messageTime(hdr))
         return 0;
 
     if (ctx->recipNonce != NULL)
@@ -407,7 +407,7 @@ int OSSL_CMP_HDR_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
      * -- (this field is intended for human consumption)
      */
     if (ctx->freeText != NULL)
-        if (!OSSL_CMP_HDR_push1_freeText(hdr, ctx->freeText))
+        if (!ossl_cmp_hdr_push1_freeText(hdr, ctx->freeText))
             return 0;
 #endif
 

@@ -66,12 +66,12 @@ static int execute_HDR_init_test(CMP_HDR_TEST_FIXTURE *fixture)
     int res = 0;
 
     if (!TEST_int_eq(fixture->expected,
-                     OSSL_CMP_HDR_init(fixture->cmp_ctx, fixture->hdr)))
+                     ossl_cmp_hdr_init(fixture->cmp_ctx, fixture->hdr)))
         goto err;
     if (fixture->expected != 0) {
-        if (!TEST_int_eq(OSSL_CMP_HDR_get_pvno(fixture->hdr), OSSL_CMP_PVNO)
+        if (!TEST_int_eq(ossl_cmp_hdr_get_pvno(fixture->hdr), OSSL_CMP_PVNO)
                 || !TEST_true(0 == ASN1_OCTET_STRING_cmp(
-                       OSSL_CMP_HDR_get0_senderNonce(fixture->hdr),
+                        ossl_cmp_hdr_get0_senderNonce(fixture->hdr),
                        ossl_cmp_ctx_get0_last_senderNonce(fixture->cmp_ctx)))
                 || !TEST_true(0 ==  ASN1_OCTET_STRING_cmp(
                             OSSL_CMP_HDR_get0_transactionID(fixture->hdr),
@@ -142,9 +142,9 @@ static int
 execute_HDR_set_and_check_implicitConfirm_test(CMP_HDR_TEST_FIXTURE
                                                            * fixture)
 {
-    return TEST_false(OSSL_CMP_HDR_check_implicitConfirm(fixture->hdr))
-               && TEST_true(OSSL_CMP_HDR_set_implicitConfirm(fixture->hdr))
-               && TEST_true(OSSL_CMP_HDR_check_implicitConfirm(fixture->hdr));
+    return TEST_false(ossl_cmp_hdr_check_implicitConfirm(fixture->hdr))
+               && TEST_true(ossl_cmp_hdr_set_implicitConfirm(fixture->hdr))
+               && TEST_true(ossl_cmp_hdr_check_implicitConfirm(fixture->hdr));
 }
 
 static int test_HDR_get_and_check_implicit_confirm(void)

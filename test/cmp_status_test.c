@@ -55,19 +55,19 @@ static int execute_PKISI_test(CMP_STATUS_TEST_FIXTURE *fixture)
     int res = 0, i;
 
     if (!TEST_ptr(si =
-                  OSSL_CMP_statusInfo_new(fixture->pkistatus,
+                  ossl_cmp_statusinfo_new(fixture->pkistatus,
                                           fixture->pkifailure, fixture->text)))
         goto end;
-    if (!TEST_int_eq(fixture->pkistatus, OSSL_CMP_PKISI_get_PKIStatus(si))
+    if (!TEST_int_eq(fixture->pkistatus, ossl_cmp_pkisi_get_pkistatus(si))
             || !TEST_int_eq(fixture->pkifailure,
-                            OSSL_CMP_PKISI_get_PKIFailureInfo(si)))
+                            ossl_cmp_pkisi_get_pkifailureinfo(si)))
         goto end;
     for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
         if (!TEST_int_eq(fixture->pkifailure >> i & 1,
-                         OSSL_CMP_PKISI_PKIFailureInfo_check(si, i)))
+                         ossl_cmp_pkisi_pkifailureinfo_check(si, i)))
             goto end;
     statusString =
-        sk_ASN1_UTF8STRING_value(OSSL_CMP_PKISI_get0_statusString(si), 0);
+        sk_ASN1_UTF8STRING_value(ossl_cmp_pkisi_get0_statusstring(si), 0);
     if (!TEST_ptr(statusString)
             || !TEST_str_eq(fixture->text, (char *)statusString->data))
         goto end;
