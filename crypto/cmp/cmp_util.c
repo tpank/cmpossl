@@ -356,7 +356,7 @@ int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                const ASN1_OCTET_STRING *src)
 {
     if (tgt == NULL) {
-        CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto err;
     }
     if (*tgt == src) /* self-assignment */
@@ -365,7 +365,7 @@ int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
 
     if (src != NULL) {
         if ((*tgt = ASN1_OCTET_STRING_dup(src)) == NULL) {
-            CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1, ERR_R_MALLOC_FAILURE);
+            CMPerr(0, ERR_R_MALLOC_FAILURE);
             goto err;
         }
     } else {
@@ -384,14 +384,14 @@ int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
     int res = 0;
 
     if (tgt == NULL) {
-        CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_NULL_ARGUMENT);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto err;
     }
 
     if (bytes != NULL) {
         if ((new = ASN1_OCTET_STRING_new()) == NULL
                 || !(ASN1_OCTET_STRING_set(new, bytes, len))) {
-            CMPerr(CMP_F_CMP_ASN1_OCTET_STRING_SET1_BYTES, ERR_R_MALLOC_FAILURE);
+            CMPerr(0, ERR_R_MALLOC_FAILURE);
             goto err;
         }
 
