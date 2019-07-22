@@ -2,26 +2,26 @@
 
 =head1 NAME
 
-OSSL_CMP_MSG_protect,
-OSSL_CMP_MSG_add_extraCerts
+CMP_MSG_protect,
+CMP_MSG_add_extraCerts
 - functions for producing CMP message protection
 
 =head1 SYNOPSIS
 
   #include "cmp_int.h"
 
-  int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
-  int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
+  int CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
+  int CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 
 =head1 DESCRIPTION
 
-OSSL_CMP_MSG_protect() protects the given message B<msg> using an algorithm
+CMP_MSG_protect() protects the given message B<msg> using an algorithm
 depending on the available context information given in the B<ctx>.
 If there is a secretValue it selects PBMAC. Else if there is a clCert
-it selects Signature and uses B<OSSL_CMP_MSG_add_extraCerts()>.
+it selects Signature and uses B<CMP_MSG_add_extraCerts()>.
 It also sets the protectionAlg field in the message header accordingly.
 
-OSSL_CMP_MSG_add_extraCerts() adds elements to the extraCerts field in the given
+CMP_MSG_add_extraCerts() adds elements to the extraCerts field in the given
 message B<msg>. It tries to build the certificate chain of the client cert in
 the B<ctx> if present by using certificates in ctx->untrusted_certs;
 if no untrusted certs are set, it will at least add the client certificate.

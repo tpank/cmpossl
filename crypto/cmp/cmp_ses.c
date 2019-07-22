@@ -399,11 +399,10 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
         return 0;
     }
 
-    if ((ctx->lastPKIStatus = ossl_cmp_pkisi_get_pkistatus(si) < 0))
+    if (si == NULL) {
+        CMPerr(0, CMP_R_INVALID_ARGS);
         return 0;
-
-    if (!ossl_cmp_ctx_set_failInfoCode(ctx, si->failInfo))
-        return 0;
+    }
 
     if ((ctx->lastPKIStatus = ossl_cmp_pkisi_get_pkistatus(si) < 0)
             || !ossl_cmp_ctx_set_failInfoCode(ctx, si->failInfo)
@@ -579,7 +578,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
          * cannot flag fail_info earlier as send_receive_check() indirectly
          * calls ERR_clear_error()
          */
-        CMPerr(func, CMP_R_CERTIFICATE_NOT_ACCEPTED);
+        CMPerr(0, CMP_R_CERTIFICATE_NOT_ACCEPTED);
         ERR_add_error_data(1, txt);
         return 0;
 #endif
@@ -730,7 +729,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         break;
     case OSSL_CMP_PKISTATUS_rejection:
       /*TODO SSL_CMP_info("revocation accepted (PKIStatus=revocationWarning)");*/
-        CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_REQUEST_REJECTED_BY_CA);
+        CMPerr(0, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
     case OSSL_CMP_PKISTATUS_revocationWarning:
       /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=revocationNotification)");*/
