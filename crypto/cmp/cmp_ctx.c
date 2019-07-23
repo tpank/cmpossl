@@ -140,14 +140,14 @@ int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
     ctx->lastPKIStatus = -1;
     ctx->failInfoCode = -1;
 
-    return CMP_CTX_set0_statusString(ctx, NULL)
-        && CMP_CTX_set0_newClCert(ctx, NULL)
-        && CMP_CTX_set1_caPubs(ctx, NULL)
-        && CMP_CTX_set1_extraCertsIn(ctx, NULL)
-        && CMP_CTX_set0_validatedSrvCert(ctx, NULL)
+    return ossl_cmp_ctx_set0_statusString(ctx, NULL)
+        && ossl_cmp_ctx_set0_newClCert(ctx, NULL)
+        && ossl_cmp_ctx_set1_caPubs(ctx, NULL)
+        && ossl_cmp_ctx_set1_extraCertsIn(ctx, NULL)
+        && ossl_cmp_ctx_set0_validatedSrvCert(ctx, NULL)
         && OSSL_CMP_CTX_set1_transactionID(ctx, NULL)
         && OSSL_CMP_CTX_set1_last_senderNonce(ctx, NULL)
-        && CMP_CTX_set1_recipNonce(ctx, NULL);
+        && ossl_cmp_ctx_set1_recipNonce(ctx, NULL);
 }
 
 /*
@@ -222,7 +222,8 @@ OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(OSSL_CMP_CTX *ctx)
     return ctx != NULL ? ctx->lastStatusString : NULL;
 }
 
-int CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFREETEXT *text)
+int ossl_cmp_ctx_set0_statusString(OSSL_CMP_CTX *ctx,
+                                   OSSL_CMP_PKIFREETEXT *text)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -233,7 +234,7 @@ int CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFREETEXT *text)
     return 1;
 }
 
-int CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert)
+int ossl_cmp_ctx_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -307,7 +308,7 @@ int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
 #endif
     } else {
         res = OSSL_trace_set_callback(OSSL_TRACE_CATEGORY_CMP,
-                                      CMP_log_trace_cb, ctx);
+                                      ossl_cmp_log_trace_cb, ctx);
     }
     if (res)
         ctx->log_cb = cb;
@@ -332,7 +333,8 @@ int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->referenceValue, ref, len);
+    return ossl_cmp_asn1_octet_string_set1_bytes(&ctx->referenceValue, ref,
+                                                 len);
 }
 
 /*
@@ -348,7 +350,7 @@ int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
     }
     if (ctx->secretValue != NULL)
         OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
-    return CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->secretValue, sec, len);
+    return ossl_cmp_asn1_octet_string_set1_bytes(&ctx->secretValue, sec, len);
 }
 
 /*
@@ -372,7 +374,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx)
  * the OSSL_CMP_CTX structure so that they may be retrieved later.
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
+int ossl_cmp_ctx_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                               STACK_OF(X509) *extraCertsIn)
 {
     if (ctx == NULL) {
@@ -501,7 +503,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx)
  * OSSL_CMP_CTX structure so that they may be retrieved later.
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
+int ossl_cmp_ctx_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -641,7 +643,7 @@ int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, const X509_EXTENSIONS *ex
         return 0;
     }
 
-    exts_copy = CMP_X509_EXTENSIONS_dup(exts);
+    exts_copy = ossl_cmp_x509_extensions_dup(exts);
     if (exts != NULL && exts_copy == NULL)
         return 0;
 
@@ -746,7 +748,7 @@ int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
  * returns 1 on success, 0 on error
  * TODO: this only permits for one client cert to be received...
  */
-int CMP_CTX_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
+int ossl_cmp_ctx_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -844,7 +846,7 @@ int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return CMP_ASN1_OCTET_STRING_set1(&ctx->transactionID, id);
+    return ossl_cmp_asn1_octet_string_set1(&ctx->transactionID, id);
 
 }
 
@@ -862,21 +864,21 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx)
  * created.
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
+int ossl_cmp_ctx_set1_recipNonce(OSSL_CMP_CTX *ctx,
                             const ASN1_OCTET_STRING *nonce)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return CMP_ASN1_OCTET_STRING_set1(&ctx->recipNonce, nonce);
+    return ossl_cmp_asn1_octet_string_set1(&ctx->recipNonce, nonce);
 }
 
 /*
  * gets the recipNonce of the given context
  * returns a pointer to the nonce on success, NULL on error
  */
-ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx)
+ASN1_OCTET_STRING *ossl_cmp_ctx_get0_recipNonce(const OSSL_CMP_CTX *ctx)
 {
     return ctx == NULL ? NULL : ctx->recipNonce;
 }
@@ -892,14 +894,14 @@ int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return CMP_ASN1_OCTET_STRING_set1(&ctx->last_senderNonce, nonce);
+    return ossl_cmp_asn1_octet_string_set1(&ctx->last_senderNonce, nonce);
 }
 
 /*
  * gets the sender nonce of the last message sent
  * returns a pointer to the nonce on success, NULL on error
  */
-ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx)
+ASN1_OCTET_STRING *ossl_cmp_ctx_get0_last_senderNonce(const OSSL_CMP_CTX *ctx)
 {
     return ctx == NULL ? NULL : ctx->last_senderNonce;
 }
@@ -1067,7 +1069,7 @@ int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
  * OSSL_CMP_PKIFAILUREINFO structure, which is allowed to be NULL
  * returns 1 on success, 0 on error
  */
-int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
+int ossl_cmp_ctx_set_failInfoCode(OSSL_CMP_CTX *ctx,
                              const OSSL_CMP_PKIFAILUREINFO *fail_info)
 {
     int i;

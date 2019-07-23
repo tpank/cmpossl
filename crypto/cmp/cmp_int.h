@@ -716,26 +716,27 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  * functions
  */
 /* from cmp_util.c */
-size_t CMP_log_trace_cb(const char *buf, size_t cnt,
-                        int category, int cmd, void *vdata);
-int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt, int category, int cmd,
+                             void *vdata);
+int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
                                const ASN1_OCTET_STRING *src);
-int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                     const unsigned char *bytes, int len);
-X509_EXTENSIONS *CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *exts);
+int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
+                                          const unsigned char *bytes, int len);
+X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts);
 
 /* from cmp_ctx.c */
-int CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
-                            const ASN1_OCTET_STRING *nonce);
-ASN1_OCTET_STRING *CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
-ASN1_OCTET_STRING *CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx);
-int CMP_CTX_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
-int CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
-int CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
-                              STACK_OF(X509) *extraCertsIn);
-int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
-                             const OSSL_CMP_PKIFAILUREINFO *fail_info);
-int CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert);
-int CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFREETEXT *text);
+int ossl_cmp_ctx_set1_recipNonce(OSSL_CMP_CTX *ctx,
+                                 const ASN1_OCTET_STRING *nonce);
+ASN1_OCTET_STRING *ossl_cmp_ctx_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
+ASN1_OCTET_STRING *ossl_cmp_ctx_get0_recipNonce(const OSSL_CMP_CTX *ctx);
+int ossl_cmp_ctx_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
+int ossl_cmp_ctx_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
+int ossl_cmp_ctx_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
+                                   STACK_OF(X509) *extraCertsIn);
+int ossl_cmp_ctx_set_failInfoCode(OSSL_CMP_CTX *ctx,
+                                  const OSSL_CMP_PKIFAILUREINFO *fail_info);
+int ossl_cmp_ctx_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert);
+int ossl_cmp_ctx_set0_statusString(OSSL_CMP_CTX *ctx,
+                                   OSSL_CMP_PKIFREETEXT *text);
 
 #endif /* !defined OSSL_HEADER_CMP_INT_H */

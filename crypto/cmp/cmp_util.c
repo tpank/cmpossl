@@ -62,7 +62,7 @@ static OSSL_CMP_severity parse_level(const char *level)
         -1;
 }
 
-size_t CMP_log_trace_cb(const char *buf, size_t cnt,
+size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
                         int category, int cmd, void *vdata)
 {
     OSSL_CMP_CTX *ctx = vdata;
@@ -347,7 +347,7 @@ STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs,
     return result;
 }
 
-X509_EXTENSIONS *CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *exts)
+X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts)
 {
     if (exts == NULL)
         return NULL;
@@ -355,7 +355,7 @@ X509_EXTENSIONS *CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *exts)
                                        X509_EXTENSION_free);
 }
 
-int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
+int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
                                const ASN1_OCTET_STRING *src)
 {
     if (tgt == NULL) {
@@ -380,7 +380,7 @@ int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
     return 0;
 }
 
-int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
+int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
                                      const unsigned char *bytes, int len)
 {
     ASN1_OCTET_STRING *new = NULL;
@@ -399,7 +399,7 @@ int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
         }
 
     }
-    res = CMP_ASN1_OCTET_STRING_set1(tgt, new);
+    res = ossl_cmp_asn1_octet_string_set1(tgt, new);
 
  err:
     ASN1_OCTET_STRING_free(new);
