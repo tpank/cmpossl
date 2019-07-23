@@ -43,9 +43,10 @@ X509_STORE *OSSL_CMP_CTX_get0_trustedStore(const OSSL_CMP_CTX *ctx)
  */
 int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store)
 {
-    if (ctx == NULL)
-       return 0;
-
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     X509_STORE_free(ctx->trusted_store);
     ctx->trusted_store = store != NULL ? store : X509_STORE_new();
     return ctx->trusted_store != NULL;
@@ -67,9 +68,10 @@ STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(const OSSL_CMP_CTX *ctx)
 int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
                                       const STACK_OF(X509) *certs)
 {
-    if (ctx == NULL)
-       return 0;
-
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     sk_X509_pop_free(ctx->untrusted_certs, X509_free);
     if ((ctx->untrusted_certs = sk_X509_new_null()) == NULL)
         return 0;
@@ -130,9 +132,10 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
  */
 int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
-
+    }
     ctx->log_level = -1;
     ctx->lastPKIStatus = -1;
     ctx->failInfoCode = -1;
@@ -221,9 +224,10 @@ OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(OSSL_CMP_CTX *ctx)
 
 int CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFREETEXT *text)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
-
+    }
     sk_ASN1_UTF8STRING_pop_free(ctx->lastStatusString, ASN1_UTF8STRING_free);
     ctx->lastStatusString = text;
     return 1;
@@ -231,9 +235,10 @@ int CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFREETEXT *text)
 
 int CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
-
+    }
     X509_free(ctx->validatedSrvCert);
     ctx->validatedSrvCert = cert;
     return 1;
@@ -246,8 +251,10 @@ int CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert)
  */
 int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     ctx->certConf_cb = cb;
     return 1;
 }
@@ -259,8 +266,10 @@ int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb)
  */
 int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     ctx->certConf_cb_arg = arg;
     return 1;
 }
@@ -285,8 +294,10 @@ int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
 {
     int res = 0;
 
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     if (cb == NULL) {
 #ifndef OPENSSL_NO_STDIO
         BIO *bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
@@ -318,7 +329,7 @@ int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
                                      const unsigned char *ref, int len)
 {
     if (ctx == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     return CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->referenceValue, ref, len);
@@ -348,7 +359,7 @@ int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
 STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
     if (ctx->extraCertsIn == NULL)
@@ -949,8 +960,10 @@ int OSSL_CMP_CTX_set_proxyPort(OSSL_CMP_CTX *ctx, int port)
  */
 int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_http_cb_t cb)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     ctx->http_cb = cb;
     return 1;
 }
@@ -961,8 +974,10 @@ int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_http_cb_t cb)
  */
 int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     ctx->http_cb_arg = arg;
     return 1;
 }
@@ -984,8 +999,10 @@ void *OSSL_CMP_CTX_get_http_cb_arg(OSSL_CMP_CTX *ctx)
  */
 int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_transfer_cb_t cb)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     ctx->transfer_cb = cb;
     return 1;
 }
@@ -996,8 +1013,10 @@ int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_transfer_cb_t cb)
  */
 int OSSL_CMP_CTX_set_transfer_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     ctx->transfer_cb_arg = arg;
     return 1;
 }
@@ -1053,9 +1072,10 @@ int CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
 {
     int i;
 
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
-
+    }
     ctx->failInfoCode = 0;
     if (fail_info == NULL)
         return 1;

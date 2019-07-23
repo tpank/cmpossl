@@ -222,9 +222,10 @@ int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
 {
     int i;
 
-    if (sk == NULL)
+    if (sk == NULL){
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
-
+    }
     if (certs == NULL)
         return 1;
     for (i = 0; i < sk_X509_num(certs); i++) {
@@ -242,10 +243,10 @@ int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed)
 {
     int i;
-
-    if (store == NULL)
+    if (store == NULL){
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
-
+    }
     if (certs == NULL)
         return 1;
     for (i = 0; i < sk_X509_num(certs); i++) {
@@ -310,8 +311,10 @@ STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs,
     X509_STORE *store = X509_STORE_new();
     X509_STORE_CTX *csc = NULL;
 
-    if (certs == NULL || cert == NULL || store == NULL)
+    if (certs == NULL || cert == NULL || store == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto err;
+    }
 
     csc = X509_STORE_CTX_new();
     if (csc == NULL)
