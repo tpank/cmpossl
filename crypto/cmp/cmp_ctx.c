@@ -375,7 +375,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  */
 int ossl_cmp_ctx_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
-                              STACK_OF(X509) *extraCertsIn)
+                                   STACK_OF(X509) *extraCertsIn)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -1070,7 +1070,7 @@ int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
  * returns 1 on success, 0 on error
  */
 int ossl_cmp_ctx_set_failInfoCode(OSSL_CMP_CTX *ctx,
-                             const OSSL_CMP_PKIFAILUREINFO *fail_info)
+                                  const OSSL_CMP_PKIFAILUREINFO *fail_info)
 {
     int i;
 

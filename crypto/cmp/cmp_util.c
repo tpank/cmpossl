@@ -63,12 +63,11 @@ static OSSL_CMP_severity parse_level(const char *level)
 }
 
 size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
-                        int category, int cmd, void *vdata)
+                             int category, int cmd, void *vdata)
 {
     OSSL_CMP_CTX *ctx = vdata;
     const char *func = buf;
     const char *file = buf == NULL ? NULL : strchr(buf, ':');
-
     if (buf == NULL || cnt == 0 || cmd != OSSL_TRACE_CTRL_WRITE || ctx == NULL)
         return 0;
     if (file++ != NULL) {
@@ -356,7 +355,7 @@ X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts)
 }
 
 int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
-                               const ASN1_OCTET_STRING *src)
+                                    const ASN1_OCTET_STRING *src)
 {
     if (tgt == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -381,7 +380,7 @@ int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
 }
 
 int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                     const unsigned char *bytes, int len)
+                                          const unsigned char *bytes, int len)
 {
     ASN1_OCTET_STRING *new = NULL;
     int res = 0;
