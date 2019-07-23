@@ -47,7 +47,7 @@ int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store)
        return 0;
 
     X509_STORE_free(ctx->trusted_store);
-    ctx->trusted_store = store != NULL ? store : X509_STORE_new();;
+    ctx->trusted_store = store != NULL ? store : X509_STORE_new();
     return ctx->trusted_store != NULL;
 }
 
@@ -294,8 +294,7 @@ int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
         res = bio_out != NULL
                   && OSSL_trace_set_channel(OSSL_TRACE_CATEGORY_CMP, bio_out);
 #endif
-    }
-    else {
+    } else {
         res = OSSL_trace_set_callback(OSSL_TRACE_CATEGORY_CMP,
                                       CMP_log_trace_cb, ctx);
     }

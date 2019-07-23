@@ -82,7 +82,7 @@ EVP_PKEY *gen_rsa(void)
 }
 
 /*
- * Checks whether the syntax of msg is ASN.1 conform
+ * Checks whether the syntax of msg conforms to ASN.1
  */
 int valid_asn1_encoding(const OSSL_CMP_MSG *msg)
 {
