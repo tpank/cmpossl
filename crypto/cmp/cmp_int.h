@@ -29,7 +29,7 @@
 /*
  * this structure is used to store the context for CMP sessions
  */
-struct OSSL_cmp_ctx_st {
+struct ossl_cmp_ctx_st {
     OSSL_cmp_log_cb_t log_cb; /* log callback for error/debug/etc. output */
     char *log_func; /* name of function that logged last */
     char *log_file; /* name of source file of that function */
@@ -169,7 +169,7 @@ struct OSSL_cmp_ctx_st {
  *       -- extra CRL details (e.g., crl number, reason, location, etc.)
  *   }
  */
-typedef struct OSSL_cmp_revanncontent_st {
+typedef struct ossl_cmp_revanncontent_st {
     ASN1_INTEGER *status;
     OSSL_CRMF_CERTID *certId;
     ASN1_GENERALIZEDTIME *willBeRevokedAt;
@@ -202,7 +202,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_REVANNCONTENT)
  *       --   }
  *   }
  */
-typedef struct OSSL_cmp_challenge_st {
+typedef struct ossl_cmp_challenge_st {
     X509_ALGOR *owf;
     ASN1_OCTET_STRING *witness;
     ASN1_OCTET_STRING *challenge;
@@ -216,7 +216,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CHALLENGE)
  *     newWithNew         Certificate
  *  }
  */
-typedef struct OSSL_cmp_cakeyupdanncontent_st {
+typedef struct ossl_cmp_cakeyupdanncontent_st {
     X509 *oldWithNew;
     X509 *newWithOld;
     X509 *newWithNew;
@@ -236,7 +236,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_MSGS)
  *       infoValue              ANY DEFINED BY infoType  OPTIONAL
  *   }
  */
-struct OSSL_cmp_itav_st {
+struct ossl_cmp_itav_st {
     ASN1_OBJECT *infoType;
     union {
         char *ptr;
@@ -275,7 +275,7 @@ struct OSSL_cmp_itav_st {
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
 DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_ITAV)
 
-typedef struct OSSL_cmp_certorenccert_st {
+typedef struct ossl_cmp_certorenccert_st {
     int type;
     union {
         X509 *certificate;
@@ -292,7 +292,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTORENCCERT)
  *       publicationInfo [1] PKIPublicationInfo  OPTIONAL
  *   }
  */
-typedef struct OSSL_cmp_certifiedkeypair_st {
+typedef struct ossl_cmp_certifiedkeypair_st {
     OSSL_CMP_CERTORENCCERT *certOrEncCert;
     OSSL_CRMF_ENCRYPTEDVALUE *privateKey;
     OSSL_CRMF_PKIPUBLICATIONINFO *publicationInfo;
@@ -306,7 +306,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTIFIEDKEYPAIR)
  *       failInfo      PKIFailureInfo  OPTIONAL
  *   }
  */
-struct OSSL_cmp_pkisi_st {
+struct ossl_cmp_pkisi_st {
     OSSL_CMP_PKISTATUS *status;
     OSSL_CMP_PKIFREETEXT *statusString;
     OSSL_CMP_PKIFAILUREINFO *failInfo;
@@ -322,7 +322,7 @@ DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_PKISI)
  *      crlEntryDetails     Extensions       OPTIONAL
  *  }
  */
-typedef struct OSSL_cmp_revdetails_st {
+typedef struct ossl_cmp_revdetails_st {
     OSSL_CRMF_CERTTEMPLATE *certDetails;
     X509_EXTENSIONS *crlEntryDetails;
 } OSSL_CMP_REVDETAILS;
@@ -342,7 +342,7 @@ DEFINE_STACK_OF(OSSL_CMP_REVDETAILS)
  *       -- the resulting CRLs (there may be more than one)
  *   }
  */
-struct OSSL_cmp_revrepcontent_st {
+struct ossl_cmp_revrepcontent_st {
     STACK_OF(OSSL_CMP_PKISI) *status;
     STACK_OF(OSSL_CRMF_CERTID) *revCerts;
     STACK_OF(X509_CRL) *crls;
@@ -359,7 +359,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_REVREPCONTENT)
  *                                   CertifiedKeyPair OPTIONAL
  *   }
  */
-typedef struct OSSL_cmp_keyrecrepcontent_st {
+typedef struct ossl_cmp_keyrecrepcontent_st {
     OSSL_CMP_PKISI *status;
     X509 *newSigCert;
     STACK_OF(X509) *caCerts;
@@ -376,7 +376,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_KEYRECREPCONTENT)
  *       -- implementation-specific error details
  *   }
  */
-typedef struct OSSL_cmp_errormsgcontent_st {
+typedef struct ossl_cmp_errormsgcontent_st {
     OSSL_CMP_PKISI *pKIStatusInfo;
     ASN1_INTEGER *errorCode;
     OSSL_CMP_PKIFREETEXT *errorDetails;
@@ -395,7 +395,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ERRORMSGCONTENT)
  *      statusInfo  PKIStatusInfo OPTIONAL
  *   }
  */
-struct OSSL_cmp_certstatus_st {
+struct ossl_cmp_certstatus_st {
     ASN1_OCTET_STRING *certHash;
     ASN1_INTEGER *certReqId;
     OSSL_CMP_PKISI *statusInfo;
@@ -418,7 +418,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTCONFIRMCONTENT)
  *       -- for regInfo in CertReqMsg [CRMF]
  *   }
  */
-struct OSSL_cmp_certresponse_st {
+struct ossl_cmp_certresponse_st {
     ASN1_INTEGER *certReqId;
     OSSL_CMP_PKISI *status;
     OSSL_CMP_CERTIFIEDKEYPAIR *certifiedKeyPair;
@@ -433,7 +433,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTRESPONSE)
  *       response         SEQUENCE OF CertResponse
  *   }
  */
-struct OSSL_cmp_certrepmessage_st {
+struct ossl_cmp_certrepmessage_st {
     STACK_OF(X509) *caPubs;
     STACK_OF(OSSL_CMP_CERTRESPONSE) *response;
 } /* OSSL_CMP_CERTREPMESSAGE */;
@@ -444,7 +444,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTREPMESSAGE)
  *         certReqId                              INTEGER
  *   }
  */
-typedef struct OSSL_cmp_pollreq_st {
+typedef struct ossl_cmp_pollreq_st {
     ASN1_INTEGER *certReqId;
 } OSSL_CMP_POLLREQ;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_POLLREQ)
@@ -459,7 +459,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_POLLREQCONTENT)
  *         reason                                 PKIFreeText OPTIONAL
  * }
  */
-struct OSSL_cmp_pollrep_st {
+struct ossl_cmp_pollrep_st {
     ASN1_INTEGER *certReqId;
     ASN1_INTEGER *checkAfter;
     OSSL_CMP_PKIFREETEXT *reason;
@@ -503,7 +503,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_POLLREPCONTENT)
  *     -- (this field not primarily intended for human consumption)
  *   }
  */
-struct OSSL_cmp_pkiheader_st {
+struct ossl_cmp_pkiheader_st {
     ASN1_INTEGER *pvno;
     GENERAL_NAME *sender;
     GENERAL_NAME *recipient;
@@ -561,7 +561,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_GENREPCONTENT)
  *           pollReq  [25] PollReqContent,             --Polling request
  *           pollRep  [26] PollRepContent              --Polling response
  */
-typedef struct OSSL_cmp_pkibody_st {
+typedef struct ossl_cmp_pkibody_st {
     int type;
     union {
         OSSL_CRMF_MSGS *ir; /* 0 */
@@ -647,7 +647,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIBODY)
  *                                            OPTIONAL
  *   }
  */
-struct OSSL_cmp_msg_st {
+struct ossl_cmp_msg_st {
     OSSL_CMP_PKIHEADER *header;
     OSSL_CMP_PKIBODY *body;
     ASN1_BIT_STRING *protection; /* 0 */

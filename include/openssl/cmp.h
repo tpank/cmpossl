@@ -204,23 +204,23 @@ DECLARE_ASN1_ITEM(OSSL_CMP_PKISTATUS)
 #  define OSSL_CMP_CERTORENCCERT_ENCRYPTEDCERT 1
 
 /* data type declarations */
-typedef struct OSSL_cmp_ctx_st OSSL_CMP_CTX;
-typedef struct OSSL_cmp_pkiheader_st OSSL_CMP_PKIHEADER;
+typedef struct ossl_cmp_ctx_st OSSL_CMP_CTX;
+typedef struct ossl_cmp_pkiheader_st OSSL_CMP_PKIHEADER;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIHEADER)
-typedef struct OSSL_cmp_msg_st OSSL_CMP_MSG;
+typedef struct ossl_cmp_msg_st OSSL_CMP_MSG;
 DECLARE_ASN1_ENCODE_FUNCTIONS(OSSL_CMP_MSG, OSSL_CMP_MSG, OSSL_CMP_MSG)
-typedef struct OSSL_cmp_certstatus_st OSSL_CMP_CERTSTATUS;
+typedef struct ossl_cmp_certstatus_st OSSL_CMP_CERTSTATUS;
 DEFINE_STACK_OF(OSSL_CMP_CERTSTATUS)
-typedef struct OSSL_cmp_itav_st OSSL_CMP_ITAV;
+typedef struct ossl_cmp_itav_st OSSL_CMP_ITAV;
 DEFINE_STACK_OF(OSSL_CMP_ITAV)
-typedef struct OSSL_cmp_revrepcontent_st OSSL_CMP_REVREPCONTENT;
-typedef struct OSSL_cmp_pkisi_st OSSL_CMP_PKISI;
+typedef struct ossl_cmp_revrepcontent_st OSSL_CMP_REVREPCONTENT;
+typedef struct ossl_cmp_pkisi_st OSSL_CMP_PKISI;
 DEFINE_STACK_OF(OSSL_CMP_PKISI)
-typedef struct OSSL_cmp_certrepmessage_st OSSL_CMP_CERTREPMESSAGE;
+typedef struct ossl_cmp_certrepmessage_st OSSL_CMP_CERTREPMESSAGE;
 DEFINE_STACK_OF(OSSL_CMP_CERTREPMESSAGE)
-typedef struct OSSL_cmp_pollrep_st OSSL_CMP_POLLREP;
+typedef struct ossl_cmp_pollrep_st OSSL_CMP_POLLREP;
 typedef STACK_OF(OSSL_CMP_POLLREP) OSSL_CMP_POLLREPCONTENT;
-typedef struct OSSL_cmp_certresponse_st OSSL_CMP_CERTRESPONSE;
+typedef struct ossl_cmp_certresponse_st OSSL_CMP_CERTRESPONSE;
 DEFINE_STACK_OF(OSSL_CMP_CERTRESPONSE)
 typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
 
