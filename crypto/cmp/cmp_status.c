@@ -89,7 +89,11 @@ const char *ossl_cmp__pkistatus_to_string(int status)
  */
 OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusstring(const OSSL_CMP_PKISI *si)
 {
-    return si == NULL ? NULL : si->statusString;
+    if (si == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+    return si->statusString;
 }
 
 /*
@@ -98,7 +102,11 @@ OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusstring(const OSSL_CMP_PKISI *si)
  */
 OSSL_CMP_PKIFAILUREINFO *ossl_cmp_pkisi_get0_failinfo(const OSSL_CMP_PKISI *si)
 {
-    return si == NULL ? NULL : si->failInfo;
+    if (si == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+    return si->failInfo;
 }
 
 /*
@@ -318,9 +326,10 @@ ossl_cmp_revrepcontent_get_pkistatusinfo(OSSL_CMP_REVREPCONTENT *rrep, int rsid)
 {
     OSSL_CMP_PKISI *status = NULL;
 
-    if (rrep == NULL)
+    if (rrep == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
-
+    }
     if ((status = sk_OSSL_CMP_PKISI_value(rrep->status, rsid)) != NULL)
         return status;
 
@@ -340,9 +349,10 @@ OSSL_CRMF_CERTID *ossl_cmp_revrepcontent_get_CertId(OSSL_CMP_REVREPCONTENT *rrep
 {
     OSSL_CRMF_CERTID *cid = NULL;
 
-    if (rrep == NULL)
+    if (rrep == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
-
+    }
     if ((cid = sk_OSSL_CRMF_CERTID_value(rrep->revCerts, rsid)) != NULL)
         return cid;
 
@@ -383,7 +393,7 @@ ossl_cmp_pollrepcontent_get0_pollrep(const OSSL_CMP_POLLREPCONTENT *prc, int rid
     int i;
 
     if (prc == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
 
@@ -411,7 +421,7 @@ ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg
     int i;
 
     if (crepmsg == NULL || crepmsg->response == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
 
@@ -438,7 +448,7 @@ X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
     X509 *crt = NULL;
 
     if (ctx == NULL || crep == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
     if (crep->certifiedKeyPair
