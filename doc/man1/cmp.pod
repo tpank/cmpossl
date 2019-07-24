@@ -33,6 +33,7 @@ S<[B<-cert filename>]>
 S<[B<-key filename>]>
 S<[B<-keypass arg>]>
 S<[B<-digest name>]>
+S<[B<-mac name>]>
 S<[B<-extracerts sources>]>
 S<[B<-unprotectedrequests>]>
 
@@ -357,11 +358,19 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-digest name>
 
-Specifies name of supported digest to use in RFC 4210's MSG_SIG_ALG.
+Specifies name of supported digest to use in RFC 4210's MSG_SIG_ALG
+and as the one-way function (OWF) in MSG_MAC_ALG.
 If applicable, this is used for message protection and
 Proof-of-Possession (POPO) signatures.
 To see the list of supported digests, use B<openssl list -digest-commands>.
 Defaults to C<sha256>.
+
+=item B<-mac name>
+
+Specifies name of supported digest to use as the MAC algorithm in MSG_MAC_ALG.
+To get the names of supported MAC algorithms, use B<openssl list -mac-algorithms
+and possibly combine such a name with the name of a supported digest algorithm,
+e.g., hmacWithSHA256. Defaults to C<hmac-sha1> as per RFC 4210.
 
 =item B<-extracerts sources>
 

@@ -1230,6 +1230,12 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, OSSL_cmp_option opt, int val) {
     case OSSL_CMP_OPT_DIGEST_ALGNID:
         ctx->digest = val;
         break;
+    case OSSL_CMP_OPT_OWF_ALGNID:
+        ctx->pbm_owf = val;
+        break;
+    case OSSL_CMP_OPT_MAC_ALGNID:
+        ctx->pbm_mac = val;
+        break;
     case OSSL_CMP_OPT_MSGTIMEOUT:
         ctx->msgtimeout = val;
         break;
