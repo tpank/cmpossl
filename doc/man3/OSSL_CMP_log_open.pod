@@ -142,7 +142,7 @@ All other functions return 1 on success, 0 on error.
 
 =head1 HISTORY
 
-All functions were added in OpenSSL 3.0.0.
+The OpenSSL CMP support was added in OpenSSL 3.0.
 
 =head1 COPYRIGHT
 
