@@ -78,6 +78,7 @@ In debug mode the message B<msg> is preceded by any component identifier
 B<component>, source file path name B<file>, and line number B<lineno>.
 It is also proceded by any given severity indication, namely, "EMERGENCY",
 "ALERT", "CRITICAL", "ERROR", "WARNING", "NOTICE", "INFO", or "DEBUG".
+The function does nothing if B<OPENSSL_NO_STDIO> is defined.
 
 OSSL_CMP_log_printf() outputs alert/error/warning/note/info/debug messages.
 The nature of the message is specified by the B<level> parameter.

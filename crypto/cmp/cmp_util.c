@@ -84,6 +84,8 @@ int OSSL_CMP_puts(const char *component, const char *file, int lineno,
 #ifndef OPENSSL_NO_STDIO
     FILE *fd = level <= OSSL_LOG_WARNING ? stderr : stdout;
     return CMP_log_fd(component, file, lineno, level, msg, fd);
+#else
+    return 1;
 #endif
 }
 
