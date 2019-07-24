@@ -68,6 +68,7 @@ size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
     OSSL_CMP_CTX *ctx = vdata;
     const char *func = buf;
     const char *file = buf == NULL ? NULL : strchr(buf, ':');
+
     if (buf == NULL || cnt == 0 || cmd != OSSL_TRACE_CTRL_WRITE || ctx == NULL)
         return 0;
     if (file != NULL) {
@@ -120,7 +121,7 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
     if (err == 0)
         ERR_PUT_error(ERR_LIB_CMP, 0, err, "", 0);
 
-#define MAX_DATA_LEN 4096-100 /* workaround for ERR_print_errors_cb() limit */
+#define MAX_DATA_LEN (4096-100) /* workaround for ERR_print_errors_cb() limit */
     do {
         const char *curr, *next;
         int len;
@@ -131,10 +132,9 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
             data = "";
             separator = "";
         }
-        len = (int)strlen(data);
+        len = (int)strlen(data) + strlen(separator);
         curr = next = txt;
-        while (*next != '\0'
-                   && len + strlen(separator) + (next - txt) < MAX_DATA_LEN) {
+        while (*next != '\0' && len + (next - txt) < MAX_DATA_LEN) {
             curr = next;
             if (*separator != '\0') {
                 next = strstr(curr, separator);
@@ -145,7 +145,8 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
             } else
                 next = curr + 1;
         }
-        if (*next != '\0') { /* split error msg if error data gets too long */
+        if (*next != '\0') { /* here this implies: next points beyond limit */
+            /* split error msg at curr since error data would get too long */
             if (curr != txt) {
                 tmp = OPENSSL_strndup(txt, curr - txt);
                 ERR_add_error_data(2, separator, tmp);
