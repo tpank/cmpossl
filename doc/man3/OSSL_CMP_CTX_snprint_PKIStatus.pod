@@ -30,6 +30,10 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 OSSL_CMP_CTX_snprint_PKIStatus(),
 returns the intended pointer value as described above or NULL on error.
 
+=head1 HISTORY
+
+The OpenSSL CMP support was added in OpenSSL 3.0.
+
 =head1 COPYRIGHT
 
 Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
