@@ -159,6 +159,7 @@ static char *opt_key = NULL;
 static char *opt_keypass = NULL;
 static int opt_unprotectedRequests = 0;
 static char *opt_digest = NULL;
+static char *opt_mac = NULL;
 static char *opt_extracerts = NULL;
 
 static char *opt_trusted = NULL;
@@ -278,7 +279,7 @@ typedef enum OPTION_choice {
     OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
 
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS,
-    OPT_UNPROTECTEDREQUESTS, OPT_DIGEST, OPT_EXTRACERTS,
+    OPT_UNPROTECTEDREQUESTS, OPT_DIGEST, OPT_MAC, OPT_EXTRACERTS,
 
     OPT_CMD, OPT_INFOTYPE, OPT_GENINFO,
 
@@ -391,6 +392,8 @@ OPTIONS cmp_options[] = {
      "Send messages without CMP-level protection"},
     {"digest", OPT_DIGEST, 's',
      "Digest to use in message protection and POPO signatures. Default 'sha256'"},
+    {"mac", OPT_MAC, 's',
+     "MAC algorithm to use in PBM-based message protection. Default 'hmac-sha1'"},
     {"extracerts", OPT_EXTRACERTS, 's',
      "Certificates to append in extraCerts field when sending messages"},
 
@@ -623,7 +626,8 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_extracertsout}, {&opt_cacertsout},
 
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass},
-    {(char **)&opt_unprotectedRequests}, {&opt_digest}, {&opt_extracerts},
+    {(char **)&opt_unprotectedRequests}, {&opt_digest}, {&opt_mac},
+    {&opt_extracerts},
 
     {&opt_cmd_s}, {&opt_infotype_s}, {&opt_geninfo},
 
@@ -2990,6 +2994,16 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_DIGEST_ALGNID, digest);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_OWF_ALGNID, digest);
+    }
+
+    if (opt_mac != NULL) {
+        int mac = OBJ_ln2nid(opt_mac);
+        if (mac == NID_undef) {
+            CMP_err1("MAC algorithm name not recognized: '%s'", opt_mac);
+            goto err;
+        }
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_MAC_ALGNID, mac);
     }
     return 1;
 
@@ -3693,6 +3707,9 @@ static int get_opts(int argc, char **argv)
             break;
         case OPT_DIGEST:
             opt_digest = opt_str("digest");
+            break;
+        case OPT_MAC:
+            opt_mac = opt_str("mac");
             break;
         case OPT_EXTRACERTS:
             opt_extracerts = opt_str("extracerts");
