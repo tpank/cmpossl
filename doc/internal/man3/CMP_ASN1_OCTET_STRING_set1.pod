@@ -2,40 +2,44 @@
 
 =head1 NAME
 
-CMP_X509_EXTENSIONS_dup,
-CMP_ASN1_OCTET_STRING_set1,
-CMP_ASN1_OCTET_STRING_set1_bytes
+ossl_cmp_x509_extensions_dup,
+ossl_cmp_asn1_octet_string_set1,
+ossl_cmp_asn1_octet_string_set1_bytes
 - misc internal utility functions
 
 =head1 SYNOPSIS
 
   #include "cmp_int.h"
 
-  X509_EXTENSIONS *CMP_X509_EXTENSIONS_dup(const X509_EXTENSIONS *exts);
-  int CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
-                                 const ASN1_OCTET_STRING *src);
-  int CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                       const unsigned char *bytes, int len);
+  X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts);
+  int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
+                                      const ASN1_OCTET_STRING *src);
+  int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
+                                            const unsigned char *bytes, int len);
 
 =head1 DESCRIPTION
 
-CMP_X509_EXTENSIONS_dup() copies a list of X.509 v3 extensions.
+ossl_cmp_x509_extensions_dup() copies a list of X.509 v3 extensions.
 
-CMP_ASN1_OCTET_STRING_set1() frees any previous value of the variable
+ossl_cmp_asn1_octet_string_set1() frees any previous value of the variable
 referenced via the C<tgt> argument and assigns either a copy of
 the ASN1_OCTET_STRING given as the C<src> argument or C<NULL>.
 It returns 1 on success, 0 on error.
 
-CMP_ASN1_OCTET_STRING_set1_bytes() frees any previous value of the variable
+ossl_cmp_asn1_octet_string_set1_bytes() frees any previous value of the variable
 referenced via the C<tgt> argument and assigns either a copy of the given byte
 string (with the given length) or NULL. It returns 1 on success, 0 on error.
 
 =head1 RETURN VALUES
 
-CMP_X509_EXTENSIONS_dup()
+ossl_cmp_x509_extensions_dup()
 returns NULL in case the input list is NULL and on error.
 
 All other functions return 1 on success, 0 on error.
+
+=head1 HISTORY
+
+The OpenSSL CMP support was added in OpenSSL 3.0.
 
 =head1 COPYRIGHT
 
