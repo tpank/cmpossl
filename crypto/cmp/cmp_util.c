@@ -123,8 +123,8 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
 
 #define MAX_DATA_LEN (4096-100) /* workaround for ERR_print_errors_cb() limit */
     do {
+        int prev_len;
         const char *curr, *next;
-        int len;
         char *tmp;
 
         ERR_peek_last_error_line_data(&file, &line, &data, &flags);
@@ -132,9 +132,9 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
             data = "";
             separator = "";
         }
-        len = (int)strlen(data) + strlen(separator);
+        prev_len = (int)strlen(data) + strlen(separator);
         curr = next = txt;
-        while (*next != '\0' && len + (next - txt) < MAX_DATA_LEN) {
+        while (*next != '\0' && prev_len + (next - txt) < MAX_DATA_LEN) {
             curr = next;
             if (*separator != '\0') {
                 next = strstr(curr, separator);
@@ -142,8 +142,9 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
                     next += strlen(separator);
                 else
                     next = curr + strlen(curr);
-            } else
+            } else {
                 next = curr + 1;
+            }
         }
         if (*next != '\0') { /* here this implies: next points beyond limit */
             /* split error msg at curr since error data would get too long */
@@ -222,7 +223,7 @@ int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
 {
     int i;
 
-    if (sk == NULL){
+    if (sk == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
@@ -243,7 +244,8 @@ int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed)
 {
     int i;
-    if (store == NULL){
+
+    if (store == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
@@ -265,19 +267,21 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store)
     STACK_OF(X509) *sk;
     STACK_OF(X509_OBJECT) *objs;
 
-    if (store == NULL)
-        return NULL;
+    if (store == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     if ((sk = sk_X509_new_null()) == NULL)
         return NULL;
     objs = X509_STORE_get0_objects(store);
     for (i = 0; i < sk_X509_OBJECT_num(objs); i++) {
         X509 *cert = X509_OBJECT_get0_X509(sk_X509_OBJECT_value(objs, i));
+
         if (cert != NULL) {
-            if (!sk_X509_push(sk, cert)) {
+            if (!sk_X509_push(sk, cert) || !X509_up_ref(cert)) {
                 sk_X509_pop_free(sk, X509_free);
                 return NULL;
             }
-            X509_up_ref(cert);
         }
     }
     return sk;
@@ -349,8 +353,10 @@ STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs,
 
 X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts)
 {
-    if (exts == NULL)
+    if (exts == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
+    }
     return sk_X509_EXTENSION_deep_copy(exts, X509_EXTENSION_dup,
                                        X509_EXTENSION_free);
 }
@@ -360,48 +366,38 @@ int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
 {
     if (tgt == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
-        goto err;
+        return 0;
     }
     if (*tgt == src) /* self-assignment */
         return 1;
     ASN1_OCTET_STRING_free(*tgt);
 
     if (src != NULL) {
-        if ((*tgt = ASN1_OCTET_STRING_dup(src)) == NULL) {
-            CMPerr(0, ERR_R_MALLOC_FAILURE);
-            goto err;
-        }
+        if ((*tgt = ASN1_OCTET_STRING_dup(src)) == NULL)
+            return 0;
     } else {
         *tgt = NULL;
     }
 
     return 1;
- err:
-    return 0;
 }
 
 int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
                                           const unsigned char *bytes, int len)
 {
     ASN1_OCTET_STRING *new = NULL;
-    int res = 0;
 
     if (tgt == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
-        goto err;
+        return 0;
     }
 
     if (bytes != NULL) {
         if ((new = ASN1_OCTET_STRING_new()) == NULL
                 || !(ASN1_OCTET_STRING_set(new, bytes, len))) {
-            CMPerr(0, ERR_R_MALLOC_FAILURE);
-            goto err;
+            ASN1_OCTET_STRING_free(new);
+            return 0;
         }
-
     }
-    res = ossl_cmp_asn1_octet_string_set1(tgt, new);
-
- err:
-    ASN1_OCTET_STRING_free(new);
-    return res;
+    return ossl_cmp_asn1_octet_string_set1(tgt, new);
 }
