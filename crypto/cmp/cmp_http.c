@@ -456,12 +456,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     if ((hbio = CMP_new_http_bio(ctx)) == NULL)
         goto err;
 
-    /*
-     * TODO: it looks like bio_connect() is superfluous except for maybe
-     * better error/timeout handling and reporting? Remove next 9 lines?
-     * tentatively set error, which allows accumulating diagnostic info
-     */
-#if 1
+    /* tentatively set error, which allows accumulating diagnostic info */
     (void)ERR_set_mark();
     CMPerr(0, CMP_R_ERROR_CONNECTING);
     rv = bio_connect(hbio, ctx->msgtimeout);
@@ -471,7 +466,6 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     } else {
         (void)ERR_pop_to_mark(); /* discard diagnostic info */
     }
-#endif
 
     /* callback can be used to wrap or prepend TLS session */
     if (ctx->http_cb != NULL) {
