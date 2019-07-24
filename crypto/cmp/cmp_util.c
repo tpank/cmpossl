@@ -70,8 +70,8 @@ size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
     const char *file = buf == NULL ? NULL : strchr(buf, ':');
     if (buf == NULL || cnt == 0 || cmd != OSSL_TRACE_CTRL_WRITE || ctx == NULL)
         return 0;
-    if (file++ != NULL) {
-        const char *line = file == NULL ? NULL : strchr(file, ':');
+    if (file != NULL) {
+        const char *line = strchr(++file, ':');
 
         OPENSSL_free(ctx->log_func);
         OPENSSL_free(ctx->log_file);
