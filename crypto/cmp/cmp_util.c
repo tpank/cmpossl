@@ -185,8 +185,8 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
         if (!(flags & ERR_TXT_STRING))
             data = NULL;
         BIO_snprintf(component, sizeof(component), "OpenSSL:%s",
-                     /* ERR_lib_error_string(err), */
-                     ERR_func_error_string(err));
+                     ERR_lib_error_string(err));
+        /* calling ERR_func_error_string(err) meanwhile has lost its benefit */
         BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
                      data == NULL ? "" : " : ", data == NULL ? "" : data);
         if (log_fn(component, file, line, OSSL_CMP_LOG_ERR, msg) <= 0)
