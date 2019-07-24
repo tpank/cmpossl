@@ -78,6 +78,10 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
             pbm_str = (ASN1_STRING *)ppval;
             pbm_str_uc = pbm_str->data;
             pbm = d2i_OSSL_CRMF_PBMPARAMETER(NULL, &pbm_str_uc, pbm_str->length);
+            if (pbm == NULL) {
+                CMPerr(0, CMP_R_WRONG_ALGORITHM_OID);
+                goto err;
+            }
 
             if (!(OSSL_CRMF_pbm_new(pbm, prot_part_der, prot_part_der_len,
                                     secret->data, secret->length,
