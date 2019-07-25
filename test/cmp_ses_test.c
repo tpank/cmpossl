@@ -69,9 +69,9 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
         !TEST_true(OSSL_CMP_CTX_set_transfer_cb_arg(fixture->cmp_ctx,
                                                fixture->srv_ctx)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1)) ||
+                                      OSSL_CMP_OPT_UNPROTECTED_SEND, 1)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                     OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS, 1)) ||
+                                     OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1)) ||
         !TEST_true(OSSL_CMP_CTX_set1_oldClCert(fixture->cmp_ctx, cert)) ||
         !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, cert)) ||
         !TEST_true(OSSL_CMP_CTX_set1_pkey(fixture->cmp_ctx, key)) ||
@@ -188,7 +188,7 @@ static int test_cmp_exec_ir_ses_poll_timeout(void)
     fixture->expected = 0;
     OSSL_CMP_SRV_CTX_set_pollCount(fixture->srv_ctx, pollCount + 1);
     OSSL_CMP_SRV_CTX_set_checkAfterTime(fixture->srv_ctx, checkAfter);
-    OSSL_CMP_CTX_set_option(fixture->cmp_ctx, OSSL_CMP_CTX_OPT_TOTALTIMEOUT,
+    OSSL_CMP_CTX_set_option(fixture->cmp_ctx, OSSL_CMP_OPT_TOTALTIMEOUT,
                             timeout);
     EXECUTE_TEST(execute_cmp_exec_certrequest_ses_test, tear_down);
     return result;
@@ -210,7 +210,7 @@ static int test_cmp_exec_cr_ses_implicit_confirm(void)
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_CR_ses;
     fixture->expected = 1;
     OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                            OSSL_CMP_CTX_OPT_IMPLICITCONFIRM, 1);
+                            OSSL_CMP_OPT_IMPLICITCONFIRM, 1);
     OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(fixture->srv_ctx, 1);
     EXECUTE_TEST(execute_cmp_exec_certrequest_ses_test, tear_down);
     return result;

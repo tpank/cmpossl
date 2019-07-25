@@ -84,9 +84,9 @@ struct OSSL_cmp_ctx_st {
 
     /* PBMParameters */
     size_t pbm_slen;
-    int pbm_owf;
+    int pbm_owf; /* NID of one-way function (OWF), default: SHA256 */
     int pbm_itercnt;
-    int pbm_mac;
+    int pbm_mac; /* NID of MAC algorithm, default: HMAC-SHA1 as per RFC 4210 */
 
     int days; /* Number of days new certificates are asked to be valid for */
     int SubjectAltName_nodefault;

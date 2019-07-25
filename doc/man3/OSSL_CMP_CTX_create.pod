@@ -249,39 +249,39 @@ OSSL_CMP_CTX_set_serverPort() sets the port of the CMP server to connect to.
 Port defaults to 8080 if not set explicitly.
 
 OSSL_CMP_CTX_set_option() sets the given value for the given option
-(e.g. OSSL_CMP_CTX_OPT_IMPLICITCONFIRM) in the given OSSL_CMP_CTX structure.
+(e.g. OSSL_CMP_OPT_IMPLICITCONFIRM) in the given OSSL_CMP_CTX structure.
 
 The following options can be set:
-    OSSL_CMP_CTX_OPT_IMPLICITCONFIRM
+    OSSL_CMP_OPT_IMPLICITCONFIRM
         Request server to enable implicit confirm mode, where the client
         does not need to send confirmation upon receiving the
         certificate. If the server does not enable implicit confirmation
         in the return message, then confirmation is sent anyway.
 
-    OSSL_CMP_CTX_OPT_DISABLECONFIRM
+    OSSL_CMP_OPT_DISABLECONFIRM
         Do not confirm enrolled certificates, to cope with broken servers
         not supporting implicit confirmation correctly.
 B<WARNING:> This setting leads to unspecified behavior and it is meant
 exclusively to allow interoperability with server implementations violating
 RFC 4210.
 
-    OSSL_CMP_CTX_OPT_UNPROTECTED_REQUESTS
+    OSSL_CMP_OPT_UNPROTECTED_REQUESTS
         Send messages without CMP-level protection.
 
-    OSSL_CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT
+    OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT
         Do not take default Subject Alternative Names
         from the reference certificate.
 
-    OSSL_CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL
+    OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL
         Demand that the given Subject Alternative Names are flagged as critical.
 
-    OSSL_CMP_CTX_OPT_POLICIES_CRITICAL
+    OSSL_CMP_OPT_POLICIES_CRITICAL
         Demand that the given policies are flagged as critical.
 
-    OSSL_CMP_CTX_OPT_VALIDITYDAYS
+    OSSL_CMP_OPT_VALIDITYDAYS
         Number of days new certificates are asked to be valid for.
 
-    OSSL_CMP_CTX_OPT_POPOMETHOD
+    OSSL_CMP_OPT_POPOMETHOD
         Select the proof of possession method to use. Possible values are:
             OSSL_CRMF_POPO_NONE       - ProofOfPossession field omitted
             OSSL_CRMF_POPO_RAVERIFIED - assert that the RA has already
@@ -290,16 +290,27 @@ RFC 4210.
             OSSL_CRMF_POPO_KEYENC     - decrypt the encrypted certificate
                                         ("indirect method")
 
-    OSSL_CMP_CTX_OPT_DIGEST_ALGNID
+    OSSL_CMP_OPT_DIGEST_ALGNID
         The digest algorithm NID to be used in RFC 4210's MSG_SIG_ALG,
         if applicable used for message protection and Proof-of-Possession.
+        Default is SHA256.
 
-    OSSL_CMP_CTX_OPT_IGNORE_KEYUSAGE
+    OSSL_CMP_OPT_OWF_ALGNID
+        The digest algorithm NID to be used as one-way function (OWF)
+        in RFC 4210's MSG_MAC_ALG, if applicable used for message protection.
+        Default is SHA256.
+
+    OSSL_CMP_OPT_MAC_ALGNID
+        The MAC algorithm NID to be used in RFC 4210's MSG_MAC_ALG,
+        if applicable used for message protection.
+        Default is HMAC-SHA1 as per RFC 4210.
+
+    OSSL_CMP_OPT_IGNORE_KEYUSAGE
         Ignore key usage restrictions in signer certificate when
         validating signature-based protection in received CMP messages.
         Else, 'digitalSignature' must be allowed by CMP signer certificates.
 
-    OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS
+    OSSL_CMP_OPT_UNPROTECTED_ERRORS
         Accept unprotected error responses: regular error messages as well as
         certificate responses (IP/CP/KUP) and revocation responses (RP)
         with rejection.
@@ -307,11 +318,11 @@ B<WARNING:> This setting leads to unspecified behavior and it is meant
 exclusively to allow interoperability with server implementations violating
 RFC 4210.
 
-    OSSL_CMP_CTX_OPT_MSGTIMEOUT
+    OSSL_CMP_OPT_MSGTIMEOUT
         Number of seconds (or 0 for infinite) a CMP message round trip is
         allowed to take before a timeout error is returned. Default is 120.
 
-    OSSL_CMP_CTX_OPT_TOTALTIMEOUT
+    OSSL_CMP_OPT_TOTALTIMEOUT
         Maximum total number of seconds an enrollment (including polling)
         may take. Default is 0 (infinite).
 
@@ -319,7 +330,7 @@ RFC 4210.
         Allow retrieving a trust anchor from extraCers and using that
         to validate the certificate chain of an IP message.
 
-    OSSL_CMP_CTX_OPT_REVOCATION_REASON
+    OSSL_CMP_OPT_REVOCATION_REASON
         The reason code to be included in revocation request (RR);
         values: 0..10 (RFC 5210, 5.3.1) or -1 for none (which is the default)
 
@@ -544,7 +555,7 @@ OSSL_CMP_CTX_subjectAltName_push1() adds the given X509 name to the list of
 alternate names on the certificate template request. This cannot be used if
 any Subject Alternative Name extension is set via
 OSSL_CMP_CTX_set0_reqExtensions().
-By default, unless OSSL_CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT has been set,
+By default, unless OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT has been set,
 the Subject Alternative Names are copied from the reference certificate,
 see OSSL_CMP_CTX_set1_oldClCert().
 

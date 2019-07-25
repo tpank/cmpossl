@@ -2424,7 +2424,7 @@ static int set_gennames(char *names, int type,
 
         if (type == GEN_DNS && strcmp(names, "critical") == 0) {
             (void)OSSL_CMP_CTX_set_option(ctx,
-                      OSSL_CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL, 1);
+                      OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL, 1);
             continue;
         }
 
@@ -2756,13 +2756,13 @@ static int setup_srv_ctx(ENGINE *e)
         (void)OSSL_CMP_SRV_CTX_set_send_error(srv_ctx, 1);
 
     if (opt_send_unprotected)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_SEND, 1);
     if (opt_send_unprot_err)
         (void)OSSL_CMP_SRV_CTX_set_send_unprotected_errors(srv_ctx, 1);
     if (opt_accept_unprotected)
         (void)OSSL_CMP_SRV_CTX_set_accept_unprotected(srv_ctx, 1);
     if (opt_accept_unprot_err)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1);
 
     return 1;
 
@@ -2928,10 +2928,10 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
     }
 
     if (opt_ignore_keyusage)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_IGNORE_KEYUSAGE, 1);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_IGNORE_KEYUSAGE, 1);
 
     if (opt_unprotectedErrors)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS, 1);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1);
 
     if (opt_out_trusted != NULL) { /* for use in OSSL_CMP_certConf_cb() */
         X509_VERIFY_PARAM *out_vpm = NULL;
@@ -2951,10 +2951,10 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
     }
 
     if (opt_disableConfirm)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_DISABLECONFIRM, 1);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_DISABLECONFIRM, 1);
 
     if (opt_implicitConfirm)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_IMPLICITCONFIRM, 1);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_IMPLICITCONFIRM, 1);
 
     (void)OSSL_CMP_CTX_set_certConf_cb(ctx, OSSL_CMP_certConf_cb);
 
@@ -3238,7 +3238,7 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
     cleanse(opt_otherpass);
 
     if (opt_unprotectedRequests)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_SEND, 1);
 
     if (opt_digest != NULL) {
         int digest = OBJ_ln2nid(opt_digest);
@@ -3247,7 +3247,7 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
                             "digest algorithm name not recognized: '%s'", opt_digest);
             goto err;
         }
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_DIGEST_ALGNID, digest);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_DIGEST_ALGNID, digest);
     }
     return 1;
 
@@ -3280,7 +3280,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
     }
 
     if (opt_days > 0)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_VALIDITYDAYS, opt_days);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_VALIDITYDAYS, opt_days);
 
     if (opt_reqexts != NULL) {
         X509V3_CTX ext_ctx;
@@ -3312,7 +3312,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
             OSSL_CMP_warn(ctx,
                           "-opt_san_nodefault has no effect when -sans is used");
         (void)OSSL_CMP_CTX_set_option(ctx,
-                                      OSSL_CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT,
+                                      OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT,
                                       1);
     }
 
@@ -3320,7 +3320,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
         if (opt_policies == NULL)
             OSSL_CMP_warn(ctx,
                           "-opt_policies_critical has no effect unless -policies is given");
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_POLICIES_CRITICAL, 1);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_POLICIES_CRITICAL, 1);
     }
 
     while (opt_policies != NULL) {
@@ -3342,7 +3342,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
         goto err;
     }
     if (opt_popo >= OSSL_CRMF_POPO_NONE)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_POPOMETHOD,
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_POPOMETHOD,
                                       opt_popo);
 
     if (opt_csr != NULL) {
@@ -3376,7 +3376,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e) {
     }
     cleanse(opt_keypass);
     if (opt_revreason > CRL_REASON_NONE)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_REVOCATION_REASON,
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_REVOCATION_REASON,
                                       opt_revreason);
 
     return 1;
@@ -3582,10 +3582,10 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_msgtimeout >= 0)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_MSGTIMEOUT,
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_MSGTIMEOUT,
                                       opt_msgtimeout);
     if (opt_totaltimeout >= 0)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_CTX_OPT_TOTALTIMEOUT,
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_TOTALTIMEOUT,
                                       opt_totaltimeout);
 
     if (opt_reqin != NULL || opt_reqout != NULL ||

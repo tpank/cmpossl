@@ -324,7 +324,7 @@ static int test_cmp_protection_unprotected_request(void)
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1))) {
+                                      OSSL_CMP_OPT_UNPROTECTED_SEND, 1))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -341,7 +341,7 @@ static int test_cmp_protection_with_msg_sig_alg_protection_plus_rsa_key(void)
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
+                                      OSSL_CMP_OPT_UNPROTECTED_SEND, 0)) ||
         /* Use half of the 16 bytes of random input
          * for each reference and secret value */
         !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, rand_data,
@@ -366,7 +366,7 @@ static int test_cmp_protection_with_certificate_and_key(void)
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
+                                      OSSL_CMP_OPT_UNPROTECTED_SEND, 0)) ||
         !TEST_true(OSSL_CMP_CTX_set1_pkey(fixture->cmp_ctx, loadedkey)) ||
         !TEST_true(OSSL_CMP_CTX_set1_clCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
@@ -385,7 +385,7 @@ static int test_cmp_protection_certificate_based_without_cert(void)
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
+                                      OSSL_CMP_OPT_UNPROTECTED_SEND, 0)) ||
         !TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, loadedkey))) {
         tear_down(fixture);
         fixture = NULL;
@@ -402,7 +402,7 @@ static int test_cmp_protection_no_key_no_secret(void)
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0))) {
+                                      OSSL_CMP_OPT_UNPROTECTED_SEND, 0))) {
         tear_down(fixture);
         fixture = NULL;
     }

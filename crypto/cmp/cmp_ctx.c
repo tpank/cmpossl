@@ -1313,50 +1313,56 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
     if (ctx == NULL)
         goto err;
     switch (opt) {
-    case OSSL_CMP_CTX_OPT_IMPLICITCONFIRM:
+    case OSSL_CMP_OPT_IMPLICITCONFIRM:
         ctx->implicitConfirm = val;
         break;
     /* to cope with broken server ignoring implicit confirmation */
-    case OSSL_CMP_CTX_OPT_DISABLECONFIRM:
+    case OSSL_CMP_OPT_DISABLECONFIRM:
         ctx->disableConfirm = val;
         break;
-    case OSSL_CMP_CTX_OPT_UNPROTECTED_SEND:
+    case OSSL_CMP_OPT_UNPROTECTED_SEND:
         ctx->unprotectedSend = val;
         break;
-    case OSSL_CMP_CTX_OPT_UNPROTECTED_ERRORS:
+    case OSSL_CMP_OPT_UNPROTECTED_ERRORS:
         ctx->unprotectedErrors = val;
         break;
-    case OSSL_CMP_CTX_OPT_VALIDITYDAYS:
+    case OSSL_CMP_OPT_VALIDITYDAYS:
         ctx->days = val;
         break;
-    case OSSL_CMP_CTX_OPT_SUBJECTALTNAME_NODEFAULT:
+    case OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT:
         ctx->SubjectAltName_nodefault = val;
         break;
-    case OSSL_CMP_CTX_OPT_SUBJECTALTNAME_CRITICAL:
+    case OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL:
         ctx->setSubjectAltNameCritical = val;
         break;
-    case OSSL_CMP_CTX_OPT_POLICIES_CRITICAL:
+    case OSSL_CMP_OPT_POLICIES_CRITICAL:
         ctx->setPoliciesCritical = val;
         break;
-    case OSSL_CMP_CTX_OPT_IGNORE_KEYUSAGE:
+    case OSSL_CMP_OPT_IGNORE_KEYUSAGE:
         ctx->ignore_keyusage = val;
         break;
-    case OSSL_CMP_CTX_OPT_POPOMETHOD:
+    case OSSL_CMP_OPT_POPOMETHOD:
         ctx->popoMethod = val;
         break;
-    case OSSL_CMP_CTX_OPT_DIGEST_ALGNID:
+    case OSSL_CMP_OPT_DIGEST_ALGNID:
         ctx->digest = val;
         break;
-    case OSSL_CMP_CTX_OPT_MSGTIMEOUT:
+    case OSSL_CMP_OPT_OWF_ALGNID:
+        ctx->pbm_owf = val;
+        break;
+    case OSSL_CMP_OPT_MAC_ALGNID:
+        ctx->pbm_mac = val;
+        break;
+    case OSSL_CMP_OPT_MSGTIMEOUT:
         ctx->msgtimeout = val;
         break;
-    case OSSL_CMP_CTX_OPT_TOTALTIMEOUT:
+    case OSSL_CMP_OPT_TOTALTIMEOUT:
         ctx->totaltimeout = val;
         break;
-    case OSSL_CMP_CTX_PERMIT_TA_IN_EXTRACERTS_FOR_IR:
+    case OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR:
         ctx->permitTAInExtraCertsForIR = val;
         break;
-    case OSSL_CMP_CTX_OPT_REVOCATION_REASON:
+    case OSSL_CMP_OPT_REVOCATION_REASON:
         ctx->revocationReason = val;
         break;
     default:

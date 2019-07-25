@@ -43,7 +43,7 @@ static CMP_MSG_TEST_FIXTURE *set_up(const char *const test_case_name)
 
     if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_create()) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1)) ||
+                                      OSSL_CMP_OPT_UNPROTECTED_SEND, 1)) ||
         !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
                                                sizeof(ref))))
         goto err;
@@ -135,7 +135,7 @@ static int test_cmp_create_ir_protection_set(void)
     fixture->expected = 1;
     if (!TEST_int_eq(1, RAND_bytes(secret, sizeof(secret))) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
+                                      OSSL_CMP_OPT_UNPROTECTED_SEND, 0)) ||
         !TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, newkey)) ||
         !TEST_true(OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx, secret,
                                             sizeof(secret)))) {
@@ -154,7 +154,7 @@ static int test_cmp_create_ir_protection_fails(void)
     fixture->expected = 0;
     if (!TEST_true(OSSL_CMP_CTX_set1_pkey(fixture->cmp_ctx, newkey)) ||
         !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                      OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 0)) ||
+                                      OSSL_CMP_OPT_UNPROTECTED_SEND, 0)) ||
         !TEST_true(OSSL_CMP_CTX_set1_clCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
         fixture = NULL;
@@ -379,7 +379,7 @@ static int test_cmp_create_genm(void)
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     OSSL_CMP_ITAV *itv = NULL;
 
-    OSSL_CMP_CTX_set_option(fixture->cmp_ctx, OSSL_CMP_CTX_OPT_UNPROTECTED_SEND, 1);
+    OSSL_CMP_CTX_set_option(fixture->cmp_ctx, OSSL_CMP_OPT_UNPROTECTED_SEND, 1);
     fixture->expected = 1;
     if (!TEST_ptr
         (itv = OSSL_CMP_ITAV_gen(OBJ_nid2obj(NID_id_it_implicitConfirm), NULL))

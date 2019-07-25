@@ -275,7 +275,7 @@ static OSSL_CMP_MSG *CMP_process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         if (OSSL_CMP_MSG_check_implicitConfirm((OSSL_CMP_MSG *) certReq) &&
             srv_ctx->grantImplicitConfirm)
             OSSL_CMP_CTX_set_option(srv_ctx->ctx,
-                                    OSSL_CMP_CTX_OPT_IMPLICITCONFIRM, 1);
+                                    OSSL_CMP_OPT_IMPLICITCONFIRM, 1);
         if ((si = OSSL_CMP_PKISI_dup(srv_ctx->pkiStatusOut)) == NULL)
             goto oom;
     }
