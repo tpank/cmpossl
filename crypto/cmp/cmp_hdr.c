@@ -174,7 +174,7 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
     return res;
 }
 
-int ossl_cmp_hdr_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
+int ossl_cmp_hdr_set1_senderkid(OSSL_CMP_PKIHEADER *hdr,
                                 const ASN1_OCTET_STRING *senderKID)
 {
     if (hdr == NULL) {
@@ -189,8 +189,8 @@ int ossl_cmp_hdr_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
  * to the given PKIFREETEXT ft or to a newly allocated freeText if ft is NULL.
  * It returns the new/updated freeText. On error it frees ft and returns NULL.
  */
-OSSL_CMP_PKIFREETEXT *CMP_PKIFREETEXT_push_str(OSSL_CMP_PKIFREETEXT *ft,
-                                               const char *text)
+OSSL_CMP_PKIFREETEXT *ossl_cmp_pkifreetext_push_str(OSSL_CMP_PKIFREETEXT *ft,
+                                                    const char *text)
 {
     ASN1_UTF8STRING *utf8string = NULL;
 
@@ -242,7 +242,8 @@ int ossl_cmp_hdr_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
         return 0;
     }
 
-    hdr->freeText = CMP_PKIFREETEXT_push_str(hdr->freeText, (char *)text->data);
+    hdr->freeText = ossl_cmp_pkifreetext_push_str(hdr->freeText,
+                                                  (char *)text->data);
     return hdr->freeText != NULL;
 }
 

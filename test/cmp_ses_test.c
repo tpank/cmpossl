@@ -257,7 +257,7 @@ static int test_exec_GENM_ses(void)
 static int execute_exchange_certConf_test(CMP_SES_TEST_FIXTURE *fixture)
 {
     return TEST_int_eq(fixture->expected,
-                       CMP_exchange_certConf(fixture->cmp_ctx,
+                       ossl_cmp_exchange_certConf(fixture->cmp_ctx,
                                     OSSL_CMP_PKIFAILUREINFO_addInfoNotAvailable,
                                     "abcdefg"));
 }
@@ -265,7 +265,7 @@ static int execute_exchange_certConf_test(CMP_SES_TEST_FIXTURE *fixture)
 static int execute_exchange_error_test(CMP_SES_TEST_FIXTURE *fixture)
 {
     return TEST_int_eq(fixture->expected,
-                       CMP_exchange_error(fixture->cmp_ctx,
+                       ossl_cmp_exchange_error(fixture->cmp_ctx,
                                     OSSL_CMP_PKISTATUS_rejection,
                                     OSSL_CMP_PKIFAILUREINFO_unsupportedVersion,
                                     "foobar"));

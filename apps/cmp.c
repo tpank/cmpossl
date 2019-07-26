@@ -1928,9 +1928,9 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
            * --> GitHub issue#8
            */
 # if defined USE_TRANSACTIONID_WORKAROUND
-            OSSL_CMP_HDR_set1_transactionID(OSSL_CMP_MSG_get0_header
+            OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_MSG_get0_header
                                             (req_new), NULL);
-            OSSL_CMP_MSG_protect(ctx, req_new);
+            ossl_cmp_msg_protect(ctx, req_new);
 # endif
         }
     }

@@ -2,13 +2,13 @@
 
 =head1 NAME
 
-CMP_statusInfo_new,
-CMP_PKISI_PKIStatus_get,
-CMP_PKISI_PKIFailureInfo_get,
-CMP_PKISI_PKIFailureInfo_check,
-CMP_PKISI_failInfo_get0,
-CMP_PKISI_statusString_get0,
-CMP_PKISI_snprint
+ossl_cmp_statusinfo_new,
+ossl_cmp_pkisi_pkistatus_get,
+ossl_cmp_pkisi_pkifailureinfo_get,
+ossl_cmp_pkisi_pkifailureinfo_check,
+ossl_cmp_pkisi_failinfo_get0,
+ossl_cmp_pkisi_statusstring_get0,
+ossl_pkisi_snprint
 - functions for managing PKI status information
 
 =head1 SYNOPSIS
@@ -44,38 +44,38 @@ CMP_PKISI_snprint
 # define OSSL_CMP_PKIFAILUREINFO_duplicateCertReq    26
 # define OSSL_CMP_PKIFAILUREINFO_MAX                 26
 
-  OSSL_CMP_PKISI *CMP_statusInfo_new(int status, int fail_info,
-                                     const char *text);
-  int CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si);
-  int CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si);
-  int CMP_PKISI_PKIFailureInfo_check(OSSL_CMP_PKISI *si, int bit_index);
-  OSSL_CMP_PKIFAILUREINFO *CMP_PKISI_failInfo_get0(const OSSL_CMP_PKISI *si);
-  OSSL_CMP_PKIFREETEXT *CMP_PKISI_statusString_get0(const OSSL_CMP_PKISI *si);
-  char *CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
+  OSSL_CMP_PKISI *ossl_cmp_statusinfo_new(int status, int fail_info,
+                                          const char *text);
+  int ossl_cmp_pkisi_pkistatus_get(OSSL_CMP_PKISI *si);
+  int ossl_cmp_pkisi_pkifailureinfo_get(OSSL_CMP_PKISI *si);
+  int ossl_cmp_pkisi_pkifailureinfo_check(OSSL_CMP_PKISI *si, int bit_index);
+  OSSL_CMP_PKIFAILUREINFO *ossl_cmp_pkisi_failinfo_get0(const OSSL_CMP_PKISI *si);
+  OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_statusstring_get0(const OSSL_CMP_PKISI *si);
+  char *ossl_pkisi_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
 
 =head1 DESCRIPTION
 
-CMP_statusInfo_new() creates a new PKIStatusInfo structure and fills it
+ossl_cmp_statusinfo_new() creates a new PKIStatusInfo structure and fills it
 with the given values. It sets the status field to B<status>.
 If B<text> is not NULL, it is copied to statusString.
 B<fail_info> is is interpeted as bit pattern for the failInfo field.
 Returns a pointer to the structure on success, or NULL on error.
 
-CMP_PKISI_PKIStatus_get() returns the PKIStatus of B<si>, or -1 on error.
+ossl_cmp_pkisi_pkistatus_get() returns the PKIStatus of B<si>, or -1 on error.
 
-CMP_PKISI_PKIFailureInfo_get() returns the PKIFailureInfo bits
+ossl_cmp_pkisi_pkifailureinfo_get() returns the PKIFailureInfo bits
 of B<si>, encoded as integer, or -1 on error.
 
-CMP_PKISI_PKIFailureInfo_check() returns the state of the bit (0 or 1)
+ossl_cmp_pkisi_pkifailureinfo_check() returns the state of the bit (0 or 1)
 with index B<bit_index> in the PKIFailureInfo of the B<si>, or -1 on error.
 
-CMP_PKISI_failInfo_get0() returns a direct pointer to the failInfo
+ossl_cmp_pkisi_failinfo_get0() returns a direct pointer to the failInfo
 field contained in B<si>, or NULL on error.
 
-CMP_PKISI_statusString_get0() returns a direct pointer to the statusString
+ossl_cmp_pkisi_statusstring_get0() returns a direct pointer to the statusString
 field contained in B<si>.
 
-CMP_PKISI_snprint() places at max B<bufsize> characters of human-readable
+ossl_pkisi_snprint() places at max B<bufsize> characters of human-readable
 error string of B<si> in pre-allocated B<buf>. Returns pointer to the same
 B<buf> containing the string, or NULL on error.
 
@@ -89,7 +89,7 @@ See the individual functions above.
 
 =head1 SEE ALSO
 
-L<OSSL_CMP_CTX_new(3)>, L<OSSL_CMP_certreq_new(3)>
+L<OSSL_CMP_CTX_new(3)>, L<ossl_cmp_certreq_new(3)>
 
 =head1 HISTORY
 

@@ -30,7 +30,7 @@ typedef struct test_fixture {
     OSSL_CMP_CTX *cmp_ctx;
     OSSL_CMP_MSG *msg;
     X509 *cert;
-    OSSL_cmp_allow_unprotected_cb_t allow_unprotected_cb;
+    ossl_cmp_allow_unprotected_cb_t allow_unprotected_cb;
     int callback_arg;
 } CMP_VFY_TEST_FIXTURE;
 
@@ -319,7 +319,7 @@ static int test_validate_cert_path_expired(void)
 
 static int execute_MSG_check_received_test(CMP_VFY_TEST_FIXTURE *fixture)
 {
-    if (!TEST_int_eq(CMP_MSG_check_received(fixture->cmp_ctx,
+    if (!TEST_int_eq(ossl_cmp_msg_check_received(fixture->cmp_ctx,
                                                  fixture->msg,
                                                  fixture->allow_unprotected_cb,
                                                  fixture->callback_arg),

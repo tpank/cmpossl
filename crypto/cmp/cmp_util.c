@@ -305,7 +305,7 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store)
  *      - the (self-signed) trust anchor is not included
  *      returns NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_build_cert_chain(STACK_OF(X509) *certs,
+STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs,
                                           X509 *cert)
 {
     STACK_OF(X509) *chain = NULL, *result = NULL;
@@ -528,7 +528,7 @@ static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi,
  * place human-readable error string created from PKIStatusInfo in given buffer
  * returns pointer to the same buffer containing the string, or NULL on error
  */
-char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
+char *ossl_cmp_pkisi_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
 {
     const char *status, *failure;
     int i;

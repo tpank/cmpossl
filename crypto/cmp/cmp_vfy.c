@@ -134,7 +134,7 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
     int valid = 0;
 
     /* generate expected protection for the message */
-    if ((protection = CMP_calc_protection(msg, secret, NULL)) == NULL)
+    if ((protection = ossl_cmp_calc_protection(msg, secret, NULL)) == NULL)
         goto err;               /* failed to generate protection string! */
 
     valid = ASN1_STRING_cmp((const ASN1_STRING *)protection,
@@ -606,7 +606,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
         /* exceptional 3GPP TS 33.310 handling */
         if (!valid && ctx->permitTAInExtraCertsForIR
-                && OSSL_CMP_MSG_get_bodytype(msg) == OSSL_CMP_PKIBODY_IP) {
+                && ossl_cmp_msg_get_bodytype(msg) == OSSL_CMP_PKIBODY_IP) {
             for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
                 scrt = sk_X509_value(found_crts, i);
                 valid = srv_cert_valid_3gpp(ctx, scrt, msg);
@@ -675,7 +675,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
              * the caPubs field may be directly trusted as a root CA
              * certificate by the initiator.'
              */
-            switch (OSSL_CMP_MSG_get_bodytype(msg)) {
+            switch (ossl_cmp_msg_get_bodytype(msg)) {
             case OSSL_CMP_PKIBODY_IP:
             case OSSL_CMP_PKIBODY_CP:
             case OSSL_CMP_PKIBODY_KUP:
@@ -844,8 +844,8 @@ static int sk_prepend1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs)
  *
  * returns body type (which is >= 0) of the message on success, -1 on error
  */
-int CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-                                OSSL_cmp_allow_unprotected_cb_t cb, int cb_arg)
+int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
+                                ossl_cmp_allow_unprotected_cb_t cb, int cb_arg)
 {
     int rcvd_type;
 
@@ -917,7 +917,7 @@ int CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
            && !OSSL_CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
         return -1;
 
-    if ((rcvd_type = OSSL_CMP_MSG_get_bodytype(msg)) < 0) {
+    if ((rcvd_type = ossl_cmp_msg_get_bodytype(msg)) < 0) {
         CMPerr(0, CMP_R_PKIBODY_ERROR);
         return -1;
     }

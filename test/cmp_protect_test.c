@@ -97,7 +97,7 @@ static X509 *endentity1 = NULL, *endentity2 = NULL,
 static int execute_calc_protection_fails_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
     ASN1_BIT_STRING *protection =
-        CMP_calc_protection(fixture->msg, fixture->secret, fixture->privkey);
+        ossl_cmp_calc_protection(fixture->msg, fixture->secret, fixture->privkey);
     int res = TEST_ptr_null(protection);
 
     ASN1_BIT_STRING_free(protection);
@@ -108,7 +108,7 @@ static int execute_calc_protection_fails_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 static int execute_calc_protection_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
     ASN1_BIT_STRING *protection =
-        CMP_calc_protection(fixture->msg, fixture->secret, fixture->privkey);
+        ossl_cmp_calc_protection(fixture->msg, fixture->secret, fixture->privkey);
     int res = TEST_ptr(protection)
                   && TEST_true(ASN1_STRING_cmp(protection,
                                                fixture->msg->protection) == 0);
@@ -150,7 +150,7 @@ static int execute_calc_protection_signature_test(CMP_PROTECT_TEST_FIXTURE *
                                                   fixture)
 {
     ASN1_BIT_STRING *protection =
-        CMP_calc_protection(fixture->msg, NULL, fixture->privkey);
+        ossl_cmp_calc_protection(fixture->msg, NULL, fixture->privkey);
     int ret = (TEST_ptr(protection)
                    && TEST_true(verify_signature(fixture->msg, protection,
                                                  fixture->pubkey,
@@ -210,7 +210,7 @@ static int test_cmp_calc_protection_pbmac(void)
 static int execute_MSG_protect_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
     return TEST_int_eq(fixture->expected,
-                       OSSL_CMP_MSG_protect(fixture->cmp_ctx, fixture->msg));
+                       ossl_cmp_msg_protect(fixture->cmp_ctx, fixture->msg));
 }
 
 static int test_MSG_protect_unprotected_request(void)
@@ -312,7 +312,7 @@ static int test_MSG_protect_no_key_no_secret(void)
 
 static int execute_MSG_add_extraCerts_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
-    return TEST_true(CMP_MSG_add_extraCerts(fixture->cmp_ctx,
+    return TEST_true(ossl_cmp_msg_add_extraCerts(fixture->cmp_ctx,
                                                    fixture->msg));
 }
 
@@ -332,7 +332,7 @@ static int execute_cmp_build_cert_chain_test(CMP_PROTECT_TEST_FIXTURE *fixture)
     STACK_OF(X509) *result = NULL;
     int ret = 0;
 
-    if (TEST_ptr(result = OSSL_CMP_build_cert_chain(fixture->certs,
+    if (TEST_ptr(result = ossl_cmp_build_cert_chain(fixture->certs,
                                                     fixture->cert))) {
         /* Check whether chain built is equal to the expected one */
         ret = TEST_int_eq(0, STACK_OF_X509_cmp(result, fixture->chain));

@@ -34,9 +34,9 @@
  *
  * returns ptr to ASN1_BIT_STRING containing protection on success, else NULL
  */
-ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
-                                     const ASN1_OCTET_STRING *secret,
-                                     EVP_PKEY *pkey)
+ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
+                                          const ASN1_OCTET_STRING *secret,
+                                          EVP_PKEY *pkey)
 {
     ASN1_BIT_STRING *prot = NULL;
     CMP_PROTECTEDPART prot_part;
@@ -132,7 +132,7 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
     return prot;
 }
 
-int CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
+int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     int res = 0;
 
@@ -152,7 +152,7 @@ int CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         /* if we have untrusted store, try to add intermediate certs */
         if (res != 0 && ctx->untrusted_certs != NULL) {
             STACK_OF(X509) *chain =
-                OSSL_CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
+                ossl_cmp_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
             res = OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain,
                                               1 /* no self-signed */,
                                               1 /* no duplicates */);
@@ -209,7 +209,7 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
     return NULL;
 }
 
-int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
+int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     if (ctx == NULL || msg == NULL) {
          CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -223,7 +223,7 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         if ((msg->header->protectionAlg = CMP_create_pbmac_algor(ctx)) == NULL)
             goto err;
         if (ctx->referenceValue != NULL
-              && !ossl_cmp_hdr_set1_senderKID(msg->header, ctx->referenceValue))
+              && !ossl_cmp_hdr_set1_senderkid(msg->header, ctx->referenceValue))
             goto err;
 
         /*
@@ -231,10 +231,10 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
          * while not needed to validate the signing cert, the option to do
          * this might be handy for certain use cases
          */
-        CMP_MSG_add_extraCerts(ctx, msg);
+        ossl_cmp_msg_add_extraCerts(ctx, msg);
 
         if ((msg->protection =
-             CMP_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
+             ossl_cmp_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
 
             goto err;
     } else {
@@ -270,17 +270,17 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
              */
             subjKeyIDStr = X509_get0_subject_key_id(ctx->clCert);
             if (subjKeyIDStr != NULL
-                    && !ossl_cmp_hdr_set1_senderKID(msg->header, subjKeyIDStr))
+                    && !ossl_cmp_hdr_set1_senderkid(msg->header, subjKeyIDStr))
                 goto err;
 
             /*
              * Add ctx->clCert followed, if possible, by its chain built
              * from ctx->untrusted_certs, and then ctx->extraCertsOut
              */
-            CMP_MSG_add_extraCerts(ctx, msg);
+            ossl_cmp_msg_add_extraCerts(ctx, msg);
 
             if ((msg->protection =
-                 CMP_calc_protection(msg, NULL, ctx->pkey)) == NULL)
+                 ossl_cmp_calc_protection(msg, NULL, ctx->pkey)) == NULL)
                 goto err;
         } else {
             CMPerr(0, CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION);
