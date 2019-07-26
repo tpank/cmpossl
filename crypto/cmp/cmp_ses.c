@@ -74,12 +74,13 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                                  const OSSL_CMP_MSG *rep,
                                  int invalid_protection, int expected_type)
 {
+    int rcvd_type = ossl_cmp_msg_get_bodytype(rep /* may be NULL */);
+    char *msg_type = NULL;
+
     if (ctx == NULL || rep == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    int rcvd_type = OSSL_CMP_MSG_get_bodytype(rep);
-    char *msg_type = NULL;
 
     if (ctx->unprotectedErrors) {
         if (rcvd_type == OSSL_CMP_PKIBODY_ERROR) {
