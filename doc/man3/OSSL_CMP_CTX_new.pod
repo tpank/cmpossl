@@ -121,9 +121,9 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, X509 *val);
 
  /* certificate template: */
- int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
- int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
- EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx);
+ int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey, int priv);
+ int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey, int priv);
+ EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx, int priv);
  int OSSL_CMP_CTX_set1_issuer(OSSL_CMP_CTX *ctx, const X509_NAME *name);
  int OSSL_CMP_CTX_set1_subjectName(OSSL_CMP_CTX *ctx, const X509_NAME *name);
  int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
@@ -220,9 +220,13 @@ The following options can be set:
             OSSL_CRMF_POPO_NONE       - ProofOfPossession field omitted
             OSSL_CRMF_POPO_RAVERIFIED - assert that the RA has already
                                         verified the PoPo
-            OSSL_CRMF_POPO_SIGNATURE  - sign a value with private key
+            OSSL_CRMF_POPO_SIGNATURE  - sign a value with private key,
+                                        which is the default.
             OSSL_CRMF_POPO_KEYENC     - decrypt the encrypted certificate
                                         ("indirect method")
+
+        Note that a signature-based POPO can only produced if a private key
+        is provided as the newPkey or client pkey component of the CMP context.
 
 =item B<OSSL_CMP_OPT_DIGEST_ALGNID>
 
@@ -391,14 +395,13 @@ of the CMP server and potentially others (TLS server, newly enrolled cert).
 OSSL_CMP_CTX_get0_untrusted_certs(OSSL_CMP_CTX *ctx) returns a pointer to the
 list of untrusted certs, which my be empty if unset.
 
-OSSL_CMP_CTX_set1_clCert() sets the given client certificate in the given
+OSSL_CMP_CTX_set1_clCert() sets the client certificate in the given
 OSSL_CMP_CTX structure. The client certificate will then be used by the
 functions to set the "sender" field for outgoing messages and it will be
 included in the extraCerts field.
 
-OSSL_CMP_CTX_set0_pkey() sets the given EVP_PKEY structure, holding the
-private and public keys, corresponding to the client certificate set with
-B<OSSL_CMP_CTX_set1_clCert()> in the given OSSL_CMP_CTX structure.
+OSSL_CMP_CTX_set0_pkey() sets the private key corresponding to the client
+certificate set with B<OSSL_CMP_CTX_set1_clCert()> in the given CMP context.
 Used to create the protection in case of MSG_SIG_ALG.
 
 OSSL_CMP_CTX_set1_pkey() is the same as OSSL_CMP_CTX_set0_pkey(),
@@ -428,14 +431,19 @@ sent to remote.
 OSSL_CMP_CTX_push1_extraCertsOut() adds the given certificate to the outbound
 extraCerts stack, without consuming the pointer.
 
-OSSL_CMP_CTX_set0_newPkey() sets the given EVP_PKEY structure, holding the
-private and public keys, which shall be certified, in the given OSSL_CMP_CTX
-structure
+OSSL_CMP_CTX_set0_newPkey() can be used to explicitly set the given EVP_PKEY
+structure as the private or public key to be certified in the CMP context.
+The B<priv> parameter must be 0 if and only if the given key is a public key.
 
 OSSL_CMP_CTX_set1_newPkey() is the same as OSSL_CMP_CTX_set0_newPkey(),
 except that it does not consume the pointer.
 
-OSSL_CMP_CTX_get0_newPkey() gets the newPkey from the context, or NULL if unset.
+OSSL_CMP_CTX_get0_newPkey() gives the key to use for certificate enrollment
+dependent on fields of the CMP context structure:
+the newPkey (which may be a private or public key) if present,
+else the public key in the p10CSR if present, else the client private key.
+If the B<priv> parameter is not 0 and the selected key does not have a
+private component then NULL is returned.
 
 OSSL_CMP_CTX_set1_issuer() sets the name of the intended issuer that
 will be set in the CertTemplate, i.e., the X509 name of the CA server.
@@ -585,7 +593,7 @@ The following code does an Initialization Request:
         OSSL_CMP_CTX_set1_serverName(cmp_ctx, opt_serverName);
         OSSL_CMP_CTX_set1_referenceValue(cmp_ctx, ref, ref_len);
         OSSL_CMP_CTX_set1_secretValue(cmp_ctx, sec, sec_len);
-        OSSL_CMP_CTX_set0_newPkey(cmp_ctx, new_pkey);
+        OSSL_CMP_CTX_set0_newPkey(cmp_ctx, new_pkey, 1);
         OSSL_CMP_CTX_set1_caCert(cmp_ctx, ca_cert);
 
         initialClCert = OSSL_CMP_exec_IR_ses(cmp_ctx);
@@ -597,7 +605,7 @@ external identity certificate (RFC 4210, Appendix E.7):
         OSSL_CMP_CTX_set1_serverName(cmp_ctx, sname);
         OSSL_CMP_CTX_set1_clCert(cmp_ctx, cl_cert);
         OSSL_CMP_CTX_set0_pkey(cmp_ctx, pkey);
-        OSSL_CMP_CTX_set0_newPkey(cmp_ctx, new_pkey);
+        OSSL_CMP_CTX_set0_newPkey(cmp_ctx, new_pkey, 1);
         OSSL_CMP_CTX_set1_caCert(cmp_ctx, ca_cert);
 
         initialClCert = OSSL_CMP_exec_IR_ses(cmp_ctx);
@@ -611,7 +619,7 @@ The following code does a Key Update Request:
         cmp_ctx = OSSL_CMP_CTX_new();
         OSSL_CMP_CTX_set1_serverName(cmp_ctx, sname);
         OSSL_CMP_CTX_set0_pkey(cmp_ctx, pkey);
-        OSSL_CMP_CTX_set0_newPkey(cmp_ctx, new_pkey);
+        OSSL_CMP_CTX_set0_newPkey(cmp_ctx, new_pkey, 1);
         OSSL_CMP_CTX_set1_clCert(cmp_ctx, cl_cert);
         OSSL_CMP_CTX_set1_caCert(cmp_ctx, ca_cert);
 

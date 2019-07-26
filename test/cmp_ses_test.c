@@ -15,8 +15,10 @@
 
 #ifndef NDEBUG /* tests need mock server, which is available only if !NDEBUG */
 
-static const char *server_cert_f;
 static const char *server_key_f;
+static const char *server_cert_f;
+static const char *client_key_f;
+static const char *client_cert_f;
 static const char *pkcs10_f;
 
 typedef struct test_fixture {
@@ -28,8 +30,10 @@ typedef struct test_fixture {
     STACK_OF(X509) *ca_pubs;
 } CMP_SES_TEST_FIXTURE;
 
-static X509 *cert = NULL;
-static EVP_PKEY *key = NULL;
+static EVP_PKEY *server_key = NULL;
+static X509 *server_cert = NULL;
+static EVP_PKEY *client_key = NULL;
+static X509 *client_cert = NULL;
 static unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
 
 /*
@@ -50,6 +54,7 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
 {
     CMP_SES_TEST_FIXTURE *fixture;
     OSSL_CMP_CTX *srv_cmp_ctx = NULL;
+    OSSL_CMP_CTX *ctx = NULL; /* for client */
     int setup_ok = 0;
 
     /* Allocate memory owned by the fixture, exit on error */
@@ -59,26 +64,27 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
     if (!TEST_ptr(fixture->srv_ctx = OSSL_CMP_SRV_CTX_new())
             || !TEST_true(OSSL_CMP_SRV_CTX_set_accept_unprotected(
                                                            fixture->srv_ctx, 1))
-            || !TEST_true(OSSL_CMP_SRV_CTX_set1_certOut(fixture->srv_ctx, cert))
+            || !TEST_true(OSSL_CMP_SRV_CTX_set1_certOut(fixture->srv_ctx,
+                                                        client_cert))
             || !TEST_ptr(srv_cmp_ctx = OSSL_CMP_SRV_CTX_get0_ctx(
                                                               fixture->srv_ctx))
-            || !TEST_true(OSSL_CMP_CTX_set1_clCert(srv_cmp_ctx, cert))
-            || !TEST_true(OSSL_CMP_CTX_set1_pkey(srv_cmp_ctx, key)))
+            || !TEST_true(OSSL_CMP_CTX_set1_clCert(srv_cmp_ctx, server_cert))
+            || !TEST_true(OSSL_CMP_CTX_set1_pkey(srv_cmp_ctx, server_key)))
         goto err;
 
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new())
-            || !TEST_true(OSSL_CMP_CTX_set_transfer_cb(fixture->cmp_ctx,
+    if (!TEST_ptr(fixture->cmp_ctx = ctx = OSSL_CMP_CTX_new())
+            || !TEST_true(OSSL_CMP_CTX_set_transfer_cb(ctx,
                                                   OSSL_CMP_mock_server_perform))
-            || !TEST_true(OSSL_CMP_CTX_set_transfer_cb_arg(fixture->cmp_ctx,
+            || !TEST_true(OSSL_CMP_CTX_set_transfer_cb_arg(ctx,
                                                            fixture->srv_ctx))
-            || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
+            || !TEST_true(OSSL_CMP_CTX_set_option(ctx,
                                               OSSL_CMP_OPT_UNPROTECTED_SEND, 1))
-            || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
+            || !TEST_true(OSSL_CMP_CTX_set_option(ctx,
                                             OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1))
-            || !TEST_true(OSSL_CMP_CTX_set1_oldClCert(fixture->cmp_ctx, cert))
-            || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, cert))
-            || !TEST_true(OSSL_CMP_CTX_set1_pkey(fixture->cmp_ctx, key))
-            || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx,
+            || !TEST_true(OSSL_CMP_CTX_set1_oldClCert(ctx, client_cert))
+            || !TEST_true(OSSL_CMP_CTX_set1_pkey(ctx, client_key))
+            || !TEST_true(OSSL_CMP_CTX_set1_srvCert(ctx, server_cert))
+            || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(ctx,
                                                            ref, sizeof(ref))))
         goto err;
 
@@ -116,7 +122,8 @@ static int execute_exec_certrequest_ses_test(CMP_SES_TEST_FIXTURE *fixture)
 
     if (fixture->expected != 0) {
         if (TEST_ptr(res = fixture->exec_cert_ses_cb(fixture->cmp_ctx))
-                && (res == cert || TEST_int_eq(X509_cmp(res, cert), 0))) {
+                && (res == client_cert
+                        || TEST_int_eq(X509_cmp(res, client_cert), 0))) {
             if (fixture->ca_pubs != NULL) {
                 STACK_OF(X509) *ca_pubs =
                     OSSL_CMP_CTX_get1_caPubs(fixture->cmp_ctx);
@@ -159,8 +166,8 @@ static int test_exec_IR_ses(void)
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
     fixture->expected = 1;
     fixture->ca_pubs = sk_X509_new_null();
-    sk_X509_push(fixture->ca_pubs, cert);
-    sk_X509_push(fixture->ca_pubs, cert);
+    sk_X509_push(fixture->ca_pubs, server_cert);
+    sk_X509_push(fixture->ca_pubs, server_cert);
     OSSL_CMP_SRV_CTX_set1_caPubsOut(fixture->srv_ctx, fixture->ca_pubs);
     EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     /* TODO: check also capubs returned */
@@ -275,7 +282,8 @@ static int test_exchange_certConf(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
-    if (!TEST_true(ossl_cmp_ctx_set0_newClCert(fixture->cmp_ctx, cert))) {
+    if (!TEST_true(ossl_cmp_ctx_set0_newClCert(fixture->cmp_ctx,
+                                               X509_dup(client_cert)))){
         tear_down(fixture);
         fixture = NULL;
     }
@@ -293,24 +301,32 @@ static int test_exchange_error(void)
 
 void cleanup_tests(void)
 {
-    X509_free(cert);
-    EVP_PKEY_free(key);
+    X509_free(server_cert);
+    EVP_PKEY_free(server_key);
+    X509_free(client_cert);
+    EVP_PKEY_free(client_key);
     return;
 }
 
 int setup_tests(void)
 {
-    if (!TEST_ptr(server_cert_f = test_get_argument(0))
-            || !TEST_ptr(server_key_f = test_get_argument(1))
-            || !TEST_ptr(pkcs10_f = test_get_argument(2))) {
-        TEST_error("usage: cmp_ses_test server.crt server.pem pkcs10.der\n");
+    if (!TEST_ptr(server_key_f = test_get_argument(0))
+            || !TEST_ptr(server_cert_f = test_get_argument(1))
+            || !TEST_ptr(client_key_f = test_get_argument(2))
+            || !TEST_ptr(client_cert_f = test_get_argument(3))
+            || !TEST_ptr(pkcs10_f = test_get_argument(4))) {
+        TEST_error("usage: cmp_ses_test server.key server.crt client.key client.crt client.csr\n");
         return 0;
     }
 
-    if (!TEST_ptr(key = load_pem_key(server_key_f))
-            || !TEST_ptr(cert = load_pem_cert(server_cert_f))
-            || !TEST_int_eq(1, RAND_bytes(ref, sizeof(ref))))
+    if (!TEST_ptr(server_key = load_pem_key(server_key_f))
+            || !TEST_ptr(server_cert = load_pem_cert(server_cert_f))
+            || !TEST_ptr(client_key = load_pem_key(client_key_f))
+            || !TEST_ptr(client_cert = load_pem_cert(client_cert_f))
+            || !TEST_int_eq(1, RAND_bytes(ref, sizeof(ref)))) {
+        cleanup_tests();
         return 0;
+    }
 
     ADD_TEST(test_exec_RR_ses);
     ADD_TEST(test_exec_RR_ses_receive_error);

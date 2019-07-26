@@ -449,8 +449,9 @@ e.g., C<1.2.3:int:987>.
 
 =item B<-newkey filename>
 
-The file containing the private key corresponding to the requested certificate
-in IR, CR or KUR.  Default is the current client key if given.
+The file containing the private or public key for the certificate requested
+in IR, CR or KUR.  Default is the public key in the PKCS#10 CSR given with the
+B<-csr> option, if any, or else the current client key, if given.
 
 =item B<-newkeypass arg>
 
@@ -520,6 +521,9 @@ Flag the policies given with B<-policies> as critical.
 
 Set Proof-of-Possession (POPO) method in IR/CR/KUR; values: C<-1>..<2> where
 C<-1> = NONE, C<0> = RAVERIFIED, C<1> = SIGNATURE (default), C<2> = KEYENC.
+
+Note that a signature-based POPO can only produced if a private key
+is provided via the B<-newkey> or B<-key> options.
 
 =item B<-csr filename>
 

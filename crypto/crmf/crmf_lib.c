@@ -655,8 +655,8 @@ int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
 
 
 /*-
- * Decrypts the certificate in the given encryptedValue
- * this is needed for the indirect PoP method as in RFC 4210 section 5.2.8.2
+ * Decrypts the certificate in the given encryptedValue using private key pkey.
+ * This is needed for the indirect PoP method as in RFC 4210 section 5.2.8.2.
  *
  * returns a pointer to the decrypted certificate
  * returns NULL on error or if no certificate available

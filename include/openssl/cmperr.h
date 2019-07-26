@@ -170,6 +170,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_KUP_NOT_RECEIVED                           156
 #  define CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION  157
 #  define CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE         158
+#  define CMP_R_MISSING_PRIVATE_KEY                        193
 #  define CMP_R_MISSING_PROTECTION                         159
 #  define CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED           160
 #  define CMP_R_MULTIPLE_SAN_SOURCES                       102

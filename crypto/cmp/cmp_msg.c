@@ -307,17 +307,19 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     return NULL;
 }
 
-OSSL_CMP_MSG *CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
+OSSL_CMP_MSG *ossl_cmp_certreq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
 {
+    EVP_PKEY *rkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 0);
+    EVP_PKEY *privkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 1);
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CRMF_MSG *crm = NULL;
 
-    if (ctx == NULL
-          || (type != OSSL_CMP_PKIBODY_P10CR && ctx->pkey == NULL
-                  && ctx->newPkey == NULL)
-          || (type != OSSL_CMP_PKIBODY_IR && type != OSSL_CMP_PKIBODY_CR
-                  && type != OSSL_CMP_PKIBODY_KUR
-                  && type != OSSL_CMP_PKIBODY_P10CR)) {
+    if (ctx == NULL || rkey == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+    if (type != OSSL_CMP_PKIBODY_IR && type != OSSL_CMP_PKIBODY_CR
+            && type != OSSL_CMP_PKIBODY_KUR && type != OSSL_CMP_PKIBODY_P10CR) {
         CMPerr(0, CMP_R_INVALID_ARGS);
         return NULL;
     }
@@ -326,18 +328,18 @@ OSSL_CMP_MSG *CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
         goto err;
 
     /* header */
-    if (ctx->implicitConfirm)
-        if (!ossl_cmp_hdr_set_implicitConfirm(msg->header))
-            goto err;
+    if (ctx->implicitConfirm && !ossl_cmp_hdr_set_implicitConfirm(msg->header))
+        goto err;
 
     /* body */
     /* For P10CR the content has already been set in OSSL_CMP_MSG_create */
-     if (type != OSSL_CMP_PKIBODY_P10CR) {
-        EVP_PKEY *rkey = ctx->newPkey != NULL ? ctx->newPkey
-            : ctx->pkey; /* default is currenty client key */
-
+    if (type != OSSL_CMP_PKIBODY_P10CR) {
+        if (ctx->popoMethod == OSSL_CRMF_POPO_SIGNATURE && privkey == NULL) {
+            CMPerr(0, CMP_R_MISSING_PRIVATE_KEY);
+            goto err;
+        }
         if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID, rkey)) == NULL
-                || !OSSL_CRMF_MSG_create_popo(crm, rkey, ctx->digest,
+                || !OSSL_CRMF_MSG_create_popo(crm, privkey, ctx->digest,
                                               ctx->popoMethod)
                 /* value.ir is same for cr and kur */
                 || !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))

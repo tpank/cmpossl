@@ -279,14 +279,16 @@ static int test_MSG_protect_with_certificate_and_key(void)
 static int test_MSG_protect_certificate_based_without_cert(void)
 {
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
+    OSSL_CMP_CTX *ctx = fixture->cmp_ctx;
+
     /* Do test case-specific set up; set expected return values and
      * side effects */
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected))
-        || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
+        || !TEST_true(OSSL_CMP_CTX_set_option(ctx,
                                               OSSL_CMP_OPT_UNPROTECTED_SEND, 0))
-        || !TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, loadedkey))) {
+        || !TEST_true(OSSL_CMP_CTX_set1_newPkey(ctx, loadedkey, 1))) {
         tear_down(fixture);
         fixture = NULL;
     }

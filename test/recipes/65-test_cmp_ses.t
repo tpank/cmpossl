@@ -22,6 +22,8 @@ plan skip_all => "This test is not supported in a no-cmp build"
 plan tests => 1;
 
 ok(run(test(["cmp_ses_test",
+             data_file("server.key"),
              data_file("server.crt"),
-             data_file("server.pem"),
-             data_file("pkcs10.der")])));
+             data_file("client.key"),
+             data_file("client.crt"),
+             data_file("client.csr")])));

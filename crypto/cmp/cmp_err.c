@@ -107,6 +107,8 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     "missing key input for creating protection"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE),
     "missing key usage digitalsignature"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MISSING_PRIVATE_KEY),
+    "missing private key"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MISSING_PROTECTION), "missing protection"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED),
     "multiple responses not supported"},

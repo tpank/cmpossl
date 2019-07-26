@@ -408,7 +408,7 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nCertificate enrollment options:"},
     {"newkey", OPT_NEWKEY, 's',
-     "Private key for the requested certificate. Default is current client's key"},
+     "Private or public key for the requested cert. Default: CSR key or client key"},
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
     {"subject", OPT_SUBJECT, 's',
      "Distinguished Name (DN) of subject to use in the requested cert template"},
@@ -928,32 +928,45 @@ static void cleanse(char *str)
 }
 
 /* TODO DvO: push this and related functions upstream (PR #autofmt) */
-static EVP_PKEY *load_key_autofmt(const char *infile, int format,
+static EVP_PKEY *load_key_autofmt(EVP_PKEY *(*load_fn)(const char *, int, int,
+                                      const char *, ENGINE *e, const char *),
+                                  const char *file, int format,
                                   const char *pass, ENGINE *e, const char *desc)
 {
     EVP_PKEY *pkey;
-    /* BIO_printf(bio_c_out, "loading %s from '%s'\n", desc, infile); */
     char *pass_string = get_passwd(pass, desc);
     BIO *bio_bak = bio_err;
 
     bio_err = NULL;
-    format = adjust_format(&infile, format, 1);
-    pkey = load_key(infile, format, 0, pass_string, e, desc);
+    format = adjust_format(&file, format, 1);
+    pkey = (*load_fn)(file, format, 0, pass_string, e, desc);
     if (pkey == NULL && format != FORMAT_HTTP && format != FORMAT_ENGINE) {
         ERR_clear_error();
-        pkey =
-            load_key(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM, 0,
-                     pass_string, NULL, desc);
+        pkey = (*load_fn)(file, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM,
+                          0, pass_string, NULL, desc);
     }
     bio_err = bio_bak;
-    if (pkey == NULL) {
+    if (pkey == NULL && desc != NULL) {
         ERR_print_errors(bio_err);
-        BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc,
-                   infile);
+        BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, file);
     }
     if (pass_string != NULL)
         OPENSSL_clear_free(pass_string, strlen(pass_string));
     return pkey;
+}
+
+static EVP_PKEY *load_privkey_autofmt(const char *file, int format,
+                                      const char *pass, ENGINE *e,
+                                      const char *desc)
+{
+    return load_key_autofmt(load_key, file, format, pass, e, desc);
+}
+
+static EVP_PKEY *load_pubkey_autofmt(const char *file, int format,
+                                     const char *pass, ENGINE *e,
+                                     const char *desc)
+{
+    return load_key_autofmt(load_pubkey, file, format, pass, e, desc);
 }
 
 /* TODO DvO: push this and related functions upstream (PR #autofmt) */
@@ -2460,7 +2473,7 @@ static int setup_srv_ctx(ENGINE *e)
         X509_free(srv_cert);
     }
     if (opt_srv_key != NULL) {
-        EVP_PKEY *pkey = load_key_autofmt(opt_srv_key, opt_keyform,
+        EVP_PKEY *pkey = load_privkey_autofmt(opt_srv_key, opt_keyform,
                   opt_srv_keypass, e, "private key for server CMP certificate");
         if (pkey == NULL || !OSSL_CMP_CTX_set0_pkey(ctx, pkey)) {
             EVP_PKEY_free(pkey);
@@ -2841,8 +2854,8 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
             }
         }
 
-        pkey = load_key_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass,
-                                e, "TLS client private key");
+        pkey = load_privkey_autofmt(opt_tls_key, opt_keyform, opt_tls_keypass,
+                                    e, "TLS client private key");
         cleanse(opt_tls_keypass);
         if (pkey == NULL)
             goto err;
@@ -2932,8 +2945,8 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 
     if (opt_key != NULL) {
         EVP_PKEY *pkey =
-            load_key_autofmt(opt_key, opt_keyform, opt_keypass, e,
-                             "private key for CMP client certificate");
+            load_privkey_autofmt(opt_key, opt_keyform, opt_keypass, e,
+                                 "private key for CMP client certificate");
 
         if (pkey == NULL || !OSSL_CMP_CTX_set0_pkey(ctx, pkey)) {
             EVP_PKEY_free(pkey);
@@ -3025,12 +3038,20 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto err;
 
     if (opt_newkey != NULL) {
-        EVP_PKEY *pkey =
-            load_key_autofmt(opt_newkey, opt_keyform, opt_newkeypass, e,
-                             "new private key for certificate to be enrolled");
+        const char *file = opt_newkey;
+        const int format = opt_keyform;
+        const char *pass = opt_newkeypass;
+        const char *desc =  "new private or public key for cert to be enrolled";
+        EVP_PKEY *pkey = load_privkey_autofmt(file, format, pass, e, NULL);
+        int priv = 1;
 
+        if (pkey == NULL) {
+            ERR_clear_error();
+            pkey = load_pubkey_autofmt(file, format, pass, e, desc);
+            priv = 0;
+        }
         cleanse(opt_newkeypass);
-        if (pkey == NULL || !OSSL_CMP_CTX_set0_newPkey(ctx, pkey)) {
+        if (pkey == NULL || !OSSL_CMP_CTX_set0_newPkey(ctx, pkey, priv)) {
             EVP_PKEY_free(pkey);
             goto err;
         }
@@ -3183,8 +3204,8 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto err;
 
     if (opt_cmd == CMP_IR || opt_cmd == CMP_CR || opt_cmd == CMP_KUR) {
-        if (opt_newkey == NULL && opt_key == NULL) {
-            CMP_err("missing -key or -newkey to be certified");
+        if (opt_newkey == NULL && opt_key == NULL && opt_csr == NULL) {
+            CMP_err("missing -newkey (or -key) to be certified");
             goto err;
         }
         if (opt_certout == NULL) {

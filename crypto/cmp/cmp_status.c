@@ -444,6 +444,7 @@ ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg
 X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
                                              const OSSL_CMP_CERTRESPONSE *crep)
 {
+    EVP_PKEY *privkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 1);
     OSSL_CMP_CERTORENCCERT *coec;
     X509 *crt = NULL;
 
@@ -459,17 +460,20 @@ X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
             break;
         case OSSL_CMP_CERTORENCCERT_ENCRYPTEDCERT:
         /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
-            crt = OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(coec->value.encryptedCert,
-                                                        ctx->newPkey);
+            if (privkey == NULL) {
+                CMPerr(0, CMP_R_MISSING_PRIVATE_KEY);
+                return NULL;
+            }
+            crt =
+                OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(coec->value.encryptedCert,
+                                                      privkey);
             break;
         default:
             CMPerr(0, CMP_R_UNKNOWN_CERT_TYPE);
             return NULL;
         }
-        if (crt == NULL) {
-            CMPerr(0, CMP_R_CERTIFICATE_NOT_FOUND);
-            return NULL;
-        }
     }
+    if (crt == NULL)
+        CMPerr(0, CMP_R_CERTIFICATE_NOT_FOUND);
     return crt;
 }

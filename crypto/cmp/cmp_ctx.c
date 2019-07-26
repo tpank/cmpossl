@@ -835,9 +835,9 @@ int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
  * The key is duplicated so the original pointer is not directly used.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
+int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey, int priv)
 {
-    if (!OSSL_CMP_CTX_set0_newPkey(ctx, pkey))
+    if (!OSSL_CMP_CTX_set0_newPkey(ctx, pkey, priv))
        return 0;
     return pkey == NULL ? 1 : EVP_PKEY_up_ref(pkey);
 }
@@ -847,7 +847,7 @@ int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
  * NOTE: uses the pointer directly!
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
+int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey, int priv)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -856,19 +856,25 @@ int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 
     EVP_PKEY_free(ctx->newPkey);
     ctx->newPkey = pkey;
+    ctx->newPkey_priv = priv;
     return 1;
 }
 
 /*
- * gets the newPkey from the context, or NULL on error
+ * gets the private/public key to use for certificate enrollment, NULL on error
  */
-EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx)
+EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx, int priv)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return ctx->newPkey;
+
+    if (ctx->newPkey != NULL)
+        return priv && !ctx->newPkey_priv ? NULL : ctx->newPkey;
+    if (ctx->p10CSR != NULL)
+        return priv ? NULL : X509_REQ_get0_pubkey(ctx->p10CSR);
+    return ctx->pkey; /* may be NULL */
 }
 
 /*

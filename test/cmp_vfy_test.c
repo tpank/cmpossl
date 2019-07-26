@@ -531,17 +531,18 @@ int setup_tests(void)
             || !TEST_ptr(endentity2 = load_pem_cert(endentity2_f))
             || !TEST_ptr(root = load_pem_cert(root_f))
             || !TEST_ptr(intermediate = load_pem_cert(intermediate_f)))
-        return 0;
+        goto err;
 
     /* Load certificates for message validation */
     if (!TEST_ptr(srvcert = load_pem_cert(server_f))
             || !TEST_ptr(clcert = load_pem_cert(client_f)))
-        return 0;
+        goto err;
     if(!TEST_int_eq(1, RAND_bytes(rand_data, OSSL_CMP_TRANSACTIONID_LENGTH)))
-        return 0;
+        goto err;
     if (!TEST_ptr(ir_unprotected = load_pkimsg(ir_unprotected_f))
             || !TEST_ptr(ir_rmprotection = load_pkimsg(ir_rmprotection_f)))
-        return 0;
+        goto err;
+
     /* Message validation tests */
     ADD_TEST(test_validate_msg_signature_trusted_ok);
     ADD_TEST(test_validate_msg_signature_trusted_expired);
@@ -566,6 +567,10 @@ int setup_tests(void)
     ADD_TEST(test_MSG_check_received_check_recipient_nonce);
     ADD_TEST(test_MSG_check_received_wrong_recipient_nonce);
 
-
     return 1;
+
+ err:
+    cleanup_tests();
+    return 0;
+
 }

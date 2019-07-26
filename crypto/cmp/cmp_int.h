@@ -102,7 +102,8 @@ struct ossl_cmp_ctx_st {
     STACK_OF(X509) *extraCertsOut; /* to be included in request messages */
 
     /* certificate template */
-    EVP_PKEY *newPkey; /* new key pair for a cert to be enrolled */
+    EVP_PKEY *newPkey; /* explicit new private/public key for cert enrollment */
+    int newPkey_priv; /* flag indicating if newPkey contains private key */
     X509_NAME *issuer; /* issuer name to used in cert template */
     int days; /* Number of days new certificates are asked to be valid for */
     X509_NAME *subjectName; /*

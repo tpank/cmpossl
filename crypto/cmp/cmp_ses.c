@@ -502,7 +502,7 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
 static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
                          int req_type, int not_received)
 {
-    const EVP_PKEY *rkey = ctx->newPkey != NULL ? ctx->newPkey : ctx->pkey;
+    EVP_PKEY *rkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 0);
     int fail_info = 0; /* no failure */
     const char *txt = NULL;
     OSSL_CMP_CERTREPMESSAGE *crepmsg;
@@ -566,10 +566,11 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     if (!ossl_cmp_ctx_set1_extraCertsIn(ctx, (*resp)->extraCerts))
         return 0;
 
-    if (req_type != OSSL_CMP_PKIBODY_P10CR
+    if (rkey != NULL
+        /* X509_check_private_key() also works if rkey is just public key */
             && !(X509_check_private_key(ctx->newClCert, rkey))) {
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
-        txt = "public key in new certificate does not match our private key";
+        txt = "public key in new certificate does not match our enrollment key";
 #if 0 /* better leave this for any ctx->certConf_cb to decide */
         (void)ossl_cmp_exchange_error(ctx, OSSL_CMP_PKISTATUS_rejection,
                                       fail_info, txt);
