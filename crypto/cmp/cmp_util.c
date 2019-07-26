@@ -388,6 +388,7 @@ int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
                                           const unsigned char *bytes, int len)
 {
     ASN1_OCTET_STRING *new = NULL;
+    int res;
 
     if (tgt == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -400,7 +401,10 @@ int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
             return 0;
         }
     }
-    return ossl_cmp_asn1_octet_string_set1(tgt, new);
+
+    res = ossl_cmp_asn1_octet_string_set1(tgt, new);
+    ASN1_OCTET_STRING_free(new);
+    return res;
 }
 
 /*
