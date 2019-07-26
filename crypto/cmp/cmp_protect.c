@@ -136,13 +136,14 @@ int CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     int res = 0;
 
-    if (ctx == NULL || msg == NULL)
-        goto err;
+    if (ctx == NULL || msg == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     if (msg->extraCerts == NULL
             && (msg->extraCerts = sk_X509_new_null()) == NULL)
-        goto err;
+        return 0;
 
-    res = 1;
     if (ctx->clCert != NULL) {
         /* Make sure that our own cert gets sent, in the first position */
         res = sk_X509_push(msg->extraCerts, ctx->clCert)
@@ -168,7 +169,6 @@ int CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         sk_X509_free(msg->extraCerts);
         msg->extraCerts = NULL;
     }
- err:
     return res;
 }
 
@@ -211,10 +211,10 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
 
 int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
-    if (ctx == NULL)
-        goto err;
-    if (msg == NULL)
-        goto err;
+    if (ctx == NULL || msg == NULL) {
+         CMPerr(0, CMP_R_NULL_ARGUMENT);
+         return 0;
+    }
     if (ctx->unprotectedSend)
         return 1;
 

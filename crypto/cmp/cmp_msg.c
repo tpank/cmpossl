@@ -29,9 +29,10 @@ OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
 
 int OSSL_CMP_MSG_set_bodytype(OSSL_CMP_MSG *msg, int type)
 {
-    if (msg == NULL || msg->body == NULL)
+    if (msg == NULL || msg->body == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
-
+    }
     msg->body->type = type;
 
     return 1;
@@ -39,9 +40,10 @@ int OSSL_CMP_MSG_set_bodytype(OSSL_CMP_MSG *msg, int type)
 
 int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg)
 {
-    if (msg == NULL || msg->body == NULL)
+    if (msg == NULL || msg->body == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return -1;
-
+    }
     return msg->body->type;
 }
 
@@ -443,7 +445,7 @@ OSSL_CMP_MSG *CMP_rr_new(OSSL_CMP_CTX *ctx)
     int ret;
 
     if (ctx == NULL || ctx->oldClCert == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
 
@@ -590,7 +592,7 @@ static OSSL_CMP_MSG *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
     OSSL_CMP_MSG *msg = NULL;
 
     if (ctx == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
 
@@ -671,10 +673,10 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
     unsigned char hash[EVP_MAX_MD_SIZE];
     int md_NID;
     const EVP_MD *md = NULL;
-
-    if (certStatus == NULL || cert == NULL)
-        goto err;
-
+    if (certStatus == NULL || cert == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     /*-
      * select hash algorithm, as stated in Appendix F. Compilable ASN.1 defs:
      * the hash of the certificate, using the same hash algorithm
@@ -689,7 +691,7 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
             goto err;
     } else {
         CMPerr(0, CMP_R_UNSUPPORTED_ALGORITHM);
-        goto err;
+        return 0;
     }
 
     return 1;
@@ -710,11 +712,13 @@ OSSL_CMP_MSG *CMP_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
     OSSL_CMP_PKISI *sinfo;
 
     if (ctx == NULL || ctx->newClCert == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
-    if ((unsigned)fail_info > OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN)
+    if ((unsigned)fail_info > OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN) {
         CMPerr(0, CMP_R_FAIL_INFO_OUT_OF_RANGE);
+        return NULL;
+    }
 
     if ((msg = CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_CERTCONF)) == NULL)
         goto err;
@@ -761,9 +765,11 @@ OSSL_CMP_MSG *CMP_pollReq_new(OSSL_CMP_CTX *ctx, int crid)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_POLLREQ *preq = NULL;
-
-    if (ctx == NULL
-          || (msg = CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_POLLREQ)) == NULL)
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+    if ((msg = CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_POLLREQ)) == NULL)
         goto err;
 
     /* TODO: support multiple cert request IDs to poll */
@@ -816,9 +822,14 @@ OSSL_CMP_MSG *CMP_MSG_load(const char *file)
 {
     OSSL_CMP_MSG *msg = NULL;
     BIO *bio = NULL;
-
-    if (file == NULL || (bio = BIO_new_file(file, "rb")) == NULL)
+    if (file == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
+    }
+    if ((bio = BIO_new_file(file, "rb")) == NULL) {
+        CMPerr(0, CMP_R_INVALID_ARGS);
+        return NULL;
+    }
     msg = OSSL_d2i_CMP_MSG_bio(bio, NULL);
     BIO_free(bio);
     return msg;

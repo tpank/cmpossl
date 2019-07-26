@@ -61,16 +61,20 @@ struct OSSL_cmp_srv_ctx_st {
 
 OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx)
 {
-    if (srv_ctx == NULL)
+    if (srv_ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
+    }
     return srv_ctx->ctx;
 }
 
 int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
                                                 int value)
 {
-    if (srv_ctx == NULL)
+    if (srv_ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     srv_ctx->grantImplicitConfirm = value != 0 ? 1 : 0;
     return 1;
 }
@@ -78,8 +82,10 @@ int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
 int OSSL_CMP_SRV_CTX_set_accept_unprotected(OSSL_CMP_SRV_CTX *srv_ctx,
                                             int value)
 {
-    if (srv_ctx == NULL)
+    if (srv_ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     srv_ctx->acceptUnprotectedRequests = value != 0 ? 1 : 0;
     return 1;
 }
@@ -87,8 +93,10 @@ int OSSL_CMP_SRV_CTX_set_accept_unprotected(OSSL_CMP_SRV_CTX *srv_ctx,
 int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx,
                                                  int value)
 {
-    if (srv_ctx == NULL)
+    if (srv_ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     srv_ctx->sendUnprotectedErrors = value != 0 ? 1 : 0;
     return 1;
 }
@@ -96,8 +104,10 @@ int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx,
 int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
                                     int fail_info, const char *text)
 {
-    if (srv_ctx == NULL)
+    if (srv_ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     OSSL_CMP_PKISI_free(srv_ctx->pkiStatusOut);
     return (srv_ctx->pkiStatusOut =
             ossl_cmp_statusinfo_new(status, fail_info, text))
@@ -106,8 +116,10 @@ int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
 
 int OSSL_CMP_SRV_CTX_set1_certOut(OSSL_CMP_SRV_CTX *srv_ctx, X509 *cert)
 {
-    if (srv_ctx == NULL)
+    if (srv_ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     X509_free(srv_ctx->certOut);
     if (X509_up_ref(cert)) {
         srv_ctx->certOut = cert;
@@ -120,8 +132,10 @@ int OSSL_CMP_SRV_CTX_set1_certOut(OSSL_CMP_SRV_CTX *srv_ctx, X509 *cert)
 int OSSL_CMP_SRV_CTX_set1_chainOut(OSSL_CMP_SRV_CTX *srv_ctx,
                                    STACK_OF(X509) *chain)
 {
-    if (srv_ctx == NULL || chain == NULL)
+    if (srv_ctx == NULL || chain == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     sk_X509_pop_free(srv_ctx->chainOut, X509_free);
     return (srv_ctx->chainOut = X509_chain_up_ref(chain)) != NULL;
 }
@@ -129,32 +143,44 @@ int OSSL_CMP_SRV_CTX_set1_chainOut(OSSL_CMP_SRV_CTX *srv_ctx,
 int OSSL_CMP_SRV_CTX_set1_caPubsOut(OSSL_CMP_SRV_CTX *srv_ctx,
                                     STACK_OF(X509) *caPubs)
 {
-    if (srv_ctx == NULL || caPubs == NULL)
+    if (srv_ctx == NULL || caPubs == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     sk_X509_pop_free(srv_ctx->caPubsOut, X509_free);
     return (srv_ctx->caPubsOut = X509_chain_up_ref(caPubs)) != NULL;
 }
 
 int OSSL_CMP_SRV_CTX_set_send_error(OSSL_CMP_SRV_CTX *srv_ctx, int error)
 {
-    if (srv_ctx == NULL)
+    if (srv_ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     srv_ctx->sendError = error != 0 ? 1 : 0;
     return 1;
 }
 
 int OSSL_CMP_SRV_CTX_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx, int64_t sec)
 {
-    if (srv_ctx == NULL)
+    if (srv_ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     srv_ctx->checkAfterTime = sec;
     return 1;
 }
 
 int OSSL_CMP_SRV_CTX_set_pollCount(OSSL_CMP_SRV_CTX *srv_ctx, int64_t count)
 {
-    if (srv_ctx == NULL || count < 0)
+    if (srv_ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
+    if (count < 0) {
+        CMPerr(0, CMP_R_INVALID_ARGS);
+        return 0;
+    }
     srv_ctx->pollCount = count;
     return 1;
 }
@@ -162,8 +188,10 @@ int OSSL_CMP_SRV_CTX_set_pollCount(OSSL_CMP_SRV_CTX *srv_ctx, int64_t count)
 int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx,
                                            int raverified)
 {
-    if (srv_ctx == NULL)
+    if (srv_ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
     srv_ctx->acceptRAVerified = raverified != 0 ? 1 : 0;
     return 1;
 }

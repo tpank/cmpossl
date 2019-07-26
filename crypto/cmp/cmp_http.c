@@ -350,9 +350,10 @@ static BIO *CMP_new_http_bio(const OSSL_CMP_CTX *ctx)
     int port;
     BIO *cbio = NULL;
     char buf[32];
-
-    if (ctx == NULL)
-        goto end;
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
 
     host = ctx->proxyName;
     port = ctx->proxyPort;

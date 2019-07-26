@@ -74,6 +74,10 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                                  const OSSL_CMP_MSG *rep,
                                  int invalid_protection, int expected_type)
 {
+    if (ctx == NULL || rep == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     int rcvd_type = OSSL_CMP_MSG_get_bodytype(rep);
     char *msg_type = NULL;
 
@@ -393,17 +397,10 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
 {
     int i;
     OSSL_CMP_PKIFREETEXT *ss;
-
-    if (ctx == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+    if (ctx == NULL || si == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-
-    if (si == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
-        return 0;
-    }
-
     if ((ctx->lastPKIStatus = ossl_cmp_pkisi_get_pkistatus(si) < 0)
             || !ossl_cmp_ctx_set_failInfoCode(ctx, si->failInfo)
             || !ossl_cmp_ctx_set0_statusString(ctx, sk_ASN1_UTF8STRING_new_null())
@@ -433,7 +430,7 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
     X509 *crt = NULL;
 
     if (ctx == NULL || crep == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
 
@@ -640,9 +637,10 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string,
     int rid = (req_type == OSSL_CMP_PKIBODY_P10CR) ? -1 : OSSL_CMP_CERTREQID;
     X509 *result = NULL;
 
-    if (ctx == NULL)
-        return NULL;
-
+    if (ctx == NULL) {
+         CMPerr(0, CMP_R_NULL_ARGUMENT);
+         return NULL;
+    }
     ctx->end_time = time(NULL) + ctx->totaltimeout;
     ctx->lastPKIStatus = -1;
 

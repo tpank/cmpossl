@@ -69,8 +69,10 @@ size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
     const char *func = buf;
     const char *file = buf == NULL ? NULL : strchr(buf, ':');
 
-    if (buf == NULL || cnt == 0 || cmd != OSSL_TRACE_CTRL_WRITE || ctx == NULL)
-        return 0;
+    if (buf == NULL || cnt == 0 || cmd != OSSL_TRACE_CTRL_WRITE || ctx == NULL) {
+            CMPerr(0, CMP_R_INVALID_ARGS);
+            return 0;
+    }
     if (file != NULL) {
         const char *line = strchr(++file, ':');
 
@@ -532,8 +534,11 @@ char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
     int i;
     int n = 0;
 
-    if (si == NULL
-            || (status = CMP_PKISI_PKIStatus_get_string(si)) == NULL)
+    if (si == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+    if ((status = CMP_PKISI_PKIStatus_get_string(si)) == NULL)
         return NULL;
     BIO_snprintf(buf, bufsize, "%s; ", status);
 

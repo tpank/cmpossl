@@ -883,7 +883,7 @@ int CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
 
     /* check CMP version number in header */
     if (ossl_cmp_hdr_get_pvno(OSSL_CMP_MSG_get0_header(msg)) != OSSL_CMP_PVNO) {
-        CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED, CMP_R_UNEXPECTED_PVNO);
+        CMPerr(0, CMP_R_UNEXPECTED_PVNO);
         return -1;
     }
 
