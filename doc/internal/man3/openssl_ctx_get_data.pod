@@ -130,6 +130,10 @@ To get and use the data stored in the library context, simply do this:
 
 L<OPENSSL_CTX(3)>
 
+=head1 HISTORY
+
+The OpenSSL CMP support was added in OpenSSL 3.0.
+
 =head1 COPYRIGHT
 
 Copyright 2019 The OpenSSL Project Authors. All Rights Reserved.

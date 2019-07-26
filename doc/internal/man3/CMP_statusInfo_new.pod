@@ -91,6 +91,10 @@ See the individual functions above.
 
 L<OSSL_CMP_CTX_new(3)>, L<OSSL_CMP_certreq_new(3)>
 
+=head1 HISTORY
+
+The OpenSSL CMP support was added in OpenSSL 3.0.
+
 =head1 COPYRIGHT
 
 Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
