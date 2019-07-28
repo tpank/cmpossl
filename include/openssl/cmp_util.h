@@ -28,6 +28,7 @@ extern "C" {
  * logging - could be generally useful
  */
 
+
 # if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
 #  define OSSL_CMP_FUNC __func__
 # elif defined(__STDC__) && defined(PEDANTIC)
@@ -80,11 +81,13 @@ typedef int OSSL_CMP_severity;
 #  define OSSL_CMP_LOG_NOTICE  5
 #  define OSSL_CMP_LOG_INFO    6
 #  define OSSL_CMP_LOG_DEBUG   7
+typedef int (*OSSL_cmp_log_cb_t)(const char *func, const char *file, int line,
+                                 OSSL_CMP_severity level, const char *msg);
 
 void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
 # define OSSL_CMP_add_error_data(txt) OSSL_CMP_add_error_txt(" : ", txt)
 # define OSSL_CMP_add_error_line(txt) OSSL_CMP_add_error_txt("\n", txt)
-void OSSL_CMP_print_errors_cb(OSSL_trace_cb log_fn);
+void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
 
 /*
  * misc other functions that could be generally useful

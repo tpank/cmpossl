@@ -26,7 +26,6 @@
 #  include <openssl/safestack.h>
 #  include <openssl/x509.h>
 #  include <openssl/x509v3.h>
-#  include <openssl/trace.h>
 
 #  ifdef  __cplusplus
 extern "C" {
@@ -278,8 +277,8 @@ int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
 #  define OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR 17
 int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
 /* CMP-specific callback for logging and outputting the error queue: */
+int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
 void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx);
-int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_trace_cb cb);
 /* message transfer: */
 int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path);
 int OSSL_CMP_CTX_set1_serverName(OSSL_CMP_CTX *ctx, const char *name);
