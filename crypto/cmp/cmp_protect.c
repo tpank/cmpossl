@@ -223,7 +223,7 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         if ((msg->header->protectionAlg = CMP_create_pbmac_algor(ctx)) == NULL)
             goto err;
         if (ctx->referenceValue != NULL
-              && !ossl_cmp_hdr_set1_senderkid(msg->header, ctx->referenceValue))
+              && !ossl_cmp_hdr_set1_senderKID(msg->header, ctx->referenceValue))
             goto err;
 
         /*
@@ -270,7 +270,7 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
              */
             subjKeyIDStr = X509_get0_subject_key_id(ctx->clCert);
             if (subjKeyIDStr != NULL
-                    && !ossl_cmp_hdr_set1_senderkid(msg->header, subjKeyIDStr))
+                    && !ossl_cmp_hdr_set1_senderKID(msg->header, subjKeyIDStr))
                 goto err;
 
             /*

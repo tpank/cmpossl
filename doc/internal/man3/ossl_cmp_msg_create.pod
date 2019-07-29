@@ -6,8 +6,8 @@ ossl_cmp_msg_get_bodytype,
 ossl_cmp_msg_set_bodytype,
 ossl_cmp_msg_create,
 ossl_cmp_msg_load,
-ossl_cmp_msg_gen_Iitav_push0,
-ossl_cmp_msg_gen_Iitavs_push1
+ossl_cmp_msg_gen_ITAV_push0,
+ossl_cmp_msg_gen_ITAVs_push1
 - functions manipulating CMP messages
 
 =head1 SYNOPSIS
@@ -18,8 +18,8 @@ ossl_cmp_msg_gen_Iitavs_push1
   int ossl_cmp_msg_set_bodytype( OSSL_CMP_MSG *msg, int type);
   OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype);
   OSSL_CMP_MSG *ossl_cmp_msg_load(const char *file);
-  int ossl_cmp_msg_gen_Iitav_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
-  int ossl_cmp_msg_gen_Iitavs_push1(OSSL_CMP_MSG *msg,
+  int ossl_cmp_msg_gen_ITAV_push0(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
+  int ossl_cmp_msg_gen_ITAVs_push1(OSSL_CMP_MSG *msg,
                                     STACK_OF(OSSL_CMP_ITAV) *itavs);
 
 =head1 DESCRIPTION
@@ -37,11 +37,11 @@ Returns pointer to created OSSL_CMP_MSG on success, NULL on error.
 OSSL_CMP_MSG *ossl_cmp_msg_load() loads a OSSL_CMP_MSG from a B<file>.
 Returns pointer to created OSSL_CMP_MSG on success, NULL on error.
 
-ossl_cmp_msg_gen_Iitav_push0() pushes the B<itav> to the body of the
+ossl_cmp_msg_gen_ITAV_push0() pushes the B<itav> to the body of the
 PKIMessage B<msg> of GenMsg or GenRep type. Consumes the B<itavs> pointer.
 Returns 1 on success, 0 on error.
 
-ossl_cmp_msg_gen_Iitavs_push1() adds a copy of the B<itavs> stack to the body
+ossl_cmp_msg_gen_ITAVs_push1() adds a copy of the B<itavs> stack to the body
 of the PKIMessage B<msg> of GenMsg or GenRep type.
 Does not consume the B<itavs> pointer nor its elements.
 Returns 1 on success, 0 on error.

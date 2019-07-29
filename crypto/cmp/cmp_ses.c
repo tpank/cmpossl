@@ -253,7 +253,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
 
     OSSL_CMP_info("received 'waiting' PKIStatus, starting to poll for response");
     for (;;) {
-        if ((preq = ossl_cmp_pollreq_new(ctx, rid)) == NULL)
+        if ((preq = ossl_cmp_pollReq_new(ctx, rid)) == NULL)
             goto err;
 
         if (!send_receive_check(ctx, preq, "pollReq", &prep,
@@ -342,7 +342,7 @@ int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
      * check if all necessary options are set done by OSSL_CMP_certConf_new */
     /* create Certificate Confirmation - certConf
      */
-    if ((certConf = ossl_cmp_certconf_new(ctx, fail_info, txt)) == NULL)
+    if ((certConf = ossl_cmp_certConf_new(ctx, fail_info, txt)) == NULL)
         goto err;
 
     success = send_receive_check(ctx, certConf, "certConf", &PKIconf,
@@ -648,7 +648,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string,
     ctx->lastPKIStatus = -1;
 
     /* check if all necessary options are set done by OSSL_CMP_certreq_new */
-    if ((req = ossl_cmp_certreq_new(ctx, req_type, req_err)) == NULL)
+    if ((req = ossl_cmp_certReq_new(ctx, req_type, req_err)) == NULL)
         goto err;
 
     if (!send_receive_check(ctx, req, type_string, &rep, rep_type, rep_err))

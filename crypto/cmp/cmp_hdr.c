@@ -174,7 +174,7 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
     return res;
 }
 
-int ossl_cmp_hdr_set1_senderkid(OSSL_CMP_PKIHEADER *hdr,
+int ossl_cmp_hdr_set1_senderKID(OSSL_CMP_PKIHEADER *hdr,
                                 const ASN1_OCTET_STRING *senderKID)
 {
     if (hdr == NULL) {

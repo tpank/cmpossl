@@ -307,7 +307,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     return NULL;
 }
 
-OSSL_CMP_MSG *ossl_cmp_certreq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
+OSSL_CMP_MSG *ossl_cmp_certReq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
 {
     EVP_PKEY *rkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 0);
     EVP_PKEY *privkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 1);
@@ -360,7 +360,7 @@ OSSL_CMP_MSG *ossl_cmp_certreq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
     return NULL;
 }
 
-OSSL_CMP_MSG *ossl_cmp_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
+OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
                                    int certReqId, OSSL_CMP_PKISI *si,
                                    X509 *cert, STACK_OF(X509) *chain,
                                    STACK_OF(X509) *caPubs, int encrypted,
@@ -543,7 +543,7 @@ OSSL_CMP_MSG *ossl_cmp_pkiconf_new(OSSL_CMP_CTX *ctx)
     return NULL;
 }
 
-int ossl_cmp_msg_gen_push0_itav(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
+int ossl_cmp_msg_gen_push0_ITAV(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
 {
     int bodytype;
 
@@ -563,7 +563,7 @@ int ossl_cmp_msg_gen_push0_itav(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
     return 0;
 }
 
-int ossl_cmp_msg_gen_push1_itavs(OSSL_CMP_MSG *msg,
+int ossl_cmp_msg_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
                                  STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
@@ -574,7 +574,7 @@ int ossl_cmp_msg_gen_push1_itavs(OSSL_CMP_MSG *msg,
 
     for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
         itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i));
-        if (!ossl_cmp_msg_gen_push0_itav(msg, itav)) {
+        if (!ossl_cmp_msg_gen_push0_ITAV(msg, itav)) {
             OSSL_CMP_ITAV_free(itav);
             goto err;
         }
@@ -603,7 +603,7 @@ static OSSL_CMP_MSG *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
         goto err;
 
     if (ctx->genm_itavs)
-        if (!ossl_cmp_msg_gen_push1_itavs(msg, ctx->genm_itavs))
+        if (!ossl_cmp_msg_gen_push1_ITAVs(msg, ctx->genm_itavs))
             goto err;
 
     if (!ossl_cmp_msg_protect(ctx, msg))
@@ -707,7 +707,7 @@ int ossl_cmp_certstatus_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
  * TODO: handle potential 2nd certificate when signing and encrypting
  * certificates have been requested/received
  */
-OSSL_CMP_MSG *ossl_cmp_certconf_new(OSSL_CMP_CTX *ctx, int fail_info,
+OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
                                     const char *text)
 {
     OSSL_CMP_MSG *msg = NULL;
@@ -764,7 +764,7 @@ OSSL_CMP_MSG *ossl_cmp_certconf_new(OSSL_CMP_CTX *ctx, int fail_info,
     return NULL;
 }
 
-OSSL_CMP_MSG *ossl_cmp_pollreq_new(OSSL_CMP_CTX *ctx, int crid)
+OSSL_CMP_MSG *ossl_cmp_pollReq_new(OSSL_CMP_CTX *ctx, int crid)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_POLLREQ *preq = NULL;
@@ -794,7 +794,7 @@ OSSL_CMP_MSG *ossl_cmp_pollreq_new(OSSL_CMP_CTX *ctx, int crid)
     return NULL;
 }
 
-OSSL_CMP_MSG *ossl_cmp_pollrep_new(OSSL_CMP_CTX *ctx, int crid,
+OSSL_CMP_MSG *ossl_cmp_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
                                    int64_t poll_after)
 {
     OSSL_CMP_MSG *msg;

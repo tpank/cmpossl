@@ -411,7 +411,7 @@ int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
  * returns the PKIStatus of the given PKIStatusInfo
  * returns -1 on error
  */
-static int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si)
+static int ossl_cmp_pkisi_PKIStatus_get(OSSL_CMP_PKISI *si)
 {
     if (si == NULL || si->status == NULL) {
         CMPerr(0, CMP_R_ERROR_PARSING_PKISTATUS);
@@ -429,11 +429,11 @@ static int OSSL_CMP_PKISI_PKIStatus_get(OSSL_CMP_PKISI *si)
  * PKIStatus of the given PKIStatusInfo
  * returns NULL on error
  */
-static char *CMP_PKISI_PKIStatus_get_string(OSSL_CMP_PKISI *si)
+static char *ossl_cmp_PKIStatus_get_string(OSSL_CMP_PKISI *si)
 {
     int PKIStatus;
 
-    if ((PKIStatus = OSSL_CMP_PKISI_PKIStatus_get(si)) < 0)
+    if ((PKIStatus = ossl_cmp_pkisi_PKIStatus_get(si)) < 0)
         return NULL;
     switch (PKIStatus) {
     case OSSL_CMP_PKISTATUS_accepted:
@@ -463,7 +463,7 @@ static char *CMP_PKISI_PKIStatus_get_string(OSSL_CMP_PKISI *si)
  * returns pointer to static string
  * returns NULL on error
  */
-static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi,
+static char *ossl_cmp_pkifailureinfo_get_string(OSSL_CMP_PKIFAILUREINFO *fi,
                                                 int i)
 {
     if (fi == NULL)
@@ -547,14 +547,14 @@ char *ossl_cmp_pkisi_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
-    if ((status = CMP_PKISI_PKIStatus_get_string(si)) == NULL)
+    if ((status = ossl_cmp_PKIStatus_get_string(si)) == NULL)
         return NULL;
     BIO_snprintf(buf, bufsize, "%s; ", status);
 
     /* PKIFailure is optional and may be empty */
     if (si->failInfo != NULL) {
         for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++) {
-            failure = OSSL_CMP_PKIFAILUREINFO_get_string(si->failInfo, i);
+            failure = ossl_cmp_pkifailureinfo_get_string(si->failInfo, i);
             if (failure == NULL)
                 return NULL;
             if (failure[0] != '\0')

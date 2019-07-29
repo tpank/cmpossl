@@ -89,7 +89,7 @@ do { \
  *         returns 1 if message creation returns NULL                         */
 static int execute_certreq_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(ossl_cmp_certreq_new(fixture->cmp_ctx,
+    EXECUTE_MSG_CREATION_TEST(ossl_cmp_certReq_new(fixture->cmp_ctx,
                                               fixture->bodytype,
                                               fixture->err_code));
 }
@@ -109,7 +109,7 @@ static int execute_rr_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 
 static int execute_certconf_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(ossl_cmp_certconf_new
+    EXECUTE_MSG_CREATION_TEST(ossl_cmp_certConf_new
                               (fixture->cmp_ctx, fixture->fail_info, NULL));
 }
 
@@ -120,7 +120,7 @@ static int execute_genm_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 
 static int execute_pollreq_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
-    EXECUTE_MSG_CREATION_TEST(ossl_cmp_pollreq_new(fixture->cmp_ctx, 4711));
+    EXECUTE_MSG_CREATION_TEST(ossl_cmp_pollReq_new(fixture->cmp_ctx, 4711));
 }
 
 static int execute_pkimessage_create_test(CMP_MSG_TEST_FIXTURE *fixture)

@@ -294,7 +294,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
             goto oom;
     }
 
-    msg = ossl_cmp_certrep_new(srv_ctx->ctx, bodytype, srv_ctx->certReqId, si,
+    msg = ossl_cmp_certRep_new(srv_ctx->ctx, bodytype, srv_ctx->certReqId, si,
                                certOut, chainOut, caPubs, srv_ctx->encryptcert,
                                srv_ctx->sendUnprotectedErrors);
     if (msg == NULL)
@@ -439,7 +439,7 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
             CMPerr(0, CMP_R_ERROR_PROCESSING_CERTREQ);
     } else {
         srv_ctx->pollCount--;
-        if ((msg = ossl_cmp_pollrep_new(srv_ctx->ctx, srv_ctx->certReqId,
+        if ((msg = ossl_cmp_pollRep_new(srv_ctx->ctx, srv_ctx->certReqId,
                                         srv_ctx->checkAfterTime)) == NULL)
             CMPerr(0, CMP_R_ERROR_CREATING_POLLREP);
     }
