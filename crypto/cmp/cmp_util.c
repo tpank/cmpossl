@@ -305,11 +305,10 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store)
  * returns a pointer to a stack of (up_ref'ed) X509 certificates containing:
  *      - the EE certificate given in the function arguments (cert)
  *      - all intermediate certificates up the chain toward the trust anchor
- *      - the (self-signed) trust anchor is not included
- *      returns NULL on error
+ *        whereas the (self-signed) trust anchor is not included
+ * returns NULL on error
  */
-STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs,
-                                          X509 *cert)
+STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs, X509 *cert)
 {
     STACK_OF(X509) *chain = NULL, *result = NULL;
     X509_STORE *store = X509_STORE_new();
