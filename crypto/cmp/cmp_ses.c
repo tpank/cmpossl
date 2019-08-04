@@ -145,7 +145,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     if ((expected_type == OSSL_CMP_PKIBODY_POLLREP
              || IS_ENOLLMENT(expected_type))
-            && ctx->totaltimeout != 0) { /* total timeout is not infinite */
+            && ctx->totaltimeout > 0) { /* total timeout is not infinite */
         int64_t time_left = (int64_t)(ctx->end_time - time(NULL));
         if (time_left <= 0) {
             CMPerr(0, CMP_R_TOTAL_TIMEOUT);
@@ -289,7 +289,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
                           "received polling response, waiting check_after =  "
                           "%ld sec before next polling request", check_after);
 
-            if (ctx->totaltimeout != 0) { /* total timeout is not infinite */
+            if (ctx->totaltimeout > 0) { /* total timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
                 int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
                 if (time_left <= 0) {
