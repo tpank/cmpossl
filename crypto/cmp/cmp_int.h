@@ -31,10 +31,7 @@
  */
 struct ossl_cmp_ctx_st {
     OSSL_cmp_log_cb_t log_cb; /* log callback for error/debug/etc. output */
-    char *log_func; /* name of function that logged last */
-    char *log_file; /* name of source file of that function */
-    int log_line;   /* line in source file of that function */
-    OSSL_CMP_severity log_level; /* last logging level */
+    OSSL_CMP_severity log_verbosity; /* level of verbosity of log output */
 
     /* message transfer */
     OSSL_cmp_transfer_cb_t transfer_cb; /* default: OSSL_CMP_MSG_http_perform */
@@ -61,7 +58,7 @@ struct ossl_cmp_ctx_st {
                             * protection to cope with broken server
                             */
     X509 *srvCert; /* certificate used to identify the server */
-    X509 *validatedSrvCert; /* caches an already validated server cert */
+    X509 *validatedSrvCert; /* caches any already validated server cert */
     X509_NAME *expected_sender; /* expected sender in pkiheader of response */
     X509_STORE *trusted_store; /*
                                 * store for trusted (root) certificates and
@@ -91,7 +88,7 @@ struct ossl_cmp_ctx_st {
     X509_NAME *recipient; /* to set in recipient in pkiheader */
     int digest; /* NID of digest used in MSG_SIG_ALG and POPO, default SHA256 */
     ASN1_OCTET_STRING *transactionID; /* the current transaction ID */
-    ASN1_OCTET_STRING *last_senderNonce; /* last nonce sent */
+    ASN1_OCTET_STRING *senderNonce; /* last nonce sent */
     ASN1_OCTET_STRING *recipNonce; /* last nonce received */
     STACK_OF(OSSL_CMP_ITAV) *geninfo_itavs;
     int implicitConfirm; /* set implicitConfirm in IR/KUR/CR messages */
@@ -135,12 +132,12 @@ struct ossl_cmp_ctx_st {
     STACK_OF(OSSL_CMP_ITAV) *genm_itavs; /* content of general message */
 
     /* result returned in responses */
-    int lastPKIStatus; /* PKIStatus of last received IP/CP/KUP/RP/error or -1 */
+    int status; /* PKIStatus of last received IP/CP/KUP/RP/error or -1 */
     /* TODO: this should be a stack since there could be more than one */
-    OSSL_CMP_PKIFREETEXT *lastStatusString; /* of last IP/CP/KUP/RP/error */
+    OSSL_CMP_PKIFREETEXT *statusString; /* of last IP/CP/KUP/RP/error */
     int failInfoCode; /* failInfoCode of last received IP/CP/KUP/error, or -1 */
     /* TODO: this should be a stack since there could be more than one */
-    X509 *newClCert; /* newly enrolled cert received from the CA */
+    X509 *newCert; /* newly enrolled cert received from the CA */
     /* TODO: this should be a stack since there could be more than one */
     STACK_OF(X509) *caPubs; /* CA certs received from server (in IP message) */
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
@@ -724,29 +721,29 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  * functions
  */
 /* from cmp_util.c */
-size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
-                             int category, int cmd, void *vdata);
+const char *ossl_cmp_log_parse_metadata(const char *buf,
+                 OSSL_CMP_severity *level, char **func, char **file, int *line);
+X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts);
 int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
                                     const ASN1_OCTET_STRING *src);
 int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
                                           const unsigned char *bytes, int len);
-X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts);
 STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs, X509 *cert);
 
 /* from cmp_ctx.c */
-int ossl_cmp_ctx_set1_recipNonce(OSSL_CMP_CTX *ctx,
-                                 const ASN1_OCTET_STRING *nonce);
-ASN1_OCTET_STRING *ossl_cmp_ctx_get0_last_senderNonce(const OSSL_CMP_CTX *ctx);
-ASN1_OCTET_STRING *ossl_cmp_ctx_get0_recipNonce(const OSSL_CMP_CTX *ctx);
-int ossl_cmp_ctx_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert);
+int ossl_cmp_ctx_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert);
+int ossl_cmp_ctx_set_status(OSSL_CMP_CTX *ctx, int status);
+int ossl_cmp_ctx_set0_statusString(OSSL_CMP_CTX *ctx,
+                                   OSSL_CMP_PKIFREETEXT *text);
+int ossl_cmp_ctx_set_failInfoCode(OSSL_CMP_CTX *ctx, int fail_info);
+int ossl_cmp_ctx_set0_newCert(OSSL_CMP_CTX *ctx, X509 *cert);
 int ossl_cmp_ctx_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
 int ossl_cmp_ctx_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                                    STACK_OF(X509) *extraCertsIn);
-int ossl_cmp_ctx_set_failInfoCode(OSSL_CMP_CTX *ctx,
-                                  const OSSL_CMP_PKIFAILUREINFO *fail_info);
-int ossl_cmp_ctx_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert);
-int ossl_cmp_ctx_set0_statusString(OSSL_CMP_CTX *ctx,
-                                   OSSL_CMP_PKIFREETEXT *text);
+ASN1_OCTET_STRING *ossl_cmp_ctx_get0_senderNonce(const OSSL_CMP_CTX *ctx);
+int ossl_cmp_ctx_set1_recipNonce(OSSL_CMP_CTX *ctx,
+                                 const ASN1_OCTET_STRING *nonce);
+ASN1_OCTET_STRING *ossl_cmp_ctx_get0_recipNonce(const OSSL_CMP_CTX *ctx);
 
 /* from cmp_status.c */
 int ossl_cmp_asn1_get_int(const ASN1_INTEGER *a);

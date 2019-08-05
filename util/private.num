@@ -333,6 +333,8 @@ OpenSSL_add_all_algorithms              define deprecated 1.1.0
 OpenSSL_add_all_ciphers                 define deprecated 1.1.0
 OpenSSL_add_all_digests                 define deprecated 1.1.0
 OpenSSL_add_ssl_algorithms              define
+OSSL_CMP_CTX_set_log_verbosity          define
+OSSL_CMP_DEFAULT_PORT                   define
 OSSL_CMP_LOG_ALERT                      define
 OSSL_CMP_LOG_CRIT                       define
 OSSL_CMP_LOG_DEBUG                      define

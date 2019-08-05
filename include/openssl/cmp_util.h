@@ -24,6 +24,12 @@
 extern "C" {
 #  endif
 
+/* helper macros */
+
+#  define OSSL_CMP_STRINGIZE(x) OSSL_CMP_STRINGIZE2(x)
+#  define OSSL_CMP_STRINGIZE2(x) #x
+#  define OSSL_CMP_STRINGIZED_LINE OSSL_CMP_STRINGIZE(OPENSSL_LINE)
+
 /*
  * convenience functions for CMP-specific logging via the trace API
  */
@@ -31,21 +37,25 @@ extern "C" {
 int  OSSL_CMP_log_open(void);
 void OSSL_CMP_log_close(void);
 #  define OSSL_CMP_LOG_PREFIX "CMP "
+#  define OSSL_CMP_LOG_STRINGIZE(x) OSSL_CMP_LOG_STRINGIZE2(x)
+#  define OSSL_CMP_LOG_STRINGIZE2(x) #x
+#  define OSSL_CMP_LOG_START OPENSSL_FUNC ":" OPENSSL_FILE ":" \
+                             OSSL_CMP_STRINGIZED_LINE ":" OSSL_CMP_LOG_PREFIX
 #  define OSSL_CMP_alert(msg) OSSL_CMP_log(ALERT, msg)
 #  define OSSL_CMP_err(msg)   OSSL_CMP_log(ERROR, msg)
 #  define OSSL_CMP_warn(msg)  OSSL_CMP_log(WARN, msg)
 #  define OSSL_CMP_info(msg)  OSSL_CMP_log(INFO, msg)
 #  define OSSL_CMP_debug(msg) OSSL_CMP_log(DEBUG, msg)
 #  define OSSL_CMP_log(level, msg) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": %s\n", msg))
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": %s\n", msg))
 #  define OSSL_CMP_log1(level, fmt, arg1) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1))
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", arg1))
 #  define OSSL_CMP_log2(level, fmt, arg1, arg2) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2))
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", arg1, arg2))
 #  define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2, arg3))
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", arg1, arg2, arg3))
 #  define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_PREFIX#level ": " fmt "\n", arg1, arg2, arg3, arg4))
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", arg1, arg2, arg3, arg4))
 
 /*
  * generalized logging/error callback mirroring the severity levels of syslog.h
@@ -76,7 +86,7 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
  */
 int OSSL_CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert,
                                 int not_duplicate, int prepend);
-int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
+int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
                                 int no_self_signed, int no_duplicates);
 int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed);

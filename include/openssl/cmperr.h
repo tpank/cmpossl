@@ -177,6 +177,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_NO_SENDER_NO_REFERENCE                     111
 #  define CMP_R_NO_SUITABLE_SERVER_CERT                    161
 #  define CMP_R_NO_VALID_SERVER_CERT_FOUND                 162
+#  define CMP_R_NO_STDIO                                   194
 #  define CMP_R_NULL_ARGUMENT                              103
 #  define CMP_R_PKIBODY_ERROR                              163
 #  define CMP_R_PKICONF_NOT_RECEIVED                       164

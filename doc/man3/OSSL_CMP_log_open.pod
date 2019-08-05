@@ -93,14 +93,17 @@ Even when an activity is successful some warnings may be useful and some degree
 of auditing may be required. Therefore the logging facility supports a severity
 level and the callback function has a B<level> parameter indicating such a
 level, such that error, warning, info, debug, etc. can be treated differently.
+The callback is activated only when the severity level is sufficient according
+to the current level of verbosity, which by default is OSSL_CMP_LOG_INFO.
 
 The callback function may itself do non-trivial tasks like writing to
 a log file or remote stream, which in turn may fail.
 Therefore the function should return 1 on success and 0 on failure.
 
 OSSL_CMP_log_open() initializes the CMP-specific logging facility to output
-by default to B<stdout>. It fails if the integrated tracing is disabled or STDIO
-is not available. It should be called at least once during application startup.
+everything to B<stdout>. It fails if the integrated tracing is disabled or STDIO
+is not available. It should be called at least once during application startup,
+and/or L<OSSL_CMP_CTX_set_log_cb(3)> can be used for more flexibility.
 It may be called multiple times.
 
 OSSL_CMP_log_close() should be called when all activities are finished to flush
@@ -128,8 +131,8 @@ B<OSSL_CMP_add_error_txt()> with the separator being ":".
 OSSL_CMP_add_error_line() is a macro calling
 B<OSSL_CMP_add_error_txt()> with the separator being "\n".
 
-OSSL_CMP_print_errors_cb() outputs any entries in the OpenSSL error queue
-similarly to B<ERR_print_errors_cb()>, but using the CMP log callback function
+OSSL_CMP_print_errors_cb() outputs any entries in the OpenSSL error queue.
+It is similar to B<ERR_print_errors_cb()> but uses the CMP log callback function
 C<log_fn> for uniformity with CMP logging if given. Otherwise it uses
 B<ERR_print_errors(3)> to print to STDERR (unless OPENSSL_NO_STDIO is defined).
 

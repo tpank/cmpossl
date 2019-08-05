@@ -6,13 +6,16 @@ OSSL_CMP_CTX_new,
 OSSL_CMP_CTX_free,
 OSSL_CMP_CTX_reinit,
 OSSL_CMP_CTX_set_option,
+OSSL_CMP_CTX_get_option,
 OSSL_CMP_CTX_set_log_cb,
-OSSL_CMP_print_errors,
+OSSL_CMP_CTX_set_log_verbosity,
+OSSL_CMP_CTX_print_errors,
 OSSL_CMP_CTX_set1_serverPath,
 OSSL_CMP_CTX_set1_serverName,
 OSSL_CMP_CTX_set_serverPort,
 OSSL_CMP_CTX_set1_proxyName,
 OSSL_CMP_CTX_set_proxyPort,
+OSSL_CMP_DEFAULT_PORT,
 OSSL_CMP_CTX_set_http_cb,
 OSSL_CMP_CTX_set_http_cb_arg,
 OSSL_CMP_CTX_get_http_cb_arg,
@@ -54,11 +57,11 @@ OSSL_CMP_CTX_get_certConf_cb_arg,
 OSSL_CMP_CTX_get_status,
 OSSL_CMP_CTX_get0_statusString,
 OSSL_CMP_CTX_get_failInfoCode,
-OSSL_CMP_CTX_get0_newClCert,
+OSSL_CMP_CTX_get0_newCert,
 OSSL_CMP_CTX_get1_caPubs,
 OSSL_CMP_CTX_get1_extraCertsIn,
 OSSL_CMP_CTX_set1_transactionID,
-OSSL_CMP_CTX_set1_last_senderNonce
+OSSL_CMP_CTX_set1_senderNonce
 - functions for managing the CMP client context data structure
 
 =head1 SYNOPSIS
@@ -69,10 +72,12 @@ OSSL_CMP_CTX_set1_last_senderNonce
  void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
+ int OSSL_CMP_CTX_get_option(const OSSL_CMP_CTX *ctx, int opt);
 
  /* logging and error reporting: */
  int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
- void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx);
+ #define OSSL_CMP_CTX_set_log_verbosity(ctx, level)
+ void OSSL_CMP_CTX_print_errors(OSSL_CMP_CTX *ctx);
 
  /* message transfer: */
  int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path);
@@ -80,18 +85,19 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_CTX_set_serverPort(OSSL_CMP_CTX *ctx, int port);
  int OSSL_CMP_CTX_set1_proxyName(OSSL_CMP_CTX *ctx, const char *name);
  int OSSL_CMP_CTX_set_proxyPort(OSSL_CMP_CTX *ctx, int port);
+ #define OSSL_CMP_DEFAULT_PORT 8080
  typedef BIO (*OSSL_cmp_http_cb_t) (OSSL_CMP_CTX *ctx, BIO *hbio,
                                     unsigned long detail);
  int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_http_cb_t cb);
  int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg);
- void *OSSL_CMP_CTX_get_http_cb_arg(OSSL_CMP_CTX *ctx);
+ void *OSSL_CMP_CTX_get_http_cb_arg(const OSSL_CMP_CTX *ctx);
  typedef int (*OSSL_cmp_transfer_cb_t) (OSSL_CMP_CTX *ctx,
                                         const OSSL_CMP_MSG *req,
                                         OSSL_CMP_MSG **res);
  int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx,
                                   OSSL_cmp_transfer_cb_t cb);
  int OSSL_CMP_CTX_set_transfer_cb_arg(OSSL_CMP_CTX *ctx, void *arg);
- void *OSSL_CMP_CTX_get_transfer_cb_arg(OSSL_CMP_CTX *ctx);
+ void *OSSL_CMP_CTX_get_transfer_cb_arg(const OSSL_CMP_CTX *ctx);
 
  /* server authentication: */
  int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, X509 *cert);
@@ -100,7 +106,7 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store);
  X509_STORE *OSSL_CMP_CTX_get0_trustedStore(const OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
-                                       const STACK_OF(X509) *certs);
+                                       STACK_OF(X509) *certs);
  STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(const OSSL_CMP_CTX *ctx);
 
  /* client authentication: */
@@ -121,8 +127,8 @@ OSSL_CMP_CTX_set1_last_senderNonce
  int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, X509 *val);
 
  /* certificate template: */
- int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey, int priv);
- int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey, int priv);
+ int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, int priv, EVP_PKEY *pkey);
+ int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, int priv, EVP_PKEY *pkey);
  EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx, int priv);
  int OSSL_CMP_CTX_set1_issuer(OSSL_CMP_CTX *ctx, const X509_NAME *name);
  int OSSL_CMP_CTX_set1_subjectName(OSSL_CMP_CTX *ctx, const X509_NAME *name);
@@ -144,22 +150,22 @@ OSSL_CMP_CTX_set1_last_senderNonce
                                         int fail_info, const char **txt);
  int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb);
  int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void *arg);
- void *OSSL_CMP_CTX_get_certConf_cb_arg(OSSL_CMP_CTX *ctx);
+ void *OSSL_CMP_CTX_get_certConf_cb_arg(const OSSL_CMP_CTX *ctx);
 
  /* result fetching: */
- int OSSL_CMP_CTX_get_status(OSSL_CMP_CTX *ctx);
- OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(OSSL_CMP_CTX *ctx);
- int OSSL_CMP_CTX_get_failInfoCode(OSSL_CMP_CTX *ctx);
+ int OSSL_CMP_CTX_get_status(const OSSL_CMP_CTX *ctx);
+ OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(const OSSL_CMP_CTX *ctx);
+ int OSSL_CMP_CTX_get_failInfoCode(const OSSL_CMP_CTX *ctx);
 
- X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
+ X509 *OSSL_CMP_CTX_get0_newCert(const OSSL_CMP_CTX *ctx);
  STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx);
  STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx);
 
  /* for test purposes only: */
  int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
                                      const ASN1_OCTET_STRING *id);
- int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
-                                        const ASN1_OCTET_STRING *nonce);
+ int OSSL_CMP_CTX_set1_senderNonce(OSSL_CMP_CTX *ctx,
+                                   const ASN1_OCTET_STRING *nonce);
 
 =head1 DESCRIPTION
 
@@ -167,14 +173,15 @@ This is the context API for using CMP (Certificate Management Protocol) with
 OpenSSL.
 
 OSSL_CMP_CTX_new() allocates and initializes an OSSL_CMP_CTX structure to
-default values.
-Transfer is set to HTTP, proof-of-possession method to POPOSigningKey.
+default values. If the trace API is enabled it calls OSSL_CMP_CTX_set_log_cb()
+with the NULL callback pointer.
+Transfer is set to HTTP, proof-of-possession method to POPOSigningKey, etc.
 
 OSSL_CMP_CTX_free() deallocates an OSSL_CMP_CTX structure.
 
 OSSL_CMP_CTX_reinit() prepares the given B<ctx> for a further transaction by
 clearing the internal CMP transaction (aka session) status, PKIStatusInfo,
-and any previous results (newClCert, caPubs, and extraCertsIn)
+and any previous results (newCert, caPubs, and extraCertsIn)
 from the last executed transaction.
 All other field values (i.e., CMP options) are retained for potential re-use.
 
@@ -184,6 +191,12 @@ OSSL_CMP_CTX_set_option() sets the given value for the given option
 The following options can be set:
 
 =over 4
+
+=item B<OSSL_CMP_LOG_VERBOSITY>
+
+        The level of severity needed for actually outputting diagnostic
+        information such as errors, warnings, general info, and debugging info.
+        Default is OSSL_CMP_LOG_INFO. See also L<OSSL_CMP_log_open(3)>.
 
 =item B<OSSL_CMP_OPT_MSGTIMEOUT>
 
@@ -290,11 +303,22 @@ RFC 4210.
 
 =back
 
-OSSL_CMP_CTX_set_log_cb() sets in B<ctx> the log callback function B<cb> for
-error/warning/info/debug messages. For details see L<OSSL_CMP_log_open(3)>.
+OSSL_CMP_CTX_get_option() reads the current of the given option
+(e.g., OSSL_CMP_OPT_IMPLICITCONFIRM) from the given OSSL_CMP_CTX structure.
 
-OSSL_CMP_print_errors() outputs any entries in the OpenSSL error queue. It uses
-the log callback function if set in the B<ctx>, else L<ERR_print_errors(3)>.
+OSSL_CMP_CTX_set_log_cb() sets in B<ctx> the log callback function C<cb>
+for error, warning, info, debug, etc. messages.
+It fails if the OpenSSL trace facility is disabled. When C<cb> is NULL the
+output is sent to stdout (unless OPENSSL_NO_STDIO is not defined).
+For details see L<OSSL_CMP_log_open(3)>.
+
+OSSL_CMP_CTX_set_log_verbosity() is a macro setting the
+OSSL_CMP_OPT_LOG_VERBOSITY context option to the given level.
+
+OSSL_CMP_CTX_print_errors() outputs any entries in the OpenSSL error queue.
+It is similar to B<ERR_print_errors_cb()> but uses the CMP log callback function
+if set in the C<ctx> for uniformity with CMP logging if given. Otherwise it uses
+B<ERR_print_errors(3)> to print to stderr (unless OPENSSL_NO_STDIO is defined).
 
 OSSL_CMP_CTX_set1_serverPath() sets the HTTP path of the CMP server on the host.
 
@@ -302,13 +326,13 @@ OSSL_CMP_CTX_set1_serverName() sets the given server Address (as IP or name)
 in the given OSSL_CMP_CTX structure.
 
 OSSL_CMP_CTX_set_serverPort() sets the port of the CMP server to connect to
-Port defaults to 8080 if not set explicitly.
+Port defaults to OSSL_CMP_DEFAULT_PORT = 8080 if not set explicitly.
 
 OSSL_CMP_CTX_set1_proxyName() sets the host name of the HTTP proxy to be used
 for connecting to the CA server.
 
 OSSL_CMP_CTX_set_proxyPort() sets the port of the HTTP proxy.
-Port defaults to 8080 if not set explicitly.
+Port defaults to OSSL_CMP_DEFAULT_PORT = 8080 if not set explicitly.
 
 OSSL_CMP_CTX_set_http_cb() sets the optional http connect/disconnect callback
 function, which has the prototype
@@ -390,6 +414,7 @@ containing trusted root CA certificates, which may be empty if unset.
 OSSL_CMP_CTX_set1_untrusted_certs() takes over a list of certificates containing
 non-trusted intermediate certs used for path construction in authentication
 of the CMP server and potentially others (TLS server, newly enrolled cert).
+The reference counts of those certificates handled successfully are increased.
 
 OSSL_CMP_CTX_get0_untrusted_certs(OSSL_CMP_CTX *ctx) returns a pointer to the
 list of untrusted certs, which my be empty if unset.
@@ -525,19 +550,19 @@ OSSL_CMP_CTX_get_certConf_cb_arg() gets the argument, respectively the pointer
 to a structure containing arguments, previously set by
 OSSL_CMP_CTX_set_certConf_cb_arg(), or NULL if unset.
 
-OSSL_CMP_CTX_get_status() returns the PKIstatus from the last
+OSSL_CMP_CTX_get_status() returns the PKIstatus from the last received
 CertRepMessage or Revocation Response or error message, or -1 if unset.
 
-OSSL_CMP_CTX_get0_statusString() returns the statusString from the last
+OSSL_CMP_CTX_get0_statusString() returns the statusString from the last received
 CertRepMessage or Revocation Response or error message, or NULL if unset.
 
-OSSL_CMP_CTX_get_failInfoCode() returns the CMP error code from the failInfo
-field of the last CertRepMessage or Revocation Response or error message.
-This is a bit field and the flags for it are specified in
-cmp.h. The flags start with OSSL_CMP_CTX_FAILINFO, for example:
-OSSL_CMP_CTX_FAILINFO_badAlg. Returns -1 if the failInfo field is unset.
+OSSL_CMP_CTX_get_failInfoCode() returns the error code from the failInfo field
+of the last received CertRepMessage or Revocation Response or error message.
+This is a bit field and the flags for it are specified in L<cmp.h>.
+The flags start with OSSL_CMP_CTX_FAILINFO, for example:
+OSSL_CMP_CTX_FAILINFO_badAlg. Returns -1 if the failInfoCode field is unset.
 
-OSSL_CMP_CTX_get0_newClCert() returns the pointer to the newly obtained
+OSSL_CMP_CTX_get0_newCert() returns the pointer to the newly obtained
 certificate in case it is available, else NULL.
 
 OSSL_CMP_CTX_get1_caPubs() returns a pointer to a duplicate of the stack of
@@ -552,7 +577,7 @@ transaction.
 OSSL_CMP_CTX_set1_transactionID() sets the given transaction ID in the given
 OSSL_CMP_CTX structure.
 
-OSSL_CMP_CTX_set1_last_senderNonce() stores the last sent sender B<nonce> in
+OSSL_CMP_CTX_set1_senderNonce() stores the last sent sender B<nonce> in
 the B<ctx>. This will be used to validate the recipNonce in incoming messages.
 
 =head1 NOTES
@@ -561,8 +586,7 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-
-OSSL_CMP_CTX_free() and OSSL_CMP_print_errors() do not return anything.
+OSSL_CMP_CTX_free() and OSSL_CMP_CTX_print_errors() do not return anything.
 
 OSSL_CMP_CTX_new(),
 OSSL_CMP_CTX_get_http_cb_arg(),
@@ -572,12 +596,13 @@ OSSL_CMP_CTX_get0_untrusted_certs(),
 OSSL_CMP_CTX_get0_newPkey(),
 OSSL_CMP_CTX_get_certConf_cb_arg(),
 OSSL_CMP_CTX_get0_statusString(),
-OSSL_CMP_CTX_get0_newClCert(),
+OSSL_CMP_CTX_get0_newCert(),
 OSSL_CMP_CTX_get1_caPubs(), and
 OSSL_CMP_CTX_get1_extraCertsIn()
 return the intended pointer value as described above or NULL on error.
 
-OSSL_CMP_CTX_get_status() and
+OSSL_CMP_CTX_get_option(),
+OSSL_CMP_CTX_get_status(), and
 OSSL_CMP_CTX_get_failInfoCode()
 return the intended value as described above or -1 on error.
 

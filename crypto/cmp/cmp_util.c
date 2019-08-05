@@ -13,10 +13,10 @@
 
 #include <string.h>
 #include <openssl/cmp_util.h>
+#include "cmp_int.h" /* just for decls of internal functions defined here */
 #include <openssl/cmperr.h>
+#include <openssl/err.h> /* should be implied by cmperr.h */
 #include <openssl/x509v3.h>
-
-#include "cmp_int.h"
 
 /*
  * use trace API for CMP-specific logging, prefixed by "CMP " and severity
@@ -31,6 +31,7 @@ int OSSL_CMP_log_open(void) /* is designed to be idempotent */
         return 1;
     BIO_free(bio);
 #endif
+    CMPerr(0, CMP_R_NO_STDIO);
     return 0;
 }
 
@@ -42,7 +43,7 @@ void OSSL_CMP_log_close(void) /* is designed to be idempotent */
 static OSSL_CMP_severity parse_level(const char *level)
 {
     const char *end_level = strchr(level, ':');
-    const int len = end_level - level;
+    int len;
 
     if (end_level == NULL)
         return -1;
@@ -50,6 +51,7 @@ static OSSL_CMP_severity parse_level(const char *level)
     if (strncmp(level, OSSL_CMP_LOG_PREFIX,
                 strlen(OSSL_CMP_LOG_PREFIX)) == 0)
         level += strlen(OSSL_CMP_LOG_PREFIX);
+    len = end_level - level;
     return
         strncmp(level, "EMERG", len) == 0 ? OSSL_CMP_LOG_EMERG :
         strncmp(level, "ALERT", len) == 0 ? OSSL_CMP_LOG_ALERT :
@@ -62,60 +64,62 @@ static OSSL_CMP_severity parse_level(const char *level)
         -1;
 }
 
-size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
-                             int category, int cmd, void *vdata)
+const char *ossl_cmp_log_parse_metadata(const char *buf,
+                 OSSL_CMP_severity *level, char **func, char **file, int *line)
 {
-    OSSL_CMP_CTX *ctx = vdata;
-    const char *func = buf;
-    const char *file = buf == NULL ? NULL : strchr(buf, ':');
+    const char *p_func = buf;
+    const char *p_file = buf == NULL ? NULL : strchr(buf, ':');
+    const char *p_level = buf;
+    const char *prefix = buf;
 
-    if (buf == NULL || cnt == 0 || cmd != OSSL_TRACE_CTRL_WRITE || ctx == NULL)
-        return 0;
-    if (file != NULL) {
-        const char *line = strchr(++file, ':');
+    *level = -1;
+    *func = NULL;
+    *file = NULL;
+    *line = 0;
 
-        OPENSSL_free(ctx->log_func);
-        OPENSSL_free(ctx->log_file);
-        ctx->log_func = NULL;
-        ctx->log_file = NULL;
-        ctx->log_line = 0;
-        ctx->log_level = -1;
-        if ((ctx->log_level = parse_level(buf)) < 0 && line++ != NULL) {
-            char *level = NULL;
-            const long line_number = strtol(line, &level, 10);
+    if (p_file != NULL) {
+        const char *p_line = strchr(++p_file, ':');
 
-            if (level > line && *(level++) == ':') {
-                if ((ctx->log_level = parse_level(level)) >= 0) {
-                    /* buf contains location info; remember it */
-                    ctx->log_func = OPENSSL_strndup(func, file - 1 - func);
-                    ctx->log_file = OPENSSL_strndup(file, line - 1 - file);
-                    ctx->log_line = (int)line_number;
-                    return cnt;
+        /* check if buf contains at least "CMP "followed by logging level */
+        if ((*level = parse_level(buf)) < 0 && p_line++ != NULL) {
+            /* else check if buf contains location info and logging level */
+            char *p_level_tmp = (char *)p_level;
+            const long line_number = strtol(p_line, &p_level_tmp, 10);
+
+            p_level = p_level_tmp;
+            if (p_level > p_line && *(p_level++) == ':') {
+                if ((*level = parse_level(p_level)) >= 0) {
+                    *func = OPENSSL_strndup(p_func, p_file - 1 - p_func);
+                    *file = OPENSSL_strndup(p_file, p_line - 1 - p_file);
+                    *line = (int)line_number;
+                    prefix = p_level;
                 }
             }
         }
     }
-
-    /* buf contains message text; send it to callback */
-    if (ctx->log_cb(ctx->log_func != NULL ? ctx->log_func : "(no func)",
-                    ctx->log_file != NULL ? ctx->log_file : "(no file)",
-                    ctx->log_line, ctx->log_level, buf))
-        return cnt;
-    return 0;
+    return prefix;
 }
+
 
 /*
  * auxiliary function for incrementally reporting texts via the error queue
  */
-#define ERR_put_error_local(lib, func, reason, file, line) \
-    (ERR_new(),                                            \
-     ERR_set_debug((file), (line), (func)),                \
-     ERR_set_error((lib), (reason), NULL))
+static void put_error(int lib, const char *func, int reason,
+                      const char *file, int line)
+{
+    ERR_new();
+    ERR_set_debug(file, line, func);
+    ERR_set_error(lib, reason, NULL);
+}
 
+#define ERR_print_errors_cb_LIMIT 4096 /* size of char buf2[] variable there */
+#define TYPICAL_MAX_OUTPUT_BEFORE_DATA 100
+#define MAX_DATA_LEN (ERR_print_errors_cb_LIMIT-TYPICAL_MAX_OUTPUT_BEFORE_DATA)
 void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
 {
     const char *file;
     int line;
+    const char *func = NULL;
     const char *data;
     int flags;
     unsigned long err = ERR_peek_last_error();
@@ -123,12 +127,11 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
     if (separator == NULL)
         separator = "";
     if (err == 0)
-        ERR_put_error_local(ERR_LIB_CMP, NULL, 0, "", 0);
+        put_error(ERR_LIB_CMP, NULL, 0, "", 0);
 
-#define MAX_DATA_LEN (4096-100) /* workaround for ERR_print_errors_cb() limit */
     do {
-        int prev_len;
-        const char *curr, *next;
+        int available_len;
+        const char *curr = txt, *next = txt;
         char *tmp;
 
         ERR_peek_last_error_line_data(&file, &line, &data, &flags);
@@ -136,32 +139,45 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
             data = "";
             separator = "";
         }
-        prev_len = (int)strlen(data) + strlen(separator);
-        curr = next = txt;
-        while (*next != '\0' && prev_len + (next - txt) < MAX_DATA_LEN) {
-            curr = next;
-            if (*separator != '\0') {
+        /* TODO add when available: ERR_peek_last_error_func(&func); */
+
+        /* workaround for limit of ERR_print_errors_cb() */
+        available_len = MAX_DATA_LEN - (int)strlen(data) - strlen(separator);
+        if (*separator == '\0') {
+            const long len_next = strlen(next);
+
+            if (len_next < available_len) {
+                next += len_next;
+                curr = NULL; /* no need to split */
+            }
+            else {
+                next += available_len - 1;
+                curr = next; /* will split at this point */
+            }
+        } else {
+            while (*next != '\0' && next - txt < available_len) {
+                curr = next;
                 next = strstr(curr, separator);
                 if (next != NULL)
                     next += strlen(separator);
                 else
                     next = curr + strlen(curr);
-            } else {
-                next = curr + 1;
             }
+            if (next - txt < available_len) /* implies here: *next == '\0' */
+                curr = NULL;
         }
-        if (*next != '\0') { /* here this implies: next points beyond limit */
+        if (curr != NULL) {
             /* split error msg at curr since error data would get too long */
             if (curr != txt) {
                 tmp = OPENSSL_strndup(txt, curr - txt);
                 ERR_add_error_data(2, separator, tmp);
                 OPENSSL_free(tmp);
             }
-            ERR_put_error_local(ERR_LIB_CMP, NULL /* func */, err, file, line);
+            put_error(ERR_LIB_CMP, func, err, file, line);
             txt = curr;
         } else {
             ERR_add_error_data(2, separator, txt);
-            txt = next;
+            txt = next; /* finished */
         }
     } while (*txt != '\0');
 }
@@ -170,9 +186,9 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
 void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
 {
     unsigned long err;
-    char component[256];
-    char msg[4096];
-    const char *file, *data;
+    char component[128];
+    char msg[ERR_print_errors_cb_LIMIT];
+    const char *file, *func = NULL, *data;
     int line, flags;
 
     if (log_fn == NULL) {
@@ -181,20 +197,23 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
 
         ERR_print_errors(bio_err);
         BIO_free(bio_err);
+#else
+        CMPerr(0, CMP_R_NO_STDIO);
 #endif
         return;
     }
 
+    /* TODO add when available: ERR_peek_error_func(&func); */
     while ((err = ERR_get_error_line_data(&file, &line, &data, &flags)) != 0) {
         if (!(flags & ERR_TXT_STRING))
             data = NULL;
-        BIO_snprintf(component, sizeof(component), "OpenSSL:%s",
-                     ERR_lib_error_string(err));
-        /* calling ERR_func_error_string(err) meanwhile has lost its benefit */
+        BIO_snprintf(component, sizeof(component), "OpenSSL:%s:%s",
+                     ERR_lib_error_string(err), func != NULL ? func : "");
         BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
                      data == NULL ? "" : " : ", data == NULL ? "" : data);
         if (log_fn(component, file, line, OSSL_CMP_LOG_ERR, msg) <= 0)
             break;              /* abort outputting the error report */
+        /* TODO add when available: ERR_peek_error_func(&func); */
     }
 }
 
@@ -222,8 +241,9 @@ int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
     return X509_up_ref(cert);
 }
 
-int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
+int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
                                 int no_self_signed, int no_duplicates)
+/* compiler would allow 'const' for the list of certs, yet they are up-ref'ed */
 {
     int i;
 
@@ -395,7 +415,6 @@ int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-
     if (bytes != NULL) {
         if ((new = ASN1_OCTET_STRING_new()) == NULL
                 || !(ASN1_OCTET_STRING_set(new, bytes, len))) {

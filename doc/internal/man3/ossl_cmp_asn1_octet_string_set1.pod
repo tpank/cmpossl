@@ -2,6 +2,7 @@
 
 =head1 NAME
 
+ossl_cmp_log_parse_metadata,
 ossl_cmp_x509_extensions_dup,
 ossl_cmp_asn1_octet_string_set1,
 ossl_cmp_asn1_octet_string_set1_bytes,
@@ -10,16 +11,28 @@ ossl_cmp_build_cert_chain
 
 =head1 SYNOPSIS
 
-  #include "cmp_int.h"
+ #include "cmp_int.h"
 
-  X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts);
-  int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
-                                      const ASN1_OCTET_STRING *src);
-  int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                            const unsigned char *bytes, int len);
-  STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs, X509 *cert);
+ const char *ossl_cmp_log_parse_metadata(const char *buf,
+                 OSSL_CMP_severity *level, char **func, char **file, int *line);
+
+ X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts);
+ int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
+                                     const ASN1_OCTET_STRING *src);
+ int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
+                                           const unsigned char *bytes, int len);
+ STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs, X509 *cert);
 
 =head1 DESCRIPTION
+
+ossl_cmp_log_parse_metadata() parses the given message buffer C<buf> populated
+by L<OSSL_CMP_log()> etc.
+according to the pattern OSSL_CMP_LOG_START#level ": %s\n", filling in
+the variable pointed to by C<level> with the severity level or -1,
+the variable pointed to by C<func> with the function name string or NULL,
+the variable pointed to by C<file> with the file name string or NULL, and
+the variable pointed to by C<line> with the line number or -1.
+Any string returned via C<*func> and C<*file> must be freeed by the caller.
 
 ossl_cmp_x509_extensions_dup() copies a list of X.509 v3 extensions.
 
@@ -37,6 +50,9 @@ as possible using the given X509_STORE containing all possible intermediate
 certificates and optionally the (possible) trust anchor(s).
 
 =head1 RETURN VALUES
+
+ossl_cmp_log_parse_metadata() returns the pointer to the
+OSSL_CMP_LOG_PREFIX if found in the buffer, else the beginning of the buffer.
 
 ossl_cmp_x509_extensions_dup()
 returns NULL in case the input list is NULL and on error.
