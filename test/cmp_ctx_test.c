@@ -118,46 +118,57 @@ static int test_cmp_ctx_log_cb(void)
 }
 #endif
 
-#define DECLARE_SET0_GET0_BASE_TEST(METHODNAME, VALUETYPE, ALLOCATOR) \
+#define DECLARE_SET0_GET0_BASE_TEST(METHODNAME, VALUETYPE, \
+                                    ALLOCATOR, DEALLOCATOR) \
 static int execute_CTX_##METHODNAME##_set0_get0 \
     (OSSL_CMP_CTX_TEST_FIXTURE * fixture) \
 { \
     VALUETYPE* firstValue = ALLOCATOR(); \
     VALUETYPE* secondValue = ALLOCATOR(); \
+    int res = 0; \
     \
     if (OSSL_CMP_CTX_set0_##METHODNAME(NULL, firstValue)) { \
         TEST_error("%s: CTX != NULL not checked", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (!OSSL_CMP_CTX_set0_##METHODNAME(fixture->ctx, firstValue)) { \
         TEST_error("%s: setting value failed", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (OSSL_CMP_CTX_get0_##METHODNAME(fixture->ctx) != firstValue) { \
         TEST_error("%s: set/get firstValue did not match", \
                    fixture->test_case_name); \
-        return 0; \
+        firstValue = NULL;                   \
+        goto err; \
     } \
+    firstValue = NULL; \
     ERR_clear_error(); \
     if (OSSL_CMP_CTX_set0_##METHODNAME(NULL, secondValue)) { \
         TEST_error("%s: CTX != NULL not checked", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (!OSSL_CMP_CTX_set0_##METHODNAME(fixture->ctx, secondValue)) { \
         TEST_error("%s: setting secondValue failed", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (OSSL_CMP_CTX_get0_##METHODNAME(fixture->ctx) != secondValue) { \
+        secondValue = NULL; \
         TEST_error("%s: set/get secondValue did not match", \
                    fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
+    secondValue = NULL; \
     ERR_clear_error(); \
-    return 1; \
+    res = 1; \
+    \
+ err: \
+    DEALLOCATOR(firstValue); \
+    DEALLOCATOR(secondValue); \
+    return res; \
 } \
 \
 static int test_CTX_##METHODNAME##_set0_get0(void) \
@@ -168,11 +179,13 @@ static int test_CTX_##METHODNAME##_set0_get0(void) \
 } \
 
 #define DECLARE_SET0_GET0_TEST(METHODNAME, VALUETYPE) \
-    DECLARE_SET0_GET0_BASE_TEST(METHODNAME, VALUETYPE, VALUETYPE##_new)
+    DECLARE_SET0_GET0_BASE_TEST(METHODNAME, VALUETYPE, \
+                                VALUETYPE##_new, VALUETYPE##_free)
 
 #define DECLARE_SET0_GET0_STACK_OF_TEST(METHODNAME, STACK_TYPE) \
     DECLARE_SET0_GET0_BASE_TEST(METHODNAME, STACK_OF(STACK_TYPE), \
-                                sk_##STACK_TYPE##_new_null)
+                                sk_##STACK_TYPE##_new_null, \
+                                sk_##STACK_TYPE##_free)
 
 #define DECLARE_SET1_GET0_BASE_TEST(METHODNAME, VALUETYPE, \
                                     ALLOCATOR, DEALLOCATOR) \
@@ -183,52 +196,56 @@ static int execute_CTX_##METHODNAME##_set1_get0 \
     VALUETYPE* firstGetValue = OSSL_CMP_CTX_get0_##METHODNAME(fixture->ctx); \
     VALUETYPE* secondValue = ALLOCATOR(); \
     VALUETYPE* secondGetValue = OSSL_CMP_CTX_get0_##METHODNAME(fixture->ctx); \
+    int res = 0; \
     \
     if (OSSL_CMP_CTX_set1_##METHODNAME(NULL, firstValue)) { \
         TEST_error("%s: CTX != NULL not checked", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (!OSSL_CMP_CTX_set1_##METHODNAME(fixture->ctx, firstValue)) { \
         TEST_error("%s: setting value failed", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (firstGetValue == firstValue) { \
         TEST_error("%s: first set did not copy the value as expected", \
                    fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (firstGetValue == NULL) { \
         TEST_error("%s: first set had no effect", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (OSSL_CMP_CTX_set1_##METHODNAME(NULL, secondValue)) { \
         TEST_error("%s: CTX != NULL not checked", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (!OSSL_CMP_CTX_set1_##METHODNAME(fixture->ctx, secondValue)) { \
         TEST_error("%s: setting secondValue failed", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (secondGetValue == NULL) { \
         TEST_error("%s: first set reset to NULL", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (secondGetValue == secondValue) { \
         TEST_error("%s: second set did not copy the value as expected", \
                    fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
+    res = 1; \
+    \
+ err: \
     DEALLOCATOR(firstValue); \
     DEALLOCATOR(secondValue); \
-    return 1; \
+    return res; \
 } \
 \
 static int test_CTX_##METHODNAME##_set1_get0(void) \
@@ -257,68 +274,71 @@ static int execute_CTX_##METHODNAME##_set1_get1 \
     VALUETYPE* secondValue = ALLOCATOR(); \
     VALUETYPE* secondGetValue = OSSL_CMP_CTX_get1_##METHODNAME(fixture->ctx); \
     VALUETYPE* thirdGetValue = OSSL_CMP_CTX_get1_##METHODNAME(fixture->ctx); \
+    int res = 0; \
     \
     if (OSSL_CMP_CTX_set1_##METHODNAME(NULL, firstValue)) { \
         TEST_error("%s: CTX != NULL not checked", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (!OSSL_CMP_CTX_set1_##METHODNAME(fixture->ctx, firstValue)) { \
         TEST_error("%s: setting value failed", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (firstGetValue == firstValue) { \
         TEST_error("%s: first set did not copy the value as expected", \
                    fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (firstGetValue == NULL) { \
         TEST_error("%s: first set had no effect", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (OSSL_CMP_CTX_set1_##METHODNAME(NULL, secondValue)) { \
         TEST_error("%s: CTX != NULL not checked", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (!OSSL_CMP_CTX_set1_##METHODNAME(fixture->ctx, secondValue)) { \
         TEST_error("%s: setting secondValue failed", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (secondGetValue == NULL) { \
         TEST_error("%s: first set reset to NULL", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (secondGetValue == secondValue) { \
         TEST_error("%s: second set did not copy the value as expected", \
                    fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (secondGetValue == firstGetValue) { \
         TEST_error("%s: first get return same as second get", \
                    fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (thirdGetValue == secondGetValue) { \
         TEST_error("%s: third get did not create a new copy", \
                    fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
+    res = 1; \
+    \
+ err: \
     DEALLOCATOR(firstValue); \
     DEALLOCATOR(secondValue); \
     DEALLOCATOR(firstGetValue); \
     DEALLOCATOR(secondGetValue); \
     DEALLOCATOR(thirdGetValue); \
-    ERR_clear_error(); \
-    return 1; \
+    return res; \
 } \
 \
 static int test_CTX_##METHODNAME##_set1_get1(void) \
@@ -337,34 +357,43 @@ static int test_CTX_##METHODNAME##_set1_get1(void) \
                                 sk_##STACK_TYPE##_new_null, \
                                 sk_##STACK_TYPE##_free)
 
-#define DECLARE_SET0_BASE_TEST(METHODNAME, VALUETYPE, ALLOCATOR) \
+#define DECLARE_SET0_BASE_TEST(METHODNAME, VALUETYPE, \
+                               ALLOCATOR, DEALLOCATOR) \
 static int execute_CTX_##METHODNAME##_set0 \
     (OSSL_CMP_CTX_TEST_FIXTURE * fixture) \
 { \
     VALUETYPE* firstValue = ALLOCATOR(); \
     VALUETYPE* secondValue = ALLOCATOR(); \
+    int res = 0; \
     \
     if (OSSL_CMP_CTX_set0_##METHODNAME(NULL, firstValue)) { \
         TEST_error("%s: CTX != NULL not checked", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (!OSSL_CMP_CTX_set0_##METHODNAME(fixture->ctx, firstValue)) { \
         TEST_error("%s: setting value failed", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
+    firstValue = NULL; \
     ERR_clear_error(); \
     if (OSSL_CMP_CTX_set0_##METHODNAME(NULL, secondValue)) { \
         TEST_error("%s: CTX != NULL not checked", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (!OSSL_CMP_CTX_set0_##METHODNAME(fixture->ctx, secondValue)) { \
         TEST_error("%s: setting secondValue failed", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
+    secondValue = NULL; \
     ERR_clear_error(); \
-    return 1; \
+    res = 1; \
+    \
+ err: \
+    DEALLOCATOR(firstValue); \
+    DEALLOCATOR(secondValue); \
+    return res; \
 } \
 \
 static int test_CTX_##METHODNAME##_set0(void) \
@@ -375,42 +404,48 @@ static int test_CTX_##METHODNAME##_set0(void) \
 } \
 
 #define DECLARE_SET0_TEST(METHODNAME, VALUETYPE) \
-    DECLARE_SET0_BASE_TEST(METHODNAME, VALUETYPE, VALUETYPE##_new)
+    DECLARE_SET0_BASE_TEST(METHODNAME, VALUETYPE, \
+                           VALUETYPE##_new, VALUETYPE##_free)
 
 #define DECLARE_SET0_STACK_OF_TEST(METHODNAME, STACK_TYPE) \
     DECLARE_SET0_BASE_TEST(METHODNAME, STACK_OF(STACK_TYPE), \
-                           sk_##STACK_TYPE##_new_null)
+                           sk_##STACK_TYPE##_new_null, \
+                           sk_##STACK_TYPE##_free)
 
-#define DECLARE_SET1_BASE_TEST(METHODNAME, VALUETYPE, ALLOCATOR, DEALLOCATOR)\
+#define DECLARE_SET1_BASE_TEST(METHODNAME, VALUETYPE, ALLOCATOR, DEALLOCATOR) \
 static int execute_CTX_##METHODNAME##_set1 \
     (OSSL_CMP_CTX_TEST_FIXTURE * fixture) \
 { \
     VALUETYPE* firstValue = ALLOCATOR(); \
     VALUETYPE* secondValue = ALLOCATOR(); \
+    int res = 0; \
     \
     if (OSSL_CMP_CTX_set1_##METHODNAME(NULL, firstValue)) { \
         TEST_error("%s: CTX != NULL not checked", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (!OSSL_CMP_CTX_set1_##METHODNAME(fixture->ctx, firstValue)) { \
         TEST_error("%s: setting value failed", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (OSSL_CMP_CTX_set1_##METHODNAME(NULL, secondValue)) { \
         TEST_error("%s: CTX != NULL not checked", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
     if (!OSSL_CMP_CTX_set1_##METHODNAME(fixture->ctx, secondValue)) { \
         TEST_error("%s: setting secondValue failed", fixture->test_case_name); \
-        return 0; \
+        goto err; \
     } \
     ERR_clear_error(); \
+    res = 1; \
+    \
+ err: \
     DEALLOCATOR(firstValue); \
     DEALLOCATOR(secondValue); \
-    return 1; \
+    return res; \
 } \
 \
 static int test_CTX_##METHODNAME##_set1(void) \
