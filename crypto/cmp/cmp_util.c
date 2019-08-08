@@ -107,6 +107,10 @@ size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
 /*
  * auxiliary function for incrementally reporting texts via the error queue
  */
+#define ERR_put_error_local(lib, func, reason, file, line) \
+    (ERR_new(),                                            \
+     ERR_set_debug((file), (line), (func)),                \
+     ERR_set_error((lib), (reason), NULL))
 
 void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
 {
@@ -119,7 +123,7 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
     if (separator == NULL)
         separator = "";
     if (err == 0)
-        ERR_PUT_error(ERR_LIB_CMP, 0, err, "", 0);
+        ERR_put_error_local(ERR_LIB_CMP, NULL, 0, "", 0);
 
 #define MAX_DATA_LEN (4096-100) /* workaround for ERR_print_errors_cb() limit */
     do {
@@ -153,7 +157,7 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
                 ERR_add_error_data(2, separator, tmp);
                 OPENSSL_free(tmp);
             }
-            ERR_PUT_error(ERR_LIB_CMP, 0 /* func */, err, file, line);
+            ERR_put_error_local(ERR_LIB_CMP, NULL /* func */, err, file, line);
             txt = curr;
         } else {
             ERR_add_error_data(2, separator, txt);
@@ -391,6 +395,7 @@ int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
+
     if (bytes != NULL) {
         if ((new = ASN1_OCTET_STRING_new()) == NULL
                 || !(ASN1_OCTET_STRING_set(new, bytes, len))) {
