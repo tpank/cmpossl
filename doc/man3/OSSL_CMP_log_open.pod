@@ -102,13 +102,13 @@ Therefore the function should return 1 on success and 0 on failure.
 
 OSSL_CMP_log_open() initializes the CMP-specific logging facility to output
 everything to B<stdout>. It fails if the integrated tracing is disabled or STDIO
-is not available. It should be called at least once during application startup,
-and/or L<OSSL_CMP_CTX_set_log_cb(3)> can be used for more flexibility.
-It may be called multiple times.
+is not available. It is called once at OpenSSL initialization and may be called
+more often, for instance during application startup.
+Alternatively, L<OSSL_CMP_CTX_set_log_cb(3)> can be used for more flexibility.
 
-OSSL_CMP_log_close() should be called when all activities are finished to flush
+OSSL_CMP_log_close() may be called when all activities are finished to flush
 any pending CMP-specific log output and deallocate related resources.
-It may be called multiple times.
+It may be called multiple times. It does get called at OpenSSL stutdown.
 
 OSSL_CMP_alert() outputs a simple alert message via the trace API.
 OSSL_CMP_err() outputs a simple error message via the trace API.
