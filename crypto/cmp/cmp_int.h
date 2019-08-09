@@ -90,7 +90,7 @@ struct ossl_cmp_ctx_st {
     ASN1_OCTET_STRING *transactionID; /* the current transaction ID */
     ASN1_OCTET_STRING *senderNonce; /* last nonce sent */
     ASN1_OCTET_STRING *recipNonce; /* last nonce received */
-    STACK_OF(OSSL_CMP_ITAV) *geninfo_itavs;
+    STACK_OF(OSSL_CMP_ITAV) *geninfo_ITAVs;
     int implicitConfirm; /* set implicitConfirm in IR/KUR/CR messages */
     int disableConfirm; /*
                          * disable confirmation messages in IR/KUR/CR
@@ -108,9 +108,8 @@ struct ossl_cmp_ctx_st {
                              * NB: could also be taken from clcert
                              */
     STACK_OF(GENERAL_NAME) *subjectAltNames; /*
-                                              * names to be added to the cert
-                                              * template as the subjectAltName
-                                              * extension
+                                              * to be added to the cert template
+                                              * as the subjectAltName extension
                                               */
     int SubjectAltName_nodefault;
     int setSubjectAltNameCritical;
@@ -129,7 +128,7 @@ struct ossl_cmp_ctx_st {
 
     /* misc body contents */
     int revocationReason; /* revocation reason code to be included in RR */
-    STACK_OF(OSSL_CMP_ITAV) *genm_itavs; /* content of general message */
+    STACK_OF(OSSL_CMP_ITAV) *genm_ITAVs; /* content of general message */
 
     /* result returned in responses */
     int status; /* PKIStatus of last received IP/CP/KUP/RP/error or -1 */

@@ -194,7 +194,7 @@ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
     ASN1_OCTET_STRING_free(ctx->transactionID);
     ASN1_OCTET_STRING_free(ctx->senderNonce);
     ASN1_OCTET_STRING_free(ctx->recipNonce);
-    sk_OSSL_CMP_ITAV_pop_free(ctx->geninfo_itavs, OSSL_CMP_ITAV_free);
+    sk_OSSL_CMP_ITAV_pop_free(ctx->geninfo_ITAVs, OSSL_CMP_ITAV_free);
     sk_X509_pop_free(ctx->extraCertsOut, X509_free);
 
     EVP_PKEY_free(ctx->newPkey);
@@ -206,7 +206,7 @@ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
     X509_free(ctx->oldClCert);
     X509_REQ_free(ctx->p10CSR);
 
-    sk_OSSL_CMP_ITAV_pop_free(ctx->genm_itavs, OSSL_CMP_ITAV_free);
+    sk_OSSL_CMP_ITAV_pop_free(ctx->genm_ITAVs, OSSL_CMP_ITAV_free);
 
     sk_ASN1_UTF8STRING_pop_free(ctx->statusString, ASN1_UTF8STRING_free);
     X509_free(ctx->newCert);
@@ -493,58 +493,46 @@ int OSSL_CMP_CTX_set1_extraCertsOut(OSSL_CMP_CTX *ctx,
 }
 
 /*
- * OSSL_CMP_CTX_push1_policyOID() adds the certificate policy OID given by the
- * string to the X509_EXTENSIONS of the requested certificate template.
- * returns 1 on success, -1 on parse error, and 0 on other error.
+ * OSSL_CMP_CTX_push1_policyOID() adds the given policy info object
+ * to the X509_EXTENSIONS of the requested certificate template.
+ * returns 1 on success, 0 on error.
  */
-int OSSL_CMP_CTX_push1_policyOID(OSSL_CMP_CTX *ctx, const char *policyOID)
+int OSSL_CMP_CTX_push0_policy(OSSL_CMP_CTX *ctx, POLICYINFO *pinfo)
 {
-    ASN1_OBJECT *policy;
-    POLICYINFO *pinfo = NULL;
-
-    if (ctx == NULL || policyOID == NULL) {
+    if (ctx == NULL || pinfo == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
-    }
-
-    if ((policy = OBJ_txt2obj(policyOID, 1)) == 0) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
-        return -1; /* parse error */
     }
 
     if (ctx->policies == NULL
             && (ctx->policies = CERTIFICATEPOLICIES_new()) == NULL)
         return 0;
 
-    if ((pinfo = POLICYINFO_new()) == NULL)
-        return 0;
-    pinfo->policyid = policy;
-
     return sk_POLICYINFO_push(ctx->policies, pinfo);
 }
 
 /*
- * add an itav for geninfo of the PKI message header
+ * add an ITAV for geninfo of the PKI message header
  */
-int OSSL_CMP_CTX_geninfo_push0_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
+int OSSL_CMP_CTX_push0_geninfo_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return OSSL_CMP_ITAV_push0_stack_item(&ctx->geninfo_itavs, itav);
+    return OSSL_CMP_ITAV_push0_stack_item(&ctx->geninfo_ITAVs, itav);
 }
 
 /*
  * add an itav for the body of outgoing general messages
  */
-int OSSL_CMP_CTX_genm_push0_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
+int OSSL_CMP_CTX_push0_genm_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return OSSL_CMP_ITAV_push0_stack_item(&ctx->genm_itavs, itav);
+    return OSSL_CMP_ITAV_push0_stack_item(&ctx->genm_ITAVs, itav);
 }
 
 /*

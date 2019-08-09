@@ -196,42 +196,52 @@ static int test_CTX_print_errors(void)
     return result;
 }
 
-static int execute_CTX_reqExtensions_have_SAN_test(OSSL_CMP_CTX_TEST_FIXTURE *
-                                                   fixture)
+static int execute_CTX_reqExtensions_have_SAN_dup_test(
+                                             OSSL_CMP_CTX_TEST_FIXTURE *fixture)
 {
+    OSSL_CMP_CTX *ctx = fixture->ctx;
     const int len = 16;
-    unsigned char str[16/* len */];
+    unsigned char str[16 /* = len */ ];
     ASN1_OCTET_STRING *data = NULL;
     X509_EXTENSION *ext = NULL;
     X509_EXTENSIONS *exts = NULL;
+    int res = 0;
 
-    if (!TEST_false(OSSL_CMP_CTX_reqExtensions_have_SAN(fixture->ctx)))
+    if (!TEST_false(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx)))
         return 0;
 
     if (!TEST_int_eq(1, RAND_bytes(str, len))
             || !TEST_ptr(data = ASN1_OCTET_STRING_new())
-            || !TEST_true(ASN1_OCTET_STRING_set(data, str, len))
-            || !TEST_ptr(ext =
-                         X509_EXTENSION_create_by_NID(NULL,
-                                                      NID_subject_alt_name, 0,
-                                                      data))
+            || !TEST_true(ASN1_OCTET_STRING_set(data, str, len)))
+        goto err;
+    ext = X509_EXTENSION_create_by_NID(NULL, NID_subject_alt_name, 0, data);
+    if (!TEST_ptr(ext)
             || !TEST_ptr(exts = sk_X509_EXTENSION_new_null())
             || !TEST_true(sk_X509_EXTENSION_push(exts, ext))
-            || !TEST_true(OSSL_CMP_CTX_set0_reqExtensions(fixture->ctx,
-                                                          exts))) {
-        ASN1_OCTET_STRING_free(data);
+            || !TEST_true(OSSL_CMP_CTX_set0_reqExtensions(ctx, exts))) {
         X509_EXTENSION_free(ext);
         sk_X509_EXTENSION_free(exts);
-        return 0;
+        goto err;
     }
+    if (TEST_true(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx))) {
+        X509_EXTENSIONS *exts_copy = ossl_cmp_x509_extensions_dup(exts);
+
+        ext = sk_X509_EXTENSION_pop(exts);
+        res = TEST_false(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx));
+        X509_EXTENSION_free(ext);
+        if (!TEST_true(OSSL_CMP_CTX_set0_reqExtensions(ctx, exts_copy))
+            || !TEST_true(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx)))
+            res = 0;
+    }
+ err:
     ASN1_OCTET_STRING_free(data);
-    return TEST_true(OSSL_CMP_CTX_reqExtensions_have_SAN(fixture->ctx));
+    return res;
 }
 
-static int test_CTX_reqExtensions_have_SAN(void)
+static int test_CTX_reqExtensions_have_SAN_dup(void)
 {
     SETUP_TEST_FIXTURE(OSSL_CMP_CTX_TEST_FIXTURE, set_up);
-    EXECUTE_TEST(execute_CTX_reqExtensions_have_SAN_test, tear_down);
+    EXECUTE_TEST(execute_CTX_reqExtensions_have_SAN_dup_test, tear_down);
     return result;
 }
 
@@ -327,11 +337,12 @@ static int test_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
 #define DECLARE_SET_GET_BASE_TEST(SETN, GETN, DUP, FIELD, TYPE, \
                                   ERR, DEFAULT, NEW, FREE) \
 static int execute_CTX_##SETN####GETN####FIELD( \
-    OSSL_CMP_CTX_TEST_FIXTURE * fixture) \
+    OSSL_CMP_CTX_TEST_FIXTURE *fixture) \
 { \
+    OSSL_CMP_CTX *ctx = fixture->ctx; \
     int (*set_fn)(OSSL_CMP_CTX *ctx, TYPE) = \
         (int (*)(OSSL_CMP_CTX *ctx, TYPE))OSSL_CMP_CTX_##SETN####FIELD; \
- /* type cast need in above assignment because TYPE arg sometimes is const */ \
+ /* need type cast in above assignment because TYPE arg sometimes is const */ \
     TYPE (*get_fn)(const OSSL_CMP_CTX *ctx) = OSSL_CMP_CTX_##GETN####FIELD;\
     TYPE val1_to_free = NEW; \
     TYPE val1 = val1_to_free; \
@@ -342,6 +353,8 @@ static int execute_CTX_##SETN####GETN####FIELD( \
     TYPE val3_read = 0; \
     int res = 1; \
     \
+    if (!TEST_int_eq(ERR_peek_error(), 0)) \
+        res = 0; \
     if ((*set_fn)(NULL, val1) || ERR_peek_error() == 0) { \
         TEST_error("setter did not return error on ctx == NULL"); \
         res = 0; \
@@ -354,12 +367,12 @@ static int execute_CTX_##SETN####GETN####FIELD( \
     } \
     ERR_clear_error(); \
     \
-    val1_read = (*get_fn)(fixture->ctx); \
+    val1_read = (*get_fn)(ctx); \
     if (!DEFAULT(val1_read)) { \
         TEST_error("did not get default value"); \
         res = 0; \
     } \
-    if (!(*set_fn)(fixture->ctx, val1)) { \
+    if (!(*set_fn)(ctx, val1)) { \
         TEST_error("setting first value failed"); \
         res = 0; \
     } \
@@ -368,7 +381,7 @@ static int execute_CTX_##SETN####GETN####FIELD( \
     \
     if (GETN == 1) \
         FREE(val1_read); \
-    val1_read = (*get_fn)(fixture->ctx); \
+    val1_read = (*get_fn)(ctx); \
     if (SETN == 0) { \
         if (val1_read != val1) { \
             TEST_error("set/get first value did not match"); \
@@ -376,7 +389,7 @@ static int execute_CTX_##SETN####GETN####FIELD( \
         } \
     } else { \
         if (DUP && val1_read == val1) { \
-            TEST_error("did not dup the value"); \
+            TEST_error("first set did not dup the value"); \
             res = 0; \
         } \
         if (DEFAULT(val1_read)) { \
@@ -385,14 +398,14 @@ static int execute_CTX_##SETN####GETN####FIELD( \
         } \
     } \
     \
-    if (!(*set_fn)(fixture->ctx, val2)) { \
+    if (!(*set_fn)(ctx, val2)) { \
         TEST_error("setting second value failed"); \
         res = 0; \
     } \
     if (SETN == 0) \
         val2_to_free = 0; \
     \
-    val2_read = (*get_fn)(fixture->ctx); \
+    val2_read = (*get_fn)(ctx); \
     if (DEFAULT(val2_read)) { \
         TEST_error("second set reset the value"); \
         res = 0; \
@@ -421,7 +434,7 @@ static int execute_CTX_##SETN####GETN####FIELD( \
         } \
     } \
     \
-    val3_read = (*get_fn)(fixture->ctx); \
+    val3_read = (*get_fn)(ctx); \
     if (DEFAULT(val3_read)) { \
         TEST_error("third set reset the value"); \
         res = 0; \
@@ -432,14 +445,14 @@ static int execute_CTX_##SETN####GETN####FIELD( \
             res = 0; \
         } \
     } else  { \
-        if (DUP && val3_read == val2_read) {  \
+        if (DUP && val3_read == val2_read) { \
             TEST_error("third get did not create a new dup"); \
             res = 0; \
         } \
     } \
     /* this does not check that all remaining fields are untouched */ \
     \
-    if (!TEST_int_eq(ERR_peek_error(), 0))      \
+    if (!TEST_int_eq(ERR_peek_error(), 0)) \
         res = 0; \
     \
     FREE(val1_to_free); \
@@ -455,7 +468,7 @@ static int execute_CTX_##SETN####GETN####FIELD( \
 static int test_CTX_##SETN####GETN####FIELD(void) \
 { \
     SETUP_TEST_FIXTURE(OSSL_CMP_CTX_TEST_FIXTURE, set_up); \
-    EXECUTE_TEST(execute_CTX_##SETN####GETN####FIELD , tear_down); \
+    EXECUTE_TEST(execute_CTX_##SETN####GETN####FIELD, tear_down); \
     return result; \
 } \
 
@@ -490,13 +503,13 @@ static X509_STORE *X509_STORE_new_1(void) {
 #define ERR(x) (CMPerr(0, CMP_R_NULL_ARGUMENT), x)
 
 #define DECLARE_SET_GET_TEST(N, M, DUP, FIELD, TYPE) \
-    DECLARE_SET_GET_BASE_TEST(set##N##_, get##M##_, DUP, FIELD, TYPE* , \
+    DECLARE_SET_GET_BASE_TEST(set##N##_, get##M##_, DUP, FIELD, TYPE*, \
                               NULL, IS_0, TYPE##_new(), TYPE##_free)
 
 #define DECLARE_SET_GET_SK_TEST_DEFAULT(N, M, FIELD, ELEM_TYPE, \
                                         DEFAULT, NEW, FREE) \
     DECLARE_SET_GET_BASE_TEST(set##N##_, get##M##_, 1, FIELD, \
-                              STACK_OF(ELEM_TYPE)* , NULL, DEFAULT, NEW, FREE)
+                              STACK_OF(ELEM_TYPE)*, NULL, DEFAULT, NEW, FREE)
 #define DECLARE_SET_GET_SK_TEST(N, M, FIELD, T) \
     DECLARE_SET_GET_SK_TEST_DEFAULT(N, M, FIELD, T, \
                                     IS_0, sk_##T##_new_null(), sk_##T##_free)
@@ -504,16 +517,16 @@ static X509_STORE *X509_STORE_new_1(void) {
     DECLARE_SET_GET_SK_TEST_DEFAULT(N, M, FNAME, X509, EMPTY_SK_X509, \
                                     sk_X509_new_1(), sk_X509_pop_X509_free)
 
-#define DECLARE_SET_GET_TEST_DEFAULT(N, M, DUP, FIELD, TYPE, DEFAULT)  \
-    DECLARE_SET_GET_BASE_TEST(set##N##_, get##M##_, DUP, FIELD, TYPE* , \
+#define DECLARE_SET_GET_TEST_DEFAULT(N, M, DUP, FIELD, TYPE, DEFAULT) \
+    DECLARE_SET_GET_BASE_TEST(set##N##_, get##M##_, DUP, FIELD, TYPE*, \
                               NULL, DEFAULT, TYPE##_new(), TYPE##_free)
-#define DECLARE_SET_TEST_DEFAULT(N, DUP, FIELD, TYPE, DEFAULT)  \
+#define DECLARE_SET_TEST_DEFAULT(N, DUP, FIELD, TYPE, DEFAULT) \
     static TYPE *OSSL_CMP_CTX_get0_##FIELD(const OSSL_CMP_CTX *ctx) \
     { \
-        return ctx == NULL ? ERR(NULL) : ctx->FIELD;  \
+        return ctx == NULL ? ERR(NULL) : ctx->FIELD; \
     } \
     DECLARE_SET_GET_TEST_DEFAULT(N, 0, DUP, FIELD, TYPE, DEFAULT)
-#define DECLARE_SET_TEST(N, DUP, FIELD, TYPE)           \
+#define DECLARE_SET_TEST(N, DUP, FIELD, TYPE) \
     DECLARE_SET_TEST_DEFAULT(N, DUP, FIELD, TYPE, IS_0)
 
 #define DECLARE_SET_SK_TEST(N, FIELD, TYPE) \
@@ -521,7 +534,7 @@ static X509_STORE *X509_STORE_new_1(void) {
     { \
         return ctx == NULL ? ERR(NULL) : ctx->FIELD; \
     } \
-    DECLARE_SET_GET_BASE_TEST(set##N##_, get0_, 1, FIELD, STACK_OF(TYPE)* , \
+    DECLARE_SET_GET_BASE_TEST(set##N##_, get0_, 1, FIELD, STACK_OF(TYPE)*, \
                               NULL, IS_0, sk_##TYPE##_new_null(), \
                               sk_##TYPE##_free)
 
@@ -531,12 +544,12 @@ static X509_STORE *X509_STORE_new_1(void) {
     { \
         if (ctx == NULL) \
             CMPerr(0, CMP_R_NULL_ARGUMENT); \
-        return ctx == NULL ? NULL /* cannot use ERR(NULL) here */ : ctx->FIELD; \
+        return ctx == NULL ? NULL /* cannot use ERR(NULL) here */ : ctx->FIELD;\
     } \
-    DECLARE_SET_GET_BASE_TEST(set_, get_ , 0, FIELD, OSSL_cmp_##FIELD##_t, \
+    DECLARE_SET_GET_BASE_TEST(set_, get_, 0, FIELD, OSSL_cmp_##FIELD##_t, \
                               NULL, IS_0, test_##FIELD, DROP)
 #define DECLARE_SET_GET_P_VOID_TEST(FIELD) \
-    DECLARE_SET_GET_BASE_TEST(set_, get_ , 0, FIELD, void*, \
+    DECLARE_SET_GET_BASE_TEST(set_, get_, 0, FIELD, void*, \
                               NULL, IS_0, ((void *)1), DROP)
 
 #define DECLARE_SET_GET_INT_TEST_DEFAULT(FIELD, DEFAULT) \
@@ -576,6 +589,118 @@ static X509_STORE *X509_STORE_new_1(void) {
             OPENSSL_strndup((char *)bytes->data, bytes->length); \
     }
 
+#define push_ 0
+#define push0_ 0
+#define push1_ 1
+#define DECLARE_PUSH_BASE_TEST(PUSHN, DUP, FIELD, ELEM, TYPE, T, \
+                               DEFAULT, NEW, FREE) \
+static TYPE sk_top_##FIELD(const OSSL_CMP_CTX *ctx) { \
+    return sk_##T##_value(ctx->FIELD, sk_##T##_num(ctx->FIELD) - 1); \
+} \
+\
+static int execute_CTX_##PUSHN####ELEM(OSSL_CMP_CTX_TEST_FIXTURE *fixture) \
+{ \
+    OSSL_CMP_CTX *ctx = fixture->ctx; \
+    int (*push_fn)(OSSL_CMP_CTX *ctx, TYPE) = \
+        (int (*)(OSSL_CMP_CTX *ctx, TYPE))OSSL_CMP_CTX_##PUSHN####ELEM; \
+ /* need type cast in above assignment because TYPE arg sometimes is const */ \
+    int n_elem = sk_##T##_num(ctx->FIELD); \
+    STACK_OF(TYPE) field_read; \
+    TYPE val1_to_free = NEW; \
+    TYPE val1 = val1_to_free; \
+    TYPE val1_read = 0; /* 0 works for any type */ \
+    TYPE val2_to_free = NEW; \
+    TYPE val2 = val2_to_free; \
+    TYPE val2_read = 0; \
+    int res = 1; \
+    \
+    if (!TEST_int_eq(ERR_peek_error(), 0)) \
+        res = 0; \
+    if ((*push_fn)(NULL, val1) || ERR_peek_error() == 0) { \
+        TEST_error("pusher did not return error on ctx == NULL"); \
+        res = 0; \
+    } \
+    ERR_clear_error(); \
+    \
+    if (n_elem < 0) /* can happen for NULL stack */ \
+        n_elem = 0; \
+    field_read = ctx->FIELD; \
+    if (!DEFAULT(field_read)) { \
+        TEST_error("did not get default value for stack field"); \
+        res = 0; \
+    } \
+    if (!(*push_fn)(ctx, val1)) { \
+        TEST_error("pushing first value failed"); \
+        res = 0; \
+    } \
+    if (PUSHN == 0) \
+        val1_to_free = 0; /* 0 works for any type */ \
+    \
+    if (sk_##T##_num(ctx->FIELD) != ++n_elem) { \
+        TEST_error("pushing first value did not increment number"); \
+        res = 0; \
+    } \
+    val1_read = sk_top_##FIELD(ctx); \
+    if (PUSHN == 0) { \
+        if (val1_read != val1) { \
+            TEST_error("push/sk_top first value did not match"); \
+            res = 0; \
+        } \
+    } else { \
+        if (DUP && val1_read == val1) { \
+            TEST_error("first push did not dup the value"); \
+            res = 0; \
+        } \
+    } \
+    \
+    if (!(*push_fn)(ctx, val2)) { \
+        TEST_error("pushting second value failed"); \
+        res = 0; \
+    } \
+    if (PUSHN == 0) \
+        val2_to_free = 0; \
+    \
+    if (sk_##T##_num(ctx->FIELD) != ++n_elem) { \
+        TEST_error("pushing second value did not increment number"); \
+        res = 0; \
+    } \
+    val2_read = sk_top_##FIELD(ctx); \
+    if (PUSHN == 0) { \
+        if (val2_read != val2) { \
+            TEST_error("push/sk_top second value did not match"); \
+            res = 0; \
+        } \
+    } else { \
+        if (DUP && val2_read == val2) { \
+            TEST_error("second push did not dup the value"); \
+            res = 0; \
+        } \
+        if (val2 == val1) { \
+            TEST_error("second value is same as first value"); \
+            res = 0; \
+        } \
+    } \
+    /* this does not check that all remaining fields and elems are untouched */\
+    \
+    if (!TEST_int_eq(ERR_peek_error(), 0)) \
+        res = 0; \
+    \
+    FREE(val1_to_free); \
+    FREE(val2_to_free); \
+    return TEST_true(res); \
+} \
+\
+static int test_CTX_##PUSHN####ELEM(void) \
+{ \
+    SETUP_TEST_FIXTURE(OSSL_CMP_CTX_TEST_FIXTURE, set_up); \
+    EXECUTE_TEST(execute_CTX_##PUSHN####ELEM, tear_down); \
+    return result; \
+} \
+
+#define DECLARE_PUSH_TEST(N, DUP, FIELD, ELEM, TYPE) \
+    DECLARE_PUSH_BASE_TEST(push##N##_, DUP, FIELD, ELEM, TYPE*, TYPE, \
+                           IS_0, TYPE##_new(), TYPE##_free)
+
 void cleanup_tests(void)
 {
     return;
@@ -612,7 +737,9 @@ DECLARE_SET_TEST(0, 0, pkey, EVP_PKEY)
 DECLARE_SET_GET_TEST(1, 0, 0, pkey, EVP_PKEY)
 
 DECLARE_SET_TEST(1, 1, recipient, X509_NAME)
+DECLARE_PUSH_TEST(0, 0, geninfo_ITAVs, geninfo_ITAV, OSSL_CMP_ITAV)
 DECLARE_SET_SK_TEST(1, extraCertsOut, X509)
+DECLARE_PUSH_TEST(1, 0, extraCertsOut, extraCertsOut, X509)
 DECLARE_SET_GET_ARG_FN(set0_, get0_, newPkey, 1, EVP_PKEY*) /* priv == 1 */
 DECLARE_SET_GET_TEST(0, 0, 0, newPkey_1, EVP_PKEY)
 DECLARE_SET_GET_ARG_FN(set1_, get0_, newPkey, 0, EVP_PKEY*) /* priv == 0 */
@@ -623,12 +750,17 @@ DECLARE_SET_GET1_STR_FN(set1_, secretValue)
 DECLARE_SET_GET_TEST_DEFAULT(1, 1, 1, secretValue_str, char, IS_0)
 DECLARE_SET_TEST(1, 1, issuer, X509_NAME)
 DECLARE_SET_TEST(1, 1, subjectName, X509_NAME)
+#ifdef ISSUE_9504_RESOLVED
+DECLARE_PUSH_TEST(1, 1, subjectAltNames, subjectAltName, GENERAL_NAME)
+#endif
 DECLARE_SET_SK_TEST(0, reqExtensions, X509_EXTENSION)
 DECLARE_SET_GET_SK_TEST(1, 0, reqExtensions, X509_EXTENSION)
+DECLARE_PUSH_TEST(0, 0, policies, policy, POLICYINFO)
 DECLARE_SET_TEST(1, 0, oldClCert, X509)
 #ifdef ISSUE_9504_RESOLVED
 DECLARE_SET_TEST(1, 1, p10CSR, X509_REQ)
 #endif
+DECLARE_PUSH_TEST(0, 0, genm_ITAVs, genm_ITAV, OSSL_CMP_ITAV)
 DECLARE_SET_CB_TEST(certConf_cb)
 DECLARE_SET_GET_P_VOID_TEST(certConf_cb_arg)
 
@@ -654,13 +786,6 @@ DECLARE_SET_GET_TEST(1, 0, 1, recipNonce, ASN1_OCTET_STRING)
 
 int setup_tests(void)
 {
-/* from cmp_util.c */
-/*
-X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts);
-STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs, X509 *cert);
-*/
-
-/* from cmp_ctx.c */
     /* OSSL_CMP_CTX_new() is tested by set_up() */
     /* OSSL_CMP_CTX_free() is tested by tear_down() */
     ADD_TEST(test_CTX_reinit);
@@ -708,31 +833,30 @@ STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs, X509 *cert);
     ADD_TEST(test_CTX_set1_get1_secretValue_str);
 /* CMP message header and extra certificates: */
     ADD_TEST(test_CTX_set1_get0_recipient);
-/*
-int OSSL_CMP_CTX_geninfo_push0_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav);
-*/
+    ADD_TEST(test_CTX_push0_geninfo_ITAV);
     ADD_TEST(test_CTX_set1_get0_extraCertsOut);
+    ADD_TEST(test_CTX_push1_extraCertsOut);
 /* certificate template: */
     ADD_TEST(test_CTX_set0_get0_newPkey_1);
     ADD_TEST(test_CTX_set1_get0_newPkey_0);
     ADD_TEST(test_CTX_set1_get0_issuer);
     ADD_TEST(test_CTX_set1_get0_subjectName);
-/*
-int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx, const GENERAL_NAME *name);
-*/
+#ifdef ISSUE_9504_RESOLVED
+/* test currently fails, see https://github.com/openssl/openssl/issues/9504 */
+    ADD_TEST(test_CTX_push1_subjectAltName);
+#endif
     ADD_TEST(test_CTX_set0_get0_reqExtensions);
     ADD_TEST(test_CTX_set1_get0_reqExtensions);
-    ADD_TEST(test_CTX_reqExtensions_have_SAN);
-/*
-int OSSL_CMP_CTX_push1_policyOID(OSSL_CMP_CTX *ctx, const char *policyOID);
-*/
+    /* also tests ossl_cmp_x509_extensions_dup: */
+    ADD_TEST(test_CTX_reqExtensions_have_SAN_dup);
+    ADD_TEST(test_CTX_push0_policy);
     ADD_TEST(test_CTX_set1_get0_oldClCert);
 #ifdef ISSUE_9504_RESOLVED
 /* test currently fails, see https://github.com/openssl/openssl/issues/9504 */
     ADD_TEST(test_CTX_set1_get0_p10CSR);
 #endif
 /* misc body contents: */
-/* int OSSL_CMP_CTX_genm_push0_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav); */
+    ADD_TEST(test_CTX_push0_genm_ITAV);
 /* certificate confirmation: */
     ADD_TEST(test_CTX_set_get_certConf_cb);
     ADD_TEST(test_CTX_set_get_certConf_cb_arg);
@@ -748,6 +872,8 @@ int OSSL_CMP_CTX_push1_policyOID(OSSL_CMP_CTX *ctx, const char *policyOID);
     ADD_TEST(test_CTX_set1_get0_transactionID);
     ADD_TEST(test_CTX_set1_get0_senderNonce);
     ADD_TEST(test_CTX_set1_get0_recipNonce);
+
+    /* TODO ossl_cmp_build_cert_chain() will be tested with cmp_protect.c*/
 
     return 1;
 }
