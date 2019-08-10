@@ -143,7 +143,7 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
 }
 
 /*
- * prepare the OSSL_CMP_CTX for next use, partly re-initializing OSSL_CMP_CTX
+ * Prepare the OSSL_CMP_CTX for next use, partly re-initializing OSSL_CMP_CTX
  */
 int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
 {
@@ -227,7 +227,7 @@ int ossl_cmp_ctx_set_status(OSSL_CMP_CTX *ctx, int status)
 }
 
 /*
- * returns the PKIStatus from the last CertRepMessage
+ * Returns the PKIStatus from the last CertRepMessage
  * or Revocation Response or error message, -1 on error
  */
 int OSSL_CMP_CTX_get_status(const OSSL_CMP_CTX *ctx)
@@ -240,7 +240,7 @@ int OSSL_CMP_CTX_get_status(const OSSL_CMP_CTX *ctx)
 }
 
 /*
- * returns the statusString from the last CertRepMessage
+ * Returns the statusString from the last CertRepMessage
  * or Revocation Response or error message, NULL on error
  */
 OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(const OSSL_CMP_CTX *ctx)
@@ -278,7 +278,7 @@ int ossl_cmp_ctx_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert)
 /*
  * Set callback function for checking if the cert is ok or should
  * it be rejected.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb)
 {
@@ -292,8 +292,8 @@ int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb)
 
 /*
  * Set argument, respectively a pointer to a structure containing arguments,
- * optionally to be used by the certConf callback
- * returns 1 on success, 0 on error
+ * optionally to be used by the certConf callback.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
@@ -307,8 +307,8 @@ int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 
 /*
  * Get argument, respectively the pointer to a structure containing arguments,
- * optionally to be used by certConf callback
- * returns callback argument set previously (NULL if not set or on error)
+ * optionally to be used by certConf callback.
+ * Returns callback argument set previously (NULL if not set or on error)
  */
 void *OSSL_CMP_CTX_get_certConf_cb_arg(const OSSL_CMP_CTX *ctx)
 {
@@ -364,7 +364,7 @@ static size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
 
 /*
  * Set a callback function for log messages.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
 {
@@ -380,16 +380,16 @@ int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
     return 1;
 }
 
-/* print OpenSSL and CMP errors via the log cb of the ctx or OSSL_CMP_puts */
+/* Print OpenSSL and CMP errors via the log cb of the ctx or OSSL_CMP_puts */
 void OSSL_CMP_CTX_print_errors(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_print_errors_cb(ctx == NULL ? NULL : ctx->log_cb);
 }
 
 /*
- * Set or clear the reference value to be used for identification (i.e. the
- * user name) when using PBMAC.
- * returns 1 on success, 0 on error
+ * Set or clear the reference value to be used for identification
+ * (i.e., the user name) when using PBMAC.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
                                      const unsigned char *ref, int len)
@@ -403,8 +403,8 @@ int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
 }
 
 /*
- * Set or clear the password to be used for protecting messages with PBMAC
- * returns 1 on success, 0 on error
+ * Set or clear the password to be used for protecting messages with PBMAC.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
                                   const int len)
@@ -421,7 +421,7 @@ int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
 /*
  * Returns the stack of certificates received in a response message.
  * The stack is duplicated so the caller must handle freeing it!
- * returns pointer to created stack on success, NULL on error
+ * Returns pointer to created stack on success, NULL on error
  */
 STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx)
 {
@@ -435,9 +435,9 @@ STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx)
 }
 
 /*
- * Copies any given stack of inbound X509 certificates to extraCertsIn of
- * the OSSL_CMP_CTX structure so that they may be retrieved later.
- * returns 1 on success, 0 on error
+ * Copies any given stack of inbound X509 certificates to extraCertsIn
+ * of the OSSL_CMP_CTX structure so that they may be retrieved later.
+ * Returns 1 on success, 0 on error.
  */
 int ossl_cmp_ctx_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                                    STACK_OF(X509) *extraCertsIn)
@@ -457,7 +457,7 @@ int ossl_cmp_ctx_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
 /*
  * Duplicate and push the given X509 certificate to the stack of
  * outbound certificates to send in the extraCerts field.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, X509 *val)
 {
@@ -475,7 +475,7 @@ int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, X509 *val)
 /*
  * Duplicate and set the given stack as the new stack of X509
  * certificates to send out in the extraCerts field.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_extraCertsOut(OSSL_CMP_CTX *ctx,
                                     STACK_OF(X509) *extraCertsOut)
@@ -495,7 +495,7 @@ int OSSL_CMP_CTX_set1_extraCertsOut(OSSL_CMP_CTX *ctx,
 /*
  * OSSL_CMP_CTX_push1_policyOID() adds the given policy info object
  * to the X509_EXTENSIONS of the requested certificate template.
- * returns 1 on success, 0 on error.
+ * Returns 1 on success, 0 on error.
  */
 int OSSL_CMP_CTX_push0_policy(OSSL_CMP_CTX *ctx, POLICYINFO *pinfo)
 {
@@ -512,7 +512,7 @@ int OSSL_CMP_CTX_push0_policy(OSSL_CMP_CTX *ctx, POLICYINFO *pinfo)
 }
 
 /*
- * add an ITAV for geninfo of the PKI message header
+ * Add an ITAV for geninfo of the PKI message header
  */
 int OSSL_CMP_CTX_push0_geninfo_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
@@ -524,7 +524,7 @@ int OSSL_CMP_CTX_push0_geninfo_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 }
 
 /*
- * add an itav for the body of outgoing general messages
+ * Add an itav for the body of outgoing general messages
  */
 int OSSL_CMP_CTX_push0_genm_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
@@ -538,7 +538,7 @@ int OSSL_CMP_CTX_push0_genm_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 /*
  * Returns a duplicate of the stack of X509 certificates that
  * were received in the caPubs field of the last CertRepMessage.
- * returns NULL on error
+ * Returns NULL on error
  */
 STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx)
 {
@@ -554,7 +554,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx)
 /*
  * Duplicate and copy the given stack of certificates to the given
  * OSSL_CMP_CTX structure so that they may be retrieved later.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int ossl_cmp_ctx_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
 {
@@ -574,7 +574,7 @@ int ossl_cmp_ctx_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
  * Pins the server certificate to be directly trusted (even if it is expired)
  * for verifying response messages.
  * Cert pointer is not consumed. It may be NULL to clear the entry.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
@@ -608,7 +608,7 @@ int OSSL_CMP_CTX_set1_recipient(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 
 /*
  * Store the X509 name of the expected sender in the PKIHeader of responses.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_expected_sender(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 {
@@ -626,7 +626,7 @@ int OSSL_CMP_CTX_set1_expected_sender(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 
 /*
  * Set the X509 name of the issuer. Set in the PKIHeader.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_issuer(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 {
@@ -645,7 +645,7 @@ int OSSL_CMP_CTX_set1_issuer(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 /*
  * Set the subject name that will be placed in the certificate
  * request. This will be the subject name on the received certificate.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_subjectName(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 {
@@ -662,8 +662,8 @@ int OSSL_CMP_CTX_set1_subjectName(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 }
 
 /*
- * sets the X.509v3 certificate request extensions to be used in IR/CR/KUR
- * returns 1 on success, 0 on error
+ * Set the X.509v3 certificate request extensions to be used in IR/CR/KUR.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
 {
@@ -683,8 +683,8 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
 }
 
 /*
- * sets the X.509v3 certificate request extensions to be used in IR/CR/KUR
- * returns 1 on success, 0 on error
+ * Set the X.509v3 certificate request extensions to be used in IR/CR/KUR.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, const X509_EXTENSIONS *exts)
 {
@@ -722,7 +722,7 @@ int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx)
 /*
  * Add a GENERAL_NAME structure that will be added to the CRMF
  * request's extensions field to request subject alternative names.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
                                       const GENERAL_NAME *name)
@@ -746,7 +746,7 @@ int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
 /*
  * Set our own client certificate, used for example in KUR and when
  * doing the IR with existing certificate.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
@@ -765,7 +765,7 @@ int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, X509 *cert)
  * or the certificate to be revoked in RR, respectively.
  * Also used as reference cert (defaulting to clCert) for deriving subject DN
  * and SANs. Its issuer is used as default recipient in the CMP message header.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_oldClCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
@@ -780,8 +780,8 @@ int OSSL_CMP_CTX_set1_oldClCert(OSSL_CMP_CTX *ctx, X509 *cert)
 }
 
 /*
- * Set the PKCS#10 CSR to be sent in P10CR
- * returns 1 on success, 0 on error
+ * Set the PKCS#10 CSR to be sent in P10CR.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
 {
@@ -798,8 +798,8 @@ int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
 }
 
 /*
- * sets the (newly received in IP/KUP/CP) certificate in the context
- * returns 1 on success, 0 on error
+ * Sets the (newly received in IP/KUP/CP) certificate in the context.
+ * Returns 1 on success, 0 on error
  * TODO: this only permits for one cert to be enrolled at a time.
  */
 int ossl_cmp_ctx_set0_newCert(OSSL_CMP_CTX *ctx, X509 *cert)
@@ -840,9 +840,9 @@ int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 }
 
 /*
- * Set the client's current private key. NOTE: this version uses
- * the given pointer directly!
- * returns 1 on success, 0 on error
+ * Set the client's current private key.
+ * NOTE: this version uses the given pointer directly!
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
@@ -859,7 +859,7 @@ int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 /*
  * Set new key pair. Used for example when doing Key Update.
  * The key is duplicated so the original pointer is not directly used.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, int priv, EVP_PKEY *pkey)
 {
@@ -871,7 +871,7 @@ int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, int priv, EVP_PKEY *pkey)
 /*
  * Set new key pair. Used e.g. when doing Key Update.
  * NOTE: uses the pointer directly!
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, int priv, EVP_PKEY *pkey)
 {
@@ -904,8 +904,8 @@ EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx, int priv)
 }
 
 /*
- * sets the given transactionID to the context
- * returns 1 on success, 0 on error
+ * Sets the given transactionID to the context.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
                                     const ASN1_OCTET_STRING *id)
@@ -915,12 +915,11 @@ int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
         return 0;
     }
     return ossl_cmp_asn1_octet_string_set1(&ctx->transactionID, id);
-
 }
 
 /*
- * gets the transactionID from the context
- * returns a pointer to the transactionID on success, NULL on error
+ * Gets the transactionID from the context.
+ * Returns a pointer to the transactionID on success, NULL on error
  */
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx)
 {
@@ -947,8 +946,8 @@ int ossl_cmp_ctx_set1_recipNonce(OSSL_CMP_CTX *ctx,
 }
 
 /*
- * gets the recipNonce of the given context
- * returns a pointer to the nonce on success, NULL on error
+ * Gets the recipNonce of the given context.
+ * Returns a pointer to the nonce on success, NULL on error
  */
 ASN1_OCTET_STRING *ossl_cmp_ctx_get0_recipNonce(const OSSL_CMP_CTX *ctx)
 {
@@ -960,8 +959,8 @@ ASN1_OCTET_STRING *ossl_cmp_ctx_get0_recipNonce(const OSSL_CMP_CTX *ctx)
 }
 
 /*
- * stores the given nonce as the last senderNonce sent out
- * returns 1 on success, 0 on error
+ * Stores the given nonce as the last senderNonce sent out.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_senderNonce(OSSL_CMP_CTX *ctx,
                                   const ASN1_OCTET_STRING *nonce)
@@ -974,8 +973,8 @@ int OSSL_CMP_CTX_set1_senderNonce(OSSL_CMP_CTX *ctx,
 }
 
 /*
- * gets the sender nonce of the last message sent
- * returns a pointer to the nonce on success, NULL on error
+ * Gets the sender nonce of the last message sent.
+ * Returns a pointer to the nonce on success, NULL on error
  */
 ASN1_OCTET_STRING *ossl_cmp_ctx_get0_senderNonce(const OSSL_CMP_CTX *ctx)
 {
@@ -1005,8 +1004,8 @@ int OSSL_CMP_CTX_set1_proxyName(OSSL_CMP_CTX *ctx, const char *name)
 }
 
 /*
- * Set the (HTTP) host name of the CA server
- * returns 1 on success, 0 on error
+ * Set the (HTTP) host name of the CA server.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_serverName(OSSL_CMP_CTX *ctx, const char *name)
 {
@@ -1023,8 +1022,8 @@ int OSSL_CMP_CTX_set1_serverName(OSSL_CMP_CTX *ctx, const char *name)
 }
 
 /*
- * sets the (HTTP) proxy port to be used
- * returns 1 on success, 0 on error
+ * Sets the (HTTP) proxy port to be used.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_proxyPort(OSSL_CMP_CTX *ctx, int port)
 {
@@ -1051,8 +1050,8 @@ int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_http_cb_t cb)
 }
 
 /*
- * Set argument optionally to be used by the http connect/disconnect callback
- * returns 1 on success, 0 on error
+ * Set argument optionally to be used by the http connect/disconnect callback.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
@@ -1066,7 +1065,7 @@ int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 
 /*
  * Get argument optionally to be used by the http connect/disconnect callback
- * returns callback argument set previously (NULL if not set or on error)
+ * Returns callback argument set previously (NULL if not set or on error)
  */
 void *OSSL_CMP_CTX_get_http_cb_arg(const OSSL_CMP_CTX *ctx)
 {
@@ -1079,7 +1078,7 @@ void *OSSL_CMP_CTX_get_http_cb_arg(const OSSL_CMP_CTX *ctx)
 
 /*
  * Set callback function for sending CMP request and receiving response.
- * returns 1 on success, 0 on error
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_transfer_cb_t cb)
 {
@@ -1092,8 +1091,8 @@ int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_transfer_cb_t cb)
 }
 
 /*
- * Set argument optionally to be used by the transfer callback
- * returns 1 on success, 0 on error
+ * Set argument optionally to be used by the transfer callback.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_transfer_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
@@ -1106,8 +1105,8 @@ int OSSL_CMP_CTX_set_transfer_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 }
 
 /*
- * Get argument optionally to be used by the transfer callback
- * returns callback argument set previously (NULL if not set or on error)
+ * Get argument optionally to be used by the transfer callback.
+ * Returns callback argument set previously (NULL if not set or on error)
  */
 void *OSSL_CMP_CTX_get_transfer_cb_arg(const OSSL_CMP_CTX *ctx)
 {
@@ -1119,8 +1118,8 @@ void *OSSL_CMP_CTX_get_transfer_cb_arg(const OSSL_CMP_CTX *ctx)
 }
 
 /*
- * sets the (HTTP) server port to be used
- * returns 1 on success, 0 on error
+ * Sets the (HTTP) server port to be used.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_serverPort(OSSL_CMP_CTX *ctx, int port)
 {
@@ -1133,8 +1132,8 @@ int OSSL_CMP_CTX_set_serverPort(OSSL_CMP_CTX *ctx, int port)
 }
 
 /*
- * Sets the HTTP path to be used on the server (e.g "pkix/")
- * returns 1 on success, 0 on error
+ * Sets the HTTP path to be used on the server (e.g "pkix/").
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
 {
@@ -1149,8 +1148,8 @@ int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
 }
 
 /*
- * Set the failInfo error code as bit encoding in OSSL_CMP_CTX
- * returns 1 on success, 0 on error
+ * Set the failInfo error code as bit encoding in OSSL_CMP_CTX.
+ * Returns 1 on success, 0 on error
  */
 int ossl_cmp_ctx_set_failInfoCode(OSSL_CMP_CTX *ctx, int fail_info)
 {
@@ -1163,8 +1162,8 @@ int ossl_cmp_ctx_set_failInfoCode(OSSL_CMP_CTX *ctx, int fail_info)
 }
 
 /*
- * Get the failInfo error code in OSSL_CMP_CTX as bit encoding
- * returns bit string as integer on success, -1 on error
+ * Get the failInfo error code in OSSL_CMP_CTX as bit encoding.
+ * Returns bit string as integer on success, -1 on error
  */
 int OSSL_CMP_CTX_get_failInfoCode(const OSSL_CMP_CTX *ctx)
 {
@@ -1176,8 +1175,8 @@ int OSSL_CMP_CTX_get_failInfoCode(const OSSL_CMP_CTX *ctx)
 }
 
 /*
- * sets a Boolean or integer option of the context to the "val" arg
- * returns 1 on success, 0 on error
+ * Sets a Boolean or integer option of the context to the "val" arg.
+ * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
     if (ctx == NULL) {
@@ -1249,8 +1248,8 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
 }
 
 /*
- * reads a Boolean or integer option value from the context
- * returns -1 on error (which is the default OSSL_CMP_OPT_REVOCATION_REASON)
+ * Reads a Boolean or integer option value from the context.
+ * Returns -1 on error (which is the default OSSL_CMP_OPT_REVOCATION_REASON)
  */
 int OSSL_CMP_CTX_get_option(const OSSL_CMP_CTX *ctx, int opt) {
     if (ctx == NULL) {

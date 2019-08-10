@@ -719,9 +719,11 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
 /*
  * functions
  */
+
 /* from cmp_util.c */
 const char *ossl_cmp_log_parse_metadata(const char *buf,
-                 OSSL_CMP_severity *level, char **func, char **file, int *line);
+                                        OSSL_CMP_severity *level, char **func,
+                                        char **file, int *line);
 X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts);
 int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
                                     const ASN1_OCTET_STRING *src);
