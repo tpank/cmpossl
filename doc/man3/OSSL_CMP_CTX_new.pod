@@ -48,7 +48,7 @@ OSSL_CMP_CTX_set0_reqExtensions,
 OSSL_CMP_CTX_set1_reqExtensions,
 OSSL_CMP_CTX_reqExtensions_have_SAN,
 OSSL_CMP_CTX_push0_policy,
-OSSL_CMP_CTX_set1_oldClCert,
+OSSL_CMP_CTX_set1_oldCert,
 OSSL_CMP_CTX_set1_p10CSR,
 OSSL_CMP_CTX_push0_genm_ITAV,
 OSSL_CMP_CTX_set_certConf_cb,
@@ -139,7 +139,7 @@ OSSL_CMP_CTX_set1_senderNonce
                                      const X509_EXTENSIONS *exts);
  int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_CTX_push0_policy(OSSL_CMP_CTX *ctx, POLICYINFO *pinfo);
- int OSSL_CMP_CTX_set1_oldClCert(OSSL_CMP_CTX *ctx, X509 *cert);
+ int OSSL_CMP_CTX_set1_oldCert(OSSL_CMP_CTX *ctx, X509 *cert);
  int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr);
 
  /* misc body contents: */
@@ -441,7 +441,7 @@ OSSL_CMP_CTX_set1_recipient() sets the recipient name that will be used in the
 PKIHeader of a request message, i.e. the X509 name of the (CA) server.
 Setting is overruled by subject of srvCert if set.
 If neither srvCert nor recipient are set, the recipient of the PKI message is
-determined in the following order: issuer, issuer of old cert (oldClCert),
+determined in the following order: issuer, issuer of old cert (oldCert),
 issuer of client cert (clCert), else NULL-DN.
 When a response is received, its sender must match the recipient of the request.
 
@@ -475,7 +475,7 @@ will be set in the CertTemplate, i.e., the X509 name of the CA server.
 OSSL_CMP_CTX_set1_subjectName() sets the subject DN that will be used in
 the CertTemplate structure when requesting a new cert. For Key Update Requests
 (KUR), it defaults to the subject DN of the reference certificate,
-see B<OSSL_CMP_CTX_set1_oldClCert()>. This default is used for Initialization
+see B<OSSL_CMP_CTX_set1_oldCert()>. This default is used for Initialization
 Requests (IR) and Certification Requests (CR) only if no SANs are set.
 
 If clCert is not set (e.g. in case of IR with MSG_MAC_ALG), the subject DN
@@ -487,11 +487,11 @@ any Subject Alternative Name extension is set via
 OSSL_CMP_CTX_set0_reqExtensions().
 By default, unless OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT has been set,
 the Subject Alternative Names are copied from the reference certificate,
-see OSSL_CMP_CTX_set1_oldClCert().
+see OSSL_CMP_CTX_set1_oldCert().
 
 If set and the subject DN is not set with OSSL_CMP_CTX_set1_subjectName(), then
 the certificate template of an IR and CR will not be filled with the default
-subject DN from the reference certificate (see OSSL_CMP_CTX_set1_oldClCert().
+subject DN from the reference certificate (see OSSL_CMP_CTX_set1_oldCert().
 If a subject DN is desired it needs to be set explicitly with
 OSSL_CMP_CTX_set1_subjectName().
 
@@ -507,7 +507,7 @@ a Subject Alternative Name extension, in all other cases (including errors) 0.
 OSSL_CMP_CTX_push0_policy() adds the certificate policy info object
 to the X509_EXTENSIONS of the requested certificate template.
 
-OSSL_CMP_CTX_set1_oldClCert() sets the old certificate to be updated in
+OSSL_CMP_CTX_set1_oldCert() sets the old certificate to be updated in
 Key Update Requests (KUR) or to be revoked in Revocation Requests (RR).
 It must be given for RR, else it defaults to B<clCert>.
 The reference certificate determined in this way, if any, is also used for

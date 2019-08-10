@@ -43,34 +43,23 @@ struct ossl_cmp_ctx_st {
     char *proxyName;
     int proxyPort;
     int msgtimeout; /* max seconds to wait for each CMP message round trip */
-    int totaltimeout; /*
-                       * maximum number seconds an enrollment may take, incl.
-                       * attempts polling for a response if a 'waiting'
-                       * PKIStatus is received
-                       */
+    int totaltimeout; /* maximum number seconds an enrollment may take, incl. */
+      /* attempts polling for a response if a 'waiting' PKIStatus is received */
     time_t end_time; /* session start time + totaltimeout */
     OSSL_cmp_http_cb_t http_cb;
     void *http_cb_arg; /* allows to store optional argument to cb */
 
     /* server authentication */
-    int unprotectedErrors; /*
-                            * accept negative responses with no or invalid
-                            * protection to cope with broken server
-                            */
+    int unprotectedErrors; /* accept neg. response with no/invalid protection */
+                           /* to cope with broken server */
     X509 *srvCert; /* certificate used to identify the server */
     X509 *validatedSrvCert; /* caches any already validated server cert */
     X509_NAME *expected_sender; /* expected sender in pkiheader of response */
-    X509_STORE *trusted_store; /*
-                                * store for trusted (root) certificates and
-                                * possibly CRLs and cert verify callback
-                                */
+    X509_STORE *trusted_store; /* possibly with CRLs and cert verify callback */
     STACK_OF(X509) *untrusted_certs; /* untrusted (intermediate) certs */
     int ignore_keyusage; /* ignore key usage entry when validating certs */
-    int permitTAInExtraCertsForIR; /*
-                                    * whether to include root certs from
-                                    * extracerts when validating?
-                                    * Used for 3GPP-style E.7
-                                    */
+    int permitTAInExtraCertsForIR; /* allow use of root certs in extracerts */
+             /* when validating message protection; used for 3GPP-style E.7 */
 
     /* client authentication */
     int unprotectedSend; /* send unprotected PKI messages */
@@ -92,10 +81,7 @@ struct ossl_cmp_ctx_st {
     ASN1_OCTET_STRING *recipNonce; /* last nonce received */
     STACK_OF(OSSL_CMP_ITAV) *geninfo_ITAVs;
     int implicitConfirm; /* set implicitConfirm in IR/KUR/CR messages */
-    int disableConfirm; /*
-                         * disable confirmation messages in IR/KUR/CR
-                         * transactions to cope with broken server
-                         */
+    int disableConfirm; /* disable certConf in IR/KUR/CR for broken servers */
     STACK_OF(X509) *extraCertsOut; /* to be included in request messages */
 
     /* certificate template */
@@ -103,27 +89,15 @@ struct ossl_cmp_ctx_st {
     int newPkey_priv; /* flag indicating if newPkey contains private key */
     X509_NAME *issuer; /* issuer name to used in cert template */
     int days; /* Number of days new certificates are asked to be valid for */
-    X509_NAME *subjectName; /*
-                             * subject name to be used in the cert template.
-                             * NB: could also be taken from clcert
-                             */
-    STACK_OF(GENERAL_NAME) *subjectAltNames; /*
-                                              * to be added to the cert template
-                                              * as the subjectAltName extension
-                                              */
+    X509_NAME *subjectName; /* subject name to be used in the cert template */
+    STACK_OF(GENERAL_NAME) *subjectAltNames; /* to add to the cert template */
     int SubjectAltName_nodefault;
     int setSubjectAltNameCritical;
     X509_EXTENSIONS *reqExtensions; /* exts to be added to cert template */
     CERTIFICATEPOLICIES *policies; /* policies to be included in extensions */
     int setPoliciesCritical;
-    int popoMethod; /*
-                     * Proof-of-possession mechanism used.
-                     * Defaults to signature (POPOsigningKey)
-                     */
-    X509 *oldClCert; /*
-                      * for KUR: certificate to be updated;
-                      * for RR: certificate to be revoked
-                      */
+    int popoMethod; /* Proof-of-possession mechanism; default: signature */
+    X509 *oldCert; /* cert to be updated (via KUR) or to be revoked (via RR) */
     X509_REQ *p10CSR; /* for P10CR: PKCS#10 CSR to be sent */
 
     /* misc body contents */
@@ -142,11 +116,7 @@ struct ossl_cmp_ctx_st {
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
 
     /* certificate confirmation */
-    OSSL_cmp_certConf_cb_t certConf_cb; /*
-                                         * callback for letting the app check
-                                         * the received certificate and reject
-                                         * if necessary
-                                         */
+    OSSL_cmp_certConf_cb_t certConf_cb; /* callback for app checking new cert */
     void *certConf_cb_arg; /* allows to store an argument individual to cb */
 } /* OSSL_CMP_CTX */;
 

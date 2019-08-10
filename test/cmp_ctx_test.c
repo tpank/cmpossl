@@ -756,7 +756,7 @@ DECLARE_PUSH_TEST(1, 1, subjectAltNames, subjectAltName, GENERAL_NAME)
 DECLARE_SET_SK_TEST(0, reqExtensions, X509_EXTENSION)
 DECLARE_SET_GET_SK_TEST(1, 0, reqExtensions, X509_EXTENSION)
 DECLARE_PUSH_TEST(0, 0, policies, policy, POLICYINFO)
-DECLARE_SET_TEST(1, 0, oldClCert, X509)
+DECLARE_SET_TEST(1, 0, oldCert, X509)
 #ifdef ISSUE_9504_RESOLVED
 DECLARE_SET_TEST(1, 1, p10CSR, X509_REQ)
 #endif
@@ -850,7 +850,7 @@ int setup_tests(void)
     /* also tests ossl_cmp_x509_extensions_dup: */
     ADD_TEST(test_CTX_reqExtensions_have_SAN_dup);
     ADD_TEST(test_CTX_push0_policy);
-    ADD_TEST(test_CTX_set1_get0_oldClCert);
+    ADD_TEST(test_CTX_set1_get0_oldCert);
 #ifdef ISSUE_9504_RESOLVED
 /* test currently fails, see https://github.com/openssl/openssl/issues/9504 */
     ADD_TEST(test_CTX_set1_get0_p10CSR);

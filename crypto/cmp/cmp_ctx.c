@@ -203,7 +203,7 @@ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
     sk_GENERAL_NAME_pop_free(ctx->subjectAltNames, GENERAL_NAME_free);
     sk_X509_EXTENSION_pop_free(ctx->reqExtensions, X509_EXTENSION_free);
     sk_POLICYINFO_pop_free(ctx->policies, POLICYINFO_free);
-    X509_free(ctx->oldClCert);
+    X509_free(ctx->oldCert);
     X509_REQ_free(ctx->p10CSR);
 
     sk_OSSL_CMP_ITAV_pop_free(ctx->genm_ITAVs, OSSL_CMP_ITAV_free);
@@ -767,15 +767,15 @@ int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, X509 *cert)
  * and SANs. Its issuer is used as default recipient in the CMP message header.
  * Returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_oldClCert(OSSL_CMP_CTX *ctx, X509 *cert)
+int OSSL_CMP_CTX_set1_oldCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
 
-    X509_free(ctx->oldClCert);
-    ctx->oldClCert = cert;
+    X509_free(ctx->oldCert);
+    ctx->oldCert = cert;
     return cert == NULL ? 1 : X509_up_ref(cert);
 }
 
