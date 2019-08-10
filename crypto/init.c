@@ -352,11 +352,15 @@ DEFINE_RUN_ONCE_STATIC(ossl_init_zlib)
 #endif
 
 #ifndef OPENSSL_NO_CMP
-static CRYPTO_ONCE CMP_log = CRYPTO_ONCE_STATIC_INIT;
-
-DEFINE_RUN_ONCE_STATIC(do_OSSL_CMP_log_open)
+static CRYPTO_ONCE cmp_log = CRYPTO_ONCE_STATIC_INIT;
+DEFINE_RUN_ONCE_STATIC(ossl_init_cmp_log)
 {
+    OSSL_TRACE(INIT, "OSSL_CMP_log_open()\n");
+# ifdef FIX_9567_MERGED /* TODO */
     return OSSL_CMP_log_open();
+# else
+    return 1;
+# endif
 }
 #endif
 
@@ -633,7 +637,7 @@ int OPENSSL_init_crypto(uint64_t opts, const OPENSSL_INIT_SETTINGS *settings)
 #endif
 
 #ifndef OPENSSL_NO_CMP
-    if (!RUN_ONCE(&CMP_log, do_OSSL_CMP_log_open))
+    if (!RUN_ONCE(&cmp_log, ossl_init_cmp_log))
         return 0;
 #endif
 
