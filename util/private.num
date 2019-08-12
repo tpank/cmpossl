@@ -333,16 +333,6 @@ OpenSSL_add_all_algorithms              define deprecated 1.1.0
 OpenSSL_add_all_ciphers                 define deprecated 1.1.0
 OpenSSL_add_all_digests                 define deprecated 1.1.0
 OpenSSL_add_ssl_algorithms              define
-OSSL_PARAM_TYPE                         define
-OSSL_PARAM_octet_ptr                    define
-OSSL_PARAM_octet_string                 define
-OSSL_PARAM_utf8_ptr                     define
-OSSL_PARAM_BN                           define
-OSSL_PARAM_TYPE                         generic
-OSSL_PARAM_construct_TYPE               generic
-OSSL_PARAM_octet_string                 define
-OSSL_PARAM_utf8_string                  define
-OSSL_PARAM_get_TYPE                     generic
 OSSL_CMP_LOG_ALERT                      define
 OSSL_CMP_LOG_CRIT                       define
 OSSL_CMP_LOG_DEBUG                      define
@@ -364,6 +354,16 @@ OSSL_CMP_log3                           define
 OSSL_CMP_log4                           define
 OSSL_CMP_severity                       datatype
 OSSL_CMP_warn                           define
+OSSL_PARAM_TYPE                         define
+OSSL_PARAM_octet_ptr                    define
+OSSL_PARAM_octet_string                 define
+OSSL_PARAM_utf8_ptr                     define
+OSSL_PARAM_BN                           define
+OSSL_PARAM_TYPE                         generic
+OSSL_PARAM_construct_TYPE               generic
+OSSL_PARAM_octet_string                 define
+OSSL_PARAM_utf8_string                  define
+OSSL_PARAM_get_TYPE                     generic
 OSSL_PARAM_END                          define
 OSSL_PARAM_set_TYPE                     generic
 PEM_FLAG_EAY_COMPATIBLE                 define
