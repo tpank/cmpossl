@@ -154,7 +154,6 @@ OSSL_CMP_CTX_set1_last_senderNonce
  X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx);
  STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx);
  STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx);
- int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
 
  /* for test purposes only: */
  int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
@@ -573,7 +572,6 @@ OSSL_CMP_CTX_get0_untrusted_certs(),
 OSSL_CMP_CTX_get0_newPkey(),
 OSSL_CMP_CTX_get_certConf_cb_arg(),
 OSSL_CMP_CTX_get0_statusString(),
-OSSL_CMP_CTX_snprint_PKIStatus(),
 OSSL_CMP_CTX_get0_newClCert(),
 OSSL_CMP_CTX_get1_caPubs(), and
 OSSL_CMP_CTX_get1_extraCertsIn()
