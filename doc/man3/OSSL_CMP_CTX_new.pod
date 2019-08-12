@@ -192,7 +192,7 @@ The following options can be set:
 
 =over 4
 
-=item B<OSSL_CMP_LOG_VERBOSITY>
+=item B<OSSL_CMP_OPT_LOG_VERBOSITY>
 
         The level of severity needed for actually outputting diagnostic
         information such as errors, warnings, general info, and debugging info.

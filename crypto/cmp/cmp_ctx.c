@@ -19,6 +19,7 @@
 
 #include <openssl/trace.h>
 #include <openssl/bio.h>
+#include <openssl/ocsp.h> /* for OCSP_REVOKED_STATUS_* */
 
 #include "cmp_int.h"
 
@@ -1179,13 +1180,35 @@ int OSSL_CMP_CTX_get_failInfoCode(const OSSL_CMP_CTX *ctx)
  * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
+    int min_val;
+
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
 
     switch (opt) {
+    case OSSL_CMP_OPT_REVOCATION_REASON:
+        min_val = OCSP_REVOKED_STATUS_NOSTATUS;
+        break;
+    case OSSL_CMP_OPT_POPOMETHOD:
+        min_val = OSSL_CRMF_POPO_NONE;
+        break;
+    default:
+        min_val = 0;
+        break;
+    }
+    if (val < min_val) {
+        CMPerr(0, CMP_R_INVALID_ARGS);
+        return 0;
+    }
+
+    switch (opt) {
     case OSSL_CMP_OPT_LOG_VERBOSITY:
+        if (val > OSSL_CMP_LOG_DEBUG) {
+            CMPerr(0, CMP_R_INVALID_ARGS);
+            return 0;
+        }
         ctx->log_verbosity = val;
         break;
     case OSSL_CMP_OPT_IMPLICITCONFIRM:
@@ -1216,6 +1239,10 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
         ctx->ignore_keyusage = val;
         break;
     case OSSL_CMP_OPT_POPOMETHOD:
+        if (val > OSSL_CRMF_POPO_KEYAGREE) {
+            CMPerr(0, CMP_R_INVALID_ARGS);
+            return 0;
+        }
         ctx->popoMethod = val;
         break;
     case OSSL_CMP_OPT_DIGEST_ALGNID:
@@ -1237,6 +1264,10 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
         ctx->permitTAInExtraCertsForIR = val;
         break;
     case OSSL_CMP_OPT_REVOCATION_REASON:
+        if (val > OCSP_REVOKED_STATUS_AACOMPROMISE) {
+            CMPerr(0, CMP_R_INVALID_ARGS);
+            return 0;
+        }
         ctx->revocationReason = val;
         break;
     default:
