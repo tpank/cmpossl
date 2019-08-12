@@ -102,9 +102,6 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
     ctx->lastPKIStatus = -1;
     ctx->failInfoCode = -1;
 
-    ctx->lastPKIStatus = -1;
-    ctx->failInfoCode = -1;
-
     ctx->transfer_cb =
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
         OSSL_CMP_MSG_http_perform;
