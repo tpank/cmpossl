@@ -7,7 +7,6 @@
  * https://www.openssl.org/source/license.html
  */
 
-
 #include <stdio.h>
 #include "internal/cryptlib.h"
 #include "internal/refcount.h"
@@ -19,7 +18,6 @@
 #include "internal/asn1_int.h"
 #include "internal/x509_int.h"
 #include "x509_lcl.h"
-
 
 int X509_set_version(X509 *x, long version)
 {
