@@ -761,6 +761,7 @@ int ossl_cmp_hdr_check_implicitConfirm(OSSL_CMP_PKIHEADER *hdr);
 #  define OSSL_CMP_TRANSACTIONID_LENGTH 16
 #  define OSSL_CMP_SENDERNONCE_LENGTH 16
 int ossl_cmp_hdr_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
+
 /* from cmp_msg.c */
 /* OSSL_CMP_MSG bodytype ASN.1 choice IDs */
 #  define OSSL_CMP_PKIBODY_IR        0
@@ -836,9 +837,11 @@ typedef int (*ossl_cmp_allow_unprotected_cb_t)(const OSSL_CMP_CTX *ctx,
                                                int invalid_protection, int arg);
 int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                                 ossl_cmp_allow_unprotected_cb_t cb, int cb_arg);
+
 /* from cmp_ses.c */
 int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
                                const char *txt);
 int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
                             const char *txt);
+
 #endif /* !defined OSSL_HEADER_CMP_INT_H */
