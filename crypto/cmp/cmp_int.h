@@ -719,6 +719,7 @@ ASN1_OCTET_STRING *ossl_cmp_ctx_get0_recipNonce(const OSSL_CMP_CTX *ctx);
 /* from cmp_status.c */
 int ossl_cmp_asn1_get_int(const ASN1_INTEGER *a);
 int ossl_cmp_pkisi_get_pkistatus(OSSL_CMP_PKISI *statusInfo);
+const char *ossl_cmp_PKIStatus_to_string(int status);
 OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusstring(const OSSL_CMP_PKISI *si);
 ASN1_BIT_STRING *ossl_cmp_pkisi_get0_failinfo(const OSSL_CMP_PKISI *si);
 int ossl_cmp_pkisi_get_pkifailureinfo(OSSL_CMP_PKISI *si);

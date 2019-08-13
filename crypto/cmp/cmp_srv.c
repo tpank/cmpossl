@@ -394,7 +394,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
 
         if (status->statusInfo != NULL) {
             int pki_status = ossl_cmp_pkisi_get_pkistatus(status->statusInfo);
-            const char *str = OSSL_CMP_PKIStatus_to_string(pki_status);
+            const char *str = ossl_cmp_PKIStatus_to_string(pki_status);
 
             OSSL_CMP_log2(INFO, "certificate rejected by client %s %s",
                           str == NULL ? "without" : "with",

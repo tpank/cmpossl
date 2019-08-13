@@ -228,17 +228,6 @@ typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
 /*
  * function DECLARATIONS
  */
-/* cmp_vfy.c */
-/* TODO better push OSSL_CMP_cmp_timeframe() to crypto/x509/x509_vfy.c */
-int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
-                           const ASN1_TIME *end, X509_VERIFY_PARAM *vpm);
-int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg);
-int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
-                                X509_STORE *trusted_store,
-                                X509 *cert, int defer_errors);
-int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
-int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
-                         const char **text);
 
 /* from cmp_asn.c */
 OSSL_CMP_ITAV *OSSL_CMP_ITAV_create(ASN1_OBJECT *type, ASN1_TYPE *value);
@@ -360,7 +349,6 @@ int OSSL_CMP_CTX_set1_senderNonce(OSSL_CMP_CTX *ctx,
 
 /* from cmp_status.c */
 char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize);
-const char *OSSL_CMP_PKIStatus_to_string(int status);
 
 /* from cmp_hdr.c */
 /* exported for testing and debugging purposes: */
