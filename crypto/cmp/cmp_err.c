@@ -116,6 +116,7 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     "multiple san sources"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_SENDER_NO_REFERENCE),
     "no sender no reference"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_STDIO), "no stdio"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_SUITABLE_SERVER_CERT),
     "no suitable server cert"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_VALID_SERVER_CERT_FOUND),
