@@ -434,24 +434,21 @@ static int test_MSG_check_received_wrong_transaction_id(void)
     return result;
 }
 
+#define set_senderNonce(ctx, data) \
+    ossl_cmp_asn1_octet_string_set1_bytes(&ctx->senderNonce, \
+                                          data, sizeof(rand_data))
+
 static int test_MSG_check_received_wrong_recipient_nonce(void)
 {
-    ASN1_OCTET_STRING *snonce = NULL;
-
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->expected = -1;
     fixture->callback_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
-            || !TEST_ptr(snonce = ASN1_OCTET_STRING_new())
-            || !TEST_true(ASN1_OCTET_STRING_set(snonce, rand_data,
-                                                sizeof(rand_data)))
-            || !TEST_true(OSSL_CMP_CTX_set1_last_senderNonce(fixture->cmp_ctx,
-                                                             snonce))) {
+        || !TEST_true(set_senderNonce(fixture->cmp_ctx, rand_data))) {
         tear_down(fixture);
         fixture = NULL;
     }
-    ASN1_OCTET_STRING_free(snonce);
     EXECUTE_TEST(execute_MSG_check_received_test, tear_down);
     return result;
 }
@@ -463,22 +460,16 @@ static int test_MSG_check_received_check_recipient_nonce(void)
         { 0x48, 0xF1, 0x71, 0x1F, 0xE5, 0xAF, 0x1C, 0x8B,
         0x21, 0x97, 0x5C, 0x84, 0x74, 0x49, 0xBA, 0x32
     };
-    ASN1_OCTET_STRING *snonce = NULL;
 
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->expected = OSSL_CMP_PKIBODY_IP;
     fixture->callback_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_rmprotection))
-            || !TEST_ptr(snonce = ASN1_OCTET_STRING_new())
-            || !TEST_true(ASN1_OCTET_STRING_set(snonce, rec_nonce,
-                                                sizeof(rec_nonce)))
-            || !TEST_true(OSSL_CMP_CTX_set1_last_senderNonce(fixture->cmp_ctx,
-                                                             snonce))) {
+            || !TEST_true(set_senderNonce(fixture->cmp_ctx, rec_nonce))) {
         tear_down(fixture);
         fixture = NULL;
     }
-    ASN1_OCTET_STRING_free(snonce);
     EXECUTE_TEST(execute_MSG_check_received_test, tear_down);
     return result;
 }

@@ -367,8 +367,8 @@ int ossl_cmp_hdr_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         rcp = ctx->recipient;
     else if (ctx->issuer != NULL)
         rcp = ctx->issuer;
-    else if (ctx->oldClCert != NULL)
-        rcp = X509_get_issuer_name(ctx->oldClCert);
+    else if (ctx->oldCert != NULL)
+        rcp = X509_get_issuer_name(ctx->oldCert);
     else if (ctx->clCert != NULL)
         rcp = X509_get_issuer_name(ctx->clCert);
     if (!ossl_cmp_hdr_set1_recipient(hdr, rcp))
@@ -416,7 +416,7 @@ int ossl_cmp_hdr_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         return 0;
 
     /* store senderNonce - for cmp with recipNonce in next outgoing msg */
-    OSSL_CMP_CTX_set1_last_senderNonce(ctx, hdr->senderNonce);
+    OSSL_CMP_CTX_set1_senderNonce(ctx, hdr->senderNonce);
 
 #if 0
     /*-

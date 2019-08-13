@@ -399,22 +399,31 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
 {
     int i;
     OSSL_CMP_PKIFREETEXT *ss;
+
     if (ctx == NULL || si == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    if ((ctx->lastPKIStatus = ossl_cmp_pkisi_get_pkistatus(si) < 0)
-            || !ossl_cmp_ctx_set_failInfoCode(ctx, si->failInfo)
-            || !ossl_cmp_ctx_set0_statusString(ctx, sk_ASN1_UTF8STRING_new_null())
-            || (ctx->lastStatusString == NULL))
+    if ((ctx->status = ossl_cmp_pkisi_get_pkistatus(si)) < 0)
+        return 0;
+
+    ctx->failInfoCode = 0;
+    if (si->failInfo != NULL) {
+        for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++) {
+            if (ASN1_BIT_STRING_get_bit(si->failInfo, i))
+                ctx->failInfoCode |= (1 << i);
+        }
+    }
+
+    if (!ossl_cmp_ctx_set0_statusString(ctx, sk_ASN1_UTF8STRING_new_null())
+            || (ctx->statusString == NULL))
         return 0;
 
     ss = si->statusString; /* may be NULL */
     for (i = 0; i < sk_ASN1_UTF8STRING_num(ss); i++) {
         ASN1_UTF8STRING *str = sk_ASN1_UTF8STRING_value(ss, i);
 
-        if (!sk_ASN1_UTF8STRING_push(ctx->lastStatusString,
-                                     ASN1_STRING_dup(str)))
+        if (!sk_ASN1_UTF8STRING_push(ctx->statusString, ASN1_STRING_dup(str)))
             return 0;
     }
     return 1;
@@ -473,7 +482,7 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
     default:
         OSSL_CMP_log1(ERROR,
                       "received unsupported PKIStatus %d for certificate",
-                      ctx->lastPKIStatus);
+                      ctx->status);
         CMPerr(0, CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
         goto err;
     }
@@ -547,7 +556,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     if (!save_statusInfo(ctx, crep->status))
         return 0;
     cert = get1_cert_status(ctx, (*resp)->body->type, crep);
-    if (!ossl_cmp_ctx_set0_newClCert(ctx, cert))
+    if (!ossl_cmp_ctx_set0_newCert(ctx, cert))
         return 0;
     if (cert == NULL) {
         OSSL_CMP_add_error_data("cannot extract certificate from response");
@@ -568,7 +577,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
 
     if (rkey != NULL
         /* X509_check_private_key() also works if rkey is just public key */
-            && !(X509_check_private_key(ctx->newClCert, rkey))) {
+            && !(X509_check_private_key(ctx->newCert, rkey))) {
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
         txt = "public key in new certificate does not match our enrollment key";
 #if 0 /* better leave this for any ctx->certConf_cb to decide */
@@ -590,7 +599,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
      * It may overrule the pre-decision reflected in 'fail_info' and '*txt'.
      */
     if (ctx->certConf_cb
-            && (fail_info = ctx->certConf_cb(ctx, ctx->newClCert,
+            && (fail_info = ctx->certConf_cb(ctx, ctx->newCert,
                                              fail_info, &txt)) != 0) {
         if (txt == NULL)
             txt = "CMP client application did not accept newly enrolled certificate";
@@ -645,7 +654,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string,
          return NULL;
     }
     ctx->end_time = time(NULL) + ctx->totaltimeout;
-    ctx->lastPKIStatus = -1;
+    ctx->status = -1;
 
     /* check if all necessary options are set done by OSSL_CMP_certreq_new */
     if ((req = ossl_cmp_certReq_new(ctx, req_type, req_err)) == NULL)
@@ -657,7 +666,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string,
     if (!cert_response(ctx, rid, &rep, req_type, rep_err))
         goto err;
 
-    result = ctx->newClCert;
+    result = ctx->newCert;
  err:
     OSSL_CMP_MSG_free(req);
     OSSL_CMP_MSG_free(rep);
@@ -698,7 +707,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         return 0;
     }
 
-    ctx->lastPKIStatus = -1;
+    ctx->status = -1;
 
     /* check if all necessary options are set is done in OSSL_CMP_rr_new */
     /* create Revocation Request - ir */
@@ -722,11 +731,11 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     switch (ossl_cmp_pkisi_get_pkistatus(si)) {
     case OSSL_CMP_PKISTATUS_accepted:
       /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)");*/
-        result = ctx->oldClCert;
+        result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_grantedWithMods:
       /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=grantedWithMods)");*/
-        result = ctx->oldClCert;
+        result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_rejection:
       /*TODO SSL_CMP_info("revocation accepted (PKIStatus=revocationWarning)");*/
@@ -734,12 +743,12 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         goto err;
     case OSSL_CMP_PKISTATUS_revocationWarning:
       /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=revocationNotification)");*/
-        result = ctx->oldClCert;
+        result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_revocationNotification:
         /* interpretation as warning or error depends on CA */
       /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)");*/
-        result = ctx->oldClCert;
+        result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_waiting:
     case OSSL_CMP_PKISTATUS_keyUpdateWarning:

@@ -72,7 +72,7 @@ static int execute_HDR_init_test(CMP_HDR_TEST_FIXTURE *fixture)
         if (!TEST_int_eq(ossl_cmp_hdr_get_pvno(fixture->hdr), OSSL_CMP_PVNO)
                 || !TEST_true(0 == ASN1_OCTET_STRING_cmp(
                         ossl_cmp_hdr_get0_senderNonce(fixture->hdr),
-                       ossl_cmp_ctx_get0_last_senderNonce(fixture->cmp_ctx)))
+                        ossl_cmp_ctx_get0_senderNonce(fixture->cmp_ctx)))
                 || !TEST_true(0 ==  ASN1_OCTET_STRING_cmp(
                             OSSL_CMP_HDR_get0_transactionID(fixture->hdr),
                             OSSL_CMP_CTX_get0_transactionID(fixture->cmp_ctx))))

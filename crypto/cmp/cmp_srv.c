@@ -461,13 +461,13 @@ static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
-    /* Back up potential genm_itavs */
-    tmp = srv_ctx->ctx->genm_itavs;
-    srv_ctx->ctx->genm_itavs = req->body->value.genm;
+    /* Back up potential genm_ITAVs */
+    tmp = srv_ctx->ctx->genm_ITAVs;
+    srv_ctx->ctx->genm_ITAVs = req->body->value.genm;
     if ((msg = ossl_cmp_genp_new(srv_ctx->ctx)) == NULL)
         CMPerr(0, ERR_R_MALLOC_FAILURE);
-    /* restore genm_itavs */
-    srv_ctx->ctx->genm_itavs = tmp;
+    /* restore genm_ITAVs */
+    srv_ctx->ctx->genm_ITAVs = tmp;
     return msg;
 }
 

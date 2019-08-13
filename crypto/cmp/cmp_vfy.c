@@ -897,9 +897,9 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     }
 
     /* compare received nonce with the one we sent */
-    if (ctx->last_senderNonce != NULL
+    if (ctx->senderNonce != NULL
             && (msg->header->recipNonce == NULL
-                    || ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
+                    || ASN1_OCTET_STRING_cmp(ctx->senderNonce,
                                              msg->header->recipNonce) != 0)) {
         CMPerr(0, CMP_R_RECIPNONCE_UNMATCHED);
         return -1;

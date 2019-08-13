@@ -1974,8 +1974,8 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     hdr = OSSL_CMP_MSG_get0_header(*res);
     if ((opt_reqin != NULL || opt_rspin != NULL)
         /* need to satisfy nonce and transactionID checks */
-            && (!OSSL_CMP_CTX_set1_last_senderNonce(ctx,
-                                             OSSL_CMP_HDR_get0_recipNonce(hdr))
+            && (!OSSL_CMP_CTX_set1_senderNonce(ctx,
+                                               OSSL_CMP_HDR_get0_recipNonce(hdr))
                     || !OSSL_CMP_CTX_set1_transactionID(ctx,
                                          OSSL_CMP_HDR_get0_transactionID(hdr))))
         goto err;
@@ -3051,7 +3051,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             priv = 0;
         }
         cleanse(opt_newkeypass);
-        if (pkey == NULL || !OSSL_CMP_CTX_set0_newPkey(ctx, pkey, priv)) {
+        if (pkey == NULL || !OSSL_CMP_CTX_set0_newPkey(ctx, priv, pkey)) {
             EVP_PKEY_free(pkey);
             goto err;
         }
@@ -3098,12 +3098,22 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
 
     while (opt_policies != NULL) {
+        ASN1_OBJECT *policy;
+        POLICYINFO *pinfo = NULL;
         char *next = next_item(opt_policies);
-        int res = OSSL_CMP_CTX_push1_policyOID(ctx, opt_policies);
 
-        if (res <= 0) {
-            CMP_err2("cannot %s policy OID '%s'",
-                     res == -1 ? "parse" : "add", opt_policies);
+        if ((policy = OBJ_txt2obj(opt_policies, 1)) == 0) {
+            CMP_err1("unknown policy OID '%s'", opt_policies);
+            goto err;
+        }
+
+        if ((pinfo = POLICYINFO_new()) == NULL)
+            goto err;
+        pinfo->policyid = policy;
+
+        if (!OSSL_CMP_CTX_push0_policy(ctx, pinfo)) {
+            CMP_err1("cannot add policy with OID '%s'", opt_policies);
+            POLICYINFO_free(pinfo);
             goto err;
         }
         opt_policies = next;
@@ -3141,7 +3151,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     /* opt_keypass is needed in case opt_oldcert is an encrypted PKCS#12 file */
         if (oldcert == NULL)
             goto err;
-        if (!OSSL_CMP_CTX_set1_oldClCert(ctx, oldcert)) {
+        if (!OSSL_CMP_CTX_set1_oldCert(ctx, oldcert)) {
             X509_free(oldcert);
             goto oom;
         }
@@ -3345,7 +3355,7 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             goto oom;
         }
 
-        if (!OSSL_CMP_CTX_geninfo_push0_ITAV(ctx, itav)) {
+        if (!OSSL_CMP_CTX_push0_geninfo_ITAV(ctx, itav)) {
             OSSL_CMP_ITAV_free(itav);
             goto err;
         }
@@ -4137,7 +4147,7 @@ int cmp_main(int argc, char **argv)
                         OSSL_CMP_ITAV_create(OBJ_nid2obj(opt_infotype), NULL);
                     if (itav == NULL)
                         goto err;
-                    OSSL_CMP_CTX_genm_push0_ITAV(cmp_ctx, itav);
+                    OSSL_CMP_CTX_push0_genm_ITAV(cmp_ctx, itav);
                 }
 
                 if ((itavs = OSSL_CMP_exec_GENM_ses(cmp_ctx)) == NULL)

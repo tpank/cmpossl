@@ -121,9 +121,9 @@ OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype)
         goto oom;
     if (!ossl_cmp_hdr_init(ctx, msg->header)
             || !ossl_cmp_msg_set_bodytype(msg, bodytype)
-            || (ctx->geninfo_itavs != NULL
+            || (ctx->geninfo_ITAVs != NULL
                 && !ossl_cmp_hdr_generalInfo_push1_items(msg->header,
-                                                         ctx->geninfo_itavs)))
+                                                         ctx->geninfo_ITAVs)))
         goto err;
 
     switch (bodytype) {
@@ -226,7 +226,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
                               int rid, EVP_PKEY *rkey)
 {
     OSSL_CRMF_MSG *crm = NULL;
-    X509 *refcert = ctx->oldClCert != NULL ? ctx->oldClCert : ctx->clCert;
+    X509 *refcert = ctx->oldCert != NULL ? ctx->oldCert : ctx->clCert;
        /* refcert defaults to current client cert */
     STACK_OF(GENERAL_NAME) *default_sans = NULL;
     X509_NAME *subject = determine_subj(ctx, refcert, bodytype);
@@ -446,7 +446,7 @@ OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx)
     OSSL_CMP_REVDETAILS *rd = NULL;
     int ret;
 
-    if (ctx == NULL || ctx->oldClCert == NULL) {
+    if (ctx == NULL || ctx->oldCert == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
@@ -459,13 +459,13 @@ OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx)
     sk_OSSL_CMP_REVDETAILS_push(msg->body->value.rr, rd);
 
     /* Fill the template from the contents of the certificate to be revoked */
-    if ((pubkey = X509_get_pubkey(ctx->oldClCert)) == NULL)
+    if ((pubkey = X509_get_pubkey(ctx->oldCert)) == NULL)
         goto err;
     ret = OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
                                       NULL/* pubkey would be redundant */,
                                       NULL/* subject would be redundant */,
-                                      X509_get_issuer_name(ctx->oldClCert),
-                                      X509_get_serialNumber(ctx->oldClCert));
+                                      X509_get_issuer_name(ctx->oldCert),
+                                      X509_get_serialNumber(ctx->oldCert));
     EVP_PKEY_free(pubkey);
     if (ret == 0)
         goto err;
@@ -602,8 +602,7 @@ static OSSL_CMP_MSG *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
     if ((msg = ossl_cmp_msg_create(ctx, body_type)) == NULL)
         goto err;
 
-    if (ctx->genm_itavs)
-        if (!ossl_cmp_msg_gen_push1_ITAVs(msg, ctx->genm_itavs))
+    if (ctx->genm_ITAVs && !ossl_cmp_msg_gen_push1_ITAVs(msg, ctx->genm_ITAVs))
             goto err;
 
     if (!ossl_cmp_msg_protect(ctx, msg))
@@ -714,7 +713,7 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
     OSSL_CMP_CERTSTATUS *certStatus = NULL;
     OSSL_CMP_PKISI *sinfo;
 
-    if (ctx == NULL || ctx->newClCert == NULL) {
+    if (ctx == NULL || ctx->newCert == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
@@ -736,7 +735,7 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
      * the hash of the certificate, using the same hash algorithm
      * as is used to create and verify the certificate signature
      */
-    if (!ossl_cmp_certstatus_set_certHash(certStatus, ctx->newClCert))
+    if (!ossl_cmp_certstatus_set_certHash(certStatus, ctx->newCert))
         goto err;
     /*
      * For any particular CertStatus, omission of the statusInfo field
