@@ -129,6 +129,9 @@ static int execute_pkimessage_create_test(CMP_MSG_TEST_FIXTURE *fixture)
                               (fixture->cmp_ctx, fixture->bodytype));
 }
 
+#define set1_newPkey(ctx, pkey) \
+    (OSSL_CMP_CTX_set0_newPkey(ctx, 1, pkey) ? EVP_PKEY_up_ref(pkey) : 0)
+
 static int test_cmp_create_ir_protection_set(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
@@ -141,7 +144,7 @@ static int test_cmp_create_ir_protection_set(void)
     if (!TEST_int_eq(1, RAND_bytes(secret, sizeof(secret)))
             || !TEST_true(OSSL_CMP_CTX_set_option(ctx,
                                               OSSL_CMP_OPT_UNPROTECTED_SEND, 0))
-            || !TEST_true(OSSL_CMP_CTX_set1_newPkey(ctx, 1, newkey))
+            || !TEST_true(set1_newPkey(ctx, newkey))
             || !TEST_true(OSSL_CMP_CTX_set1_secretValue(ctx, secret,
                                                         sizeof(secret)))) {
         tear_down(fixture);
@@ -184,7 +187,7 @@ static int test_cmp_create_cr(void)
     fixture->bodytype = OSSL_CMP_PKIBODY_CR;
     fixture->err_code = CMP_R_ERROR_CREATING_CR;
     fixture->expected = 1;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, 1, newkey))) {
+    if (!TEST_true(set1_newPkey(fixture->cmp_ctx, newkey))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -198,7 +201,7 @@ static int test_cmp_create_certreq_with_invalid_bodytype(void)
     fixture->bodytype = OSSL_CMP_PKIBODY_RR;
     fixture->err_code = CMP_R_ERROR_CREATING_IR;
     fixture->expected = 0;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, 1, newkey))) {
+    if (!TEST_true(set1_newPkey(fixture->cmp_ctx, newkey))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -216,7 +219,7 @@ static int test_cmp_create_p10cr(void)
     fixture->err_code = CMP_R_ERROR_CREATING_P10CR;
     fixture->expected = 1;
     if (!TEST_ptr(p10cr = load_csr(pkcs10_f))
-            || !TEST_true(OSSL_CMP_CTX_set1_newPkey(ctx, 1, newkey))
+            || !TEST_true(set1_newPkey(ctx, newkey))
             || !TEST_true(OSSL_CMP_CTX_set1_p10CSR(ctx, p10cr))) {
         tear_down(fixture);
         fixture = NULL;
@@ -232,7 +235,7 @@ static int test_cmp_create_p10cr_null(void)
     fixture->bodytype = OSSL_CMP_PKIBODY_P10CR;
     fixture->err_code = CMP_R_ERROR_CREATING_P10CR;
     fixture->expected = 0;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, 1, newkey))) {
+    if (!TEST_true(set1_newPkey(fixture->cmp_ctx, newkey))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -246,7 +249,7 @@ static int test_cmp_create_kur(void)
     fixture->bodytype = OSSL_CMP_PKIBODY_KUR;
     fixture->err_code = CMP_R_ERROR_CREATING_KUR;
     fixture->expected = 1;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, 1, newkey))
+    if (!TEST_true(set1_newPkey(fixture->cmp_ctx, newkey))
            || !TEST_true(OSSL_CMP_CTX_set1_oldCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
         fixture = NULL;
@@ -263,7 +266,7 @@ static int test_cmp_create_kur_without_oldcert(void)
     fixture->bodytype = OSSL_CMP_PKIBODY_KUR;
     fixture->err_code = CMP_R_ERROR_CREATING_KUR;
     fixture->expected = 0;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, 1, newkey))) {
+    if (!TEST_true(set1_newPkey(fixture->cmp_ctx, newkey))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -318,7 +321,7 @@ static int test_cmp_create_certconf_without_newclcert(void)
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->fail_info = 0;
     fixture->expected = 0;
-    if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, 1, newkey))) {
+    if (!TEST_true(set1_newPkey(fixture->cmp_ctx, newkey))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -333,7 +336,7 @@ static int test_cmp_create_error_msg(void)
                                      OSSL_CMP_PKIFAILUREINFO_systemFailure, NULL);
     fixture->err_code = -1;
     fixture->expected = 1;      /* Expected: Message creation is successful */
-    if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, 1, newkey))) {
+    if (!TEST_true(set1_newPkey(fixture->cmp_ctx, newkey))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -347,7 +350,7 @@ static int test_cmp_create_error_msg_without_si(void)
     fixture->si = NULL;
     fixture->err_code = -1;
     fixture->expected = 0;      /* Expected: Message creation fails */
-    if (!TEST_true(OSSL_CMP_CTX_set1_newPkey(fixture->cmp_ctx, 1, newkey))) {
+    if (!TEST_true(set1_newPkey(fixture->cmp_ctx, newkey))) {
         tear_down(fixture);
         fixture = NULL;
     }

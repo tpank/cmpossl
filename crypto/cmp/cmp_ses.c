@@ -176,7 +176,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         }
         else {
             CMPerr(0, CMP_R_ERROR_SENDING_REQUEST);
-            OSSL_CMP_add_error_data(type_string);
+            ossl_cmp_add_error_data(type_string);
         }
         *rep = NULL;
         return 0;
@@ -559,7 +559,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     if (!ossl_cmp_ctx_set0_newCert(ctx, cert))
         return 0;
     if (cert == NULL) {
-        OSSL_CMP_add_error_data("cannot extract certificate from response");
+        ossl_cmp_add_error_data("cannot extract certificate from response");
         return 0;
     }
 
@@ -622,7 +622,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         put_cert_verify_err(CMP_R_CERTIFICATE_NOT_ACCEPTED);
         ERR_add_error_data(1, "rejecting newly enrolled cert");
         if (txt != NULL)
-            OSSL_CMP_add_error_txt("; ", txt);
+            ossl_cmp_add_error_txt("; ", txt);
         return 0;
     }
     return ret;

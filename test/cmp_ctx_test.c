@@ -159,9 +159,9 @@ static int execute_CTX_print_errors_test(OSSL_CMP_CTX_TEST_FIXTURE *fixture)
         CMPerr(0, CMP_R_INVALID_ARGS);
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         base_err_msg_size = strlen("INVALID_ARGS") + strlen("NULL_ARGUMENT");
-        OSSL_CMP_add_error_data("data1"); /* should prepend separator " : " */
-        OSSL_CMP_add_error_data("data2"); /* should prepend separator " : " */
-        OSSL_CMP_add_error_line("new line"); /* should prepend separator "\n" */
+        ossl_cmp_add_error_data("data1"); /* should prepend separator " : " */
+        ossl_cmp_add_error_data("data2"); /* should prepend separator " : " */
+        ossl_cmp_add_error_line("new line"); /* should prepend separator "\n" */
         OSSL_CMP_CTX_print_errors(ctx);
         expected_size = base_err_msg_size + strlen(" : ") +
             strlen("data1") + strlen(" : ""data2") + strlen("\n""new line");
@@ -172,7 +172,7 @@ static int execute_CTX_print_errors_test(OSSL_CMP_CTX_TEST_FIXTURE *fixture)
         base_err_msg_size = strlen("INVALID_ARGS") + strlen(" : ");
         expected_size = base_err_msg_size;
         while (expected_size < 4096) { /* force split */
-            OSSL_CMP_add_error_txt(STR_SEP, max_str_literal);
+            ossl_cmp_add_error_txt(STR_SEP, max_str_literal);
             expected_size += strlen(max_str_literal) + strlen(STR_SEP);
         }
         expected_size += base_err_msg_size - 2 * strlen(STR_SEP);
@@ -196,7 +196,7 @@ static int test_CTX_print_errors(void)
     return result;
 }
 
-static int execute_CTX_reqExtensions_have_SAN_dup_test(
+static int execute_CTX_reqExtensions_have_SAN_test(
                                              OSSL_CMP_CTX_TEST_FIXTURE *fixture)
 {
     OSSL_CMP_CTX *ctx = fixture->ctx;
@@ -223,25 +223,20 @@ static int execute_CTX_reqExtensions_have_SAN_dup_test(
         sk_X509_EXTENSION_free(exts);
         goto err;
     }
-    if (TEST_true(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx))) {
-        X509_EXTENSIONS *exts_copy = ossl_cmp_x509_extensions_dup(exts);
-
+    if (TEST_int_eq(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx), 1)) {
         ext = sk_X509_EXTENSION_pop(exts);
         res = TEST_false(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx));
         X509_EXTENSION_free(ext);
-        if (!TEST_true(OSSL_CMP_CTX_set0_reqExtensions(ctx, exts_copy))
-            || !TEST_true(OSSL_CMP_CTX_reqExtensions_have_SAN(ctx)))
-            res = 0;
     }
  err:
     ASN1_OCTET_STRING_free(data);
     return res;
 }
 
-static int test_CTX_reqExtensions_have_SAN_dup(void)
+static int test_CTX_reqExtensions_have_SAN(void)
 {
     SETUP_TEST_FIXTURE(OSSL_CMP_CTX_TEST_FIXTURE, set_up);
-    EXECUTE_TEST(execute_CTX_reqExtensions_have_SAN_dup_test, tear_down);
+    EXECUTE_TEST(execute_CTX_reqExtensions_have_SAN_test, tear_down);
     return result;
 }
 
@@ -733,17 +728,15 @@ DECLARE_SET_GET_BASE_TEST(set0, get0, 0, trustedStore, X509_STORE*, NULL,
 DECLARE_SET_GET_SK_X509_TEST(1, 0, untrusted_certs)
 
 DECLARE_SET_TEST(1, 0, clCert, X509)
-DECLARE_SET_TEST(0, 0, pkey, EVP_PKEY)
-DECLARE_SET_GET_TEST(1, 0, 0, pkey, EVP_PKEY)
+DECLARE_SET_TEST(1, 0, pkey, EVP_PKEY)
 
 DECLARE_SET_TEST(1, 1, recipient, X509_NAME)
 DECLARE_PUSH_TEST(0, 0, geninfo_ITAVs, geninfo_ITAV, OSSL_CMP_ITAV)
 DECLARE_SET_SK_TEST(1, extraCertsOut, X509)
-DECLARE_PUSH_TEST(1, 0, extraCertsOut, extraCertsOut, X509)
 DECLARE_SET_GET_ARG_FN(set0, get0, newPkey, 1, EVP_PKEY*) /* priv == 1 */
 DECLARE_SET_GET_TEST(0, 0, 0, newPkey_1, EVP_PKEY)
-DECLARE_SET_GET_ARG_FN(set1, get0, newPkey, 0, EVP_PKEY*) /* priv == 0 */
-DECLARE_SET_GET_TEST(1, 0, 0, newPkey_0, EVP_PKEY)
+DECLARE_SET_GET_ARG_FN(set0, get0, newPkey, 0, EVP_PKEY*) /* priv == 0 */
+DECLARE_SET_GET_TEST(0, 0, 0, newPkey_0, EVP_PKEY)
 DECLARE_SET_GET1_STR_FN(set1, referenceValue)
 DECLARE_SET_GET_TEST_DEFAULT(1, 1, 1, referenceValue_str, char, IS_0)
 DECLARE_SET_GET1_STR_FN(set1, secretValue)
@@ -754,7 +747,6 @@ DECLARE_SET_TEST(1, 1, subjectName, X509_NAME)
 DECLARE_PUSH_TEST(1, 1, subjectAltNames, subjectAltName, GENERAL_NAME)
 #endif
 DECLARE_SET_SK_TEST(0, reqExtensions, X509_EXTENSION)
-DECLARE_SET_GET_SK_TEST(1, 0, reqExtensions, X509_EXTENSION)
 DECLARE_PUSH_TEST(0, 0, policies, policy, POLICYINFO)
 DECLARE_SET_TEST(1, 0, oldCert, X509)
 #ifdef ISSUE_9504_RESOLVED
@@ -777,7 +769,7 @@ DECLARE_SET_GET_SK_X509_TEST(1, 1, caPubs)
 #define OSSL_CMP_CTX_set1_extraCertsIn ossl_cmp_ctx_set1_extraCertsIn
 DECLARE_SET_GET_SK_X509_TEST(1, 1, extraCertsIn)
 
-DECLARE_SET_GET_TEST(1, 0, 1, transactionID, ASN1_OCTET_STRING)
+DECLARE_SET_TEST_DEFAULT(1, 1, transactionID, ASN1_OCTET_STRING, IS_0)
 #define OSSL_CMP_CTX_get0_senderNonce ossl_cmp_ctx_get0_senderNonce
 DECLARE_SET_GET_TEST(1, 0, 1, senderNonce, ASN1_OCTET_STRING)
 #define OSSL_CMP_CTX_set1_recipNonce ossl_cmp_ctx_set1_recipNonce
@@ -804,8 +796,8 @@ int setup_tests(void)
      */
     ADD_TEST(test_cmp_ctx_log_cb);
     /* also tests OSSL_CMP_CTX_set_log_cb(), OSSL_CMP_print_errors_cb(),
-       OSSL_CMP_add_error_txt(), and the macros
-       OSSL_CMP_add_error_data and OSSL_CMP_add_error_line:
+       ossl_cmp_add_error_txt(), and the macros
+       ossl_cmp_add_error_data and ossl_cmp_add_error_line:
     */
     ADD_TEST(test_CTX_print_errors);
 /* message transfer: */
@@ -826,7 +818,6 @@ int setup_tests(void)
     ADD_TEST(test_CTX_set1_get0_untrusted_certs);
 /* client authentication: */
     ADD_TEST(test_CTX_set1_get0_clCert);
-    ADD_TEST(test_CTX_set0_get0_pkey);
     ADD_TEST(test_CTX_set1_get0_pkey);
     /* the following two also test ossl_cmp_asn1_octet_string_set1_bytes(): */
     ADD_TEST(test_CTX_set1_get1_referenceValue_str);
@@ -835,10 +826,9 @@ int setup_tests(void)
     ADD_TEST(test_CTX_set1_get0_recipient);
     ADD_TEST(test_CTX_push0_geninfo_ITAV);
     ADD_TEST(test_CTX_set1_get0_extraCertsOut);
-    ADD_TEST(test_CTX_push1_extraCertsOut);
 /* certificate template: */
     ADD_TEST(test_CTX_set0_get0_newPkey_1);
-    ADD_TEST(test_CTX_set1_get0_newPkey_0);
+    ADD_TEST(test_CTX_set0_get0_newPkey_0);
     ADD_TEST(test_CTX_set1_get0_issuer);
     ADD_TEST(test_CTX_set1_get0_subjectName);
 #ifdef ISSUE_9504_RESOLVED
@@ -846,9 +836,7 @@ int setup_tests(void)
     ADD_TEST(test_CTX_push1_subjectAltName);
 #endif
     ADD_TEST(test_CTX_set0_get0_reqExtensions);
-    ADD_TEST(test_CTX_set1_get0_reqExtensions);
-    /* also tests ossl_cmp_x509_extensions_dup: */
-    ADD_TEST(test_CTX_reqExtensions_have_SAN_dup);
+    ADD_TEST(test_CTX_reqExtensions_have_SAN);
     ADD_TEST(test_CTX_push0_policy);
     ADD_TEST(test_CTX_set1_get0_oldCert);
 #ifdef ISSUE_9504_RESOLVED

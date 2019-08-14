@@ -153,16 +153,16 @@ int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         if (res != 0 && ctx->untrusted_certs != NULL) {
             STACK_OF(X509) *chain =
                 ossl_cmp_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
-            res = OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain,
+            res = ossl_cmp_sk_X509_add1_certs(msg->extraCerts, chain,
                                               1 /* no self-signed */,
-                                              1 /* no duplicates */);
+                                              1 /* no duplicates */, 0);
             sk_X509_pop_free(chain, X509_free);
         }
     }
 
     /* add any additional certificates from ctx->extraCertsOut */
-    OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
-                                1 /* no duplicates */);
+    ossl_cmp_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
+                                1 /* no duplicates */, 0);
 
     /* if none was found avoid empty ASN.1 sequence */
     if (sk_X509_num(msg->extraCerts) == 0) {

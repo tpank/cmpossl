@@ -33,7 +33,6 @@
 #include <openssl/cmp.h>
 #include <openssl/err.h>
 
-
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 
 /* from apps.h */
@@ -330,12 +329,12 @@ static void add_conn_error_hint(const OSSL_CMP_CTX *ctx, unsigned long errdetail
     char buf[200];
 
     snprintf(buf, 200, "host '%s' port %d", ctx->serverName, ctx->serverPort);
-    OSSL_CMP_add_error_data(buf);
+    ossl_cmp_add_error_data(buf);
     if (errdetail == 0) {
         snprintf(buf, 200, "server has disconnected%s",
                  ctx->http_cb_arg != NULL ? " violating the protocol" :
                                ", likely because it requires the use of TLS");
-        OSSL_CMP_add_error_data(buf);
+        ossl_cmp_add_error_data(buf);
     }
 }
 

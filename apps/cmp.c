@@ -206,6 +206,7 @@ static int opt_send_unprotected = 0;
 static int opt_send_unprot_err = 0;
 static int opt_accept_unprotected = 0;
 static int opt_accept_unprot_err = 0;
+static int opt_accept_raverified = 0;
 
 static OSSL_CMP_SRV_CTX *srv_ctx = NULL;
 #endif /* NDEBUG */
@@ -314,7 +315,7 @@ typedef enum OPTION_choice {
     OPT_PKISTATUS, OPT_FAILURE, OPT_FAILUREBITS, OPT_STATUSSTRING,
     OPT_SEND_ERROR,
     OPT_SEND_UNPROTECTED, OPT_SEND_UNPROT_ERR,
-    OPT_ACCEPT_UNPROTECTED, OPT_ACCEPT_UNPROT_ERR,
+    OPT_ACCEPT_UNPROTECTED, OPT_ACCEPT_UNPROT_ERR, OPT_ACCEPT_RAVERIFIED,
 #endif
 
     OPT_CRL_DOWNLOAD, OPT_CRLS, OPT_CRL_TIMEOUT,
@@ -563,6 +564,8 @@ OPTIONS cmp_options[] = {
      "Accept missing or invalid protection of requests"},
     {"accept_unprot_err", OPT_ACCEPT_UNPROT_ERR, '-',
      "Accept unprotected error messages from client"},
+    {"accept_raverified", OPT_ACCEPT_RAVERIFIED, '-',
+     "Accept RAVERIFED as proof-of-possession (POPO)"},
 #endif
 
     {OPT_MORE_STR, 0, 0,
@@ -670,6 +673,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {(char **)&opt_send_unprot_err},
     {(char **)&opt_accept_unprotected},
     {(char **)&opt_accept_unprot_err},
+    {(char **)&opt_accept_raverified},
 #endif
 
     {(char **)&opt_crl_download}, {&opt_crls}, {(char **)&opt_crl_timeout},
@@ -699,6 +703,51 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 #define CMP_err1(msg, a1        ) CMP_ERR(msg  "%s%s", a1, "", "")
 #define CMP_err2(msg, a1, a2    ) CMP_ERR(msg    "%s", a1, a2, "")
 #define CMP_err3(msg, a1, a2, a3) CMP_ERR(msg        , a1, a2, a3)
+
+/* code duplicated from crypto/cmp/cmp_util.c */
+static int sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
+                             int no_dup, int prepend)
+{
+    if (no_dup) {
+        /*
+         * not using sk_X509_set_cmp_func() and sk_X509_find()
+         * because this re-orders the certs on the stack
+         */
+        int i;
+
+        for (i = 0; i < sk_X509_num(sk); i++) {
+            if (X509_cmp(sk_X509_value(sk, i), cert) == 0)
+                return 1;
+        }
+    }
+    if (!sk_X509_insert(sk, cert, prepend ? 0 : -1))
+        return 0;
+    return X509_up_ref(cert);
+}
+
+/* code duplicated from crypto/cmp/cmp_util.c */
+static int sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
+                              int no_self_signed, int no_dups, int prepend)
+/* compiler would allow 'const' for the list of certs, yet they are up-ref'ed */
+{
+    int i;
+
+    if (sk == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
+    if (certs == NULL)
+        return 1;
+    for (i = 0; i < sk_X509_num(certs); i++) {
+        X509 *cert = sk_X509_value(certs, i);
+
+        if (!no_self_signed || X509_check_issued(cert, cert) != X509_V_OK) {
+            if (!sk_X509_add1_cert(sk, cert, no_dups, prepend))
+                return 0;
+        }
+    }
+    return 1;
+}
 
 /* TODO DvO push this and related functions upstream (PR #multifile) */
 static char *next_item(char *opt) /* in list separated by comma and/or space */
@@ -2046,7 +2095,7 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
     } else { /* disconnecting */
         const char *hint = tls_error_hint(detail);
         if (hint != NULL)
-            OSSL_CMP_add_error_data(hint);
+            ERR_add_error_data(1, hint);
         /* as a workaround for OpenSSL double free, do not pop the sbio, but
            rely on BIO_free_all() done by OSSL_CMP_MSG_http_perform() */
     }
@@ -2315,7 +2364,7 @@ static STACK_OF(X509) *load_certs_multifile(char *files, int format,
         if (!load_certs_autofmt(files, &certs, format, 0, pass, desc)) {
             goto err;
         }
-        if (!OSSL_CMP_sk_X509_add1_certs(result, certs, 0, 1 /* no dups */)) {
+        if (!sk_X509_add1_certs(result, certs, 0, 1 /* no dups */, 0)) {
             goto oom;
         }
         sk_X509_pop_free(certs, X509_free);
@@ -2475,10 +2524,12 @@ static int setup_srv_ctx(ENGINE *e)
     if (opt_srv_key != NULL) {
         EVP_PKEY *pkey = load_privkey_autofmt(opt_srv_key, opt_keyform,
                   opt_srv_keypass, e, "private key for server CMP certificate");
-        if (pkey == NULL || !OSSL_CMP_CTX_set0_pkey(ctx, pkey)) {
+
+        if (pkey == NULL || !OSSL_CMP_CTX_set1_pkey(ctx, pkey)) {
             EVP_PKEY_free(pkey);
             goto err;
         }
+        EVP_PKEY_free(pkey);
     }
     cleanse(opt_srv_keypass);
 
@@ -2555,6 +2606,8 @@ static int setup_srv_ctx(ENGINE *e)
         (void)OSSL_CMP_SRV_CTX_set_accept_unprotected(srv_ctx, 1);
     if (opt_accept_unprot_err)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1);
+    if (opt_accept_raverified)
+        (void)OSSL_CMP_SRV_CTX_set_accept_raverified(srv_ctx, 1);
 
     return 1;
 
@@ -2948,10 +3001,11 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             load_privkey_autofmt(opt_key, opt_keyform, opt_keypass, e,
                                  "private key for CMP client certificate");
 
-        if (pkey == NULL || !OSSL_CMP_CTX_set0_pkey(ctx, pkey)) {
+        if (pkey == NULL || !OSSL_CMP_CTX_set1_pkey(ctx, pkey)) {
             EVP_PKEY_free(pkey);
             goto err;
         }
+        EVP_PKEY_free(pkey);
     }
     if ((opt_cert != NULL || opt_unprotectedRequests)
             && !(opt_srvcert != NULL || opt_trusted != NULL)) {
@@ -2982,9 +3036,7 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             /* add any remaining certs to the list of untrusted certs */
             STACK_OF(X509) *untrusted = OSSL_CMP_CTX_get0_untrusted_certs(ctx);
             ok = untrusted != NULL ?
-                OSSL_CMP_sk_X509_add1_certs(untrusted, certs,
-                                            0/* allow self-signed */,
-                                            1/* no dups */) :
+                sk_X509_add1_certs(untrusted, certs, 0, 1/* no dups */, 0) :
                 OSSL_CMP_CTX_set1_untrusted_certs(ctx, certs);
         }
         sk_X509_pop_free(certs, X509_free);
@@ -3991,6 +4043,9 @@ static int get_opts(int argc, char **argv)
             break;
         case OPT_ACCEPT_UNPROT_ERR:
             opt_accept_unprot_err = 1;
+            break;
+        case OPT_ACCEPT_RAVERIFIED:
+            opt_accept_raverified = 1;
             break;
 # endif
         }

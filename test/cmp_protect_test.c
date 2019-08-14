@@ -288,10 +288,11 @@ static int test_MSG_protect_certificate_based_without_cert(void)
                   OSSL_CMP_MSG_dup(ir_unprotected))
         || !TEST_true(OSSL_CMP_CTX_set_option(ctx,
                                               OSSL_CMP_OPT_UNPROTECTED_SEND, 0))
-        || !TEST_true(OSSL_CMP_CTX_set1_newPkey(ctx, 1, loadedkey))) {
+        || !TEST_true(OSSL_CMP_CTX_set0_newPkey(ctx, 1, loadedkey))) {
         tear_down(fixture);
         fixture = NULL;
     }
+    EVP_PKEY_up_ref(loadedkey);
     EXECUTE_TEST(execute_MSG_protect_test, tear_down);
     return result;
 }
@@ -414,11 +415,11 @@ static int execute_X509_STORE_test(CMP_PROTECT_TEST_FIXTURE *fixture)
     STACK_OF(X509) *sk = NULL;
     int res = 0;
 
-    if (!TEST_true(OSSL_CMP_X509_STORE_add1_certs(store,
+    if (!TEST_true(ossl_cmp_X509_STORE_add1_certs(store,
                                                   fixture->certs,
                                                   fixture->callback_arg)))
         goto err;
-    sk = OSSL_CMP_X509_STORE_get1_certs(store);
+    sk = ossl_cmp_X509_STORE_get1_certs(store);
     if (!TEST_int_eq(0, STACK_OF_X509_cmp(sk, fixture->chain)))
         goto err;
     res = 1;

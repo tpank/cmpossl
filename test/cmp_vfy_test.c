@@ -335,8 +335,7 @@ static int execute_MSG_check_received_test(CMP_VFY_TEST_FIXTURE *fixture)
             return 0;
         if (!TEST_int_eq(0,
            ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),
-                                 OSSL_CMP_CTX_get0_transactionID(fixture->
-                                                                 cmp_ctx))))
+                                 fixture->cmp_ctx->transactionID)))
             return 0;
     }
 

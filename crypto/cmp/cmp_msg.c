@@ -202,7 +202,7 @@ err:
 }
 
 #define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 \
-                          || OSSL_CMP_CTX_reqExtensions_have_SAN(ctx))
+                          || OSSL_CMP_CTX_reqExtensions_have_SAN(ctx) == 1)
 static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
                                  int bodytype) {
     if (ctx->subjectName != NULL) {
@@ -263,7 +263,10 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         default_sans = X509V3_get_d2i(X509_get0_extensions(refcert),
                                       NID_subject_alt_name, NULL, NULL);
     /* exts are copied from ctx to allow reuse */
-    exts = ossl_cmp_x509_extensions_dup(ctx->reqExtensions);
+    if (ctx->reqExtensions != NULL)
+        exts = sk_X509_EXTENSION_deep_copy(ctx->reqExtensions,
+                                           X509_EXTENSION_dup,
+                                           X509_EXTENSION_free);
     if (ctx->reqExtensions != NULL && exts == NULL)
         goto oom;
     if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0
@@ -420,7 +423,7 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
             && (repMsg->caPubs = X509_chain_up_ref(caPubs)) == NULL)
         goto oom;
     if (chain != NULL
-            && !OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain, 0, 1))
+            && !ossl_cmp_sk_X509_add1_certs(msg->extraCerts, chain, 0, 1, 0))
         goto oom;
 
     if (!(unprotectedErrors

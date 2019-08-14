@@ -232,7 +232,7 @@ static void print_certs(BIO *bio, const STACK_OF(X509) *certs) {
 
 static void print_store_certs(BIO *bio, X509_STORE *store) {
     if (store != NULL) {
-        STACK_OF(X509) *certs = OSSL_CMP_X509_STORE_get1_certs(store);
+        STACK_OF(X509) *certs = ossl_cmp_X509_STORE_get1_certs(store);
         print_certs(bio, certs);
         sk_X509_pop_free(certs, X509_free);
     } else {
@@ -258,7 +258,7 @@ void put_cert_verify_err(int err)
 
             if (len > 0) {
                 str[len-1] = '\0'; /* replace last '\n', terminating str */
-                OSSL_CMP_add_error_line(str);
+                ossl_cmp_add_error_line(str);
             }
         }
     }
@@ -353,9 +353,9 @@ static void add_name_mismatch_data(const char *error_prefix,
     char *actual = actual_name != NULL ? X509_NAME_oneline(actual_name, NULL, 0)
                                        : "(none)";
     if (error_prefix != NULL)
-        OSSL_CMP_add_error_txt("\n", error_prefix);
-    OSSL_CMP_add_error_txt("\n   actual = ", actual);
-    OSSL_CMP_add_error_txt("\n expected = ", expected);
+        ossl_cmp_add_error_txt("\n", error_prefix);
+    ossl_cmp_add_error_txt("\n   actual = ", actual);
+    ossl_cmp_add_error_txt("\n expected = ", expected);
     OPENSSL_free(expected);
     OPENSSL_free(actual);
 }
@@ -369,7 +369,7 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
         /* enforce that the right subject key identifier is there */
         if (ckid == NULL) {
             CMPerr(0, CMP_R_UNEXPECTED_SENDER);
-            OSSL_CMP_add_error_line("  missing Subject Key Identifier in certificate");
+            ossl_cmp_add_error_line("  missing Subject Key Identifier in certificate");
             return 0;
         }
         if (ASN1_OCTET_STRING_cmp(ckid, skid) != 0) {
@@ -377,13 +377,13 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
             char *str;
 #endif
             CMPerr(0, CMP_R_UNEXPECTED_SENDER);
-            OSSL_CMP_add_error_line("  certificate Subject Key Identifier does not match senderKID:");
+            ossl_cmp_add_error_line("  certificate Subject Key Identifier does not match senderKID:");
 #ifdef hex_to_string
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
-            OSSL_CMP_add_error_txt("\n      actual = ", str);
+            ossl_cmp_add_error_txt("\n      actual = ", str);
             OPENSSL_free(str);
             str = OPENSSL_buf2hexstr(skid->data, skid->length);
-            OSSL_CMP_add_error_txt("\n    expected = ", str);
+            ossl_cmp_add_error_txt("\n    expected = ", str);
             OPENSSL_free(str);
 #endif
             return 0;
@@ -414,7 +414,7 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
     time_cmp = OSSL_CMP_cmp_timeframe(X509_get0_notBefore(cert),
                                       X509_get0_notAfter (cert), vpm);
     if (time_cmp != 0) {
-        OSSL_CMP_add_error_line(time_cmp > 0 ? "  certificate expired"
+        ossl_cmp_add_error_line(time_cmp > 0 ? "  certificate expired"
                                              : "  certificate not yet valid");
         return 0;
     }
@@ -424,7 +424,7 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
 
         /* enforce that the right subject DN is there */
         if (name == NULL) {
-            OSSL_CMP_add_error_line("  missing subject in certificate");
+            ossl_cmp_add_error_line("  missing subject in certificate");
             return 0;
         }
         if (X509_NAME_cmp(name, sender_name) != 0) {
@@ -461,15 +461,15 @@ static int find_acceptable_certs(STACK_OF(X509) *certs,
         X509 *cert = sk_X509_value(certs, i);
         char *str = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
 
-        OSSL_CMP_add_error_line(" considering cert with subject");
-        OSSL_CMP_add_error_txt(" = ", str);
+        ossl_cmp_add_error_line(" considering cert with subject");
+        ossl_cmp_add_error_txt(" = ", str);
         OPENSSL_free(str);
         str = X509_NAME_oneline(X509_get_issuer_name(cert), NULL, 0);
-        OSSL_CMP_add_error_txt(" and issuer = ", str);
+        ossl_cmp_add_error_txt(" and issuer = ", str);
         OPENSSL_free(str);
 
         if (cert_acceptable(cert, msg, ts)
-                && !OSSL_CMP_sk_X509_add1_cert(sk, cert, 1 /* no dups */, 0))
+                && !ossl_cmp_sk_X509_add1_cert(sk, cert, 1 /* no dups */, 0))
             return 0;
     }
 
@@ -503,13 +503,13 @@ static int find_server_cert(X509_STORE *ts,
     if (!find_acceptable_certs(untrusted, msg, ts, found_certs))
         return 0;
 
-    trusted = OSSL_CMP_X509_STORE_get1_certs(ts);
+    trusted = ossl_cmp_X509_STORE_get1_certs(ts);
     ret = find_acceptable_certs(trusted, msg, ts, found_certs);
     sk_X509_pop_free(trusted, X509_free);
     if (ret == 0)
         return 0;
 
-    OSSL_CMP_add_error_line(sk_X509_num(found_certs) ?
+    ossl_cmp_add_error_line(sk_X509_num(found_certs) ?
                             "found at least one matching server cert" :
                             "no current matching server cert found");
     return 1;
@@ -527,7 +527,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
     X509_STORE *store = X509_STORE_new();
 
     if (store != NULL /* store does not include CRLs */
-            && OSSL_CMP_X509_STORE_add1_certs(store, msg->extraCerts,
+            && ossl_cmp_X509_STORE_add1_certs(store, msg->extraCerts,
                                               1 /* self-signed only */)) {
         valid = OSSL_CMP_validate_cert_path(ctx, store, scrt, 0);
     }
@@ -586,8 +586,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         (void)ERR_set_mark();
         CMPerr(0, CMP_R_NO_VALID_SERVER_CERT_FOUND);
         sname = X509_NAME_oneline(sender->d.directoryName, NULL, 0);
-        OSSL_CMP_add_error_txt(NULL, "\n");
-        OSSL_CMP_add_error_txt("trying to match msg sender name = ", sname);
+        ossl_cmp_add_error_txt(NULL, "\n");
+        ossl_cmp_add_error_txt("trying to match msg sender name = ", sname);
         OPENSSL_free(sname);
 
         /* release any cached cert, which is no more acceptable */
@@ -680,10 +680,10 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             case OSSL_CMP_PKIBODY_CP:
             case OSSL_CMP_PKIBODY_KUP:
             case OSSL_CMP_PKIBODY_CCP:
-                if (!OSSL_CMP_X509_STORE_add1_certs(ctx->trusted_store,
+                if (!ossl_cmp_X509_STORE_add1_certs(ctx->trusted_store,
                                                     msg->body->value.ip->caPubs,
-                                                    0)) /* value.ip is same for
-                                                           cp, kup, and ccp */
+                                                    0))
+                    /* value.ip is same for cp, kup, and ccp */
                     /* allows self-signed and not self-signed certs */
                     break;
             }
@@ -752,15 +752,15 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             if (!X509_find_by_issuer_and_serial(msg->extraCerts,
                                 X509_get_issuer_name(scrt),
                                 (ASN1_INTEGER *)X509_get0_serialNumber(scrt))) {
-                OSSL_CMP_add_error_line("  certificate used for signature verification attempt was not found in extraCerts");
+                ossl_cmp_add_error_line("  certificate used for signature verification attempt was not found in extraCerts");
             }
 
             if (msg->header->senderKID == NULL)
-                OSSL_CMP_add_error_line("  no senderKID in CMP header; risk that correct server cert could not be identified");
+                ossl_cmp_add_error_line("  no senderKID in CMP header; risk that correct server cert could not be identified");
             else /* server cert should match senderKID in header */
                 if (!check_kid(scrt, msg->header->senderKID))
                     /* here this can only happen if ctx->srvCert has been set */
-                    OSSL_CMP_add_error_line("  for senderKID in CMP header there is no matching Subject Key Identifier in context-provided server cert");
+                    ossl_cmp_add_error_line("  for senderKID in CMP header there is no matching Subject Key Identifier in context-provided server cert");
         } else {
             CMPerr(0, CMP_R_NO_SUITABLE_SERVER_CERT);
         }
@@ -811,22 +811,6 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
     return fail_info;
 }
 
-/* prepend list of certs to given sk as far as not yet present in sk */
-static int sk_prepend1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs)
-{
-    int i;
-
-    if (sk == NULL)
-        return 0;
-
-    for (i = sk_X509_num(certs) - 1; i >= 0 ; i--) {
-        if (!OSSL_CMP_sk_X509_add1_cert(sk, sk_X509_value(certs, i),
-                                        1 /* no_duplicates */, 1 /* prepend */))
-            return 0;
-    }
-    return 1;
-}
-
 /*-
  * Checks received message (i.e., response by server or request from client)
  * Any msg->extraCerts are prepended to ctx->untrusted_certs
@@ -862,7 +846,9 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
      * since they are untrusted and not covered by the CMP protection anyway.
      * For efficiency, the extraCerts are prepended so they get used first.
      */
-    if (!sk_prepend1_certs(ctx->untrusted_certs, msg->extraCerts))
+    if (!ossl_cmp_sk_X509_add1_certs(ctx->untrusted_certs, msg->extraCerts,
+                                     0 /* this allows self-signed certs */,
+                                     1 /* no_dups */, 1 /* prepend */))
         return -1;
 
     /* validate message protection */

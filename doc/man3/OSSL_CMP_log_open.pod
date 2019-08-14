@@ -23,9 +23,6 @@ OSSL_CMP_LOG_WARNING,
 OSSL_CMP_LOG_NOTICE,
 OSSL_CMP_LOG_INFO,
 OSSL_CMP_LOG_DEBUG,
-OSSL_CMP_add_error_txt,
-OSSL_CMP_add_error_data,
-OSSL_CMP_add_error_line,
 OSSL_CMP_print_errors_cb
 - functions for logging and error reporting
 
@@ -60,9 +57,6 @@ OSSL_CMP_print_errors_cb
                                    const char *file, int line,
                                    OSSL_CMP_severity level, const char *msg);
 
- void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
- #define OSSL_CMP_add_error_data(txt)
- #define OSSL_CMP_add_error_line(txt)
  void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
 
 =head1 DESCRIPTION
@@ -119,18 +113,6 @@ OSSL_CMP_debug() outputs a simple debug message via the trace API.
 Note that due to the design of the trace API used, the log functions have no
 effect unless the B<enable-trace> option is used during build configuration.
 
-OSSL_CMP_add_error_txt() appends text to the extra data field of the last
-error message in the OpenSSL error queue, after adding the optional separator
-unless data has been empty so far. The text can be of arbitrary length,
-which is not possible when using L<ERR_add_error_data(3)> in conjunction with
-L<ERR_print_errors_cb(3)>.
-
-OSSL_CMP_add_error_data() is a macro calling
-B<OSSL_CMP_add_error_txt()> with the separator being ":".
-
-OSSL_CMP_add_error_line() is a macro calling
-B<OSSL_CMP_add_error_txt()> with the separator being "\n".
-
 OSSL_CMP_print_errors_cb() outputs any entries in the OpenSSL error queue.
 It is similar to B<ERR_print_errors_cb()> but uses the CMP log callback function
 C<log_fn> for uniformity with CMP logging if given. Otherwise it uses
@@ -138,7 +120,7 @@ B<ERR_print_errors(3)> to print to STDERR (unless OPENSSL_NO_STDIO is defined).
 
 =head1 RETURN VALUES
 
-OSSL_CMP_log_close(), OSSL_CMP_add_error_txt(), and OSSL_CMP_print_errors_cb()
+OSSL_CMP_log_close() and OSSL_CMP_print_errors_cb()
 do not return anything.
 
 All other functions return 1 on success, 0 on error.

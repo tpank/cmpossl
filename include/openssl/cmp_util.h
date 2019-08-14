@@ -64,25 +64,8 @@ typedef int OSSL_CMP_severity;
 typedef int (*OSSL_cmp_log_cb_t)(const char *func, const char *file, int line,
                                  OSSL_CMP_severity level, const char *msg);
 
-/*
- * enhancements of the error queue and use of the logging callback for it
- */
-void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
-# define OSSL_CMP_add_error_data(txt) OSSL_CMP_add_error_txt(" : ", txt)
-# define OSSL_CMP_add_error_line(txt) OSSL_CMP_add_error_txt("\n", txt)
+/* use of the logging callback for outputting error queue */
 void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
-
-/*
- * functions manipulating lists of certificates etc.
- * these functions could be generally useful
- */
-int OSSL_CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert,
-                                int not_duplicate, int prepend);
-int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
-                                int no_self_signed, int no_duplicates);
-int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
-                                   int only_self_signed);
-STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store);
 
 #   ifdef  __cplusplus
 }

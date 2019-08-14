@@ -83,7 +83,7 @@ int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *certs)
     sk_X509_pop_free(ctx->untrusted_certs, X509_free);
     if ((ctx->untrusted_certs = sk_X509_new_null()) == NULL)
         return 0;
-    return OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, certs, 0, 1);
+    return ossl_cmp_sk_X509_add1_certs(ctx->untrusted_certs, certs, 0, 1, 0);
 }
 
 /*
@@ -456,24 +456,6 @@ int ossl_cmp_ctx_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
 }
 
 /*
- * Duplicate and push the given X509 certificate to the stack of
- * outbound certificates to send in the extraCerts field.
- * Returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_push1_extraCertsOut(OSSL_CMP_CTX *ctx, X509 *val)
-{
-    if (ctx == NULL || val == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
-    if ((ctx->extraCertsOut == NULL
-             && (ctx->extraCertsOut = sk_X509_new_null()) == NULL)
-            || !sk_X509_push(ctx->extraCertsOut, val))
-        return 0;
-    return X509_up_ref(val);
-}
-
-/*
  * Duplicate and set the given stack as the new stack of X509
  * certificates to send out in the extraCerts field.
  * Returns 1 on success, 0 on error
@@ -683,36 +665,12 @@ int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
     return 1;
 }
 
-/*
- * Set the X.509v3 certificate request extensions to be used in IR/CR/KUR.
- * Returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, const X509_EXTENSIONS *exts)
-{
-    X509_EXTENSIONS *exts_copy;
-    int res;
-
-    if (ctx == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
-
-    exts_copy = ossl_cmp_x509_extensions_dup(exts);
-    if (exts != NULL && exts_copy == NULL)
-        return 0;
-
-    res = OSSL_CMP_CTX_set0_reqExtensions(ctx, exts_copy);
-    if (res == 0)
-        sk_X509_EXTENSION_pop_free(exts_copy, X509_EXTENSION_free);
-    return res;
-}
-
 /* returns 1 if ctx contains a Subject Alternative Name extension, else 0 */
 int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return 0;
+        return -1;
     }
     /* if one of the following conditions 'fail' this is not an error */
     return ctx->reqExtensions != NULL
@@ -733,7 +691,7 @@ int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
         return 0;
     }
 
-    if (OSSL_CMP_CTX_reqExtensions_have_SAN(ctx)) {
+    if (OSSL_CMP_CTX_reqExtensions_have_SAN(ctx) == 1) {
         CMPerr(0, CMP_R_MULTIPLE_SAN_SOURCES);
         return 0;
     }
@@ -829,23 +787,10 @@ X509 *OSSL_CMP_CTX_get0_newCert(const OSSL_CMP_CTX *ctx)
 }
 
 /*
- * Set the client's private key. This creates a duplicate of the key
- * so the given pointer is not used directly.
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
-{
-    if (!OSSL_CMP_CTX_set0_pkey(ctx, pkey)) /* also checks ctx == NULL */
-        return 0;
-    return pkey == NULL ? 1 : EVP_PKEY_up_ref(pkey);
-}
-
-/*
  * Set the client's current private key.
- * NOTE: this version uses the given pointer directly!
  * Returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
+int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -854,24 +799,11 @@ int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 
     EVP_PKEY_free(ctx->pkey);
     ctx->pkey = pkey;
-    return 1;
-}
-
-/*
- * Set new key pair. Used for example when doing Key Update.
- * The key is duplicated so the original pointer is not directly used.
- * Returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, int priv, EVP_PKEY *pkey)
-{
-    if (!OSSL_CMP_CTX_set0_newPkey(ctx, priv, pkey)) /* checks ctx == NULL */
-       return 0;
     return pkey == NULL ? 1 : EVP_PKEY_up_ref(pkey);
 }
 
 /*
  * Set new key pair. Used e.g. when doing Key Update.
- * NOTE: uses the pointer directly!
  * Returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, int priv, EVP_PKEY *pkey)
@@ -916,19 +848,6 @@ int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
         return 0;
     }
     return ossl_cmp_asn1_octet_string_set1(&ctx->transactionID, id);
-}
-
-/*
- * Gets the transactionID from the context.
- * Returns a pointer to the transactionID on success, NULL on error
- */
-ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx)
-{
-    if (ctx == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return NULL;
-    }
-    return ctx->transactionID;
 }
 
 /*

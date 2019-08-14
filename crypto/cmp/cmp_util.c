@@ -115,7 +115,7 @@ static void put_error(int lib, const char *func, int reason,
 #define ERR_print_errors_cb_LIMIT 4096 /* size of char buf2[] variable there */
 #define TYPICAL_MAX_OUTPUT_BEFORE_DATA 100
 #define MAX_DATA_LEN (ERR_print_errors_cb_LIMIT-TYPICAL_MAX_OUTPUT_BEFORE_DATA)
-void OSSL_CMP_add_error_txt(const char *separator, const char *txt)
+void ossl_cmp_add_error_txt(const char *separator, const char *txt)
 {
     const char *file;
     int line;
@@ -219,12 +219,13 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
 
 /*
  * functions manipulating lists of certificates etc.
+ * these functions could be generally useful.
  */
 
-int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
-                               int not_duplicate, int prepend)
+int ossl_cmp_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
+                               int no_dup, int prepend)
 {
-    if (not_duplicate) {
+    if (no_dup) {
         /*
          * not using sk_X509_set_cmp_func() and sk_X509_find()
          * because this re-orders the certs on the stack
@@ -241,8 +242,8 @@ int OSSL_CMP_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
     return X509_up_ref(cert);
 }
 
-int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
-                                int no_self_signed, int no_duplicates)
+int ossl_cmp_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
+                                int no_self_signed, int no_dups, int prepend)
 /* compiler would allow 'const' for the list of certs, yet they are up-ref'ed */
 {
     int i;
@@ -257,14 +258,14 @@ int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
         X509 *cert = sk_X509_value(certs, i);
 
         if (!no_self_signed || X509_check_issued(cert, cert) != X509_V_OK) {
-            if (!OSSL_CMP_sk_X509_add1_cert(sk, cert, no_duplicates, 0))
+            if (!ossl_cmp_sk_X509_add1_cert(sk, cert, no_dups, prepend))
                 return 0;
         }
     }
     return 1;
 }
 
-int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
+int ossl_cmp_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed)
 {
     int i;
@@ -285,7 +286,7 @@ int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
     return 1;
 }
 
-STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(X509_STORE *store)
+STACK_OF(X509) *ossl_cmp_X509_STORE_get1_certs(X509_STORE *store)
 {
     int i;
     STACK_OF(X509) *sk;
@@ -347,7 +348,7 @@ STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs, X509 *cert)
     if (csc == NULL)
         goto err;
 
-    OSSL_CMP_X509_STORE_add1_certs(store, certs, 0);
+    ossl_cmp_X509_STORE_add1_certs(store, certs, 0);
     if (!X509_STORE_CTX_init(csc, store, cert, NULL))
         goto err;
 
@@ -365,23 +366,13 @@ STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs, X509 *cert)
     /* result list to store the up_ref'ed not self-signed certificates */
     if ((result = sk_X509_new_null()) == NULL)
         goto err;
-    OSSL_CMP_sk_X509_add1_certs(result, chain,
-                                1 /* no self-signed */, 1 /* no duplicates */);
+    ossl_cmp_sk_X509_add1_certs(result, chain, 1 /* no self-signed */,
+                                1 /* no duplicates */, 0);
 
  err:
     X509_STORE_free(store);
     X509_STORE_CTX_free(csc);
     return result;
-}
-
-X509_EXTENSIONS *ossl_cmp_x509_extensions_dup(const X509_EXTENSIONS *exts)
-{
-    if (exts == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return NULL;
-    }
-    return sk_X509_EXTENSION_deep_copy(exts, X509_EXTENSION_dup,
-                                       X509_EXTENSION_free);
 }
 
 int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,

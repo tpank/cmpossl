@@ -75,7 +75,7 @@ static int execute_HDR_init_test(CMP_HDR_TEST_FIXTURE *fixture)
                         ossl_cmp_ctx_get0_senderNonce(fixture->cmp_ctx)))
                 || !TEST_true(0 ==  ASN1_OCTET_STRING_cmp(
                             OSSL_CMP_HDR_get0_transactionID(fixture->hdr),
-                            OSSL_CMP_CTX_get0_transactionID(fixture->cmp_ctx))))
+                            fixture->cmp_ctx->transactionID)))
             goto err;
         header_nonce = OSSL_CMP_HDR_get0_recipNonce(fixture->hdr);
         ctx_nonce = ossl_cmp_ctx_get0_recipNonce(fixture->cmp_ctx);
