@@ -330,8 +330,7 @@ static int execute_MSG_check_received_test(CMP_VFY_TEST_FIXTURE *fixture)
         const OSSL_CMP_PKIHEADER *header = OSSL_CMP_MSG_get0_header(fixture->msg);
         if (!TEST_int_eq(0,
               ASN1_OCTET_STRING_cmp(ossl_cmp_hdr_get0_senderNonce(header),
-                                    ossl_cmp_ctx_get0_recipNonce(fixture->
-                                                                 cmp_ctx))))
+                                    fixture->cmp_ctx->recipNonce)))
             return 0;
         if (!TEST_int_eq(0,
            ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),
