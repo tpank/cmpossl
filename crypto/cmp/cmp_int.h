@@ -802,6 +802,8 @@ int ossl_cmp_hdr_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
 #  define OSSL_CMP_PKIBODY_CERTCONF 24
 #  define OSSL_CMP_PKIBODY_POLLREQ  25
 #  define OSSL_CMP_PKIBODY_POLLREP  26
+#  define OSSL_CMP_PKIBODY_TYPE_MAX OSSL_CMP_PKIBODY_POLLREP
+const char *ossl_cmp_bodytype_to_string(int type);
 int ossl_cmp_msg_set_bodytype(OSSL_CMP_MSG *msg, int type);
 int ossl_cmp_msg_get_bodytype(const OSSL_CMP_MSG *msg);
 OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype);

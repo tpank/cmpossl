@@ -2,6 +2,7 @@
 
 =head1 NAME
 
+ossl_cmp_bodytype_to_string,
 ossl_cmp_msg_get_bodytype,
 ossl_cmp_msg_set_bodytype,
 ossl_cmp_msg_create,
@@ -14,6 +15,7 @@ ossl_cmp_msg_gen_ITAVs_push1
 
   #include "cmp_int.h"
 
+  const char *ossl_cmp_bodytype_to_string(int type);
   int ossl_cmp_msg_get_bodytype(const OSSL_CMP_MSG *msg);
   int ossl_cmp_msg_set_bodytype( OSSL_CMP_MSG *msg, int type);
   OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype);
@@ -23,6 +25,9 @@ ossl_cmp_msg_gen_ITAVs_push1
                                     STACK_OF(OSSL_CMP_ITAV) *itavs);
 
 =head1 DESCRIPTION
+
+ossl_cmp_bodytype_to_string() returns the name of the given body type as string,
+or "illegal body type" on error.
 
 ossl_cmp_msg_get_bodytype() returns the body type of the given PKIMessage.
 

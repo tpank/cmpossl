@@ -29,42 +29,8 @@
 
 #include "openssl/cmp_util.h"
 
-/*
- * table used to translate PKIMessage body type number into a printable string
- */
-static char *V_CMP_TABLE[] = {
-    "IR",
-    "IP",
-    "CR",
-    "CP",
-    "P10CR",
-    "POPDECC",
-    "POPDECR",
-    "KUR",
-    "KUP",
-    "KRR",
-    "KRP",
-    "RR",
-    "RP",
-    "CCR",
-    "CCP",
-    "CKUANN",
-    "CANN",
-    "RANN",
-    "CRLANN",
-    "PKICONF",
-    "NESTED",
-    "GENM",
-    "GENP",
-    "ERROR",
-    "CERTCONF",
-    "POLLREQ",
-    "POLLREP",
-};
-
-#define IS_ENOLLMENT(t) (t == OSSL_CMP_PKIBODY_IP \
-                             || t == OSSL_CMP_PKIBODY_CP \
-                             || t == OSSL_CMP_PKIBODY_KUP)
+#define IS_CREP(t) (t == OSSL_CMP_PKIBODY_IP || t == OSSL_CMP_PKIBODY_CP \
+                        || t == OSSL_CMP_PKIBODY_KUP)
 
 /*
  * evaluate whether there's an standard-violating exception configured for
@@ -97,10 +63,11 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
         else if (rcvd_type == OSSL_CMP_PKIBODY_PKICONF) {
             msg_type = "PKI Confirmation message";
         }
-        else if (rcvd_type == expected_type && IS_ENOLLMENT(rcvd_type)) {
+        else if (rcvd_type == expected_type && IS_CREP(rcvd_type)) {
             OSSL_CMP_CERTREPMESSAGE *crepmsg = rep->body->value.ip;
             OSSL_CMP_CERTRESPONSE *crep =
                 ossl_cmp_certrepmessage_get0_certresponse(crepmsg, -1);
+
             if (sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response) > 1) {
                 /* a specific error could be misleading here */
                 return 0;
@@ -137,16 +104,30 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si);
  * Regardless of success, caller is responsible for freeing *rep (unless NULL).
  */
 static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
-                              const char *type_string, OSSL_CMP_MSG **rep,
+                              OSSL_CMP_MSG **rep,
                               int expected_type, int not_received)
 {
-    int msgtimeout = ctx->msgtimeout; /* backup original value */
+    const char *req_type_string =
+        ossl_cmp_bodytype_to_string(ossl_cmp_msg_get_bodytype(req));
+    int msgtimeout;
     int err, bt;
+    const char *bt_string;
+    OSSL_cmp_transfer_cb_t transfer_cb = ctx->transfer_cb;
 
-    if ((expected_type == OSSL_CMP_PKIBODY_POLLREP
-             || IS_ENOLLMENT(expected_type))
-            && ctx->totaltimeout > 0) { /* total timeout is not infinite */
+    if (transfer_cb == NULL) {
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+        transfer_cb = OSSL_CMP_MSG_http_perform;
+#else
+        CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
+        return 0;
+#endif
+    }
+
+    msgtimeout = ctx->msgtimeout; /* backup original value */
+    if ((IS_CREP(expected_type) || expected_type == OSSL_CMP_PKIBODY_POLLREP)
+            && ctx->totaltimeout > 0 /* total timeout is not infinite */) {
         int64_t time_left = (int64_t)(ctx->end_time - time(NULL));
+
         if (time_left <= 0) {
             CMPerr(0, CMP_R_TOTAL_TIMEOUT);
             return 0;
@@ -155,17 +136,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             ctx->msgtimeout = (int)time_left;
     }
 
-    OSSL_CMP_log1(INFO, "sending %s", type_string);
-    if (ctx->transfer_cb != NULL)
-        err = (ctx->transfer_cb)(ctx, req, rep);
-        /*-
-         * may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
-         *                 or CMP_R_ERROR_TRANSFERRING_IN
-         * DO NOT DELETE the two error reason codes in this comment, they are
-         * for mkerr.pl
-         */
-    else
-        err = CMP_R_ERROR_SENDING_REQUEST;
+    OSSL_CMP_log1(INFO, "sending %s", req_type_string);
+    err = (*transfer_cb)(ctx, req, rep);
     ctx->msgtimeout = msgtimeout; /* restore original value */
 
     if (err != 0) {
@@ -176,56 +148,42 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         }
         else {
             CMPerr(0, CMP_R_ERROR_SENDING_REQUEST);
-            ossl_cmp_add_error_data(type_string);
+            ossl_cmp_add_error_data(req_type_string);
         }
         *rep = NULL;
         return 0;
     }
 
-    OSSL_CMP_info("got response");
-    if((bt = ossl_cmp_msg_check_received(ctx, *rep, unprotected_exception,
-                                                expected_type)) < 0)
+    if ((bt = ossl_cmp_msg_check_received(ctx, *rep, unprotected_exception,
+                                          expected_type)) < 0)
         return 0;
+    bt_string = ossl_cmp_bodytype_to_string(bt);
+    OSSL_CMP_log1(INFO, "received %s", bt_string);
 
-    /* catch if received message type isn't one of expected ones (e.g. error) */
-    if (bt != expected_type
-        /* as an answer to polling, there could be IP/CP/KUP */
-            && !(expected_type == OSSL_CMP_PKIBODY_POLLREP
-                     && IS_ENOLLMENT(bt))) {
-        CMPerr(0, bt == OSSL_CMP_PKIBODY_ERROR ? CMP_R_RECEIVED_ERROR :
-               CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
+    if (bt == expected_type
+        /* as an answer to polling, there could be IP/CP/KUP: */
+            || (IS_CREP(bt) && expected_type == OSSL_CMP_PKIBODY_POLLREP))
+        return 1;
 
-        switch (bt) {
-        case OSSL_CMP_PKIBODY_ERROR:
-            {
-                char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
-                OSSL_CMP_PKISI *si = (*rep)->body->value.error->pKIStatusInfo;
+    /* received message type is not one of the expected ones (e.g., error) */
+    CMPerr(0, bt == OSSL_CMP_PKIBODY_ERROR ? CMP_R_RECEIVED_ERROR :
+           CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
 
-                if (save_statusInfo(ctx, si) && buf != NULL
-                        && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf,
-                                                          OSSL_CMP_PKISI_BUFLEN)
-                           != NULL)
-                    ERR_add_error_data(1, buf);
-                OPENSSL_free(buf);
-            }
-            break;
-        case -1:
-            ERR_add_error_data(1, "got no message, or invalid type '-1'");
-            break;
-        default:
-            if ((size_t)bt >= sizeof(V_CMP_TABLE)/sizeof(V_CMP_TABLE[0])
-                    || bt < 0) {
-                ERR_add_error_data(1, "got invalid message type out of sane range");
-            } else {
-                ERR_add_error_data(3, "got unexpected message type '",
-                                   V_CMP_TABLE[bt], "'");
-            }
-            break;
-        }
-        return 0;
+    if (bt == -1) {
+        ERR_add_error_data(1, "no message or invalid message type '-1'");
+    } else if (bt != OSSL_CMP_PKIBODY_ERROR) {
+        ERR_add_error_data(3, "message type is '", bt_string, "'");
+    } else {
+        char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
+        int len = OSSL_CMP_PKISI_BUFLEN;
+        OSSL_CMP_PKISI *si = (*rep)->body->value.error->pKIStatusInfo;
+
+        if (save_statusInfo(ctx, si) && buf != NULL
+                && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf, len) != NULL)
+            ERR_add_error_data(1, buf);
+        OPENSSL_free(buf);
     }
-
-    return 1;
+    return 0;
 }
 
 /*
@@ -256,8 +214,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
         if ((preq = ossl_cmp_pollReq_new(ctx, rid)) == NULL)
             goto err;
 
-        if (!send_receive_check(ctx, preq, "pollReq", &prep,
-                                OSSL_CMP_PKIBODY_POLLREP,
+        if (!send_receive_check(ctx, preq, &prep, OSSL_CMP_PKIBODY_POLLREP,
                                 CMP_R_POLLREP_NOT_RECEIVED))
              goto err;
 
@@ -292,6 +249,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             if (ctx->totaltimeout > 0) { /* total timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
                 int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
+
                 if (time_left <= 0) {
                     CMPerr(0, CMP_R_TOTAL_TIMEOUT);
                     goto err;
@@ -345,7 +303,7 @@ int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
     if ((certConf = ossl_cmp_certConf_new(ctx, fail_info, txt)) == NULL)
         goto err;
 
-    success = send_receive_check(ctx, certConf, "certConf", &PKIconf,
+    success = send_receive_check(ctx, certConf, &PKIconf,
                                  OSSL_CMP_PKIBODY_PKICONF,
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
@@ -379,8 +337,7 @@ int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
     if ((error = ossl_cmp_error_new(ctx, si, -1, NULL, 0)) == NULL)
         goto err;
 
-    success = send_receive_check(ctx, error, "error",
-                                 &PKIconf, OSSL_CMP_PKIBODY_PKICONF,
+    success = send_receive_check(ctx, error, &PKIconf, OSSL_CMP_PKIBODY_PKICONF,
                                  CMP_R_PKICONF_NOT_RECEIVED);
 
  err:
@@ -628,6 +585,10 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     return ret;
 }
 
+#define INFO_CONTACTING_SERVER(ctx) OSSL_CMP_log2(INFO, "contacting %s:%d", \
+    (ctx)->serverName == NULL ? "(no server name)" : (ctx)->serverName, \
+    (ctx)->serverPort);
+
 /*
  * internal function
  *
@@ -640,9 +601,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
  *
  * returns pointer to received certificate, or NULL if none was received
  */
-static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string,
-                            int req_type, int req_err, int rep_type,
-                            int rep_err)
+static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, int req_type, int req_err,
+                            int rep_type, int rep_err)
 {
     OSSL_CMP_MSG *req = NULL;
     OSSL_CMP_MSG *rep = NULL;
@@ -653,14 +613,17 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string,
          CMPerr(0, CMP_R_NULL_ARGUMENT);
          return NULL;
     }
-    ctx->end_time = time(NULL) + ctx->totaltimeout;
+
+    if (ctx->totaltimeout > 0) /* else ctx->end_time is not used */
+        ctx->end_time = time(NULL) + ctx->totaltimeout;
     ctx->status = -1;
 
     /* check if all necessary options are set done by OSSL_CMP_certreq_new */
     if ((req = ossl_cmp_certReq_new(ctx, req_type, req_err)) == NULL)
         goto err;
 
-    if (!send_receive_check(ctx, req, type_string, &rep, rep_type, rep_err))
+    INFO_CONTACTING_SERVER(ctx);
+    if (!send_receive_check(ctx, req, &rep, rep_type, rep_err))
         goto err;
 
     if (!cert_response(ctx, rid, &rep, req_type, rep_err))
@@ -714,7 +677,8 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     if ((rr = ossl_cmp_rr_new(ctx)) == NULL)
         goto end;
 
-    if (!send_receive_check(ctx, rr, "rr", &rp, OSSL_CMP_PKIBODY_RP,
+    INFO_CONTACTING_SERVER(ctx);
+    if (!send_receive_check(ctx, rr, &rp, OSSL_CMP_PKIBODY_RP,
                             CMP_R_RP_NOT_RECEIVED))
         goto end;
 
@@ -810,28 +774,28 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 
 X509 *OSSL_CMP_exec_IR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "ir", OSSL_CMP_PKIBODY_IR,
+    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_IR,
                           CMP_R_ERROR_CREATING_IR, OSSL_CMP_PKIBODY_IP,
                           CMP_R_IP_NOT_RECEIVED);
 }
 
 X509 *OSSL_CMP_exec_CR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "cr", OSSL_CMP_PKIBODY_CR,
+    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_CR,
                           CMP_R_ERROR_CREATING_CR, OSSL_CMP_PKIBODY_CP,
                           CMP_R_CP_NOT_RECEIVED);
 }
 
 X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "kur", OSSL_CMP_PKIBODY_KUR,
+    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_KUR,
                           CMP_R_ERROR_CREATING_KUR, OSSL_CMP_PKIBODY_KUP,
                           CMP_R_KUP_NOT_RECEIVED);
 }
 
 X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "p10cr", OSSL_CMP_PKIBODY_P10CR,
+    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_P10CR,
                           CMP_R_ERROR_CREATING_P10CR, OSSL_CMP_PKIBODY_CP,
                           CMP_R_CP_NOT_RECEIVED);
 }
@@ -852,7 +816,8 @@ STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
     if ((genm = ossl_cmp_genm_new(ctx)) == NULL)
         goto err;
 
-    if (!send_receive_check(ctx, genm, "genm", &genp, OSSL_CMP_PKIBODY_GENP,
+    INFO_CONTACTING_SERVER(ctx);
+    if (!send_receive_check(ctx, genm, &genp, OSSL_CMP_PKIBODY_GENP,
                             CMP_R_GENP_NOT_RECEIVED))
          goto err;
 
