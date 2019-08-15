@@ -27,6 +27,21 @@ OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
     return msg != NULL ? msg->header : NULL;
 }
 
+const char *ossl_cmp_bodytype_to_string(int type)
+{
+    static char *type_names[] = {
+        "IR", "IP", "CR", "CP", "P10CR",
+        "POPDECC", "POPDECR", "KUR", "KUP",
+        "KRR", "KRP", "RR", "RP", "CCR", "CCP",
+        "CKUANN", "CANN", "RANN", "CRLANN", "PKICONF", "NESTED",
+        "GENM", "GENP", "ERROR", "CERTCONF", "POLLREQ", "POLLREP",
+    };
+
+    if (type < 0 || type > OSSL_CMP_PKIBODY_TYPE_MAX)
+        return "illegal body type";
+    return type_names[type];
+}
+
 int ossl_cmp_msg_set_bodytype(OSSL_CMP_MSG *msg, int type)
 {
     if (msg == NULL || msg->body == NULL) {
