@@ -687,7 +687,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 };
 
 #define CMP_print(prefix, msg, a1, a2, a3) \
-    BIO_printf(bio_err, "CMP " prefix ": " msg "\n", a1, a2, a3)
+    BIO_printf(bio_err, "CMP %s: " msg "\n", prefix, a1, a2, a3)
 #define CMP_INFO(msg, a1, a2, a3) CMP_print("info", msg, a1, a2, a3)
 #define CMP_info(msg)              CMP_INFO(msg"%s%s%s", "", "", "")
 #define CMP_info1(msg, a1        ) CMP_INFO(msg  "%s%s", a1, "", "")
@@ -704,7 +704,27 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 #define CMP_err2(msg, a1, a2    ) CMP_ERR(msg    "%s", a1, a2, "")
 #define CMP_err3(msg, a1, a2, a3) CMP_ERR(msg        , a1, a2, a3)
 
-/* code duplicated from crypto/cmp/cmp_util.c */
+static int log_to_stdout(const char *func, const char *file, int line,
+                         OSSL_CMP_severity level, const char *msg)
+{
+    char *level_string =
+        level == OSSL_CMP_LOG_EMERG ? "EMERG" :
+        level == OSSL_CMP_LOG_ALERT ? "ALERT" :
+        level == OSSL_CMP_LOG_CRIT ? "CRIT" :
+        level == OSSL_CMP_LOG_ERR ? "error" :
+        level == OSSL_CMP_LOG_WARNING ? "warning" :
+        level == OSSL_CMP_LOG_NOTICE ? "NOTE" :
+        level == OSSL_CMP_LOG_INFO ? "info" :
+        level == OSSL_CMP_LOG_DEBUG ? "DEBUG" : "(unknown level)";
+
+#ifndef NDEBUG
+    if (BIO_printf(bio_out, "%s:%s:%d:", func, file, line) < 0)
+        return 0;
+#endif
+    return BIO_printf(bio_out, "CMP %s: %s", level_string, msg) >= 0;
+}
+
+    /* code duplicated from crypto/cmp/cmp_util.c */
 static int sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
                              int no_dup, int prepend)
 {
@@ -1023,7 +1043,7 @@ static X509 *load_cert_autofmt(const char *infile, int format,
                                const char *pass, const char *desc)
 {
     X509 *cert;
-    /* BIO_printf(bio_c_out, "Loading %s from file '%s'\n", desc, infile); */
+    /* BIO_printf(bio_out, "Loading %s from file '%s'\n", desc, infile); */
     char *pass_string = get_passwd(pass, desc);
     BIO *bio_bak = bio_err;
 
@@ -1051,7 +1071,7 @@ static X509_REQ *load_csr_autofmt(const char *infile, int format,
                                   const char *desc)
 {
     X509_REQ *csr;
-    /* BIO_printf(bio_c_out, "loading %s from file '%s'\n", desc, infile); */
+    /* BIO_printf(bio_out, "loading %s from file '%s'\n", desc, infile); */
     BIO *bio_bak = bio_err;
 
     bio_err = NULL;
@@ -1137,7 +1157,7 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
     char *pass_string;
     BIO *bio_bak = bio_err;
 
-    /* BIO_printf(bio_c_out, "loading %s from file '%s'\n", desc, infile); */
+    /* BIO_printf(bio_out, "loading %s from file '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
     if (exclude_http && format == FORMAT_HTTP) {
         BIO_printf(bio_err, "error: HTTP retrieval not allowed for %s\n", desc);
@@ -1172,7 +1192,7 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
     BIO *bio_bak = bio_err;
 
     bio_err = NULL;
-    /* BIO_printf(bio_c_out, "loading %s from '%s'\n", desc, infile); */
+    /* BIO_printf(bio_out, "loading %s from '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
@@ -1205,7 +1225,7 @@ static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format,
 
     if (format == FORMAT_PEM) {
         STACK_OF(X509_CRL) *crls = NULL;
-        /* BIO_printf(bio_c_out, "loading %s from '%s'\n", desc, infile); */
+        /* BIO_printf(bio_out, "loading %s from '%s'\n", desc, infile); */
         if (!load_crls(infile, &crls, format, NULL, desc))
             return NULL;
         return crls;
@@ -1467,7 +1487,7 @@ static int check_ocsp_resp(X509_STORE *ts, STACK_OF(X509) *untrusted,
         return -1;
 
 # if defined VERBOSE_DEBUG && !defined NDEBUG
-    BIO_puts(bio_c_out, "debug: OCSP response:\n");
+    BIO_puts(bio_c_out, "DEBUG: OCSP response:\n");
     BIO_puts(bio_c_out, "======================================\n");
     OCSP_RESPONSE_print(bio_c_out, resp, 0);
     BIO_puts(bio_c_out, "======================================\n");
@@ -2323,7 +2343,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     if (input == NULL)
         goto err;
 
-    /* BIO_printf(bio_c_out, "loading %s from file '%s'\n", desc, input); */
+    /* BIO_printf(bio_out, "loading %s from file '%s'\n", desc, input); */
     while (input != NULL) {
         char *next = next_item(input);           \
 
@@ -4091,21 +4111,22 @@ int cmp_main(int argc, char **argv)
     if (opt_section[0] == '\0') /* empty string */
         opt_section = DEFAULT_SECTION;
 
-#ifndef OPENSSL_NO_TRACE
-    if (!OSSL_CMP_log_open()) {
-        CMP_err1("cannot set up logging for '%s' via trace API", prog);
-        goto err;
-    }
-#else
-    CMP_warn("logging is disabled; it may be enabled using the OpenSSL config option 'enable-trace'");
-#endif
-
     cmp_ctx = OSSL_CMP_CTX_new();
     vpm = X509_VERIFY_PARAM_new();
     if (cmp_ctx == NULL || vpm == NULL) {
         CMP_err("out of memory");
         goto err;
     }
+
+#ifndef OPENSSL_NO_TRACE
+    if (!OSSL_CMP_log_open()
+            || !OSSL_CMP_CTX_set_log_cb(cmp_ctx, log_to_stdout)) {
+        CMP_err1("cannot set up logging for '%s' via trace API", prog);
+        goto err;
+    }
+#else
+    CMP_warn("logging is disabled; it may be enabled using the OpenSSL config option 'enable-trace'");
+#endif
 
     /*
      * read default values for options from config file
@@ -4219,17 +4240,15 @@ int cmp_main(int argc, char **argv)
             /* print PKIStatusInfo (this is in case there has been no error) */
             int status = OSSL_CMP_CTX_get_status(cmp_ctx);
             char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
-            const char *string =
-                OSSL_CMP_CTX_snprint_PKIStatus(cmp_ctx, buf,
-                                               OSSL_CMP_PKISI_BUFLEN);
+            const char *string = OSSL_CMP_CTX_snprint_PKIStatus(cmp_ctx, buf,
+                                                         OSSL_CMP_PKISI_BUFLEN);
 
-            BIO_printf(bio_out, "CMP %s: received from %s %s\n",
-                       status == OSSL_CMP_PKISTATUS_accepted ? "INFO" :
-                       status == OSSL_CMP_PKISTATUS_rejection ? "server error" :
-                       status == OSSL_CMP_PKISTATUS_waiting ? "internal error" :
-                                                              "warning",
-                       opt_server,
-                       string != NULL ? string : "<unknown PKIStatus>");
+            CMP_print(status == OSSL_CMP_PKISTATUS_accepted ? "info" :
+                      status == OSSL_CMP_PKISTATUS_rejection ? "server error" :
+                      status == OSSL_CMP_PKISTATUS_waiting ? "internal error" :
+                                                             "warning",
+                      "received from %s %s", opt_server,
+                      string != NULL ? string : "<unknown PKIStatus>", "");
             OPENSSL_free(buf);
         }
 
