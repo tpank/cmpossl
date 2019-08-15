@@ -4119,8 +4119,7 @@ int cmp_main(int argc, char **argv)
     }
 
 #ifndef OPENSSL_NO_TRACE
-    if (!OSSL_CMP_log_open()
-            || !OSSL_CMP_CTX_set_log_cb(cmp_ctx, log_to_stdout)) {
+    if (!OSSL_CMP_CTX_set_log_cb(cmp_ctx, log_to_stdout)) {
         CMP_err1("cannot set up logging for '%s' via trace API", prog);
         goto err;
     }
