@@ -18,7 +18,7 @@ S<[B<-msgtimeout seconds>]>
 S<[B<-totaltimeout seconds>]>
 
 S<[B<-trusted filenames>]>
-S<[B<-untrustedE<nbsp>sources>]>
+S<[B<-untrusted sources>]>
 S<[B<-srvcert filename>]>
 S<[B<-recipient name>]>
 S<[B<-expect_sender name>]>
@@ -69,7 +69,6 @@ S<[B<-keyform PEM|DER|P12>]>
 S<[B<-crlform PEM|DER>]>
 S<[B<-otherform PEM|DER|P12>]>
 S<[B<-otherpass arg>]>
-S<[B<-batch>]>
 S<[B<-engine id>]>
 
 S<[B<-tls_used>]>
@@ -80,16 +79,18 @@ S<[B<-tls_extra filenames>]>
 S<[B<-tls_trusted filenames>]>
 S<[B<-tls_host name>]>
 
+S<[B<-batch>]>
+S<[B<-repeat>]>
 S<[B<-reqin>]>
 S<[B<-reqout>]>
 S<[B<-rspin>]>
 S<[B<-rspout>]>
-S<[B<-repeat>]>
 
 S<[B<-crl_check>]>
 S<[B<-crl_check_all>]>
 S<[B<-crl_download>]>
 S<[B<-crls URLs>]>
+S<[B<-crl_timeout>]>
 S<[B<-ocsp_check_all>]>
 S<[B<-ocsp_use_aia>]>
 S<[B<-ocsp_url url>]>
@@ -97,11 +98,12 @@ S<[B<-ocsp_timeout seconds>]>
 S<[B<-ocsp_status>]>
 S<[B<-policy arg>]>
 S<[B<-purpose purpose>]>
-S<[B<-verify_nameE<nbsp>name>]>
+S<[B<-verify_name name>]>
 S<[B<-verify_depth num>]>
 S<[B<-auth_level level>]>
-S<[B<-attimeE<nbsp>timestamp>]>
+S<[B<-attime timestamp>]>
 S<[B<-ignore_critical>]>
+S<[B<-issuer_checks>]>
 S<[B<-policy_check>]>
 S<[B<-explicit_policy>]>
 S<[B<-inhibit_any>]>
@@ -119,6 +121,31 @@ S<[B<-partial_chain>]>
 S<[B<-no_alt_chains>]>
 S<[B<-no_check_time>]>
 S<[B<-allow_proxy_certs>]>
+
+S<[B<-mock_srv>]>
+S<[B<-srv_ref>]>
+S<[B<-srv_secret>]>
+S<[B<-srv_cert>]>
+S<[B<-srv_key>]>
+S<[B<-srv_keypass>]>
+S<[B<-srv_trusted>]>
+S<[B<-srv_untrusted>]>
+S<[B<-rsp_cert>]>
+S<[B<-rsp_extracerts>]>
+S<[B<-rsp_capubs>]>
+S<[B<-poll_count>]>
+S<[B<-checkafter>]>
+S<[B<-grant_implicitconf>]>
+S<[B<-pkistatus>]>
+S<[B<-failure>]>
+S<[B<-failurebits>]>
+S<[B<-statusstring>]>
+S<[B<-send_error>]>
+S<[B<-send_unprotected>]>
+S<[B<-send_unprot_err>]>
+S<[B<-accept_unprotected>]>
+S<[B<-accept_unprot_err>]>
+S<[B<-accept_raverified>]>
 
 =head1 DESCRIPTION
 
@@ -370,7 +397,7 @@ Defaults to C<sha256>.
 =item B<-mac name>
 
 Specifies name of supported digest to use as the MAC algorithm in MSG_MAC_ALG.
-To get the names of supported MAC algorithms, use B<openssl list -mac-algorithms
+To get the names of supported MAC algorithms use B<openssl list -mac-algorithms>
 and possibly combine such a name with the name of a supported digest algorithm,
 e.g., hmacWithSHA256. Defaults to C<hmac-sha1> as per RFC 4210.
 
@@ -641,11 +668,6 @@ If not given here, the password will be prompted for if needed.
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
-=item B<-batch>
-
-Do not interactively prompt for input, for instance when a password is needed.
-This can be useful for batch processing and testing.
-
 =item B<-engine id>
 
 Specifying an crypto engine B<id> will cause L<cmp(1)> to obtain a functional
@@ -713,6 +735,16 @@ validation. This may be a Common Name, a DNS name, or an IP address.
 
 =over 4
 
+=item B<-batch>
+
+Do not interactively prompt for input, for instance when a password is needed.
+This can be useful for batch processing and testing.
+
+=item B<-repeat>
+
+Invoke the command the given number of times with the same parameters.
+Default is one invocation.
+
 =item B<-reqin>
 
 Take sequence of CMP requests from file(s).
@@ -736,11 +768,6 @@ As many files are read as needed for the complete transaction.
 Save sequence of CMP responses to file(s).
 Multiple file names may be given, separated by commas and/or whitespace.
 As many files are written as needed to store the complete transaction.
-
-=item B<-repeat>
-
-Invoke the command the given number of times with the same parameters.
-Default is one invocation.
 
 =back
 
@@ -778,6 +805,11 @@ This option enables CRL checking for, e.g., the CMP/TLS server certificate
 as it is the leaf certificate of the certificate chain.
 Compare B<X509_V_FLAG_CRL_CHECK>.
 
+=item B<-crl_timeout seconds>
+
+Timeout for online retrieval of CRL from CRL distribution points (CDS)
+or 0 for infinite. Default is 10 seconds.
+
 =item B<-ocsp_check_all>
 
 Require revocation status checking (via OCSP) for full certificate chain.
@@ -796,7 +828,7 @@ On OCSP response error try revocation status checking using CRLs if enabled.
 
 =item B<-ocsp_timeout seconds>
 
-Timeout for retrieving responses from OCSP responders (or 0 for none).
+Timeout for retrieving responses from OCSP responders or 0 for infinite.
 Default is 10 seconds.
 
 =item B<-ocsp_status>
@@ -805,7 +837,8 @@ Enable certificate status for TLS server certificate via OCSP stapling.
 Multi-stapling is not (yet) supported. Not available before OpenSSL 1.1.
 
 =item B<-policy>, B<-purpose>, B<-verify_name>, B<-verify_depth>,
-B<-auth_level>, B<-attime>, B<-ignore_critical>, B<-policy_check>,
+B<-auth_level>, B<-attime>, B<-ignore_critical>, B<-issuer_checks>,
+B<-policy_check>,
 B<-explicit_policy>, B<-inhibit_any>, B<-inhibit_map>, B<-x509_strict>,
 B<-extended_crl>, B<-use_deltas>, B<-policy_print>, B<-check_ss_sig>,
 B<-trusted_first>, B<-suiteB_128_only>, B<-suiteB_128>, B<-suiteB_192>,
@@ -813,6 +846,112 @@ B<-partial_chain>, B<-no_alt_chains>, B<-no_check_time>, B<-allow_proxy_certs>
 
 Set various certificate chain validation options.
 See the L<verify(1)> manual page for details.
+
+=back
+
+
+=head2 Mock server options, used for test purposes only
+
+=over 4
+
+=item B<-mock_srv>
+
+Mock the server.
+
+=item B<-srv_ref>
+
+Reference value to use as senderKID of server in case no B<-cert> is given.
+
+=item B<-srv_secret>
+
+Password source for server authentication with a pre-shared key (secret).
+
+=item B<-srv_cert>
+
+Certificate used by the server.
+
+=item B<-srv_key>
+
+Private key used by the server for signing messages.
+
+=item B<-srv_keypass>
+
+Server private key (and cert file) pass phrase source.
+
+=item B<-srv_trusted>
+
+Trusted certificates for client authentication.
+
+=item B<-srv_untrusted>
+
+Intermediate certs for constructing chains for CMP protection by client.
+
+=item B<-rsp_cert>
+
+Certificate to be returned as mock enrollment result.
+
+=item B<-rsp_extracerts>
+
+Extra certificates to be included in mock certification responses.
+
+=item B<-rsp_capubs>
+
+CA certificates to be included in mock ip response.
+
+=item B<-poll_count>
+
+Number oftimes the client must poll before receiving a certificate.
+
+=item B<-checkafter>
+
+The checkAfter value (time to wait) to include in poll response.
+
+
+=item B<-grant_implicitconf>
+
+Grant implicit confirmation of newly enrolled certificate.
+
+=item B<-pkistatus>
+
+PKIStatus to be included in server response.
+
+=item B<-failure>
+
+A single failure info bit number to be included in server response.
+
+=item B<-failurebits>
+
+Number representing failure bits to be included in server response.
+
+=item B<-statusstring>
+
+Status string to be included in server response.
+
+=item B<-send_error>
+
+Force server to reply with error message.
+
+=item B<-send_unprotected>
+
+Send response messages without CMP-level protection.
+
+=item B<-send_unprot_err>
+
+In case of negative responses, server shall send unprotected error messages,
+certificate responses (ip/cp/kup), and revocation responses (rp).
+WARNING: This setting leads to behavior violating RFC 4210.
+
+=item B<-accept_unprotected>
+
+Accept missing or invalid protection of requests.
+
+=item B<-accept_unprot_err>
+
+Accept unprotected error messages from client.
+
+=item B<-accept_raverified>
+
+Accept RAVERIFED as proof-of-possession (POPO).
 
 =back
 
