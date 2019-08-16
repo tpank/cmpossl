@@ -740,7 +740,11 @@ static int sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
     }
     if (!sk_X509_insert(sk, cert, prepend ? 0 : -1))
         return 0;
-    return X509_up_ref(cert);
+    if (!X509_up_ref(cert)) {
+        (void)sk_X509_delete(sk, prepend ? 0 : sk_X509_num(sk) - 1);
+        return 0;
+    }
+    return 1;
 }
 
 /* code duplicated from crypto/cmp/cmp_util.c */
