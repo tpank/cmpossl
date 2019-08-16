@@ -157,10 +157,10 @@ static char *opt_secret = NULL;
 static char *opt_cert = NULL;
 static char *opt_key = NULL;
 static char *opt_keypass = NULL;
-static int opt_unprotectedRequests = 0;
 static char *opt_digest = NULL;
 static char *opt_mac = NULL;
 static char *opt_extracerts = NULL;
+static int opt_unprotectedRequests = 0;
 
 static char *opt_trusted = NULL;
 static char *opt_untrusted = NULL;
@@ -173,11 +173,11 @@ static char *opt_extracertsout = NULL;
 static char *opt_cacertsout = NULL;
 
 static int opt_batch = 0;
+static int opt_repeat = 1;
 static char *opt_reqin = NULL;
 static char *opt_reqout = NULL;
 static char *opt_rspin = NULL;
 static char *opt_rspout = NULL;
-static int opt_repeat = 1;
 
 #ifndef NDEBUG
 static int opt_mock_srv = 0;
@@ -280,7 +280,7 @@ typedef enum OPTION_choice {
     OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
 
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS,
-    OPT_UNPROTECTEDREQUESTS, OPT_DIGEST, OPT_MAC, OPT_EXTRACERTS,
+    OPT_DIGEST, OPT_MAC, OPT_EXTRACERTS, OPT_UNPROTECTEDREQUESTS,
 
     OPT_CMD, OPT_INFOTYPE, OPT_GENINFO,
 
@@ -301,9 +301,8 @@ typedef enum OPTION_choice {
     OPT_TLS_USED, OPT_TLS_CERT, OPT_TLS_KEY, OPT_TLS_KEYPASS, OPT_TLS_EXTRA,
     OPT_TLS_TRUSTED, OPT_TLS_HOST,
 
-    OPT_BATCH,
+    OPT_BATCH, OPT_REPEAT,
     OPT_REQIN, OPT_REQOUT, OPT_RSPIN, OPT_RSPOUT,
-    OPT_REPEAT,
 
 #ifndef NDEBUG
     OPT_MOCK_SRV,
@@ -350,7 +349,7 @@ OPTIONS cmp_options[] = {
     {"msgtimeout", OPT_MSGTIMEOUT, 'n',
      "Timeout per CMP message round trip (or 0 for none). Default 120 seconds"},
     {"totaltimeout", OPT_TOTALTIMEOUT, 'n',
-     "Overall time an enrollment incl. polling may take. Default 0 = infinite"},
+     "Overall time an enrollment incl. polling may take. Default 0 = none"},
 
     {OPT_MORE_STR, 0, 0, "\nServer authentication options:"},
     {"trusted", OPT_TRUSTED, 's',
@@ -389,14 +388,14 @@ OPTIONS cmp_options[] = {
     {"key", OPT_KEY, 's', "Private key for the client's current certificate"},
     {"keypass", OPT_KEYPASS, 's',
      "Client private key (and cert and old cert file) pass phrase source"},
-    {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
-     "Send messages without CMP-level protection"},
     {"digest", OPT_DIGEST, 's',
      "Digest to use in message protection and POPO signatures. Default 'sha256'"},
     {"mac", OPT_MAC, 's',
      "MAC algorithm to use in PBM-based message protection. Default 'hmac-sha1'"},
     {"extracerts", OPT_EXTRACERTS, 's',
      "Certificates to append in extraCerts field when sending messages"},
+    {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
+     "Send messages without CMP-level protection"},
 
     {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
     {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
@@ -507,13 +506,13 @@ OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0, "\nTesting and debugging options:"},
     {"batch", OPT_BATCH, '-',
      "Do not interactively prompt for input when a password is required etc."},
+    {"repeat", OPT_REPEAT, 'n',
+     "Invoke the transaction the given number of times. Default 1"},
     {"reqin", OPT_REQIN, 's', "Take sequence of CMP requests from file(s)"},
     {"reqout", OPT_REQOUT, 's', "Save sequence of CMP requests to file(s)"},
     {"rspin", OPT_RSPIN, 's',
      "Process sequence of CMP responses provided in file(s), skipping server"},
     {"rspout", OPT_RSPOUT, 's', "Save sequence of CMP responses to file(s)"},
-    {"repeat", OPT_REPEAT, 'n',
-     "Invoke the transaction the given number of times. Default 1"},
 
 #ifndef NDEBUG
     {"mock_srv", OPT_MOCK_SRV, '-', "Mock the server"},
@@ -523,7 +522,7 @@ OPTIONS cmp_options[] = {
      "Password source for server authentication with a pre-shared key (secret)"},
     {"srv_cert", OPT_SRV_CERT, 's', "Certificate used by the server"},
     {"srv_key", OPT_SRV_KEY, 's',
-     "Private key of the server used for signing messages"},
+     "Private key used by the server for signing messages"},
     {"srv_keypass", OPT_SRV_KEYPASS, 's',
      "Server private key (and cert file) pass phrase source"},
     {"srv_trusted", OPT_SRV_TRUSTED, 's',
@@ -537,9 +536,9 @@ OPTIONS cmp_options[] = {
     {"rsp_capubs", OPT_RSP_CAPUBS, 's',
      "CA certificates to be included in mock ip response"},
     {"poll_count", OPT_POLL_COUNT, 'n',
-     "How many times the client must poll before receiving a certificate"},
+     "Number of times the client must poll before receiving a certificate"},
     {"checkafter", OPT_CHECKAFTER, 'n',
-     "checkAfter value (time to wait) to included in poll response"},
+     "The checkAfter value (time to wait) to include in poll response"},
     {"grant_implicitconf", OPT_GRANT_IMPLICITCONF, '-',
      "Grant implicit confirmation of newly enrolled certificate"},
     {"pkistatus", OPT_PKISTATUS, 'n',
@@ -629,8 +628,8 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_extracertsout}, {&opt_cacertsout},
 
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass},
-    {(char **)&opt_unprotectedRequests}, {&opt_digest}, {&opt_mac},
-    {&opt_extracerts},
+    {&opt_digest}, {&opt_mac}, {&opt_extracerts},
+    {(char **)&opt_unprotectedRequests},
 
     {&opt_cmd_s}, {&opt_infotype_s}, {&opt_geninfo},
 
@@ -654,9 +653,8 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {(char **)&opt_tls_used}, {&opt_tls_cert}, {&opt_tls_key},
     {&opt_tls_keypass}, {&opt_tls_extra}, {&opt_tls_trusted}, {&opt_tls_host},
 
-    {(char **)&opt_batch},
+    {(char **)&opt_batch}, {(char **)&opt_repeat},
     {&opt_reqin}, {&opt_reqout}, {&opt_rspin}, {&opt_rspout},
-    {(char **)&opt_repeat},
 
 #ifndef NDEBUG
     {(char **)&opt_mock_srv},
@@ -3805,9 +3803,6 @@ static int get_opts(int argc, char **argv)
         case OPT_KEYPASS:
             opt_keypass = opt_str("keypass");
             break;
-        case OPT_UNPROTECTEDREQUESTS:
-            opt_unprotectedRequests = 1;
-            break;
         case OPT_DIGEST:
             opt_digest = opt_str("digest");
             break;
@@ -3816,6 +3811,9 @@ static int get_opts(int argc, char **argv)
             break;
         case OPT_EXTRACERTS:
             opt_extracerts = opt_str("extracerts");
+            break;
+        case OPT_UNPROTECTEDREQUESTS:
+            opt_unprotectedRequests = 1;
             break;
 
         case OPT_TRUSTED:
@@ -3979,6 +3977,9 @@ static int get_opts(int argc, char **argv)
         case OPT_BATCH:
             opt_batch = 1;
             break;
+        case OPT_REPEAT:
+             opt_repeat = opt_nat();
+             break;
         case OPT_REQIN:
             opt_reqin = opt_str("reqin");
             break;
@@ -3991,9 +3992,6 @@ static int get_opts(int argc, char **argv)
         case OPT_RSPOUT:
             opt_rspout = opt_str("rspout");
             break;
-        case OPT_REPEAT:
-             opt_repeat = opt_nat();
-             break;
 # ifndef NDEBUG
         case OPT_MOCK_SRV:
             opt_mock_srv = 1;
