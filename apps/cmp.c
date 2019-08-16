@@ -738,10 +738,10 @@ static int sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
                 return 1;
         }
     }
-    if (!sk_X509_insert(sk, cert, prepend ? 0 : -1))
+    if (!X509_up_ref(cert))
         return 0;
-    if (!X509_up_ref(cert)) {
-        (void)sk_X509_delete(sk, prepend ? 0 : sk_X509_num(sk) - 1);
+    if (!sk_X509_insert(sk, cert, prepend ? 0 : -1)) {
+        X509_free(cert);
         return 0;
     }
     return 1;
