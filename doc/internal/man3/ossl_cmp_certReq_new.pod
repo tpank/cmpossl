@@ -47,11 +47,13 @@ ossl_cmp_error_new
 # define OSSL_CMP_PKIBODY_POLLREQ  25
 # define OSSL_CMP_PKIBODY_POLLREP  26
 
- OSSL_ossl_cmp_MSG *CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype, int err_code);
- OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,  int certReqId,
-                               OSSL_CMP_PKISI *si, X509 *cert, 
-                               STACK_OF(X509) *chain, STACK_OF(X509) *caPubs,
-                               int encrypted, int unprotectedErrors);
+ OSSL_ossl_cmp_MSG *ossl_cmp_certReq_new(OSSL_CMP_CTX *ctx, int bodytype,
+                                         int err_code);
+ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
+                                    int certReqId, OSSL_CMP_PKISI *si,
+                                    X509 *cert, STACK_OF(X509) *chain,
+                                    STACK_OF(X509) *caPubs,
+                                    int encrypted, int unprotectedErrors);
  OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx);
  OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
                           OSSL_CRMF_CERTID *cid, int unprot_err);
