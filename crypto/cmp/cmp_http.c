@@ -440,6 +440,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                               OSSL_CMP_MSG **res)
 {
     int rv;
+    char *server_path;
     char *path = NULL;
     size_t pos = 0, pathlen = 0;
     BIO *bio, *hbio = NULL;
@@ -447,8 +448,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     time_t max_time;
 
     if (ctx == NULL || req == NULL || res == NULL
-            || ctx->serverName == NULL || ctx->serverPath == NULL
-            || !ctx->serverPort)
+            || ctx->serverName == NULL || ctx->serverPort == 0)
         return CMP_R_NULL_ARGUMENT;
 
     max_time = ctx->msgtimeout > 0 ? time(NULL) + ctx->msgtimeout : 0;
@@ -474,7 +474,8 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         hbio = bio;
     }
 
-    pathlen = strlen(ctx->serverName) + strlen(ctx->serverPath) + 33;
+    server_path = ctx->serverPath == NULL ? "" : ctx->serverPath;
+    pathlen = strlen(ctx->serverName) + strlen(server_path) + 33;
     path = (char *)OPENSSL_malloc(pathlen);
     if (path == NULL)
         goto err;
@@ -489,10 +490,10 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                            ctx->serverName, ctx->serverPort);
 
     /* make sure path includes a forward slash */
-    if (ctx->serverPath[0] != '/')
+    if (server_path[0] != '/')
         path[pos++] = '/';
 
-    BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
+    BIO_snprintf(path + pos, pathlen - pos - 1, "%s", server_path);
 
     rv = CMP_sendreq(hbio, ctx->serverName, path, req, res, max_time);
     OPENSSL_free(path);
