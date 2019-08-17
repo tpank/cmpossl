@@ -418,16 +418,14 @@ int ossl_cmp_hdr_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
     /* store senderNonce - for cmp with recipNonce in next outgoing msg */
     OSSL_CMP_CTX_set1_senderNonce(ctx, hdr->senderNonce);
 
-#if 0
     /*-
      * freeText                [7] PKIFreeText OPTIONAL,
      * -- this may be used to indicate context-specific instructions
      * -- (this field is intended for human consumption)
      */
-    if (ctx->freeText != NULL)
-        if (!ossl_cmp_hdr_push1_freeText(hdr, ctx->freeText))
-            return 0;
-#endif
+    if (ctx->freeText != NULL
+            && !ossl_cmp_hdr_push1_freeText(hdr, ctx->freeText))
+        return 0;
 
     return 1;
 }
