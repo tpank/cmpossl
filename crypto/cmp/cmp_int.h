@@ -79,6 +79,7 @@ struct ossl_cmp_ctx_st {
     ASN1_OCTET_STRING *transactionID; /* the current transaction ID */
     ASN1_OCTET_STRING *senderNonce; /* last nonce sent */
     ASN1_OCTET_STRING *recipNonce; /* last nonce received */
+    ASN1_UTF8STRING *freeText; /* optional string to include each msg */
     STACK_OF(OSSL_CMP_ITAV) *geninfo_ITAVs;
     int implicitConfirm; /* set implicitConfirm in IR/KUR/CR messages */
     int disableConfirm; /* disable certConf in IR/KUR/CR for broken servers */
