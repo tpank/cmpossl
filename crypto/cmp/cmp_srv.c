@@ -592,6 +592,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
                                          err != 0 ? ERR_GET_REASON(err) : -1,
                                          details,
                                          srv_ctx->sendUnprotectedErrors);
+            sk_ASN1_UTF8STRING_pop_free(details, ASN1_UTF8STRING_free);
             OSSL_CMP_PKISI_free(si);
         } else {
             error = CMP_R_ERROR_PROCESSING_MSG;
