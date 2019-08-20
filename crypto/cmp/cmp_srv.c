@@ -368,7 +368,6 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
             char *tmpbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
             if (tmpbuf == NULL)
                 goto oom;
-            OSSL_CMP_info(srv_ctx->ctx, "certificate rejected by client:");
             if (OSSL_CMP_PKISI_snprint(status->statusInfo, tmpbuf,
                                        OSSL_CMP_PKISI_BUFLEN) != NULL)
                 OSSL_CMP_info(srv_ctx->ctx, tmpbuf);
