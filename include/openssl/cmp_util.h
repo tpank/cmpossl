@@ -85,7 +85,7 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
                                     const ASN1_OCTET_STRING *src);
 int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
                                           const unsigned char *bytes,
-                                          size_t len);
+                                          size_t len, int sensitive_data);
 
 #   ifdef  __cplusplus
 }

@@ -256,7 +256,7 @@ int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_REFERENCEVALUE, CMP_R_INVALID_ARGS);
         return 0;
     }
-    return OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->referenceValue, ref, len);
+    return OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->referenceValue, ref, len, 0);
 }
 
 /*
@@ -272,7 +272,7 @@ int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
     }
     if (ctx->secretValue != NULL)
         OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
-    return OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->secretValue, sec, len);
+    return OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->secretValue, sec, len, 1);
 }
 
 /*

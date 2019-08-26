@@ -348,7 +348,7 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1(ASN1_OCTET_STRING **tgt,
  * returns 1 on success, 0 on error.
  */
 int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
-                                          const unsigned char *bytes, size_t len)
+                                          const unsigned char *bytes, size_t len, int sensitive_data)
 {
     ASN1_OCTET_STRING *new = NULL;
     int res = 0;
@@ -368,6 +368,9 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
 
     }
     res = OSSL_CMP_ASN1_OCTET_STRING_set1(tgt, new);
+
+    if(sensitive_data)
+	    OPENSSL_cleanse(new->data, new->length);
 
  err:
     ASN1_OCTET_STRING_free(new);

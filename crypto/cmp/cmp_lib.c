@@ -193,7 +193,7 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
             CMPerr(CMP_F_SET1_AOSTR_ELSE_RANDOM,CMP_R_FAILURE_OBTAINING_RANDOM);
             goto err;
         }
-        res = OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(tgt, bytes, len);
+        res = OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(tgt, bytes, len, 0);
     } else {
         res = OSSL_CMP_ASN1_OCTET_STRING_set1(tgt, src);
     }
@@ -755,7 +755,7 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
         if (!X509_digest(cert, md, hash, &len))
             goto err;
         if (!OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&certStatus->certHash,
-                                                   hash, len))
+                                                   hash, len, 0))
             goto err;
     } else {
         CMPerr(CMP_F_CMP_CERTSTATUS_SET_CERTHASH,
