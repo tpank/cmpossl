@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2018
  * Copyright Siemens AG 2015-2018
  *
@@ -83,16 +83,18 @@ static int set1_general_name(GENERAL_NAME **tgt, const X509_NAME *src)
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto err;
     }
-    if ((gen = GENERAL_NAME_new()) == NULL)
-        goto oom;
-
+    if ((gen = GENERAL_NAME_new()) == NULL) {
+        CMPerr(0, ERR_R_MALLOC_FAILURE);
+        goto err;
+    }
     gen->type = GEN_DIRNAME;
 
     if (src == NULL) { /* NULL DN */
-        if ((gen->d.directoryName = X509_NAME_new()) == NULL)
-            goto oom;
+        if ((gen->d.directoryName = X509_NAME_new()) == NULL) {
+            CMPerr(0, ERR_R_MALLOC_FAILURE);
+            goto err;
+        }
     } else if (!X509_NAME_set(&gen->d.directoryName, src)) {
-    oom:
         CMPerr(0, ERR_R_MALLOC_FAILURE);
         goto err;
     }
@@ -137,20 +139,19 @@ int ossl_cmp_hdr_update_messageTime(OSSL_CMP_PKIHEADER *hdr)
         return 0;
     }
     if (hdr->messageTime == NULL)
-        if ((hdr->messageTime = ASN1_GENERALIZEDTIME_new()) == NULL)
-            goto err;
-
-    if (ASN1_GENERALIZEDTIME_set(hdr->messageTime, time(NULL)) == NULL)
-        goto err;
+        if ((hdr->messageTime = ASN1_GENERALIZEDTIME_new()) == NULL) {
+            CMPerr(0, ERR_R_MALLOC_FAILURE);
+            return 0;
+        }
+    if (ASN1_GENERALIZEDTIME_set(hdr->messageTime, time(NULL)) == NULL) {
+        CMPerr(0, ERR_R_INTERNAL_ERROR);
+        return 0;
+    }
     return 1;
-
- err:
-    CMPerr(0, ERR_R_MALLOC_FAILURE);
-    return 0;
 }
 
 static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
-                                  const ASN1_OCTET_STRING *src, int len)
+                                  const ASN1_OCTET_STRING *src, size_t len)
 {
     unsigned char *bytes = NULL;
     int res = 0;
@@ -272,7 +273,7 @@ int ossl_cmp_hdr_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
         return 0;
     }
     for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
-        itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i));
+        itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs, i));
         if (!ossl_cmp_hdr_generalInfo_push0_item(hdr, itav)) {
             OSSL_CMP_ITAV_free(itav);
             CMPerr(0, CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS);
@@ -362,15 +363,15 @@ int ossl_cmp_hdr_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         if (ctx->expected_sender == NULL && rcp != NULL
                 && !OSSL_CMP_CTX_set1_expected_sender(ctx, rcp))
             return 0;
-    }
-    else if (ctx->recipient != NULL)
+    } else if (ctx->recipient != NULL) {
         rcp = ctx->recipient;
-    else if (ctx->issuer != NULL)
+    } else if (ctx->issuer != NULL) {
         rcp = ctx->issuer;
-    else if (ctx->oldCert != NULL)
+    } else if (ctx->oldCert != NULL) {
         rcp = X509_get_issuer_name(ctx->oldCert);
-    else if (ctx->clCert != NULL)
+    } else if (ctx->clCert != NULL) {
         rcp = X509_get_issuer_name(ctx->clCert);
+    }
     if (!ossl_cmp_hdr_set1_recipient(hdr, rcp))
         return 0;
 
