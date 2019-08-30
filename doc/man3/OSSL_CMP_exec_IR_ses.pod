@@ -66,7 +66,7 @@ OSSL_CMP_exec_GENM_ses() returns a
 pointer to the received B<ITAV> sequence on success, NULL on error.
 This pointer must be freed by the caller.
 
-=head1 EXAMPLE
+=head1 EXAMPLES
 
 See OSSL_CMP_CTX for examples on how to prepare the context for these
 functions.
