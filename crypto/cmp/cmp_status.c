@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2018
  * Copyright Siemens AG 2015-2018
  *
@@ -234,13 +234,14 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize)
 
     /* failInfo is optional and may be empty */
     if ((fail_info = OSSL_CMP_CTX_get_failInfoCode(ctx)) > 0) {
-        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "; PKIFailureInfo: ");
+        BIO_snprintf(buf + strlen(buf), bufsize - strlen(buf),
+                     "; PKIFailureInfo: ");
         for (failure = 0; failure <= OSSL_CMP_PKIFAILUREINFO_MAX; failure++) {
             if ((fail_info & (1 << failure)) != 0) {
                 failure_string = CMP_PKIFAILUREINFO_to_string(failure);
                 if (failure_string != NULL) {
-                    BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "%s%s",
-                                 n > 0 ? ", " : "", failure_string);
+                    BIO_snprintf(buf + strlen(buf), bufsize - strlen(buf),
+                                 "%s%s", n > 0 ? ", " : "", failure_string);
                     n += (int)strlen(failure_string);
                 }
             }
@@ -248,18 +249,19 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize)
     }
     if (n == 0 && status != OSSL_CMP_PKISTATUS_accepted
             && status != OSSL_CMP_PKISTATUS_grantedWithMods)
-        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "; <no failure info>");
+        BIO_snprintf(buf + strlen(buf), bufsize - strlen(buf),
+                     "; <no failure info>");
 
     /* statusString sequence is optional and may be empty */
     status_strings = OSSL_CMP_CTX_get0_statusString(ctx);
     n = sk_ASN1_UTF8STRING_num(status_strings);
     if (n > 0) {
-        BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf),
+        BIO_snprintf(buf + strlen(buf), bufsize - strlen(buf),
                      "; StatusString%s: ", n > 1 ? "s" : "");
         for (i = 0; i < n; i++) {
             text = sk_ASN1_UTF8STRING_value(status_strings, i);
-            BIO_snprintf(buf+strlen(buf), bufsize-strlen(buf), "\"%s\"%s",
-                         ASN1_STRING_get0_data(text), i < n-1 ? ", " : "");
+            BIO_snprintf(buf + strlen(buf), bufsize - strlen(buf), "\"%s\"%s",
+                         ASN1_STRING_get0_data(text), i < n - 1 ? ", " : "");
         }
     }
     return buf;
@@ -345,7 +347,7 @@ ossl_cmp_revrepcontent_get_pkistatusinfo(OSSL_CMP_REVREPCONTENT *rrep, int rsid)
  * returns NULL on error
  */
 OSSL_CRMF_CERTID *ossl_cmp_revrepcontent_get_CertId(OSSL_CMP_REVREPCONTENT *rrep,
-                                               int rsid)
+                                                    int rsid)
 {
     OSSL_CRMF_CERTID *cid = NULL;
 
@@ -366,6 +368,7 @@ static int suitable_rid(const ASN1_INTEGER *certReqId, int rid)
         return 1;
     } else {
         int trid = ossl_cmp_asn1_get_int(certReqId);
+
         if (trid == -1) {
             CMPerr(0, CMP_R_BAD_REQUEST_ID);
             return 0;
@@ -376,7 +379,8 @@ static int suitable_rid(const ASN1_INTEGER *certReqId, int rid)
 
 static void add_expected_rid(int rid)
 {
-    char str[DECIMAL_SIZE(rid)+1];
+    char str[DECIMAL_SIZE(rid) + 1];
+
     BIO_snprintf(str, sizeof(str), "%d", rid);
     ERR_add_error_data(2, "expected certReqId = ", str);
 }
@@ -459,7 +463,7 @@ X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
             crt = X509_dup(coec->value.certificate);
             break;
         case OSSL_CMP_CERTORENCCERT_ENCRYPTEDCERT:
-        /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
+            /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
             if (privkey == NULL) {
                 CMPerr(0, CMP_R_MISSING_PRIVATE_KEY);
                 return NULL;

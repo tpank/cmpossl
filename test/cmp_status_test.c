@@ -18,7 +18,6 @@ typedef struct test_fixture {
     int pkistatus;
     int pkifailure;
     char *text;                 /* Not freed by tear_down */
-
 } CMP_STATUS_TEST_FIXTURE;
 
 static CMP_STATUS_TEST_FIXTURE *set_up(const char *const test_case_name)
@@ -83,7 +82,7 @@ static int test_PKISI(void)
     fixture->pkistatus = OSSL_CMP_PKISTATUS_revocationNotification;
     fixture->pkifailure = OSSL_CMP_CTX_FAILINFO_unsupportedVersion |
         OSSL_CMP_CTX_FAILINFO_badDataFormat;
-    fixture->text = "test_pki_free_text";
+    fixture->text = "this is an additional text describing the failure";
     EXECUTE_TEST(execute_PKISI_test, tear_down);
     return result;
 }
