@@ -135,10 +135,10 @@ typedef enum {
 } cmp_cmd_t;
 
 static char *opt_server = NULL;
-static int server_port = 8080;
+static int server_port = 80;
 
 static char *opt_proxy = NULL;
-static int proxy_port = 8080;
+static int proxy_port = 80;
 
 static char *opt_path = "/";
 static int opt_msgtimeout = -1;
@@ -339,9 +339,9 @@ OPTIONS cmp_options[] = {
 
     {OPT_MORE_STR, 0, 0, "\nMessage transfer options:"},
     {"server", OPT_SERVER, 's',
-     "address[:port] of CMP server. Default port 8080"},
+     "address[:port] of CMP server. Default port 80"},
     {"proxy", OPT_PROXY, 's',
-     "address[:port] of optional HTTP(S) proxy. Default port 8080."},
+     "address[:port] of optional HTTP(S) proxy. Default port 80."},
     {OPT_MORE_STR, 0, 0,
      "The env variable 'no_proxy' (or else NO_PROXY) is respected"},
     {"path", OPT_PATH, 's',

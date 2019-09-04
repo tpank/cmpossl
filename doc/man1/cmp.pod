@@ -185,12 +185,12 @@ section (as far as present) can provide per-option fallback values.
 
 =item B<-server address[:port]>
 
-The IP address or hostname and port (defaults to 8080)
+The IP address or hostname and port (defaults to 80)
 of the CMP server to connect to using HTTP/S transport.
 
 =item B<-proxy address[:port]>
 
-The IP address or hostname and port (defaults to 8080) of the HTTP proxy server,
+The IP address or hostname and port (defaults to 80) of the HTTP proxy server,
 which can be given if needed for accessing the CMP server.
 TLS is not yet supported via proxy.
 The environment variable C<no_proxy> (or else C<NO_PROXY>) is respected.
@@ -982,7 +982,7 @@ with the B<-recipient> option and save any CA certificates that we may receive
 in the C<capubs.pem> file.
 
   openssl genrsa -out cl_key.pem
-  openssl cmp -cmd ir -server 127.0.0.1:8080 -path pkix/ \
+  openssl cmp -cmd ir -server 127.0.0.1:80 -path pkix/ \
     -ref 1234 -secret pass:1234-5678-1234-5678 \
     -recipient "/CN=CMPserver" \
     -newkey cl_key.pem -subject "/CN=MyName" \
@@ -996,7 +996,7 @@ as trusted for authenticating the server and using the previous cert and key
 for its own authentication. Then it can start using the new cert and key.
 
   openssl genrsa -out cl_key_new.pem
-  openssl cmp -cmd kur -server 127.0.0.1:8080 -path pkix/ \
+  openssl cmp -cmd kur -server 127.0.0.1:80 -path pkix/ \
     -trusted capubs.pem \
     -cert cl_cert.pem -key cl_key.pem \
     -newkey cl_key_new.pem -certout cl_cert.pem
@@ -1016,7 +1016,7 @@ subsequently loaded sections and on the command line.
 After including in the configuration file the following sections:
 
   [cmp]
-  server = 127.0.0.1:8080
+  server = 127.0.0.1:80
   path = pkix/
   trusted = capubs.pem
   cert = cl_cert.pem
@@ -1044,7 +1044,7 @@ the above enrollment invocations reduce to
 Requesting "all relevant information" with an empty General Message.
 This prints information about all received ITAV B<infoType>s to stdout.
 
-  openssl cmp -cmd genm -server 127.0.0.1:8080 -path pkix/ \
+  openssl cmp -cmd genm -server 127.0.0.1:80 -path pkix/ \
     -ref 1234 -secret pass:1234-5678-1234-5678 \
     -recipient "/CN=CMPserver"
 
