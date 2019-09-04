@@ -134,7 +134,7 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
 
 int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
-    int res = 0;
+    int res = 1;
 
     if (ctx == NULL || msg == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
