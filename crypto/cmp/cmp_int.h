@@ -734,18 +734,6 @@ int ossl_cmp_pkisi_get_pkifailureinfo(OSSL_CMP_PKISI *si);
 int ossl_cmp_pkisi_pkifailureinfo_check(OSSL_CMP_PKISI *si, int bit_index);
 OSSL_CMP_PKISI *
 ossl_cmp_statusinfo_new(int status, int fail_info, const char *text);
-OSSL_CMP_PKISI *
-ossl_cmp_revrepcontent_get_pkistatusinfo(OSSL_CMP_REVREPCONTENT *rrep, int rsid);
-OSSL_CRMF_CERTID *ossl_cmp_revrepcontent_get_CertId(OSSL_CMP_REVREPCONTENT *rrep,
-                                               int rsid);
-OSSL_CMP_POLLREP *
-ossl_cmp_pollrepcontent_get0_pollrep(const OSSL_CMP_POLLREPCONTENT *prc,
-                                     int rid);
-OSSL_CMP_CERTRESPONSE *
-ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
-                                          int rid);
-X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
-                                             const OSSL_CMP_CERTRESPONSE *crep);
 
 /* from cmp_hdr.c */
 int ossl_cmp_hdr_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
@@ -831,6 +819,18 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
 OSSL_CMP_MSG *ossl_cmp_pollReq_new(OSSL_CMP_CTX *ctx, int crid);
 OSSL_CMP_MSG *ossl_cmp_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
                                    int64_t poll_after);
+OSSL_CMP_PKISI *
+ossl_cmp_revrepcontent_get_pkistatusinfo(OSSL_CMP_REVREPCONTENT *rrep, int rsid);
+OSSL_CRMF_CERTID *ossl_cmp_revrepcontent_get_CertId(OSSL_CMP_REVREPCONTENT *rrep,
+                                               int rsid);
+OSSL_CMP_POLLREP *
+ossl_cmp_pollrepcontent_get0_pollrep(const OSSL_CMP_POLLREPCONTENT *prc,
+                                     int rid);
+OSSL_CMP_CERTRESPONSE *
+ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
+                                          int rid);
+X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
+                                             const OSSL_CMP_CERTRESPONSE *crep);
 OSSL_CMP_MSG *ossl_cmp_msg_load(const char *file);
 
 /* from cmp_protect.c */
