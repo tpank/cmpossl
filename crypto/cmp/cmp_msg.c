@@ -837,6 +837,172 @@ OSSL_CMP_MSG *ossl_cmp_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
     return NULL;
 }
 
+/*-
+ * returns the status field of the RevRepContent with the given
+ * request/sequence id inside a revocation response.
+ * RevRepContent has the revocation statuses in same order as they were sent in
+ * RevReqContent.
+ * returns NULL on error
+ */
+OSSL_CMP_PKISI *
+ossl_cmp_revrepcontent_get_pkistatusinfo(OSSL_CMP_REVREPCONTENT *rrep, int rsid)
+{
+    OSSL_CMP_PKISI *status = NULL;
+
+    if (rrep == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+    if ((status = sk_OSSL_CMP_PKISI_value(rrep->status, rsid)) != NULL)
+        return status;
+
+    CMPerr(0, CMP_R_PKISTATUSINFO_NOT_FOUND);
+    return NULL;
+}
+
+/*
+ * returns the CertId field in the revCerts part of the RevRepContent
+ * with the given request/sequence id inside a revocation response.
+ * RevRepContent has the CertIds in same order as they were sent in
+ * RevReqContent.
+ * returns NULL on error
+ */
+OSSL_CRMF_CERTID *ossl_cmp_revrepcontent_get_CertId(OSSL_CMP_REVREPCONTENT *rrep,
+                                                    int rsid)
+{
+    OSSL_CRMF_CERTID *cid = NULL;
+
+    if (rrep == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+    if ((cid = sk_OSSL_CRMF_CERTID_value(rrep->revCerts, rsid)) != NULL)
+        return cid;
+
+    CMPerr(0, CMP_R_CERTID_NOT_FOUND);
+    return NULL;
+}
+
+static int suitable_rid(const ASN1_INTEGER *certReqId, int rid)
+{
+    if (rid == -1) {
+        return 1;
+    } else {
+        int trid = ossl_cmp_asn1_get_int(certReqId);
+
+        if (trid == -1) {
+            CMPerr(0, CMP_R_BAD_REQUEST_ID);
+            return 0;
+        }
+        return rid == trid;
+    }
+}
+
+static void add_expected_rid(int rid)
+{
+    char str[DECIMAL_SIZE(rid) + 1];
+
+    BIO_snprintf(str, sizeof(str), "%d", rid);
+    ERR_add_error_data(2, "expected certReqId = ", str);
+}
+
+/*
+ * returns a pointer to the PollResponse with the given CertReqId
+ * (or the first one in case -1) inside a PollRepContent
+ * returns NULL on error or if no suitable PollResponse available
+ */
+OSSL_CMP_POLLREP *
+ossl_cmp_pollrepcontent_get0_pollrep(const OSSL_CMP_POLLREPCONTENT *prc, int rid)
+{
+    OSSL_CMP_POLLREP *pollRep = NULL;
+    int i;
+
+    if (prc == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+
+    for (i = 0; i < sk_OSSL_CMP_POLLREP_num(prc); i++) {
+        pollRep = sk_OSSL_CMP_POLLREP_value(prc, i);
+        if (suitable_rid(pollRep->certReqId, rid))
+            return pollRep;
+    }
+
+    CMPerr(0, CMP_R_CERTRESPONSE_NOT_FOUND);
+    add_expected_rid(rid);
+    return NULL;
+}
+
+/*
+ * returns a pointer to the CertResponse with the given CertReqId
+ * (or the first one in case -1) inside a CertRepMessage
+ * returns NULL on error or if no suitable CertResponse available
+ */
+OSSL_CMP_CERTRESPONSE *
+ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
+                                          int rid)
+{
+    OSSL_CMP_CERTRESPONSE *crep = NULL;
+    int i;
+
+    if (crepmsg == NULL || crepmsg->response == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+
+    for (i = 0; i < sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response); i++) {
+        crep = sk_OSSL_CMP_CERTRESPONSE_value(crepmsg->response, i);
+        if (suitable_rid(crep->certReqId, rid))
+            return crep;
+    }
+
+    CMPerr(0, CMP_R_CERTRESPONSE_NOT_FOUND);
+    add_expected_rid(rid);
+    return NULL;
+}
+
+/* CMP_CERTRESPONSE_get1_certificate() attempts to retrieve the returned
+ * certificate from the given certResponse B<crep>.
+ * Takes the newKey in case of indirect POP from B<ctx>.
+ * Returns a pointer to a copy of the found certificate, or NULL if not found.
+ */
+X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
+                                             const OSSL_CMP_CERTRESPONSE *crep)
+{
+    EVP_PKEY *privkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 1);
+    OSSL_CMP_CERTORENCCERT *coec;
+    X509 *crt = NULL;
+
+    if (ctx == NULL || crep == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+    if (crep->certifiedKeyPair
+            && (coec = crep->certifiedKeyPair->certOrEncCert) != NULL) {
+        switch (coec->type) {
+        case OSSL_CMP_CERTORENCCERT_CERTIFICATE:
+            crt = X509_dup(coec->value.certificate);
+            break;
+        case OSSL_CMP_CERTORENCCERT_ENCRYPTEDCERT:
+            /* cert encrypted for indirect PoP; RFC 4210, 5.2.8.2 */
+            if (privkey == NULL) {
+                CMPerr(0, CMP_R_MISSING_PRIVATE_KEY);
+                return NULL;
+            }
+            crt =
+                OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(coec->value.encryptedCert,
+                                                      privkey);
+            break;
+        default:
+            CMPerr(0, CMP_R_UNKNOWN_CERT_TYPE);
+            return NULL;
+        }
+    }
+    if (crt == NULL)
+        CMPerr(0, CMP_R_CERTIFICATE_NOT_FOUND);
+    return crt;
+}
+
 OSSL_CMP_MSG *ossl_cmp_msg_load(const char *file)
 {
     OSSL_CMP_MSG *msg = NULL;
