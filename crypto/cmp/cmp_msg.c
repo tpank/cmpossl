@@ -100,7 +100,7 @@ static int add_extension(X509_EXTENSIONS **pexts, X509_EXTENSION *ext)
  * returns 1 on success, 0 on error
  */
 #define ADD_POLICIES(pexts, policies, critical) add_extension(pexts, \
-               X509V3_EXT_i2d(NID_certificate_policies, critical, policies))
+    X509V3_EXT_i2d(NID_certificate_policies, critical, policies))
 
 /*
  * Adds a CRL revocation reason code to an extension stack (which may be NULL)
@@ -173,9 +173,9 @@ OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype)
 
     case OSSL_CMP_PKIBODY_CERTCONF:
         if ((msg->body->value.certConf =
-             sk_OSSL_CMP_CERTSTATUS_new_null()) == NULL)
+                sk_OSSL_CMP_CERTSTATUS_new_null()) == NULL)
             goto err;
-        return msg;
+       return msg;
     case OSSL_CMP_PKIBODY_PKICONF:
         if ((msg->body->value.pkiconf = ASN1_TYPE_new()) == NULL)
             goto err;
@@ -213,12 +213,14 @@ err:
 }
 
 #define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 \
-                          || OSSL_CMP_CTX_reqExtensions_have_SAN(ctx) == 1)
+    || OSSL_CMP_CTX_reqExtensions_have_SAN(ctx) == 1)
+
 static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
-                                 int bodytype) {
-    if (ctx->subjectName != NULL) {
+                                 int bodytype)
+{
+    if (ctx->subjectName != NULL)
         return ctx->subjectName;
-    }
+
     if (refcert != NULL
             && (bodytype == OSSL_CMP_PKIBODY_KUR || !HAS_SAN(ctx)))
         /*
@@ -253,10 +255,12 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     if ((crm = OSSL_CRMF_MSG_new()) == NULL)
         goto err;
     if (!OSSL_CRMF_MSG_set_certReqId(crm, rid)
-
-    /* fill certTemplate, corresponding to PKCS#10 CertificationRequestInfo */
-            /* rkey cannot be NULL so far - but it can be when
-             * centralized key creation is supported --> GitHub issue#68 */
+            /*
+             * fill certTemplate, corresponding to PKCS#10
+             * CertificationRequestInfo.
+             * rkey cannot be NULL so far - but it can be when
+             * centralized key creation is supported --> GitHub issue#68
+             */
             || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
                                             subject, ctx->issuer,
                                             NULL/* serial */))
@@ -500,7 +504,6 @@ OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx)
  err:
     CMPerr(0, CMP_R_ERROR_CREATING_RR);
     OSSL_CMP_MSG_free(msg);
-
     return NULL;
 }
 
@@ -525,8 +528,8 @@ OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     cid = NULL;
 
     if (!(unprot_err
-          && ossl_cmp_pkisi_get_pkistatus(si) == OSSL_CMP_PKISTATUS_rejection)
-          && !ossl_cmp_msg_protect(ctx, msg))
+            && ossl_cmp_pkisi_get_pkistatus(si) == OSSL_CMP_PKISTATUS_rejection)
+            && !ossl_cmp_msg_protect(ctx, msg))
         goto err;
     return msg;
 
@@ -612,7 +615,7 @@ static OSSL_CMP_MSG *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
         goto err;
 
     if (ctx->genm_ITAVs && !ossl_cmp_msg_gen_push1_ITAVs(msg, ctx->genm_ITAVs))
-            goto err;
+        goto err;
 
     if (!ossl_cmp_msg_protect(ctx, msg))
         goto err;
@@ -657,8 +660,9 @@ OSSL_CMP_MSG *ossl_cmp_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
             goto err;
     }
     if (errorDetails != NULL)
-        msg->body->value.error->errorDetails = sk_ASN1_UTF8STRING_deep_copy(
-                            errorDetails, ASN1_STRING_dup, ASN1_STRING_free);
+        msg->body->value.error->errorDetails =
+            sk_ASN1_UTF8STRING_deep_copy(errorDetails, ASN1_STRING_dup,
+                                         ASN1_STRING_free);
 
     if (!unprotected && !ossl_cmp_msg_protect(ctx, msg))
         goto err;
@@ -684,6 +688,7 @@ int ossl_cmp_certstatus_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
     unsigned char hash[EVP_MAX_MD_SIZE];
     int md_NID;
     const EVP_MD *md = NULL;
+
     if (certStatus == NULL || cert == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
@@ -768,7 +773,6 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
  err:
     CMPerr(0, CMP_R_ERROR_CREATING_CERTCONF);
     OSSL_CMP_MSG_free(msg);
-
     return NULL;
 }
 
@@ -776,6 +780,7 @@ OSSL_CMP_MSG *ossl_cmp_pollReq_new(OSSL_CMP_CTX *ctx, int crid)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_POLLREQ *preq = NULL;
+
     if (ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
@@ -905,7 +910,8 @@ static void add_expected_rid(int rid)
  * returns NULL on error or if no suitable PollResponse available
  */
 OSSL_CMP_POLLREP *
-ossl_cmp_pollrepcontent_get0_pollrep(const OSSL_CMP_POLLREPCONTENT *prc, int rid)
+ossl_cmp_pollrepcontent_get0_pollrep(const OSSL_CMP_POLLREPCONTENT *prc,
+                                     int rid)
 {
     OSSL_CMP_POLLREP *pollRep = NULL;
     int i;

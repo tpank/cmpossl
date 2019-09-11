@@ -92,7 +92,7 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
         /* EVP_DigestSignInit() checks that pkey type is correct for the alg */
 
         if (!OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
-            || (md = EVP_get_digestbynid(md_NID)) == NULL) {
+                || (md = EVP_get_digestbynid(md_NID)) == NULL) {
             CMPerr(0, CMP_R_UNKNOWN_ALGORITHM_ID);
             goto end;
         }
@@ -208,8 +208,8 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
 int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     if (ctx == NULL || msg == NULL) {
-         CMPerr(0, CMP_R_NULL_ARGUMENT);
-         return 0;
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
     }
     if (ctx->unprotectedSend)
         return 1;
@@ -219,7 +219,8 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         if ((msg->header->protectionAlg = CMP_create_pbmac_algor(ctx)) == NULL)
             goto err;
         if (ctx->referenceValue != NULL
-              && !ossl_cmp_hdr_set1_senderKID(msg->header, ctx->referenceValue))
+                && !ossl_cmp_hdr_set1_senderKID(msg->header,
+                                                ctx->referenceValue))
             goto err;
 
         /*
@@ -230,7 +231,7 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         ossl_cmp_msg_add_extraCerts(ctx, msg);
 
         if ((msg->protection =
-             ossl_cmp_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
+                ossl_cmp_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
 
             goto err;
     } else {
@@ -253,7 +254,7 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
                 msg->header->protectionAlg = X509_ALGOR_new();
 
             if (!OBJ_find_sigid_by_algs(&algNID, ctx->digest,
-                        EVP_PKEY_id(ctx->pkey))) {
+                                        EVP_PKEY_id(ctx->pkey))) {
                 CMPerr(0, CMP_R_UNSUPPORTED_KEY_TYPE);
                 goto err;
             }
@@ -276,7 +277,7 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
             ossl_cmp_msg_add_extraCerts(ctx, msg);
 
             if ((msg->protection =
-                 ossl_cmp_calc_protection(msg, NULL, ctx->pkey)) == NULL)
+                    ossl_cmp_calc_protection(msg, NULL, ctx->pkey)) == NULL)
                 goto err;
         } else {
             CMPerr(0, CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION);
