@@ -71,9 +71,8 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 
     /* verify signature of protected part */
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),
-                                         &digest_nid, &pk_nid)
-            || digest_nid == NID_undef
-            || pk_nid == NID_undef
+                             &digest_nid, &pk_nid)
+            || digest_nid == NID_undef || pk_nid == NID_undef
             || (digest = (EVP_MD *)EVP_get_digestbynid(digest_nid)) == NULL) {
         CMPerr(0, CMP_R_ALGORITHM_NOT_SUPPORTED);
         err = 2;
@@ -171,20 +170,17 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
 
     valid = X509_verify_cert(csc) > 0;
 
-    if (!valid && !defer_errors) {
+    if (!valid && !defer_errors)
         put_cert_verify_err(CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
-    }
 
  end:
     X509_STORE_CTX_free(csc);
     return valid;
 }
 
-/*
- * helper functions for improving certificate verification error diagnostics
- */
-
-static void print_cert(BIO *bio, X509 *cert, unsigned long neg_cflags) {
+/* helper functions for improving certificate verification error diagnostics */
+static void print_cert(BIO *bio, X509 *cert, unsigned long neg_cflags)
+{
     if (cert != NULL) {
         unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
             XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
@@ -198,35 +194,36 @@ static void print_cert(BIO *bio, X509 *cert, unsigned long neg_cflags) {
             X509_print_ex(bio, cert, flags, ~X509_FLAG_NO_ISSUER);
         }
         X509_print_ex(bio, cert, flags,
-                           ~(X509_FLAG_NO_SERIAL | X509_FLAG_NO_VALIDITY));
-        if (X509_cmp_current_time(X509_get0_notBefore(cert)) > 0) {
+                      ~(X509_FLAG_NO_SERIAL | X509_FLAG_NO_VALIDITY));
+        if (X509_cmp_current_time(X509_get0_notBefore(cert)) > 0)
             BIO_printf(bio, "        not yet valid\n");
-        }
-        if (X509_cmp_current_time(X509_get0_notAfter(cert)) < 0) {
+
+        if (X509_cmp_current_time(X509_get0_notAfter(cert)) < 0)
             BIO_printf(bio, "        no more valid\n");
-        }
+
         X509_print_ex(bio, cert, flags, ~(neg_cflags));
     } else {
         BIO_printf(bio, "    (no certificate)\n");
     }
 }
 
-static void print_certs(BIO *bio, const STACK_OF(X509) *certs) {
+static void print_certs(BIO *bio, const STACK_OF(X509) *certs)
+{
     if (certs != NULL && sk_X509_num(certs) > 0) {
         int i;
 
         for (i = 0; i < sk_X509_num(certs); i++) {
             X509 *cert = sk_X509_value(certs, i);
-            if (cert != NULL) {
+            if (cert != NULL)
                 print_cert(bio, cert, 0);
-            }
         }
     } else {
         BIO_printf(bio, "    (no certificates)\n");
     }
 }
 
-static void print_store_certs(BIO *bio, X509_STORE *store) {
+static void print_store_certs(BIO *bio, X509_STORE *store)
+{
     if (store != NULL) {
         STACK_OF(X509) *certs = ossl_cmp_X509_STORE_get1_certs(store);
         print_certs(bio, certs);
@@ -239,7 +236,8 @@ static void print_store_certs(BIO *bio, X509_STORE *store) {
 /* needed because cert verify errors are threatened by ERR_clear_error() */
 static BIO *cert_verify_err_bio = NULL;
 
-static void clear_cert_verify_err(void) {
+static void clear_cert_verify_err(void)
+{
     BIO_free(cert_verify_err_bio);
     cert_verify_err_bio = NULL;
 }
@@ -278,9 +276,9 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
         int depth = X509_STORE_CTX_get_error_depth(ctx);
         X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
 
-        if (cert_verify_err_bio == NULL) {
+        if (cert_verify_err_bio == NULL)
             cert_verify_err_bio = BIO_new(BIO_s_mem()); /* may result in NULL */
-        }
+
         if (depth < 0)
             BIO_printf(cert_verify_err_bio, "signature verification ");
         else
@@ -315,18 +313,18 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
         policies_print(NULL, ctx);
 #endif
 
-    return (ok);
+    return ok;
 }
 
-/* return 0 if time should not be checked or reference time is within frame,
+/*
+ * return 0 if time should not be checked or reference time is within frame,
  * or else 1 if it s past the end, or -1 if it is before the start
  */
 int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
                            const ASN1_TIME *end, X509_VERIFY_PARAM *vpm)
 {
     time_t check_time, *ptime = NULL;
-    unsigned long flags = vpm == NULL ? 0 :
-                          X509_VERIFY_PARAM_get_flags(vpm);
+    unsigned long flags = vpm == NULL ? 0 : X509_VERIFY_PARAM_get_flags(vpm);
 
     if ((flags & X509_V_FLAG_USE_CHECK_TIME) != 0) {
         check_time = X509_VERIFY_PARAM_get_time(vpm);
@@ -398,7 +396,8 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
  * returns 0 on error or not acceptable, else 1
  */
 static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
-                           X509_STORE *ts) {
+                           X509_STORE *ts)
+{
     X509_NAME *sender_name = NULL;
     X509_VERIFY_PARAM *vpm = NULL;
     int time_cmp;
@@ -518,15 +517,16 @@ static int find_server_cert(X509_STORE *ts,
  * newly enrolled certificate
  */
 static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
-                               const OSSL_CMP_MSG *msg) {
+                               const OSSL_CMP_MSG *msg)
+{
     int valid = 0;
     X509_STORE *store = X509_STORE_new();
 
     if (store != NULL /* store does not include CRLs */
             && ossl_cmp_X509_STORE_add1_certs(store, msg->extraCerts,
-                                              1 /* self-signed only */)) {
+                                              1 /* self-signed only */))
         valid = OSSL_CMP_validate_cert_path(ctx, store, scrt, 0);
-    }
+
     if (valid) {
         /*
          * verify that the newly enrolled certificate (which is assumed to have
@@ -534,8 +534,11 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
          */
         OSSL_CMP_CERTRESPONSE *crep =
             ossl_cmp_certrepmessage_get0_certresponse(msg->body->value.ip, 0);
-        X509 *newcrt = ossl_cmp_certresponse_get1_certificate(ctx, crep); /* maybe
-            better use get_cert_status() from cmp_ses.c, which catches errors */
+        X509 *newcrt = ossl_cmp_certresponse_get1_certificate(ctx, crep);
+        /*
+         * maybe better use get_cert_status() from cmp_ses.c, which catches
+         * errors
+         */
         valid = OSSL_CMP_validate_cert_path(ctx, store, newcrt, 0);
         X509_free(newcrt);
     }
@@ -597,7 +600,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         /* select first server cert that can be validated */
         for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
             scrt = sk_X509_value(found_crts, i);
-            valid = OSSL_CMP_validate_cert_path(ctx, ctx->trusted_store, scrt, 0);
+            valid = OSSL_CMP_validate_cert_path(ctx, ctx->trusted_store, scrt,
+                                                0);
         }
 
         /* exceptional 3GPP TS 33.310 handling */
@@ -619,7 +623,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         } else {
             scrt = NULL;
         }
-    end:
+     end:
         sk_X509_pop_free(found_crts, X509_free);
     }
 
@@ -679,8 +683,10 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
                 if (!ossl_cmp_X509_STORE_add1_certs(ctx->trusted_store,
                                                     msg->body->value.ip->caPubs,
                                                     0))
-                    /* value.ip is same for cp, kup, and ccp */
-                    /* allows self-signed and not self-signed certs */
+                    /*
+                     * value.ip is same for cp, kup, and ccp
+                     * allows self-signed and not self-signed certs
+                     */
                     break;
             }
             return 1;
@@ -693,8 +699,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         break;
 
         /*
-         * 5.1.3.3.  Signature */
-        /* TODO: should that better white-list DSA/RSA etc.?
+         * 5.1.3.3.  Signature
+         * TODO: should that better white-list DSA/RSA etc.?
          * -> check all possible options from OpenSSL, should there be macro?
          */
     default:
@@ -747,16 +753,16 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
              */
             if (!X509_find_by_issuer_and_serial(msg->extraCerts,
                                 X509_get_issuer_name(scrt),
-                                (ASN1_INTEGER *)X509_get0_serialNumber(scrt))) {
+                                (ASN1_INTEGER *)X509_get0_serialNumber(scrt)))
                 ossl_cmp_add_error_line("  certificate used for signature verification attempt was not found in extraCerts");
-            }
 
-            if (msg->header->senderKID == NULL)
+            if (msg->header->senderKID == NULL) {
                 ossl_cmp_add_error_line("  no senderKID in CMP header; risk that correct server cert could not be identified");
-            else /* server cert should match senderKID in header */
+            } else { /* server cert should match senderKID in header */
                 if (!check_kid(scrt, msg->header->senderKID))
                     /* here this can only happen if ctx->srvCert has been set */
                     ossl_cmp_add_error_line("  for senderKID in CMP header there is no matching Subject Key Identifier in context-provided server cert");
+            }
         } else {
             CMPerr(0, CMP_R_NO_SUITABLE_SERVER_CERT);
         }
@@ -800,8 +806,8 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
         char *str = X509_NAME_oneline(X509_get_subject_name(cert),
                                       NULL, 0);
         OSSL_CMP_log1(ERROR,
-               "failed to validate newly enrolled certificate with subject: %s",
-                        str);
+                      "failed to validate newly enrolled certificate with subject: %s",
+                      str);
         OPENSSL_free(str);
     }
     return fail_info;
@@ -852,9 +858,9 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
         /* detect explicitly permitted exceptions for invalid protection */
         if (!OSSL_CMP_validate_msg(ctx, msg)
                 && (cb == NULL || !(*cb)(ctx, msg, 1, cb_arg))) {
-             CMPerr(0, CMP_R_ERROR_VALIDATING_PROTECTION);
-             return -1;
-         }
+            CMPerr(0, CMP_R_ERROR_VALIDATING_PROTECTION);
+            return -1;
+        }
     } else {
         /* detect explicitly permitted exceptions for missing protection */
         if (cb == NULL || !(*cb)(ctx, msg, 0, cb_arg)) {
@@ -890,13 +896,14 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     /*
      * RFC 4210 section 5.1.1 states: the recipNonce is copied from
      * the senderNonce of the previous message in the transaction.
-     * --> Store for setting in next message */
+     * --> Store for setting in next message
+     */
     if (!ossl_cmp_ctx_set1_recipNonce(ctx, msg->header->senderNonce))
         return -1;
 
     /* if not yet present, learn transactionID */
     if (ctx->transactionID == NULL
-           && !OSSL_CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
+            && !OSSL_CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
         return -1;
 
     if ((rcvd_type = ossl_cmp_msg_get_bodytype(msg)) < 0) {
