@@ -403,6 +403,92 @@ static int test_cmp_create_genm(void)
     return result;
 }
 
+static int execute_certrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
+    OSSL_CMP_CERTREPMESSAGE *crepmessage;
+    OSSL_CMP_CERTRESPONSE *certresp;
+    crepmessage = OSSL_CMP_CERTREPMESSAGE_new();
+    certresp = OSSL_CMP_CERTRESPONSE_new();
+    ASN1_INTEGER_set(certresp->certReqId, 99);
+    certresp->certifiedKeyPair = OSSL_CMP_CERTIFIEDKEYPAIR_new();
+    certresp->certifiedKeyPair->certOrEncCert = OSSL_CMP_CERTORENCCERT_new();
+    certresp->certifiedKeyPair->certOrEncCert->type =
+        OSSL_CMP_CERTORENCCERT_CERTIFICATE;
+    certresp->certifiedKeyPair->certOrEncCert->value.certificate =
+        X509_dup(cert);
+    sk_OSSL_CMP_CERTRESPONSE_push(crepmessage->response, certresp);
+    if (!TEST_ptr(ossl_cmp_certrepmessage_get0_certresponse(crepmessage, 99))) {
+        return 0;
+    };
+    if (!TEST_ptr_null(ossl_cmp_certrepmessage_get0_certresponse(
+            crepmessage, 88))) {
+        return 0;
+    };
+    if (!TEST_int_eq(X509_cmp(cert, ossl_cmp_certresponse_get1_certificate(
+            fixture->cmp_ctx, certresp)), 0)) {
+        return 0;
+    }
+    OSSL_CMP_CERTREPMESSAGE_free(crepmessage);
+    return 1;
+}
+
+static int test_cmp_create_certrep(void)
+{
+    SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
+    EXECUTE_TEST(execute_certrep_create, tear_down);
+    return result;
+}
+
+
+static int execute_rp_create(CMP_MSG_TEST_FIXTURE *fixture) {
+    OSSL_CMP_MSG *rpmsg;
+    OSSL_CMP_PKISI *si;
+    OSSL_CRMF_CERTID *cid;
+    si = ossl_cmp_statusinfo_new(33, 44, "a text");
+    cid = OSSL_CRMF_CERTID_new();
+    rpmsg = ossl_cmp_rp_new(fixture->cmp_ctx, si, cid, 1);
+    if (!TEST_ptr(ossl_cmp_revrepcontent_get_CertId(rpmsg->body->value.rp, 0))) {
+        return 0;
+    }
+    if (!TEST_ptr(ossl_cmp_revrepcontent_get_pkistatusinfo(
+            rpmsg->body->value.rp, 0))) {
+        return 0;
+    }
+    OSSL_CMP_PKISI_free(si);
+    OSSL_CMP_MSG_free(rpmsg);
+    return 1;
+}
+
+static int test_cmp_create_rp(void)
+{
+    SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
+    EXECUTE_TEST(execute_rp_create, tear_down);
+    return result;
+}
+
+static int execute_pollrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
+    OSSL_CMP_MSG *pollrep;
+    pollrep = ossl_cmp_pollRep_new(fixture->cmp_ctx, 77, 2000);
+    if (!TEST_ptr(pollrep)) {
+        return 0;
+    }
+    if (!TEST_ptr(ossl_cmp_pollrepcontent_get0_pollrep(
+            pollrep->body->value.pollRep, 77))) {
+        return 0;
+    };
+    if (!TEST_ptr_null(ossl_cmp_pollrepcontent_get0_pollrep(
+            pollrep->body->value.pollRep, 88))) {
+        return 0;
+    };
+    return 1;
+}
+
+static int test_cmp_create_pollrep(void)
+{
+    SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
+    EXECUTE_TEST(execute_pollrep_create, tear_down);
+    return result;
+}
+
 static int test_cmp_pkimessage_create(int bodytype)
 {
     X509_REQ *p10cr = NULL;
@@ -485,7 +571,10 @@ int setup_tests(void)
     ADD_TEST(test_cmp_create_pollreq);
     ADD_TEST(test_cmp_create_rr);
     ADD_TEST(test_cmp_create_rr_without_oldcert);
+    ADD_TEST(test_cmp_create_rp);
     ADD_TEST(test_cmp_create_genm);
+    ADD_TEST(test_cmp_create_certrep);
+    ADD_TEST(test_cmp_create_pollrep);
     ADD_ALL_TESTS_NOSUBTEST(test_cmp_pkimessage_create,
                             OSSL_CMP_PKIBODY_POLLREP + 1);
 
