@@ -157,8 +157,9 @@ int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
     }
 
     /* add any additional certificates from ctx->extraCertsOut */
-    ossl_cmp_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
-                                1 /* no duplicates */, 0);
+    if (!ossl_cmp_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
+                                     1 /* no duplicates */, 0))
+        return 0;
 
     /* if none was found avoid empty ASN.1 sequence */
     if (sk_X509_num(msg->extraCerts) == 0) {
@@ -189,9 +190,12 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
     if ((pbm_str = ASN1_STRING_new()) == NULL)
         goto err;
 
-    pbm_der_len = i2d_OSSL_CRMF_PBMPARAMETER(pbm, &pbm_der);
+    if ((pbm_der_len = i2d_OSSL_CRMF_PBMPARAMETER(pbm, &pbm_der)) < 0)
+        goto err;
 
-    ASN1_STRING_set(pbm_str, pbm_der, pbm_der_len);
+    if (!ASN1_STRING_set(pbm_str, pbm_der, pbm_der_len))
+        goto err;
+
     OPENSSL_free(pbm_der);
 
     X509_ALGOR_set0(alg, OBJ_nid2obj(NID_id_PasswordBasedMAC),
@@ -199,7 +203,9 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
 
     OSSL_CRMF_PBMPARAMETER_free(pbm);
     return alg;
+
  err:
+    ASN1_STRING_free(pbm_str);
     X509_ALGOR_free(alg);
     OSSL_CRMF_PBMPARAMETER_free(pbm);
     return NULL;
@@ -228,11 +234,11 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
          * while not needed to validate the signing cert, the option to do
          * this might be handy for certain use cases
          */
-        ossl_cmp_msg_add_extraCerts(ctx, msg);
+        if (!ossl_cmp_msg_add_extraCerts(ctx, msg))
+            goto err;
 
         if ((msg->protection =
                 ossl_cmp_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
-
             goto err;
     } else {
         /*
@@ -274,7 +280,8 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
              * Add ctx->clCert followed, if possible, by its chain built
              * from ctx->untrusted_certs, and then ctx->extraCertsOut
              */
-            ossl_cmp_msg_add_extraCerts(ctx, msg);
+            if (!ossl_cmp_msg_add_extraCerts(ctx, msg))
+                goto err;
 
             if ((msg->protection =
                     ossl_cmp_calc_protection(msg, NULL, ctx->pkey)) == NULL)
