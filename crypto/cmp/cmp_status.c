@@ -51,7 +51,7 @@ int ossl_cmp_asn1_get_int(const ASN1_INTEGER *a)
 int ossl_cmp_pkisi_get_pkistatus(OSSL_CMP_PKISI *si)
 {
     if (si == NULL || si->status == NULL) {
-        CMPerr(0, CMP_R_ERROR_PARSING_PKISTATUS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return -1;
     }
     return ossl_cmp_asn1_get_int(si->status);
@@ -117,7 +117,7 @@ int ossl_cmp_pkisi_get_pkifailureinfo(OSSL_CMP_PKISI *si)
     int res = 0;
 
     if (si == NULL || si->failInfo == NULL) {
-        CMPerr(0, CMP_R_ERROR_PARSING_PKISTATUS);
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return -1;
     }
     for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
@@ -308,7 +308,6 @@ OSSL_CMP_PKISI *ossl_cmp_statusinfo_new(int status, int fail_info,
     return si;
 
  err:
-    CMPerr(0, ERR_R_MALLOC_FAILURE);
     OSSL_CMP_PKISI_free(si);
     ASN1_UTF8STRING_free(utf8_text);
     return NULL;

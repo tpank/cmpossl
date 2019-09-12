@@ -26,11 +26,7 @@ int ossl_cmp_hdr_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno)
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    if (!ASN1_INTEGER_set(hdr->pvno, pvno)) {
-        CMPerr(0, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
+    return ASN1_INTEGER_set(hdr->pvno, pvno);
 }
 
 int ossl_cmp_hdr_get_pvno(const OSSL_CMP_PKIHEADER *hdr)
@@ -81,19 +77,14 @@ static int set1_general_name(GENERAL_NAME **tgt, const X509_NAME *src)
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto err;
     }
-    if ((gen = GENERAL_NAME_new()) == NULL) {
-        CMPerr(0, ERR_R_MALLOC_FAILURE);
+    if ((gen = GENERAL_NAME_new()) == NULL)
         goto err;
-    }
     gen->type = GEN_DIRNAME;
 
     if (src == NULL) { /* NULL DN */
-        if ((gen->d.directoryName = X509_NAME_new()) == NULL) {
-            CMPerr(0, ERR_R_MALLOC_FAILURE);
+        if ((gen->d.directoryName = X509_NAME_new()) == NULL)
             goto err;
-        }
     } else if (!X509_NAME_set(&gen->d.directoryName, src)) {
-        CMPerr(0, ERR_R_MALLOC_FAILURE);
         goto err;
     }
 
@@ -137,15 +128,9 @@ int ossl_cmp_hdr_update_messageTime(OSSL_CMP_PKIHEADER *hdr)
         return 0;
     }
     if (hdr->messageTime == NULL)
-        if ((hdr->messageTime = ASN1_GENERALIZEDTIME_new()) == NULL) {
-            CMPerr(0, ERR_R_MALLOC_FAILURE);
+        if ((hdr->messageTime = ASN1_GENERALIZEDTIME_new()) == NULL)
             return 0;
-        }
-    if (ASN1_GENERALIZEDTIME_set(hdr->messageTime, time(NULL)) == NULL) {
-        CMPerr(0, ERR_R_INTERNAL_ERROR);
-        return 0;
-    }
-    return 1;
+    return ASN1_GENERALIZEDTIME_set(hdr->messageTime, time(NULL)) != NULL;
 }
 
 static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
@@ -155,12 +140,10 @@ static int set1_aostr_else_random(ASN1_OCTET_STRING **tgt,
     int res = 0;
 
     if (src == NULL) { /* generate a random value if src == NULL */
-        if ((bytes = (unsigned char *)OPENSSL_malloc(len)) == NULL) {
-            CMPerr(0, ERR_R_MALLOC_FAILURE);
+        if ((bytes = (unsigned char *)OPENSSL_malloc(len)) == NULL)
             goto err;
-        }
         if (RAND_bytes(bytes, len) <= 0) {
-            CMPerr(0,CMP_R_FAILURE_OBTAINING_RANDOM);
+            CMPerr(0, CMP_R_FAILURE_OBTAINING_RANDOM);
             goto err;
         }
         res = ossl_cmp_asn1_octet_string_set1_bytes(tgt, bytes, len);
@@ -198,17 +181,16 @@ OSSL_CMP_PKIFREETEXT *ossl_cmp_pkifreetext_push_str(OSSL_CMP_PKIFREETEXT *ft,
         return ft;
     }
     if (ft == NULL && (ft = sk_ASN1_UTF8STRING_new_null()) == NULL)
-        goto oom;
+        goto err;
     if ((utf8string = ASN1_UTF8STRING_new()) == NULL)
-        goto oom;
+        goto err;
     if (!ASN1_STRING_set(utf8string, text, (int)strlen(text)))
-        goto oom;
+        goto err;
     if (!sk_ASN1_UTF8STRING_push(ft, utf8string))
-        goto oom;
+        goto err;
     return ft;
 
- oom:
-    CMPerr(0, ERR_R_MALLOC_FAILURE);
+ err:
     sk_ASN1_UTF8STRING_pop_free(ft, ASN1_UTF8STRING_free);
     ASN1_UTF8STRING_free(utf8string);
     return NULL;
@@ -222,16 +204,9 @@ int ossl_cmp_hdr_push0_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
     }
     if (hdr->freeText == NULL)
         if ((hdr->freeText = sk_ASN1_UTF8STRING_new_null()) == NULL)
-            goto err;
+            return 0;
 
-    if (!sk_ASN1_UTF8STRING_push(hdr->freeText, text))
-        goto err;
-
-    return 1;
-
- err:
-    CMPerr(0, ERR_R_MALLOC_FAILURE);
-    return 0;
+    return sk_ASN1_UTF8STRING_push(hdr->freeText, text);
 }
 
 int ossl_cmp_hdr_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text)
@@ -253,11 +228,7 @@ int ossl_cmp_hdr_generalInfo_push0_item(OSSL_CMP_PKIHEADER *hdr,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    if (!OSSL_CMP_ITAV_push0_stack_item(&hdr->generalInfo, itav)) {
-        CMPerr(0, CMP_R_ERROR_PUSHING_GENERALINFO_ITEM);
-        return 0;
-    }
-    return 1;
+    return OSSL_CMP_ITAV_push0_stack_item(&hdr->generalInfo, itav);
 }
 
 int ossl_cmp_hdr_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
@@ -274,7 +245,6 @@ int ossl_cmp_hdr_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
         itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs, i));
         if (!ossl_cmp_hdr_generalInfo_push0_item(hdr, itav)) {
             OSSL_CMP_ITAV_free(itav);
-            CMPerr(0, CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS);
             return 0;
         }
     }
@@ -317,7 +287,6 @@ int ossl_cmp_hdr_check_implicitConfirm(OSSL_CMP_PKIHEADER *hdr)
     }
 
     itavCount = sk_OSSL_CMP_ITAV_num(hdr->generalInfo);
-
     for (i = 0; i < itavCount; i++) {
         itav = sk_OSSL_CMP_ITAV_value(hdr->generalInfo, i);
         if (OBJ_obj2nid(itav->infoType) == NID_id_it_implicitConfirm)
