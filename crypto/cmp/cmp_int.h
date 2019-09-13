@@ -689,6 +689,9 @@ DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
  * functions
  */
 
+/* from cmp_asn.c */
+int ossl_cmp_asn1_get_int(const ASN1_INTEGER *a);
+
 /* from cmp_util.c */
 const char *ossl_cmp_log_parse_metadata(const char *buf,
                                         OSSL_CMP_severity *level, char **func,
@@ -725,15 +728,13 @@ int ossl_cmp_ctx_set1_recipNonce(OSSL_CMP_CTX *ctx,
                                  const ASN1_OCTET_STRING *nonce);
 
 /* from cmp_status.c */
-int ossl_cmp_asn1_get_int(const ASN1_INTEGER *a);
+OSSL_CMP_PKISI *
+ossl_cmp_statusinfo_new(int status, int fail_info, const char *text);
 int ossl_cmp_pkisi_get_pkistatus(OSSL_CMP_PKISI *statusInfo);
 const char *ossl_cmp_PKIStatus_to_string(int status);
 OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusstring(const OSSL_CMP_PKISI *si);
-ASN1_BIT_STRING *ossl_cmp_pkisi_get0_failinfo(const OSSL_CMP_PKISI *si);
 int ossl_cmp_pkisi_get_pkifailureinfo(OSSL_CMP_PKISI *si);
 int ossl_cmp_pkisi_pkifailureinfo_check(OSSL_CMP_PKISI *si, int bit_index);
-OSSL_CMP_PKISI *
-ossl_cmp_statusinfo_new(int status, int fail_info, const char *text);
 
 /* from cmp_hdr.c */
 int ossl_cmp_hdr_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);
