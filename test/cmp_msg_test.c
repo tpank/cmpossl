@@ -406,6 +406,7 @@ static int test_cmp_create_genm(void)
 static int execute_certrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
     OSSL_CMP_CERTREPMESSAGE *crepmessage;
     OSSL_CMP_CERTRESPONSE *certresp;
+
     crepmessage = OSSL_CMP_CERTREPMESSAGE_new();
     certresp = OSSL_CMP_CERTRESPONSE_new();
     ASN1_INTEGER_set(certresp->certReqId, 99);
@@ -577,6 +578,5 @@ int setup_tests(void)
     ADD_TEST(test_cmp_create_pollrep);
     ADD_ALL_TESTS_NOSUBTEST(test_cmp_pkimessage_create,
                             OSSL_CMP_PKIBODY_POLLREP + 1);
-
     return 1;
 }
