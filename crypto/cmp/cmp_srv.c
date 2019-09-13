@@ -389,7 +389,8 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
             return NULL;
         }
 
-        if (status->statusInfo != NULL) {
+        if (status->statusInfo != NULL
+                && status->statusInfo->status != OSSL_CMP_PKISTATUS_accepted) {
             int pki_status = ossl_cmp_pkisi_get_pkistatus(status->statusInfo);
             const char *str = ossl_cmp_PKIStatus_to_string(pki_status);
 
