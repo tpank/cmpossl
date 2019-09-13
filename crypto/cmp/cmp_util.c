@@ -351,25 +351,20 @@ int OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(ASN1_OCTET_STRING **tgt,
                                           const unsigned char *bytes, size_t len)
 {
     ASN1_OCTET_STRING *new = NULL;
-    int res = 0;
 
     if (tgt == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES, CMP_R_NULL_ARGUMENT);
-        goto err;
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
     }
-
     if (bytes != NULL) {
-        if (!(new = ASN1_OCTET_STRING_new())
-                || !(ASN1_OCTET_STRING_set(new, bytes, (int)len))) {
-            CMPerr(CMP_F_OSSL_CMP_ASN1_OCTET_STRING_SET1_BYTES,
-                   ERR_R_MALLOC_FAILURE);
-            goto err;
+        if ((new =  ASN1_OCTET_STRING_new()) == NULL
+                || !(ASN1_OCTET_STRING_set(new, bytes, len))) {
+            ASN1_OCTET_STRING_free(new);
+            return 0;
         }
-
     }
-    res = OSSL_CMP_ASN1_OCTET_STRING_set1(tgt, new);
 
- err:
-    ASN1_OCTET_STRING_free(new);
-    return res;
+    ASN1_OCTET_STRING_free(*tgt);
+    *tgt = new;
+    return 1;
 }
