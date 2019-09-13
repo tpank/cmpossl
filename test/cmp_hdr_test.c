@@ -37,6 +37,7 @@ static CMP_HDR_TEST_FIXTURE *set_up(const char *const test_case_name)
     if (!TEST_ptr(fixture->hdr = OSSL_CMP_PKIHEADER_new()))
         goto err;
     setup_ok = 1;
+
  err:
     if (!setup_ok) {
         ERR_print_errors_fp(stderr);
@@ -57,8 +58,10 @@ static void tear_down(CMP_HDR_TEST_FIXTURE *fixture)
 }
 
 
-static int execute_HDR_set_get_pvno_test(CMP_HDR_TEST_FIXTURE *fixture) {
+static int execute_HDR_set_get_pvno_test(CMP_HDR_TEST_FIXTURE *fixture)
+{
     int pvno = 77;
+
     if (!TEST_int_eq(ossl_cmp_hdr_set_pvno(fixture->hdr, pvno), 1)) {
         return 0;
     };
@@ -68,15 +71,18 @@ static int execute_HDR_set_get_pvno_test(CMP_HDR_TEST_FIXTURE *fixture) {
     return 1;
 }
 
-static int test_HDR_set_get_pvno(void) {
+static int test_HDR_set_get_pvno(void)
+{
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     EXECUTE_TEST(execute_HDR_set_get_pvno_test, tear_down);
     return result;
 }
 
-static int execute_HDR_get0_senderNonce_test(CMP_HDR_TEST_FIXTURE *fixture) {
+static int execute_HDR_get0_senderNonce_test(CMP_HDR_TEST_FIXTURE *fixture)
+{
     X509_NAME *sender = X509_NAME_new();
+
     X509_NAME_add_entry_by_txt(sender, "CN",
           MBSTRING_ASC, (unsigned char*)"A common sender name", -1, -1, 0);
     if (!TEST_int_eq(OSSL_CMP_CTX_set1_subjectName(fixture->cmp_ctx, sender),
@@ -96,15 +102,18 @@ static int execute_HDR_get0_senderNonce_test(CMP_HDR_TEST_FIXTURE *fixture) {
     return 1;
 }
 
-static int test_HDR_get0_senderNonce(void) {
+static int test_HDR_get0_senderNonce(void)
+{
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     EXECUTE_TEST(execute_HDR_get0_senderNonce_test, tear_down);
     return result;
 }
 
-static int execute_HDR_set1_sender_test(CMP_HDR_TEST_FIXTURE *fixture) {
+static int execute_HDR_set1_sender_test(CMP_HDR_TEST_FIXTURE *fixture)
+{
     X509_NAME *x509name = X509_NAME_new();
+
     X509_NAME_add_entry_by_txt(x509name, "CN",
           MBSTRING_ASC, (unsigned char*)"A common sender name", -1, -1, 0);
     if (!TEST_int_eq(ossl_cmp_hdr_set1_sender(fixture->hdr, x509name), 1)) {
@@ -122,15 +131,18 @@ static int execute_HDR_set1_sender_test(CMP_HDR_TEST_FIXTURE *fixture) {
     return 1;
 }
 
-static int test_HDR_set1_sender(void) {
+static int test_HDR_set1_sender(void)
+{
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     EXECUTE_TEST(execute_HDR_set1_sender_test, tear_down);
     return result;
 }
 
-static int execute_HDR_set1_recipient_test(CMP_HDR_TEST_FIXTURE *fixture) {
+static int execute_HDR_set1_recipient_test(CMP_HDR_TEST_FIXTURE *fixture)
+{
     X509_NAME *x509name = X509_NAME_new();
+
     X509_NAME_add_entry_by_txt(x509name, "CN",
           MBSTRING_ASC, (unsigned char*)"A common recipient name", -1, -1, 0);
     if (!TEST_int_eq(ossl_cmp_hdr_set1_recipient(fixture->hdr, x509name), 1)) {
@@ -148,17 +160,20 @@ static int execute_HDR_set1_recipient_test(CMP_HDR_TEST_FIXTURE *fixture) {
     return 1;
 }
 
-static int test_HDR_set1_recipient(void) {
+static int test_HDR_set1_recipient(void)
+{
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     EXECUTE_TEST(execute_HDR_set1_recipient_test, tear_down);
     return result;
 }
 
-static int execute_HDR_update_messageTime_test(CMP_HDR_TEST_FIXTURE *fixture) {
+static int execute_HDR_update_messageTime_test(CMP_HDR_TEST_FIXTURE *fixture)
+{
     struct tm tm;
     time_t t1, t2, now;
     double diffSecs;
+
     if (!TEST_int_eq(ossl_cmp_hdr_update_messageTime(fixture->hdr), 1)) {
         return 0;
     };
@@ -176,15 +191,18 @@ static int execute_HDR_update_messageTime_test(CMP_HDR_TEST_FIXTURE *fixture) {
     return 1;
 }
 
-static int test_HDR_update_messageTime(void) {
+static int test_HDR_update_messageTime(void)
+{
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     EXECUTE_TEST(execute_HDR_update_messageTime_test, tear_down);
     return result;
 }
 
-static int execute_HDR_set1_senderKID_test(CMP_HDR_TEST_FIXTURE *fixture) {
+static int execute_HDR_set1_senderKID_test(CMP_HDR_TEST_FIXTURE *fixture)
+{
     ASN1_OCTET_STRING* senderKID = ASN1_OCTET_STRING_new();
+
     ASN1_OCTET_STRING_set(senderKID, rand_data, sizeof(rand_data));
     if (!TEST_int_eq(ossl_cmp_hdr_set1_senderKID(fixture->hdr, senderKID), 1)) {
         return 0;
@@ -197,15 +215,18 @@ static int execute_HDR_set1_senderKID_test(CMP_HDR_TEST_FIXTURE *fixture) {
     return 1;
 }
 
-static int test_HDR_set1_senderKID(void) {
+static int test_HDR_set1_senderKID(void)
+{
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     EXECUTE_TEST(execute_HDR_set1_senderKID_test, tear_down);
     return result;
 }
 
-static int execute_HDR_push0_freeText_test(CMP_HDR_TEST_FIXTURE *fixture) {
+static int execute_HDR_push0_freeText_test(CMP_HDR_TEST_FIXTURE *fixture)
+{
     ASN1_UTF8STRING* text = ASN1_UTF8STRING_new();
+
     if (!TEST_ptr(text)) {
         return 0;
     }
@@ -223,15 +244,18 @@ static int execute_HDR_push0_freeText_test(CMP_HDR_TEST_FIXTURE *fixture) {
     return 1;
 }
 
-static int test_HDR_push0_freeText(void) {
+static int test_HDR_push0_freeText(void)
+{
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     EXECUTE_TEST(execute_HDR_push0_freeText_test, tear_down);
     return result;
 }
 
-static int execute_HDR_push1_freeText_test(CMP_HDR_TEST_FIXTURE *fixture) {
+static int execute_HDR_push1_freeText_test(CMP_HDR_TEST_FIXTURE *fixture)
+{
     ASN1_UTF8STRING* text = ASN1_UTF8STRING_new();
+
     if (!TEST_ptr(text)) {
         return 0;
     }
@@ -250,16 +274,19 @@ static int execute_HDR_push1_freeText_test(CMP_HDR_TEST_FIXTURE *fixture) {
     return 1;
 }
 
-static int test_HDR_push1_freeText(void) {
+static int test_HDR_push1_freeText(void)
+{
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     EXECUTE_TEST(execute_HDR_push1_freeText_test, tear_down);
     return result;
 }
 
-static int execute_HDR_generalInfo_push0_item_test(
-        CMP_HDR_TEST_FIXTURE *fixture) {
+static int
+execute_HDR_generalInfo_push0_item_test(CMP_HDR_TEST_FIXTURE *fixture)
+{
     OSSL_CMP_ITAV *itav = OSSL_CMP_ITAV_new();
+
     if (!TEST_int_eq(
             ossl_cmp_hdr_generalInfo_push0_item(fixture->hdr, itav), 1)) {
         return 0;
@@ -271,7 +298,8 @@ static int execute_HDR_generalInfo_push0_item_test(
     return 1;
 }
 
-static int test_HDR_generalInfo_push0_item(void) {
+static int test_HDR_generalInfo_push0_item(void)
+{
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     EXECUTE_TEST(execute_HDR_generalInfo_push0_item_test, tear_down);
@@ -313,8 +341,8 @@ static int test_ASN1_OCTET_STRING_set(void)
     fixture->expected = 1;
     if (!TEST_ptr(fixture->tgt_string = ASN1_OCTET_STRING_new())
             || !TEST_ptr(fixture->src_string = ASN1_OCTET_STRING_new())
-            || !TEST_true(ASN1_OCTET_STRING_set(fixture->src_string,
-                                                rand_data, sizeof(rand_data)))) {
+            || !TEST_true(ASN1_OCTET_STRING_set(fixture->src_string, rand_data,
+                                                sizeof(rand_data)))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -327,9 +355,9 @@ static int test_ASN1_OCTET_STRING_set_tgt_is_src(void)
     SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     if (!TEST_ptr(fixture->src_string = ASN1_OCTET_STRING_new())
-           || !(fixture->tgt_string = fixture->src_string)
-           || !TEST_true(ASN1_OCTET_STRING_set(fixture->src_string, rand_data,
-                                               sizeof(rand_data)))) {
+            || !(fixture->tgt_string = fixture->src_string)
+            || !TEST_true(ASN1_OCTET_STRING_set(fixture->src_string, rand_data,
+                                                sizeof(rand_data)))) {
         tear_down(fixture);
         fixture = NULL;
     }
