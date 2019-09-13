@@ -14,8 +14,9 @@
 typedef struct test_fixture {
     const char *test_case_name;
     int pkistatus;
+    const char *str;  /* Not freed by tear_down */
+    const char *text; /* Not freed by tear_down */
     int pkifailure;
-    char *text;                 /* Not freed by tear_down */
 } CMP_STATUS_TEST_FIXTURE;
 
 static CMP_STATUS_TEST_FIXTURE *set_up(const char *const test_case_name)
@@ -28,6 +29,7 @@ static CMP_STATUS_TEST_FIXTURE *set_up(const char *const test_case_name)
         goto err;
     fixture->test_case_name = test_case_name;
     setup_ok = 1;
+
  err:
     if (!setup_ok) {
         ERR_print_errors_fp(stderr);
@@ -48,27 +50,36 @@ static void tear_down(CMP_STATUS_TEST_FIXTURE *fixture)
 static int execute_PKISI_test(CMP_STATUS_TEST_FIXTURE *fixture)
 {
     OSSL_CMP_PKISI *si = NULL;
+    int status;
     ASN1_UTF8STRING *statusString = NULL;
     int res = 0, i;
 
-    if (!TEST_ptr(si =
-                  ossl_cmp_statusinfo_new(fixture->pkistatus,
-                                          fixture->pkifailure, fixture->text)))
+    if (!TEST_ptr(si = ossl_cmp_statusinfo_new(fixture->pkistatus,
+                                               fixture->pkifailure,
+                                               fixture->text)))
         goto end;
-    if (!TEST_int_eq(fixture->pkistatus, ossl_cmp_pkisi_get_pkistatus(si))
-            || !TEST_int_eq(fixture->pkifailure,
-                            ossl_cmp_pkisi_get_pkifailureinfo(si)))
+
+    status = ossl_cmp_pkisi_get_pkistatus(si);
+    if (!TEST_int_eq(fixture->pkistatus, status)
+            || !TEST_str_eq(fixture->str, ossl_cmp_PKIStatus_to_string(status)))
+        goto end;
+
+    if (!TEST_ptr(statusString =
+                  sk_ASN1_UTF8STRING_value(ossl_cmp_pkisi_get0_statusstring(si),
+                                           0))
+            || !TEST_str_eq(fixture->text, (char *)statusString->data))
+        goto end;
+
+    if (!TEST_int_eq(fixture->pkifailure,
+                     ossl_cmp_pkisi_get_pkifailureinfo(si)))
         goto end;
     for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
         if (!TEST_int_eq(fixture->pkifailure >> i & 1,
                          ossl_cmp_pkisi_pkifailureinfo_check(si, i)))
             goto end;
-    statusString =
-        sk_ASN1_UTF8STRING_value(ossl_cmp_pkisi_get0_statusstring(si), 0);
-    if (!TEST_ptr(statusString)
-            || !TEST_str_eq(fixture->text, (char *)statusString->data))
-        goto end;
+
     res = 1;
+
  end:
     OSSL_CMP_PKISI_free(si);
     return res;
@@ -78,9 +89,10 @@ static int test_PKISI(void)
 {
     SETUP_TEST_FIXTURE(CMP_STATUS_TEST_FIXTURE, set_up);
     fixture->pkistatus = OSSL_CMP_PKISTATUS_revocationNotification;
+    fixture->str = "PKIStatus: revocation notification - a revocation of the cert has occurred";
+    fixture->text = "this is an additional text describing the failure";
     fixture->pkifailure = OSSL_CMP_CTX_FAILINFO_unsupportedVersion |
         OSSL_CMP_CTX_FAILINFO_badDataFormat;
-    fixture->text = "this is an additional text describing the failure";
     EXECUTE_TEST(execute_PKISI_test, tear_down);
     return result;
 }
@@ -94,6 +106,15 @@ void cleanup_tests(void)
 
 int setup_tests(void)
 {
+    /*-
+      this tests all of:
+      ossl_cmp_statusinfo_new()
+      ossl_cmp_pkisi_get_pkistatus()
+      ossl_cmp_PKIStatus_to_string()
+      ossl_cmp_pkisi_get0_statusstring()
+      ossl_cmp_pkisi_get_pkifailureinfo()
+      ossl_cmp_pkisi_pkifailureinfo_check()
+    */
     ADD_TEST(test_PKISI);
     return 1;
 }
