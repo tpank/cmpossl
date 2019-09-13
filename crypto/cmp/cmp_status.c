@@ -28,6 +28,7 @@
 
 /* CMP functions related to PKIStatus */
 
+/* TODO move ossl_cmp_asn1_get_int() to cmp_asn.c, adding test in cmp_asn_test.c */
 /* get ASN.1 encoded integer, return -1 on error */
 int ossl_cmp_asn1_get_int(const ASN1_INTEGER *a)
 {
@@ -92,19 +93,6 @@ OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusstring(const OSSL_CMP_PKISI *si)
         return NULL;
     }
     return si->statusString;
-}
-
-/*
- * returns a pointer to the failInfo contained in a PKIStatusInfo
- * returns NULL on error
- */
-OSSL_CMP_PKIFAILUREINFO *ossl_cmp_pkisi_get0_failinfo(const OSSL_CMP_PKISI *si)
-{
-    if (si == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return NULL;
-    }
-    return si->failInfo;
 }
 
 /*
@@ -173,7 +161,7 @@ static const char *CMP_PKIFAILUREINFO_to_string(int number)
     case OSSL_CMP_PKIFAILUREINFO_addInfoNotAvailable:
         return "addInfoNotAvailable";
     case OSSL_CMP_PKIFAILUREINFO_badSenderNonce:
-                return "badSenderNonce";
+        return "badSenderNonce";
     case OSSL_CMP_PKIFAILUREINFO_badCertTemplate:
         return "badCertTemplate";
     case OSSL_CMP_PKIFAILUREINFO_signerNotTrusted:
@@ -183,7 +171,7 @@ static const char *CMP_PKIFAILUREINFO_to_string(int number)
     case OSSL_CMP_PKIFAILUREINFO_unsupportedVersion:
         return "unsupportedVersion";
     case OSSL_CMP_PKIFAILUREINFO_notAuthorized:
-                return "notAuthorized";
+        return "notAuthorized";
     case OSSL_CMP_PKIFAILUREINFO_systemUnavail:
         return "systemUnavail";
     case OSSL_CMP_PKIFAILUREINFO_systemFailure:
@@ -201,14 +189,17 @@ static const char *CMP_PKIFAILUREINFO_to_string(int number)
  */
 int ossl_cmp_pkisi_pkifailureinfo_check(OSSL_CMP_PKISI *si, int bit_index)
 {
-    ASN1_BIT_STRING *fail_info = ossl_cmp_pkisi_get0_failinfo(si);
-
-    if (fail_info == NULL) /* this can also indicate si == NULL */
+    if (si == NULL || si->failInfo == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return -1;
-    if (bit_index < 0 || bit_index > OSSL_CMP_PKIFAILUREINFO_MAX)
-        return -1;
+    }
 
-    return ASN1_BIT_STRING_get_bit(fail_info, bit_index);
+    if (bit_index < 0 || bit_index > OSSL_CMP_PKIFAILUREINFO_MAX) {
+        CMPerr(0, CMP_R_INVALID_ARGS);
+        return -1;
+    }
+
+    return ASN1_BIT_STRING_get_bit(si->failInfo, bit_index);
 }
 
 /*
