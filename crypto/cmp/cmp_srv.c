@@ -364,7 +364,8 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
             return NULL;
         }
 
-        if (status->statusInfo != NULL) {
+        if (status->statusInfo != NULL
+                && status->statusInfo->status != OSSL_CMP_PKISTATUS_accepted) {
             char *tmpbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
             if (tmpbuf == NULL)
                 goto oom;
