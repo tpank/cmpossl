@@ -598,7 +598,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
         OSSL_CMP_PKISI *si;
         const char *data;
         int flags = 0;
-        unsigned long err = ERR_peek_error_line_data(NULL, NULL, &data, &flags);
+        unsigned long err = ERR_peek_error_data(&data, &flags);
 
         if ((si = ossl_cmp_statusinfo_new(OSSL_CMP_PKISTATUS_rejection,
                                      /* TODO make failure bits more specific */
