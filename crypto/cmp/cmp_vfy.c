@@ -66,7 +66,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 
     l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
     if (l < 0 || prot_part_der == NULL)
-        goto cleanup;
+        goto end;
     prot_part_der_len = (size_t) l;
 
     /* verify signature of protected part */
@@ -77,27 +77,25 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
             || (digest = (EVP_MD *)EVP_get_digestbynid(digest_nid)) == NULL) {
         CMPerr(0, CMP_R_ALGORITHM_NOT_SUPPORTED);
         err = 2;
-        goto cleanup;
+        goto end;
     }
 
     /* check msg->header->protectionAlg is consistent with public key type */
     if (EVP_PKEY_type(pk_nid) != EVP_PKEY_base_id(pubkey)) {
         CMPerr(0, CMP_R_WRONG_ALGORITHM_OID);
         err = 2;
-        goto cleanup;
+        goto end;
     }
 
-    if ((ctx = EVP_MD_CTX_create()) == NULL) {
-        CMPerr(0, ERR_R_MALLOC_FAILURE);
-        goto cleanup;
-    }
+    if ((ctx = EVP_MD_CTX_create()) == NULL)
+        goto end;
     err = (EVP_VerifyInit_ex(ctx, digest, NULL)
                && EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len)
                && EVP_VerifyFinal(ctx, msg->protection->data,
                                   msg->protection->length, pubkey) == 1)
         ? 0 : 2;
 
- cleanup:
+ end:
     EVP_MD_CTX_destroy(ctx);
     OPENSSL_free(prot_part_der);
     EVP_PKEY_free(pubkey);
