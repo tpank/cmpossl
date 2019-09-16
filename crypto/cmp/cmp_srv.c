@@ -269,16 +269,16 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         if ((si = ossl_cmp_statusinfo_new(OSSL_CMP_PKISTATUS_rejection,
                                           1 << OSSL_CMP_PKIFAILUREINFO_badPOP,
                                           NULL)) == NULL)
-            goto oom;
+            goto err;
     } else if (srv_ctx->pollCount > 0) {
         srv_ctx->pollCount--;
         if ((si = ossl_cmp_statusinfo_new(OSSL_CMP_PKISTATUS_waiting,
                                           OSSL_CMP_CERTREQID, NULL)) == NULL)
-            goto oom;
+            goto err;
         OSSL_CMP_MSG_free(srv_ctx->certReq);
         if ((srv_ctx->certReq = OSSL_CMP_MSG_dup(certReq))
             == NULL)
-            goto oom;
+            goto err;
     } else {
         certOut = srv_ctx->certOut;
         chainOut = srv_ctx->chainOut;
@@ -288,7 +288,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
             OSSL_CMP_CTX_set_option(srv_ctx->ctx,
                                     OSSL_CMP_OPT_IMPLICITCONFIRM, 1);
         if ((si = OSSL_CMP_PKISI_dup(srv_ctx->pkiStatusOut)) == NULL)
-            goto oom;
+            goto err;
     }
 
     msg = ossl_cmp_certRep_new(srv_ctx->ctx, bodytype, srv_ctx->certReqId, si,
@@ -300,8 +300,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     OSSL_CMP_PKISI_free(si);
     return msg;
 
- oom:
-    CMPerr(0, ERR_R_MALLOC_FAILURE);
+ err:
     OSSL_CMP_PKISI_free(si);
     return NULL;
 }
@@ -337,10 +336,8 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req)
         return NULL;
     }
 
-    if ((certId = OSSL_CRMF_CERTID_gen(issuer, serial)) == NULL) {
-        CMPerr(0, ERR_R_MALLOC_FAILURE);
+    if ((certId = OSSL_CRMF_CERTID_gen(issuer, serial)) == NULL)
         return NULL;
-    }
 
     if ((msg = ossl_cmp_rp_new(srv_ctx->ctx, srv_ctx->pkiStatusOut, certId,
                                srv_ctx->sendUnprotectedErrors)) == NULL)
@@ -459,13 +456,10 @@ static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
-    /* Back up potential genm_ITAVs */
-    tmp = srv_ctx->ctx->genm_ITAVs;
+    tmp = srv_ctx->ctx->genm_ITAVs; /* Back up potential genm_ITAVs */
     srv_ctx->ctx->genm_ITAVs = req->body->value.genm;
-    if ((msg = ossl_cmp_genp_new(srv_ctx->ctx)) == NULL)
-        CMPerr(0, ERR_R_MALLOC_FAILURE);
-    /* restore genm_ITAVs */
-    srv_ctx->ctx->genm_ITAVs = tmp;
+    msg = ossl_cmp_genp_new(srv_ctx->ctx); /* may be NULL */
+    srv_ctx->ctx->genm_ITAVs = tmp; /* restore genm_ITAVs */
     return msg;
 }
 
@@ -513,10 +507,8 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req,
                CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
         return 0;
     }
-    if (!X509_NAME_set(&ctx->recipient, req->header->sender->d.directoryName)) {
-        CMPerr(0, ERR_R_MALLOC_FAILURE);
+    if (!X509_NAME_set(&ctx->recipient, req->header->sender->d.directoryName))
         return 0;
-    }
 
     if (ossl_cmp_msg_check_received(ctx, req, unprotected_exception,
                                     srv_ctx->acceptUnprotectedRequests) < 0) {
