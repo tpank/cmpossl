@@ -3528,7 +3528,7 @@ static void print_itavs(STACK_OF(OSSL_CMP_ITAV) *itavs)
     int n = sk_OSSL_CMP_ITAV_num(itavs); /* itavs == NULL leads to 0 */
 
     if (n == 0) {
-        OSSL_CMP_info("genp contains no ITAV");
+        CMP_info("genp contains no ITAV");
         return;
     }
 
