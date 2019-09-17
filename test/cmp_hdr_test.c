@@ -18,8 +18,6 @@ typedef struct test_fixture {
     int expected;
     OSSL_CMP_CTX *cmp_ctx;
     OSSL_CMP_PKIHEADER *hdr;
-    ASN1_OCTET_STRING *src_string;
-    ASN1_OCTET_STRING *tgt_string;
 
 } CMP_HDR_TEST_FIXTURE;
 
@@ -50,10 +48,6 @@ static void tear_down(CMP_HDR_TEST_FIXTURE *fixture)
 {
     OSSL_CMP_PKIHEADER_free(fixture->hdr);
     OSSL_CMP_CTX_free(fixture->cmp_ctx);
-    ASN1_OCTET_STRING_free(fixture->src_string);
-    if (fixture->tgt_string != fixture->src_string)
-        ASN1_OCTET_STRING_free(fixture->tgt_string);
-
     OPENSSL_free(fixture);
 }
 
@@ -363,48 +357,6 @@ static int test_HDR_set_and_check_implicit_confirm(void)
     return result;
 }
 
-static int execute_CMP_ASN1_OCTET_STRING_set1_test(CMP_HDR_TEST_FIXTURE *
-                                                   fixture)
-{
-    if (!TEST_int_eq(fixture->expected,
-                     ossl_cmp_asn1_octet_string_set1(&fixture->tgt_string,
-                                                     fixture->src_string)))
-        return 0;
-    if (fixture->expected != 0)
-        return TEST_int_eq(0, ASN1_OCTET_STRING_cmp(fixture->tgt_string,
-                                                    fixture->src_string));
-    return 1;
-}
-
-static int test_ASN1_OCTET_STRING_set(void)
-{
-    SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
-    fixture->expected = 1;
-    if (!TEST_ptr(fixture->tgt_string = ASN1_OCTET_STRING_new())
-            || !TEST_ptr(fixture->src_string = ASN1_OCTET_STRING_new())
-            || !TEST_true(ASN1_OCTET_STRING_set(fixture->src_string, rand_data,
-                                                sizeof(rand_data)))) {
-        tear_down(fixture);
-        fixture = NULL;
-    }
-    EXECUTE_TEST(execute_CMP_ASN1_OCTET_STRING_set1_test, tear_down);
-    return result;
-}
-
-static int test_ASN1_OCTET_STRING_set_tgt_is_src(void)
-{
-    SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
-    fixture->expected = 1;
-    if (!TEST_ptr(fixture->src_string = ASN1_OCTET_STRING_new())
-            || !(fixture->tgt_string = fixture->src_string)
-            || !TEST_true(ASN1_OCTET_STRING_set(fixture->src_string, rand_data,
-                                                sizeof(rand_data)))) {
-        tear_down(fixture);
-        fixture = NULL;
-    }
-    EXECUTE_TEST(execute_CMP_ASN1_OCTET_STRING_set1_test, tear_down);
-    return result;
-}
 
 static int execute_HDR_init_test(CMP_HDR_TEST_FIXTURE *fixture)
 {
@@ -505,8 +457,6 @@ int setup_tests(void)
     ADD_TEST(test_HDR_generalInfo_push0_item);
     ADD_TEST(test_HDR_generalInfo_push1_items);
     ADD_TEST(test_HDR_set_and_check_implicit_confirm);
-    ADD_TEST(test_ASN1_OCTET_STRING_set); /* TODO move to cmp_asn_test.c */
-    ADD_TEST(test_ASN1_OCTET_STRING_set_tgt_is_src); /* TODO move to cmp_asn_test.c */
     /* also tests public function OSSL_CMP_HDR_get0_transactionID(): */
     /* also tests public function OSSL_CMP_HDR_get0_recipNonce(): */
     /* also tests internal function ossl_cmp_hdr_get_pvno(): */
