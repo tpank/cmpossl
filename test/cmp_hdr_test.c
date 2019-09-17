@@ -307,6 +307,47 @@ static int test_HDR_generalInfo_push0_item(void)
 }
 
 static int
+execute_HDR_generalInfo_push1_items_test(CMP_HDR_TEST_FIXTURE *fixture)
+{
+    const char oid[] = "1.2.3.4";
+    char buf[20];
+    OSSL_CMP_ITAV *itav;
+    STACK_OF(OSSL_CMP_ITAV) *itavs = NULL;
+    ASN1_INTEGER *asn1int=ASN1_INTEGER_new();
+    ASN1_TYPE *val = ASN1_TYPE_new();
+
+    ASN1_INTEGER_set(asn1int, 88);
+    ASN1_TYPE_set(val, V_ASN1_INTEGER, asn1int);
+    itav = OSSL_CMP_ITAV_create(OBJ_txt2obj(oid, 1), val);
+    OSSL_CMP_ITAV_push0_stack_item(&itavs, itav);
+
+    if (!TEST_int_eq(
+        ossl_cmp_hdr_generalInfo_push1_items(fixture->hdr, itavs), 1)) {
+        return 0;
+    };
+    OBJ_obj2txt(buf, sizeof(buf), OSSL_CMP_ITAV_get0_type(
+            sk_OSSL_CMP_ITAV_value(fixture->hdr->generalInfo, 0)), 0);
+    if (!TEST_int_eq(memcmp(oid, buf, sizeof(oid)), 0)) {
+        return 0;
+    }
+    if (!TEST_int_eq(ASN1_TYPE_cmp(itav->infoValue.other,
+                                   OSSL_CMP_ITAV_get0_value(
+            sk_OSSL_CMP_ITAV_value(fixture->hdr->generalInfo, 0))), 0)) {
+        return 0;
+    }
+    OSSL_CMP_ITAV_free(itav);
+    return 1;
+}
+
+static int test_HDR_generalInfo_push1_items(void)
+{
+    SETUP_TEST_FIXTURE(CMP_HDR_TEST_FIXTURE, set_up);
+    fixture->expected = 1;
+    EXECUTE_TEST(execute_HDR_generalInfo_push1_items_test, tear_down);
+    return result;
+}
+
+static int
 execute_HDR_set_and_check_implicitConfirm_test(CMP_HDR_TEST_FIXTURE
                                                * fixture)
 {
@@ -462,7 +503,7 @@ int setup_tests(void)
     /* indirectly tests ossl_cmp_pkifreetext_push_str(): */
     ADD_TEST(test_HDR_push1_freeText);
     ADD_TEST(test_HDR_generalInfo_push0_item);
-    /* TODO missing: ADD_TEST(test_HDR_generalInfo_push1_items); */
+    ADD_TEST(test_HDR_generalInfo_push1_items);
     ADD_TEST(test_HDR_set_and_check_implicit_confirm);
     ADD_TEST(test_ASN1_OCTET_STRING_set); /* TODO move to cmp_asn_test.c */
     ADD_TEST(test_ASN1_OCTET_STRING_set_tgt_is_src); /* TODO move to cmp_asn_test.c */
