@@ -28,27 +28,6 @@
 
 /* CMP functions related to PKIStatus */
 
-/* TODO move ossl_cmp_asn1_get_int() to cmp_asn.c, adding test in cmp_asn_test.c */
-/* get ASN.1 encoded integer, return -1 on error */
-int ossl_cmp_asn1_get_int(const ASN1_INTEGER *a)
-{
-    int64_t res;
-
-    if (!ASN1_INTEGER_get_int64(&res, a)) {
-        CMPerr(0, ASN1_R_INVALID_NUMBER);
-        return -1;
-    }
-    if (res < INT_MIN) {
-        CMPerr(0, ASN1_R_TOO_SMALL);
-        return -1;
-    }
-    if (res > INT_MAX) {
-        CMPerr(0, ASN1_R_TOO_LARGE);
-        return -1;
-    }
-    return (int)res;
-}
-
 int ossl_cmp_pkisi_get_pkistatus(OSSL_CMP_PKISI *si)
 {
     if (si == NULL || si->status == NULL) {
