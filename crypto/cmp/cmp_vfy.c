@@ -130,7 +130,7 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
 
     /* generate expected protection for the message */
     if ((protection = ossl_cmp_calc_protection(msg, secret, NULL)) == NULL)
-        goto err;               /* failed to generate protection string! */
+        return 0;               /* failed to generate protection string! */
 
     valid = ASN1_STRING_cmp((const ASN1_STRING *)protection,
                             (const ASN1_STRING *)msg->protection) == 0;
@@ -139,8 +139,6 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
         CMPerr(0, CMP_R_WRONG_PBM_VALUE);
 
     return valid;
- err:
-    return 0;
 }
 
 /*
@@ -151,8 +149,7 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
  * as any following certConf exchange will likely clear the OpenSSL error queue.
  * Returns 1 on successful validation and 0 otherwise.
  */
-int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
-                                X509_STORE *trusted_store,
+int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
                                 X509 *cert, int defer_errors)
 {
     int valid = 0;
@@ -160,20 +157,20 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
 
     if (ctx == NULL || trusted_store == NULL || cert == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
-        goto end;
+        goto err;
     }
 
     if ((csc = X509_STORE_CTX_new()) == NULL
             || !X509_STORE_CTX_init(csc, trusted_store,
                                     cert, ctx->untrusted_certs))
-        goto end;
+        goto err;
 
     valid = X509_verify_cert(csc) > 0;
 
     if (!valid && !defer_errors)
         put_cert_verify_err(CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
 
- end:
+ err:
     X509_STORE_CTX_free(csc);
     return valid;
 }
@@ -283,8 +280,8 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
             BIO_printf(cert_verify_err_bio, "signature verification ");
         else
             BIO_printf(cert_verify_err_bio, "%s at depth=%d error=%d (%s)\n",
-                       X509_STORE_CTX_get0_parent_ctx(ctx) != NULL ?
-                       "CRL path validation" : "certificate verification",
+                       X509_STORE_CTX_get0_parent_ctx(ctx) != NULL
+                       ? "CRL path validation" : "certificate verification",
                        depth, cert_error,
                        X509_verify_cert_error_string(cert_error));
         BIO_printf(cert_verify_err_bio, "failure for:\n");
@@ -443,8 +440,7 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
  * Add them to sk (if not a duplicate to an existing one).
  * returns 0 on error else 1
  */
-static int find_acceptable_certs(STACK_OF(X509) *certs,
-                                 const OSSL_CMP_MSG *msg,
+static int find_acceptable_certs(STACK_OF(X509) *certs, const OSSL_CMP_MSG *msg,
                                  X509_STORE *ts, STACK_OF(X509) *sk)
 {
     int i;
@@ -752,8 +748,9 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
              * several keys associated with its name
              */
             if (!X509_find_by_issuer_and_serial(msg->extraCerts,
-                                X509_get_issuer_name(scrt),
-                                (ASN1_INTEGER *)X509_get0_serialNumber(scrt)))
+                                                X509_get_issuer_name(scrt),
+                                                (ASN1_INTEGER *)
+                                                X509_get0_serialNumber(scrt)))
                 ossl_cmp_add_error_line("  certificate used for signature verification attempt was not found in extraCerts");
 
             if (msg->header->senderKID == NULL) {
