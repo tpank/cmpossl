@@ -13,6 +13,7 @@
 #include <stdio.h>
 #ifndef _WIN32
 # include <unistd.h>
+# include <sys/select.h>
 #else
 # include <winsock.h> /* for type fd_set */
 #endif
@@ -167,7 +168,8 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
         if (proxypass != NULL)
             l += strlen(proxypass);
         proxyauth = OPENSSL_malloc(l + 2);
-        snprintf(proxyauth, l + 2, "%s:%s", proxyuser, (proxypass != NULL) ? proxypass : "");
+        BIO_snprintf(proxyauth, l + 2, "%s:%s", proxyuser,
+                     (proxypass != NULL) ? proxypass : "");
         proxyauthenc = base64encode(proxyauth, strlen(proxyauth));
         BIO_printf(fbio, "Proxy-Authorization: Basic %s\r\n", proxyauthenc);
         OPENSSL_clear_free(proxyauth, strlen(proxyauth));
@@ -326,12 +328,13 @@ static void add_conn_error_hint(const OSSL_CMP_CTX *ctx, unsigned long errdetail
 {
     char buf[200];
 
-    snprintf(buf, 200, "host '%s' port %d", ctx->serverName, ctx->serverPort);
+    BIO_snprintf(buf, 200, "host '%s' port %d",
+                 ctx->serverName, ctx->serverPort);
     ossl_cmp_add_error_data(buf);
     if (errdetail == 0) {
-        snprintf(buf, 200, "server has disconnected%s",
-                 ctx->http_cb_arg != NULL ? " violating the protocol" :
-                               ", likely because it requires the use of TLS");
+        BIO_snprintf(buf, 200, "server has disconnected%s",
+                     ctx->http_cb_arg != NULL ? " violating the protocol" :
+                     ", likely because it requires the use of TLS");
         ossl_cmp_add_error_data(buf);
     }
 }
@@ -361,7 +364,7 @@ static BIO *CMP_new_http_bio(const OSSL_CMP_CTX *ctx)
     cbio = BIO_new_connect(host);
     if (cbio == NULL)
         goto end;
-    snprintf(buf, sizeof(buf), "%d", port);
+    BIO_snprintf(buf, sizeof(buf), "%d", port);
     (void)BIO_set_conn_port(cbio, buf);
 
  end:
