@@ -406,12 +406,12 @@ static int test_cmp_create_genm(void)
 static int execute_certrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
     OSSL_CMP_CERTREPMESSAGE *crepmessage;
     OSSL_CMP_CERTRESPONSE *certresp;
+    X509 *certfromresp = NULL;
 
     crepmessage = OSSL_CMP_CERTREPMESSAGE_new();
     certresp = OSSL_CMP_CERTRESPONSE_new();
     ASN1_INTEGER_set(certresp->certReqId, 99);
     certresp->certifiedKeyPair = OSSL_CMP_CERTIFIEDKEYPAIR_new();
-    certresp->certifiedKeyPair->certOrEncCert = OSSL_CMP_CERTORENCCERT_new();
     certresp->certifiedKeyPair->certOrEncCert->type =
         OSSL_CMP_CERTORENCCERT_CERTIFICATE;
     certresp->certifiedKeyPair->certOrEncCert->value.certificate =
@@ -424,10 +424,12 @@ static int execute_certrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
             crepmessage, 88))) {
         return 0;
     };
-    if (!TEST_int_eq(X509_cmp(cert, ossl_cmp_certresponse_get1_certificate(
-            fixture->cmp_ctx, certresp)), 0)) {
+    certfromresp = ossl_cmp_certresponse_get1_certificate(fixture->cmp_ctx,
+                                                              certresp);
+    if (!TEST_int_eq(X509_cmp(cert, certfromresp), 0)) {
         return 0;
     }
+    X509_free(certfromresp);
     OSSL_CMP_CERTREPMESSAGE_free(crepmessage);
     return 1;
 }
@@ -480,6 +482,7 @@ static int execute_pollrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
             pollrep->body->value.pollRep, 88))) {
         return 0;
     };
+    OSSL_CMP_MSG_free(pollrep);
     return 1;
 }
 
