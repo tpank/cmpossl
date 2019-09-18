@@ -2126,6 +2126,7 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
  end:
     if (ssl_ctx != NULL) {
         X509_STORE *ts = SSL_CTX_get_cert_store(ssl_ctx);
+
         if (ts != NULL) {
             /* indicate if OSSL_CMP_MSG_http_perform() with TLS is active */
             (void)X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_SBIO, sbio);
@@ -2562,7 +2563,9 @@ static int setup_srv_ctx(ENGINE *e)
             load_certstore(opt_srv_trusted, "server trusted certificates");
         char *NULL_host = NULL; /* for CMP level, no host etc */
 
-        if (!set1_store_parameters_crls(ts/* may be NULL */, NULL/*no CRLs*/)
+        if (ts == NULL)
+            goto err;
+        if (!set1_store_parameters_crls(ts, NULL /* no CRLs */)
                 || !truststore_set_host_etc(ts, NULL_host)
                 || !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
@@ -2751,6 +2754,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx, STACK_OF(X509_CRL) **all_cr
 
         if (opt_srvcert != NULL) {
             X509 *srvcert;
+
             if (opt_trusted != NULL) {
                 CMP_warn("-trusted option is ignored since -srvcert option is present");
                 opt_trusted = NULL;

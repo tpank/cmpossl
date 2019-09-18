@@ -414,7 +414,7 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
     if (status != OSSL_CMP_PKISTATUS_rejection
             && status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
         if (encrypted) {
-            CMPerr(0, CMP_R_INVALID_PARAMETERS);
+            CMPerr(0, CMP_R_INVALID_ARGS);
             goto err;
         } else {
             if ((resp->certifiedKeyPair = OSSL_CMP_CERTIFIEDKEYPAIR_new())
