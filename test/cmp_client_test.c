@@ -313,7 +313,7 @@ int setup_tests(void)
             || !TEST_ptr(client_key_f = test_get_argument(2))
             || !TEST_ptr(client_cert_f = test_get_argument(3))
             || !TEST_ptr(pkcs10_f = test_get_argument(4))) {
-        TEST_error("usage: cmp_ses_test server.key server.crt client.key client.crt client.csr\n");
+        TEST_error("usage: cmp_client_test server.key server.crt client.key client.crt client.csr\n");
         return 0;
     }
 

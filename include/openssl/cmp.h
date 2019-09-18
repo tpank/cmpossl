@@ -386,7 +386,7 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
                                         BIO *bio_err);
 #  endif
 
-/* from cmp_ses.c */
+/* from cmp_client.c */
 X509 *OSSL_CMP_exec_IR_ses(OSSL_CMP_CTX *ctx);
 X509 *OSSL_CMP_exec_CR_ses(OSSL_CMP_CTX *ctx);
 X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx);
@@ -394,7 +394,7 @@ X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx);
 X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx);
 STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx);
 
-/* from cmp_srv.c */
+/* from cmp_server.c */
 typedef struct OSSL_cmp_srv_ctx_st OSSL_CMP_SRV_CTX;
 int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
                                  OSSL_CMP_MSG **res);

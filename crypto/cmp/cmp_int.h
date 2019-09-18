@@ -849,7 +849,7 @@ typedef int (*ossl_cmp_allow_unprotected_cb_t)(const OSSL_CMP_CTX *ctx,
 int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                                 ossl_cmp_allow_unprotected_cb_t cb, int cb_arg);
 
-/* from cmp_ses.c */
+/* from cmp_client.c */
 int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
                                const char *txt);
 int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
