@@ -101,10 +101,12 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 
  cert_err:
     if (err == 2) { /* print diagnostics on cert verification error */
-        X509_STORE *ts = cmp_ctx->trusted_store; /* may be empty, not NULL */
+        X509_STORE *ts = cmp_ctx->trusted;
         X509_STORE_CTX *csc = X509_STORE_CTX_new();
-        X509_STORE_CTX_verify_cb verify_cb = X509_STORE_get_verify_cb(ts);
-        if (csc != NULL && verify_cb != NULL
+        X509_STORE_CTX_verify_cb verify_cb = ts == NULL ? NULL
+                                             : X509_STORE_get_verify_cb(ts);
+
+        if (csc != NULL && verify_cb != NULL /* implies ts != NULL */
                 && X509_STORE_CTX_init(csc, ts, NULL, NULL)) {
             X509_STORE_CTX_set_current_cert(csc, cert);
             X509_STORE_CTX_set_error_depth(csc, -1);
@@ -142,9 +144,9 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
 }
 
 /*
- * Attempt to validate certificate and path using given store of trusted certs
- * (possibly including CRLs and a cert verification callback function) and
- * non-trusted intermediate certs from the given ctx.
+ * Attempt to validate certificate and path using any given store with trusted
+ * certs (possibly including CRLs and a cert verification callback function)
+ * and non-trusted intermediate certs from the given ctx.
  * The defer_errors parameter needs to be set when used in a certConf callback
  * as any following certConf exchange will likely clear the OpenSSL error queue.
  * Returns 1 on successful validation and 0 otherwise.
@@ -155,9 +157,13 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
 
-    if (ctx == NULL || trusted_store == NULL || cert == NULL) {
+    if (ctx == NULL || cert == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
-        goto err;
+        return 0;
+    }
+    if (trusted_store == NULL) {
+        CMPerr(0, CMP_R_MISSING_TRUST_STORE);
+        return 0;
     }
 
     if ((csc = X509_STORE_CTX_new()) == NULL
@@ -393,7 +399,7 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
  * returns 0 on error or not acceptable, else 1
  */
 static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
-                           X509_STORE *ts)
+                           X509_STORE *ts /* may be NULL */)
 {
     X509_NAME *sender_name = NULL;
     X509_VERIFY_PARAM *vpm = NULL;
@@ -441,12 +447,15 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
  * returns 0 on error else 1
  */
 static int find_acceptable_certs(STACK_OF(X509) *certs, const OSSL_CMP_MSG *msg,
-                                 X509_STORE *ts, STACK_OF(X509) *sk)
+                                 X509_STORE *ts,  /* may be NULL */
+                                 STACK_OF(X509) *sk)
 {
     int i;
 
-    if (sk == NULL)
-        return 0; /* maybe better flag and handle this as fatal error */
+    if (sk == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
 
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
@@ -475,30 +484,35 @@ static int find_acceptable_certs(STACK_OF(X509) *certs, const OSSL_CMP_MSG *msg,
  * and (if set in msg) a matching sender keyID = subject key ID.
  *
  * Traverses given untrusted certs (which should include extraCerts first)
- * and thereafter the trusted certs in the given truststore ts
+ * and thereafter the trusted certs in the given truststore ts (if any)
  * accumulating in found_certs all matching non-expired cert candidates.
  *
- * returns 0 on (out of memory) error, else 1
+ * returns 0 on error, else 1
  */
-static int find_server_cert(X509_STORE *ts,
+static int find_server_cert(X509_STORE *ts, /* may be NULL */
                             STACK_OF(X509) *untrusted, /* may be NULL */
                             const OSSL_CMP_MSG *msg,
                             STACK_OF(X509) *found_certs)
 {
-    int ret;
     STACK_OF(X509) *trusted;
 
-    if (ts == NULL || msg == NULL || found_certs == NULL)
-        return 0; /* maybe better flag and handle this as fatal error */
+    if (msg == NULL || found_certs == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
 
     if (!find_acceptable_certs(untrusted, msg, ts, found_certs))
         return 0;
 
-    trusted = ossl_cmp_X509_STORE_get1_certs(ts);
-    ret = find_acceptable_certs(trusted, msg, ts, found_certs);
-    sk_X509_pop_free(trusted, X509_free);
-    if (ret == 0)
-        return 0;
+    if (ts != NULL) {
+        int ret;
+
+        trusted = ossl_cmp_X509_STORE_get1_certs(ts);
+        ret = find_acceptable_certs(trusted, msg, ts, found_certs);
+        sk_X509_pop_free(trusted, X509_free);
+        if (ret == 0)
+            return 0;
+    }
 
     ossl_cmp_add_error_line(sk_X509_num(found_certs) ?
                             "found at least one matching server cert" :
@@ -562,7 +576,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
      */
     (void)ERR_set_mark();
     if (ctx->validatedSrvCert != NULL
-            && cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted_store)) {
+            && cert_acceptable(ctx->validatedSrvCert, msg, ctx->trusted)) {
         (void)ERR_pop_to_mark();
         scrt = ctx->validatedSrvCert;
         valid = 1;
@@ -589,15 +603,14 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         (void)ossl_cmp_ctx_set0_validatedSrvCert(ctx, NULL);
 
         /* find server cert candidates from any available source */
-        if (!find_server_cert(ctx->trusted_store, ctx->untrusted_certs,
+        if (!find_server_cert(ctx->trusted, ctx->untrusted_certs,
                               msg, found_crts))
             goto end;
 
         /* select first server cert that can be validated */
         for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
             scrt = sk_X509_value(found_crts, i);
-            valid = OSSL_CMP_validate_cert_path(ctx, ctx->trusted_store, scrt,
-                                                0);
+            valid = OSSL_CMP_validate_cert_path(ctx, ctx->trusted, scrt, 0);
         }
 
         /* exceptional 3GPP TS 33.310 handling */
@@ -631,7 +644,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
  * based mac (PBM) or a signature algorithm. In the case of signature algorithm,
  * the certificate can be provided in ctx->srvCert,
  * else it is taken from ctx->untrusted_certs (which should include extraCerts
- * first) and from ctx->trusted_store and validated against ctx->trusted_store.
+ * first) and from ctx->trusted and validated against ctx->trusted.
  *
  * If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
  * the extraCerts field when a self-signed certificate is found there which can
@@ -676,14 +689,14 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             case OSSL_CMP_PKIBODY_CP:
             case OSSL_CMP_PKIBODY_KUP:
             case OSSL_CMP_PKIBODY_CCP:
-                if (!ossl_cmp_X509_STORE_add1_certs(ctx->trusted_store,
-                                                    msg->body->value.ip->caPubs,
-                                                    0))
-                    /*
-                     * value.ip is same for cp, kup, and ccp
-                     * allows self-signed and not self-signed certs
-                     */
-                    break;
+                if (ctx->trusted != NULL) {
+                    STACK_OF(X509) *certs = msg->body->value.ip->caPubs;
+                    /* value.ip is same for cp, kup, and ccp */
+
+                    if (!ossl_cmp_X509_STORE_add1_certs(ctx->trusted, certs, 0))
+                        /* adds both self-signed and not self-signed certs */
+                        break;
+                }
             }
             return 1;
         }
@@ -734,10 +747,9 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             if (CMP_verify_signature(ctx, msg, scrt))
                 return 1;
 
-            /* failure; add further cert matching & validation diagnostics */
-
+            /* failure; add further cert matching & validation diagnostics: */
             if (ctx->srvCert != NULL)
-                (void)cert_acceptable(scrt, msg, ctx->trusted_store);
+                (void)cert_acceptable(scrt, msg, ctx->trusted);
 
             /*
              * potentially the server cert finding algorithm took wrong cert:
