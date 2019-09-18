@@ -532,7 +532,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
             ossl_cmp_certrepmessage_get0_certresponse(msg->body->value.ip, 0);
         X509 *newcrt = ossl_cmp_certresponse_get1_certificate(ctx, crep);
         /*
-         * maybe better use get_cert_status() from cmp_ses.c, which catches
+         * maybe better use get_cert_status() from cmp_client.c, which catches
          * errors
          */
         valid = OSSL_CMP_validate_cert_path(ctx, store, newcrt, 0);
