@@ -329,7 +329,7 @@ execute_HDR_generalInfo_push1_items_test(CMP_HDR_TEST_FIXTURE *fixture)
             sk_OSSL_CMP_ITAV_value(fixture->hdr->generalInfo, 0))), 0)) {
         return 0;
     }
-    sk_OSSL_CMP_ITAV_pop_free(itavs, OSSL_CMP_ITAV_free);
+    sk_OSSL_CMP_ITAV_free(itavs);
     return 1;
 }
 
