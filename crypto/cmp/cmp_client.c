@@ -49,19 +49,16 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
     if (ctx->unprotectedErrors) {
         if (rcvd_type == OSSL_CMP_PKIBODY_ERROR) {
             msg_type = "error response";
-        }
-        else if (rcvd_type == OSSL_CMP_PKIBODY_RP
-                     && ossl_cmp_pkisi_get_pkistatus(
-                         ossl_cmp_revrepcontent_get_pkistatusinfo(
+        } else if (rcvd_type == OSSL_CMP_PKIBODY_RP
+                       && ossl_cmp_pkisi_get_pkistatus(
+                           ossl_cmp_revrepcontent_get_pkistatusinfo(
                                                             rep->body->value.rp,
                                                             OSSL_CMP_REVREQSID))
-                     == OSSL_CMP_PKISTATUS_rejection) {
+                       == OSSL_CMP_PKISTATUS_rejection) {
             msg_type = "revocation response message with rejection status";
-        }
-        else if (rcvd_type == OSSL_CMP_PKIBODY_PKICONF) {
+        } else if (rcvd_type == OSSL_CMP_PKIBODY_PKICONF) {
             msg_type = "PKI Confirmation message";
-        }
-        else if (rcvd_type == expected_type && IS_CREP(rcvd_type)) {
+        } else if (rcvd_type == expected_type && IS_CREP(rcvd_type)) {
             OSSL_CMP_CERTREPMESSAGE *crepmsg = rep->body->value.ip;
             OSSL_CMP_CERTRESPONSE *crep =
                 ossl_cmp_certrepmessage_get0_certresponse(crepmsg, -1);
