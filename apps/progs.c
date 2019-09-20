@@ -18,9 +18,6 @@ FUNCTION functions[] = {
 #ifndef OPENSSL_NO_SOCK
     {FT_general, "ciphers", ciphers_main, ciphers_options},
 #endif
-#ifndef OPENSSL_NO_CMP
-    {FT_general, "cmp", cmp_main, cmp_options},
-#endif
 #ifndef OPENSSL_NO_CMS
     {FT_general, "cms", cms_main, cms_options},
 #endif
