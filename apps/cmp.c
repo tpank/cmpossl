@@ -62,7 +62,7 @@ static OSSL_CMP_CTX *cmp_ctx = NULL;
  * TODO DvO remove when setup_engine_no_default() is integrated (PR #4277)
  */
 #ifndef OPENSSL_NO_ENGINE
-/* Try to load an engine in a shareable library */
+/* Try to load an engine in a sharable library */
 static ENGINE *try_load_engine(const char *engine)
 {
     ENGINE *e = ENGINE_by_id("dynamic");
@@ -890,12 +890,10 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     if (format == FORMAT_ASN1) {
         x = d2i_X509_bio(cert, NULL);
     } else if (format == FORMAT_PEM) {
-        x = PEM_read_bio_X509_AUX(cert, NULL,
-                                  wrap_password_callback,
-                                  &cb_data);
+        x = PEM_read_bio_X509_AUX(cert, NULL, wrap_password_callback, &cb_data);
     } else if (format == FORMAT_PKCS12) {
         EVP_PKEY *pkey = NULL;  /* &pkey is required for matching cert */
-
+        /* TODO RS check return value and print error message */
         load_pkcs12(cert, cert_descrip, wrap_password_callback,
                     &cb_data, &pkey, &x, NULL);
         EVP_PKEY_free(pkey);
@@ -2578,9 +2576,8 @@ static int setup_srv_ctx(ENGINE *e)
         goto err;
 
     if (opt_rsp_cert != NULL) {
-        X509 *cert =
-            load_cert_autofmt(opt_rsp_cert, opt_ownform, opt_keypass,
-                              "certificate to be returned by the mock server");
+        X509 *cert = load_cert_autofmt(opt_rsp_cert, opt_ownform, opt_keypass,
+                                       "certificate to be returned by the mock server");
         if (cert == NULL)
             goto err;
         /* from server-sight the server is the client */
