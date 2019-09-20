@@ -621,6 +621,7 @@ struct ossl_cmp_msg_st {
     STACK_OF(X509) *extraCerts; /* 1 */
 } /* OSSL_CMP_MSG */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_MSG)
+DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
 
 /*-
  * ProtectedPart ::= SEQUENCE {
@@ -726,8 +727,6 @@ int ossl_cmp_ctx_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                                    STACK_OF(X509) *extraCertsIn);
 int ossl_cmp_ctx_set1_recipNonce(OSSL_CMP_CTX *ctx,
                                  const ASN1_OCTET_STRING *nonce);
-void OSSL_CMP_PKISI_free(OSSL_CMP_PKISI *si);
-DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
 
 /* from cmp_status.c */
 OSSL_CMP_PKISI *
