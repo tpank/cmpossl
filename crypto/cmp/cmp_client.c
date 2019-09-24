@@ -556,7 +556,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
      * also more low-level errors with CertReqMessages get reported to server
      */
     if (!ctx->disableConfirm
-            && ossl_cmp_hdr_check_implicitConfirm((*resp)->header)) {
+            && !ossl_cmp_hdr_check_implicitConfirm((*resp)->header)) {
         if (!ossl_cmp_exchange_certConf(ctx, fail_info, txt))
             ret = 0;
     }
