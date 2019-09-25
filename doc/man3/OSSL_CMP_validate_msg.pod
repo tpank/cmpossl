@@ -15,8 +15,7 @@ OSSL_CMP_print_cert_verify_cb
                             X509_VERIFY_PARAM *vpm);
  int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
  int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
-                                 X509_STORE *trusted_store,
-                                 X509 *cert, int defer_errors);
+                                 X509_STORE *trusted_store, X509 *cert);
  int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
 =head1 DESCRIPTION
@@ -54,14 +53,11 @@ returned in IP.  This is according to 3GPP TS 33.310.
 OSSL_CMP_validate_cert_path() attempts to validate the given certificate and its
 path using the given store of trusted certs (possibly including CRLs and a cert
 verification callback) and non-trusted intermediate certs from the B<ctx>.
-The B<defer_errors> parameter needs to be set when used in a certConf callback
-because any following certConf exchange will likely clear the OpenSSL error
-queue.
 
 OSSL_CMP_print_cert_verify_cb() is a diagnostic function that may be registered
 using X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
 verify_cert() function at the end of a cert verification as an opportunity
-to gather and output information regarding a (failing) cert verification,
+to gather and queue information regarding a (failing) cert verification,
 and to possibly change the result of the verification (not done here).
 
 =head1 NOTES

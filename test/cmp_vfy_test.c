@@ -83,7 +83,7 @@ static int execute_validate_cert_path_test(CMP_VFY_TEST_FIXTURE *fixture)
 
     return TEST_int_eq(fixture->expected,
                        OSSL_CMP_validate_cert_path(fixture->cmp_ctx,
-                                                   ts, fixture->cert, 0));
+                                                   ts, fixture->cert));
 }
 
 static int test_validate_msg_mac_alg_protection(void)

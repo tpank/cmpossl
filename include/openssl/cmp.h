@@ -361,8 +361,7 @@ int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
                            const ASN1_TIME *end, X509_VERIFY_PARAM *vpm);
 int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg);
 int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
-                                X509_STORE *trusted_store,
-                                X509 *cert, int defer_errors);
+                                X509_STORE *trusted_store, X509 *cert);
 int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
 /*
