@@ -59,7 +59,9 @@ static CMP_PROTECT_TEST_FIXTURE *set_up(const char *const test_case_name)
     setup_ok = 1;
  err:
     if (!setup_ok) {
+#ifndef OPENSSL_NO_STDIO
         ERR_print_errors_fp(stderr);
+#endif
         exit(EXIT_FAILURE);
     }
     return fixture;

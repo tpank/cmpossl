@@ -38,7 +38,9 @@ static CMP_HDR_TEST_FIXTURE *set_up(const char *const test_case_name)
 
  err:
     if (!setup_ok) {
+#ifndef OPENSSL_NO_STDIO
         ERR_print_errors_fp(stderr);
+#endif
         exit(EXIT_FAILURE);
     }
     return fixture;

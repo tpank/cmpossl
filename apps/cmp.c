@@ -679,8 +679,14 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {NULL}
 };
 
-#define CMP_print(prefix, msg, a1, a2, a3) \
-    BIO_printf(bio_err, "CMP %s: " msg "\n", prefix, a1, a2, a3)
+#ifndef OPENSSL_NO_TRACE
+#define PRINT_LOCATION BIO_printf(bio_err, "%s:%s:%d:", \
+                                  OPENSSL_FUNC, OPENSSL_FILE, OPENSSL_LINE)
+#else
+#define PRINT_LOCATION ((void)0)
+#endif
+#define CMP_print(prefix, msg, a1, a2, a3) (PRINT_LOCATION,       \
+    BIO_printf(bio_err, "CMP %s: " msg "\n", prefix, a1, a2, a3))
 #define CMP_INFO(msg, a1, a2, a3) CMP_print("info", msg, a1, a2, a3)
 #define CMP_info(msg)              CMP_INFO(msg"%s%s%s", "", "", "")
 #define CMP_info1(msg, a1        ) CMP_INFO(msg  "%s%s", a1, "", "")
@@ -697,7 +703,6 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 #define CMP_err2(msg, a1, a2    ) CMP_ERR(msg    "%s", a1, a2, "")
 #define CMP_err3(msg, a1, a2, a3) CMP_ERR(msg        , a1, a2, a3)
 
-#ifndef OPENSSL_NO_TRACE
 static int log_to_stdout(const char *func, const char *file, int line,
                          OSSL_CMP_severity level, const char *msg)
 {
@@ -715,11 +720,10 @@ static int log_to_stdout(const char *func, const char *file, int line,
     if (BIO_printf(bio_out, "%s:%s:%d:", func, file, line) < 0)
         return 0;
 #endif
-    return BIO_printf(bio_out, "CMP %s: %s", level_string, msg) >= 0;
+    return BIO_printf(bio_out, "CMP %s: %s\n", level_string, msg) >= 0;
 }
-#endif
 
-    /* code duplicated from crypto/cmp/cmp_util.c */
+/* code duplicated from crypto/cmp/cmp_util.c */
 static int sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
                              int no_dup, int prepend)
 {
@@ -2013,11 +2017,11 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
            * The following workaround unfortunately requires re-protection.
            * --> GitHub issue#8
            */
-# if defined USE_TRANSACTIONID_WORKAROUND
+#if defined USE_TRANSACTIONID_WORKAROUND
             OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_MSG_get0_header
                                             (req_new), NULL);
             ossl_cmp_msg_protect(ctx, req_new);
-# endif
+#endif
         }
     }
 
@@ -2027,18 +2031,18 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             ret = 0;
     } else {
         const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
-# ifndef NDEBUG
+#ifndef NDEBUG
         if (opt_mock_srv) {
             OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
             ret = OSSL_CMP_mock_server_perform(ctx, actual_req, res);
         } else {
-# endif
-# if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+#endif
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
             ret = OSSL_CMP_MSG_http_perform(ctx, actual_req, res);
-# endif
-# ifndef NDEBUG
+#endif
+#ifndef NDEBUG
         }
-# endif
+#endif
     }
 
     if (ret != 0 || (*res) == NULL)
@@ -2096,14 +2100,14 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
 
     if (detail == 1) { /* connecting */
         SSL *ssl;
-#  if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
         if ((opt_proxy != NULL
                 && !OSSL_CMP_proxy_connect(hbio, ctx, bio_err, prog))
                     || (sbio = BIO_new(BIO_f_ssl())) == NULL) {
             hbio = NULL;
             goto end;
         }
-#  endif
+#endif
         if ((ssl = SSL_new(ssl_ctx)) == NULL) {
             BIO_free(sbio);
             hbio = sbio = NULL;
@@ -2460,9 +2464,9 @@ static int transform_opts(OSSL_CMP_CTX *ctx)
 
     if (opt_keyform_s != NULL
             && !opt_format(opt_keyform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12
-# ifndef OPENSSL_NO_ENGINE
+#ifndef OPENSSL_NO_ENGINE
                                         | OPT_FMT_ENGINE
-# endif
+#endif
         , &opt_keyform)) {
         CMP_err("unknown option given for key format");
         return 0;
@@ -2743,7 +2747,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx,
         CMP_err("must use -ocsp_use_aia or -ocsp_url if -ocsp_check_all is given");
         goto err;
     }
-#endif
+#endif  /* !defined OPENSSL_NO_OCSP */
 
     if (opt_srvcert != NULL || opt_trusted != NULL) {
         X509_STORE *ts = NULL;
@@ -3854,7 +3858,7 @@ static int get_opts(int argc, char **argv)
             if ((opt_crl_timeout = opt_nat()) < 0)
                 goto opt_err;
             break;
-# ifndef OPENSSL_NO_OCSP
+#ifndef OPENSSL_NO_OCSP
         case OPT_OCSP_CHECK_ALL:
             opt_ocsp_check_all = 1;
             break;
@@ -3871,7 +3875,7 @@ static int get_opts(int argc, char **argv)
         case OPT_OCSP_STATUS:
             opt_ocsp_status = 1;
             break;
-# endif
+#endif
         case OPT_V_CASES /* OPT_CRLALL etc. */ :
             if (!opt_verify(o, vpm))
                 goto opt_err;
@@ -3965,11 +3969,11 @@ static int get_opts(int argc, char **argv)
         case OPT_OTHERPASS:
             opt_otherpass = opt_str("otherpass");
             break;
-# ifndef OPENSSL_NO_ENGINE
+#ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
             opt_engine = opt_str("engine");
             break;
-# endif
+#endif
 
         case OPT_BATCH:
             opt_batch = 1;
@@ -3989,7 +3993,7 @@ static int get_opts(int argc, char **argv)
         case OPT_RSPOUT:
             opt_rspout = opt_str("rspout");
             break;
-# ifndef NDEBUG
+#ifndef NDEBUG
         case OPT_MOCK_SRV:
             opt_mock_srv = 1;
             break;
@@ -4062,7 +4066,7 @@ static int get_opts(int argc, char **argv)
         case OPT_ACCEPT_RAVERIFIED:
             opt_accept_raverified = 1;
             break;
-# endif
+#endif
         }
     }
     argc = opt_num_rest();
@@ -4114,13 +4118,15 @@ int cmp_main(int argc, char **argv)
     }
 
 #ifndef OPENSSL_NO_TRACE
-    if (!OSSL_CMP_CTX_set_log_cb(cmp_ctx, log_to_stdout)) {
-        CMP_err1("cannot set up logging for '%s' via trace API", prog);
-        goto err;
-    }
+# define AND_LOGGING "and logging "
 #else
+# define AND_LOGGING ""
     CMP_warn("logging is disabled; it may be enabled using the OpenSSL config option 'enable-trace'");
 #endif
+    if (!OSSL_CMP_CTX_set_log_cb(cmp_ctx, log_to_stdout)) {
+        CMP_err1("cannot set up error reporting " AND_LOGGING "for '%s'", prog);
+        goto err;
+    }
 
     /* read default values for options from config file */
     configfile = opt_config != NULL ? opt_config : default_config_file;
@@ -4290,7 +4296,7 @@ int cmp_main(int argc, char **argv)
     OSSL_CMP_SRV_CTX_free(srv_ctx);
 #endif
     if (ret > 0)
-        ERR_print_errors_fp(stderr);
+        OSSL_CMP_CTX_print_errors(cmp_ctx);
 
     SSL_CTX_free(OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx));
     X509_STORE_free(OSSL_CMP_CTX_get_certConf_cb_arg(cmp_ctx));

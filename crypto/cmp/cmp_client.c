@@ -109,6 +109,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         transfer_cb = OSSL_CMP_MSG_http_perform;
 #else
         CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
+        ossl_cmp_add_error_txt("; ", "HTTP transfer not possible due to OPENSSL_NO_OCSP or OPENSSL_NO_SOCK");
         return 0;
 #endif
     }
@@ -128,7 +129,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
      /* should print error queue since transfer_cb may call ERR_clear_error() */
 #ifndef OPENSSL_NO_STDIO
-    ERR_print_errors_fp(stderr);
+    OSSL_CMP_CTX_print_errors(ctx);
 #endif
 
     OSSL_CMP_log1(INFO, "sending %s", req_type_string);

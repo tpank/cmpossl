@@ -92,7 +92,9 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
     if (!setup_ok) {
         if (fixture != NULL)
             tear_down(fixture);
+#ifndef OPENSSL_NO_STDIO
         ERR_print_errors_fp(stderr);
+#endif
         exit(EXIT_FAILURE);
     }
     return fixture;
