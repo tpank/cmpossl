@@ -21,9 +21,7 @@
 #include <openssl/x509.h>
 
 /*
- * internal function
- *
- * verify a message protected by signature according to section 5.1.3.3
+ * Verify a message protected by signature according to section 5.1.3.3
  * (sha1+RSA/DSA or any other algorithm supported by OpenSSL)
  * returns 0 on error
  */
@@ -119,11 +117,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     return err == 0;
 }
 
-/*
- * internal function
- *
- * Verify a message protected with PBMAC
- */
+/* Verify a message protected with PBMAC */
 static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
                             const ASN1_OCTET_STRING *secret)
 {
@@ -181,7 +175,7 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
     return valid;
 }
 
-/* helper functions for improving certificate verification error diagnostics */
+/* Helper functions for improving certificate verification error diagnostics */
 static void print_cert(BIO *bio, X509 *cert, unsigned long neg_cflags)
 {
     if (cert != NULL) {
@@ -263,7 +257,7 @@ void put_cert_verify_err(int err)
 }
 
 /*
- * This is a diagnostic function that may be registered using
+ * Diagnostic function that may be registered using
  * X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
  * verify_cert() function at the end of a cert verification as an opportunity
  * to gather and output information regarding a (failing) cert verification,
@@ -320,7 +314,7 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
 }
 
 /*
- * return 0 if time should not be checked or reference time is within frame,
+ * Return 0 if time should not be checked or reference time is within frame,
  * or else 1 if it s past the end, or -1 if it is before the start
  */
 int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
@@ -357,7 +351,7 @@ static void add_name_mismatch_data(const char *error_prefix,
     OPENSSL_free(actual);
 }
 
-/* return 0 if skid != NULL and there is no matching subject key ID in cert */
+/* Return 0 if skid != NULL and there is no matching subject key ID in cert */
 static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
 {
     if (skid != NULL) {
@@ -390,8 +384,6 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
 }
 
 /*
- * internal function
- *
  * Check if the given cert is acceptable as sender cert of the given message.
  * The subject DN must match, the subject key ID as well if present in the msg,
  * and the cert must be current (for checking this, the ts should be given).
@@ -440,8 +432,6 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
 }
 
 /*
- * internal function
- *
  * Find in the list of certs all acceptable certs (see cert_acceptable()).
  * Add them to sk (if not a duplicate to an existing one).
  * returns 0 on error else 1
@@ -477,8 +467,6 @@ static int find_acceptable_certs(STACK_OF(X509) *certs, const OSSL_CMP_MSG *msg,
 }
 
 /*
- * internal function
- *
  * Find candidate server certificate(s) by using find_acceptable_certs()
  * looking for current certs with subject matching the msg sender name
  * and (if set in msg) a matching sender keyID = subject key ID.
@@ -556,7 +544,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
     return valid;
 }
 
-/* find and validate any potentially usable server cert */
+/* Find and validate any potentially usable server cert */
 static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
     X509 *scrt = NULL;
@@ -640,7 +628,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 }
 
 /*
- * Validates the protection of the given PKIMessage using either password-
+ * Validate the protection of the given PKIMessage using either password-
  * based mac (PBM) or a signature algorithm. In the case of signature algorithm,
  * the certificate can be provided in ctx->srvCert,
  * else it is taken from ctx->untrusted_certs (which should include extraCerts
@@ -782,48 +770,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
 
 /*-
- * callback validating that the new certificate can be verified, using
- * ctx->certConf_cb_arg, which has been initialized using opt_out_trusted, and
- * ctx->untrusted_certs, which at this point already contains ctx->extraCertsIn.
- * Returns 0 on acceptance, else a bit field reflecting PKIFailureInfo.
- * Quoting from RFC 4210 section 5.1. Overall PKI Message:
- *     The extraCerts field can contain certificates that may be useful to
- *     the recipient.  For example, this can be used by a CA or RA to
- *     present an end entity with certificates that it needs to verify its
- *     own new certificate (if, for example, the CA that issued the end
- *     entity's certificate is not a root CA for the end entity).  Note that
- *     this field does not necessarily contain a certification path; the
- *     recipient may have to sort, select from, or otherwise process the
- *     extra certificates in order to use them.
- * Note: While often handy, there is no hard requirement by CMP that
- * an EE must be able to validate the certificates it gets enrolled.
- */
-int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
-                         const char **text)
-{
-    X509_STORE *out_trusted = OSSL_CMP_CTX_get_certConf_cb_arg(ctx);
-    (void)text; /* make (artificial) use of var to prevent compiler warning */
-
-    if (fail_info != 0) /* accept any error flagged by CMP core library */
-        return fail_info;
-
-    if (out_trusted != NULL
-            && !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))
-        fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
-
-    if (fail_info != 0) {
-        char *str = X509_NAME_oneline(X509_get_subject_name(cert),
-                                      NULL, 0);
-        OSSL_CMP_log1(ERROR,
-                      "failed to validate newly enrolled certificate with subject: %s",
-                      str);
-        OPENSSL_free(str);
-    }
-    return fail_info;
-}
-
-/*-
- * Checks received message (i.e., response by server or request from client)
+ * Check received message (i.e., response by server or request from client)
  * Any msg->extraCerts are prepended to ctx->untrusted_certs
  *
  * Ensures that:

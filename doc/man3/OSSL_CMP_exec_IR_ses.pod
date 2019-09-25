@@ -7,7 +7,8 @@ OSSL_CMP_exec_CR_ses,
 OSSL_CMP_exec_P10CR_ses,
 OSSL_CMP_exec_KUR_ses,
 OSSL_CMP_exec_RR_ses,
-OSSL_CMP_exec_GENM_ses
+OSSL_CMP_exec_GENM_ses,
+OSSL_CMP_certConf_cb
 - functions implementing CMP client transactions
 
 =head1 SYNOPSIS
@@ -20,6 +21,8 @@ OSSL_CMP_exec_GENM_ses
  X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx);
  X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx);
  STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx;
+ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
+                          const char **text);
 
 =head1 DESCRIPTION
 
@@ -46,6 +49,11 @@ OSSL_CMP_exec_GENM_ses() sends a general message with any ITAVs specified in the
 B<ctx>->genm_itavs, and returns the list of B<ITAV>s received in the GenRep.
 This can be used, for instance, to poll for the CRL or CA Key Updates.
 
+OSSL_CMP_certConf_cb() is a basic certificate confirmation callback validating
+that the new certificate can be verified with the trusted/untrusted certificates
+in B<ctx>. As there is no requirement in RFC 4210 that the certificate can be
+validated by the client, this callback is not set by default in the context.
+
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
@@ -54,17 +62,21 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 OSSL_CMP_exec_IR_ses(), OSSL_CMP_exec_CR_ses(),
 OSSL_CMP_exec_P10CR_ses(), and OSSL_CMP_exec_KUR_ses() return a
-pointer to the newly obtained X509 certificate on success, NULL on error. 
+pointer to the newly obtained X509 certificate on success, B<NULL> on error. 
 This pointer will be freed implicitly by OSSL_CMP_CTX_free() or
 CSSL_CMP_CTX_reinit().
 
 OSSL_CMP_exec_RR_ses() returns the
-pointer to the revoked certificate on success, NULL on error.
+pointer to the revoked certificate on success, B<NULL> on error.
 This pointer will be freed implicitly by OSSL_CMP_CTX_free().
 
 OSSL_CMP_exec_GENM_ses() returns a
-pointer to the received B<ITAV> sequence on success, NULL on error.
+pointer to the received B<ITAV> sequence on success, B<NULL> on error.
 This pointer must be freed by the caller.
+
+OSSL_CMP_certConf_cb() returns B<fail_info> if it is not equal to B<0>,
+else B<0> on successful validation, 
+or else a bit field with the B<OSSL_CMP_PKIFAILUREINFO_incorrectData> bit set.
 
 =head1 EXAMPLES
 

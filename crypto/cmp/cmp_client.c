@@ -31,7 +31,7 @@
                         || t == OSSL_CMP_PKIBODY_KUP)
 
 /*
- * evaluate whether there's an standard-violating exception configured for
+ * Evaluate whether there's an standard-violating exception configured for
  * handling errors without protection or with invalid protection
  */
 static int unprotected_exception(const OSSL_CMP_CTX *ctx,
@@ -89,9 +89,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
 static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si);
 
 /*
- * internal function
- *
- * performs the generic aspects of sending a request and receiving a response
+ * Perform the generic aspects of sending a request and receiving a response
  * returns 1 on success, 0 on error
  * Regardless of success, caller is responsible for freeing *rep (unless NULL).
  */
@@ -179,8 +177,6 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 }
 
 /*
- * internal function
- *
  * When a 'waiting' PKIStatus has been received, this function is used to
  * attempt to poll for a response message.
  *
@@ -276,9 +272,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
 }
 
 /*
- * internal function, but exported just for testing
- *
- * send certConf for IR, CR or KUR sequences and check response
+ * Send certConf for IR, CR or KUR sequences and check response
  * returns 1 on success, 0 on error
  */
 int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
@@ -306,10 +300,7 @@ int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
 }
 
 /*
- * internal function, but exported just for testing
- * currently unused
- *
- * send given error and check response
+ * Send given error and check response
  * returns 1 on success, 0 on error
  */
 int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
@@ -339,11 +330,7 @@ int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
     return success;
 }
 
-/*
- * internal function
- *
- * saves error information from PKIStatusInfo field of a certresponse into ctx
- */
+/* Save error info from PKIStatusInfo field of a certresponse into ctx */
 static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
 {
     int i;
@@ -447,10 +434,49 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
     return NULL;
 }
 
+/*-
+ * Callback fn validating that the new certificate can be verified, using
+ * ctx->certConf_cb_arg, which has been initialized using opt_out_trusted, and
+ * ctx->untrusted_certs, which at this point already contains ctx->extraCertsIn.
+ * Returns 0 on acceptance, else a bit field reflecting PKIFailureInfo.
+ * Quoting from RFC 4210 section 5.1. Overall PKI Message:
+ *     The extraCerts field can contain certificates that may be useful to
+ *     the recipient.  For example, this can be used by a CA or RA to
+ *     present an end entity with certificates that it needs to verify its
+ *     own new certificate (if, for example, the CA that issued the end
+ *     entity's certificate is not a root CA for the end entity).  Note that
+ *     this field does not necessarily contain a certification path; the
+ *     recipient may have to sort, select from, or otherwise process the
+ *     extra certificates in order to use them.
+ * Note: While often handy, there is no hard requirement by CMP that
+ * an EE must be able to validate the certificates it gets enrolled.
+ */
+int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
+                         const char **text)
+{
+    X509_STORE *out_trusted = OSSL_CMP_CTX_get_certConf_cb_arg(ctx);
+    (void)text; /* make (artificial) use of var to prevent compiler warning */
+
+    if (fail_info != 0) /* accept any error flagged by CMP core library */
+        return fail_info;
+
+    if (out_trusted != NULL
+            && !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))
+        fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
+
+    if (fail_info != 0) {
+        char *str = X509_NAME_oneline(X509_get_subject_name(cert),
+                                      NULL, 0);
+        OSSL_CMP_log1(ERROR,
+                      "failed to validate newly enrolled certificate with subject: %s",
+                      str);
+        OPENSSL_free(str);
+    }
+    return fail_info;
+}
+
 /*
- * internal function
- *
- * performs the generic handling of certificate responses for IR/CR/KUR/P10CR
+ * Perform the generic handling of certificate responses for IR/CR/KUR/P10CR
  * returns 1 on success, 0 on error
  * Regardless of success, caller is responsible for freeing *resp (unless NULL).
  */
@@ -580,8 +606,6 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     (ctx)->serverPort);
 
 /*
- * internal function
- *
  * Do the full sequence CR/IR/KUR/P10CR, CP/IP/KUP/CP,
  * certConf, PKIconf, and potential polling.
  *
@@ -627,7 +651,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, int req_type, int req_err,
 }
 
 /*
- * do the full sequence for RR, including RR, RP, and potential polling
+ * Do the full sequence for RR, including RR, RP, and potential polling
  *
  * All options need to be set in the context,
  * in particular oldCert, the certificate to be revoked.
@@ -793,7 +817,7 @@ X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx)
 }
 
 /*
- * Sends a general message to the server to request information specified in the
+ * Send a general message to the server to request information specified in the
  * InfoType and Value (itav) given in the ctx->genm_itavs, see section 5.3.19
  * and E.5.
  *
