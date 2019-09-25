@@ -126,6 +126,11 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             ctx->msgtimeout = (int)time_left;
     }
 
+     /* should print error queue since transfer_cb may call ERR_clear_error() */
+#ifndef OPENSSL_NO_STDIO
+    ERR_print_errors_fp(stderr);
+#endif
+
     OSSL_CMP_log1(INFO, "sending %s", req_type_string);
     err = (*transfer_cb)(ctx, req, rep);
     ctx->msgtimeout = msgtimeout; /* restore original value */
@@ -461,17 +466,9 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
         return fail_info;
 
     if (out_trusted != NULL
-            && !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert, 1))
+            && !OSSL_CMP_validate_cert_path(ctx, out_trusted, cert))
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
 
-    if (fail_info != 0) {
-        char *str = X509_NAME_oneline(X509_get_subject_name(cert),
-                                      NULL, 0);
-        OSSL_CMP_log1(ERROR,
-                      "failed to validate newly enrolled certificate with subject: %s",
-                      str);
-        OPENSSL_free(str);
-    }
     return fail_info;
 }
 
@@ -489,6 +486,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     OSSL_CMP_CERTREPMESSAGE *crepmsg;
     OSSL_CMP_CERTRESPONSE *crep;
     X509 *cert;
+    char *subj = NULL;
     int ret = 1;
 
  retry:
@@ -528,12 +526,12 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     if (!save_statusInfo(ctx, crep->status))
         return 0;
     cert = get1_cert_status(ctx, (*resp)->body->type, crep);
-    if (!ossl_cmp_ctx_set0_newCert(ctx, cert))
-        return 0;
     if (cert == NULL) {
         ossl_cmp_add_error_data("cannot extract certificate from response");
         return 0;
     }
+    if (!ossl_cmp_ctx_set0_newCert(ctx, cert))
+        return 0;
 
     /*
      * if the CMP server returned certificates in the caPubs field, copy them
@@ -547,22 +545,19 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     if (!ossl_cmp_ctx_set1_extraCertsIn(ctx, (*resp)->extraCerts))
         return 0;
 
+    subj = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
     if (rkey != NULL
         /* X509_check_private_key() also works if rkey is just public key */
             && !(X509_check_private_key(ctx->newCert, rkey))) {
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
         txt = "public key in new certificate does not match our enrollment key";
-#if 0 /* better leave this for any ctx->certConf_cb to decide */
-        (void)ossl_cmp_exchange_error(ctx, OSSL_CMP_PKISTATUS_rejection,
-                                      fail_info, txt);
-        /*
-         * cannot flag fail_info earlier as send_receive_check() indirectly
-         * calls ERR_clear_error()
+        /*-
+         * not callling (void)ossl_cmp_exchange_error(ctx,
+         *                    OSSL_CMP_PKISTATUS_rejection, fail_info, txt)
+         * not throwing CMP_R_CERTIFICATE_NOT_ACCEPTED with txt
+         * not returning 0
+         * since we better leave this for any ctx->certConf_cb to decide
          */
-        CMPerr(0, CMP_R_CERTIFICATE_NOT_ACCEPTED);
-        ERR_add_error_data(1, txt);
-        return 0;
-#endif
     }
 
     /*
@@ -574,8 +569,11 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
             && (fail_info = ctx->certConf_cb(ctx, ctx->newCert,
                                              fail_info, &txt)) != 0) {
         if (txt == NULL)
-            txt = "CMP client application did not accept newly enrolled certificate";
+            txt = "CMP client application did not accept it";
     }
+    if (fail_info != 0) /* immediately log error before any certConf exchange */
+        OSSL_CMP_log1(ERROR,
+                      "rejecting newly enrolled cert with subject: %s", subj);
 
     /*
      * TODO: better move certConf exchange to do_certreq_seq() such that
@@ -587,17 +585,16 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
             ret = 0;
     }
 
+    /* not throwing failure earlier as transfer_cb may call ERR_clear_error() */
     if (fail_info != 0) {
-        /*
-         * cannot flag failure earlier because send_receive_check()
-         * indirectly calls ERR_clear_error()
-         */
-        put_cert_verify_err(CMP_R_CERTIFICATE_NOT_ACCEPTED);
-        ERR_add_error_data(1, "rejecting newly enrolled cert");
+        CMPerr(0, CMP_R_CERTIFICATE_NOT_ACCEPTED);
+        ERR_add_error_data(2, "rejecting newly enrolled cert with subject: ",
+                           subj);
         if (txt != NULL)
             ossl_cmp_add_error_txt("; ", txt);
-        return 0;
+        ret = 0;
     }
+    OPENSSL_free(subj);
     return ret;
 }
 

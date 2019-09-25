@@ -111,7 +111,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
             X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
             (void)(*verify_cb)(0, csc);
         }
-        put_cert_verify_err(CMP_R_ERROR_VALIDATING_PROTECTION);
+        CMPerr(0, CMP_R_ERROR_VALIDATING_PROTECTION);
         X509_STORE_CTX_free(csc);
     }
     return err == 0;
@@ -141,15 +141,14 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
  * Attempt to validate certificate and path using any given store with trusted
  * certs (possibly including CRLs and a cert verification callback function)
  * and non-trusted intermediate certs from the given ctx.
- * The defer_errors parameter needs to be set when used in a certConf callback
- * as any following certConf exchange will likely clear the OpenSSL error queue.
  * Returns 1 on successful validation and 0 otherwise.
  */
 int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
-                                X509 *cert, int defer_errors)
+                                X509 *cert)
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
+    const int err = CMP_R_POTENTIALLY_INVALID_CERTIFICATE;
 
     if (ctx == NULL || cert == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -167,8 +166,9 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
 
     valid = X509_verify_cert(csc) > 0;
 
-    if (!valid && !defer_errors)
-        put_cert_verify_err(CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
+    /* make sure suitable error is queued even if callback did not do */
+    if (!valid && ERR_GET_REASON(ERR_peek_last_error()) != err)
+        CMPerr(0, err);
 
  err:
     X509_STORE_CTX_free(csc);
@@ -230,37 +230,11 @@ static void print_store_certs(BIO *bio, X509_STORE *store)
     }
 }
 
-/* needed because cert verify errors are threatened by ERR_clear_error() */
-static BIO *cert_verify_err_bio = NULL;
-
-static void clear_cert_verify_err(void)
-{
-    BIO_free(cert_verify_err_bio);
-    cert_verify_err_bio = NULL;
-}
-
-void put_cert_verify_err(int err)
-{
-    if (err != 0) { /* cert verify error in callback */
-        CMPerr(0, err);
-        if (cert_verify_err_bio != NULL) {
-            char *str;
-            long len = BIO_get_mem_data(cert_verify_err_bio, &str);
-
-            if (len > 0) {
-                str[len-1] = '\0'; /* replace last '\n', terminating str */
-                ossl_cmp_add_error_line(str);
-            }
-        }
-    }
-    clear_cert_verify_err();
-}
-
 /*
  * Diagnostic function that may be registered using
  * X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
  * verify_cert() function at the end of a cert verification as an opportunity
- * to gather and output information regarding a (failing) cert verification,
+ * to gather and queue information regarding a (failing) cert verification,
  * and to possibly change the result of the verification (not done here).
  * The CLI also calls it on error while cert status checking using OCSP stapling
  * via a callback function set with SSL_CTX_set_tlsext_status_cb().
@@ -272,20 +246,18 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
         int cert_error = X509_STORE_CTX_get_error(ctx);
         int depth = X509_STORE_CTX_get_error_depth(ctx);
         X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
-
-        if (cert_verify_err_bio == NULL)
-            cert_verify_err_bio = BIO_new(BIO_s_mem()); /* may result in NULL */
+        BIO *bio = BIO_new(BIO_s_mem()); /* may be NULL */
 
         if (depth < 0)
-            BIO_printf(cert_verify_err_bio, "signature verification ");
+            BIO_printf(bio, "signature verification ");
         else
-            BIO_printf(cert_verify_err_bio, "%s at depth=%d error=%d (%s)\n",
+            BIO_printf(bio, "%s at depth=%d error=%d (%s)\n",
                        X509_STORE_CTX_get0_parent_ctx(ctx) != NULL
                        ? "CRL path validation" : "certificate verification",
                        depth, cert_error,
                        X509_verify_cert_error_string(cert_error));
-        BIO_printf(cert_verify_err_bio, "failure for:\n");
-        print_cert(cert_verify_err_bio, cert, X509_FLAG_NO_EXTENSIONS);
+        BIO_printf(bio, "failure for:\n");
+        print_cert(bio, cert, X509_FLAG_NO_EXTENSIONS);
         if (cert_error == X509_V_ERR_CERT_UNTRUSTED
                 || cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT
                 || cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN
@@ -293,16 +265,22 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
                 || cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
                 || cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER
                 || cert_error == X509_V_ERR_STORE_LOOKUP) {
-            BIO_printf(cert_verify_err_bio, "non-trusted certs:\n");
-            print_certs(cert_verify_err_bio, X509_STORE_CTX_get0_untrusted(ctx));
-            BIO_printf(cert_verify_err_bio, "trust store:\n");
-            print_store_certs(cert_verify_err_bio,
-                              X509_STORE_CTX_get0_store(ctx));
+            BIO_printf(bio, "non-trusted certs:\n");
+            print_certs(bio, X509_STORE_CTX_get0_untrusted(ctx));
+            BIO_printf(bio, "trust store:\n");
+            print_store_certs(bio, X509_STORE_CTX_get0_store(ctx));
         }
-        put_cert_verify_err(CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
-#ifndef OPENSSL_NO_STDIO
-        ERR_print_errors_fp(stdout);
-#endif /* OPENSSL_NO_STDIO */
+        CMPerr(0, CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
+        if (bio != NULL) {
+            char *str;
+            long len = BIO_get_mem_data(bio, &str);
+
+            if (len > 0) {
+                str[len-1] = '\0'; /* replace last '\n', terminating str */
+                ossl_cmp_add_error_line(str);
+            }
+        }
+        BIO_free(bio);
     }
 #if 0
     /* TODO: we could check policies here too */
@@ -523,7 +501,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
     if (store != NULL /* store does not include CRLs */
             && ossl_cmp_X509_STORE_add1_certs(store, msg->extraCerts,
                                               1 /* self-signed only */))
-        valid = OSSL_CMP_validate_cert_path(ctx, store, scrt, 0);
+        valid = OSSL_CMP_validate_cert_path(ctx, store, scrt);
 
     if (valid) {
         /*
@@ -537,7 +515,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
          * maybe better use get_cert_status() from cmp_client.c, which catches
          * errors
          */
-        valid = OSSL_CMP_validate_cert_path(ctx, store, newcrt, 0);
+        valid = OSSL_CMP_validate_cert_path(ctx, store, newcrt);
         X509_free(newcrt);
     }
     X509_STORE_free(store);
@@ -598,7 +576,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         /* select first server cert that can be validated */
         for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
             scrt = sk_X509_value(found_crts, i);
-            valid = OSSL_CMP_validate_cert_path(ctx, ctx->trusted, scrt, 0);
+            valid = OSSL_CMP_validate_cert_path(ctx, ctx->trusted, scrt);
         }
 
         /* exceptional 3GPP TS 33.310 handling */
@@ -612,7 +590,6 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
         if (valid) {
             /* discard any diagnostic info on finding server cert */
-            clear_cert_verify_err();
             (void)ERR_pop_to_mark();
             /* store trusted srv cert for future msgs of same transaction */
             if (ossl_cmp_ctx_set0_validatedSrvCert(ctx, scrt))

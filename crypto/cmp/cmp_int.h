@@ -843,7 +843,6 @@ int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 
 /* from cmp_vfy.c */
-void put_cert_verify_err(int err);
 typedef int (*ossl_cmp_allow_unprotected_cb_t)(const OSSL_CMP_CTX *ctx,
                                                const OSSL_CMP_MSG *msg,
                                                int invalid_protection, int arg);
