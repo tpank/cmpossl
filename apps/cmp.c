@@ -420,7 +420,7 @@ const OPTIONS cmp_options[] = {
     {"reqexts", OPT_REQEXTS, 's',
      "Name of section in config file defining certificate request extensions"},
     {"sans", OPT_SANS, 's',
-     "Subject Alternative Name(s) (DNS/IPADDR) to add as cert request extension"},
+     "Subject Alternative Names (IPADDR/DNS/URI) to add as cert request extension"},
     {"san_nodefault", OPT_SAN_NODEFAULT, '-',
      "Do not take default SANs from reference certificate (see -oldcert)"},
     {"policies", OPT_POLICIES, 's',
@@ -2297,10 +2297,7 @@ static int set_name(const char *str,
     return 1;
 }
 
-static int set_gennames(char *names, int type,
-                        int (*set_fn) (OSSL_CMP_CTX *ctx,
-                                       const GENERAL_NAME *name),
-                        OSSL_CMP_CTX *ctx, const char *desc)
+static int set_gennames(OSSL_CMP_CTX *ctx, char *names, const char *desc)
 {
     char *next;
 
@@ -2308,27 +2305,26 @@ static int set_gennames(char *names, int type,
         GENERAL_NAME *n;
         next = next_item(names);
 
-        if (type == GEN_DNS && strcmp(names, "critical") == 0) {
+        if (strcmp(names, "critical") == 0) {
             (void)OSSL_CMP_CTX_set_option(ctx,
                       OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL, 1);
             continue;
         }
 
-        if (type != GEN_DNS) {
-            n = a2i_GENERAL_NAME(NULL, NULL, NULL, type, names, 0);
-        } else { /* try IP address first, then domain name */
-            (void)ERR_set_mark();
-            n = a2i_GENERAL_NAME(NULL, NULL, NULL, GEN_IPADD, names, 0);
-            (void)ERR_pop_to_mark();
-            if (n == NULL)
-                n = a2i_GENERAL_NAME(NULL, NULL, NULL, GEN_DNS, names, 0);
-        }
+        /* try IP address first, then URI or domain name */
+        (void)ERR_set_mark();
+        n = a2i_GENERAL_NAME(NULL, NULL, NULL, GEN_IPADD, names, 0);
+        if (n == NULL)
+            n = a2i_GENERAL_NAME(NULL, NULL, NULL,
+                                 strchr(names, ':') != NULL ? GEN_URI : GEN_DNS,
+                                 names, 0);
+        (void)ERR_pop_to_mark();
 
         if (n == NULL) {
             CMP_err2("bad syntax of %s '%s'", desc, names);
             return 0;
         }
-        if (!(*set_fn) (ctx, n)) {
+        if (!OSSL_CMP_CTX_push1_subjectAltName(ctx, n)) {
             GENERAL_NAME_free(n);
             CMP_err("out of memory");
             return 0;
@@ -3161,9 +3157,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
 
-    if (!set_gennames(opt_sans, GEN_DNS,
-                      OSSL_CMP_CTX_push1_subjectAltName, ctx,
-                      "Subject Alternative Name"))
+    if (!set_gennames(ctx, opt_sans, "Subject Alternative Name"))
         goto err;
 
     if (opt_san_nodefault) {

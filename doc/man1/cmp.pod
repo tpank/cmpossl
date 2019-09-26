@@ -523,7 +523,7 @@ Name of section in OpenSSL config file defining certificate request extensions.
 
 =item B<-sans spec>
 
-One or more DNS names or IP addresses, separated by commas or whitespace,
+One or more IP addresses, DNS names, or URIs separated by commas or whitespace,
 to add as Subject Alternative Name(s) (SAN) certificate request extension.
 If the special element "critical" is given the SANs are flagged as critical.
 Cannot be used if any Subject Alternative Name extension is set via B<-reqexts>.
