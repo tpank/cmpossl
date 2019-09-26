@@ -139,7 +139,7 @@ void ossl_cmp_add_error_txt(const char *separator, const char *txt)
         const char *curr = txt, *next = txt;
         char *tmp;
 
-        ERR_peek_error_all(&file, &line, &func, &data, &flags);
+        ERR_peek_last_error_all(&file, &line, &func, &data, &flags);
         if ((flags & ERR_TXT_STRING) == 0) {
             data = "";
             separator = "";
