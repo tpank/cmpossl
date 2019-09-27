@@ -763,34 +763,34 @@ int ossl_cmp_hdr_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr);
 
 /* from cmp_msg.c */
 /* OSSL_CMP_MSG bodytype ASN.1 choice IDs */
-# define OSSL_CMP_PKIBODY_IR        0
-# define OSSL_CMP_PKIBODY_IP        1
-# define OSSL_CMP_PKIBODY_CR        2
-# define OSSL_CMP_PKIBODY_CP        3
-# define OSSL_CMP_PKIBODY_P10CR     4
-# define OSSL_CMP_PKIBODY_POPDECC   5
-# define OSSL_CMP_PKIBODY_POPDECR   6
-# define OSSL_CMP_PKIBODY_KUR       7
-# define OSSL_CMP_PKIBODY_KUP       8
-# define OSSL_CMP_PKIBODY_KRR       9
-# define OSSL_CMP_PKIBODY_KRP      10
-# define OSSL_CMP_PKIBODY_RR       11
-# define OSSL_CMP_PKIBODY_RP       12
-# define OSSL_CMP_PKIBODY_CCR      13
-# define OSSL_CMP_PKIBODY_CCP      14
-# define OSSL_CMP_PKIBODY_CKUANN   15
-# define OSSL_CMP_PKIBODY_CANN     16
-# define OSSL_CMP_PKIBODY_RANN     17
-# define OSSL_CMP_PKIBODY_CRLANN   18
-# define OSSL_CMP_PKIBODY_PKICONF  19
-# define OSSL_CMP_PKIBODY_NESTED   20
-# define OSSL_CMP_PKIBODY_GENM     21
-# define OSSL_CMP_PKIBODY_GENP     22
-# define OSSL_CMP_PKIBODY_ERROR    23
-# define OSSL_CMP_PKIBODY_CERTCONF 24
-# define OSSL_CMP_PKIBODY_POLLREQ  25
-# define OSSL_CMP_PKIBODY_POLLREP  26
-# define OSSL_CMP_PKIBODY_TYPE_MAX OSSL_CMP_PKIBODY_POLLREP
+#  define OSSL_CMP_PKIBODY_IR        0
+#  define OSSL_CMP_PKIBODY_IP        1
+#  define OSSL_CMP_PKIBODY_CR        2
+#  define OSSL_CMP_PKIBODY_CP        3
+#  define OSSL_CMP_PKIBODY_P10CR     4
+#  define OSSL_CMP_PKIBODY_POPDECC   5
+#  define OSSL_CMP_PKIBODY_POPDECR   6
+#  define OSSL_CMP_PKIBODY_KUR       7
+#  define OSSL_CMP_PKIBODY_KUP       8
+#  define OSSL_CMP_PKIBODY_KRR       9
+#  define OSSL_CMP_PKIBODY_KRP      10
+#  define OSSL_CMP_PKIBODY_RR       11
+#  define OSSL_CMP_PKIBODY_RP       12
+#  define OSSL_CMP_PKIBODY_CCR      13
+#  define OSSL_CMP_PKIBODY_CCP      14
+#  define OSSL_CMP_PKIBODY_CKUANN   15
+#  define OSSL_CMP_PKIBODY_CANN     16
+#  define OSSL_CMP_PKIBODY_RANN     17
+#  define OSSL_CMP_PKIBODY_CRLANN   18
+#  define OSSL_CMP_PKIBODY_PKICONF  19
+#  define OSSL_CMP_PKIBODY_NESTED   20
+#  define OSSL_CMP_PKIBODY_GENM     21
+#  define OSSL_CMP_PKIBODY_GENP     22
+#  define OSSL_CMP_PKIBODY_ERROR    23
+#  define OSSL_CMP_PKIBODY_CERTCONF 24
+#  define OSSL_CMP_PKIBODY_POLLREQ  25
+#  define OSSL_CMP_PKIBODY_POLLREP  26
+#  define OSSL_CMP_PKIBODY_TYPE_MAX OSSL_CMP_PKIBODY_POLLREP
 const char *ossl_cmp_bodytype_to_string(int type);
 int ossl_cmp_msg_set_bodytype(OSSL_CMP_MSG *msg, int type);
 int ossl_cmp_msg_get_bodytype(const OSSL_CMP_MSG *msg);
@@ -835,11 +835,6 @@ ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg
 X509 *ossl_cmp_certresponse_get1_certificate(EVP_PKEY *privkey,
                                              const OSSL_CMP_CERTRESPONSE *crep);
 OSSL_CMP_MSG *ossl_cmp_msg_load(const char *file);
-/* BIO definitions */
-#  define OSSL_d2i_CMP_MSG_bio(bp, p) \
-    ASN1_d2i_bio_of(OSSL_CMP_MSG, OSSL_CMP_MSG_new, d2i_OSSL_CMP_MSG, bp, p)
-#  define OSSL_i2d_CMP_MSG_bio(bp, o) \
-    ASN1_i2d_bio_of(OSSL_CMP_MSG, i2d_OSSL_CMP_MSG, bp, o)
 
 /* from cmp_protect.c */
 ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
@@ -847,5 +842,19 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
                                           EVP_PKEY *pkey);
 int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
+
+/* from cmp_vfy.c */
+typedef int (*ossl_cmp_allow_unprotected_cb_t)(const OSSL_CMP_CTX *ctx,
+                                               const OSSL_CMP_MSG *msg,
+                                               int invalid_protection, int arg);
+int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
+                                ossl_cmp_allow_unprotected_cb_t cb, int cb_arg);
+
+/* from cmp_client.c */
+int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
+                               const char *txt);
+int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
+                            const char *txt);
+int ossl_cmp_verify_popo(const OSSL_CMP_MSG *msg, int accept_RAVerified);
 
 #endif /* !defined OSSL_CRYPTO_CMP_LOCAL_H */
