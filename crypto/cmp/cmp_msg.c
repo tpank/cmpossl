@@ -31,7 +31,7 @@ OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
 
 const char *ossl_cmp_bodytype_to_string(int type)
 {
-    static const char *type_names[] = {
+    static char *type_names[] = {
         "IR", "IP", "CR", "CP", "P10CR",
         "POPDECC", "POPDECR", "KUR", "KUP",
         "KRR", "KRP", "RR", "RP", "CCR", "CCP",
@@ -65,17 +65,16 @@ int ossl_cmp_msg_get_bodytype(const OSSL_CMP_MSG *msg)
 static int add1_extension(X509_EXTENSIONS **pexts, int nid, int crit, void *ex)
 {
     X509_EXTENSION *ext;
-    int res;
 
     if (!ossl_assert(pexts != NULL)) /* pointer to var must not be NULL */
         return 0;
 
-    if ((ext = X509V3_EXT_i2d(nid, crit, ex)) == NULL)
+    ext = X509V3_EXT_i2d(nid, crit, ex);
+    if (ext == NULL || !X509v3_add_ext(pexts, ext, 0)) {
+        X509_EXTENSION_free(ext);
         return 0;
-
-    res = X509v3_add_ext(pexts, ext, 0) != NULL;
-    X509_EXTENSION_free(ext);
-    return res;
+    }
+    return 1;
 }
 
 /* Add a CRL revocation reason code to extension stack, which may be NULL */
@@ -181,9 +180,8 @@ OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype)
     return NULL;
 }
 
-#define HAS_SAN(ctx) \
-    (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 \
-         || OSSL_CMP_CTX_reqExtensions_have_SAN(ctx) == 1)
+#define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 \
+    || OSSL_CMP_CTX_reqExtensions_have_SAN(ctx) == 1)
 
 static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
                                  int bodytype)
@@ -225,11 +223,11 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     if ((crm = OSSL_CRMF_MSG_new()) == NULL)
         return NULL;
     if (!OSSL_CRMF_MSG_set_certReqId(crm, rid)
-            /*
-             * fill certTemplate, corresponding to CertificationRequestInfo
-             * of PKCS#10. The rkey param cannot be NULL so far -
-             * it could be NULL if centralized key creation was supported
-             */
+        /*
+         * fill certTemplate, corresponding to CertificationRequestInfo
+         * of PKCS#10. The rkey param cannot be NULL so far -
+         * it could be NULL if centralized key creation was supported
+         */
             || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
                                             subject, ctx->issuer,
                                             NULL/* serial */))
@@ -286,16 +284,14 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
             goto err;
     }
 
-    goto end;
-
- err:
-    OSSL_CRMF_MSG_free(crm);
-    crm = NULL;
-
- end:
-    sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
     sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
     return crm;
+
+ err:
+    sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
+    sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
+    OSSL_CRMF_MSG_free(crm);
+    return NULL;
 }
 
 OSSL_CMP_MSG *ossl_cmp_certReq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
@@ -391,16 +387,16 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
         if (encrypted) {
             CMPerr(0, CMP_R_INVALID_ARGS);
             goto err;
+        } else {
+            if ((resp->certifiedKeyPair = OSSL_CMP_CERTIFIEDKEYPAIR_new())
+                == NULL)
+                goto err;
+            resp->certifiedKeyPair->certOrEncCert->type =
+                OSSL_CMP_CERTORENCCERT_CERTIFICATE;
+            if (!X509_up_ref(cert))
+                goto err;
+            resp->certifiedKeyPair->certOrEncCert->value.certificate = cert;
         }
-
-        if ((resp->certifiedKeyPair = OSSL_CMP_CERTIFIEDKEYPAIR_new())
-            == NULL)
-            goto err;
-        resp->certifiedKeyPair->certOrEncCert->type =
-            OSSL_CMP_CERTORENCCERT_CERTIFICATE;
-        if (!X509_up_ref(cert))
-            goto err;
-        resp->certifiedKeyPair->certOrEncCert->value.certificate = cert;
     }
 
     if (!sk_OSSL_CMP_CERTRESPONSE_push(repMsg->response, resp))
@@ -415,10 +411,10 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
             && !ossl_cmp_sk_X509_add1_certs(msg->extraCerts, chain, 0, 1, 0))
         goto err;
 
-    if (!unprotectedErrors
-            || ossl_cmp_pkisi_get_pkistatus(si) != OSSL_CMP_PKISTATUS_rejection)
-        if (!ossl_cmp_msg_protect(ctx, msg))
-            goto err;
+    if (!(unprotectedErrors
+            && ossl_cmp_pkisi_get_pkistatus(si) == OSSL_CMP_PKISTATUS_rejection)
+            && !ossl_cmp_msg_protect(ctx, msg))
+        goto err;
 
     return msg;
 
@@ -432,20 +428,30 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
 OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_MSG *msg = NULL;
-    OSSL_CMP_REVDETAILS *rd;
+    EVP_PKEY *pubkey = NULL;
+    OSSL_CMP_REVDETAILS *rd = NULL;
+    int ret;
 
     if (!ossl_assert(ctx != NULL && ctx->oldCert != NULL))
         return NULL;
 
-    if ((rd = OSSL_CMP_REVDETAILS_new()) == NULL)
+    if ((msg = ossl_cmp_msg_create(ctx, OSSL_CMP_PKIBODY_RR)) == NULL)
         goto err;
 
+    if ((rd = OSSL_CMP_REVDETAILS_new()) == NULL)
+        goto err;
+    sk_OSSL_CMP_REVDETAILS_push(msg->body->value.rr, rd);
+
     /* Fill the template from the contents of the certificate to be revoked */
-    if (!OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
-                                     NULL/* pubkey would be redundant */,
-                                     NULL/* subject would be redundant */,
-                                     X509_get_issuer_name(ctx->oldCert),
-                                     X509_get_serialNumber(ctx->oldCert)))
+    if ((pubkey = X509_get_pubkey(ctx->oldCert)) == NULL)
+        goto err;
+    ret = OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
+                                      NULL/* pubkey would be redundant */,
+                                      NULL/* subject would be redundant */,
+                                      X509_get_issuer_name(ctx->oldCert),
+                                      X509_get_serialNumber(ctx->oldCert));
+    EVP_PKEY_free(pubkey);
+    if (ret == 0)
         goto err;
 
     /* revocation reason code is optional */
@@ -453,13 +459,6 @@ OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx)
             && !add_crl_reason_extension(&rd->crlEntryDetails,
                                          ctx->revocationReason))
         goto err;
-
-    if ((msg = ossl_cmp_msg_create(ctx, OSSL_CMP_PKIBODY_RR)) == NULL)
-        goto err;
-
-    if (!sk_OSSL_CMP_REVDETAILS_push(msg->body->value.rr, rd))
-        goto err;
-    rd = NULL;
 
     /*
      * TODO: the Revocation Passphrase according to section 5.3.19.9 could be
@@ -474,7 +473,6 @@ OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx)
  err:
     CMPerr(0, CMP_R_ERROR_CREATING_RR);
     OSSL_CMP_MSG_free(msg);
-    OSSL_CMP_REVDETAILS_free(rd);
     return NULL;
 }
 
@@ -495,26 +493,18 @@ OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
 
     if ((si1 = OSSL_CMP_PKISI_dup(si)) == NULL)
         goto err;
-
-    if (!sk_OSSL_CMP_PKISI_push(rep->status, si1)) {
-        OSSL_CMP_PKISI_free(si1);
-        goto err;
-    }
+    sk_OSSL_CMP_PKISI_push(rep->status, si1);
 
     if ((rep->revCerts = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
         goto err;
     if ((cid_copy = OSSL_CRMF_CERTID_dup(cid)) == NULL)
         goto err;
-    if (!sk_OSSL_CRMF_CERTID_push(rep->revCerts, cid_copy)) {
-        OSSL_CRMF_CERTID_free(cid_copy);
+    sk_OSSL_CRMF_CERTID_push(rep->revCerts, cid_copy);
+
+    if (!(unprot_err
+            && ossl_cmp_pkisi_get_pkistatus(si) == OSSL_CMP_PKISTATUS_rejection)
+            && !ossl_cmp_msg_protect(ctx, msg))
         goto err;
-    }
-
-    if (!unprot_err
-            || ossl_cmp_pkisi_get_pkistatus(si) != OSSL_CMP_PKISTATUS_rejection)
-        if (!ossl_cmp_msg_protect(ctx, msg))
-            goto err;
-
     return msg;
 
  err:
@@ -569,8 +559,7 @@ int ossl_cmp_msg_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
         return 0;
 
     for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
-        if ((itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i))) == NULL)
-            return 0;
+        itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i));
         if (!ossl_cmp_msg_gen_push0_ITAV(msg, itav)) {
             OSSL_CMP_ITAV_free(itav);
             return 0;
@@ -593,8 +582,7 @@ static OSSL_CMP_MSG *gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
     if ((msg = ossl_cmp_msg_create(ctx, body_type)) == NULL)
         return NULL;
 
-    if (ctx->genm_ITAVs != NULL
-            && !ossl_cmp_msg_gen_push1_ITAVs(msg, ctx->genm_ITAVs))
+    if (ctx->genm_ITAVs && !ossl_cmp_msg_gen_push1_ITAVs(msg, ctx->genm_ITAVs))
         goto err;
 
     if (!ossl_cmp_msg_protect(ctx, msg))
@@ -632,20 +620,16 @@ OSSL_CMP_MSG *ossl_cmp_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
         goto err;
 
     OSSL_CMP_PKISI_free(msg->body->value.error->pKIStatusInfo);
-    if ((msg->body->value.error->pKIStatusInfo = OSSL_CMP_PKISI_dup(si))
-        == NULL)
-        goto err;
+    msg->body->value.error->pKIStatusInfo = OSSL_CMP_PKISI_dup(si);
     if (errorCode >= 0) {
-        if ((msg->body->value.error->errorCode = ASN1_INTEGER_new()) == NULL)
-            goto err;
+        msg->body->value.error->errorCode = ASN1_INTEGER_new();
         if (!ASN1_INTEGER_set(msg->body->value.error->errorCode, errorCode))
             goto err;
     }
     if (errorDetails != NULL)
-        if ((msg->body->value.error->errorDetails =
+        msg->body->value.error->errorDetails =
             sk_ASN1_UTF8STRING_deep_copy(errorDetails, ASN1_STRING_dup,
-                                         ASN1_STRING_free)) == NULL)
-            goto err;
+                                         ASN1_STRING_free);
 
     if (!unprotected && !ossl_cmp_msg_protect(ctx, msg))
         goto err;
@@ -726,8 +710,7 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
     if (!sk_OSSL_CMP_CERTSTATUS_push(msg->body->value.certConf, certStatus))
         goto err;
     /* set the ID of the certReq */
-    if (!ASN1_INTEGER_set(certStatus->certReqId, OSSL_CMP_CERTREQID))
-        goto err;
+    ASN1_INTEGER_set(certStatus->certReqId, OSSL_CMP_CERTREQID);
     /*
      * the hash of the certificate, using the same hash algorithm
      * as is used to create and verify the certificate signature
@@ -802,12 +785,9 @@ OSSL_CMP_MSG *ossl_cmp_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
         goto err;
     if ((prep = OSSL_CMP_POLLREP_new()) == NULL)
         goto err;
-    if (!sk_OSSL_CMP_POLLREP_push(msg->body->value.pollRep, prep))
-        goto err;
-    if (!ASN1_INTEGER_set(prep->certReqId, crid))
-        goto err;
-    if (!ASN1_INTEGER_set_int64(prep->checkAfter, poll_after))
-        goto err;
+    sk_OSSL_CMP_POLLREP_push(msg->body->value.pollRep, prep);
+    ASN1_INTEGER_set(prep->certReqId, crid);
+    ASN1_INTEGER_set_int64(prep->checkAfter, poll_after);
 
     if (!ossl_cmp_msg_protect(ctx, msg))
         goto err;
@@ -829,7 +809,7 @@ OSSL_CMP_MSG *ossl_cmp_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
 OSSL_CMP_PKISI *
 ossl_cmp_revrepcontent_get_pkistatusinfo(OSSL_CMP_REVREPCONTENT *rrep, int rsid)
 {
-    OSSL_CMP_PKISI *status;
+    OSSL_CMP_PKISI *status = NULL;
 
     if (!ossl_assert(rrep != NULL))
         return NULL;
@@ -865,18 +845,17 @@ ossl_cmp_revrepcontent_get_CertId(OSSL_CMP_REVREPCONTENT *rrep, int rsid)
 
 static int suitable_rid(const ASN1_INTEGER *certReqId, int rid)
 {
-    int trid;
-
-    if (rid == -1)
+    if (rid == -1) {
         return 1;
+    } else {
+        int trid = ossl_cmp_asn1_get_int(certReqId);
 
-    trid = ossl_cmp_asn1_get_int(certReqId);
-
-    if (trid == -1) {
-        CMPerr(0, CMP_R_BAD_REQUEST_ID);
-        return 0;
+        if (trid == -1) {
+            CMPerr(0, CMP_R_BAD_REQUEST_ID);
+            return 0;
+        }
+        return rid == trid;
     }
-    return rid == trid;
 }
 
 static void add_expected_rid(int rid)
