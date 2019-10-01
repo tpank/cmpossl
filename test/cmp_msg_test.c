@@ -30,34 +30,6 @@ typedef struct test_fixture {
 
 static unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
 
-static CMP_MSG_TEST_FIXTURE *set_up(const char *const test_case_name)
-{
-    CMP_MSG_TEST_FIXTURE *fixture;
-    int setup_ok = 0;
-
-    /* Allocate memory owned by the fixture, exit on error */
-    if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
-        goto err;
-    fixture->test_case_name = test_case_name;
-
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new())
-           || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                              OSSL_CMP_OPT_UNPROTECTED_SEND, 1))
-           || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
-                                                          sizeof(ref))))
-        goto err;
-
-    setup_ok = 1;
- err:
-    if (!setup_ok) {
-#ifndef OPENSSL_NO_STDIO
-        ERR_print_errors_fp(stderr);
-#endif
-        exit(EXIT_FAILURE);
-    }
-    return fixture;
-}
-
 static void tear_down(CMP_MSG_TEST_FIXTURE *fixture)
 {
     /* ERR_print_errors_fp(stderr);
@@ -66,6 +38,25 @@ static void tear_down(CMP_MSG_TEST_FIXTURE *fixture)
     OSSL_CMP_MSG_free(fixture->msg);
     OSSL_CMP_PKISI_free(fixture->si);
     OPENSSL_free(fixture);
+}
+
+static CMP_MSG_TEST_FIXTURE *set_up(const char *const test_case_name)
+{
+    CMP_MSG_TEST_FIXTURE *fixture;
+
+    if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
+        return NULL;
+    fixture->test_case_name = test_case_name;
+
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new())
+           || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
+                                              OSSL_CMP_OPT_UNPROTECTED_SEND, 1))
+           || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx, ref,
+                                                          sizeof(ref)))) {
+        tear_down(fixture);
+        return NULL;
+    }
+    return fixture;
 }
 
 static EVP_PKEY *newkey = NULL;
