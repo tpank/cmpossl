@@ -43,30 +43,6 @@ typedef struct test_fixture {
     int expected;
 } CMP_PROTECT_TEST_FIXTURE;
 
-static CMP_PROTECT_TEST_FIXTURE *set_up(const char *const test_case_name)
-{
-    CMP_PROTECT_TEST_FIXTURE *fixture;
-    int setup_ok = 0;
-
-    /* Allocate memory owned by the fixture, exit on error */
-    if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
-        goto err;
-    fixture->test_case_name = test_case_name;
-
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new()))
-        goto err;
-
-    setup_ok = 1;
- err:
-    if (!setup_ok) {
-#ifndef OPENSSL_NO_STDIO
-        ERR_print_errors_fp(stderr);
-#endif
-        exit(EXIT_FAILURE);
-    }
-    return fixture;
-}
-
 static void tear_down(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
     /* ERR_print_errors_fp(stderr);
@@ -83,6 +59,20 @@ static void tear_down(CMP_PROTECT_TEST_FIXTURE *fixture)
     sk_X509_free(fixture->chain);
 
     OPENSSL_free(fixture);
+}
+
+static CMP_PROTECT_TEST_FIXTURE *set_up(const char *const test_case_name)
+{
+    CMP_PROTECT_TEST_FIXTURE *fixture;
+
+    if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
+        return NULL;
+    fixture->test_case_name = test_case_name;
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new())) {
+        tear_down(fixture);
+        return NULL;
+    }
+    return fixture;
 }
 
 static EVP_PKEY *loadedprivkey = NULL;
@@ -483,6 +473,7 @@ void cleanup_tests(void)
 
 int setup_tests(void)
 {
+    RAND_bytes(rand_data, OSSL_CMP_TRANSACTIONID_LENGTH);
     if (!TEST_ptr(server_f = test_get_argument(0))
             || !TEST_ptr(ir_protected_f = test_get_argument(1))
             || !TEST_ptr(ir_unprotected_f = test_get_argument(2))
