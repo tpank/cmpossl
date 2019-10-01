@@ -569,6 +569,8 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
 {
     OSSL_CMP_MSG *srv_req = NULL, *srv_rsp = NULL;
     OSSL_CMP_SRV_CTX *srv_ctx = NULL;
+    OSSL_CMP_PKISI *si = NULL;
+    OSSL_CMP_PKIFREETEXT *details = NULL;
     int error = 0;
 
     if (cmp_ctx == NULL || req == NULL || rsp == NULL)
@@ -578,44 +580,47 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
     if ((srv_ctx = OSSL_CMP_CTX_get_transfer_cb_arg(cmp_ctx)) == NULL)
         return CMP_R_ERROR_TRANSFERRING_OUT;
 
-    /* OSSL_CMP_MSG_dup en- and decodes ASN.1, used for checking encoding */
-    if ((srv_req = OSSL_CMP_MSG_dup(req)) == NULL)
+    /* OSSL_CMP_MSG_dup encodes and decodes ASN.1, used for checking encoding */
+    if ((srv_req = OSSL_CMP_MSG_dup(req)) == NULL) {
         error = CMP_R_ERROR_DECODING_MESSAGE;
+        goto end;
+    }
 
-    if (process_request(srv_ctx, srv_req, &srv_rsp) == 0) {
-        OSSL_CMP_PKISI *si;
+    if (!process_request(srv_ctx, srv_req, &srv_rsp)) {
         const char *data;
         int flags = 0;
         unsigned long err = ERR_peek_error_data(&data, &flags);
 
+        error = CMP_R_ERROR_PROCESSING_MSG;
         if ((si = ossl_cmp_statusinfo_new(OSSL_CMP_PKISTATUS_rejection,
-                                     /* TODO make failure bits more specific */
-                                          1 << OSSL_CMP_PKIFAILUREINFO_badRequest,
-                                          NULL))) {
-            OSSL_CMP_PKIFREETEXT *details =
-                ossl_cmp_pkifreetext_push_str(NULL,
-                                             (flags & ERR_TXT_STRING) != 0
-                                             ? data : NULL);
-            srv_rsp = ossl_cmp_error_new(cmp_ctx, si,
-                                         err != 0 ? ERR_GET_REASON(err) : -1,
-                                         details,
-                                         srv_ctx->sendUnprotectedErrors);
-            OSSL_CMP_PKISI_free(si);
-        } else {
-            error = CMP_R_ERROR_PROCESSING_MSG;
-        }
-        goto end;
+                                          1<<OSSL_CMP_PKIFAILUREINFO_badRequest,
+                         /* TODO failure bit(s) may be could be more specific */
+                                          NULL)) == NULL)
+            goto end;
+        if ((details = sk_ASN1_UTF8STRING_new_null()) == NULL)
+            goto end;
+        if (err != 0 && (flags & ERR_TXT_STRING) != 0 && data != NULL
+                && !ossl_cmp_pkifreetext_push_str(details, data))
+                goto end;
+        srv_rsp = ossl_cmp_error_new(cmp_ctx, si,
+                                     err != 0 ? ERR_GET_REASON(err) : -1,
+                                     details, srv_ctx->sendUnprotectedErrors);
+        if (srv_rsp == NULL)
+            goto end;
+        error = 0; /* no internal error, but CMP error reported to client */
     }
 
-    /* OSSL_CMP_MSG_dup en- and decodes ASN.1, used for checking encoding */
+    /* OSSL_CMP_MSG_dup encodes and decodes ASN.1, used for checking encoding */
     if ((*rsp = OSSL_CMP_MSG_dup(srv_rsp)) == NULL) {
         error = CMP_R_ERROR_DECODING_MESSAGE;
         goto end;
     }
 
  end:
+    sk_ASN1_UTF8STRING_pop_free(details, ASN1_UTF8STRING_free);
     OSSL_CMP_MSG_free(srv_req);
     OSSL_CMP_MSG_free(srv_rsp);
+    OSSL_CMP_PKISI_free(si);
 
     return error;
 }

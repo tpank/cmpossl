@@ -53,11 +53,9 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
     CMP_SES_TEST_FIXTURE *fixture;
     OSSL_CMP_CTX *srv_cmp_ctx = NULL;
     OSSL_CMP_CTX *ctx = NULL; /* for client */
-    int setup_ok = 0;
 
-    /* Allocate memory owned by the fixture, exit on error */
     if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
-        goto err;
+        return NULL;
     fixture->test_case_name = test_case_name;
     if (!TEST_ptr(fixture->srv_ctx = OSSL_CMP_SRV_CTX_new())
             || !TEST_true(OSSL_CMP_SRV_CTX_set_accept_unprotected(
@@ -69,7 +67,6 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
             || !TEST_true(OSSL_CMP_CTX_set1_clCert(srv_cmp_ctx, server_cert))
             || !TEST_true(OSSL_CMP_CTX_set1_pkey(srv_cmp_ctx, server_key)))
         goto err;
-
     if (!TEST_ptr(fixture->cmp_ctx = ctx = OSSL_CMP_CTX_new())
             || !TEST_true(OSSL_CMP_CTX_set_transfer_cb(ctx,
                                                   OSSL_CMP_mock_server_perform))
@@ -85,19 +82,12 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
             || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(ctx,
                                                            ref, sizeof(ref))))
         goto err;
-
     fixture->exec_cert_ses_cb = NULL;
-    setup_ok = 1;
- err:
-    if (!setup_ok) {
-        if (fixture != NULL)
-            tear_down(fixture);
-#ifndef OPENSSL_NO_STDIO
-        ERR_print_errors_fp(stderr);
-#endif
-        exit(EXIT_FAILURE);
-    }
     return fixture;
+
+ err:
+    tear_down(fixture);
+    return NULL;
 }
 
 static int execute_exec_RR_ses_test(CMP_SES_TEST_FIXTURE *fixture)
