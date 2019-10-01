@@ -338,10 +338,11 @@ int OSSL_CMP_CTX_set1_senderNonce(OSSL_CMP_CTX *ctx,
                                   const ASN1_OCTET_STRING *nonce);
 
 /* from cmp_status.c */
-char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize);
+char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf,
+                                     size_t bufsize);
 
 /* from cmp_hdr.c */
-/* exported for testing and debugging purposes: */
+/* support application-level CMP debugging in cmp.c: */
 ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr);
 ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
 
@@ -352,7 +353,7 @@ ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
                          d2i_OSSL_CMP_MSG, bp, p)
 #  define OSSL_i2d_CMP_MSG_bio(bp, o) \
          ASN1_i2d_bio_of(OSSL_CMP_MSG, i2d_OSSL_CMP_MSG, bp, o)
-/* exported for testing and debugging purposes: */
+/* support application-level CMP debugging in cmp.c: */
 OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
 
 /* from cmp_vfy.c */

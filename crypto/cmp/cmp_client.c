@@ -171,11 +171,11 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         ERR_add_error_data(3, "message type is '", bt_string, "'");
     } else {
         char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
-        int len = OSSL_CMP_PKISI_BUFLEN;
         OSSL_CMP_PKISI *si = (*rep)->body->value.error->pKIStatusInfo;
 
         if (save_statusInfo(ctx, si) && buf != NULL
-                && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf, len) != NULL)
+                && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf,
+                                                  OSSL_CMP_PKISI_BUFLEN) != NULL)
             ERR_add_error_data(1, buf);
         OPENSSL_free(buf);
     }
