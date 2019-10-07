@@ -2,150 +2,150 @@
 
 =head1 NAME
 
-cmp - client for the Certificate Management Protocol (RFC4210)
+openssl-cmp - client for the Certificate Management Protocol (RFC4210)
 
 =head1 SYNOPSIS
 
 B<openssl> B<cmp>
-S<[B<-help>]>
-S<[B<-config> I<filename>]>
-S<[B<-section> I<names>]>
+[B<-help>]
+[B<-config> I<filename>]
+[B<-section> I<names>]
 
-S<[B<-server> I<address[:port]>]>
-S<[B<-proxy> I<address[:port]>]>
-S<[B<-path> I<remote_path>]>
-S<[B<-msgtimeout> I<seconds>]>
-S<[B<-totaltimeout> I<seconds>]>
+[B<-server> I<address[:port]]
+[B<-proxy> I<address[:port]]
+[B<-path> I<remote_path>]
+[B<-msgtimeout> I<seconds>]
+[B<-totaltimeout> I<seconds>]
 
-S<[B<-trusted> I<filenames>]>
-S<[B<-untrusted> I<sources>]>
-S<[B<-srvcert> I<filename>]>
-S<[B<-recipient> I<name>]>
-S<[B<-expect_sender> I<name>]>
-S<[B<-ignore_keyusage>]>
-S<[B<-unprotectederrors>]>
-S<[B<-extracertsout> I<filename>]>
-S<[B<-cacertsout> I<filename>]>
+[B<-trusted> I<filenames>]
+[B<-untrusted> I<sources>]
+[B<-srvcert> I<filename>]
+[B<-recipient> I<name>]
+[B<-expect_sender> I<name>]
+[B<-ignore_keyusage>]
+[B<-unprotectederrors>]
+[B<-extracertsout> I<filename>]
+[B<-cacertsout> I<filename>]
 
-S<[B<-ref> I<value>]>
-S<[B<-secret> I<arg>]>
-S<[B<-cert> I<filename>]>
-S<[B<-key> I<filename>]>
-S<[B<-keypass> I<arg>]>
-S<[B<-digest> I<name>]>
-S<[B<-mac> I<name>]>
-S<[B<-extracerts> I<sources>]>
-S<[B<-unprotectedrequests>]>
+[B<-ref> I<value>]
+[B<-secret> I<arg>]
+[B<-cert> I<filename>]
+[B<-key> I<filename>]
+[B<-keypass> I<arg>]
+[B<-digest> I<name>]
+[B<-mac> I<name>]
+[B<-extracerts> I<sources>]
+[B<-unprotectedrequests>]
 
-S<[B<-cmd> I<ir|cr|kur|p10cr|rr|genm>]>
-S<[B<-infotype> I<name>]>
-S<[B<-geninfo> I<OID:int:N>]>
+[B<-cmd> I<ir|cr|kur|p10cr|rr|genm>]
+[B<-infotype> I<name>]
+[B<-geninfo> I<OID:int:N>]
 
-S<[B<-newkey> I<filename>]>
-S<[B<-newkeypass> I<arg>]>
-S<[B<-subject> I<name>]>
-S<[B<-issuer> I<name>]>
-S<[B<-days> I<number>]>
-S<[B<-reqexts> I<name>]>
-S<[B<-sans> I<spec>]>
-S<[B<-san_nodefault>]>
-S<[B<-policies> I<names>]>
-S<[B<-policies_critical>]>
-S<[B<-popo> I<number>]>
-S<[B<-csr> I<filename>]>
-S<[B<-out_trusted> I<filenames>]>
-S<[B<-verify_hostname> I<cn>]>
-S<[B<-verify_ip> I<ip>]>
-S<[B<-verify_email> I<email>]>
-S<[B<-implicitconfirm>]>
-S<[B<-disableconfirm>]>
-S<[B<-certout> I<filename>]>
+[B<-newkey> I<filename>]
+[B<-newkeypass> I<arg>]
+[B<-subject> I<name>]
+[B<-issuer> I<name>]
+[B<-days> I<number>]
+[B<-reqexts> I<name>]
+[B<-sans> I<spec>]
+[B<-san_nodefault>]
+[B<-policies> I<names>]
+[B<-policies_critical>]
+[B<-popo> I<number>]
+[B<-csr> I<filename>]
+[B<-out_trusted> I<filenames>]
+[B<-verify_hostname> I<cn>]
+[B<-verify_ip> I<ip>]
+[B<-verify_email> I<email>]
+[B<-implicitconfirm>]
+[B<-disableconfirm>]
+[B<-certout> I<filename>]
 
-S<[B<-oldcert> I<filename>]>
-S<[B<-revreason> I<number>]>
+[B<-oldcert> I<filename>]
+[B<-revreason> I<number>]
 
-S<[B<-ownform> I<PEM|DER|P12>]>
-S<[B<-keyform> I<PEM|DER|P12>]>
-S<[B<-crlform> I<PEM|DER>]>
-S<[B<-otherform> I<PEM|DER|P12>]>
-S<[B<-otherpass> I<arg>]>
-S<[B<-engine> I<id>]>
+[B<-ownform> I<PEM|DER|P12>]
+[B<-keyform> I<PEM|DER|P12>]
+[B<-crlform> I<PEM|DER>]
+[B<-otherform> I<PEM|DER|P12>]
+[B<-otherpass> I<arg>]
+[B<-engine> I<id>]
 
-S<[B<-tls_used>]>
-S<[B<-tls_cert> I<filename>]>
-S<[B<-tls_key> I<filename>]>
-S<[B<-tls_keypass> I<arg>]>
-S<[B<-tls_extra> I<filenames>]>
-S<[B<-tls_trusted> I<filenames>]>
-S<[B<-tls_host> I<name>]>
+[B<-tls_used>]
+[B<-tls_cert> I<filename>]
+[B<-tls_key> I<filename>]
+[B<-tls_keypass> I<arg>]
+[B<-tls_extra> I<filenames>]
+[B<-tls_trusted> I<filenames>]
+[B<-tls_host> I<name>]
 
-S<[B<-batch>]>
-S<[B<-repeat>]>
-S<[B<-reqin>]>
-S<[B<-reqout>]>
-S<[B<-rspin>]>
-S<[B<-rspout>]>
+[B<-batch>]
+[B<-repeat>]
+[B<-reqin>]
+[B<-reqout>]
+[B<-rspin>]
+[B<-rspout>]
 
-S<[B<-crl_check>]>
-S<[B<-crl_check_all>]>
-S<[B<-crl_download>]>
-S<[B<-crls> I<URLs>]>
-S<[B<-crl_timeout>]>
-S<[B<-ocsp_check_all>]>
-S<[B<-ocsp_use_aia>]>
-S<[B<-ocsp_url> I<url>]>
-S<[B<-ocsp_timeout> I<seconds>]>
-S<[B<-ocsp_status>]>
-S<[B<-policy> I<arg>]>
-S<[B<-purpose> I<purpose>]>
-S<[B<-verify_name> I<name>]>
-S<[B<-verify_depth> I<num>]>
-S<[B<-auth_level> I<level>]>
-S<[B<-attime> I<timestamp>]>
-S<[B<-ignore_critical>]>
-S<[B<-issuer_checks>]>
-S<[B<-policy_check>]>
-S<[B<-explicit_policy>]>
-S<[B<-inhibit_any>]>
-S<[B<-inhibit_map>]>
-S<[B<-x509_strict>]>
-S<[B<-extended_crl>]>
-S<[B<-use_deltas>]>
-S<[B<-policy_print>]>
-S<[B<-check_ss_sig>]>
-S<[B<-trusted_first>]>
-S<[B<-suiteB_128_only>]>
-S<[B<-suiteB_128>]>
-S<[B<-suiteB_192>]>
-S<[B<-partial_chain>]>
-S<[B<-no_alt_chains>]>
-S<[B<-no_check_time>]>
-S<[B<-allow_proxy_certs>]>
+[B<-crl_check>]
+[B<-crl_check_all>]
+[B<-crl_download>]
+[B<-crls> I<URLs>]
+[B<-crl_timeout>]
+[B<-ocsp_check_all>]
+[B<-ocsp_use_aia>]
+[B<-ocsp_url> I<url>]
+[B<-ocsp_timeout> I<seconds>]
+[B<-ocsp_status>]
+[B<-policy> I<arg>]
+[B<-purpose> I<purpose>]
+[B<-verify_name> I<name>]
+[B<-verify_depth> I<num>]
+[B<-auth_level> I<level>]
+[B<-attime> I<timestamp>]
+[B<-ignore_critical>]
+[B<-issuer_checks>]
+[B<-policy_check>]
+[B<-explicit_policy>]
+[B<-inhibit_any>]
+[B<-inhibit_map>]
+[B<-x509_strict>]
+[B<-extended_crl>]
+[B<-use_deltas>]
+[B<-policy_print>]
+[B<-check_ss_sig>]
+[B<-trusted_first>]
+[B<-suiteB_128_only>]
+[B<-suiteB_128>]
+[B<-suiteB_192>]
+[B<-partial_chain>]
+[B<-no_alt_chains>]
+[B<-no_check_time>]
+[B<-allow_proxy_certs>]
 
-S<[B<-mock_srv>]>
-S<[B<-srv_ref>]>
-S<[B<-srv_secret>]>
-S<[B<-srv_cert>]>
-S<[B<-srv_key>]>
-S<[B<-srv_keypass>]>
-S<[B<-srv_trusted>]>
-S<[B<-srv_untrusted>]>
-S<[B<-rsp_cert>]>
-S<[B<-rsp_extracerts>]>
-S<[B<-rsp_capubs>]>
-S<[B<-poll_count>]>
-S<[B<-checkafter>]>
-S<[B<-grant_implicitconf>]>
-S<[B<-pkistatus>]>
-S<[B<-failure>]>
-S<[B<-failurebits>]>
-S<[B<-statusstring>]>
-S<[B<-send_error>]>
-S<[B<-send_unprotected>]>
-S<[B<-send_unprot_err>]>
-S<[B<-accept_unprotected>]>
-S<[B<-accept_unprot_err>]>
-S<[B<-accept_raverified>]>
+[B<-mock_srv>]
+[B<-srv_ref>]
+[B<-srv_secret>]
+[B<-srv_cert>]
+[B<-srv_key>]
+[B<-srv_keypass>]
+[B<-srv_trusted>]
+[B<-srv_untrusted>]
+[B<-rsp_cert>]
+[B<-rsp_extracerts>]
+[B<-rsp_capubs>]
+[B<-poll_count>]
+[B<-checkafter>]
+[B<-grant_implicitconf>]
+[B<-pkistatus>]
+[B<-failure>]
+[B<-failurebits>]
+[B<-statusstring>]
+[B<-send_error>]
+[B<-send_unprotected>]
+[B<-send_unprot_err>]
+[B<-accept_unprotected>]
+[B<-accept_unprot_err>]
+[B<-accept_raverified>]
 
 =head1 DESCRIPTION
 
@@ -173,7 +173,7 @@ Section(s) to use within config file defining CMP options.
 An empty string C<""> means no specific section. Default is C<cmp>.
 Multiple section names may be given, separated by commas or whitespace.
 Contents of sections named later may override contents of sections named before.
-In any case, as usual, the S<C<[default]>> section and finally the unnamed
+In any case, as usual, the C<[default]> section and finally the unnamed
 section (as far as present) can provide per-option fallback values.
 
 =back
@@ -670,8 +670,8 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-engine> I<id>
 
-Specifying an crypto engine B<id> will cause L<cmp(1)> to obtain a functional
-reference to the specified engine, thus initializing it if needed. The engine
+Specifying a crypto engine B<id> will lead to obtaining a functional
+reference to the specified engine, initializing it if needed. The engine
 will be used for all algorithms supported for keys prefixed by C<engine:>.
 Engines may be defined in the OpenSSL config file as usual in an engine section.
 
@@ -679,7 +679,7 @@ Options specifying keys, like B<-key>, B<-newkey>, B<-tls_key> can prefix
 C<engine:> to engine-specific identifiers for security tokens objects held by
 the engine. The following example utilizes the RFC 7512 PKCS #11 URI scheme as
 supported e.g. by libp11:
-S<C<-key engine:pkcs11:object=my-private-key;type=private;pin-value=1234>>
+C<-key engine:pkcs11:object=my-private-key;type=private;pin-value=1234>
 
 =back
 
@@ -799,7 +799,7 @@ Compare B<X509_V_FLAG_CRL_CHECK>.
 
 Use given CRL(s) as secondary source of certificate revocation information. The
 URLs argument may be a single element or a comma- or whitespace-separated list,
-each element starting with C<http:> or C<file:> or being a file (path) name.
+each element starting with C<http:> or C<file:> or being a filename or pathname.
 
 This option enables CRL checking for, e.g., the CMP/TLS server certificate
 as it is the leaf certificate of the certificate chain.
@@ -845,7 +845,7 @@ B<-trusted_first>, B<-suiteB_128_only>, B<-suiteB_128>, B<-suiteB_192>,
 B<-partial_chain>, B<-no_alt_chains>, B<-no_check_time>, B<-allow_proxy_certs>
 
 Set various certificate chain validation options.
-See the L<verify(1)> manual page for details.
+See the L<openssl-verify(1)> manual page for details.
 
 =back
 
@@ -1054,7 +1054,8 @@ Making use of the configuration file sectins given above, this call reduces to
 
 =head1 SEE ALSO
 
-L<genrsa(1)>, L<list(1)>, L<x509(1)>, L<x509v3_config(5)>
+L<openssl-genrsa(1)>, L<openssl-ecparam(1)>, L<openssl-list(1)>,
+L<openssl-req(1)>, L<openssl-x509(1)>, L<x509v3_config(5)>
 
 =head1 COPYRIGHT
 
