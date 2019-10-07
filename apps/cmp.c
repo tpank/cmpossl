@@ -3580,15 +3580,17 @@ static int conf_get_number_e(const CONF *conf_, const char *groups,
                              const char *name, long *result)
 {
     char *str = conf_get_string(conf_, groups, name);
+    char *tailptr;
+    long res;
 
-    if (str == NULL || result == NULL)
+    if (str == NULL || *str == '\0')
         return 0;
 
-    for (*result = 0; conf_->meth->is_number(conf_, *str);) {
-        *result = (*result) * 10 + conf_->meth->to_int(conf_, *str);
-        str++;
-    }
+    res = strtol(str, &tailptr, 10);
+    if (res == LONG_MIN || res == LONG_MAX || *tailptr != '\0')
+        return 0;
 
+    *result = res;
     return 1;
 }
 
