@@ -56,6 +56,21 @@ struct OSSL_cmp_srv_ctx_st {
 
 } /* OSSL_CMP_SRV_CTX */ ;
 
+void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx)
+{
+    if (srv_ctx == NULL)
+        return;
+
+    X509_free(srv_ctx->certOut);
+    sk_X509_pop_free(srv_ctx->chainOut, X509_free);
+    sk_X509_pop_free(srv_ctx->caPubsOut, X509_free);
+    OSSL_CMP_PKISI_free(srv_ctx->pkiStatusOut);
+    OSSL_CMP_MSG_free(srv_ctx->certReq);
+    OSSL_CMP_CTX_free(srv_ctx->ctx);
+    OPENSSL_free(srv_ctx);
+}
+
+/* TODO Akretsch: internalize this function and potentially also others */
 OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx)
 {
     if (srv_ctx == NULL) {
@@ -629,7 +644,8 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
  * creates and initializes a OSSL_CMP_SRV_CTX structure
  * returns pointer to created CMP_SRV_ on success, NULL on error
  */
-OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void) /* TODO rename to _new */
+/* This declaration is here to avoid forward declarations of many functions */
+OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void)
 {
     OSSL_CMP_SRV_CTX *ctx = OPENSSL_zalloc(sizeof(OSSL_CMP_SRV_CTX));
 
@@ -660,18 +676,4 @@ OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void) /* TODO rename to _new */
  err:
     OSSL_CMP_SRV_CTX_free(ctx);
     return NULL;
-}
-
-void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx) /* TODO rename to _free */
-{
-    if (srv_ctx == NULL)
-        return;
-
-    X509_free(srv_ctx->certOut);
-    sk_X509_pop_free(srv_ctx->chainOut, X509_free);
-    sk_X509_pop_free(srv_ctx->caPubsOut, X509_free);
-    OSSL_CMP_PKISI_free(srv_ctx->pkiStatusOut);
-    OSSL_CMP_MSG_free(srv_ctx->certReq);
-    OSSL_CMP_CTX_free(srv_ctx->ctx);
-    OPENSSL_free(srv_ctx);
 }
