@@ -28,7 +28,7 @@ EJBCA,Insta,description, -section,val, -server,val, -proxy,val, -path,val, -msgt
 -,1,proxy no port, -section,, -server,_SERVER_CN:_SERVER_PORT, -proxy,127.0.0.1,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 -,1,proxy empty, -section,, -server,_SERVER_CN:_SERVER_PORT, -proxy,,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
-TODO, -,path includes additional '/'s, -section,,,,,, -path,/ejbca/publicweb/cmp/////ECCEndEntity,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
+-, -,path includes additional '/'s - not relevant according to RFC 3986, -section,,,,,, -path,/ejbca/publicweb/cmp/////ECCEndEntity,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 -,0,path includes additional '/'s, -section,,,,,, -path,/pkix////,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
 1,TODO,path lower case, -section,,,,,, -path,/ejbca/publicweb/cmp/eccendentity,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
