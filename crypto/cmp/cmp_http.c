@@ -484,7 +484,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     server_path = ctx->serverPath == NULL ? "" : ctx->serverPath;
     pathlen = strlen(ctx->serverName) + strlen(server_path) + 33;
-    path = (char *)OPENSSL_malloc(pathlen);
+    path = OPENSSL_malloc(pathlen);
     if (path == NULL)
         goto err;
 
