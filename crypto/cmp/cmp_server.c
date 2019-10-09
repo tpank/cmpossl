@@ -208,30 +208,6 @@ int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx,
     return 1;
 }
 
-static int cmp_verify_popo(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *msg)
-{
-    if (srv_ctx == NULL || msg == NULL || msg->body == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
-
-    if (msg->body->type == OSSL_CMP_PKIBODY_P10CR) {
-        X509_REQ *req = msg->body->value.p10cr;
-        if (X509_REQ_verify(req, X509_REQ_get0_pubkey(req)) > 0)
-            return 1;
-        CMPerr(0, CMP_R_REQUEST_NOT_ACCEPTED);
-        return 0;
-    }
-
-    return OSSL_CRMF_MSGS_verify_popo(msg->body->value.ir,
-                                      OSSL_CMP_CERTREQID,
-                                      srv_ctx->acceptRAVerified);
-    /*
-     * TODO when implemented in CMP_certrep_new():
-     * in case OSSL_CRMF_POPO_KEYENC, set srv_ctx->encryptcert = 1
-     */
-}
-
 /*
  * Processes an ir/cr/p10cr/kur and returns a certification response.
  * Only handles the first certification request contained in certReq
@@ -278,7 +254,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         srv_ctx->certReqId = OSSL_CRMF_MSG_get_certReqId(crm);
     }
 
-    if (!cmp_verify_popo(srv_ctx, certReq)) {
+    if (!ossl_cmp_verify_popo(certReq, srv_ctx->acceptRAVerified)) {
         /* Proof of possession could not be verified */
         if ((si = ossl_cmp_statusinfo_new(OSSL_CMP_PKISTATUS_rejection,
                                           1 << OSSL_CMP_PKIFAILUREINFO_badPOP,
@@ -293,6 +269,10 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         if ((srv_ctx->certReq = OSSL_CMP_MSG_dup(certReq)) == NULL)
             goto err;
     } else {
+        /*
+         * TODO when implemented in CMP_certrep_new():
+         * in case OSSL_CRMF_POPO_KEYENC, set srv_ctx->encryptcert = 1
+         */
         certOut = srv_ctx->certOut;
         chainOut = srv_ctx->chainOut;
         caPubs = srv_ctx->caPubsOut;

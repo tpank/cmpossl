@@ -845,3 +845,21 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     }
     return rcvd_type;
 }
+
+/* TODO Akretsch: maybe add internal doc and test? */
+int ossl_cmp_verify_popo(const OSSL_CMP_MSG *msg, int accept_RAVerified)
+{
+    if (!ossl_assert(msg != NULL && msg->body != NULL))
+        return 0;
+
+    if (msg->body->type == OSSL_CMP_PKIBODY_P10CR) {
+        X509_REQ *req = msg->body->value.p10cr;
+        if (X509_REQ_verify(req, X509_REQ_get0_pubkey(req)) > 0)
+            return 1;
+        CMPerr(0, CMP_R_REQUEST_NOT_ACCEPTED);
+        return 0;
+    }
+
+    return OSSL_CRMF_MSGS_verify_popo(msg->body->value.ir,
+                                      OSSL_CMP_CERTREQID, accept_RAVerified);
+}
