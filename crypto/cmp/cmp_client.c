@@ -86,7 +86,40 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
 }
 
 
-static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si);
+/* Save error info from PKIStatusInfo field of a certresponse into ctx */
+static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
+{
+    int i;
+    OSSL_CMP_PKIFREETEXT *ss;
+
+    if (ctx == NULL || si == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
+    if ((ctx->status = ossl_cmp_pkisi_get_pkistatus(si)) < 0)
+        return 0;
+
+    ctx->failInfoCode = 0;
+    if (si->failInfo != NULL) {
+        for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++) {
+            if (ASN1_BIT_STRING_get_bit(si->failInfo, i))
+                ctx->failInfoCode |= (1 << i);
+        }
+    }
+
+    if (!ossl_cmp_ctx_set0_statusString(ctx, sk_ASN1_UTF8STRING_new_null())
+            || (ctx->statusString == NULL))
+        return 0;
+
+    ss = si->statusString; /* may be NULL */
+    for (i = 0; i < sk_ASN1_UTF8STRING_num(ss); i++) {
+        ASN1_UTF8STRING *str = sk_ASN1_UTF8STRING_value(ss, i);
+
+        if (!sk_ASN1_UTF8STRING_push(ctx->statusString, ASN1_STRING_dup(str)))
+            return 0;
+    }
+    return 1;
+}
 
 /*
  * Perform the generic aspects of sending a request and receiving a response
@@ -334,41 +367,6 @@ int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
     OSSL_CMP_PKISI_free(si);
     OSSL_CMP_MSG_free(PKIconf);
     return success;
-}
-
-/* Save error info from PKIStatusInfo field of a certresponse into ctx */
-static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
-{
-    int i;
-    OSSL_CMP_PKIFREETEXT *ss;
-
-    if (ctx == NULL || si == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
-    if ((ctx->status = ossl_cmp_pkisi_get_pkistatus(si)) < 0)
-        return 0;
-
-    ctx->failInfoCode = 0;
-    if (si->failInfo != NULL) {
-        for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++) {
-            if (ASN1_BIT_STRING_get_bit(si->failInfo, i))
-                ctx->failInfoCode |= (1 << i);
-        }
-    }
-
-    if (!ossl_cmp_ctx_set0_statusString(ctx, sk_ASN1_UTF8STRING_new_null())
-            || (ctx->statusString == NULL))
-        return 0;
-
-    ss = si->statusString; /* may be NULL */
-    for (i = 0; i < sk_ASN1_UTF8STRING_num(ss); i++) {
-        ASN1_UTF8STRING *str = sk_ASN1_UTF8STRING_value(ss, i);
-
-        if (!sk_ASN1_UTF8STRING_push(ctx->statusString, ASN1_STRING_dup(str)))
-            return 0;
-    }
-    return 1;
 }
 
 /*
