@@ -43,17 +43,17 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
     unsigned char *prot_part_der = NULL;
     size_t sig_len;
     unsigned char *protection = NULL;
-
     const void *ppval = NULL;
     int pptype = 0;
-
     OSSL_CRMF_PBMPARAMETER *pbm = NULL;
     ASN1_STRING *pbm_str = NULL;
     const unsigned char *pbm_str_uc = NULL;
-
     EVP_MD_CTX *evp_ctx = NULL;
     int md_NID;
     const EVP_MD *md = NULL;
+
+    if (!ossl_assert(msg != NULL))
+        return NULL;
 
     /* construct data to be signed */
     prot_part.header = msg->header;
@@ -120,7 +120,6 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
     if (prot == NULL)
         CMPerr(0, CMP_R_ERROR_CALCULATING_PROTECTION);
  end:
-    /* cleanup */
     OSSL_CRMF_PBMPARAMETER_free(pbm);
     EVP_MD_CTX_destroy(evp_ctx);
     OPENSSL_free(protection);
@@ -182,6 +181,9 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
     int pbm_der_len;
     ASN1_STRING *pbm_str = NULL;
 
+    if (!ossl_assert(ctx != NULL))
+        return NULL;
+
     if ((alg = X509_ALGOR_new()) == NULL)
         goto err;
     if ((pbm = OSSL_CRMF_pbmp_new(ctx->pbm_slen, ctx->pbm_owf,
@@ -195,12 +197,10 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
 
     if (!ASN1_STRING_set(pbm_str, pbm_der, pbm_der_len))
         goto err;
-
     OPENSSL_free(pbm_der);
 
     X509_ALGOR_set0(alg, OBJ_nid2obj(NID_id_PasswordBasedMAC),
                     V_ASN1_SEQUENCE, pbm_str);
-
     OSSL_CRMF_PBMPARAMETER_free(pbm);
     return alg;
 
@@ -217,6 +217,7 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
+
     if (ctx->unprotectedSend)
         return 1;
 
