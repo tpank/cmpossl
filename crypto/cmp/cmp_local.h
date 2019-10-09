@@ -841,17 +841,4 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
 int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 
-/* from cmp_vfy.c */
-typedef int (*ossl_cmp_allow_unprotected_cb_t)(const OSSL_CMP_CTX *ctx,
-                                               const OSSL_CMP_MSG *msg,
-                                               int invalid_protection, int arg);
-int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-                                ossl_cmp_allow_unprotected_cb_t cb, int cb_arg);
-
-/* from cmp_client.c */
-int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
-                               const char *txt);
-int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
-                            const char *txt);
-
 #endif /* !defined OSSL_CRYPTO_CMP_LOCAL_H */
