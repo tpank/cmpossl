@@ -26,7 +26,7 @@ TBD,TBD,config default all set, -section,, -cmd,ir,, -cacertsout,test.cacerts.cr
 ,,,,,,,,,,,,,,,,,
 ,,rr,,,,,,,,,,,,,,,
 0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
-0,0,rr command, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem,BLANK,
+1,0,rr command, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem,BLANK,
 0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 0,0,revreason unspecified, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,0
 0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
@@ -48,7 +48,7 @@ TBD,TBD,config default all set, -section,, -cmd,ir,, -cacertsout,test.cacerts.cr
 0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 0,0,revreason AACompromise, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,10
 0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
-0,0,revreason none, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,-1
+1,0,revreason none, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,-1
 0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 1,1,without oldcert, -section,, -cmd,rr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 1,1,oldcert is directory, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,,BLANK,
