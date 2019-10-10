@@ -131,10 +131,9 @@ int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     int res = 1;
 
-    if (ctx == NULL || msg == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && msg != NULL))
         return 0;
-    }
+
     if (msg->extraCerts == NULL
             && (msg->extraCerts = sk_X509_new_null()) == NULL)
         return 0;
@@ -213,10 +212,8 @@ static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
 
 int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
-    if (ctx == NULL || msg == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && msg != NULL))
         return 0;
-    }
 
     if (ctx->unprotectedSend)
         return 1;

@@ -379,12 +379,13 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
 {
     char *buf = NULL;
     X509 *crt = NULL;
+    EVP_PKEY *privkey = NULL;
 
     if (ctx == NULL || crep == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
-
+    privkey = OSSL_CMP_CTX_get0_newPkey(ctx, 1);
     switch (ossl_cmp_pkisi_get_pkistatus(crep->status)) {
     case OSSL_CMP_PKISTATUS_waiting:
         OSSL_CMP_err("received \"waiting\" status for cert when actually aiming to extract cert");
@@ -392,10 +393,10 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         goto err;
     case OSSL_CMP_PKISTATUS_grantedWithMods:
         OSSL_CMP_warn("received \"grantedWithMods\" for certificate");
-        crt = ossl_cmp_certresponse_get1_certificate(ctx, crep);
+        crt = ossl_cmp_certresponse_get1_certificate(privkey, crep);
         break;
     case OSSL_CMP_PKISTATUS_accepted:
-        crt = ossl_cmp_certresponse_get1_certificate(ctx, crep);
+        crt = ossl_cmp_certresponse_get1_certificate(privkey, crep);
         break;
         /* get all information in case of a rejection before going to error */
     case OSSL_CMP_PKISTATUS_rejection:
@@ -404,18 +405,18 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         goto err;
     case OSSL_CMP_PKISTATUS_revocationWarning:
         OSSL_CMP_warn("received \"revocationWarning\" - a revocation of the cert is imminent");
-        crt = ossl_cmp_certresponse_get1_certificate(ctx, crep);
+        crt = ossl_cmp_certresponse_get1_certificate(privkey, crep);
         break;
     case OSSL_CMP_PKISTATUS_revocationNotification:
         OSSL_CMP_warn("received \"revocationNotification\" - a revocation of the cert has occurred");
-        crt = ossl_cmp_certresponse_get1_certificate(ctx, crep);
+        crt = ossl_cmp_certresponse_get1_certificate(privkey, crep);
         break;
     case OSSL_CMP_PKISTATUS_keyUpdateWarning:
         if (bodytype != OSSL_CMP_PKIBODY_KUR) {
             CMPerr(0, CMP_R_ENCOUNTERED_KEYUPDATEWARNING);
             goto err;
         }
-        crt = ossl_cmp_certresponse_get1_certificate(ctx, crep);
+        crt = ossl_cmp_certresponse_get1_certificate(privkey, crep);
         break;
     default:
         OSSL_CMP_log1(ERROR,

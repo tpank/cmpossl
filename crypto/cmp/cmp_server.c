@@ -335,6 +335,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req)
     if ((msg = ossl_cmp_rp_new(srv_ctx->ctx, srv_ctx->pkiStatusOut, certId,
                                srv_ctx->sendUnprotectedErrors)) == NULL)
         CMPerr(0, CMP_R_ERROR_CREATING_RR);
+    OSSL_CRMF_CERTID_free(certId);
     return msg;
 }
 
