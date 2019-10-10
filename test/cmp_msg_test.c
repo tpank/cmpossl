@@ -406,8 +406,13 @@ static int execute_rp_create(CMP_MSG_TEST_FIXTURE *fixture) {
     OSSL_CMP_MSG *rpmsg;
     OSSL_CMP_PKISI *si;
     OSSL_CRMF_CERTID *cid;
+    ASN1_INTEGER *serial = ASN1_INTEGER_new();
+    X509_NAME *issuer = X509_NAME_new();
+    X509_NAME_add_entry_by_txt(issuer, "CN",
+              MBSTRING_ASC, (unsigned char*)"The Issuer", -1, -1, 0);
+    ASN1_INTEGER_set(serial, 99);
+    cid = OSSL_CRMF_CERTID_gen(issuer, serial);
     si = ossl_cmp_statusinfo_new(33, 44, "a text");
-    cid = OSSL_CRMF_CERTID_new();
     rpmsg = ossl_cmp_rp_new(fixture->cmp_ctx, si, cid, 1);
     if (!TEST_ptr(ossl_cmp_revrepcontent_get_CertId(rpmsg->body->value.rp, 0))) {
         return 0;
@@ -416,6 +421,9 @@ static int execute_rp_create(CMP_MSG_TEST_FIXTURE *fixture) {
             rpmsg->body->value.rp, 0))) {
         return 0;
     }
+    ASN1_INTEGER_free(serial);
+    X509_NAME_free(issuer);
+    OSSL_CRMF_CERTID_free(cid);
     OSSL_CMP_PKISI_free(si);
     OSSL_CMP_MSG_free(rpmsg);
     return 1;
