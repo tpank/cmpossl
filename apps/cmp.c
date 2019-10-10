@@ -680,24 +680,24 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 };
 
 #ifndef OPENSSL_NO_TRACE
-#define PRINT_LOCATION BIO_printf(bio_err, "%s:%s:%d:", \
-                                  OPENSSL_FUNC, OPENSSL_FILE, OPENSSL_LINE)
+#define PRINT_LOCATION(bio) BIO_printf(bio, "%s:%s:%d:", \
+                                       OPENSSL_FUNC, OPENSSL_FILE, OPENSSL_LINE)
 #else
-#define PRINT_LOCATION ((void)0)
+#define PRINT_LOCATION(bio) ((void)0)
 #endif
-#define CMP_print(prefix, msg, a1, a2, a3) (PRINT_LOCATION,       \
-    BIO_printf(bio_err, "CMP %s: " msg "\n", prefix, a1, a2, a3))
-#define CMP_INFO(msg, a1, a2, a3) CMP_print("info", msg, a1, a2, a3)
+#define CMP_print(bio, prefix, msg, a1, a2, a3) (PRINT_LOCATION(bio), \
+    BIO_printf(bio, "CMP %s: " msg "\n", prefix, a1, a2, a3))
+#define CMP_INFO(msg, a1, a2, a3) CMP_print(bio_out, "info", msg, a1, a2, a3)
 #define CMP_info(msg)              CMP_INFO(msg"%s%s%s", "", "", "")
 #define CMP_info1(msg, a1        ) CMP_INFO(msg  "%s%s", a1, "", "")
 #define CMP_info2(msg, a1, a2    ) CMP_INFO(msg    "%s", a1, a2, "")
 #define CMP_info3(msg, a1, a2, a3) CMP_INFO(msg        , a1, a2, a3)
-#define CMP_WARN(msg, a1, a2, a3) CMP_print("warning", msg, a1, a2, a3)
+#define CMP_WARN(msg, a1, a2, a3) CMP_print(bio_out, "warning", msg, a1, a2, a3)
 #define CMP_warn(msg)              CMP_WARN(msg"%s%s%s", "", "", "")
 #define CMP_warn1(msg, a1        ) CMP_WARN(msg  "%s%s", a1, "", "")
 #define CMP_warn2(msg, a1, a2    ) CMP_WARN(msg    "%s", a1, a2, "")
 #define CMP_warn3(msg, a1, a2, a3) CMP_WARN(msg        , a1, a2, a3)
-#define CMP_ERR(msg, a1, a2, a3) CMP_print("error", msg, a1, a2, a3)
+#define CMP_ERR(msg, a1, a2, a3) CMP_print(bio_err, "error", msg, a1, a2, a3)
 #define CMP_err(msg)              CMP_ERR(msg"%s%s%s", "", "", "")
 #define CMP_err1(msg, a1        ) CMP_ERR(msg  "%s%s", a1, "", "")
 #define CMP_err2(msg, a1, a2    ) CMP_ERR(msg    "%s", a1, a2, "")
@@ -4234,7 +4234,8 @@ int cmp_main(int argc, char **argv)
             const char *string = OSSL_CMP_CTX_snprint_PKIStatus(cmp_ctx, buf,
                                                          OSSL_CMP_PKISI_BUFLEN);
 
-            CMP_print(status == OSSL_CMP_PKISTATUS_accepted ? "info" :
+            CMP_print(bio_err,
+                      status == OSSL_CMP_PKISTATUS_accepted ? "info" :
                       status == OSSL_CMP_PKISTATUS_rejection ? "server error" :
                       status == OSSL_CMP_PKISTATUS_waiting ? "internal error"
                                                            : "warning",
