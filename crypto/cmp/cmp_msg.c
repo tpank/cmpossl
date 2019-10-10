@@ -504,6 +504,7 @@ OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
 {
     OSSL_CMP_REVREPCONTENT *rep = NULL;
     OSSL_CMP_PKISI *si1 = NULL;
+    OSSL_CRMF_CERTID *cidl = NULL;
     OSSL_CMP_MSG *msg = NULL;
 
     if (!ossl_assert(ctx != NULL && si != NULL && cid != NULL))
@@ -517,10 +518,11 @@ OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
         goto err;
     sk_OSSL_CMP_PKISI_push(rep->status, si1);
 
-    if ((rep->revCerts = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
+   if ((rep->revCerts = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
         goto err;
-    sk_OSSL_CRMF_CERTID_push(rep->revCerts, cid);
-    cid = NULL;
+   if ((cidl = OSSL_CRMF_CERTID_dup(cid)) == NULL)
+       goto err;
+    sk_OSSL_CRMF_CERTID_push(rep->revCerts, cidl);
 
     if (!(unprot_err
             && ossl_cmp_pkisi_get_pkistatus(si) == OSSL_CMP_PKISTATUS_rejection)
