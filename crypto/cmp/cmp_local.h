@@ -830,7 +830,7 @@ ossl_cmp_pollrepcontent_get0_pollrep(const OSSL_CMP_POLLREPCONTENT *prc,
 OSSL_CMP_CERTRESPONSE *
 ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crepmsg,
                                           int rid);
-X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
+X509 *ossl_cmp_certresponse_get1_certificate(EVP_PKEY *privkey,
                                              const OSSL_CMP_CERTRESPONSE *crep);
 OSSL_CMP_MSG *ossl_cmp_msg_load(const char *file);
 

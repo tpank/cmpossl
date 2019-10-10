@@ -44,20 +44,18 @@ const char *ossl_cmp_bodytype_to_string(int type)
 
 int ossl_cmp_msg_set_bodytype(OSSL_CMP_MSG *msg, int type)
 {
-    if (msg == NULL || msg->body == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(msg != NULL && msg->body != NULL))
         return 0;
-    }
+
     msg->body->type = type;
     return 1;
 }
 
 int ossl_cmp_msg_get_bodytype(const OSSL_CMP_MSG *msg)
 {
-    if (msg == NULL || msg->body == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(msg != NULL && msg->body != NULL))
         return -1;
-    }
+
     return msg->body->type;
 }
 
@@ -68,10 +66,9 @@ int ossl_cmp_msg_get_bodytype(const OSSL_CMP_MSG *msg)
  */
 static int add0_extension(X509_EXTENSIONS **pexts, X509_EXTENSION *ext)
 {
-    if (pexts == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(pexts != NULL))
         return 0;
-    }
+
     if (ext == NULL /* malloc did not work for ext in caller */
             || !X509v3_add_ext(pexts, ext, 0)) {
         X509_EXTENSION_free(ext);
@@ -119,10 +116,8 @@ OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype)
 {
     OSSL_CMP_MSG *msg = NULL;
 
-    if (ctx == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL))
         return NULL;
-    }
 
     if ((msg = OSSL_CMP_MSG_new()) == NULL)
         return NULL;
@@ -323,15 +318,19 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
 
 OSSL_CMP_MSG *ossl_cmp_certReq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
 {
-    EVP_PKEY *rkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 0);
-    EVP_PKEY *privkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 1);
+    EVP_PKEY *rkey = NULL;
+    EVP_PKEY *privkey = NULL;
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CRMF_MSG *crm = NULL;
 
-    if (ctx == NULL || rkey == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL))
         return NULL;
-    }
+
+    rkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 0);
+    if (rkey == NULL)
+        return NULL;
+    privkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 1);
+
     if (type != OSSL_CMP_PKIBODY_IR && type != OSSL_CMP_PKIBODY_CR
             && type != OSSL_CMP_PKIBODY_KUR && type != OSSL_CMP_PKIBODY_P10CR) {
         CMPerr(0, CMP_R_INVALID_ARGS);
@@ -385,10 +384,8 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
     OSSL_CMP_CERTRESPONSE *resp = NULL;
     int status = -1;
 
-    if (ctx == NULL || si == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && si != NULL))
         return NULL;
-    }
 
     if ((msg = ossl_cmp_msg_create(ctx, bodytype)) == NULL)
         goto err;
@@ -458,10 +455,8 @@ OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx)
     OSSL_CMP_REVDETAILS *rd = NULL;
     int ret;
 
-    if (ctx == NULL || ctx->oldCert == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && ctx->oldCert != NULL))
         return NULL;
-    }
 
     if ((msg = ossl_cmp_msg_create(ctx, OSSL_CMP_PKIBODY_RR)) == NULL)
         goto err;
@@ -525,7 +520,7 @@ OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     if ((rep->revCerts = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
         goto err;
     sk_OSSL_CRMF_CERTID_push(rep->revCerts, cid);
-    cid = NULL; /* TODO Akretsch: move cid deallocaiton to cmp_server.c */
+    cid = NULL;
 
     if (!(unprot_err
             && ossl_cmp_pkisi_get_pkistatus(si) == OSSL_CMP_PKISTATUS_rejection)
@@ -535,7 +530,6 @@ OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
 
  err:
     CMPerr(0, CMP_R_ERROR_CREATING_RP);
-    OSSL_CRMF_CERTID_free(cid); /* TODO Akretsch: move cid deallocaiton to cmp_server.c */
     OSSL_CMP_MSG_free(msg);
     return NULL;
 }
@@ -603,10 +597,8 @@ static OSSL_CMP_MSG *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
 {
     OSSL_CMP_MSG *msg = NULL;
 
-    if (ctx == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL))
         return NULL;
-    }
 
     if ((msg = ossl_cmp_msg_create(ctx, body_type)) == NULL)
         return NULL;
@@ -642,10 +634,9 @@ OSSL_CMP_MSG *ossl_cmp_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
 {
     OSSL_CMP_MSG *msg = NULL;
 
-    if (ctx == NULL || si == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && si != NULL))
         return NULL;
-    }
+
     if ((msg = ossl_cmp_msg_create(ctx, OSSL_CMP_PKIBODY_ERROR)) == NULL)
         goto err;
 
@@ -686,10 +677,8 @@ int ossl_cmp_certstatus_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
     int md_NID;
     const EVP_MD *md = NULL;
 
-    if (certStatus == NULL || cert == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(certStatus != NULL && cert != NULL))
         return 0;
-    }
 
     /*-
      * select hash algorithm, as stated in Appendix F. Compilable ASN.1 defs:
@@ -725,10 +714,8 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
     OSSL_CMP_CERTSTATUS *certStatus = NULL;
     OSSL_CMP_PKISI *sinfo;
 
-    if (ctx == NULL || ctx->newCert == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && ctx->newCert != NULL))
         return NULL;
-    }
 
     if ((unsigned)fail_info > OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN) {
         CMPerr(0, CMP_R_FAIL_INFO_OUT_OF_RANGE);
@@ -780,10 +767,9 @@ OSSL_CMP_MSG *ossl_cmp_pollReq_new(OSSL_CMP_CTX *ctx, int crid)
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_POLLREQ *preq = NULL;
 
-    if (ctx == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL))
         return NULL;
-    }
+
     if ((msg = ossl_cmp_msg_create(ctx, OSSL_CMP_PKIBODY_POLLREQ)) == NULL)
         goto err;
 
@@ -812,10 +798,8 @@ OSSL_CMP_MSG *ossl_cmp_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
     OSSL_CMP_MSG *msg;
     OSSL_CMP_POLLREP *prep;
 
-    if (ctx == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL))
         return NULL;
-    }
 
     if ((msg = ossl_cmp_msg_create(ctx, OSSL_CMP_PKIBODY_POLLREP)) == NULL)
         goto err;
@@ -847,10 +831,8 @@ ossl_cmp_revrepcontent_get_pkistatusinfo(OSSL_CMP_REVREPCONTENT *rrep, int rsid)
 {
     OSSL_CMP_PKISI *status = NULL;
 
-    if (rrep == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(rrep != NULL))
         return NULL;
-    }
 
     if ((status = sk_OSSL_CMP_PKISI_value(rrep->status, rsid)) != NULL)
         return status;
@@ -871,10 +853,8 @@ ossl_cmp_revrepcontent_get_CertId(OSSL_CMP_REVREPCONTENT *rrep, int rsid)
 {
     OSSL_CRMF_CERTID *cid = NULL;
 
-    if (rrep == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(rrep != NULL))
         return NULL;
-    }
 
     if ((cid = sk_OSSL_CRMF_CERTID_value(rrep->revCerts, rsid)) != NULL)
         return cid;
@@ -918,10 +898,8 @@ ossl_cmp_pollrepcontent_get0_pollrep(const OSSL_CMP_POLLREPCONTENT *prc,
     OSSL_CMP_POLLREP *pollRep = NULL;
     int i;
 
-    if (prc == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(prc != NULL))
         return NULL;
-    }
 
     for (i = 0; i < sk_OSSL_CMP_POLLREP_num(prc); i++) {
         pollRep = sk_OSSL_CMP_POLLREP_value(prc, i);
@@ -946,10 +924,8 @@ ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crm,
     OSSL_CMP_CERTRESPONSE *crep = NULL;
     int i;
 
-    if (crm == NULL || crm->response == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(crm != NULL && crm->response != NULL))
         return NULL;
-    }
 
     for (i = 0; i < sk_OSSL_CMP_CERTRESPONSE_num(crm->response); i++) {
         crep = sk_OSSL_CMP_CERTRESPONSE_value(crm->response, i);
@@ -967,23 +943,13 @@ ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crm,
  * Uses the privkey in case of indirect POP from B<ctx>.
  * Returns a pointer to a copy of the found certificate, or NULL if not found.
  */
-X509 *ossl_cmp_certresponse_get1_certificate(OSSL_CMP_CTX *ctx,
-                                             const OSSL_CMP_CERTRESPONSE *crep)
-/* TODO Akretsch: replace by
 X509 *ossl_cmp_certresponse_get1_certificate(EVP_PKEY *privkey,
                                              const OSSL_CMP_CERTRESPONSE *crep)
-removing the check on ctx and moving the following line to the caller:
-    EVP_PKEY *privkey = OSSL_CMP_CTX_get0_newPkey(ctx / * may be NULL * /, 1);
-*/
 {
-    EVP_PKEY *privkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 1);
     OSSL_CMP_CERTORENCCERT *coec;
     X509 *crt = NULL;
-
-    if (ctx == NULL || crep == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(crep != NULL))
         return NULL;
-    }
 
     if (crep->certifiedKeyPair
             && (coec = crep->certifiedKeyPair->certOrEncCert) != NULL) {
@@ -1016,10 +982,8 @@ OSSL_CMP_MSG *ossl_cmp_msg_load(const char *file)
     OSSL_CMP_MSG *msg = NULL;
     BIO *bio = NULL;
 
-    if (file == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(file != NULL))
         return NULL;
-    }
 
     if ((bio = BIO_new_file(file, "rb")) == NULL)
         return NULL;
