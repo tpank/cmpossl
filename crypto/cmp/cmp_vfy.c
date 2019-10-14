@@ -1,3 +1,4 @@
+/* TODO Akretsch: convert input validation of non-public functions to assertions */
 /*
  * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2019
@@ -25,8 +26,8 @@
  * (sha1+RSA/DSA or any other algorithm supported by OpenSSL)
  * returns 0 on error
  */
-static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
-                                const OSSL_CMP_MSG *msg, X509 *cert)
+static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
+                            const OSSL_CMP_MSG *msg, X509 *cert)
 {
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART prot_part;
@@ -710,7 +711,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         if (scrt == NULL)
             scrt = find_srvcert(ctx, msg);
         if (scrt != NULL) {
-            if (CMP_verify_signature(ctx, msg, scrt))
+            if (verify_signature(ctx, msg, scrt))
                 return 1;
 
             /* failure; add further cert matching & validation diagnostics: */

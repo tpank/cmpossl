@@ -172,7 +172,7 @@ int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
  * the pbm settings in the context
  * returns pointer to X509_ALGOR on success, NULL on error
  */
-static X509_ALGOR *CMP_create_pbmac_algor(OSSL_CMP_CTX *ctx)
+static X509_ALGOR *create_pbmac_algor(OSSL_CMP_CTX *ctx)
 {
     X509_ALGOR *alg = NULL;
     OSSL_CRMF_PBMPARAMETER *pbm = NULL;
@@ -220,7 +220,7 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 
     /* use PasswordBasedMac according to 5.1.3.1 if secretValue is given */
     if (ctx->secretValue != NULL) {
-        if ((msg->header->protectionAlg = CMP_create_pbmac_algor(ctx)) == NULL)
+        if ((msg->header->protectionAlg = create_pbmac_algor(ctx)) == NULL)
             goto err;
         if (ctx->referenceValue != NULL
                 && !ossl_cmp_hdr_set1_senderKID(msg->header,

@@ -1,3 +1,4 @@
+/* TODO Akretsch: convert input validation of non-public functions to assertions */
 /*
  * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2019
@@ -379,7 +380,7 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
 {
     char *buf = NULL;
     X509 *crt = NULL;
-    EVP_PKEY *privkey = NULL;
+    EVP_PKEY *privkey = NULL;/* TODO Akretsch remove needless init */
 
     if (ctx == NULL || crep == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
