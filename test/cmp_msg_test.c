@@ -378,16 +378,17 @@ static int execute_certrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
         X509_dup(cert);
     sk_OSSL_CMP_CERTRESPONSE_push(crepmessage->response, certresp);
     if (!TEST_ptr(ossl_cmp_certrepmessage_get0_certresponse(crepmessage, 99))) {
-        return 0;
+        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
     };
     if (!TEST_ptr_null(ossl_cmp_certrepmessage_get0_certresponse(
             crepmessage, 88))) {
-        return 0;
+        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
     };
-    privkey = OSSL_CMP_CTX_get0_newPkey(fixture->cmp_ctx, 1);
+    privkey = OSSL_CMP_CTX_get0_newPkey(fixture->cmp_ctx, 1);/* TODO Akretsch add check for NULL */
     certfromresp = ossl_cmp_certresponse_get1_certificate(privkey, certresp);
-    if (!TEST_int_eq(X509_cmp(cert, certfromresp), 0)) {
-        return 0;
+    if (certfromresp == NULL
+            || !TEST_int_eq(X509_cmp(cert, certfromresp), 0)) {
+        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
     }
     X509_free(certfromresp);
     OSSL_CMP_CERTREPMESSAGE_free(crepmessage);
@@ -403,23 +404,23 @@ static int test_cmp_create_certrep(void)
 
 
 static int execute_rp_create(CMP_MSG_TEST_FIXTURE *fixture) {
-    OSSL_CMP_MSG *rpmsg;
     OSSL_CMP_PKISI *si;
-    OSSL_CRMF_CERTID *cid;
-    ASN1_INTEGER *serial = ASN1_INTEGER_new();
     X509_NAME *issuer = X509_NAME_new();
+    ASN1_INTEGER *serial = ASN1_INTEGER_new();
+    OSSL_CRMF_CERTID *cid;
+    OSSL_CMP_MSG *rpmsg; /* TODO Akretisch add newline after local var decls */
+    si = ossl_cmp_statusinfo_new(33, 44, "a text");
     X509_NAME_add_entry_by_txt(issuer, "CN",
               MBSTRING_ASC, (unsigned char*)"The Issuer", -1, -1, 0);
     ASN1_INTEGER_set(serial, 99);
     cid = OSSL_CRMF_CERTID_gen(issuer, serial);
-    si = ossl_cmp_statusinfo_new(33, 44, "a text");
     rpmsg = ossl_cmp_rp_new(fixture->cmp_ctx, si, cid, 1);
     if (!TEST_ptr(ossl_cmp_revrepcontent_get_CertId(rpmsg->body->value.rp, 0))) {
-        return 0;
+        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
     }
     if (!TEST_ptr(ossl_cmp_revrepcontent_get_pkistatusinfo(
             rpmsg->body->value.rp, 0))) {
-        return 0;
+        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
     }
     ASN1_INTEGER_free(serial);
     X509_NAME_free(issuer);
@@ -438,17 +439,18 @@ static int test_cmp_create_rp(void)
 
 static int execute_pollrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
     OSSL_CMP_MSG *pollrep;
+
     pollrep = ossl_cmp_pollRep_new(fixture->cmp_ctx, 77, 2000);
     if (!TEST_ptr(pollrep)) {
-        return 0;
+        return 0; /* TODO Akretisch remove { } */
     }
     if (!TEST_ptr(ossl_cmp_pollrepcontent_get0_pollrep(
             pollrep->body->value.pollRep, 77))) {
-        return 0;
+        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
     };
     if (!TEST_ptr_null(ossl_cmp_pollrepcontent_get0_pollrep(
             pollrep->body->value.pollRep, 88))) {
-        return 0;
+        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
     };
     OSSL_CMP_MSG_free(pollrep);
     return 1;
