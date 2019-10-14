@@ -22,7 +22,7 @@
 
 OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
 {
-    if (!ossl_assert(msg != NULL))
+    if (!ossl_assert(msg != NULL))/* TODO Akretsch revert the change to an assertion because this is an exported/public fucntion */
         return NULL;
     return msg->header;
 }
@@ -318,18 +318,18 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
 
 OSSL_CMP_MSG *ossl_cmp_certReq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
 {
-    EVP_PKEY *rkey = NULL;
-    EVP_PKEY *privkey = NULL;
-    OSSL_CMP_MSG *msg = NULL;
+    EVP_PKEY *rkey = NULL;/* TODO Akretsch remove needless init */
+    EVP_PKEY *privkey = NULL;/* TODO Akretsch remove needless init */
+    OSSL_CMP_MSG *msg = NULL;/* TODO Akretsch remove needless init */
     OSSL_CRMF_MSG *crm = NULL;
 
     if (!ossl_assert(ctx != NULL))
         return NULL;
 
-    rkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 0);
+    rkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 0);/* TODO Akretsch remove now obsolete comment */
     if (rkey == NULL)
         return NULL;
-    privkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 1);
+    privkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 1);/* TODO Akretsch remove now obsolete comment, move this below into block where acutally needed */
 
     if (type != OSSL_CMP_PKIBODY_IR && type != OSSL_CMP_PKIBODY_CR
             && type != OSSL_CMP_PKIBODY_KUR && type != OSSL_CMP_PKIBODY_P10CR) {
@@ -504,7 +504,7 @@ OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
 {
     OSSL_CMP_REVREPCONTENT *rep = NULL;
     OSSL_CMP_PKISI *si1 = NULL;
-    OSSL_CRMF_CERTID *cidl = NULL;
+    OSSL_CRMF_CERTID *cid_copy = NULL;
     OSSL_CMP_MSG *msg = NULL;
 
     if (!ossl_assert(ctx != NULL && si != NULL && cid != NULL))
@@ -520,9 +520,9 @@ OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
 
    if ((rep->revCerts = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
         goto err;
-   if ((cidl = OSSL_CRMF_CERTID_dup(cid)) == NULL)
+   if ((cid_copy = OSSL_CRMF_CERTID_dup(cid)) == NULL)
        goto err;
-    sk_OSSL_CRMF_CERTID_push(rep->revCerts, cidl);
+    sk_OSSL_CRMF_CERTID_push(rep->revCerts, cid_copy);
 
     if (!(unprot_err
             && ossl_cmp_pkisi_get_pkistatus(si) == OSSL_CMP_PKISTATUS_rejection)
@@ -595,7 +595,7 @@ int ossl_cmp_msg_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
  * Creates a new General Message/Response with an empty itav stack
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-static OSSL_CMP_MSG *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
+static OSSL_CMP_MSG *gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
 {
     OSSL_CMP_MSG *msg = NULL;
 
@@ -621,12 +621,12 @@ static OSSL_CMP_MSG *CMP_gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
 
 OSSL_CMP_MSG *ossl_cmp_genm_new(OSSL_CMP_CTX *ctx)
 {
-    return CMP_gen_new(ctx, OSSL_CMP_PKIBODY_GENM, CMP_R_ERROR_CREATING_GENM);
+    return gen_new(ctx, OSSL_CMP_PKIBODY_GENM, CMP_R_ERROR_CREATING_GENM);
 }
 
 OSSL_CMP_MSG *ossl_cmp_genp_new(OSSL_CMP_CTX *ctx)
 {
-    return CMP_gen_new(ctx, OSSL_CMP_PKIBODY_GENP, CMP_R_ERROR_CREATING_GENP);
+    return gen_new(ctx, OSSL_CMP_PKIBODY_GENP, CMP_R_ERROR_CREATING_GENP);
 }
 
 OSSL_CMP_MSG *ossl_cmp_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
