@@ -1,4 +1,3 @@
-/* TODO Akretsch: convert input validation of non-public functions to assertions */
 /*
  * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2019
@@ -42,10 +41,8 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
     int rcvd_type = ossl_cmp_msg_get_bodytype(rep /* may be NULL */);
     char *msg_type = NULL;
 
-    if (ctx == NULL || rep == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && rep != NULL))
         return 0;
-    }
 
     if (ctx->unprotectedErrors) {
         if (rcvd_type == OSSL_CMP_PKIBODY_ERROR) {
@@ -93,10 +90,9 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
     int i;
     OSSL_CMP_PKIFREETEXT *ss;
 
-    if (ctx == NULL || si == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && si != NULL))
         return 0;
-    }
+
     if ((ctx->status = ossl_cmp_pkisi_get_pkistatus(si)) < 0)
         return 0;
 
@@ -382,10 +378,9 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
     X509 *crt = NULL;
     EVP_PKEY *privkey;
 
-    if (ctx == NULL || crep == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && crep != NULL))
         return NULL;
-    }
+
     privkey = OSSL_CMP_CTX_get0_newPkey(ctx, 1);
     switch (ossl_cmp_pkisi_get_pkistatus(crep->status)) {
     case OSSL_CMP_PKISTATUS_waiting:

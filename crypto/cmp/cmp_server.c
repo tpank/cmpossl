@@ -1,4 +1,3 @@
-/* TODO Akretsch: convert input validation of non-public functions to assertions */
 /*
  * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2019
@@ -224,10 +223,9 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     OSSL_CRMF_MSG *crm = NULL;
     int bodytype;
 
-    if (srv_ctx == NULL || certReq == NULL) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+    if (!ossl_assert(srv_ctx != NULL && certReq != NULL))
         return NULL;
-    }
+
     switch (certReq->body->type) {
     case OSSL_CMP_PKIBODY_P10CR:
     case OSSL_CMP_PKIBODY_CR:
@@ -308,10 +306,8 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req)
     X509_NAME *issuer;
     ASN1_INTEGER *serial;
 
-    if (srv_ctx == NULL || req == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(srv_ctx != NULL && req != NULL))
         return NULL;
-    }
 
     if ((details = sk_OSSL_CMP_REVDETAILS_value(req->body->value.rr,
                                                 OSSL_CMP_REVREQSID)) == NULL) {
@@ -420,10 +416,9 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
     OSSL_CMP_MSG *msg = NULL;
 
     (void)req; /* TODO make use of parameter */
-    if (srv_ctx == NULL || srv_ctx->certReq == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(srv_ctx != NULL && srv_ctx->certReq != NULL))
         return NULL;
-    }
+
     if (srv_ctx->pollCount == 0) {
         if ((msg = process_cert_request(srv_ctx, srv_ctx->certReq)) == NULL)
             CMPerr(0, CMP_R_ERROR_PROCESSING_CERTREQ);
@@ -447,10 +442,9 @@ static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
 
     STACK_OF(OSSL_CMP_ITAV) *tmp = NULL;
 
-    if (srv_ctx == NULL || srv_ctx->ctx == NULL || req == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL))
         return NULL;
-    }
+
     tmp = srv_ctx->ctx->genm_ITAVs; /* Back up potential genm_ITAVs */
     srv_ctx->ctx->genm_ITAVs = req->body->value.genm;
     msg = ossl_cmp_genp_new(srv_ctx->ctx); /* may be NULL */
@@ -489,10 +483,10 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req,
     cmp_srv_process_cb_t process_cb = NULL;
     OSSL_CMP_CTX *ctx;
 
-    if (srv_ctx == NULL || srv_ctx->ctx == NULL || req == NULL || rsp == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL
+                     && rsp != NULL))
         return 0;
-    }
+
     ctx = srv_ctx->ctx;
     *rsp = NULL;
 

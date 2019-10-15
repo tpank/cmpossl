@@ -1,4 +1,3 @@
-/* TODO Akretsch: convert input validation of non-public functions to assertions */
 /*
  * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2019
@@ -356,10 +355,9 @@ static BIO *CMP_new_http_bio(const OSSL_CMP_CTX *ctx)
     BIO *cbio = NULL;
     char buf[32];
 
-    if (ctx == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL))
         return NULL;
-    }
+
 
     host = ctx->proxyName;
     port = ctx->proxyPort;

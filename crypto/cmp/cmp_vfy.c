@@ -1,4 +1,3 @@
-/* TODO Akretsch: convert input validation of non-public functions to assertions */
 /*
  * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2019
@@ -39,10 +38,8 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     size_t prot_part_der_len = 0;
     unsigned char *prot_part_der = NULL;
 
-    if (cmp_ctx == NULL || msg == NULL || cert == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(cmp_ctx != NULL && msg != NULL && cert != NULL))
         return 0;
-    }
 
     /* verify that keyUsage, if present, contains digitalSignature */
     if (!cmp_ctx->ignore_keyusage
@@ -151,10 +148,9 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
     X509_STORE_CTX *csc = NULL;
     const int err = CMP_R_POTENTIALLY_INVALID_CERTIFICATE;
 
-    if (ctx == NULL || cert == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && cert != NULL))
         return 0;
-    }
+
     if (trusted_store == NULL) {
         CMPerr(0, CMP_R_MISSING_TRUST_STORE);
         return 0;
@@ -627,10 +623,9 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     const ASN1_OBJECT *algorOID = NULL;
     X509 *scrt = NULL;
 
-    if (ctx == NULL || msg == NULL || msg->header == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL && msg != NULL && msg->header != NULL))
         return 0;
-    }
+
     if ((alg = msg->header->protectionAlg) == NULL /* unprotected message */
             || msg->protection == NULL || msg->protection->data == NULL) {
         CMPerr(0, CMP_R_MISSING_PROTECTION);
@@ -770,7 +765,7 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
 {
     int rcvd_type;
 
-    if (ctx == NULL || msg == NULL)
+    if (!ossl_assert(ctx != NULL && msg != NULL))
         return -1;
 
     if (sk_X509_num(msg->extraCerts) > 10)
