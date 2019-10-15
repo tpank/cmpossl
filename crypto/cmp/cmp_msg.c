@@ -22,8 +22,10 @@
 
 OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg)
 {
-    if (!ossl_assert(msg != NULL))/* TODO Akretsch revert the change to an assertion because this is an exported/public fucntion */
+    if (msg == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
+    }
     return msg->header;
 }
 
@@ -326,10 +328,10 @@ OSSL_CMP_MSG *ossl_cmp_certReq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
     if (!ossl_assert(ctx != NULL))
         return NULL;
 
-    rkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 0);/* TODO Akretsch remove now obsolete comment */
+    rkey = OSSL_CMP_CTX_get0_newPkey(ctx, 0);
     if (rkey == NULL)
         return NULL;
-    privkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 1);/* TODO Akretsch remove now obsolete comment, move this below into block where acutally needed */
+    privkey = OSSL_CMP_CTX_get0_newPkey(ctx, 1);
 
     if (type != OSSL_CMP_PKIBODY_IR && type != OSSL_CMP_PKIBODY_CR
             && type != OSSL_CMP_PKIBODY_KUR && type != OSSL_CMP_PKIBODY_P10CR) {
