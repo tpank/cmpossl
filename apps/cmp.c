@@ -1142,7 +1142,7 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
                                      X509_get0_notAfter (cert), vpm);
         if (cmp != 0) {
             char *s = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
-            CMP_warn2("certificate with subject '%s' %s", s,
+            CMP_warn3("certificate from '%s' with subject '%s' %s", file, s,
                       cmp > 0 ? "has expired" : "not yet valid");
             OPENSSL_free(s);
         }
