@@ -318,9 +318,9 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
 
 OSSL_CMP_MSG *ossl_cmp_certReq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
 {
-    EVP_PKEY *rkey = NULL;/* TODO Akretsch remove needless init */
-    EVP_PKEY *privkey = NULL;/* TODO Akretsch remove needless init */
-    OSSL_CMP_MSG *msg = NULL;/* TODO Akretsch remove needless init */
+    EVP_PKEY *rkey;
+    EVP_PKEY *privkey;
+    OSSL_CMP_MSG *msg;
     OSSL_CRMF_MSG *crm = NULL;
 
     if (!ossl_assert(ctx != NULL))
