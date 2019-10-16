@@ -70,7 +70,6 @@ void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx)
     OPENSSL_free(srv_ctx);
 }
 
-/* TODO Akretsch: internalize this function and potentially also others */
 OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx)
 {
     if (srv_ctx == NULL) {

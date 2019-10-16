@@ -29,7 +29,7 @@ typedef struct test_fixture {
     OSSL_CMP_MSG *msg;
     X509 *cert;
     ossl_cmp_allow_unprotected_cb_t allow_unprotected_cb;
-    int callback_arg;
+    int additional_arg;
 } CMP_VFY_TEST_FIXTURE;
 
 static void tear_down(CMP_VFY_TEST_FIXTURE *fixture)
@@ -63,6 +63,39 @@ static X509 *endentity1 = NULL, *endentity2 = NULL,
 
 static unsigned char rand_data[OSSL_CMP_TRANSACTIONID_LENGTH];
 static OSSL_CMP_MSG *ir_unprotected, *ir_rmprotection;
+
+static int execute_verify_popo_test(CMP_VFY_TEST_FIXTURE *fixture)
+{
+    return TEST_int_eq(fixture->expected,
+                       ossl_cmp_verify_popo(fixture->msg,
+                                            fixture->additional_arg));
+}
+
+static int test_verify_popo(void)
+{
+    SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    fixture->additional_arg = 0;
+    fixture->expected = 1;
+    EXECUTE_TEST(execute_verify_popo_test, tear_down);
+    return result;
+}
+
+static int test_verify_popo_bad(void)
+{
+    SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ip_waiting_f))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    fixture->additional_arg = 0;
+    fixture->expected = 0;
+    EXECUTE_TEST(execute_verify_popo_test, tear_down);
+    return result;
+}
 
 static int execute_validate_msg_test(CMP_VFY_TEST_FIXTURE *fixture)
 {
@@ -301,7 +334,7 @@ static int execute_MSG_check_received_test(CMP_VFY_TEST_FIXTURE *fixture)
     if (!TEST_int_eq(ossl_cmp_msg_check_received(fixture->cmp_ctx,
                                                  fixture->msg,
                                                  fixture->allow_unprotected_cb,
-                                                 fixture->callback_arg),
+                                                 fixture->additional_arg),
                      fixture->expected))
         return 0;
 
@@ -342,7 +375,7 @@ static int test_MSG_check_received_no_protection_negative_cb(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->expected = -1;
-    fixture->callback_arg = 0;
+    fixture->additional_arg = 0;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))) {
         tear_down(fixture);
@@ -356,7 +389,7 @@ static int test_MSG_check_received_no_protection_positive_cb(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->expected = OSSL_CMP_PKIBODY_IR;
-    fixture->callback_arg = 1;
+    fixture->additional_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))) {
         tear_down(fixture);
@@ -377,7 +410,7 @@ static int test_MSG_check_received_check_transaction_id(void)
 
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->expected = OSSL_CMP_PKIBODY_IR;
-    fixture->callback_arg = 1;
+    fixture->additional_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
        || !TEST_ptr(trid = ASN1_OCTET_STRING_new())
@@ -397,7 +430,7 @@ static int test_MSG_check_received_wrong_transaction_id(void)
 
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->expected = -1;
-    fixture->callback_arg = 1;
+    fixture->additional_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
         || !TEST_ptr(trid = ASN1_OCTET_STRING_new())
@@ -419,7 +452,7 @@ static int test_MSG_check_received_wrong_recipient_nonce(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->expected = -1;
-    fixture->callback_arg = 1;
+    fixture->additional_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
         || !TEST_true(set_senderNonce(fixture->cmp_ctx, rand_data))) {
@@ -440,7 +473,7 @@ static int test_MSG_check_received_check_recipient_nonce(void)
 
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->expected = OSSL_CMP_PKIBODY_IP;
-    fixture->callback_arg = 1;
+    fixture->additional_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_rmprotection))
             || !TEST_true(set_senderNonce(fixture->cmp_ctx, rec_nonce))) {
@@ -513,6 +546,8 @@ int setup_tests(void)
         goto err;
 
     /* Message validation tests */
+    ADD_TEST(test_verify_popo);
+    ADD_TEST(test_verify_popo_bad);
     ADD_TEST(test_validate_msg_signature_trusted_ok);
     ADD_TEST(test_validate_msg_signature_trusted_expired);
     ADD_TEST(test_validate_msg_signature_srvcert_ok);

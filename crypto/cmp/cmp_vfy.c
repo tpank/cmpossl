@@ -843,7 +843,6 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     return rcvd_type;
 }
 
-/* TODO Akretsch: maybe add internal doc and test? */
 int ossl_cmp_verify_popo(const OSSL_CMP_MSG *msg, int accept_RAVerified)
 {
     if (!ossl_assert(msg != NULL && msg->body != NULL))
