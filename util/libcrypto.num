@@ -4853,3 +4853,4 @@ EVP_SIGNATURE_number                    4969	3_0_0	EXIST::FUNCTION:
 OSSL_CMP_CTX_snprint_PKIStatus          4970	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_HDR_get0_transactionID         4971	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_HDR_get0_recipNonce            4972	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_MSG_get0_header                4973	3_0_0	EXIST::FUNCTION:CMP
