@@ -81,8 +81,8 @@ do { \
 static int execute_certreq_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
     EXECUTE_MSG_CREATION_TEST(ossl_cmp_certReq_new(fixture->cmp_ctx,
-                                              fixture->bodytype,
-                                              fixture->err_code));
+                                                   fixture->bodytype,
+                                                   fixture->err_code));
 }
 
 static int execute_errormsg_create_test(CMP_MSG_TEST_FIXTURE *fixture)
@@ -311,7 +311,8 @@ static int test_cmp_create_error_msg(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
     fixture->si = ossl_cmp_statusinfo_new(OSSL_CMP_PKISTATUS_rejection,
-                                     OSSL_CMP_PKIFAILUREINFO_systemFailure, NULL);
+                                          OSSL_CMP_PKIFAILUREINFO_systemFailure,
+                                          NULL);
     fixture->err_code = -1;
     fixture->expected = 1;      /* Expected: Message creation is successful */
     if (!TEST_true(set1_newPkey(fixture->cmp_ctx, newkey))) {
@@ -377,19 +378,19 @@ static int execute_certrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
     certresp->certifiedKeyPair->certOrEncCert->value.certificate =
         X509_dup(cert);
     sk_OSSL_CMP_CERTRESPONSE_push(crepmessage->response, certresp);
-    if (!TEST_ptr(ossl_cmp_certrepmessage_get0_certresponse(crepmessage, 99))) {
-        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
-    };
+    if (!TEST_ptr(ossl_cmp_certrepmessage_get0_certresponse(crepmessage, 99)))
+        return 0;
+
     if (!TEST_ptr_null(ossl_cmp_certrepmessage_get0_certresponse(
-            crepmessage, 88))) {
-        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
-    };
-    privkey = OSSL_CMP_CTX_get0_newPkey(fixture->cmp_ctx, 1);/* TODO Akretsch add check for NULL */
+            crepmessage, 88)))
+        return 0;
+
+    privkey = OSSL_CMP_CTX_get0_newPkey(fixture->cmp_ctx, 1);
     certfromresp = ossl_cmp_certresponse_get1_certificate(privkey, certresp);
     if (certfromresp == NULL
-            || !TEST_int_eq(X509_cmp(cert, certfromresp), 0)) {
-        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
-    }
+            || !TEST_int_eq(X509_cmp(cert, certfromresp), 0))
+        return 0;
+
     X509_free(certfromresp);
     OSSL_CMP_CERTREPMESSAGE_free(crepmessage);
     return 1;
@@ -415,13 +416,13 @@ static int execute_rp_create(CMP_MSG_TEST_FIXTURE *fixture) {
     ASN1_INTEGER_set(serial, 99);
     cid = OSSL_CRMF_CERTID_gen(issuer, serial);
     rpmsg = ossl_cmp_rp_new(fixture->cmp_ctx, si, cid, 1);
-    if (!TEST_ptr(ossl_cmp_revrepcontent_get_CertId(rpmsg->body->value.rp, 0))) {
-        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
-    }
+    if (!TEST_ptr(ossl_cmp_revrepcontent_get_CertId(rpmsg->body->value.rp, 0)))
+        return 0;
+
     if (!TEST_ptr(ossl_cmp_revrepcontent_get_pkistatusinfo(
-            rpmsg->body->value.rp, 0))) {
-        return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
-    }
+            rpmsg->body->value.rp, 0)))
+        return 0;
+
     ASN1_INTEGER_free(serial);
     X509_NAME_free(issuer);
     OSSL_CRMF_CERTID_free(cid);
@@ -441,9 +442,9 @@ static int execute_pollrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
     OSSL_CMP_MSG *pollrep;
 
     pollrep = ossl_cmp_pollRep_new(fixture->cmp_ctx, 77, 2000);
-    if (!TEST_ptr(pollrep)) {
-        return 0; /* TODO Akretisch remove { } */
-    }
+    if (!TEST_ptr(pollrep))
+        return 0;
+
     if (!TEST_ptr(ossl_cmp_pollrepcontent_get0_pollrep(
             pollrep->body->value.pollRep, 77))) {
         return 0; /* TODO Akretisch remove { } and better avoid mem leaks */
