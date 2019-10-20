@@ -91,7 +91,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_MISSING_TRUST_STORE                        154
 #  define CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED           160
 #  define CMP_R_MULTIPLE_SAN_SOURCES                       102
-#  define CMP_R_NO_SENDER_NO_REFERENCE                     111
+#  define CMP_R_MISSING_SENDER_IDENTIFICATION              111
 #  define CMP_R_NO_STDIO                                   194
 #  define CMP_R_NO_SUITABLE_SERVER_CERT                    161
 #  define CMP_R_NO_VALID_SERVER_CERT_FOUND                 162
