@@ -21,7 +21,7 @@ while(<>) {
         print "$ARGV:$line:non-ascii: $_";
     }
 
-    if((length($_) - 1 > 80) && !(m/\".*?\"\s*([,;]|\)+|\}+)\s*/)) {
+    if((length($_) - 1 > $line_length_limit) && !(m/\".*?\"\s*([,;]|\)+|\}+)\s*/)) {
         print "$ARGV:$line:len>$line_length_limit: $_";
     }
     if(m/\s\n$/) {
