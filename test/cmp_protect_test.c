@@ -45,8 +45,6 @@ typedef struct test_fixture {
 
 static void tear_down(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
-    /* ERR_print_errors_fp(stderr);
-       Free any memory owned by the fixture, etc. */
     OSSL_CMP_CTX_free(fixture->cmp_ctx);
     OSSL_CMP_MSG_free(fixture->msg);
     ASN1_OCTET_STRING_free(fixture->secret);
@@ -87,7 +85,8 @@ static X509 *endentity1 = NULL, *endentity2 = NULL,
 static int execute_calc_protection_fails_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
     ASN1_BIT_STRING *protection =
-        ossl_cmp_calc_protection(fixture->msg, fixture->secret, fixture->privkey);
+        ossl_cmp_calc_protection(fixture->msg, fixture->secret,
+                                 fixture->privkey);
     int res = TEST_ptr_null(protection);
 
     ASN1_BIT_STRING_free(protection);
@@ -98,7 +97,8 @@ static int execute_calc_protection_fails_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 static int execute_calc_protection_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
     ASN1_BIT_STRING *protection =
-        ossl_cmp_calc_protection(fixture->msg, fixture->secret, fixture->privkey);
+        ossl_cmp_calc_protection(fixture->msg, fixture->secret,
+                                 fixture->privkey);
     int res = TEST_ptr(protection)
                   && TEST_true(ASN1_STRING_cmp(protection,
                                                fixture->msg->protection) == 0);
@@ -157,7 +157,8 @@ static int test_cmp_calc_protection_no_key_no_secret(void)
     /* Do test case-specific set up; set expected return values and
      * side effects */
     if (!TEST_ptr(fixture->msg = load_pkimsg(ir_unprotected_f))
-         || !TEST_ptr(fixture->msg->header->protectionAlg = X509_ALGOR_new())) {
+            || !TEST_ptr(fixture->msg->header->protectionAlg =
+                         X509_ALGOR_new())) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -203,16 +204,16 @@ static int execute_MSG_protect_test(CMP_PROTECT_TEST_FIXTURE *fixture)
                        ossl_cmp_msg_protect(fixture->cmp_ctx, fixture->msg));
 }
 
+#define SET_OPT_UNPROTECTED_SEND(ctx, val) \
+    OSSL_CMP_CTX_set_option((ctx), OSSL_CMP_OPT_UNPROTECTED_SEND, (val))
 static int test_MSG_protect_unprotected_request(void)
 {
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
     /* Do test case-specific set up; set expected return values and
      * side effects */
     fixture->expected = 1;
-    if (!TEST_ptr(fixture->msg =
-                  OSSL_CMP_MSG_dup(ir_unprotected))
-            || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                           OSSL_CMP_OPT_UNPROTECTED_SEND, 1))) {
+    if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
+            || !TEST_true(SET_OPT_UNPROTECTED_SEND(fixture->cmp_ctx, 1))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -229,8 +230,7 @@ static int test_MSG_protect_with_msg_sig_alg_protection_plus_rsa_key(void)
 
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected))
-            || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                              OSSL_CMP_OPT_UNPROTECTED_SEND, 0))
+            || !TEST_true(SET_OPT_UNPROTECTED_SEND(fixture->cmp_ctx, 0))
         /* Use half of the 16 bytes of random input
          * for each reference and secret value */
             || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx,
@@ -255,8 +255,7 @@ static int test_MSG_protect_with_certificate_and_key(void)
 
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected))
-            || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                              OSSL_CMP_OPT_UNPROTECTED_SEND, 0))
+            || !TEST_true(SET_OPT_UNPROTECTED_SEND(fixture->cmp_ctx, 0))
             || !TEST_true(OSSL_CMP_CTX_set1_pkey(fixture->cmp_ctx, loadedkey))
             || !TEST_true(OSSL_CMP_CTX_set1_clCert(fixture->cmp_ctx, cert))) {
         tear_down(fixture);
@@ -276,8 +275,7 @@ static int test_MSG_protect_certificate_based_without_cert(void)
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected))
-        || !TEST_true(OSSL_CMP_CTX_set_option(ctx,
-                                              OSSL_CMP_OPT_UNPROTECTED_SEND, 0))
+        || !TEST_true(SET_OPT_UNPROTECTED_SEND(ctx, 0))
         || !TEST_true(OSSL_CMP_CTX_set0_newPkey(ctx, 1, loadedkey))) {
         tear_down(fixture);
         fixture = NULL;
@@ -294,8 +292,7 @@ static int test_MSG_protect_no_key_no_secret(void)
      * side effects */
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
-            || !TEST_true(OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                                           OSSL_CMP_OPT_UNPROTECTED_SEND, 0))) {
+            || !TEST_true(SET_OPT_UNPROTECTED_SEND(fixture->cmp_ctx, 0))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -306,7 +303,7 @@ static int test_MSG_protect_no_key_no_secret(void)
 static int execute_MSG_add_extraCerts_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
     return TEST_true(ossl_cmp_msg_add_extraCerts(fixture->cmp_ctx,
-                                                   fixture->msg));
+                                                 fixture->msg));
 }
 
 static int test_MSG_add_extraCerts(void)
@@ -506,10 +503,10 @@ int setup_tests(void)
             || !TEST_ptr(ir_unprotected = load_pkimsg(ir_unprotected_f)))
         return 0;
     if (!TEST_ptr(endentity1 = load_pem_cert(endentity1_f))
-             || !TEST_ptr(endentity2 = load_pem_cert(endentity2_f))
-             || !TEST_ptr(root = load_pem_cert(root_f))
-             || !TEST_ptr(intermediate = load_pem_cert(intermediate_f)))
-         return 0;
+            || !TEST_ptr(endentity2 = load_pem_cert(endentity2_f))
+            || !TEST_ptr(root = load_pem_cert(root_f))
+            || !TEST_ptr(intermediate = load_pem_cert(intermediate_f)))
+        return 0;
     if(!TEST_int_eq(1, RAND_bytes(rand_data, OSSL_CMP_TRANSACTIONID_LENGTH)))
         return 0;
 
