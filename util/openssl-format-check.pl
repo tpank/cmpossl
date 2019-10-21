@@ -31,7 +31,7 @@ while(<>) {
         $line_with_open_brace_at_end = $line;
         $contents_2_before = $_;
     }
-    if(m/\}\s*$/) {
+    if(m/\}[\s;]*$/) {
         my $line_2_before = $line-2;
         if($line_with_open_brace_at_end &&
            $line_with_open_brace_at_end == $line_2_before) {
