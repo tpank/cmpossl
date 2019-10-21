@@ -168,7 +168,7 @@ OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype)
         if ((msg->body->value.certConf =
                 sk_OSSL_CMP_CERTSTATUS_new_null()) == NULL)
             goto err;
-       return msg;
+        return msg;
     case OSSL_CMP_PKIBODY_PKICONF:
         if ((msg->body->value.pkiconf = ASN1_TYPE_new()) == NULL)
             goto err;
@@ -200,7 +200,7 @@ OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype)
         goto err;
     }
 
-err:
+ err:
     OSSL_CMP_MSG_free(msg);
     return NULL;
 }
@@ -233,7 +233,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
 {
     OSSL_CRMF_MSG *crm = NULL;
     X509 *refcert = ctx->oldCert != NULL ? ctx->oldCert : ctx->clCert;
-       /* refcert defaults to current client cert */
+    /* refcert defaults to current client cert */
     STACK_OF(GENERAL_NAME) *default_sans = NULL;
     X509_NAME *subject = determine_subj(ctx, refcert, bodytype);
     int crit = ctx->setSubjectAltNameCritical || subject == NULL;
@@ -402,9 +402,8 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
         goto err;
     OSSL_CMP_PKISI_free(resp->status);
     if ((resp->status = OSSL_CMP_PKISI_dup(si)) == NULL
-            || !ASN1_INTEGER_set(resp->certReqId, certReqId)) {
+            || !ASN1_INTEGER_set(resp->certReqId, certReqId))
         goto err;
-    }
 
     status = ossl_cmp_pkisi_get_pkistatus(resp->status);
     if (status != OSSL_CMP_PKISTATUS_rejection
@@ -520,10 +519,10 @@ OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
         goto err;
     sk_OSSL_CMP_PKISI_push(rep->status, si1);
 
-   if ((rep->revCerts = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
+    if ((rep->revCerts = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
         goto err;
-   if ((cid_copy = OSSL_CRMF_CERTID_dup(cid)) == NULL)
-       goto err;
+    if ((cid_copy = OSSL_CRMF_CERTID_dup(cid)) == NULL)
+        goto err;
     sk_OSSL_CRMF_CERTID_push(rep->revCerts, cid_copy);
 
     if (!(unprot_err
