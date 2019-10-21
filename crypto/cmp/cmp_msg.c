@@ -200,7 +200,7 @@ OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype)
         goto err;
     }
 
-err:
+ err:
     OSSL_CMP_MSG_free(msg);
     return NULL;
 }
@@ -233,7 +233,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
 {
     OSSL_CRMF_MSG *crm = NULL;
     X509 *refcert = ctx->oldCert != NULL ? ctx->oldCert : ctx->clCert;
-       /* refcert defaults to current client cert */
+    /* refcert defaults to current client cert */
     STACK_OF(GENERAL_NAME) *default_sans = NULL;
     X509_NAME *subject = determine_subj(ctx, refcert, bodytype);
     int crit = ctx->setSubjectAltNameCritical || subject == NULL;
