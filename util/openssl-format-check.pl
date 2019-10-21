@@ -21,13 +21,12 @@ while(<>) {
         print "$ARGV:$line:non-ascii: $_";
     }
 
-    if(length($_) - 1 > $line_length_limit) {
+    if((length($_) - 1 > 80) && !(m/\".*?\"\s*([,;]|\)+|\}+)\s*/)) {
         print "$ARGV:$line:len>$line_length_limit: $_";
     }
     if(m/\s\n$/) {
         print "$ARGV:$line:space\@EOL: $_";
     }
-
     if(m/[^\s]\s*\{\s*$/ && !m/\}/) {
         $line_with_open_brace_at_end = $line;
         $contents_2_before = $_;
