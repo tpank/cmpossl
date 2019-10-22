@@ -24,8 +24,9 @@ typedef struct test_fixture {
     int fail_info;
     /* for protection tests */
     OSSL_CMP_MSG *msg;
-    int expected;               /* expected outcome */
-    OSSL_CMP_PKISI *si;      /* for error and response messages */
+    int expected;
+    /* for error and response messages */
+    OSSL_CMP_PKISI *si;
 } CMP_MSG_TEST_FIXTURE;
 
 static unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
@@ -72,7 +73,8 @@ do { \
     return good; \
 } while(0)
 
-/* The following tests call a cmp message creation function.
+/*-
+ * The following tests call a cmp message creation function.
  * if fixture->expected != 0:
  *         returns 1 if the message is created and syntactically correct.
  * if fixture->expected == 0
@@ -258,8 +260,6 @@ static int test_cmp_create_kur(void)
 static int test_cmp_create_kur_without_oldcert(void)
 {
     SETUP_TEST_FIXTURE(CMP_MSG_TEST_FIXTURE, set_up);
-    /* Do test case-specific set up; set expected return values and
-     * side effects */
     fixture->bodytype = OSSL_CMP_PKIBODY_KUR;
     fixture->err_code = -1;
     fixture->expected = 0;
