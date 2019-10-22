@@ -22,9 +22,6 @@ static const char *endentity2_f;
 static const char *root_f;
 static const char *intermediate_f;
 
-/* Add test code as per
- * http://wiki.openssl.org/index.php/How_To_Write_Unit_Tests_For_OpenSSL#Style
- */
 typedef struct test_fixture {
     const char *test_case_name;
     OSSL_CMP_CTX *cmp_ctx;
