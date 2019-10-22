@@ -7,7 +7,7 @@ my $hanging_col = -1;
 my $multiline_comment = 0;
 my $line = 0;
 my $line_with_open_brace_at_end = 0;
-my $contents_2_before;
+my $contents_2_lines_before;
 
 while(<>) {
     $line++;
@@ -33,13 +33,13 @@ while(<>) {
     }
     if(m/[^\s]\s*\{\s*$/ && !m/\}/) {
         $line_with_open_brace_at_end = $line;
-        $contents_2_before = $_;
+        $contents_2_lines_before = $_;
     }
     if(m/\}[\s;]*$/) {
         my $line_2_before = $line-2;
         if($line_with_open_brace_at_end &&
            $line_with_open_brace_at_end == $line_2_before) {
-            print "$ARGV:$line_2_before:{1}: $contents_2_before";
+            print "$ARGV:$line_2_before:{1 line}: $contents_2_lines_before";
         }
         $line_with_open_brace_at_end = 0;
     }
