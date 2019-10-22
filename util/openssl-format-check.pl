@@ -61,10 +61,15 @@ while(<>) {
 
     my $offset = 0;
     if (m/^(.*?)\*\/(.*)$/) { # ending comment: '*/'
-        $offset = length($1) + 2;
-        $_ = $2;
-        $hanging_col = -1;
-        $multiline_comment = 0;
+        my $head = $1;
+        my $tail = $2;
+        if (!($head =~ m/\/\*/)) { # starting comment: '/*' handled below
+            $offset = length($head) + 2;
+            print "$ARGV:$line:... */: $_" if $head =~ m/\S/;
+            $_ = $tail;
+            $hanging_col = -1;
+            $multiline_comment = 0;
+        }
     }
     if (m/^(\s*)\/\*-?(.*)$/) { # starting comment: '/*'
         my $head = $1;
@@ -74,7 +79,7 @@ while(<>) {
             $_ = $1;
             goto NEXT_PAREN;
         } else {
-            print "$ARGV:$line:multi-line comment: $_" if $tail =~ m/\S/;
+            print "$ARGV:$line:/* ...: $_" if $tail =~ m/\S/;
             $hanging_col = length($head) + 1;
             $multiline_comment = 1;
         }
