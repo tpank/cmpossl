@@ -151,15 +151,12 @@ static int execute_calc_protection_signature_test(CMP_PROTECT_TEST_FIXTURE *
     return ret;
 }
 
-/* TODO TPa: find a way to set protection algorithm */
 static int test_cmp_calc_protection_no_key_no_secret(void)
 {
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
-    /* Do test case-specific set up; set expected return values and
-     * side effects */
     if (!TEST_ptr(fixture->msg = load_pkimsg(ir_unprotected_f))
             || !TEST_ptr(fixture->msg->header->protectionAlg =
-                         X509_ALGOR_new())) {
+                         X509_ALGOR_new() /* no specific alg needed here */)) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -208,8 +205,7 @@ static int execute_MSG_protect_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 static int test_MSG_protect_unprotected_request(void)
 {
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
-    /* Do test case-specific set up; set expected return values and
-     * side effects */
+
     fixture->expected = 1;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
             || !TEST_true(SET_OPT_UNPROTECTED_SEND(fixture->cmp_ctx, 1))) {
@@ -247,11 +243,6 @@ static int test_MSG_protect_with_msg_sig_alg_protection_plus_rsa_key(void)
 static int test_MSG_protect_with_certificate_and_key(void)
 {
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
-    /*
-     * Do test case-specific set up; set expected return values and
-     * side effects
-     */
-
     fixture->expected = 1;
 
     if (!TEST_ptr(fixture->msg =
@@ -271,10 +262,6 @@ static int test_MSG_protect_certificate_based_without_cert(void)
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
     OSSL_CMP_CTX *ctx = fixture->cmp_ctx;
 
-    /*
-     * Do test case-specific set up; set expected return values and
-     * side effects
-     */
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected))
@@ -291,8 +278,6 @@ static int test_MSG_protect_certificate_based_without_cert(void)
 static int test_MSG_protect_no_key_no_secret(void)
 {
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
-    /* Do test case-specific set up; set expected return values and
-     * side effects */
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
             || !TEST_true(SET_OPT_UNPROTECTED_SEND(fixture->cmp_ctx, 0))) {
