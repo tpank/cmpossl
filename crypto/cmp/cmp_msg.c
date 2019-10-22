@@ -266,7 +266,6 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         goto err;
     if (!OSSL_CRMF_MSG_set0_extensions(crm, exts))
         goto err;
-    sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
     exts = NULL;
     /* end fill certTemplate, now set any controls */
 
@@ -285,6 +284,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
             goto err;
     }
 
+    sk_GENERAL_NAME_pop_free(default_sans, GENERAL_NAME_free);
     return crm;
 
  err:
