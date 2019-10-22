@@ -72,7 +72,7 @@ while(<>) {
         }
     } else {
       NEXT_PAREN:
-        if (m/^(.*\S)\(([^\(]*)$/) { # last '('
+        if (m/^(.*)\(([^\(]*)$/) { # last '('
             $head = $1;
             $tail = $2;
             if ($tail =~ m/\)/) { # ignore matching '(' ')'
