@@ -45,6 +45,8 @@ while(<>) {
     $count-- if ($2 eq ""); # empty line
     $count = 0 if ($2 eq "\\" && $3 eq ""); # ignore indent on line containing just '\'
     $count = 0 if ($2 eq "/" && $3 eq "*"); # ignore indent on line starting comment: '/*'
+    $count -= 4 if ($2 eq "&" && $3 eq "&"); # line starting with &&
+    $count -= 4 if ($2 eq "|" && $3 eq "|"); # line starting with ||
     $indent = $count;
     if ($hanging_col == -1) {
         $count-- if (m/^(\s*)([a-z_0-9]+):/ && $2 ne "default"); # label
