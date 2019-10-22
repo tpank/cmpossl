@@ -64,6 +64,10 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
         goto err;
     prot_part_der_len = (size_t) l;
 
+    if (msg->header->protectionAlg == NULL) {
+        CMPerr(0, CMP_R_UNKNOWN_ALGORITHM_ID);
+        goto err;
+    }
     X509_ALGOR_get0(&algorOID, &pptype, &ppval, msg->header->protectionAlg);
 
     if (secret != NULL && pkey == NULL) {
