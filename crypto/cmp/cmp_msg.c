@@ -224,10 +224,9 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         return NULL;
     if (!OSSL_CRMF_MSG_set_certReqId(crm, rid)
             /*
-             * fill certTemplate, corresponding to PKCS#10
-             * CertificationRequestInfo.
-             * rkey cannot be NULL so far - but it can be when
-             * centralized key creation is supported --> GitHub issue#68
+             * fill certTemplate, corresponding to CertificationRequestInfo 
+             * of PKCS#10. The rkey param cannot be NULL so far -
+             * it could be NULL if centralized key creation was supported
              */
             || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
                                             subject, ctx->issuer,
