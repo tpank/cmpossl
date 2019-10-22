@@ -1,9 +1,12 @@
 #!/usr/bin/perl
 
-$line_length_limit = 81;
-$hanging_col = -1;
-$line = 0;
-$line_with_open_brace_at_end = 0;
+use strict;
+
+my $line_length_limit = 81;
+my $hanging_col = -1;
+my $line = 0;
+my $line_with_open_brace_at_end = 0;
+my $contents_2_before;
 
 while(<>) {
     $line++;
@@ -47,7 +50,7 @@ while(<>) {
     $count = 0 if ($2 eq "/" && $3 eq "*"); # ignore indent on line starting comment: '/*'
     $count -= 4 if ($2 eq "&" && $3 eq "&"); # line starting with &&
     $count -= 4 if ($2 eq "|" && $3 eq "|"); # line starting with ||
-    $indent = $count;
+    my $indent = $count;
     if ($hanging_col == -1) {
         $count-- if (m/^(\s*)([a-z_0-9]+):/ && $2 ne "default"); # label
     }
@@ -55,15 +58,15 @@ while(<>) {
         print "$ARGV:$line:indent: $_";
     }
 
-    $offset = 0;
+    my $offset = 0;
     if (m/^(\s*)\*\/(.*)$/) { # ending comment: '*/'
         $offset = length($1) + 2;
         $_ = $2;
         $hanging_col = -1;
     }
     if (m/^(\s*)\/\*-?(.*)$/) { # starting comment: '/*'
-        $head = $1;
-        $tail = $2;
+        my $head = $1;
+        my $tail = $2;
         if ($tail =~ m/\*\/(.*)$/) { # ending comment: */
             $offset = length($head) + 2 + length($tail) - length($1);
             $_ = $1;
@@ -75,8 +78,8 @@ while(<>) {
     } else {
       NEXT_PAREN:
         if (m/^(.*)\(([^\(]*)$/) { # last '('
-            $head = $1;
-            $tail = $2;
+            my $head = $1;
+            my $tail = $2;
             if ($tail =~ m/\)(.*)/) { # ignore matching '(' ')'
                 $_ = $head.$1;
                 goto NEXT_PAREN;
