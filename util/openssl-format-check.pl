@@ -84,6 +84,11 @@ while(<>) {
             $hanging_col = -1;
         }
     }
+    if ($hanging_col == -1 && m/^(\s*)(((\w+|*)\s*)+=\s*)[^;]*\s*$/) { # multi-line assignment: "[type] var = " without ;
+        my $head = $1;
+        my $var_eq = $2;
+        $hanging_col = length($head) + length($var_eq);
+    }
 
     $line = 0 if eof;
 }
