@@ -165,7 +165,6 @@ static int test_cmp_calc_protection_no_key_no_secret(void)
     return result;
 }
 
-/* TODO TPa: find openssl-independent reference value */
 static int test_cmp_calc_protection_pkey(void)
 {
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
