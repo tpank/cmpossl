@@ -31,11 +31,11 @@ while(<>) {
     if(m/\s\n$/) {
         print "$ARGV:$line:space\@EOL: $_";
     }
-    if(m/[^\s]\s*\{\s*$/ && !m/\}/) {
+    if(!$multiline_comment && m/[^\s]\s*\{\s*$/ && !m/\}/) { # trailing ... {
         $line_with_open_brace_at_end = $line;
         $contents_2_lines_before = $_;
     }
-    if(m/\}[\s;]*$/) {
+    if(!$multiline_comment && m/\}[\s;]*$/) { # trailing ... }
         my $line_2_before = $line-2;
         if($line_with_open_brace_at_end &&
            $line_with_open_brace_at_end == $line_2_before) {
@@ -46,13 +46,15 @@ while(<>) {
 
     m/^(\s*)(.?)(.?)/;
     my $count = length($1);
-    $count-- if ($2 eq ""); # empty line
-    $count = 0 if ($2 eq "\\" && $3 eq ""); # ignore indent on line containing just '\'
-#   $count = 0 if ($2 eq "/" && $3 eq "*"); # do not ignore indent on line starting comment: '/*'
-    $count -= 4 if ($2 eq "&" && $3 eq "&"); # line starting with &&
-    $count -= 4 if ($2 eq "|" && $3 eq "|"); # line starting with ||
+    if (!$multiline_comment) {
+        $count-- if ($2 eq ""); # empty line
+        $count = 0 if ($2 eq "\\" && $3 eq ""); # ignore indent on line containing just '\'
+#       $count = 0 if ($2 eq "/" && $3 eq "*"); # do not ignore indent on line starting comment: '/*'
+        $count -= 4 if ($2 eq "&" && $3 eq "&"); # line starting with &&
+        $count -= 4 if ($2 eq "|" && $3 eq "|"); # line starting with ||
+    }
     my $indent = $count;
-    if ($hanging_col == -1) {
+    if (!$multiline_comment && $hanging_col == -1) {
         $count-- if (m/^(\s*)([a-z_0-9]+):/ && $2 ne "default"); # label
     }
     if($count %4 != 0 && $indent != $hanging_col) { # well, does not detect indentation off by multiples of 4
