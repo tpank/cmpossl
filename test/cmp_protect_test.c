@@ -48,8 +48,6 @@ static void tear_down(CMP_PROTECT_TEST_FIXTURE *fixture)
     OSSL_CMP_CTX_free(fixture->cmp_ctx);
     OSSL_CMP_MSG_free(fixture->msg);
     ASN1_OCTET_STRING_free(fixture->secret);
-    EVP_PKEY_free(fixture->privkey);
-    EVP_PKEY_free(fixture->pubkey);
     OSSL_CMP_PKISI_free(fixture->si);
 
     OPENSSL_free(fixture->mem);
@@ -107,8 +105,10 @@ static int execute_calc_protection_test(CMP_PROTECT_TEST_FIXTURE *fixture)
     return res;
 }
 
-/* This function works similar to parts of CMP_verify_signature in cmp_vfy.c,
- * but without the need for a OSSL_CMP_CTX or a X509 certificate */
+/*
+ * This function works similarly to parts of CMP_verify_signature in cmp_vfy.c,
+ * but without the need for a OSSL_CMP_CTX or a X509 certificate
+ */
 static int verify_signature(OSSL_CMP_MSG *msg,
                             ASN1_BIT_STRING *protection,
                             EVP_PKEY *pkey, int digest_nid)
@@ -123,14 +123,15 @@ static int verify_signature(OSSL_CMP_MSG *msg,
     prot_part.body = msg->body;
     res =
         TEST_int_ge(l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der), 0)
-            && TEST_ptr(ctx = EVP_MD_CTX_create())
-            && TEST_true(EVP_VerifyInit_ex
-                         (ctx, (EVP_MD *)EVP_get_digestbynid(digest_nid), NULL))
-            && TEST_true(EVP_VerifyUpdate(ctx, prot_part_der, l))
-            && TEST_int_eq(EVP_VerifyFinal(ctx, protection->data,
-                                           protection->length, pkey), 1);
+            && TEST_ptr(ctx = EVP_MD_CTX_new())
+            && TEST_true(EVP_DigestVerifyInit
+                         (ctx, NULL, (EVP_MD *)EVP_get_digestbynid(digest_nid),
+                          NULL, pkey))
+            && TEST_int_eq(EVP_DigestVerify(ctx, protection->data,
+                                            protection->length,
+                                            prot_part_der, l), 1);
     /* cleanup */
-    EVP_MD_CTX_destroy(ctx);
+    EVP_MD_CTX_free(ctx);
     OPENSSL_free(prot_part_der);
     return res;
 }
@@ -173,9 +174,7 @@ static int test_cmp_calc_protection_pkey(void)
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
     fixture->pubkey = loadedpubkey;
     fixture->privkey = loadedprivkey;
-    if (!TEST_true(EVP_PKEY_up_ref(loadedpubkey))
-            || !TEST_true(EVP_PKEY_up_ref(loadedprivkey))
-            || !TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))) {
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -248,8 +247,10 @@ static int test_MSG_protect_with_msg_sig_alg_protection_plus_rsa_key(void)
 static int test_MSG_protect_with_certificate_and_key(void)
 {
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
-    /* Do test case-specific set up; set expected return values and
-     * side effects */
+    /*
+     * Do test case-specific set up; set expected return values and
+     * side effects
+     */
 
     fixture->expected = 1;
 
@@ -270,8 +271,10 @@ static int test_MSG_protect_certificate_based_without_cert(void)
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
     OSSL_CMP_CTX *ctx = fixture->cmp_ctx;
 
-    /* Do test case-specific set up; set expected return values and
-     * side effects */
+    /*
+     * Do test case-specific set up; set expected return values and
+     * side effects
+     */
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected))
