@@ -73,7 +73,7 @@ while(<>) {
             $multiline_comment = 0;
         }
     }
-    if (m/^(\s*)\/\*-?(.*)$/) { # starting comment: '/*'
+    if (m/^(.*?)\/\*-?(.*)$/) { # starting comment: '/*'
         my $head = $1;
         my $tail = $2;
         if ($tail =~ m/\*\/(.*)$/) { # ending comment: */
