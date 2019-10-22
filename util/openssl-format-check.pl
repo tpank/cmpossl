@@ -49,7 +49,7 @@ while(<>) {
     if ($hanging_col == -1) {
         $count-- if (m/^(\s*)([a-z_0-9]+):/ && $2 ne "default"); # label
     }
-    if($count %4 != 0 && $indent != $hanging_col) { # well, does not indentation that is off by multiples of 4
+    if($count %4 != 0 && $indent != $hanging_col) { # well, does not detect indentation off by multiples of 4
         print "$ARGV:$line:indent: $_";
     }
 
@@ -75,13 +75,13 @@ while(<>) {
         if (m/^(.*)\(([^\(]*)$/) { # last '('
             $head = $1;
             $tail = $2;
-            if ($tail =~ m/\)/) { # ignore matching '(' ')'
-                $_ = $head;
+            if ($tail =~ m/\)(.*)/) { # ignore matching '(' ')'
+                $_ = $head.$1;
                 goto NEXT_PAREN;
             }
             $hanging_col = $offset + length($head) + 1;
         } elsif ($indent != $hanging_col) {
-            $hanging_col = -1;
+            $hanging_col = -1; # reset hanging col
         }
     }
     if ($hanging_col == -1 && m/^(\s*)(((\w+|*)\s*)+=\s*)[^;]*\s*$/) { # multi-line assignment: "[type] var = " without ;
