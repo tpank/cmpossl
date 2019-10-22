@@ -44,7 +44,7 @@ while(<>) {
     my $count = length($1);
     $count-- if ($2 eq ""); # empty line
     $count = 0 if ($2 eq "\\" && $3 eq ""); # ignore indent on line containing just '\'
-    $count = 0 if ($2 eq "/" && $3 eq "*"); # ignore indent on line starting '/*'
+    $count = 0 if ($2 eq "/" && $3 eq "*"); # ignore indent on line starting comment: '/*'
     $indent = $count;
     if ($hanging_col == -1) {
         $count-- if (m/^(\s*)([a-z_0-9]+):/ && $2 ne "default"); # label
@@ -54,19 +54,20 @@ while(<>) {
     }
 
     $offset = 0;
-    if (m/^(\s*)\*\/(.*)$/) { # ending '*/'
+    if (m/^(\s*)\*\/(.*)$/) { # ending comment: '*/'
         $offset = length($1) + 2;
         $_ = $2;
         $hanging_col = -1;
     }
-    if (m/^(\s*)\/\*(.*)$/) { # starting '/*'
+    if (m/^(\s*)\/\*-?(.*)$/) { # starting comment: '/*'
         $head = $1;
         $tail = $2;
-        if ($tail =~ m/\*\/(.*)$/) { # ending */
+        if ($tail =~ m/\*\/(.*)$/) { # ending comment: */
             $offset = length($head) + 2 + length($tail) - length($1);
             $_ = $1;
             goto NEXT_PAREN;
         } else {
+            print "$ARGV:$line:multi-line comment: $_" if $tail =~ m/\S/;
             $hanging_col = length($head) + 1;
         }
     } else {
