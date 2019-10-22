@@ -928,6 +928,7 @@ X509 *ossl_cmp_certresponse_get1_certificate(EVP_PKEY *privkey,
 {
     OSSL_CMP_CERTORENCCERT *coec;
     X509 *crt = NULL;
+
     if (!ossl_assert(crep != NULL))
         return NULL;
 

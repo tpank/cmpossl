@@ -96,7 +96,7 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
             CMPerr(0, CMP_R_UNKNOWN_ALGORITHM_ID);
             goto end;
         }
-        if ((evp_ctx = EVP_MD_CTX_create()) == NULL
+        if ((evp_ctx = EVP_MD_CTX_new()) == NULL
                 || EVP_DigestSignInit(evp_ctx, NULL, md, NULL, pkey) <= 0
                 || EVP_DigestSignUpdate(evp_ctx, prot_part_der,
                                         prot_part_der_len) <= 0
@@ -121,7 +121,7 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
         CMPerr(0, CMP_R_ERROR_CALCULATING_PROTECTION);
  end:
     OSSL_CRMF_PBMPARAMETER_free(pbm);
-    EVP_MD_CTX_destroy(evp_ctx);
+    EVP_MD_CTX_free(evp_ctx);
     OPENSSL_free(protection);
     OPENSSL_free(prot_part_der);
     return prot;
@@ -129,8 +129,6 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
 
 int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
-    int res = 1;
-
     if (!ossl_assert(ctx != NULL && msg != NULL))
         return 0;
 
@@ -140,17 +138,23 @@ int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 
     if (ctx->clCert != NULL) {
         /* Make sure that our own cert gets sent, in the first position */
-        res = sk_X509_push(msg->extraCerts, ctx->clCert)
-                  && X509_up_ref(ctx->clCert);
-
+        if (!X509_up_ref(ctx->clCert))
+            return 0;
+        if (!sk_X509_push(msg->extraCerts, ctx->clCert)) {
+            X509_free(ctx->clCert);
+            return 0;
+        }
         /* if we have untrusted store, try to add intermediate certs */
-        if (res != 0 && ctx->untrusted_certs != NULL) {
+        if (ctx->untrusted_certs != NULL) {
             STACK_OF(X509) *chain =
                 ossl_cmp_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
-            res = ossl_cmp_sk_X509_add1_certs(msg->extraCerts, chain,
-                                              1 /* no self-signed */,
-                                              1 /* no duplicates */, 0);
+            int res = ossl_cmp_sk_X509_add1_certs(msg->extraCerts, chain,
+                                                  1 /* no self-signed */,
+                                                  1 /* no duplicates */, 0);
             sk_X509_pop_free(chain, X509_free);
+            if (res == 0) {
+                return 0;
+            }
         }
     }
 
@@ -164,7 +168,7 @@ int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         sk_X509_free(msg->extraCerts);
         msg->extraCerts = NULL;
     }
-    return res;
+    return 1;
 }
 
 /*
@@ -206,6 +210,7 @@ static X509_ALGOR *create_pbmac_algor(OSSL_CMP_CTX *ctx)
  err:
     ASN1_STRING_free(pbm_str);
     X509_ALGOR_free(alg);
+    OPENSSL_free(pbm_der);
     OSSL_CRMF_PBMPARAMETER_free(pbm);
     return NULL;
 }
@@ -263,10 +268,10 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
                 goto err;
             }
             alg = OBJ_nid2obj(algNID);
-            X509_ALGOR_set0(msg->header->protectionAlg, alg, V_ASN1_UNDEF,NULL);
+            X509_ALGOR_set0(msg->header->protectionAlg, alg, V_ASN1_UNDEF, NULL);
 
             /*
-             * set senderKID to  keyIdentifier of the used certificate according
+             * set senderKID to keyIdentifier of the used certificate according
              * to section 5.1.1
              */
             subjKeyIDStr = X509_get0_subject_key_id(ctx->clCert);

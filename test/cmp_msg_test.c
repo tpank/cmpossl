@@ -119,8 +119,17 @@ static int execute_pkimessage_create_test(CMP_MSG_TEST_FIXTURE *fixture)
                               (fixture->cmp_ctx, fixture->bodytype));
 }
 
-#define set1_newPkey(ctx, pkey) \
-    (OSSL_CMP_CTX_set0_newPkey(ctx, 1, pkey) ? EVP_PKEY_up_ref(pkey) : 0)
+static int set1_newPkey(OSSL_CMP_CTX *ctx, EVP_PKEY* pkey)
+{
+    if (!EVP_PKEY_up_ref(pkey))
+        return 0;
+
+    if (!OSSL_CMP_CTX_set0_newPkey(ctx, 1, pkey)) {
+        EVP_PKEY_free(pkey);
+        return 0;
+    }
+    return 1;
+}
 
 static int test_cmp_create_ir_protection_set(void)
 {
