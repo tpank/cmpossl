@@ -4,6 +4,7 @@ use strict;
 
 my $line_length_limit = 81;
 my $hanging_col = -1;
+my $multiline_comment = 0;
 my $line = 0;
 my $line_with_open_brace_at_end = 0;
 my $contents_2_before;
@@ -59,10 +60,11 @@ while(<>) {
     }
 
     my $offset = 0;
-    if (m/^(\s*)\*\/(.*)$/) { # ending comment: '*/'
+    if (m/^(.*?)\*\/(.*)$/) { # ending comment: '*/'
         $offset = length($1) + 2;
         $_ = $2;
         $hanging_col = -1;
+        $multiline_comment = 0;
     }
     if (m/^(\s*)\/\*-?(.*)$/) { # starting comment: '/*'
         my $head = $1;
@@ -74,10 +76,11 @@ while(<>) {
         } else {
             print "$ARGV:$line:multi-line comment: $_" if $tail =~ m/\S/;
             $hanging_col = length($head) + 1;
+            $multiline_comment = 1;
         }
     } else {
       NEXT_PAREN:
-        if (m/^(.*)\(([^\(]*)$/) { # last '('
+        if (!$multiline_comment && m/^(.*)\(([^\(]*)$/) { # last '('
             my $head = $1;
             my $tail = $2;
             if ($tail =~ m/\)(.*)/) { # ignore matching '(' ')'
@@ -89,7 +92,8 @@ while(<>) {
             $hanging_col = -1; # reset hanging col
         }
     }
-    if ($hanging_col == -1 && m/^(\s*)(((\w+|\*)\s*)+=\s*)[^;]*\s*$/) { # multi-line assignment: "[type] var = " without ;
+    if (!$multiline_comment && $hanging_col == -1 &&
+        m/^(\s*)(((\w+|\*)\s*)+=\s*)[^;]*\s*$/) { # multi-line assignment: "[type] var = " without ;
         my $head = $1;
         my $var_eq = $2;
         $hanging_col = length($head) + length($var_eq);
