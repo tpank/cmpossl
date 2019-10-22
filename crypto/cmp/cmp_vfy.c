@@ -82,7 +82,7 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
         goto end;
     }
 
-    if ((ctx = EVP_MD_CTX_create()) == NULL)
+    if ((ctx = EVP_MD_CTX_new()) == NULL)
         goto end;
     err = (EVP_VerifyInit_ex(ctx, digest, NULL)
                && EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len)
@@ -91,7 +91,7 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
         ? 0 : 2;
 
  end:
-    EVP_MD_CTX_destroy(ctx);
+    EVP_MD_CTX_free(ctx);
     OPENSSL_free(prot_part_der);
     EVP_PKEY_free(pubkey);
 
