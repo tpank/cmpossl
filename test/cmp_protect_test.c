@@ -91,12 +91,10 @@ static int execute_calc_protection_fails_test(CMP_PROTECT_TEST_FIXTURE *fixture)
     return res;
 }
 
-/* TODO internal test*/
-static int execute_calc_protection_test(CMP_PROTECT_TEST_FIXTURE *fixture)
+static int execute_calc_protection_pbmac_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 {
     ASN1_BIT_STRING *protection =
-        ossl_cmp_calc_protection(fixture->msg, fixture->secret,
-                                 fixture->privkey);
+        ossl_cmp_calc_protection(fixture->msg, fixture->secret, NULL);
     int res = TEST_ptr(protection)
                   && TEST_true(ASN1_STRING_cmp(protection,
                                                fixture->msg->protection) == 0);
@@ -136,13 +134,15 @@ static int verify_signature(OSSL_CMP_MSG *msg,
     return res;
 }
 
-/* Calls OSSL_CMP_calc_protection and verifies signature*/
+/* Calls OSSL_CMP_calc_protection and compares and verifies signature*/
 static int execute_calc_protection_signature_test(CMP_PROTECT_TEST_FIXTURE *
                                                   fixture)
 {
     ASN1_BIT_STRING *protection =
         ossl_cmp_calc_protection(fixture->msg, NULL, fixture->privkey);
     int ret = (TEST_ptr(protection)
+                   && TEST_true(ASN1_STRING_cmp(protection,
+                                                fixture->msg->protection) == 0)
                    && TEST_true(verify_signature(fixture->msg, protection,
                                                  fixture->pubkey,
                                                  fixture->cmp_ctx->digest)));
@@ -194,7 +194,7 @@ static int test_cmp_calc_protection_pbmac(void)
         tear_down(fixture);
         fixture = NULL;
     }
-    EXECUTE_TEST(execute_calc_protection_test, tear_down);
+    EXECUTE_TEST(execute_calc_protection_pbmac_test, tear_down);
     return result;
 }
 static int execute_MSG_protect_test(CMP_PROTECT_TEST_FIXTURE *fixture)
