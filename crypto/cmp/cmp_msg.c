@@ -61,57 +61,32 @@ int ossl_cmp_msg_get_bodytype(const OSSL_CMP_MSG *msg)
     return msg->body->type;
 }
 
-/*
- * Add an extension (unless NULL) to the given extension stack, consuming it.
- *
- * returns 1 on success, 0 on error
- */
-static int add0_extension(X509_EXTENSIONS **pexts, X509_EXTENSION *ext)
+/* Add an extension to the referenced extension stack, which may be NULL */
+static int add1_extension(X509_EXTENSIONS **pexts, int nid, int crit, void *ex)
 {
-    if (!ossl_assert(pexts != NULL))
+    X509_EXTENSION *ext;
+
+    if (!ossl_assert(pexts != NULL)) /* pointer to var must not be NULL */
         return 0;
 
-    if (ext == NULL /* malloc did not work for ext in caller */
-            || !X509v3_add_ext(pexts, ext, 0)) {
+    ext = X509V3_EXT_i2d(nid, crit, ex);
+    if (ext == NULL || !X509v3_add_ext(pexts, ext, 0)) {
         X509_EXTENSION_free(ext);
         return 0;
     }
     return 1;
 }
 
-/*
- * Adds a stack of GENERAL_NAMEs to the given extension stack, which may
- * be NULL. This is used to setting subject alternate names to a certTemplate.
- *
- * returns 1 on success, 0 on error
- */
-#define ADD_SANs(pexts, sans, critical) \
-    add0_extension(pexts, X509V3_EXT_i2d(NID_subject_alt_name, critical, sans))
-
-/*
- * Adds a CERTIFICATEPOLICIES structure to the given extension stack, which may
- * be NULL. This is used to setting certificate policy OIDs to a certTemplate.
- *
- * returns 1 on success, 0 on error
- */
-#define ADD_POLICIES(pexts, policies, critical) add0_extension(pexts, \
-    X509V3_EXT_i2d(NID_certificate_policies, critical, policies))
-
-/*
- * Adds a CRL revocation reason code to an extension stack (which may be NULL)
- * returns 1 on success, 0 on error
- */
+/* Add a CRL revocation reason code to extension stack, which may be NULL */
 static int add_crl_reason_extension(X509_EXTENSIONS **pexts, int reason_code)
 {
     ASN1_ENUMERATED *val = ASN1_ENUMERATED_new();
-    X509_EXTENSION *ext = NULL;
-    int ret;
+    int res = 0;
 
     if (val != NULL && ASN1_ENUMERATED_set(val, reason_code))
-        ext = X509V3_EXT_i2d(NID_crl_reason, 0, val);
-    ret = add0_extension(pexts, ext);
+        res = add1_extension(pexts, NID_crl_reason, 0 /* non-critical */, val);
     ASN1_ENUMERATED_free(val);
-    return ret;
+    return res;
 }
 
 OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype)
@@ -280,13 +255,15 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
             goto err;
     }
     if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0
-            && !ADD_SANs(&exts, ctx->subjectAltNames, crit))
+            && !add1_extension(&exts, NID_subject_alt_name,
+                               crit, ctx->subjectAltNames))
         goto err;
     if (!HAS_SAN(ctx) && default_sans != NULL
-            && !ADD_SANs(&exts, default_sans, crit))
+            && !add1_extension(&exts, NID_subject_alt_name, crit, default_sans))
         goto err;
     if (ctx->policies != NULL
-            && !ADD_POLICIES(&exts, ctx->policies, ctx->setPoliciesCritical))
+            && !add1_extension(&exts, NID_certificate_policies,
+                               ctx->setPoliciesCritical, ctx->policies))
         goto err;
     if (!OSSL_CRMF_MSG_set0_extensions(crm, exts))
         goto err;
