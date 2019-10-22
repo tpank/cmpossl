@@ -860,7 +860,7 @@ int setup_tests(void)
     ADD_TEST(test_CTX_set1_get0_senderNonce);
     ADD_TEST(test_CTX_set1_get0_recipNonce);
 
-    /* TODO ossl_cmp_build_cert_chain() will be tested with cmp_protect.c*/
+    /* ossl_cmp_build_cert_chain() is tested in cmp_protect.c */
 
     return 1;
 }
