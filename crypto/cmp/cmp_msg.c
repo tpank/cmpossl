@@ -224,7 +224,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
         return NULL;
     if (!OSSL_CRMF_MSG_set_certReqId(crm, rid)
             /*
-             * fill certTemplate, corresponding to CertificationRequestInfo 
+             * fill certTemplate, corresponding to CertificationRequestInfo
              * of PKCS#10. The rkey param cannot be NULL so far -
              * it could be NULL if centralized key creation was supported
              */
@@ -918,7 +918,8 @@ ossl_cmp_certrepmessage_get0_certresponse(const OSSL_CMP_CERTREPMESSAGE *crm,
     return NULL;
 }
 
-/* CMP_CERTRESPONSE_get1_certificate() attempts to retrieve the returned
+/*
+ * CMP_CERTRESPONSE_get1_certificate() attempts to retrieve the returned
  * certificate from the given certResponse B<crep>.
  * Uses the privkey in case of indirect POP from B<ctx>.
  * Returns a pointer to a copy of the found certificate, or NULL if not found.
