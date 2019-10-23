@@ -101,6 +101,15 @@ while(<>) {
                 goto MATCH_PAREN;
             }
             $hanging_indent = $offset + length($head) + 1;
+        }
+        elsif (m/^(.*)\{(\s*[^\s\{][^\{]*\s*)$/) { # last '{' followed by non-space: struct initializer
+            my $head = $1;
+            my $tail = $2;
+            if ($tail =~ m/\}(.*)/) { # ignore contents up to matching '}'
+                $_ = $head.$1;
+                goto MATCH_PAREN;
+            }
+            $hanging_indent = $offset + length($head) + 1;
         } elsif ($count != $hanging_indent) {
             $hanging_indent = -1; # reset hanging indent
         }
