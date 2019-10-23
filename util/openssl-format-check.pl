@@ -24,14 +24,14 @@ while(<>) {
         print "$ARGV:$line:non-printable: $_";
     }
     if(m/[\x7F-\xFF]/) {
-        print "$ARGV:$line:non-ascii: $_";
+        print "$ARGV:$line:non-ASCII: $_";
     }
 
     if((length($_) - 1 > MAX_LENGTH) && !(m/\".*?\"\s*([,;]|\)+|\}+)\s*/)) {
         print "$ARGV:$line:len>".MAX_LENGTH.": $_";
     }
     if(m/\s\n$/) {
-        print "$ARGV:$line:space\@EOL: $_";
+        print "$ARGV:$line:SPC\@EOL: $_";
     }
     if(!$in_multiline_comment && m/[^\s]\s*\{\s*$/ && !m/\}/) { # trailing ... {
         $line_opening_brace = $line;
