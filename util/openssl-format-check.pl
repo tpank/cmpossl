@@ -27,8 +27,13 @@ while(<>) {
         print "$ARGV:$line:non-ASCII: $_";
     }
 
-    if((length($_) - 1 > MAX_LENGTH) && !(m/\".*?\"\s*([,;]|\)+|\}+)\s*/)) {
-        print "$ARGV:$line:len>".MAX_LENGTH.": $_";
+    my $len = length($_) - 1; # '- 1' avoids counting trailing \n
+    my $hidden_esc_dblquot = $_;
+    while($hidden_esc_dblquot =~ s/([^\"]\".*?\\)\"/$1\\/g) {}
+    if($len > MAX_LENGTH &&
+       !($hidden_esc_dblquot =~ m/^(.*?)\"[^\"]*\"\s*(,|[\)\}]*[,;]?)\s*$/
+         && length($1) < MAX_LENGTH)) { # allow over-long trailing string literal with starting col before MAX_LENGTH
+        print "$ARGV:$line:len=$len: $_";
     }
     if(m/\s\n$/) {
         print "$ARGV:$line:SPC\@EOL: $_";
