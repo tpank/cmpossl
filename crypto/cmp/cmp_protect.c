@@ -156,9 +156,8 @@ int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
                                                   1 /* no self-signed */,
                                                   1 /* no duplicates */, 0);
             sk_X509_pop_free(chain, X509_free);
-            if (res == 0) {
+            if (res == 0)
                 return 0;
-            }
         }
     }
 
