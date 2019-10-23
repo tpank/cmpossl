@@ -81,20 +81,20 @@ while(<>) {
         if ($tail =~ m/\*\/(.*)$/) { # ending comment: */
             $offset = length($head) + 2 + length($tail) - length($1);
             $_ = $1;
-            goto NEXT_PAREN;
         } else {
             print "$ARGV:$line:/* ...: $_" if $tail =~ m/\S/;
             $hanging_indent = length($head) + 1;
             $in_multiline_comment = 1;
         }
-    } else {
-      NEXT_PAREN:
-        if (!$in_multiline_comment && m/^(.*)\(([^\(]*)$/) { # last '('
+    }
+  MATCH_PAREN:
+    if (!$in_multiline_comment) {
+        if (m/^(.*)\(([^\(]*)$/) { # last '('
             my $head = $1;
             my $tail = $2;
             if ($tail =~ m/\)(.*)/) { # ignore matching '(' ')'
                 $_ = $head.$1;
-                goto NEXT_PAREN;
+                goto MATCH_PAREN;
             }
             $hanging_indent = $offset + length($head) + 1;
         } elsif ($indent != $hanging_indent) {
