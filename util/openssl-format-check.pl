@@ -98,7 +98,7 @@ while(<>) {
             }
             $hanging_indent = $offset + length($head) + 1;
         } elsif ($indent != $hanging_indent) {
-            $hanging_indent = -1; # reset hanging col
+            $hanging_indent = -1; # reset hanging indent
         }
     }
     if (!$in_multiline_comment && $hanging_indent == -1 &&
