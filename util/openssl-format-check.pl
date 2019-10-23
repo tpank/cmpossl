@@ -55,11 +55,10 @@ while(<>) {
         $count -= INDENT_LEVEL if ($2 eq "&" && $3 eq "&"); # line starting with &&
         $count -= INDENT_LEVEL if ($2 eq "|" && $3 eq "|"); # line starting with ||
     }
-    my $indent = $count;
     if (!$in_multiline_comment && $hanging_indent == -1) {
         $count-- if (m/^(\s*)([a-z_0-9]+):/ && $2 ne "default"); # label
     }
-    if($count %INDENT_LEVEL != 0 && $indent != $hanging_indent) { # well, does not detect indentation off by multiples of INDENT_LEVEL
+    if($count %INDENT_LEVEL != 0 && $count != $hanging_indent) { # well, does not detect indentation off by multiples of INDENT_LEVEL
         print "$ARGV:$line:indent: $_";
     }
 
@@ -97,7 +96,7 @@ while(<>) {
                 goto MATCH_PAREN;
             }
             $hanging_indent = $offset + length($head) + 1;
-        } elsif ($indent != $hanging_indent) {
+        } elsif ($count != $hanging_indent) {
             $hanging_indent = -1; # reset hanging indent
         }
     }
