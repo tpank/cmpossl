@@ -78,7 +78,8 @@ do { \
  * if fixture->expected != 0:
  *         returns 1 if the message is created and syntactically correct.
  * if fixture->expected == 0
- *         returns 1 if message creation returns NULL                         */
+ *         returns 1 if message creation returns NULL
+ */
 static int execute_certreq_create_test(CMP_MSG_TEST_FIXTURE *fixture)
 {
     EXECUTE_MSG_CREATION_TEST(ossl_cmp_certReq_new(fixture->cmp_ctx,
