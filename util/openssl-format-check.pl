@@ -60,6 +60,7 @@ while(<>) {
         my $head = $1;
         my $tail = $2;
         if (!($head =~ m/\/\*/)) { # starting comment: '/*' handled below
+            print "$ARGV:$line:*/ outside comment: $_" if $in_multiline_comment == 0;
             $offset = length($head) + 2;
             print "$ARGV:$line:... */: $_" if $head =~ m/\S/;
             $_ = $tail;
@@ -74,6 +75,7 @@ while(<>) {
             $offset = length($head) + 2 + length($tail) - length($1);
             $_ = $1;
         } else {
+            print "$ARGV:$line:/* inside comment: $_" if $in_multiline_comment == 1;
             print "$ARGV:$line:/* ...: $_" if $tail =~ m/\S/;
             $hanging_indent = length($head) + 1;
             $in_multiline_comment = 1;
