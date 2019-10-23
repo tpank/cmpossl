@@ -33,18 +33,6 @@ while(<>) {
     if(m/\s\n$/) {
         print "$ARGV:$line:SPC\@EOL: $_";
     }
-    if(!$in_multiline_comment && m/[^\s]\s*\{\s*$/ && !m/\}/) { # trailing ... {
-        $line_opening_brace = $line;
-        $contents_2_lines_before = $_;
-    }
-    if(!$in_multiline_comment && m/\}[\s;]*$/) { # trailing ... }
-        my $line_2_before = $line-2;
-        if($line_opening_brace &&
-           $line_opening_brace == $line_2_before) {
-            print "$ARGV:$line_2_before:{1 line}: $contents_2_lines_before";
-        }
-        $line_opening_brace = 0;
-    }
 
     m/^(\s*)(.?)(.?)/;
     my $count = length($1);
@@ -86,12 +74,24 @@ while(<>) {
             $in_multiline_comment = 1;
         }
     }
+    if(!$in_multiline_comment && m/[^\s]\s*\{\s*$/ && !m/\}/) { # trailing ... {
+        $line_opening_brace = $line;
+        $contents_2_lines_before = $_;
+    }
+    if(!$in_multiline_comment && m/\}[\s;]*$/) { # trailing ... }
+        my $line_2_before = $line-2;
+        if($line_opening_brace &&
+           $line_opening_brace == $line_2_before) {
+            print "$ARGV:$line_2_before:{1 line}: $contents_2_lines_before";
+        }
+        $line_opening_brace = 0;
+    }
   MATCH_PAREN:
     if (!$in_multiline_comment) {
         if (m/^(.*)\(([^\(]*)$/) { # last '('
             my $head = $1;
             my $tail = $2;
-            if ($tail =~ m/\)(.*)/) { # ignore matching '(' ')'
+            if ($tail =~ m/\)(.*)/) { # ignore contents up to matching ')'
                 $_ = $head.$1;
                 goto MATCH_PAREN;
             }
