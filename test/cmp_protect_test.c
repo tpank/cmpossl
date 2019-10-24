@@ -222,10 +222,10 @@ static int test_MSG_protect_with_msg_sig_alg_protection_plus_rsa_key(void)
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected))
             || !TEST_true(SET_OPT_UNPROTECTED_SEND(fixture->cmp_ctx, 0))
-            /*
-             * Use half of the 16 bytes of random input
-             * for each reference and secret value
-             */
+        /*
+         * Use half of the 16 bytes of random input
+         * for each reference and secret value
+         */
             || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(fixture->cmp_ctx,
                                                            rand_data, size))
             || !TEST_true(OSSL_CMP_CTX_set1_secretValue(fixture->cmp_ctx,
@@ -263,8 +263,8 @@ static int test_MSG_protect_certificate_based_without_cert(void)
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg =
                   OSSL_CMP_MSG_dup(ir_unprotected))
-        || !TEST_true(SET_OPT_UNPROTECTED_SEND(ctx, 0))
-        || !TEST_true(OSSL_CMP_CTX_set0_newPkey(ctx, 1, loadedkey))) {
+            || !TEST_true(SET_OPT_UNPROTECTED_SEND(ctx, 0))
+            || !TEST_true(OSSL_CMP_CTX_set0_newPkey(ctx, 1, loadedkey))) {
         tear_down(fixture);
         fixture = NULL;
     }
