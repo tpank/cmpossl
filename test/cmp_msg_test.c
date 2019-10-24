@@ -370,7 +370,8 @@ static int test_cmp_create_genm(void)
     return result;
 }
 
-static int execute_certrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
+static int execute_certrep_create(CMP_MSG_TEST_FIXTURE *fixture)
+{
     OSSL_CMP_CERTREPMESSAGE *crepmsg = OSSL_CMP_CERTREPMESSAGE_new();
     OSSL_CMP_CERTRESPONSE *read_cresp, *cresp = OSSL_CMP_CERTRESPONSE_new();
     EVP_PKEY *privkey;
@@ -416,7 +417,8 @@ static int test_cmp_create_certrep(void)
 }
 
 
-static int execute_rp_create(CMP_MSG_TEST_FIXTURE *fixture) {
+static int execute_rp_create(CMP_MSG_TEST_FIXTURE *fixture)
+{
     OSSL_CMP_PKISI *si = ossl_cmp_statusinfo_new(33, 44, "a text");
     X509_NAME *issuer = X509_NAME_new();
     ASN1_INTEGER *serial = ASN1_INTEGER_new();
@@ -455,7 +457,8 @@ static int test_cmp_create_rp(void)
     return result;
 }
 
-static int execute_pollrep_create(CMP_MSG_TEST_FIXTURE *fixture) {
+static int execute_pollrep_create(CMP_MSG_TEST_FIXTURE *fixture)
+{
     OSSL_CMP_MSG *pollrep;
     int res = 0;
 
