@@ -178,7 +178,7 @@ while(<>) {
             my $line_before = $line - 1;
             if($line_opening_brace &&
                $line_opening_brace == $line_before - 1) {
-                print "$ARGV:$line_before:{1 line}:$contents_before" if !($contents_before2 =~ m/typedef|struct|union/);
+                print "$ARGV:$line_before:{1 line}:$contents_before" if !($contents_before2 =~ m/typedef|struct|union|static|void/); # including poor matching of function header decl
                 # TODO do not show cases where there is another if .. else branch with a block containg more than one line
             }
             $line_opening_brace = 0;
