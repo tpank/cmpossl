@@ -15,8 +15,6 @@ my $line;
 my $line_opening_brace;
 my $contents_before;       # used only if $line > 1
 my $contents_before2;      # used only if $line > 2
-my $hanging_indent_before; # used only if $line > 1
-my $hanging_indent_before2; # used only if $line > 2
 my $hanging_indent;
 my $hanging_parens;        # used only if $hanging_indent != -1
 my $hanging_braces;        # used only if $hanging_indent != -1
@@ -66,8 +64,6 @@ while(<>) {
         print "$ARGV:$line:SPC\@EOL: $orig_";
     }
 
-    $hanging_indent_before2 = $hanging_indent_before;
-    $hanging_indent_before = $hanging_indent;
     m/^(\s*)(.?)(.?)/;
     my $count = length($1) - (m/^\s*$/ ? 1 : 0); # number of leading space characters (except newline), which basically should equal $indent as checked below
     my $local_indent = 0;
