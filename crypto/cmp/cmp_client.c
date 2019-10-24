@@ -157,7 +157,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             ctx->msgtimeout = (int)time_left;
     }
 
-     /* should print error queue since transfer_cb may call ERR_clear_error() */
+    /* should print error queue since transfer_cb may call ERR_clear_error() */
 #ifndef OPENSSL_NO_STDIO
     OSSL_CMP_CTX_print_errors(ctx);
 #endif
@@ -281,7 +281,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
                 }
                 if (time_left < check_after)
                     check_after = time_left;
-                    /* poll one last time just when timeout was reached */
+                /* poll one last time just when timeout was reached */
             }
 
             OSSL_CMP_MSG_free(preq);
@@ -319,8 +319,8 @@ int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
     int success = 0;
 
     /*
-     * check if all necessary options are set done by OSSL_CMP_certConf_new */
-    /* create Certificate Confirmation - certConf
+     * check if all necessary options are set done by OSSL_CMP_certConf_new
+     * create Certificate Confirmation - certConf
      */
     if ((certConf = ossl_cmp_certConf_new(ctx, fail_info, txt)) == NULL)
         goto err;
@@ -703,24 +703,30 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         goto err;
     switch (ossl_cmp_pkisi_get_pkistatus(si)) {
     case OSSL_CMP_PKISTATUS_accepted:
-      /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)");*/
+        /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)");*/
         result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_grantedWithMods:
-      /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=grantedWithMods)");*/
+        /*
+         * TODO OSSL_CMP_info("revocation accepted (PKIStatus=grantedWithMods)");
+         */
         result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_rejection:
-      /*TODO SSL_CMP_info("revocation accepted (PKIStatus=revocationWarning)");*/
+        /*
+         * TODO SSL_CMP_info("revocation accepted (PKIStatus=revocationWarning)");
+         */
         CMPerr(0, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
     case OSSL_CMP_PKISTATUS_revocationWarning:
-      /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=revocationNotification)");*/
+        /*
+         * TODO OSSL_CMP_info("revocation accepted (PKIStatus=revocationNotification)");
+         */
         result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_revocationNotification:
         /* interpretation as warning or error depends on CA */
-      /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)");*/
+        /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)");*/
         result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_waiting:
@@ -750,8 +756,9 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
             goto err;
         }
         if (X509_NAME_cmp(issuer, OSSL_CRMF_CERTID_get0_issuer(cid)) != 0
-            || ASN1_INTEGER_cmp(serial,
-                                OSSL_CRMF_CERTID_get0_serialNumber(cid)) != 0) {
+                || ASN1_INTEGER_cmp(serial,
+                                    OSSL_CRMF_CERTID_get0_serialNumber(cid))
+                                    != 0) {
             CMPerr(0, CMP_R_WRONG_CERTID_IN_RP);
             result = NULL;
             goto err;

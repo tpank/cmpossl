@@ -101,7 +101,9 @@ static int bio_connect(BIO *bio, int timeout)
     blocking = timeout <= 0;
     max_time = timeout > 0 ? time(NULL) + timeout : 0;
 
-/* https://www.openssl.org/docs/man1.1.0/crypto/BIO_should_io_special.html */
+    /*
+     * https://www.openssl.org/docs/man1.1.0/crypto/BIO_should_io_special.html
+     */
     if (!blocking)
         BIO_set_nbio(bio, 1);
  retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
@@ -183,7 +185,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
     if (!BIO_flush(fbio)) {
         /* potentially needs to be retried if BIO is non-blocking */
         if (BIO_should_retry(fbio))
-                goto flush_retry;
+            goto flush_retry;
     }
  retry:
     rv = bio_wait(fbio, (int)(max_time - time(NULL)));
@@ -223,9 +225,9 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
      * response came in in more than a single TCP message
      * Read past all following headers
      */
-    do {
+    do
         mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
-    } while (mbuf_len > 2);
+    while (mbuf_len > 2);
 
     ret = 1;
  end:
@@ -246,7 +248,8 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
 typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
 /*
  * Even better would be to extend OCSP_REQ_CTX_nbio() and
- * thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior */
+ * thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior
+ */
 /*
  * Exchange ASN.1 request and response via HTTP on any BIO
  * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
@@ -296,7 +299,8 @@ static int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
 
 /* one declaration and three defines copied from ocsp_ht.c; keep in sync! */
 /* dummy declaration to get access to internal state variable */
-struct ocsp_req_ctx_st {
+struct ocsp_req_ctx_st
+{
     int state;                  /* Current I/O state */
     unsigned char *iobuf;       /* Line buffer */
     int iobuflen;               /* Line buffer length */
@@ -431,8 +435,8 @@ static int CMP_sendreq(BIO *bio, const char *host, const char *path,
         return -4;
 
     rv = bio_http(bio, rctx, CMP_http_nbio, (ASN1_VALUE **)resp, max_time);
- /* This indirectly calls ERR_clear_error(); */
 
+    /* This indirectly calls ERR_clear_error(); */
     OCSP_REQ_CTX_free(rctx);
 
     return rv;

@@ -42,7 +42,7 @@ struct ossl_cmp_ctx_st {
     int proxyPort;
     int msgtimeout; /* max seconds to wait for each CMP message round trip */
     int totaltimeout; /* maximum number seconds an enrollment may take, incl. */
-      /* attempts polling for a response if a 'waiting' PKIStatus is received */
+    /* attempts polling for a response if a 'waiting' PKIStatus is received */
     time_t end_time; /* session start time + totaltimeout */
     OSSL_cmp_http_cb_t http_cb;
     void *http_cb_arg; /* allows to store optional argument to cb */
@@ -527,6 +527,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_GENREPCONTENT)
  *           certConf [24] CertConfirmContent,         --Certificate confirm
  *           pollReq  [25] PollReqContent,             --Polling request
  *           pollRep  [26] PollRepContent              --Polling response
+ *   }
  */
 typedef struct ossl_cmp_pkibody_st {
     int type;

@@ -141,7 +141,7 @@ OSSL_CMP_MSG *ossl_cmp_msg_create(OSSL_CMP_CTX *ctx, int bodytype)
 
     case OSSL_CMP_PKIBODY_CERTCONF:
         if ((msg->body->value.certConf =
-                sk_OSSL_CMP_CERTSTATUS_new_null()) == NULL)
+             sk_OSSL_CMP_CERTSTATUS_new_null()) == NULL)
             goto err;
         return msg;
     case OSSL_CMP_PKIBODY_PKICONF:
@@ -223,11 +223,11 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     if ((crm = OSSL_CRMF_MSG_new()) == NULL)
         return NULL;
     if (!OSSL_CRMF_MSG_set_certReqId(crm, rid)
-            /*
-             * fill certTemplate, corresponding to CertificationRequestInfo
-             * of PKCS#10. The rkey param cannot be NULL so far -
-             * it could be NULL if centralized key creation was supported
-             */
+        /*
+         * fill certTemplate, corresponding to CertificationRequestInfo
+         * of PKCS#10. The rkey param cannot be NULL so far -
+         * it could be NULL if centralized key creation was supported
+         */
             || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
                                             subject, ctx->issuer,
                                             NULL/* serial */))

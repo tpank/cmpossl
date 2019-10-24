@@ -23,7 +23,8 @@ typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
 /*
  * this structure is used to store the context for the CMP mock server
  */
-struct OSSL_cmp_srv_ctx_st {
+struct OSSL_cmp_srv_ctx_st
+{
     OSSL_CMP_CTX *ctx;          /* Client CMP context, partly reused for srv */
 
     OSSL_CMP_PKISI *pkiStatusOut; /* PKIStatusInfo to be returned */
@@ -120,8 +121,8 @@ int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
         return 0;
     }
     OSSL_CMP_PKISI_free(srv_ctx->pkiStatusOut);
-    return (srv_ctx->pkiStatusOut =
-            ossl_cmp_statusinfo_new(status, fail_info, text))
+    return (srv_ctx->pkiStatusOut = ossl_cmp_statusinfo_new(status,
+                                                            fail_info, text))
             != NULL;
 }
 
@@ -591,7 +592,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
             goto end;
         if (err != 0 && (flags & ERR_TXT_STRING) != 0 && data != NULL
                 && !ossl_cmp_pkifreetext_push_str(details, data))
-                goto end;
+            goto end;
         srv_rsp = ossl_cmp_error_new(cmp_ctx, si,
                                      err != 0 ? ERR_GET_REASON(err) : -1,
                                      details, srv_ctx->sendUnprotectedErrors);

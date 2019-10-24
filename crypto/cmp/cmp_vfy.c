@@ -595,7 +595,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         } else {
             scrt = NULL;
         }
-     end:
+ end:
         sk_X509_pop_free(found_crts, X509_free);
     }
 
@@ -848,21 +848,21 @@ int ossl_cmp_verify_popo(const OSSL_CMP_MSG *msg, int accept_RAVerified)
     if (!ossl_assert(msg != NULL && msg->body != NULL))
         return 0;
     switch(msg->body->type) {
-        case OSSL_CMP_PKIBODY_P10CR: {
+    case OSSL_CMP_PKIBODY_P10CR: {
             X509_REQ *req = msg->body->value.p10cr;
             if (X509_REQ_verify(req, X509_REQ_get0_pubkey(req)) > 0)
                 return 1;
             CMPerr(0, CMP_R_REQUEST_NOT_ACCEPTED);
             return 0;
         }
-        case OSSL_CMP_PKIBODY_IR:
-        case OSSL_CMP_PKIBODY_CR:
-        case OSSL_CMP_PKIBODY_KUR:
-            return OSSL_CRMF_MSGS_verify_popo(msg->body->value.ir,
-                                              OSSL_CMP_CERTREQID,
-                                              accept_RAVerified);
-        default:
-            CMPerr(0, CMP_R_PKIBODY_ERROR);
-            return 0;
+    case OSSL_CMP_PKIBODY_IR:
+    case OSSL_CMP_PKIBODY_CR:
+    case OSSL_CMP_PKIBODY_KUR:
+        return OSSL_CRMF_MSGS_verify_popo(msg->body->value.ir,
+                                          OSSL_CMP_CERTREQID,
+                                          accept_RAVerified);
+    default:
+        CMPerr(0, CMP_R_PKIBODY_ERROR);
+        return 0;
     }
 }
