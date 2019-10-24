@@ -21,6 +21,7 @@ my $hanging_braces;        # used only if $hanging_indent != -1
 my $hanging_alt_indent;    # used only if $hanging_indent != -1
 my $braceless_indent;
 my $multiline_condition_indent;
+my $in_multiline_macro;    # number of lines so far within macro
 my $in_multiline_comment;
 my $comment_indent;        # used only if $in_multiline_comment == 1
 
@@ -31,6 +32,7 @@ sub reset_file_state {
     $hanging_indent = -1;
     $braceless_indent = 0;
     $multiline_condition_indent = -1;
+    $in_multiline_macro = 0;
     $in_multiline_comment = 0;
 }
 
@@ -69,7 +71,7 @@ while(<>) {
     my $local_indent = 0;
     my $local_hanging_indent = 0;
     if (!$in_multiline_comment) {
-        if (m/^(.*?)\s*\\\s*$/) { # trailing '\' # TODO improve macro handing, using some end detection
+        if (m/^(.*?)\s*\\\s*$/) { # trailing '\' typically used in macro declarations
             $_ = "$1\n"; # remove it along with any preceding whitespace
         }
         $_ = "$1$2" if m/^(\s*extern\s*"C"\s*)\{(\s*)$/; # ignore opening brace in 'extern "C" {' (used with '#ifdef __cplusplus' in header files)
@@ -106,6 +108,12 @@ while(<>) {
         print "$ARGV:$line:indent=$count!=$comment_indent: $orig_"
             if $count != $comment_indent;
     } elsif ($hanging_indent == -1) {
+        my $tmp = $contents_before;
+        my $parens_balance = $tmp =~ tr/\(// - $tmp =~ tr/\)//; # count balance of opening - closing parens
+        if (($in_multiline_macro == 1 || $in_multiline_macro == 2 && $parens_balance == -1) && # first line of macro body, where we also match two-line macro headers
+            $count == 0 && $indent == INDENT_LEVEL) {
+            $indent -= INDENT_LEVEL; # workaround for macro started without indentation
+        }
         print "$ARGV:$line:indent=$count!=".($indent+$braceless_indent+$local_indent).": $orig_"
             if $count != $indent + $braceless_indent + $local_indent;
     } else {
@@ -250,6 +258,15 @@ while(<>) {
                 $hanging_alt_indent = length($head) + INDENT_LEVEL;
             }
             # TODO add check for empty line after local variable decls
+        }
+
+        if ($orig_ =~ m/^(.*?)\s*\\\s*$/) { # trailing '\' typically used in macro declarations
+            $indent += INDENT_LEVEL if $in_multiline_macro == 0;
+            $in_multiline_macro += 1;
+        } else {
+            $indent -= INDENT_LEVEL if $in_multiline_macro
+                && $indent >= INDENT_LEVEL; # workaround for macro started without indentation
+            $in_multiline_macro = 0;
         }
     }
 
