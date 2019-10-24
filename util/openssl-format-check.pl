@@ -72,7 +72,7 @@ while(<>) {
     my $local_indent = 0;
     my $local_hanging_indent = 0;
     if (!$in_multiline_comment) {
-        if (m/^(.*?)\\\s*$/) { # trailing '\'
+        if (m/^(.*?)\s*\\\s*$/) { # trailing '\'
             $_ = "$1\n"; # remove it along with any preceding whitespace
         }
         if (m/^\n$/ || # empty line
