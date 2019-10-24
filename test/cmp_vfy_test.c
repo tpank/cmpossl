@@ -186,7 +186,7 @@ static int test_validate_msg_signature_srvcert_ok(void)
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))
-          || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert))) {
+            || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -245,7 +245,7 @@ static int test_validate_msg_unprotected_request(void)
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg = load_pkimsg(ir_unprotected_f))
-          || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert))) {
+            || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -289,11 +289,11 @@ static int test_validate_cert_path_no_anchor(void)
     (void)OSSL_CMP_CTX_set0_trustedStore(fixture->cmp_ctx, trusted);
     if (!TEST_ptr(untrusted =
                   OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx))
-           || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1))
-           || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate))
-           || !TEST_ptr(trusted)
-           /* Wrong anchor */
-           || !TEST_true(X509_STORE_add_cert(trusted, srvcert))) {
+            || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, endentity1))
+            || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, intermediate))
+            || !TEST_ptr(trusted)
+        /* Wrong anchor */
+            || !TEST_true(X509_STORE_add_cert(trusted, srvcert))) {
         tear_down(fixture);
         fixture = NULL;
     } else {
@@ -345,7 +345,7 @@ static int execute_MSG_check_received_test(CMP_VFY_TEST_FIXTURE *fixture)
                                     fixture->cmp_ctx->recipNonce)))
             return 0;
         if (!TEST_int_eq(0,
-           ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),
+            ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),
                                  fixture->cmp_ctx->transactionID)))
             return 0;
     }
@@ -402,8 +402,8 @@ static int test_MSG_check_received_no_protection_positive_cb(void)
 static int test_MSG_check_received_check_transaction_id(void)
 {
     /* Transaction id belonging to CMP_IR_unprotected.der */
-    const unsigned char trans_id[OSSL_CMP_TRANSACTIONID_LENGTH] =
-        { 0xDF, 0x5C, 0xDC, 0x01, 0xF8, 0x81, 0x6E, 0xA9,
+    const unsigned char trans_id[OSSL_CMP_TRANSACTIONID_LENGTH] = {
+        0xDF, 0x5C, 0xDC, 0x01, 0xF8, 0x81, 0x6E, 0xA9,
         0x3E, 0x63, 0x94, 0x5B, 0xD3, 0x12, 0x1B, 0x65
     };
     ASN1_OCTET_STRING *trid = NULL;
@@ -413,9 +413,11 @@ static int test_MSG_check_received_check_transaction_id(void)
     fixture->additional_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
-       || !TEST_ptr(trid = ASN1_OCTET_STRING_new())
-       || !TEST_true(ASN1_OCTET_STRING_set(trid, trans_id, sizeof(trans_id)))
-       || !TEST_true(OSSL_CMP_CTX_set1_transactionID(fixture->cmp_ctx, trid))) {
+            || !TEST_ptr(trid = ASN1_OCTET_STRING_new())
+            || !TEST_true(ASN1_OCTET_STRING_set(trid, trans_id,
+                                                sizeof(trans_id)))
+            || !TEST_true(OSSL_CMP_CTX_set1_transactionID(fixture->cmp_ctx,
+                                                          trid))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -433,9 +435,11 @@ static int test_MSG_check_received_wrong_transaction_id(void)
     fixture->additional_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
-        || !TEST_ptr(trid = ASN1_OCTET_STRING_new())
-        || !TEST_true(ASN1_OCTET_STRING_set(trid, rand_data, sizeof(rand_data)))
-        || !TEST_true(OSSL_CMP_CTX_set1_transactionID(fixture->cmp_ctx, trid))) {
+            || !TEST_ptr(trid = ASN1_OCTET_STRING_new())
+            || !TEST_true(ASN1_OCTET_STRING_set(trid, rand_data,
+                                                sizeof(rand_data)))
+            || !TEST_true(OSSL_CMP_CTX_set1_transactionID(fixture->cmp_ctx,
+                                                          trid))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -455,7 +459,7 @@ static int test_MSG_check_received_wrong_recipient_nonce(void)
     fixture->additional_arg = 1;
     fixture->allow_unprotected_cb = allow_unprotected;
     if (!TEST_ptr(fixture->msg = OSSL_CMP_MSG_dup(ir_unprotected))
-        || !TEST_true(set_senderNonce(fixture->cmp_ctx, rand_data))) {
+            || !TEST_true(set_senderNonce(fixture->cmp_ctx, rand_data))) {
         tear_down(fixture);
         fixture = NULL;
     }
@@ -466,8 +470,8 @@ static int test_MSG_check_received_wrong_recipient_nonce(void)
 static int test_MSG_check_received_check_recipient_nonce(void)
 {
     /* Recipient nonce belonging to CMP_IP_ir_rmprotection.der */
-    const unsigned char rec_nonce[OSSL_CMP_SENDERNONCE_LENGTH] =
-        { 0x48, 0xF1, 0x71, 0x1F, 0xE5, 0xAF, 0x1C, 0x8B,
+    const unsigned char rec_nonce[OSSL_CMP_SENDERNONCE_LENGTH] = {
+        0x48, 0xF1, 0x71, 0x1F, 0xE5, 0xAF, 0x1C, 0x8B,
         0x21, 0x97, 0x5C, 0x84, 0x74, 0x49, 0xBA, 0x32
     };
 
