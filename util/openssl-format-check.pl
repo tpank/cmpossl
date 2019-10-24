@@ -69,7 +69,7 @@ while(<>) {
     my $local_indent = 0;
     my $local_hanging_indent = 0;
     if (!$in_multiline_comment) {
-        if (m/^(.*?)\s*\\\s*$/) { # trailing '\'
+        if (m/^(.*?)\s*\\\s*$/) { # trailing '\' # TODO improve macro handing, using some end detection
             $_ = "$1\n"; # remove it along with any preceding whitespace
         }
         $_ = "$1$2" if m/^(\s*extern\s*"C"\s*)\{(\s*)$/; # ignore opening brace in 'extern "C" {' (used with '#ifdef __cplusplus' in header files
