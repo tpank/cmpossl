@@ -152,9 +152,11 @@ while(<>) {
         }
     }
     if(!$in_multiline_comment) {
-        if (m/^(\s*\S.*?)\{[^\}]*$/ && !($1 =~ m/=\s*$/)) { # last ... {, no directly preceding '='
+        if (m/^(\s*\S.*?)\{[^\}]*$/ && !($1 =~ m/=\s*$/)) { # last ... {, no directly preceded by '='
             my $head = $1;
-            print "$ARGV:$line:outer {: $orig_" if $indent == 0;
+            print "$ARGV:$line:outer {: $orig_"
+                if !(m/^\s*typedef/) &&
+                $indent == INDENT_LEVEL; # $indent is already incremented
             $line_opening_brace = $line;
         }
         if(m/^([^\}]*)\}/) { # first }
@@ -241,6 +243,7 @@ while(<>) {
                 $hanging_indent = length($head) + length($var_eq);
                 $hanging_alt_indent = length($head) + INDENT_LEVEL;
             }
+            # TODO add check for empty line after local variable decls
         }
     }
 
