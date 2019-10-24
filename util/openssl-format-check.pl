@@ -14,6 +14,7 @@ my $indent;
 my $line;
 my $line_opening_brace;
 my $contents_before;       # used only if $line > 1
+my $contents_before2;      # used only if $line > 2
 my $hanging_indent_before; # used only if $line > 1
 my $hanging_indent_before2; # used only if $line > 2
 my $hanging_indent;
@@ -164,7 +165,7 @@ while(<>) {
             my $line_before = $line - 1;
             if($line_opening_brace &&
                $line_opening_brace == $line_before - 1) {
-                print "$ARGV:$line_before:{1 line}:$contents_before";
+                print "$ARGV:$line_before:{1 line}:$contents_before" if !($contents_before2 =~ m/typedef|struct|union/);
                 # TODO do not show cases where there is another if .. else branch with a block containg more than one line
             }
             $line_opening_brace = 0;
@@ -247,6 +248,7 @@ while(<>) {
         }
     }
 
+    $contents_before2 = $contents_before;
     $contents_before = $orig_;
     if(eof) {
         die "error: $ARGV:EOF:indent=$indent" if $indent != 0;
