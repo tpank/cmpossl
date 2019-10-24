@@ -72,7 +72,7 @@ while(<>) {
         if (m/^(.*?)\s*\\\s*$/) { # trailing '\' # TODO improve macro handing, using some end detection
             $_ = "$1\n"; # remove it along with any preceding whitespace
         }
-        $_ = "$1$2" if m/^(\s*extern\s*"C"\s*)\{(\s*)$/; # ignore opening brace in 'extern "C" {' (used with '#ifdef __cplusplus' in header files
+        $_ = "$1$2" if m/^(\s*extern\s*"C"\s*)\{(\s*)$/; # ignore opening brace in 'extern "C" {' (used with '#ifdef __cplusplus' in header files)
         if (m/^\n$/ || # empty line
             # ($2 eq "/" && $3 eq "*"); # do not ignore indent on line starting comment: '/*'
             m/^#/) { # preprocessor line, starting with '#'
@@ -99,7 +99,8 @@ while(<>) {
     $local_indent -= $num_initial_closing_braces * INDENT_LEVEL;
     if ($indent + $local_indent < 0) {
         $local_indent = -$indent;
-        print "$ARGV:$line:too many }:$orig_";
+        print "$ARGV:$line:too many }:$orig_"
+            unless $contents_before =~ m/^\s*#\s*ifdef\s*__cplusplus\s*$/; # ignore closing brace on line after '#ifdef __cplusplus' (used in header files)
     }
     if($in_multiline_comment) {
         print "$ARGV:$line:indent=$count!=$comment_indent: $orig_"
