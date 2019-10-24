@@ -97,6 +97,10 @@ while(<>) {
     m/^([^\{]*)/; # prefix before any opening {
     my $num_initial_closing_braces = $1 =~ tr/\}//;
     $local_indent -= $num_initial_closing_braces * INDENT_LEVEL;
+    if ($indent + $local_indent < 0) {
+        $local_indent = -$indent;
+        print "$ARGV:$line:too many }:$orig_";
+    }
     if($in_multiline_comment) {
         print "$ARGV:$line:indent=$count!=$comment_indent: $orig_"
             if $count != $comment_indent;
@@ -123,7 +127,10 @@ while(<>) {
     }
     my $tmp = $_; my $brace_balance = ($tmp =~ tr/\{//) - $tmp =~ tr/\}//;
     $indent += $brace_balance * INDENT_LEVEL if $brace_balance != 0;
-    die "error: $ARGV:$line:indent=$indent:$orig_" if $indent < 0;
+    if ($indent < 0) {
+        $indent = 0;
+        # print "$ARGV:$line:too many }:$orig_"; # already reported above
+    }
 
     if (m/^(.*?)\*\/(.*)$/) { # ending comment: '*/'
         my $head = $1;
@@ -178,7 +185,7 @@ while(<>) {
                 if (!($tail =~ m/\{\s*$/)) { # no trailing '{'
                     my $tmp = $_;
                     my $parens_balance = $tmp =~ tr/\(// - $tmp =~ tr/\)//; # count balance of opening - closing parens
-                    die "error: $ARGV:$line:too many closing ')':$orig_" if $parens_balance < 0;
+                    print "$ARGV:$line:too many ):$orig_" if $parens_balance < 0;
                     if (m/^(\s*((\}\s*)?(else\s*)?if|for|while)\s*\(?)/ && $parens_balance > 0) {
                         $multiline_condition_indent = length($1);
                     } else {
@@ -248,7 +255,7 @@ while(<>) {
     $contents_before2 = $contents_before;
     $contents_before = $orig_;
     if(eof) {
-        die "error: $ARGV:EOF:indent=$indent" if $indent != 0;
+        print "$ARGV:EOF:unbalanced nesting of {..}, indentation off by $indent" if $indent != 0;
         reset_file_state();
     }
 }
