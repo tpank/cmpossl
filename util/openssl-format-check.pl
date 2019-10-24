@@ -155,7 +155,7 @@ while(<>) {
         if (m/^(\s*\S.*?)\{[^\}]*$/ && !($1 =~ m/=\s*$/)) { # last ... {, no directly preceded by '='
             my $head = $1;
             print "$ARGV:$line:outer {: $orig_"
-                if !(m/^\s*typedef/) &&
+                if !(m/^\s*(typedef|struct|union)/) &&
                 $indent == INDENT_LEVEL; # $indent is already incremented
             $line_opening_brace = $line;
         }
