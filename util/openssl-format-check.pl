@@ -72,6 +72,7 @@ while(<>) {
         if (m/^(.*?)\s*\\\s*$/) { # trailing '\'
             $_ = "$1\n"; # remove it along with any preceding whitespace
         }
+        $_ = "$1$2" if m/^(\s*extern\s*"C"\s*)\{(\s*)$/; # ignore opening brace in 'extern "C" {' (used with '#ifdef __cplusplus' in header files
         if (m/^\n$/ || # empty line
             # ($2 eq "/" && $3 eq "*"); # do not ignore indent on line starting comment: '/*'
             m/^#/) { # preprocessor line, starting with '#'
