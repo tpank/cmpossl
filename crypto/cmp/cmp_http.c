@@ -297,7 +297,7 @@ static int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
     return rv;
 }
 
-/* one declaration and three defines copied from ocsp_ht.c; keep in sync! */
+/* one declaration and thw defines copied from ocsp_ht.c; keep in sync! */
 /* dummy declaration to get access to internal state variable */
 struct ocsp_req_ctx_st
 {
@@ -306,6 +306,8 @@ struct ocsp_req_ctx_st
     int iobuflen;               /* Line buffer length */
     BIO *io;                    /* BIO to perform I/O with */
     BIO *mem;                   /* Memory BIO response is built into */
+    unsigned long asn1_len;     /* ASN1 length of response */
+    unsigned long max_resp_len; /* Maximum length of response */
 };
 # define OHS_NOREAD              0x1000
 # define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
