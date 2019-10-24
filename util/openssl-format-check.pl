@@ -1,127 +1,252 @@
 #!/usr/bin/perl
 
+# This tool aims at checking the formatting rules of the OpenSSL coding guidelines.
+# It is in prototypical state and so is incomplete and yields some false positives.
+# Still it should be quite useful for detecting most typical formatting glitches.
+
 use strict;
+use List::Util qw[min max];
 
 use constant INDENT_LEVEL => 4;
 use constant MAX_LENGTH => 80;
 
-my $line = 0;
-my $line_opening_brace = 0;
-my $contents_2_lines_before;
-my $hanging_indent = -1;
-my $in_multiline_comment = 0;
+my $indent;
+my $line;
+my $line_opening_brace;
+my $contents_before;       # used only if $line > 1
+my $hanging_indent_before; # used only if $line > 1
+my $hanging_indent_before2; # used only if $line > 2
+my $hanging_indent;
+my $hanging_parens;        # used only if $hanging_indent != -1
+my $hanging_braces;        # used only if $hanging_indent != -1
+my $hanging_alt_indent;    # used only if $hanging_indent != -1
+my $braceless_indent;
+my $multiline_condition_indent;
+my $in_multiline_comment;
+my $comment_indent;        # used only if $in_multiline_comment == 1
 
+sub reset_file_state {
+    $indent = 0;
+    $line = 0;
+    $line_opening_brace = 0;
+    $hanging_indent = -1;
+    $braceless_indent = 0;
+    $multiline_condition_indent = -1;
+    $in_multiline_comment = 0;
+}
+
+reset_file_state();
 while(<>) {
     $line++;
+    my $orig_ = $_;
 
     if(m/[\x09]/) {
-        print "$ARGV:$line:TAB: $_";
+        print "$ARGV:$line:TAB: $orig_";
     }
     if(m/[\x0d]/) {
-        print "$ARGV:$line:CR: $_";
+        print "$ARGV:$line:CR: $orig_";
     }
     if(m/[\x00-\x08\x0B-\x0C\x0E-\x1F]/) {
-        print "$ARGV:$line:non-printable: $_";
+        print "$ARGV:$line:non-printable: $orig_";
     }
     if(m/[\x7F-\xFF]/) {
-        print "$ARGV:$line:non-ASCII: $_";
+        print "$ARGV:$line:non-ASCII: $orig_";
     }
 
     my $len = length($_) - 1; # '- 1' avoids counting trailing \n
     my $hidden_esc_dblquot = $_;
-    while($hidden_esc_dblquot =~ s/([^\"]\".*?\\)\"/$1\\/g) {}
+    while($hidden_esc_dblquot =~ s/([^\"]\".*?\\)\"/$1\\/g) {} # TODO check this
     if($len > MAX_LENGTH &&
        !($hidden_esc_dblquot =~ m/^(.*?)\"[^\"]*\"\s*(,|[\)\}]*[,;]?)\s*$/
          && length($1) < MAX_LENGTH)) { # allow over-long trailing string literal with starting col before MAX_LENGTH
-        print "$ARGV:$line:len=$len: $_";
+        print "$ARGV:$line:len=$len: $orig_";
     }
     if(m/\s\n$/) {
-        print "$ARGV:$line:SPC\@EOL: $_";
+        print "$ARGV:$line:SPC\@EOL: $orig_";
     }
 
+    $hanging_indent_before2 = $hanging_indent_before;
+    $hanging_indent_before = $hanging_indent;
     m/^(\s*)(.?)(.?)/;
-    my $count = length($1);
+    my $count = length($1) - (m/^\s*$/ ? 1 : 0); # number of leading space characters (except newline), which basically should equal $indent as checked below
+    my $local_indent = 0;
+    my $local_hanging_indent = 0;
     if (!$in_multiline_comment) {
-        $count-- if ($2 eq ""); # empty line
-        $count = 0 if ($2 eq "\\" && $3 eq ""); # ignore indent on line containing just '\'
-#       $count = 0 if ($2 eq "/" && $3 eq "*"); # do not ignore indent on line starting comment: '/*'
-        $count -= INDENT_LEVEL if ($2 eq "&" && $3 eq "&"); # line starting with &&
-        $count -= INDENT_LEVEL if ($2 eq "|" && $3 eq "|"); # line starting with ||
+        if (m/^(.*?)\\\s*$/) { # trailing '\'
+            $_ = "$1\n"; # remove it along with any preceding whitespace
+        }
+        if (m/^\n$/ || # empty line
+            # ($2 eq "/" && $3 eq "*"); # do not ignore indent on line starting comment: '/*'
+            m/^#/) { # preprocessor line, starting with '#'
+            # ignore indent:
+            $hanging_indent = -1;
+            $braceless_indent = 0;
+            $local_indent = $count - $indent;
+        }
         if ($hanging_indent == -1) {
-            $count-- if (m/^(\s*)([a-z_0-9]+):/ && $2 ne "default"); # label
+            if (m/^(\s*)(case|default)\W/) {
+                $local_indent = -INDENT_LEVEL;
+            } else {
+                $local_indent = -($indent - 1) if (m/^(\s*)([a-z_0-9]+):/) #  && $2 ne "default"); # label
+            }
+        } else {
+            $local_hanging_indent = INDENT_LEVEL if ($2 eq "&" && $3 eq "&") ||
+                                                    ($2 eq "|" && $3 eq "|");  # line starting with && or ||
         }
     }
-    if($count %INDENT_LEVEL != 0 && $count != $hanging_indent) { # well, does not detect indentation off by multiples of INDENT_LEVEL
-        print "$ARGV:$line:indent: $_";
-    }
 
-    my $offset = 0;
+    # TODO make sure that any '{' and '}' in comments and string literals do not interfere with the following calculations
+    m/^([^\{]*)/; # prefix before any opening {
+    my $num_initial_closing_braces = $1 =~ tr/\}//;
+    $local_indent -= $num_initial_closing_braces * INDENT_LEVEL;
+    if($in_multiline_comment) {
+        print "$ARGV:$line:indent=$count!=$comment_indent: $orig_"
+            if $count != $comment_indent;
+    } elsif ($hanging_indent == -1) {
+        print "$ARGV:$line:indent=$count!=".($indent+$braceless_indent+$local_indent).": $orig_"
+            if $count != $indent + $braceless_indent + $local_indent;
+    } else {
+        $hanging_indent     += $local_hanging_indent;
+        $hanging_alt_indent += $local_hanging_indent;
+        # reduce hanging indent to adapt to given code. This prefers false negatives to false positives that would occur due to incompleteness of the paren/brace matching
+        if ($count - $local_hanging_indent >=
+            max($indent + $braceless_indent + $local_indent,
+                $multiline_condition_indent)) {
+            $hanging_indent     = $count if $count < $hanging_indent;
+            $hanging_alt_indent = $count if $count < $hanging_alt_indent;
+        }
+
+        my $allowed = $hanging_alt_indent == -1 ? "$hanging_indent" : "{$hanging_alt_indent,$hanging_indent}";
+        print "$ARGV:$line:indent=$count!=$allowed: $orig_"
+            if $count != $hanging_indent &&
+               ($hanging_alt_indent == -1 || $count != $hanging_alt_indent);
+        $hanging_indent     -= $local_hanging_indent;
+        $hanging_alt_indent -= $local_hanging_indent;
+    }
+    my $tmp = $_; my $brace_balance = ($tmp =~ tr/\{//) - $tmp =~ tr/\}//;
+    $indent += $brace_balance * INDENT_LEVEL if $brace_balance != 0;
+    die "error: $ARGV:$line:indent=$indent:$orig_" if $indent < 0;
+
     if (m/^(.*?)\*\/(.*)$/) { # ending comment: '*/'
         my $head = $1;
         my $tail = $2;
         if (!($head =~ m/\/\*/)) { # starting comment: '/*' handled below
-            print "$ARGV:$line:*/ outside comment: $_" if $in_multiline_comment == 0;
-            $offset = length($head) + 2;
-            print "$ARGV:$line:... */: $_" if $head =~ m/\S/;
+            print "$ARGV:$line:*/ outside comment: $orig_" if $in_multiline_comment == 0;
+            print "$ARGV:$line:... */: $orig_" if $head =~ m/\S/;
             $_ = $tail;
-            $hanging_indent = -1;
             $in_multiline_comment = 0;
         }
     }
+  MATCH_COMMENT:
     if (m/^(.*?)\/\*-?(.*)$/) { # starting comment: '/*'
         my $head = $1;
         my $tail = $2;
-        if ($tail =~ m/\*\/(.*)$/) { # ending comment: */
-            $offset = length($head) + 2 + length($tail) - length($1);
-            $_ = $1;
+        if ($tail =~ m/\*\/(.*)$/) { # strip contents up to comment end: */
+            $_ = "$head $1\n";
+            goto MATCH_COMMENT;
         } else {
-            print "$ARGV:$line:/* inside comment: $_" if $in_multiline_comment == 1;
-            print "$ARGV:$line:/* ...: $_" if $tail =~ m/\S/;
-            $hanging_indent = length($head) + 1;
+            print "$ARGV:$line:/* inside comment: $orig_" if $in_multiline_comment == 1;
+            print "$ARGV:$line:/* ...: $orig_" if $tail =~ m/\S/;
+            $comment_indent = length($head) + 1;
             $in_multiline_comment = 1;
         }
     }
     if(!$in_multiline_comment) {
-        if (m/[^\s]\s*\{\s*$/ && !m/\}/) { # trailing ... {
+        if (m/^(\s*\S.*?)\{[^\}]*$/ && !($1 =~ m/=\s*$/)) { # last ... {, no directly preceding '='
+            my $head = $1;
+            print "$ARGV:$line:outer {: $orig_" if $indent == 0;
             $line_opening_brace = $line;
-            $contents_2_lines_before = $_;
         }
-        if(m/\}[\s;]*$/) { # trailing ... }
-            my $line_2_before = $line-2;
+        if(m/^([^\}]*)\}/) { # first }
+            my $head = $1;
+            my $line_before = $line - 1;
             if($line_opening_brace &&
-               $line_opening_brace == $line_2_before) {
-                print "$ARGV:$line_2_before:{1 line}: $contents_2_lines_before";
+               $line_opening_brace == $line_before - 1) {
+                print "$ARGV:$line_before:{1 line}:$contents_before";
+                # TODO do not show cases where there is another if .. else branch with a block containg more than one line
             }
             $line_opening_brace = 0;
         }
+
+        if($hanging_indent == -1) {
+            $hanging_parens = 0;
+            $hanging_braces = 0;
+
+            $multiline_condition_indent = -1;
+            if (m/^\s*(if|(\}\s*)?else(\s*if)?|for|do|while)(\W.*)$/) {
+                my ($head, $tail) = ($1, $4);
+                if (!($tail =~ m/\{\s*$/)) { # no trailing '{'
+                    my $tmp = $_;
+                    my $parens_balance = $tmp =~ tr/\(// - $tmp =~ tr/\)//; # count balance of opening - closing parens
+                    die "error: $ARGV:$line:too many closing ')':$orig_" if $parens_balance < 0;
+                    if (m/^(\s*((\}\s*)?(else\s*)?if|for|while)\s*\(?)/ && $parens_balance > 0) {
+                        $multiline_condition_indent = length($1);
+                    } else {
+                        $braceless_indent += INDENT_LEVEL;
+                    }
+                }
+            }
+        }
       MATCH_PAREN:
+        # TODO make sure that any '{', '(', ')', and '}' in string literals do not interfere with the following calculations
+        # TODO the following assignments to $hanging_indent are just heuristics - nested closing parens and braces are not treated fully
         if (m/^(.*)\(([^\(]*)$/) { # last '('
             my $head = $1;
             my $tail = $2;
-            if ($tail =~ m/\)(.*)/) { # ignore contents up to matching ')'
-                $_ = $head.$1;
+            if ($tail =~ m/\)(.*)/) { # strip contents up to matching ')':
+                $_ = "$head $1\n";
                 goto MATCH_PAREN;
             }
-            $hanging_indent = $offset + length($head) + 1;
+            $hanging_indent = length($head) + 1;
+            $hanging_alt_indent = -1;
+            my $tmp = $_;
+            $hanging_parens += $tmp =~ tr/\(// - $tmp =~ tr/\)//; # count balance of opening - closing parens
         }
         elsif (m/^(.*)\{(\s*[^\s\{][^\{]*\s*)$/) { # last '{' followed by non-space: struct initializer
             my $head = $1;
             my $tail = $2;
-            if ($tail =~ m/\}(.*)/) { # ignore contents up to matching '}'
-                $_ = $head.$1;
+            if ($tail =~ m/\}(.*)/) { # strip contents up to matching '}'
+                $_ = "$head $1\n";
                 goto MATCH_PAREN;
             }
-            $hanging_indent = $offset + length($head) + 1;
-        } elsif ($count != $hanging_indent) {
-            $hanging_indent = -1; # reset hanging indent
+            $hanging_indent = length($head) + 1;
+            $hanging_alt_indent = -1;
+            my $tmp = $_;
+            $hanging_braces += $tmp =~ tr/\{// - $tmp =~ tr/\}//; # count balance of opening - closing braces
+        } elsif ($hanging_indent != -1) {
+            my $tmp = $_;
+            $hanging_parens += $tmp =~ tr/\(// - $tmp =~ tr/\)//; # count balance of opening - closing parens
+            $hanging_braces += $tmp =~ tr/\{// - $tmp =~ tr/\}//; # count balance of opening - closing braces
+
+            my $trailing_brace = m/\{\s*$/;
+            my $trailing_semicolon = m/;\s*$/;
+            my $hanging_end = $multiline_condition_indent != -1
+                ? ($hanging_parens == 0 &&
+                   ($hanging_braces == 0 || ($hanging_braces == 1 && $trailing_brace)))
+                : ($hanging_parens == 0 && $hanging_braces == 0 &&
+                   ($hanging_alt_indent == -1 || $trailing_semicolon)); # assignment and return are terminated by ';', else we assume function header
+            if ($hanging_end) {
+                $hanging_indent = -1;      # reset hanging indent
+                if ($multiline_condition_indent != -1 && !$trailing_brace) {
+                    $braceless_indent += INDENT_LEVEL;
+                }
+            }
         }
-        if ($hanging_indent == -1 &&
-            m/^(\s*)(((\w+|\*)\s*)+=\s*)[^;]*\s*$/) { # multi-line assignment: "[type] var = " without ;
-            my $head = $1;
-            my $var_eq = $2;
-            $hanging_indent = length($head) + length($var_eq);
+        if ($hanging_indent == -1) {
+            $braceless_indent = 0 if m/;\s*$/; # trailing ';'
+            # at this point, matching (...) have been stripped, simplifying type decl matching
+            if (m/^(\s*)((((\w+|\.|->|\[\]|\*)\s*)+=|return)\s*)[^;\{]*\s*$/) { # multi-line assignment: "[type] var = " or return without ;
+                my $head = $1;
+                my $var_eq = $2;
+                $hanging_indent = length($head) + length($var_eq);
+                $hanging_alt_indent = length($head) + INDENT_LEVEL;
+            }
         }
     }
 
-    $line = 0 if eof;
+    $contents_before = $orig_;
+    if(eof) {
+        die "error: $ARGV:EOF:indent=$indent" if $indent != 0;
+        reset_file_state();
+    }
 }
