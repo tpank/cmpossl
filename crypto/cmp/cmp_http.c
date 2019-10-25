@@ -37,7 +37,7 @@
 /* from apps.h */
 # ifndef openssl_fdset
 #  if defined(OPENSSL_SYSNAME_WIN32) \
-          || defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)
+    || defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)
 #   define openssl_fdset(a,b) FD_SET((unsigned int)a, b)
 #  else
 #   define openssl_fdset(a,b) FD_SET(a, b)
@@ -45,12 +45,12 @@
 # endif
 
 /*
- * TODO dvo: push generic defs upstream with extended load_cert_crl_http(),
+ * TODO DvO: push generic defs upstream with extended load_cert_crl_http(),
  * simplifying also other uses, e.g., in query_responder() in apps/ocsp.c
  */
 
 /*
- * TODO dvo: push that upstream with extended load_cert_crl_http(),
+ * TODO DvO: push that upstream with extended load_cert_crl_http(),
  * simplifying also other uses of select(), e.g., in query_responder()
  * in apps/ocsp.c
  */
@@ -72,7 +72,7 @@ static int socket_wait(int fd, int for_read, int timeout)
 }
 
 /*
- * TODO dvo: push that upstream with extended load_cert_crl_http(),
+ * TODO DvO: push that upstream with extended load_cert_crl_http(),
  * simplifying also other uses of select(), e.g., in query_responder()
  * in apps/ocsp.c
  */
@@ -87,7 +87,7 @@ static int bio_wait(BIO *bio, int timeout)
 }
 
 /*
- * TODO dvo: push that upstream with extended load_cert_crl_http(),
+ * TODO DvO: push that upstream with extended load_cert_crl_http(),
  * simplifying also other uses of connect(), e.g., in query_responder()
  * in apps/ocsp.c
  */
@@ -162,7 +162,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
      */
     BIO_printf(fbio, "Proxy-Connection: Keep-Alive\r\n");
 
-#ifdef OSSL_CMP_SUPPORT_PROXYUSER /* TODO is not yet supported */
+#ifdef OSSL_CMP_SUPPORT_PROXYUSER /* TODO, is not yet supported */
     /* Support for basic (base64) proxy authentication */
     if (proxyuser != NULL) {
         size_t l;
@@ -241,7 +241,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
 }
 
 /*
- * TODO dvo: push that upstream with extended load_cert_crl_http(),
+ * TODO DvO: push that upstream with extended load_cert_crl_http(),
  * simplifying also other uses of XXX_sendreq_nbio, e.g., in query_responder()
  * in apps/ocsp.c
  */
@@ -314,7 +314,7 @@ struct ocsp_req_ctx_st
 
 /*
  * adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c -
- * TODO: generalize the function there
+ * TODO DvO: generalize the function there
  */
 static int CMP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx,
                            const ASN1_ITEM *it, ASN1_VALUE *val)
@@ -332,16 +332,14 @@ static int CMP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx,
     return 1;
 }
 
-
-
-static void add_conn_error_hint(const OSSL_CMP_CTX *ctx, unsigned long errdetail)
+static void add_conn_error_hint(const OSSL_CMP_CTX *ctx, unsigned long detail)
 {
     char buf[200];
 
     BIO_snprintf(buf, 200, "host '%s' port %d",
                  ctx->serverName, ctx->serverPort);
     ossl_cmp_add_error_data(buf);
-    if (errdetail == 0) {
+    if (detail == 0) {
         BIO_snprintf(buf, 200, "server has disconnected%s",
                      ctx->http_cb_arg != NULL ? " violating the protocol" :
                      ", likely because it requires the use of TLS");
@@ -542,7 +540,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     return err;
 }
 
-/* TODO DvO push that upstream as a separate PR #crls_timeout_local */
+/* TODO DvO: push that upstream as a separate PR #crls_timeout_local */
 /* adapted from apps/apps.c to include connection timeout */
 int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
                                         X509 **pcert, X509_CRL **pcrl,
@@ -556,6 +554,10 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     int use_ssl;
     int rv = -4;
     time_t max_time = req_timeout > 0 ? time(NULL) + req_timeout : 0;
+    http_fn fn =
+        pcert != NULL ? (http_fn)X509_http_nbio : (http_fn)X509_CRL_http_nbio;
+    ASN1_VALUE **presp =
+        pcert != NULL ? (ASN1_VALUE **)pcert : (ASN1_VALUE **)pcrl;
 
     if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl))
         goto err;
@@ -578,11 +580,7 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
 
-    rv = bio_http(bio, rctx,
-                  pcert != NULL ? (http_fn)X509_http_nbio
-                                : (http_fn)X509_CRL_http_nbio,
-                  pcert != NULL ? (ASN1_VALUE **)pcert
-                                : (ASN1_VALUE **)pcrl, max_time);
+    rv = bio_http(bio, rctx, fn, presp, max_time);
 
  err:
     OPENSSL_free(host);
@@ -592,8 +590,8 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     OCSP_REQ_CTX_free(rctx);
     if (rv != 1) {
         BIO_printf(bio_err, "%s loading %s from '%s'\n",
-                   rv == 0 ? "timeout" : rv == -1
-                           ? "parse Error" : "transfer error",
+                   rv == 0 ? "timeout" :
+                   rv == -1 ? "parse Error" : "transfer error",
                    pcert != NULL ? "certificate" : "CRL", url);
         ERR_print_errors(bio_err);
     }
