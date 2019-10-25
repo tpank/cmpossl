@@ -107,7 +107,7 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
                 || EVP_DigestSignFinal(evp_ctx, NULL, &sig_len) <= 0
                 || (protection = OPENSSL_malloc(sig_len)) == NULL
                 || EVP_DigestSignFinal(evp_ctx, protection, &sig_len) <= 0)
-                goto err;
+            goto err;
     } else {
         CMPerr(0, CMP_R_INVALID_ARGS);
         goto end;
@@ -244,7 +244,7 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
             goto err;
 
         if ((msg->protection =
-                ossl_cmp_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
+             ossl_cmp_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
             goto err;
     } else {
         /*
@@ -290,7 +290,7 @@ int ossl_cmp_msg_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
                 goto err;
 
             if ((msg->protection =
-                    ossl_cmp_calc_protection(msg, NULL, ctx->pkey)) == NULL)
+                 ossl_cmp_calc_protection(msg, NULL, ctx->pkey)) == NULL)
                 goto err;
         } else {
             CMPerr(0, CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION);
