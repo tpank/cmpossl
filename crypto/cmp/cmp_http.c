@@ -34,10 +34,9 @@
 
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
 
-/* from apps.h */
 # ifndef openssl_fdset
-#  if defined(OPENSSL_SYSNAME_WIN32) \
-    || defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)
+/* copied from apps/include/apps.h */
+#  if defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)
 #   define openssl_fdset(a,b) FD_SET((unsigned int)a, b)
 #  else
 #   define openssl_fdset(a,b) FD_SET(a, b)
@@ -45,14 +44,9 @@
 # endif
 
 /*
- * TODO DvO: push generic defs upstream with extended load_cert_crl_http(),
- * simplifying also other uses, e.g., in query_responder() in apps/ocsp.c
- */
-
-/*
- * TODO DvO: push that upstream with extended load_cert_crl_http(),
- * simplifying also other uses of select(), e.g., in query_responder()
- * in apps/ocsp.c
+ * TODO DvO: push socket_wait() etc. upstream with the below extension of
+ * load_cert_crl_http() in apps/lib/apps.c, simplifying also other uses
+ * of select(), e.g., in query_responder() in apps/ocsp.c
  */
 /* wait if timeout > 0. returns < 0 on error, 0 on timeout, > 0 on success */
 static int socket_wait(int fd, int for_read, int timeout)
@@ -71,11 +65,7 @@ static int socket_wait(int fd, int for_read, int timeout)
                   for_read ? NULL : &confds, NULL, &tv);
 }
 
-/*
- * TODO DvO: push that upstream with extended load_cert_crl_http(),
- * simplifying also other uses of select(), e.g., in query_responder()
- * in apps/ocsp.c
- */
+/* TODO DvO: push this upstream with extended load_cert_crl_http() */
 /* wait if timeout > 0. returns < 0 on error, 0 on timeout, > 0 on success */
 static int bio_wait(BIO *bio, int timeout)
 {
@@ -86,11 +76,7 @@ static int bio_wait(BIO *bio, int timeout)
     return socket_wait(fd, BIO_should_read(bio), timeout);
 }
 
-/*
- * TODO DvO: push that upstream with extended load_cert_crl_http(),
- * simplifying also other uses of connect(), e.g., in query_responder()
- * in apps/ocsp.c
- */
+/* TODO DvO: push this upstream with extended load_cert_crl_http() */
 /* returns -1 on error, 0 on timeout, 1 on success */
 static int bio_connect(BIO *bio, int timeout)
 {
@@ -240,11 +226,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
     return ret;
 }
 
-/*
- * TODO DvO: push that upstream with extended load_cert_crl_http(),
- * simplifying also other uses of XXX_sendreq_nbio, e.g., in query_responder()
- * in apps/ocsp.c
- */
+/* TODO DvO: push this upstream with extended load_cert_crl_http() */
 typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
 /*
  * Even better would be to extend OCSP_REQ_CTX_nbio() and
@@ -297,8 +279,11 @@ static int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
     return rv;
 }
 
-/* one declaration and thw defines copied from ocsp_ht.c; keep in sync! */
-/* dummy declaration to get access to internal state variable */
+/*
+ * one declaration and two defines copied from ocsp_ht.c - keep in sync!
+ * These have been copied just to get access to* internal state variable;
+ * TODO better avoid this by pushing upstream the below code using them
+ */
 struct ocsp_req_ctx_st
 {
     int state;                  /* Current I/O state */
@@ -313,7 +298,7 @@ struct ocsp_req_ctx_st
 # define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
 
 /*
- * adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c -
+ * adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c
  * TODO DvO: generalize the function there
  */
 static int CMP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx,
@@ -540,8 +525,10 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     return err;
 }
 
-/* TODO DvO: push that upstream as a separate PR #crls_timeout_local */
-/* adapted from apps/apps.c to include connection timeout */
+/*
+ * adapted from apps/lib/apps.c to include connection timeout
+ * TODO DvO: push this improved version upstream
+ */
 int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
                                         X509 **pcert, X509_CRL **pcrl,
                                         BIO *bio_err)
