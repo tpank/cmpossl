@@ -446,9 +446,9 @@ static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
 {
     char *host = NULL, *port = NULL, *path = NULL;
     BIO *bio = NULL;
-    OCSP_REQ_CTX *rctx = NULL;
+    HTTP_REQ_CTX *rctx = NULL;
     int use_ssl, rv = 0;
-    if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl))
+    if (!HTTP_parse_url(url, &host, &port, &path, &use_ssl))
         goto err;
     if (use_ssl) {
         BIO_puts(bio_err, "https not supported\n");
@@ -457,12 +457,12 @@ static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
     bio = BIO_new_connect(host);
     if (!bio || !BIO_set_conn_port(bio, port))
         goto err;
-    rctx = OCSP_REQ_CTX_new(bio, 1024);
+    rctx = HTTP_REQ_CTX_new(bio, 1024);
     if (rctx == NULL)
         goto err;
-    if (!OCSP_REQ_CTX_http(rctx, "GET", path))
+    if (!HTTP_REQ_CTX_http(rctx, "GET", path))
         goto err;
-    if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
+    if (!HTTP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
     if (pcert) {
         do {
@@ -479,7 +479,7 @@ static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
     OPENSSL_free(path);
     OPENSSL_free(port);
     BIO_free_all(bio);
-    OCSP_REQ_CTX_free(rctx);
+    HTTP_REQ_CTX_free(rctx);
     if (rv != 1) {
         BIO_printf(bio_err, "Error loading %s from %s\n",
                    pcert ? "certificate" : "CRL", url);

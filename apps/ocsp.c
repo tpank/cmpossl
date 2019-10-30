@@ -312,7 +312,7 @@ int ocsp_main(int argc, char **argv)
             OPENSSL_free(tport);
             OPENSSL_free(tpath);
             thost = tport = tpath = NULL;
-            if (!OCSP_parse_url(opt_arg(), &host, &port, &path, &use_ssl)) {
+            if (!HTTP_parse_url(opt_arg(), &host, &port, &path, &use_ssl)) {
                 BIO_printf(bio_err, "%s Error parsing URL\n", prog);
                 goto end;
             }
@@ -1539,7 +1539,7 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
     int rv;
     int i;
     int add_host = 1;
-    OCSP_REQ_CTX *ctx = NULL;
+    HTTP_REQ_CTX *ctx = NULL;
     OCSP_RESPONSE *rsp = NULL;
     fd_set confds;
     struct timeval tv;
@@ -1579,11 +1579,11 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
         CONF_VALUE *hdr = sk_CONF_VALUE_value(headers, i);
         if (add_host == 1 && strcasecmp("host", hdr->name) == 0)
             add_host = 0;
-        if (!OCSP_REQ_CTX_add1_header(ctx, hdr->name, hdr->value))
+        if (!HTTP_REQ_CTX_add1_header(ctx, hdr->name, hdr->value))
             goto err;
     }
 
-    if (add_host == 1 && OCSP_REQ_CTX_add1_header(ctx, "Host", host) == 0)
+    if (add_host == 1 && HTTP_REQ_CTX_add1_header(ctx, "Host", host) == 0)
         goto err;
 
     if (!OCSP_REQ_CTX_set1_req(ctx, req))
@@ -1618,7 +1618,7 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
 
     }
  err:
-    OCSP_REQ_CTX_free(ctx);
+    HTTP_REQ_CTX_free(ctx);
 
     return rsp;
 }

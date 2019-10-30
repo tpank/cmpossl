@@ -920,6 +920,8 @@ EVP_F_S390X_AES_GCM_CTRL:201:s390x_aes_gcm_ctrl
 EVP_F_S390X_AES_GCM_TLS_CIPHER:208:s390x_aes_gcm_tls_cipher
 EVP_F_SCRYPT_ALG:228:scrypt_alg
 EVP_F_UPDATE:173:update
+HTTP_F_HTTP_PARSE_URL:101:HTTP_parse_url
+HTTP_F_PARSE_HTTP_LINE1:102:parse_http_line1
 OBJ_F_OBJ_ADD_OBJECT:105:OBJ_add_object
 OBJ_F_OBJ_ADD_SIGID:107:OBJ_add_sigid
 OBJ_F_OBJ_CREATE:100:OBJ_create
@@ -940,11 +942,9 @@ OCSP_F_OCSP_CHECK_IDS:107:ocsp_check_ids
 OCSP_F_OCSP_CHECK_ISSUER:108:ocsp_check_issuer
 OCSP_F_OCSP_CHECK_VALIDITY:115:OCSP_check_validity
 OCSP_F_OCSP_MATCH_ISSUERID:109:ocsp_match_issuerid
-OCSP_F_OCSP_PARSE_URL:114:OCSP_parse_url
 OCSP_F_OCSP_REQUEST_SIGN:110:OCSP_request_sign
 OCSP_F_OCSP_REQUEST_VERIFY:116:OCSP_request_verify
 OCSP_F_OCSP_RESPONSE_GET1_BASIC:111:OCSP_response_get1_basic
-OCSP_F_PARSE_HTTP_LINE1:118:parse_http_line1
 OSSL_STORE_F_FILE_CTRL:129:file_ctrl
 OSSL_STORE_F_FILE_FIND:138:file_find
 OSSL_STORE_F_FILE_GET_PASS:118:file_get_pass
@@ -2587,6 +2587,9 @@ EVP_R_WRAP_MODE_NOT_ALLOWED:170:wrap mode not allowed
 EVP_R_WRONG_FINAL_BLOCK_LENGTH:109:wrong final block length
 EVP_R_XTS_DATA_UNIT_IS_TOO_LARGE:191:xts data unit is too large
 EVP_R_XTS_DUPLICATED_KEYS:192:xts duplicated keys
+HTTP_R_ERROR_PARSING_URL:101:error parsing url
+HTTP_R_SERVER_RESPONSE_ERROR:102:server response error
+HTTP_R_SERVER_RESPONSE_PARSE_ERROR:103:server response parse error
 KDF_R_BAD_ENCODING:122:bad encoding
 KDF_R_BAD_LENGTH:123:bad length
 KDF_R_BOTH_MODE_AND_MODE_INT:127:both mode and mode int
@@ -2621,7 +2624,6 @@ OCSP_R_CERTIFICATE_VERIFY_ERROR:101:certificate verify error
 OCSP_R_DIGEST_ERR:102:digest err
 OCSP_R_ERROR_IN_NEXTUPDATE_FIELD:122:error in nextupdate field
 OCSP_R_ERROR_IN_THISUPDATE_FIELD:123:error in thisupdate field
-OCSP_R_ERROR_PARSING_URL:121:error parsing url
 OCSP_R_MISSING_OCSPSIGNING_USAGE:103:missing ocspsigning usage
 OCSP_R_NEXTUPDATE_BEFORE_THISUPDATE:124:nextupdate before thisupdate
 OCSP_R_NOT_BASIC_RESPONSE:104:not basic response
@@ -2635,8 +2637,6 @@ OCSP_R_REQUEST_NOT_SIGNED:128:request not signed
 OCSP_R_RESPONSE_CONTAINS_NO_REVOCATION_DATA:111:\
 	response contains no revocation data
 OCSP_R_ROOT_CA_NOT_TRUSTED:112:root ca not trusted
-OCSP_R_SERVER_RESPONSE_ERROR:114:server response error
-OCSP_R_SERVER_RESPONSE_PARSE_ERROR:115:server response parse error
 OCSP_R_SIGNATURE_FAILURE:117:signature failure
 OCSP_R_SIGNER_CERTIFICATE_NOT_FOUND:118:signer certificate not found
 OCSP_R_STATUS_EXPIRED:125:status expired

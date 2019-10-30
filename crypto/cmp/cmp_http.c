@@ -11,15 +11,10 @@
 
 #include <string.h>
 #include <stdio.h>
-#ifndef _WIN32
-# include <unistd.h>
-# include <sys/select.h>
-#else
-# include <winsock.h> /* for type fd_set */
-#endif
 
 #include <openssl/asn1t.h>
-#include <openssl/ocsp.h>
+#include <openssl/http.h>
+#include "internal/sockets.h"
 
 #include "cmp_local.h"
 
@@ -32,89 +27,7 @@
 #include <openssl/cmp.h>
 #include <openssl/err.h>
 
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-
-# ifndef openssl_fdset
-/* copied from apps/include/apps.h */
-#  if defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)
-#   define openssl_fdset(a, b) FD_SET((unsigned int)a, b)
-#  else
-#   define openssl_fdset(a, b) FD_SET(a, b)
-#  endif
-# endif
-
-/*
- * TODO DvO: push socket_wait() etc. upstream with the below extension of
- * load_cert_crl_http() in apps/lib/apps.c, simplifying also other uses
- * of select(), e.g., in query_responder() in apps/ocsp.c
- */
-/* wait if timeout > 0. returns < 0 on error, 0 on timeout, > 0 on success */
-static int socket_wait(int fd, int for_read, int timeout)
-{
-    fd_set confds;
-    struct timeval tv;
-
-    if (timeout <= 0)
-        return 0;
-
-    FD_ZERO(&confds);
-    openssl_fdset(fd, &confds);
-    tv.tv_usec = 0;
-    tv.tv_sec = timeout;
-    return select(fd + 1, for_read ? &confds : NULL,
-                  for_read ? NULL : &confds, NULL, &tv);
-}
-
-/* TODO DvO: push this upstream with extended load_cert_crl_http() */
-/* wait if timeout > 0. returns < 0 on error, 0 on timeout, > 0 on success */
-static int bio_wait(BIO *bio, int timeout)
-{
-    int fd;
-
-    if (BIO_get_fd(bio, &fd) <= 0)
-        return -1;
-    return socket_wait(fd, BIO_should_read(bio), timeout);
-}
-
-/* TODO DvO: push this upstream with extended load_cert_crl_http() */
-/* returns -1 on error, 0 on timeout, 1 on success */
-static int bio_connect(BIO *bio, int timeout)
-{
-    int blocking;
-    time_t max_time;
-    int rv;
-
-    blocking = timeout <= 0;
-    max_time = timeout > 0 ? time(NULL) + timeout : 0;
-
-    /*
-     * https://www.openssl.org/docs/man1.1.0/crypto/BIO_should_io_special.html
-     */
-    if (!blocking)
-        BIO_set_nbio(bio, 1);
- retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
-    rv = BIO_do_connect(bio); /* This indirectly calls ERR_clear_error(); */
-    /*
-     * in blocking case, despite blocking BIO, BIO_do_connect() timed out
-     * when non-blocking, BIO_do_connect() timed out early
-     * with rv == -1 and errno == 0
-     */
-    if (rv <= 0 && (errno == ETIMEDOUT
-                        || ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT)) {
-        ERR_clear_error();
-        (void)BIO_reset(bio);
-        /*
-         * otherwise, blocking next connect() may crash and
-         * non-blocking next BIO_do_connect() will fail
-         */
-        goto retry;
-    }
-    if (rv <= 0 && BIO_should_retry(bio)) {
-        if (blocking || (rv = bio_wait(bio, (int)(max_time - time(NULL)))) > 0)
-            goto retry;
-    }
-    return rv;
-}
+#ifndef OPENSSL_NO_SOCK
 
 /* adapted from apps/s_client.c */
 # undef BUFSIZZ
@@ -174,7 +87,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
             goto flush_retry;
     }
  retry:
-    rv = bio_wait(fbio, (int)(max_time - time(NULL)));
+    rv = BIO_wait(fbio, (int)(max_time - time(NULL)));
     if (rv <= 0) {
         BIO_printf(bio_err, "%s: HTTP CONNECT %s\n", prog,
                    rv == 0 ? "timed out" : "failed waiting for data");
@@ -227,10 +140,10 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
 }
 
 /* TODO DvO: push this upstream with extended load_cert_crl_http() */
-typedef int (*http_fn)(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp);
+typedef int (*http_fn)(HTTP_REQ_CTX *rctx, ASN1_VALUE **resp);
 /*
- * Even better would be to extend OCSP_REQ_CTX_nbio() and
- * thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior
+ * Even better would be to extend HTTP_REQ_CTX_nbio() and
+ * thus HTTP_REQ_CTX_nbio_d2i() to include this retry behavior
  */
 /*
  * Exchange ASN.1 request and response via HTTP on any BIO
@@ -238,7 +151,7 @@ typedef int (*http_fn)(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp);
  * 1: success and then provides the received message via the *resp argument
  */
 static int bio_http(BIO *bio /* could be removed if we could access rctx->io */,
-                    OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp,
+                    HTTP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp,
                     time_t max_time)
 {
     int rv = -4, rc, sending = 1;
@@ -266,7 +179,7 @@ static int bio_http(BIO *bio /* could be removed if we could access rctx->io */,
         /* else BIO_should_retry was true */
         sending = 0;
         if (!blocking) {
-            rv = bio_wait(bio, (int)(max_time - time(NULL)));
+            rv = BIO_wait(bio, (int)(max_time - time(NULL)));
             if (rv <= 0) { /* error or timeout */
                 if (rv < 0) /* error */
                     rv = -4;
@@ -284,7 +197,7 @@ static int bio_http(BIO *bio /* could be removed if we could access rctx->io */,
  * These have been copied just to get access to* internal state variable;
  * TODO better avoid this by pushing upstream the below code using them
  */
-struct ocsp_req_ctx_st
+struct http_req_ctx_st
 {
     int state;                  /* Current I/O state */
     unsigned char *iobuf;       /* Line buffer */
@@ -298,10 +211,10 @@ struct ocsp_req_ctx_st
 # define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
 
 /*
- * adapted from OCSP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c
+ * adapted from HTTP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c
  * TODO DvO: generalize the function there
  */
-static int CMP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx,
+static int CMP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx,
                            const ASN1_ITEM *it, ASN1_VALUE *val)
 {
     static const char req_hdr[] =
@@ -365,23 +278,23 @@ static BIO *CMP_new_http_bio(const OSSL_CMP_CTX *ctx)
     return cbio;
 }
 
-static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *host,
+static HTTP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *host,
                                      const char *path, const OSSL_CMP_MSG *req,
                                      int maxline)
 {
-    OCSP_REQ_CTX *rctx = NULL;
+    HTTP_REQ_CTX *rctx = NULL;
 
-    rctx = OCSP_REQ_CTX_new(io, maxline);
+    rctx = HTTP_REQ_CTX_new(io, maxline);
     if (rctx == NULL)
         return NULL;
 
-    if (!OCSP_REQ_CTX_http(rctx, "POST", path))
+    if (!HTTP_REQ_CTX_http(rctx, "POST", path))
         goto err;
     if (host != NULL) {
-        if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
+        if (!HTTP_REQ_CTX_add1_header(rctx, "Host", host))
             goto err;
     }
-    if (!OCSP_REQ_CTX_add1_header(rctx, "Pragma", "no-cache"))
+    if (!HTTP_REQ_CTX_add1_header(rctx, "Pragma", "no-cache"))
         goto err;
 
     if (req != NULL && !CMP_REQ_CTX_i2d(rctx, ASN1_ITEM_rptr(OSSL_CMP_MSG),
@@ -391,7 +304,7 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *host,
     return rctx;
 
  err:
-    OCSP_REQ_CTX_free(rctx);
+    HTTP_REQ_CTX_free(rctx);
     return NULL;
 }
 
@@ -399,9 +312,9 @@ static OCSP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *host,
  * Exchange CMP request/response via HTTP on (non-)blocking BIO
  * returns 1 on success, 0 on error, -1 on BIO_should_retry
  */
-static int CMP_http_nbio(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp)
+static int CMP_http_nbio(HTTP_REQ_CTX *rctx, ASN1_VALUE **resp)
 {
-    return OCSP_REQ_CTX_nbio_d2i(rctx, resp, ASN1_ITEM_rptr(OSSL_CMP_MSG));
+    return HTTP_REQ_CTX_nbio_d2i(rctx, resp, ASN1_ITEM_rptr(OSSL_CMP_MSG));
 }
 
 /*
@@ -413,7 +326,7 @@ static int CMP_sendreq(BIO *bio, const char *host, const char *path,
                        const OSSL_CMP_MSG *req, OSSL_CMP_MSG **resp,
                        time_t max_time)
 {
-    OCSP_REQ_CTX *rctx;
+    HTTP_REQ_CTX *rctx;
     int rv;
 
     if ((rctx = CMP_sendreq_new(bio, host, path, req, -1)) == NULL)
@@ -422,7 +335,7 @@ static int CMP_sendreq(BIO *bio, const char *host, const char *path,
     rv = bio_http(bio, rctx, CMP_http_nbio, (ASN1_VALUE **)resp, max_time);
 
     /* This indirectly calls ERR_clear_error(); */
-    OCSP_REQ_CTX_free(rctx);
+    HTTP_REQ_CTX_free(rctx);
 
     return rv;
 }
@@ -455,7 +368,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     /* tentatively set error, which allows accumulating diagnostic info */
     (void)ERR_set_mark();
     CMPerr(0, CMP_R_ERROR_CONNECTING);
-    rv = bio_connect(hbio, ctx->msgtimeout);
+    rv = BIO_connect_retry(hbio, ctx->msgtimeout);
     if (rv <= 0) {
         err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_ERROR_CONNECTING;
         goto err;
@@ -537,7 +450,7 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     char *port = NULL;
     char *path = NULL;
     BIO *bio = NULL;
-    OCSP_REQ_CTX *rctx = NULL;
+    HTTP_REQ_CTX *rctx = NULL;
     int use_ssl;
     int rv = -4;
     time_t max_time = req_timeout > 0 ? time(NULL) + req_timeout : 0;
@@ -546,7 +459,7 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     ASN1_VALUE **presp =
         pcert != NULL ? (ASN1_VALUE **)pcert : (ASN1_VALUE **)pcrl;
 
-    if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl))
+    if (!HTTP_parse_url(url, &host, &port, &path, &use_ssl))
         goto err;
     if (use_ssl) {
         BIO_puts(bio_err, "https not supported for CRL fetching\n");
@@ -556,15 +469,15 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     if (bio == NULL || !BIO_set_conn_port(bio, port))
         goto err;
 
-    if (bio_connect(bio, req_timeout) <= 0)
+    if (BIO_connect_retry(bio, req_timeout) <= 0)
         goto err;
 
-    rctx = OCSP_REQ_CTX_new(bio, 1024);
+    rctx = HTTP_REQ_CTX_new(bio, 1024);
     if (rctx == NULL)
         goto err;
-    if (!OCSP_REQ_CTX_http(rctx, "GET", path))
+    if (!HTTP_REQ_CTX_http(rctx, "GET", path))
         goto err;
-    if (!OCSP_REQ_CTX_add1_header(rctx, "Host", host))
+    if (!HTTP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
 
     rv = bio_http(bio, rctx, fn, presp, max_time);
@@ -574,7 +487,7 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     OPENSSL_free(path);
     OPENSSL_free(port);
     BIO_free_all(bio);
-    OCSP_REQ_CTX_free(rctx);
+    HTTP_REQ_CTX_free(rctx);
     if (rv != 1) {
         BIO_printf(bio_err, "%s loading %s from '%s'\n",
                    rv == 0 ? "timeout" :
@@ -585,4 +498,4 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     return rv;
 }
 
-#endif /* !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK) */
+#endif /* !defined(OPENSSL_NO_SOCK) */

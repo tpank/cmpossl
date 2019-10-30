@@ -13,15 +13,16 @@
 #include "crypto/ctype.h"
 #include <string.h>
 #include <openssl/asn1.h>
-#include <openssl/ocsp.h>
 #include <openssl/err.h>
+#include <openssl/httperr.h>
 #include <openssl/buffer.h>
+#include <openssl/http.h>
 
-/* Stateful OCSP request code, supporting non-blocking I/O */
+/* Stateful HTTP request code, supporting blocking and non-blocking I/O */
 
-/* Opaque OCSP request status structure */
+/* Opaque HTTP request status structure */
 
-struct ocsp_req_ctx_st {
+struct http_req_ctx_st {
     int state;                  /* Current I/O state */
     unsigned char *iobuf;       /* Line buffer */
     int iobuflen;               /* Line buffer length */
@@ -31,10 +32,10 @@ struct ocsp_req_ctx_st {
     unsigned long max_resp_len; /* Maximum length of response */
 };
 
-#define OCSP_MAX_RESP_LENGTH    (100 * 1024)
-#define OCSP_MAX_LINE_LEN       4096;
+#define HTTP_MAX_RESP_LENGTH    (100 * 1024)
+#define HTTP_MAX_LINE_LEN       4096;
 
-/* OCSP states */
+/* HTTP states */
 
 /* If set no reading should be performed */
 #define OHS_NOREAD              0x1000
@@ -44,9 +45,9 @@ struct ocsp_req_ctx_st {
 #define OHS_FIRSTLINE           1
 /* MIME headers being read */
 #define OHS_HEADERS             2
-/* OCSP initial header (tag + length) being read */
+/* HTTP initial header (tag + length) being read */
 #define OHS_ASN1_HEADER         3
-/* OCSP content octets being read */
+/* HTTP content octets being read */
 #define OHS_ASN1_CONTENT        4
 /* First call: ready to start I/O */
 #define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
@@ -61,29 +62,29 @@ struct ocsp_req_ctx_st {
 
 static int parse_http_line1(char *line);
 
-OCSP_REQ_CTX *OCSP_REQ_CTX_new(BIO *io, int maxline)
+HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, int maxline)
 {
-    OCSP_REQ_CTX *rctx = OPENSSL_zalloc(sizeof(*rctx));
+    HTTP_REQ_CTX *rctx = OPENSSL_zalloc(sizeof(*rctx));
 
     if (rctx == NULL)
         return NULL;
     rctx->state = OHS_ERROR;
-    rctx->max_resp_len = OCSP_MAX_RESP_LENGTH;
+    rctx->max_resp_len = HTTP_MAX_RESP_LENGTH;
     rctx->mem = BIO_new(BIO_s_mem());
     rctx->io = io;
     if (maxline > 0)
         rctx->iobuflen = maxline;
     else
-        rctx->iobuflen = OCSP_MAX_LINE_LEN;
+        rctx->iobuflen = HTTP_MAX_LINE_LEN;
     rctx->iobuf = OPENSSL_malloc(rctx->iobuflen);
     if (rctx->iobuf == NULL || rctx->mem == NULL) {
-        OCSP_REQ_CTX_free(rctx);
+        HTTP_REQ_CTX_free(rctx);
         return NULL;
     }
     return rctx;
 }
 
-void OCSP_REQ_CTX_free(OCSP_REQ_CTX *rctx)
+void HTTP_REQ_CTX_free(HTTP_REQ_CTX *rctx)
 {
     if (!rctx)
         return;
@@ -92,40 +93,41 @@ void OCSP_REQ_CTX_free(OCSP_REQ_CTX *rctx)
     OPENSSL_free(rctx);
 }
 
-BIO *OCSP_REQ_CTX_get0_mem_bio(OCSP_REQ_CTX *rctx)
+BIO *HTTP_REQ_CTX_get0_mem_bio(HTTP_REQ_CTX *rctx)
 {
     return rctx->mem;
 }
 
-void OCSP_set_max_response_length(OCSP_REQ_CTX *rctx, unsigned long len)
+void HTTP_set_max_response_length(HTTP_REQ_CTX *rctx, unsigned long len)
 {
     if (len == 0)
-        rctx->max_resp_len = OCSP_MAX_RESP_LENGTH;
+        rctx->max_resp_len = HTTP_MAX_RESP_LENGTH;
     else
         rctx->max_resp_len = len;
 }
 
-int OCSP_REQ_CTX_i2d(OCSP_REQ_CTX *rctx, const ASN1_ITEM *it, ASN1_VALUE *val)
+int HTTP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx, const char *content_type,
+                     const ASN1_ITEM *it, ASN1_VALUE *req)
 {
     static const char req_hdr[] =
-        "Content-Type: application/ocsp-request\r\n"
+        "Content-Type: %s\r\n"
         "Content-Length: %d\r\n\r\n";
-    int reqlen = ASN1_item_i2d(val, NULL, it);
-    if (BIO_printf(rctx->mem, req_hdr, reqlen) <= 0)
+    int reqlen = ASN1_item_i2d(req, NULL, it);
+    if (BIO_printf(rctx->mem, req_hdr, content_type, reqlen) <= 0)
         return 0;
-    if (ASN1_item_i2d_bio(it, rctx->mem, val) <= 0)
+    if (ASN1_item_i2d_bio(it, rctx->mem, req) <= 0)
         return 0;
     rctx->state = OHS_ASN1_WRITE_INIT;
     return 1;
 }
 
-int OCSP_REQ_CTX_nbio_d2i(OCSP_REQ_CTX *rctx,
+int HTTP_REQ_CTX_nbio_d2i(HTTP_REQ_CTX *rctx,
                           ASN1_VALUE **pval, const ASN1_ITEM *it)
 {
     int rv, len;
     const unsigned char *p;
 
-    rv = OCSP_REQ_CTX_nbio(rctx);
+    rv = HTTP_REQ_CTX_nbio(rctx);
     if (rv != 1)
         return rv;
 
@@ -138,7 +140,7 @@ int OCSP_REQ_CTX_nbio_d2i(OCSP_REQ_CTX *rctx,
     return 1;
 }
 
-int OCSP_REQ_CTX_http(OCSP_REQ_CTX *rctx, const char *op, const char *path)
+int HTTP_REQ_CTX_http(HTTP_REQ_CTX *rctx, const char *op, const char *path)
 {
     static const char http_hdr[] = "%s %s HTTP/1.0\r\n";
 
@@ -151,13 +153,7 @@ int OCSP_REQ_CTX_http(OCSP_REQ_CTX *rctx, const char *op, const char *path)
     return 1;
 }
 
-int OCSP_REQ_CTX_set1_req(OCSP_REQ_CTX *rctx, OCSP_REQUEST *req)
-{
-    return OCSP_REQ_CTX_i2d(rctx, ASN1_ITEM_rptr(OCSP_REQUEST),
-                            (ASN1_VALUE *)req);
-}
-
-int OCSP_REQ_CTX_add1_header(OCSP_REQ_CTX *rctx,
+int HTTP_REQ_CTX_add1_header(HTTP_REQ_CTX *rctx,
                              const char *name, const char *value)
 {
     if (!name)
@@ -176,25 +172,26 @@ int OCSP_REQ_CTX_add1_header(OCSP_REQ_CTX *rctx,
     return 1;
 }
 
-OCSP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
-                               int maxline)
+HTTP_REQ_CTX *HTTP_sendreq_new(BIO *io, const char *path,
+                               const char *content_type, const ASN1_ITEM *it,
+                               ASN1_VALUE *req, int maxline)
 {
 
-    OCSP_REQ_CTX *rctx = NULL;
-    rctx = OCSP_REQ_CTX_new(io, maxline);
+    HTTP_REQ_CTX *rctx = NULL;
+    rctx = HTTP_REQ_CTX_new(io, maxline);
     if (rctx == NULL)
         return NULL;
 
-    if (!OCSP_REQ_CTX_http(rctx, "POST", path))
+    if (!HTTP_REQ_CTX_http(rctx, "POST", path))
         goto err;
 
-    if (req && !OCSP_REQ_CTX_set1_req(rctx, req))
+    if (req && !HTTP_REQ_CTX_i2d(rctx, content_type, it, req))
         goto err;
 
     return rctx;
 
  err:
-    OCSP_REQ_CTX_free(rctx);
+    HTTP_REQ_CTX_free(rctx);
     return NULL;
 }
 
@@ -212,7 +209,7 @@ static int parse_http_line1(char *line)
     for (p = line; *p && !ossl_isspace(*p); p++)
         continue;
     if (*p == '\0') {
-        OCSPerr(OCSP_F_PARSE_HTTP_LINE1, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
+        HTTPerr(HTTP_F_PARSE_HTTP_LINE1, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
@@ -221,7 +218,7 @@ static int parse_http_line1(char *line)
         p++;
 
     if (*p == '\0') {
-        OCSPerr(OCSP_F_PARSE_HTTP_LINE1, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
+        HTTPerr(HTTP_F_PARSE_HTTP_LINE1, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
@@ -230,7 +227,7 @@ static int parse_http_line1(char *line)
         continue;
 
     if (*q == '\0') {
-        OCSPerr(OCSP_F_PARSE_HTTP_LINE1, OCSP_R_SERVER_RESPONSE_PARSE_ERROR);
+        HTTPerr(HTTP_F_PARSE_HTTP_LINE1, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
@@ -257,7 +254,7 @@ static int parse_http_line1(char *line)
             *r = 0;
     }
     if (retcode != 200) {
-        OCSPerr(OCSP_F_PARSE_HTTP_LINE1, OCSP_R_SERVER_RESPONSE_ERROR);
+        HTTPerr(HTTP_F_PARSE_HTTP_LINE1, HTTP_R_SERVER_RESPONSE_ERROR);
         if (*q == '\0')
             ERR_add_error_data(2, "Code=", p);
         else
@@ -269,7 +266,7 @@ static int parse_http_line1(char *line)
 
 }
 
-int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
+int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx)
 {
     int i, n;
     const unsigned char *p;
@@ -467,36 +464,4 @@ int OCSP_REQ_CTX_nbio(OCSP_REQ_CTX *rctx)
 
     return 0;
 
-}
-
-int OCSP_sendreq_nbio(OCSP_RESPONSE **presp, OCSP_REQ_CTX *rctx)
-{
-    return OCSP_REQ_CTX_nbio_d2i(rctx,
-                                 (ASN1_VALUE **)presp,
-                                 ASN1_ITEM_rptr(OCSP_RESPONSE));
-}
-
-/* Blocking OCSP request handler: now a special case of non-blocking I/O */
-
-OCSP_RESPONSE *OCSP_sendreq_bio(BIO *b, const char *path, OCSP_REQUEST *req)
-{
-    OCSP_RESPONSE *resp = NULL;
-    OCSP_REQ_CTX *ctx;
-    int rv;
-
-    ctx = OCSP_sendreq_new(b, path, req, -1);
-
-    if (ctx == NULL)
-        return NULL;
-
-    do {
-        rv = OCSP_sendreq_nbio(&resp, ctx);
-    } while ((rv == -1) && BIO_should_retry(b));
-
-    OCSP_REQ_CTX_free(ctx);
-
-    if (rv)
-        return resp;
-
-    return NULL;
 }
