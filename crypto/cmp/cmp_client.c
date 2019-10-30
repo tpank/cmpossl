@@ -22,6 +22,7 @@
 #include <openssl/bio.h>
 #include <openssl/cmp.h>
 #include <openssl/err.h>
+#include <openssl/httperr.h>
 #include <openssl/evp.h>
 #include <openssl/x509v3.h>
 
@@ -139,15 +140,15 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     const char *req_type_string =
         ossl_cmp_bodytype_to_string(ossl_cmp_msg_get_bodytype(req));
     int msgtimeout;
-    int err, bt;
+    int bt;
     OSSL_cmp_transfer_cb_t transfer_cb = ctx->transfer_cb;
 
     if (transfer_cb == NULL) {
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+#if !defined(OPENSSL_NO_SOCK)
         transfer_cb = OSSL_CMP_MSG_http_perform;
 #else
-        CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
-        ossl_cmp_add_error_txt("; ", "HTTP transfer not possible due to OPENSSL_NO_OCSP or OPENSSL_NO_SOCK");
+        CMPerr(0, CMP_R_NO_SOCK_TRANSFER);
+        ossl_cmp_add_error_txt(NULL, "HTTP transfer not possible due to OPENSSL_NO_OCSP or OPENSSL_NO_SOCK");
         return 0;
 #endif
     }
@@ -171,20 +172,27 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 #endif
 
     OSSL_CMP_log1(INFO, ctx, "sending %s", req_type_string);
-    err = (*transfer_cb)(ctx, req, rep);
+    *rep = (*transfer_cb)(ctx, req);
     ctx->msgtimeout = msgtimeout; /* restore original value */
 
-    if (err != 0) {
-        if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE
-                || err == CMP_R_READ_TIMEOUT
-                || err == CMP_R_ERROR_DECODING_MESSAGE) {
+    if (*rep == NULL) {
+        int err = ERR_peek_error();
+        int lib = ERR_GET_LIB(err);
+        int reason = ERR_GET_REASON(err);
+        if ((lib == ERR_LIB_BIO && (reason == BIO_R_TRANSFER_ERROR
+                                    || reason == BIO_R_TRANSFER_TIMEOUT))
+            || (lib == ERR_LIB_HTTP && reason != HTTP_R_ERROR_SENDING
+                && reason != HTTP_R_TLS_NOT_ENABLED
+                && reason != HTTP_R_REDIRECTION_NOT_ENABLED
+                && reason != HTTP_R_TOO_MANY_REDIRECTIONS
+                && reason != HTTP_R_REDIRECTION_FROM_HTTPS_TO_HTTP
+                && reason != HTTP_R_CONNECT_FAILURE)) {
             CMPerr(0, not_received);
         }
         else {
             CMPerr(0, CMP_R_ERROR_SENDING_REQUEST);
             ERR_add_error_data(1, req_type_string);
         }
-        *rep = NULL;
         return 0;
     }
 
@@ -612,10 +620,12 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
 }
 
 #define INFO_CONTACTING_SERVER(ctx) \
-    OSSL_CMP_log2(INFO, ctx, "contacting %s:%d", \
+    OSSL_CMP_log2(INFO, (ctx), "contacting %s:%d",      \
                   (ctx)->serverName == NULL ? \
-                  "(no server name)" : (ctx)->serverName, \
-                  (ctx)->serverPort);
+                  "(no server name)" : (ctx)->serverName, (ctx)->serverPort) \
+        && (ctx)->proxyName == NULL ? 1 : \
+        OSSL_CMP_log2(INFO, (ctx),                                      \
+                      "using proxy %s:%d", (ctx)->proxyName, (ctx)->proxyPort);
 
 /*
  * Do the full sequence CR/IR/KUR/P10CR, CP/IP/KUP/CP,

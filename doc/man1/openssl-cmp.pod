@@ -11,8 +11,8 @@ B<openssl> B<cmp>
 [B<-config> I<filename>]
 [B<-section> I<names>]
 
-[B<-server> I<address[:port]>]
-[B<-proxy> I<address[:port]>]
+[B<-server> I<host[:port][/path]>]
+[B<-proxy> I<host[:port]>]
 [B<-path> I<remote_path>]
 [B<-msgtimeout> I<seconds>]
 [B<-totaltimeout> I<seconds>]
@@ -183,12 +183,14 @@ section (as far as present) can provide per-option fallback values.
 
 =over 4
 
-=item B<-server> I<address[:port]>
+=item B<-server> I<host[:port][/path]>
 
-The IP address or hostname and port (defaults to 80)
+The IP address or hostname and optional port (defaults to 80)
 of the CMP server to connect to using HTTP/S transport.
+If this provides a complete URL then its path component is used unless
+overridden by B<-path>.
 
-=item B<-proxy> I<address[:port]>
+=item B<-proxy> I<host[:port]>
 
 The IP address or hostname and port (defaults to 80) of the HTTP proxy server,
 which can be given if needed for accessing the CMP server.
@@ -197,7 +199,8 @@ The environment variable C<no_proxy> (or else C<NO_PROXY>) is respected.
 
 =item B<-path> I<remote_path>
 
-HTTP path location to use for the CMP server (aka CMP alias). Defaults to "/".
+HTTP path location to use for the CMP server (aka CMP alias).
+Defaults to the path component of the server URL, if present, else "/".
 
 =item B<-msgtimeout> I<seconds>
 
@@ -725,7 +728,7 @@ Each source may contain multiple certificates.
 
 =item B<-tls_host> I<name>
 
-Address to be checked (rather than B<-server> address) during hostname
+Host to be checked (rather than B<-server> host) during hostname
 validation. This may be a Common Name, a DNS name, or an IP address.
 
 =back

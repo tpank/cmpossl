@@ -940,11 +940,9 @@ OCSP_F_OCSP_CHECK_IDS:107:ocsp_check_ids
 OCSP_F_OCSP_CHECK_ISSUER:108:ocsp_check_issuer
 OCSP_F_OCSP_CHECK_VALIDITY:115:OCSP_check_validity
 OCSP_F_OCSP_MATCH_ISSUERID:109:ocsp_match_issuerid
-OCSP_F_OCSP_PARSE_URL:114:OCSP_parse_url
 OCSP_F_OCSP_REQUEST_SIGN:110:OCSP_request_sign
 OCSP_F_OCSP_REQUEST_VERIFY:116:OCSP_request_verify
 OCSP_F_OCSP_RESPONSE_GET1_BASIC:111:OCSP_response_get1_basic
-OCSP_F_PARSE_HTTP_LINE1:118:parse_http_line1
 OSSL_STORE_F_FILE_CTRL:129:file_ctrl
 OSSL_STORE_F_FILE_FIND:138:file_find
 OSSL_STORE_F_FILE_GET_PASS:118:file_get_pass
@@ -2013,6 +2011,7 @@ BIO_R_AMBIGUOUS_HOST_OR_SERVICE:129:ambiguous host or service
 BIO_R_BAD_FOPEN_MODE:101:bad fopen mode
 BIO_R_BROKEN_PIPE:124:broken pipe
 BIO_R_CONNECT_ERROR:103:connect error
+BIO_R_CONNECT_TIMEOUT:147:connect timeout
 BIO_R_GETHOSTBYNAME_ADDR_IS_NOT_AF_INET:107:gethostbyname addr is not af inet
 BIO_R_GETSOCKNAME_ERROR:132:getsockname error
 BIO_R_GETSOCKNAME_TRUNCATED_ADDRESS:133:getsockname truncated address
@@ -2031,6 +2030,8 @@ BIO_R_NO_HOSTNAME_OR_SERVICE_SPECIFIED:144:no hostname or service specified
 BIO_R_NO_PORT_DEFINED:113:no port defined
 BIO_R_NO_SUCH_FILE:128:no such file
 BIO_R_NULL_PARAMETER:115:null parameter
+BIO_R_TRANSFER_ERROR:104:transfer error
+BIO_R_TRANSFER_TIMEOUT:105:transfer timeout
 BIO_R_UNABLE_TO_BIND_SOCKET:117:unable to bind socket
 BIO_R_UNABLE_TO_CREATE_SOCKET:118:unable to create socket
 BIO_R_UNABLE_TO_KEEPALIVE:137:unable to keepalive
@@ -2075,13 +2076,11 @@ CMP_R_CERTIFICATE_NOT_FOUND:105:certificate not found
 CMP_R_CERTREQMSG_NOT_FOUND:117:certreqmsg not found
 CMP_R_CERTRESPONSE_NOT_FOUND:106:certresponse not found
 CMP_R_CERT_AND_KEY_DO_NOT_MATCH:118:cert and key do not match
-CMP_R_CONNECT_TIMEOUT:119:connect timeout
 CMP_R_CP_NOT_RECEIVED:120:cp not received
 CMP_R_ENCOUNTERED_KEYUPDATEWARNING:121:encountered keyupdatewarning
 CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS:122:encountered unsupported pkistatus
 CMP_R_ENCOUNTERED_WAITING:123:encountered waiting
 CMP_R_ERROR_CALCULATING_PROTECTION:124:error calculating protection
-CMP_R_ERROR_CONNECTING:125:error connecting
 CMP_R_ERROR_CREATING_CERTCONF:126:error creating certconf
 CMP_R_ERROR_CREATING_CERTREP:127:error creating certrep
 CMP_R_ERROR_CREATING_CR:128:error creating cr
@@ -2096,26 +2095,20 @@ CMP_R_ERROR_CREATING_POLLREP:136:error creating pollrep
 CMP_R_ERROR_CREATING_POLLREQ:137:error creating pollreq
 CMP_R_ERROR_CREATING_RP:138:error creating rp
 CMP_R_ERROR_CREATING_RR:139:error creating rr
-CMP_R_ERROR_DECODING_MESSAGE:140:error decoding message
 CMP_R_ERROR_PARSING_PKISTATUS:107:error parsing pkistatus
 CMP_R_ERROR_PROCESSING_CERTREQ:141:error processing certreq
-CMP_R_ERROR_PROCESSING_MSG:142:error processing msg
 CMP_R_ERROR_PROTECTING_MESSAGE:143:error protecting message
 CMP_R_ERROR_PUSHING_GENERALINFO_ITEM:108:error pushing generalinfo item
 CMP_R_ERROR_PUSHING_GENERALINFO_ITEMS:109:error pushing generalinfo items
 CMP_R_ERROR_SENDING_REQUEST:144:error sending request
 CMP_R_ERROR_SETTING_CERTHASH:145:error setting certhash
-CMP_R_ERROR_TRANSFERRING_IN:146:error transferring in
-CMP_R_ERROR_TRANSFERRING_OUT:147:error transferring out
 CMP_R_ERROR_VALIDATING_PROTECTION:148:error validating protection
 CMP_R_FAILED_EXTRACTING_PUBKEY:149:failed extracting pubkey
 CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE:150:failed to receive pkimessage
-CMP_R_FAILED_TO_SEND_REQUEST:151:failed to send request
 CMP_R_FAILURE_OBTAINING_RANDOM:110:failure obtaining random
 CMP_R_FAIL_INFO_OUT_OF_RANGE:152:fail info out of range
 CMP_R_GENP_NOT_RECEIVED:153:genp not received
 CMP_R_INVALID_ARGS:100:invalid args
-CMP_R_MISSING_TRUST_STORE:154:missing trust store
 CMP_R_IP_NOT_RECEIVED:155:ip not received
 CMP_R_KUP_NOT_RECEIVED:156:kup not received
 CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION:157:\
@@ -2123,10 +2116,11 @@ CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION:157:\
 CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE:158:missing key usage digitalsignature
 CMP_R_MISSING_PRIVATE_KEY:193:missing private key
 CMP_R_MISSING_PROTECTION:159:missing protection
+CMP_R_MISSING_SENDER_IDENTIFICATION:111:missing sender identification
+CMP_R_MISSING_TRUST_STORE:154:missing trust store
 CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED:160:multiple responses not supported
 CMP_R_MULTIPLE_SAN_SOURCES:102:multiple san sources
-CMP_R_MISSING_SENDER_IDENTIFICATION:111:missing sender identification
-CMP_R_MULTIPLE_SAN_SOURCES:102:multiple san sources
+CMP_R_NO_SOCK_TRANSFER:146:no sock transfer
 CMP_R_NO_STDIO:194:no stdio
 CMP_R_NO_SUITABLE_SENDER_CERT:161:no suitable sender cert
 CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG:162:srvcert does not validate msg
@@ -2136,13 +2130,13 @@ CMP_R_PKICONF_NOT_RECEIVED:164:pkiconf not received
 CMP_R_PKISTATUSINFO_NOT_FOUND:112:pkistatusinfo not found
 CMP_R_POLLREP_NOT_RECEIVED:165:pollrep not received
 CMP_R_POTENTIALLY_INVALID_CERTIFICATE:166:potentially invalid certificate
-CMP_R_READ_TIMEOUT:167:read timeout
 CMP_R_RECEIVED_ERROR:168:received error
 CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP:169:\
 	received negative checkafter in pollrep
 CMP_R_RECIPNONCE_UNMATCHED:170:recipnonce unmatched
 CMP_R_REQUEST_NOT_ACCEPTED:171:request not accepted
 CMP_R_REQUEST_REJECTED_BY_CA:172:request rejected by ca
+CMP_R_REVREQSID_NOT_FOUND:142:revreqsid not found
 CMP_R_RP_NOT_RECEIVED:173:rp not received
 CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED:174:\
 	sender generalname type not supported
@@ -2587,6 +2581,28 @@ EVP_R_WRAP_MODE_NOT_ALLOWED:170:wrap mode not allowed
 EVP_R_WRONG_FINAL_BLOCK_LENGTH:109:wrong final block length
 EVP_R_XTS_DATA_UNIT_IS_TOO_LARGE:191:xts data unit is too large
 EVP_R_XTS_DUPLICATED_KEYS:192:xts duplicated keys
+HTTP_R_ASN1_LEN_EXCEEDS_MAX_RESP_LEN:108:asn1 len exceeds max resp len
+HTTP_R_CONNECT_FAILURE:100:connect failure
+HTTP_R_ERROR_PARSING_ASN1_LENGTH:109:error parsing asn1 length
+HTTP_R_ERROR_PARSING_CONTENT_LENGTH:119:error parsing content length
+HTTP_R_ERROR_PARSING_URL:101:error parsing url
+HTTP_R_ERROR_RECEIVING:103:error receiving
+HTTP_R_ERROR_SENDING:102:error sending
+HTTP_R_INCONSISTENT_CONTENT_LENGTH:120:inconsistent content length
+HTTP_R_MAX_RESP_LEN_EXCEEDED:117:max resp len exceeded
+HTTP_R_MISSING_ASN1_ENCODING:110:missing asn1 encoding
+HTTP_R_MISSING_CONTENT_TYPE121:missing content type
+HTTP_R_MISSING_REDIRECT_LOCATION:111:missing redirect location
+HTTP_R_REDIRECTION_FROM_HTTPS_TO_HTTP:112:redirection from https to http
+HTTP_R_REDIRECTION_NOT_ENABLED:116:redirection not enabled
+HTTP_R_RESPONE_LINE_TOO_LONG:113:respone line too long
+HTTP_R_SERVER_RESPONSE_PARSE_ERROR:104:server response parse error
+HTTP_R_SERVER_SENT_ERROR:105:server sent error
+HTTP_R_SERVER_SENT_WRONG_HTTP_VERSION:106:server sent wrong http version
+HTTP_R_STATUS_CODE_UNSUPPORTED:114:status code unsupported
+HTTP_R_TLS_NOT_ENABLED:107:tls not enabled
+HTTP_R_TOO_MANY_REDIRECTIONS:115:too many redirections
+HTTP_R_UNEXPECTED_CONTENT_TYPE:118:unexpected content type
 KDF_R_BAD_ENCODING:122:bad encoding
 KDF_R_BAD_LENGTH:123:bad length
 KDF_R_BOTH_MODE_AND_MODE_INT:127:both mode and mode int
@@ -2621,7 +2637,6 @@ OCSP_R_CERTIFICATE_VERIFY_ERROR:101:certificate verify error
 OCSP_R_DIGEST_ERR:102:digest err
 OCSP_R_ERROR_IN_NEXTUPDATE_FIELD:122:error in nextupdate field
 OCSP_R_ERROR_IN_THISUPDATE_FIELD:123:error in thisupdate field
-OCSP_R_ERROR_PARSING_URL:121:error parsing url
 OCSP_R_MISSING_OCSPSIGNING_USAGE:103:missing ocspsigning usage
 OCSP_R_NEXTUPDATE_BEFORE_THISUPDATE:124:nextupdate before thisupdate
 OCSP_R_NOT_BASIC_RESPONSE:104:not basic response
@@ -2635,8 +2650,6 @@ OCSP_R_REQUEST_NOT_SIGNED:128:request not signed
 OCSP_R_RESPONSE_CONTAINS_NO_REVOCATION_DATA:111:\
 	response contains no revocation data
 OCSP_R_ROOT_CA_NOT_TRUSTED:112:root ca not trusted
-OCSP_R_SERVER_RESPONSE_ERROR:114:server response error
-OCSP_R_SERVER_RESPONSE_PARSE_ERROR:115:server response parse error
 OCSP_R_SIGNATURE_FAILURE:117:signature failure
 OCSP_R_SIGNER_CERTIFICATE_NOT_FOUND:118:signer certificate not found
 OCSP_R_STATUS_EXPIRED:125:status expired
