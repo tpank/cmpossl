@@ -382,7 +382,7 @@ int BIO_sock_info(int sock,
  * of select(), e.g., in query_responder() in apps/ocsp.c
  */
 /* wait if timeout > 0. returns < 0 on error, 0 on timeout, > 0 on success */
-int BIO_socket_wait(int fd, int for_read, int timeout)
+int BIO_socket_wait(int fd, int for_read, long timeout)
 {
     fd_set confds;
     struct timeval tv;
@@ -399,7 +399,7 @@ int BIO_socket_wait(int fd, int for_read, int timeout)
 }
 
 /* wait if timeout > 0. returns < 0 on error, 0 on timeout, > 0 on success */
-int BIO_wait(BIO *bio, int timeout)
+int BIO_wait(BIO *bio, long timeout)
 {
     int fd;
 
@@ -409,7 +409,7 @@ int BIO_wait(BIO *bio, int timeout)
 }
 
 /* returns -1 on error, 0 on timeout, 1 on success */
-int BIO_connect_retry(BIO *bio, int timeout)
+int BIO_connect_retry(BIO *bio, long timeout)
 {
     int blocking;
     time_t max_time;

@@ -865,7 +865,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     cb_data.prompt_info = file;
 
     if (format == FORMAT_HTTP) {
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+#if !defined(OPENSSL_NO_SOCK)
         OSSL_CMP_load_cert_crl_http_timeout(file, opt_crl_timeout,
                                             &x, NULL, bio_err);
 #endif
@@ -1187,7 +1187,7 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
     /* BIO_printf(bio_out, "loading %s from '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
     if (format == FORMAT_HTTP) {
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+#if !defined(OPENSSL_NO_SOCK)
         OSSL_CMP_load_cert_crl_http_timeout(infile, opt_crl_timeout, NULL,
                                             &crl, bio_err);
 #endif
@@ -2025,7 +2025,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             ret = OSSL_CMP_mock_server_perform(ctx, actual_req, res);
         } else {
 #endif
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+#if !defined(OPENSSL_NO_SOCK)
             ret = OSSL_CMP_MSG_http_perform(ctx, actual_req, res);
 #endif
 #ifndef NDEBUG
@@ -2088,7 +2088,8 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
 
     if (detail == 1) { /* connecting */
         SSL *ssl;
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+
+#if !defined(OPENSSL_NO_SOCK)
         if ((opt_proxy != NULL
                 && !OSSL_CMP_proxy_connect(hbio, ctx, bio_err, prog))
                     || (sbio = BIO_new(BIO_f_ssl())) == NULL) {

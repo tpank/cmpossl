@@ -41,6 +41,8 @@ int HTTP_REQ_CTX_add1_header(HTTP_REQ_CTX *rctx,
 HTTP_REQ_CTX *HTTP_sendreq_new(BIO *io, const char *path,
                                const char *content_type, const ASN1_ITEM *it,
                                ASN1_VALUE *req, int maxline);
+int HTTP_proxy_connect(BIO *bio, const char *server, int port, long timeout,
+                       BIO *bio_err, const char *prog);
 
 # ifdef  __cplusplus
 }

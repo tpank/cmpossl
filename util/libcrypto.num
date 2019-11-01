@@ -4915,7 +4915,6 @@ OSSL_CMP_MSG_get0_header                ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_validate_msg                   ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_validate_cert_path             ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_print_cert_verify_cb           ?	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_proxy_connect                  ?	3_0_0	EXIST::FUNCTION:CMP,OCSP,SOCK
 OSSL_CMP_MSG_http_perform               ?	3_0_0	EXIST::FUNCTION:CMP,OCSP,SOCK
 OSSL_CMP_load_cert_crl_http_timeout     ?	3_0_0	EXIST::FUNCTION:CMP,OCSP,SOCK
 OSSL_CMP_exec_IR_ses                    ?	3_0_0	EXIST::FUNCTION:CMP
@@ -4940,3 +4939,6 @@ OSSL_CMP_SRV_CTX_set_send_unprotected_errors ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_accept_unprotected ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_accept_raverified  ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_grant_implicit_confirm ?	3_0_0	EXIST::FUNCTION:CMP
+ERR_load_HTTP_strings                   4977	3_0_0	EXIST::FUNCTION:
+HTTP_sendreq_new                        4978	3_0_0	EXIST::FUNCTION:
+HTTP_proxy_connect                      4981	3_0_0	EXIST::FUNCTION:SOCK
