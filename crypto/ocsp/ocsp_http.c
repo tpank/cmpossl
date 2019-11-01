@@ -14,7 +14,7 @@
 
 #ifndef OPENSSL_NO_OCSP
 
-int OCSP_REQ_CTX_set1_req(HTTP_REQ_CTX *rctx, OCSP_REQUEST *req)
+int OCSP_REQ_CTX_set1_req(HTTP_REQ_CTX *rctx, const OCSP_REQUEST *req)
 {
     return HTTP_REQ_CTX_i2d(rctx, "application/ocsp-request",
                             ASN1_ITEM_rptr(OCSP_REQUEST), (ASN1_VALUE *)req);

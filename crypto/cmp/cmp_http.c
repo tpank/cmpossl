@@ -29,6 +29,22 @@
 
 #ifndef OPENSSL_NO_SOCK
 
+/*
+ * one declaration and two defines copied from ocsp_ht.c - keep in sync!
+ * These have been copied just to get access to* internal state variable;
+ * TODO better avoid this by pushing upstream the below code using them
+ */
+struct http_req_ctx_st
+{
+    int state;                  /* Current I/O state */
+    unsigned char *iobuf;       /* Line buffer */
+    int iobuflen;               /* Line buffer length */
+    BIO *io;                    /* BIO to perform I/O with */
+    BIO *mem;                   /* Memory BIO response is built into */
+    unsigned long asn1_len;     /* ASN1 length of response */
+    unsigned long max_resp_len; /* Maximum length of response */
+};
+
 /* TODO DvO: push this upstream with extended load_cert_crl_http() */
 typedef int (*http_fn)(HTTP_REQ_CTX *rctx, ASN1_VALUE **resp);
 /*
@@ -40,8 +56,7 @@ typedef int (*http_fn)(HTTP_REQ_CTX *rctx, ASN1_VALUE **resp);
  * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
  * 1: success and then provides the received message via the *resp argument
  */
-static int bio_http(BIO *bio /* could be removed if we could access rctx->io */,
-                    HTTP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp,
+static int bio_http(HTTP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp,
                     time_t max_time)
 {
     int rv = -4, rc, sending = 1;
@@ -69,7 +84,7 @@ static int bio_http(BIO *bio /* could be removed if we could access rctx->io */,
         /* else BIO_should_retry was true */
         sending = 0;
         if (!blocking) {
-            rv = BIO_wait(bio, max_time - time(NULL));
+            rv = BIO_wait(rctx->io, max_time - time(NULL));
             if (rv <= 0) { /* error or timeout */
                 if (rv < 0) /* error */
                     rv = -4;
@@ -82,42 +97,10 @@ static int bio_http(BIO *bio /* could be removed if we could access rctx->io */,
     return rv;
 }
 
-/*
- * one declaration and two defines copied from ocsp_ht.c - keep in sync!
- * These have been copied just to get access to* internal state variable;
- * TODO better avoid this by pushing upstream the below code using them
- */
-struct http_req_ctx_st
+static int CMP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx, const OSSL_CMP_MSG *req)
 {
-    int state;                  /* Current I/O state */
-    unsigned char *iobuf;       /* Line buffer */
-    int iobuflen;               /* Line buffer length */
-    BIO *io;                    /* BIO to perform I/O with */
-    BIO *mem;                   /* Memory BIO response is built into */
-    unsigned long asn1_len;     /* ASN1 length of response */
-    unsigned long max_resp_len; /* Maximum length of response */
-};
-# define OHS_NOREAD              0x1000
-# define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
-
-/*
- * adapted from HTTP_REQ_CTX_i2d in crypto/ocsp/ocsp_ht.c
- * TODO DvO: generalize the function there
- */
-static int CMP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx,
-                           const ASN1_ITEM *it, ASN1_VALUE *val)
-{
-    static const char req_hdr[] =
-        "Content-Type: application/pkixcmp\r\n"
-        "Content-Length: %d\r\n\r\n";
-    int reqlen = ASN1_item_i2d(val, NULL, it);
-
-    if (BIO_printf(rctx->mem, req_hdr, reqlen) <= 0)
-        return 0;
-    if (ASN1_item_i2d_bio(it, rctx->mem, val) <= 0)
-        return 0;
-    rctx->state = OHS_ASN1_WRITE_INIT;
-    return 1;
+    return HTTP_REQ_CTX_i2d(rctx, "application/pkixcmp",
+                            ASN1_ITEM_rptr(OSSL_CMP_MSG), (ASN1_VALUE *)req);
 }
 
 static void add_conn_error_hint(const OSSL_CMP_CTX *ctx, unsigned long detail)
@@ -187,8 +170,7 @@ static HTTP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *host,
     if (!HTTP_REQ_CTX_add1_header(rctx, "Pragma", "no-cache"))
         goto err;
 
-    if (req != NULL && !CMP_REQ_CTX_i2d(rctx, ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                                        (ASN1_VALUE *)req))
+    if (req != NULL && !CMP_REQ_CTX_i2d(rctx, req))
         goto err;
 
     return rctx;
@@ -222,7 +204,7 @@ static int CMP_sendreq(BIO *bio, const char *host, const char *path,
     if ((rctx = CMP_sendreq_new(bio, host, path, req, -1)) == NULL)
         return -4;
 
-    rv = bio_http(bio, rctx, CMP_http_nbio, (ASN1_VALUE **)resp, max_time);
+    rv = bio_http(rctx, CMP_http_nbio, (ASN1_VALUE **)resp, max_time);
 
     /* This indirectly calls ERR_clear_error(); */
     HTTP_REQ_CTX_free(rctx);
@@ -370,7 +352,7 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
     if (!HTTP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
 
-    rv = bio_http(bio, rctx, fn, presp, max_time);
+    rv = bio_http(rctx, fn, presp, max_time);
 
  err:
     OPENSSL_free(host);

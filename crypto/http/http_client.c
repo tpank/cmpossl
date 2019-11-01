@@ -271,6 +271,7 @@ int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx)
 {
     int i, n;
     const unsigned char *p;
+
  next_io:
     if (!(rctx->state & OHS_NOREAD)) {
         n = BIO_read(rctx->io, rctx->iobuf, rctx->iobuflen);
