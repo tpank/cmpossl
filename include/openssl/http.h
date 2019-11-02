@@ -11,10 +11,7 @@
 # define OPENSSL_HTTP_H
 # pragma once
 
-# include <openssl/macros.h>
-# if !OPENSSL_API_3
-#  define HEADER_HTTP_H
-# endif
+# include <openssl/opensslconf.h>
 
 # include <openssl/bio.h>
 # include <openssl/asn1.h>
@@ -25,8 +22,10 @@ extern "C" {
 
 int HTTP_parse_url(const char *url, char **phost, char **pport, char **ppath,
                    int *pssl);
+# ifndef OPENSSL_NO_SOCK
 BIO *HTTP_new_bio(const char *server, const char *server_port,
                   const char *proxy, const char *proxy_port);
+# endif
 
 HTTP_REQ_CTX *HTTP_sendreq_new(BIO *io, const char *path,
                                const char *server, const char *port,
@@ -47,7 +46,7 @@ int HTTP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx, const char *content_type,
                      const ASN1_ITEM *it, ASN1_VALUE *req);
 /* TODO: unexport this (undocumented and actually just internal) function? */
 int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx);
-# if !defined(OPENSSL_NO_SOCK)
+# ifndef OPENSSL_NO_SOCK
 /* TODO: unexport this (undocumented and actually just internal) function? */
 ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
                                      const ASN1_ITEM *it);

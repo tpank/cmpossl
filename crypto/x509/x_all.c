@@ -213,11 +213,13 @@ int X509_sign_ctx(X509 *x, EVP_MD_CTX *ctx)
                               &x->sig_alg, &x->signature, &x->cert_info, ctx);
 }
 
+#if !defined(OPENSSL_NO_SOCK)
 X509 *X509_load_http(const char *url, long timeout)
 {
     return (X509 *)HTTP_get_asn1(url, NULL, NULL /* no proxy and port */,
                                  timeout, ASN1_ITEM_rptr(X509));
 }
+#endif
 
 int X509_REQ_sign(X509_REQ *x, EVP_PKEY *pkey, const EVP_MD *md)
 {
@@ -247,11 +249,13 @@ int X509_CRL_sign_ctx(X509_CRL *x, EVP_MD_CTX *ctx)
                               &x->crl, ctx);
 }
 
+#if !defined(OPENSSL_NO_SOCK)
 X509_CRL *X509_CRL_load_http(const char *url, long timeout)
 {
     return (X509_CRL *)HTTP_get_asn1(url, NULL, NULL /* no proxy and port */,
                                      timeout, ASN1_ITEM_rptr(X509_CRL));
 }
+#endif
 
 int NETSCAPE_SPKI_sign(NETSCAPE_SPKI *x, EVP_PKEY *pkey, const EVP_MD *md)
 {

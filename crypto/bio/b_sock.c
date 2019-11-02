@@ -24,12 +24,12 @@
 static int wsa_init_done = 0;
 # endif
 
-#ifndef _WIN32
-# include <unistd.h>
-# include <sys/select.h>
-#else
-# include <winsock.h> /* for type fd_set */
-#endif
+# ifndef _WIN32
+#  include <unistd.h>
+#  include <sys/select.h>
+# else
+#  include <winsock.h> /* for type fd_set */
+# endif
 
 # ifndef OPENSSL_NO_DEPRECATED_1_1_0
 int BIO_get_host_ip(const char *str, unsigned char *ip)
@@ -471,4 +471,4 @@ int BIO_connect_retry(BIO *bio, long timeout)
     return rv;
 }
 
-#endif
+#endif /* !defined(OPENSSL_NO_SOCK) */

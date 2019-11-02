@@ -67,6 +67,7 @@ struct http_req_ctx_st {
 /* Headers set, no final \r\n included */
 #define OHS_HTTP_HEADER         (9 | OHS_NOREAD)
 
+#ifndef OPENSSL_NO_SOCK
 BIO *HTTP_new_bio(const char *server, const char *server_port,
                   const char *proxy, const char *proxy_port)
 {
@@ -92,6 +93,7 @@ BIO *HTTP_new_bio(const char *server, const char *server_port,
  end:
     return cbio;
 }
+#endif /* !defined(OPENSSL_NO_SOCK) */
 
 HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, int maxline)
 {
@@ -537,7 +539,7 @@ int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx)
 
 }
 
-#if !defined(OPENSSL_NO_SOCK)
+#ifndef OPENSSL_NO_SOCK
 
 /* Exchange ASN.1-encoded request and response via HTTP on (non-)blocking BIO */
 ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,

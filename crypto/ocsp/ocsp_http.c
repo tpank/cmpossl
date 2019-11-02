@@ -31,6 +31,7 @@ int OCSP_REQ_CTX_set1_req(HTTP_REQ_CTX *rctx, const OCSP_REQUEST *req)
 }
 
 # if !defined(OPENSSL_NO_SOCK)
+
 int OCSP_sendreq(OCSP_RESPONSE **presp, HTTP_REQ_CTX *rctx, time_t max_time)
 {
     *presp = (OCSP_RESPONSE *)

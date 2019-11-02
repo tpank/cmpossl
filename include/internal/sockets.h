@@ -160,7 +160,5 @@ struct servent *PASCAL getservbyname(const char *, const char *);
 # endif
 
 int BIO_socket_wait(int fd, int for_read, long timeout);
-int BIO_wait(BIO *bio, long timeout);
-int BIO_connect_retry(BIO *bio, long timeout);
 
 #endif

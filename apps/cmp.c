@@ -869,7 +869,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
         x = X509_load_http(file, opt_crl_timeout);
 #else
         BIO_printf(bio_err, "http(s) not supported loading cert from '%s'\n",
-                   url);
+                   file);
 #endif
         goto end;
     }
@@ -1193,7 +1193,7 @@ static X509_CRL *load_crl_autofmt(const char *file, int format,
         crl = X509_CRL_load_http(file, opt_crl_timeout);
 #else
         BIO_printf(bio_err, "http(s) not supported loading CRL from '%s'\n",
-                   url);
+                   file);
 #endif
         goto end;
     }
