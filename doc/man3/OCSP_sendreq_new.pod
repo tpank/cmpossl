@@ -3,7 +3,7 @@
 =head1 NAME
 
 OCSP_sendreq_new, OCSP_sendreq, HTTP_REQ_CTX_free,
-HTTP_set_max_response_length, HTTP_REQ_CTX_add1_header,
+HTTP_REQ_CTX_set_max_resp_len, HTTP_REQ_CTX_add1_header,
 OCSP_REQ_CTX_set1_req, OCSP_sendreq_bio - OCSP responder query functions
 
 =head1 SYNOPSIS
@@ -17,7 +17,7 @@ OCSP_REQ_CTX_set1_req, OCSP_sendreq_bio - OCSP responder query functions
 
  void HTTP_REQ_CTX_free(HTTP_REQ_CTX *rctx);
 
- void HTTP_set_max_response_length(HTTP_REQ_CTX *rctx, unsigned long len);
+ void HTTP_REQ_CTX_set_max_resp_len(HTTP_REQ_CTX *rctx, unsigned long len);
 
  int HTTP_REQ_CTX_add1_header(HTTP_REQ_CTX *rctx,
                               const char *name, const char *value);
@@ -40,7 +40,7 @@ When the operation is complete it returns the response in B<*presp>.
 
 HTTP_REQ_CTX_free() frees up the OCSP context B<rctx>.
 
-HTTP_set_max_response_length() sets the maximum response length for B<rctx>
+HTTP_REQ_CTX_set_max_respe_len() sets the maximum response length for B<rctx>
 to B<len>. If the response exceeds this length an error occurs. If not
 set a default value of 100k is used.
 
@@ -71,7 +71,7 @@ and B<0> for failure.
 OCSP_sendreq_bio() returns the B<OCSP_RESPONSE> structure sent by the
 responder or B<NULL> if an error occurred.
 
-HTTP_REQ_CTX_free() and HTTP_set_max_response_length() do not return values.
+HTTP_REQ_CTX_free() and HTTP_REQ_CTX_set_max_resp_len() do not return values.
 
 =head1 NOTES
 

@@ -110,9 +110,9 @@ static int CMP_sendreq(BIO *bio, const char *host, const char *path,
                                 -1 /* default max resp line length */)) == NULL)
         return -4;
 
-    rv = HTTP_REQ_CTX_nbio_d2i(rctx, max_time,
-                               ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                               (ASN1_VALUE **)resp);
+    rv = HTTP_REQ_CTX_sendreq_d2i(rctx, max_time,
+                                  ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                                  (ASN1_VALUE **)resp);
 
     /* this indirectly calls ERR_clear_error(): */
     HTTP_REQ_CTX_free(rctx);

@@ -376,11 +376,7 @@ int BIO_sock_info(int sock,
     return 1;
 }
 
-/*
- * TODO DvO: push BIO_socket_wait() etc. upstream with the below extension of
- * load_cert_crl_http() in apps/lib/apps.c, simplifying also other uses
- * of select(), e.g., in query_responder() in apps/ocsp.c
- */
+/* TODO using this function, simplify further other uses of select() in apps/ */
 /*
  * wait if timeout > 0. If for_read is 0 then assume for write.
  * returns < 0 on error, 0 on timeout, > 0 on success
@@ -401,7 +397,10 @@ int BIO_socket_wait(int fd, int for_read, long timeout)
                   for_read ? NULL : &confds, NULL, &tv);
 }
 
-/* wait if timeout > 0. returns < 0 on error, 0 on timeout, > 0 on success */
+/*
+ * wait if timeout > 0.
+ * returns < 0 on error, 0 on timeout, > 0 on success
+ */
 int BIO_wait(BIO *bio, long timeout)
 {
     int fd;
@@ -414,37 +413,38 @@ int BIO_wait(BIO *bio, long timeout)
 /* returns -1 on error, 0 on timeout, 1 on success */
 int BIO_connect_retry(BIO *bio, long timeout)
 {
-    int blocking;
-    time_t max_time;
+    int blocking = timeout <= 0;
+    time_t max_time = timeout > 0 ? time(NULL) + timeout : 0;
     int rv;
 
-    blocking = timeout <= 0;
-    max_time = timeout > 0 ? time(NULL) + timeout : 0;
+    if (bio == NULL) {
+        BIOerr(0, ERR_R_PASSED_NULL_PARAMETER);
+        return 0;
+    }
 
-    /*
-     * https://www.openssl.org/docs/man1.1.0/crypto/BIO_should_io_special.html
-     */
     if (!blocking)
         BIO_set_nbio(bio, 1);
+
  retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
     rv = BIO_do_connect(bio); /* This indirectly calls ERR_clear_error(); */
-    /*
-     * in blocking case, despite blocking BIO, BIO_do_connect() timed out
-     * when non-blocking, BIO_do_connect() timed out early
-     * with rv == -1 and errno == 0
-     */
+
     if (rv <= 0 && (errno == ETIMEDOUT
                         || ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT)) {
+        /*
+         * in blocking case, despite blocking BIO, BIO_do_connect() timed out
+         * when non-blocking, BIO_do_connect() timed out early
+         * with rv == -1 and errno == 0
+         */
         ERR_clear_error();
         (void)BIO_reset(bio);
         /*
-         * otherwise, blocking next connect() may crash and
+         * unless using BIO_reset(), blocking next connect() may crash and
          * non-blocking next BIO_do_connect() will fail
          */
         goto retry;
     }
     if (rv <= 0 && BIO_should_retry(bio)) {
-        if (blocking || (rv = BIO_wait(bio, (int)(max_time - time(NULL)))) > 0)
+        if (blocking || (rv = BIO_wait(bio, max_time - time(NULL))) > 0)
             goto retry;
     }
     return rv;
