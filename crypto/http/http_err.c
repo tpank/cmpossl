@@ -15,10 +15,13 @@
 
 static const ERR_STRING_DATA HTTP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_ERROR_PARSING_URL), "error parsing url"},
+    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_ERROR_RECEIVING), "error receiving"},
+    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_ERROR_SENDING), "error sending"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_SERVER_RESPONSE_ERROR),
     "server response error"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR),
     "server response parse error"},
+    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_TLS_NOT_SUPPORTED), "tls not supported"},
     {0, NULL}
 };
 

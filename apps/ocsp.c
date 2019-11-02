@@ -1535,19 +1535,14 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
                                       const STACK_OF(CONF_VALUE) *headers,
                                       OCSP_REQUEST *req, int req_timeout)
 {
-    int rv;
     int i;
     int add_host = 1;
     HTTP_REQ_CTX *ctx = NULL;
     OCSP_RESPONSE *rsp = NULL;
     time_t max_time = req_timeout == -1 ? 0 : time(NULL) + req_timeout;
 
-    rv = BIO_connect_retry(cbio, req_timeout);
-    if (rv <= 0) {
-        BIO_puts(bio_err,
-                 rv < 0 ? "Error connecting BIO\n": "Timeout on connect\n");
+    if (BIO_connect_retry(cbio, req_timeout) <= 0)
         return NULL;
-    }
 
     ctx = OCSP_sendreq_new(cbio, path, NULL, -1);
     if (ctx == NULL)
@@ -1567,11 +1562,7 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
     if (!OCSP_REQ_CTX_set1_req(ctx, req))
         goto err;
 
-    rv = OCSP_sendreq(&rsp, ctx, max_time);
-    if (rv == 0)
-        BIO_puts(bio_err, "Timeout on request\n");
-    if (rv < 0)
-        BIO_puts(bio_err, "I/O error\n");
+    (void)OCSP_sendreq(&rsp, ctx, max_time);
 
  err:
     HTTP_REQ_CTX_free(ctx);

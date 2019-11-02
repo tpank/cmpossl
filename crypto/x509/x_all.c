@@ -213,10 +213,10 @@ int X509_sign_ctx(X509 *x, EVP_MD_CTX *ctx)
                               &x->sig_alg, &x->signature, &x->cert_info, ctx);
 }
 
-int X509_load_http(const char *url, long timeout, X509 **pcert)
+X509 *X509_load_http(const char *url, long timeout)
 {
-    return HTTP_get_asn1(url, NULL, NULL /* no proxy and port */, timeout,
-                         ASN1_ITEM_rptr(X509), (ASN1_VALUE **)pcert);
+    return (X509 *)HTTP_get_asn1(url, NULL, NULL /* no proxy and port */,
+                                 timeout, ASN1_ITEM_rptr(X509));
 }
 
 int X509_REQ_sign(X509_REQ *x, EVP_PKEY *pkey, const EVP_MD *md)
@@ -247,10 +247,10 @@ int X509_CRL_sign_ctx(X509_CRL *x, EVP_MD_CTX *ctx)
                               &x->crl, ctx);
 }
 
-int X509_CRL_load_http(const char *url, long timeout, X509_CRL **pcrl)
+X509_CRL *X509_CRL_load_http(const char *url, long timeout)
 {
-    return HTTP_get_asn1(url, NULL, NULL /* no proxy and port */, timeout,
-                         ASN1_ITEM_rptr(X509_CRL), (ASN1_VALUE **)pcrl);
+    return (X509_CRL *)HTTP_get_asn1(url, NULL, NULL /* no proxy and port */,
+                                     timeout, ASN1_ITEM_rptr(X509_CRL));
 }
 
 int NETSCAPE_SPKI_sign(NETSCAPE_SPKI *x, EVP_PKEY *pkey, const EVP_MD *md)

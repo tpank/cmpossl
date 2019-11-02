@@ -279,9 +279,8 @@ typedef BIO *(*OSSL_cmp_http_cb_t) (OSSL_CMP_CTX *ctx, BIO *hbio,
 int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_http_cb_t cb);
 int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg);
 void *OSSL_CMP_CTX_get_http_cb_arg(const OSSL_CMP_CTX *ctx);
-typedef int (*OSSL_cmp_transfer_cb_t) (OSSL_CMP_CTX *ctx,
-                                       const OSSL_CMP_MSG *req,
-                                       OSSL_CMP_MSG **res);
+typedef OSSL_CMP_MSG *(*OSSL_cmp_transfer_cb_t) (OSSL_CMP_CTX *ctx,
+                                                 const OSSL_CMP_MSG *req);
 int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_transfer_cb_t cb);
 int OSSL_CMP_CTX_set_transfer_cb_arg(OSSL_CMP_CTX *ctx, void *arg);
 void *OSSL_CMP_CTX_get_transfer_cb_arg(const OSSL_CMP_CTX *ctx);
@@ -362,8 +361,8 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 #  if !defined(OPENSSL_NO_SOCK)
 int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
                            BIO *bio_err, const char *prog);
-int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-                              OSSL_CMP_MSG **out);
+OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
+                                        const OSSL_CMP_MSG *req);
 int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
                                         X509 **pcert, X509_CRL **pcrl,
                                         BIO *bio_err);
@@ -381,8 +380,8 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
 
 /* from cmp_server.c */
 typedef struct OSSL_cmp_srv_ctx_st OSSL_CMP_SRV_CTX;
-int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
-                                 OSSL_CMP_MSG **res);
+OSSL_CMP_MSG *OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx,
+                                           const OSSL_CMP_MSG *req);
 OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void);
 void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx);
 OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx);

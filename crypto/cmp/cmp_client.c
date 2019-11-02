@@ -22,6 +22,7 @@
 #include <openssl/bio.h>
 #include <openssl/cmp.h>
 #include <openssl/err.h>
+#include <openssl/httperr.h>
 #include <openssl/evp.h>
 #include <openssl/x509v3.h>
 
@@ -143,10 +144,10 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     OSSL_cmp_transfer_cb_t transfer_cb = ctx->transfer_cb;
 
     if (transfer_cb == NULL) {
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+#if !defined(OPENSSL_NO_SOCK)
         transfer_cb = OSSL_CMP_MSG_http_perform;
 #else
-        CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
+        CMPerr(0, CMP_R_NO_SOCK_TRANSFER);
         ossl_cmp_add_error_txt("; ", "HTTP transfer not possible due to OPENSSL_NO_OCSP or OPENSSL_NO_SOCK");
         return 0;
 #endif
@@ -171,20 +172,24 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 #endif
 
     OSSL_CMP_log1(INFO, ctx, "sending %s", req_type_string);
-    err = (*transfer_cb)(ctx, req, rep);
+    err = 0;
+    *rep = (*transfer_cb)(ctx, req);
+    if (*rep == NULL)
+        err = ERR_GET_REASON(ERR_peek_error());
     ctx->msgtimeout = msgtimeout; /* restore original value */
 
     if (err != 0) {
-        if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE
-                || err == CMP_R_READ_TIMEOUT
-                || err == CMP_R_ERROR_DECODING_MESSAGE) {
+        if (err == BIO_R_TRANSFER_ERROR
+                || err == BIO_R_TRANSFER_TIMEOUT
+                || err == HTTP_R_ERROR_RECEIVING
+                || err == HTTP_R_SERVER_RESPONSE_ERROR
+                || err == HTTP_R_SERVER_RESPONSE_PARSE_ERROR) {
             CMPerr(0, not_received);
         }
         else {
             CMPerr(0, CMP_R_ERROR_SENDING_REQUEST);
             ERR_add_error_data(1, req_type_string);
         }
-        *rep = NULL;
         return 0;
     }
 

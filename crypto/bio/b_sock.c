@@ -398,10 +398,10 @@ int BIO_socket_wait(int fd, int for_read, long timeout)
 }
 
 /*
- * wait if timeout > 0.
+ * wait on BIO if timeout > 0.
  * returns < 0 on error, 0 on timeout, > 0 on success
  */
-int BIO_wait(BIO *bio, long timeout)
+static int bio_wait(BIO *bio, long timeout)
 {
     int fd;
 
@@ -410,7 +410,23 @@ int BIO_wait(BIO *bio, long timeout)
     return BIO_socket_wait(fd, BIO_should_read(bio), timeout);
 }
 
-/* returns -1 on error, 0 on timeout, 1 on success */
+/*
+ * wait on BIO if timeout > 0; call BIOerr(...) unless success.
+ * returns < 0 on error, 0 on timeout, > 0 on success
+ */
+int BIO_wait(BIO *bio, long timeout)
+{
+    int rv = bio_wait(bio, timeout);
+
+    if (rv <= 0)
+        BIOerr(0, rv == 0 ? BIO_R_TRANSFER_TIMEOUT : BIO_R_TRANSFER_ERROR);
+    return rv;
+}
+
+/*
+ * connect via the given BIO; call BIOerr(...) unless success.
+ * returns < 0 on error, 0 on timeout, > 0 on success
+ */
 int BIO_connect_retry(BIO *bio, long timeout)
 {
     int blocking = timeout <= 0;
@@ -419,7 +435,7 @@ int BIO_connect_retry(BIO *bio, long timeout)
 
     if (bio == NULL) {
         BIOerr(0, ERR_R_PASSED_NULL_PARAMETER);
-        return 0;
+        return -1;
     }
 
     if (!blocking)
@@ -444,9 +460,14 @@ int BIO_connect_retry(BIO *bio, long timeout)
         goto retry;
     }
     if (rv <= 0 && BIO_should_retry(bio)) {
-        if (blocking || (rv = BIO_wait(bio, max_time - time(NULL))) > 0)
+        if (blocking)
             goto retry;
+        rv = bio_wait(bio, max_time - time(NULL));
+        if (rv > 0)
+            goto retry;
+        BIOerr(0, rv == 0 ? BIO_R_CONNECT_TIMEOUT : BIO_R_CONNECT_ERROR);
     }
+
     return rv;
 }
 

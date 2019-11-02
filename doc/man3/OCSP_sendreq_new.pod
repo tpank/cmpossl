@@ -62,11 +62,8 @@ length 4k. It waits indefinitely on a response.
 OCSP_sendreq_new() returns a valid B<HTTP_REQ_CTX> structure or B<NULL> if
 an error occurred.
 
-OCSP_sendreq() returns B<1> if the operation was completed successfully,
-B<0> on timeout, and a negative value if some other error occurred.
-
-HTTP_REQ_CTX_add1_header() and OCSP_REQ_CTX_set1_req() return B<1> for success
-and B<0> for failure.
+OCSP_sendreq(), HTTP_REQ_CTX_add1_header() and OCSP_REQ_CTX_set1_req()
+return B<1> for success and B<0> for failure.
 
 OCSP_sendreq_bio() returns the B<OCSP_RESPONSE> structure sent by the
 responder or B<NULL> if an error occurred.

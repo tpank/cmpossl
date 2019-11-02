@@ -303,10 +303,10 @@ static BIO *test_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
     return NULL;
 }
 
-static int test_transfer_cb(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
-                            OSSL_CMP_MSG **res)
+static OSSL_CMP_MSG *test_transfer_cb(OSSL_CMP_CTX *ctx,
+                                      const OSSL_CMP_MSG *req)
 {
-    return 0;
+    return NULL;
 }
 
 static int test_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,

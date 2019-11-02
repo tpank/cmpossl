@@ -311,7 +311,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req)
 
     if ((details = sk_OSSL_CMP_REVDETAILS_value(req->body->value.rr,
                                                 OSSL_CMP_REVREQSID)) == NULL) {
-        CMPerr(0, CMP_R_ERROR_PROCESSING_MSG);
+        CMPerr(0, CMP_R_REVREQSID_NOT_FOUND);
         return NULL;
     }
 
@@ -473,43 +473,31 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
     return 0;
 }
 
-/*
- * Mocks the server/responder.
- * srv_ctx is the context of the server
- * returns 1 if a message was created and 0 on error
- */
-static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req,
-                           OSSL_CMP_MSG **rsp)
+/* Mocks the server/responder */
+static OSSL_CMP_MSG *process_request(OSSL_CMP_SRV_CTX *srv_ctx,
+                                     OSSL_CMP_MSG *req)
 {
     cmp_srv_process_cb_t process_cb = NULL;
     OSSL_CMP_CTX *ctx;
 
-    if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL
-                     && rsp != NULL))
+    if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL))
         return 0;
 
     ctx = srv_ctx->ctx;
-    *rsp = NULL;
 
     if (req->header->sender->type != GEN_DIRNAME) {
         CMPerr(0, CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
-        return 0;
+        return NULL;
     }
     if (!X509_NAME_set(&ctx->recipient, req->header->sender->d.directoryName))
-        return 0;
-
+        return NULL;
     if (ossl_cmp_msg_check_received(ctx, req, unprotected_exception,
-                                    srv_ctx->acceptUnprotectedRequests) < 0) {
-        CMPerr(0, CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE);
-        return 0;
-    }
-    if (srv_ctx->sendError) {
-        if ((*rsp = ossl_cmp_error_new(ctx, srv_ctx->pkiStatusOut, -1, NULL,
-                                       srv_ctx->sendUnprotectedErrors)))
-            return 1;
-        CMPerr(0, CMP_R_ERROR_CREATING_ERROR);
-        return 0;
-    }
+                                    srv_ctx->acceptUnprotectedRequests) < 0)
+        return NULL;
+
+    if (srv_ctx->sendError)
+        return ossl_cmp_error_new(ctx, srv_ctx->pkiStatusOut, -1, NULL,
+                                  srv_ctx->sendUnprotectedErrors);
 
     switch (req->body->type) {
     case OSSL_CMP_PKIBODY_IR:
@@ -544,48 +532,41 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req,
         break;
     }
     if (process_cb == NULL)
-        return 0;
-    if ((*rsp = process_cb(srv_ctx, req)) == NULL)
-        return 0;
-
-    return 1;
+        return NULL;
+    return (*process_cb)(srv_ctx, req);
 }
 
 /*
  * Mocks the server connection. Works similar to OSSL_CMP_MSG_http_perform.
  * A OSSL_CMP_SRV_CTX must be set as transfer_cb_arg
- * returns 0 on success and else a CMP error reason code defined in cmp.h
  */
-int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
-                                 OSSL_CMP_MSG **rsp)
+OSSL_CMP_MSG *OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx,
+                                           const OSSL_CMP_MSG *req)
 {
-    OSSL_CMP_MSG *srv_req = NULL, *srv_rsp = NULL;
+    OSSL_CMP_MSG *res = NULL, *srv_req, *srv_rsp;
     OSSL_CMP_SRV_CTX *srv_ctx = NULL;
     OSSL_CMP_PKISI *si = NULL;
     OSSL_CMP_PKIFREETEXT *details = NULL;
-    int error = 0;
 
-    if (cmp_ctx == NULL || req == NULL || rsp == NULL)
-        return CMP_R_NULL_ARGUMENT;
-    *rsp = NULL;
-
-    if ((srv_ctx = OSSL_CMP_CTX_get_transfer_cb_arg(cmp_ctx)) == NULL)
-        return CMP_R_ERROR_TRANSFERRING_OUT;
-
-    /* OSSL_CMP_MSG_dup encodes and decodes ASN.1, used for checking encoding */
-    if ((srv_req = OSSL_CMP_MSG_dup(req)) == NULL) {
-        error = CMP_R_ERROR_DECODING_MESSAGE;
-        goto end;
+    if (cmp_ctx == NULL || req == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
     }
 
-    if (!process_request(srv_ctx, srv_req, &srv_rsp)) {
+    if ((srv_ctx = OSSL_CMP_CTX_get_transfer_cb_arg(cmp_ctx)) == NULL)
+        return NULL;
+
+    /* OSSL_CMP_MSG_dup encodes and decodes ASN.1, used for checking encoding */
+    if ((srv_req = OSSL_CMP_MSG_dup(req)) == NULL)
+        return NULL;
+
+    if ((srv_rsp = process_request(srv_ctx, srv_req)) == NULL) {
         const char *data;
         int flags = 0;
         unsigned long err = ERR_peek_error_data(&data, &flags);
         int fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_badRequest;
         /* TODO fail_info could be more specific */
 
-        error = CMP_R_ERROR_PROCESSING_MSG;
         if ((si = ossl_cmp_statusinfo_new(OSSL_CMP_PKISTATUS_rejection,
                                           fail_info, NULL)) == NULL)
             goto end;
@@ -599,14 +580,11 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
                                      details, srv_ctx->sendUnprotectedErrors);
         if (srv_rsp == NULL)
             goto end;
-        error = 0; /* no internal error, but CMP error reported to client */
+        /* do not return internal error, but report CMP error msg to client */
     }
 
     /* OSSL_CMP_MSG_dup encodes and decodes ASN.1, used for checking encoding */
-    if ((*rsp = OSSL_CMP_MSG_dup(srv_rsp)) == NULL) {
-        error = CMP_R_ERROR_DECODING_MESSAGE;
-        goto end;
-    }
+    res = OSSL_CMP_MSG_dup(srv_rsp);
 
  end:
     sk_ASN1_UTF8STRING_pop_free(details, ASN1_UTF8STRING_free);
@@ -614,7 +592,7 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
     OSSL_CMP_MSG_free(srv_rsp);
     OSSL_CMP_PKISI_free(si);
 
-    return error;
+    return res;
 }
 
 /*

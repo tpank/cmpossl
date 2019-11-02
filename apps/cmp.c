@@ -866,15 +866,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
 
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_SOCK)
-        int rv = X509_load_http(file, opt_crl_timeout, &x);
-
-        if (rv != 1)
-            BIO_printf(bio_err, "%s loading cert from '%s'\n",
-                       rv == 0 ? "timeout" :
-                       rv == -1 ? "ASN.1 parse error" :
-                       rv == -4 ? "error" :
-                       rv == -5 ? "https not supported" : "transfer error",
-                       file);
+        x = X509_load_http(file, opt_crl_timeout);
 #else
         BIO_printf(bio_err, "http(s) not supported loading cert from '%s'\n",
                    url);
@@ -1198,15 +1190,7 @@ static X509_CRL *load_crl_autofmt(const char *file, int format,
     format = adjust_format(&file, format, 0);
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_SOCK)
-        int rv = X509_CRL_load_http(file, opt_crl_timeout, &crl);
-
-        if (rv != 1)
-            BIO_printf(bio_err, "%s loading CRL from '%s'\n",
-                       rv == 0 ? "timeout" :
-                       rv == -1 ? "ASN.1 parse error" :
-                       rv == -4 ? "error" :
-                       rv == -5 ? "https not supported" : "transfer error",
-                       file);
+        crl = X509_CRL_load_http(file, opt_crl_timeout);
 #else
         BIO_printf(bio_err, "http(s) not supported loading CRL from '%s'\n",
                    url);
@@ -2001,12 +1985,11 @@ static OSSL_CMP_MSG *read_PKIMESSAGE(OSSL_CMP_CTX *ctx, char **filenames)
  * to dump the sequence of requests and responses to files and/or
  * to take the sequence of requests and responses from files.
  */
-static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
-                               OSSL_CMP_MSG **res)
+static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
+                                         const OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *req_new = NULL;
-    OSSL_CMP_PKIHEADER *hdr;
-    int ret = CMP_R_ERROR_TRANSFERRING_OUT;
+    OSSL_CMP_MSG *res = NULL;
 
     if (req != NULL && opt_reqout != NULL
             && !write_PKIMESSAGE(ctx, req, &opt_reqout))
@@ -2016,7 +1999,6 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         if (opt_rspin != NULL) {
             CMP_warn("-reqin is ignored since -rspin is present");
         } else {
-            ret = CMP_R_ERROR_TRANSFERRING_IN;
             if ((req_new = read_PKIMESSAGE(ctx, &opt_reqin)) == NULL)
                 goto err;
           /*
@@ -2033,48 +2015,48 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         }
     }
 
-    ret = CMP_R_ERROR_TRANSFERRING_IN;
     if (opt_rspin != NULL) {
-        if ((*res = read_PKIMESSAGE(ctx, &opt_rspin)))
-            ret = 0;
+        res = read_PKIMESSAGE(ctx, &opt_rspin);
     } else {
         const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
 #ifndef NDEBUG
         if (opt_mock_srv) {
             OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
-            ret = OSSL_CMP_mock_server_perform(ctx, actual_req, res);
+            res = OSSL_CMP_mock_server_perform(ctx, actual_req);
         } else {
 #endif
 #if !defined(OPENSSL_NO_SOCK)
-            ret = OSSL_CMP_MSG_http_perform(ctx, actual_req, res);
+            res = OSSL_CMP_MSG_http_perform(ctx, actual_req);
 #endif
 #ifndef NDEBUG
         }
 #endif
     }
 
-    if (ret != 0 || (*res) == NULL)
+    if (res == NULL)
         goto err;
-    ret = ERR_R_MALLOC_FAILURE;
-    hdr = OSSL_CMP_MSG_get0_header(*res);
-    if ((opt_reqin != NULL || opt_rspin != NULL)
+    if (opt_reqin != NULL || opt_rspin != NULL) {
         /* need to satisfy nonce and transactionID checks */
-            && (!OSSL_CMP_CTX_set1_senderNonce(ctx,
-                                               OSSL_CMP_HDR_get0_recipNonce(hdr))
-                    || !OSSL_CMP_CTX_set1_transactionID(ctx,
-                                         OSSL_CMP_HDR_get0_transactionID(hdr))))
-        goto err;
+        OSSL_CMP_PKIHEADER *hdr = OSSL_CMP_MSG_get0_header(res);
+        ASN1_OCTET_STRING *nonce = OSSL_CMP_HDR_get0_recipNonce(hdr);
+        ASN1_OCTET_STRING *tid = OSSL_CMP_HDR_get0_transactionID(hdr);
 
-    if (opt_rspout != NULL && !write_PKIMESSAGE(ctx, *res, &opt_rspout)) {
-        ret = CMP_R_ERROR_TRANSFERRING_OUT;
-        OSSL_CMP_MSG_free(*res);
-        goto err;
+        if (!OSSL_CMP_CTX_set1_senderNonce(ctx, nonce)
+                || !OSSL_CMP_CTX_set1_transactionID(ctx, tid)) {
+            OSSL_CMP_MSG_free(res);
+            res = NULL;
+            goto err;
+        }
     }
 
-    ret = 0;
+    if (opt_rspout != NULL && !write_PKIMESSAGE(ctx, res, &opt_rspout)) {
+        OSSL_CMP_MSG_free(res);
+        res = NULL;
+    }
+
  err:
     OSSL_CMP_MSG_free(req_new);
-    return ret;
+    return res;
 }
 
 static const char *tls_error_hint(unsigned long err)

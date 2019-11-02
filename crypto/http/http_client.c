@@ -353,7 +353,6 @@ int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx)
         }
 
         /* Write data to memory BIO */
-
         if (BIO_write(rctx->mem, rctx->iobuf, n) != n)
             return 0;
     }
@@ -540,60 +539,56 @@ int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx)
 
 #if !defined(OPENSSL_NO_SOCK)
 
-/*
- * Exchange ASN.1 request and response via HTTP on (non-)blocking BIO
- * returns -4: other, -3: send, -2: receive, or -1: parse error; 0: timeout,
- * 1: success and then provides the received message via the *presp argument
- */
-int HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
-                             const ASN1_ITEM *it, ASN1_VALUE **presp)
+/* Exchange ASN.1-encoded request and response via HTTP on (non-)blocking BIO */
+ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
+                                     const ASN1_ITEM *it)
 {
     int sending = 1;
     int blocking = max_time == 0;
     int rv, len;
     const unsigned char *p;
+    ASN1_VALUE *resp = NULL;
 
-    if (rctx == NULL || it == NULL || presp == NULL) {
+    if (rctx == NULL || it == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
-        return 0;
+        return NULL;
     }
 
-    *presp = NULL;
  retry:
     rv = HTTP_REQ_CTX_nbio(rctx);
     if (rv == -1) {
         /* BIO_should_retry was true */
         sending = 0;
-        if (!blocking) {
-            rv = BIO_wait(rctx->io, max_time - time(NULL));
-            if (rv <= 0) { /* error or timeout */
-                if (rv < 0) /* error */
-                    rv = -4;
-                return rv;
-            }
-        }
+        if (!blocking && BIO_wait(rctx->io, max_time - time(NULL)) <= 0)
+            return NULL;
         goto retry;
     }
 
     if (rv != 1) { /* an error occurred */
         if (sending && !blocking)
-            rv = -3; /* send error */
+            HTTPerr(0, HTTP_R_ERROR_SENDING);
         else
-            rv = -2; /* receive error */
-        return rv;
+            HTTPerr(0, HTTP_R_ERROR_RECEIVING);
+        return NULL;
     }
 
     len = BIO_get_mem_data(rctx->mem, &p);
-    *presp = ASN1_item_d2i(NULL, &p, len, it);
-    if (*presp == NULL) {
+    resp = ASN1_item_d2i(NULL, &p, len, it);
+    if (resp == NULL) {
         rctx->state = OHS_ERROR;
-        return -1; /* ASN.1 parse error */
+        HTTPerr(0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
+        return NULL;
     }
-    return 1;
+    return resp;
 }
 
-int HTTP_get_asn1(const char *url, const char *proxy, const char *proxy_port,
-                  int timeout, const ASN1_ITEM *it, ASN1_VALUE **presp)
+/*
+ * Get ASN.1-encoded response via HTTP from server at given URL.
+ * Assign the received message to *presp on success, else NULL.
+ */
+ ASN1_VALUE *HTTP_get_asn1(const char *url,
+                           const char *proxy, const char *proxy_port,
+                           int timeout, const ASN1_ITEM *it)
 {
     char *host = NULL;
     char *port = NULL;
@@ -601,18 +596,18 @@ int HTTP_get_asn1(const char *url, const char *proxy, const char *proxy_port,
     BIO *bio = NULL;
     HTTP_REQ_CTX *rctx = NULL;
     int use_ssl;
-    int rv = -4;
+    ASN1_VALUE *resp;
     time_t max_time = timeout > 0 ? time(NULL) + timeout : 0;
 
-    if (url == NULL || it == NULL || presp == NULL) {
+    if (url == NULL || it == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
-        return 0;
+        return NULL;
     }
 
     if (!HTTP_parse_url(url, &host, &port, &path, &use_ssl))
         goto err;
     if (use_ssl) {
-        rv = -5;
+        HTTPerr(0, HTTP_R_TLS_NOT_SUPPORTED);
         goto err;
     }
     bio = HTTP_new_bio(host, port, proxy, proxy_port);
@@ -631,7 +626,7 @@ int HTTP_get_asn1(const char *url, const char *proxy, const char *proxy_port,
     if (!HTTP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
 
-    rv = HTTP_REQ_CTX_sendreq_d2i(rctx, max_time, it, presp);
+    resp = HTTP_REQ_CTX_sendreq_d2i(rctx, max_time, it);
 
  err:
     OPENSSL_free(host);
@@ -639,7 +634,7 @@ int HTTP_get_asn1(const char *url, const char *proxy, const char *proxy_port,
     OPENSSL_free(port);
     BIO_free_all(bio);
     HTTP_REQ_CTX_free(rctx);
-    return rv;
+    return resp;
 }
 
 /* BASE64 encoder used for encoding basic proxy authentication credentials */

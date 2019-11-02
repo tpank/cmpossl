@@ -441,25 +441,6 @@ static int load_pkcs12(BIO *in, const char *desc,
     return ret;
 }
 
-#if !defined(OPENSSL_NO_SOCK)
-static int load_cert_crl_http(const char *url, X509 **pcert, X509_CRL **pcrl)
-{
-    int rv = pcert != NULL ? X509_load_http(url, 0 /* timeout */, pcert) :
-                             X509_CRL_load_http(url, 0 /* timeout */, pcrl);
-
-    if (rv != 1) {
-        BIO_printf(bio_err, "%s loading %s from '%s'\n",
-                   rv == 0 ? "timeout" :
-                   rv == -1 ? "ASN.1 parse error" :
-                   rv == -4 ? "error" :
-                   rv == -5 ? "https not supported" : "transfer error",
-                   pcert != NULL ? "certificate" : "CRL", url);
-        ERR_print_errors(bio_err);
-    }
-    return rv;
-}
-#endif
-
 X509 *load_cert(const char *file, int format, const char *cert_descrip)
 {
     X509 *x = NULL;
@@ -467,7 +448,7 @@ X509 *load_cert(const char *file, int format, const char *cert_descrip)
 
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_SOCK)
-        load_cert_crl_http(file, &x, NULL);
+        x = X509_load_http(file, 0 /* timeout */);
 #endif
         return x;
     }
@@ -509,7 +490,7 @@ X509_CRL *load_crl(const char *infile, int format)
 
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_SOCK)
-        load_cert_crl_http(infile, NULL, &x);
+        x = X509_CRL_load_http(infile, 0 /* timeout */);
 #endif
         return x;
     }

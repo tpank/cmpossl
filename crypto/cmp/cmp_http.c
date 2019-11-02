@@ -93,72 +93,58 @@ static HTTP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *host,
     return NULL;
 }
 
-/*
- * Send out CMP request and get response on blocking or non-blocking BIO
- * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
- * 1: success and then provides the received message via the *resp argument
- */
-static int CMP_sendreq(BIO *bio, const char *host, const char *path,
+/* Send out CMP request and get response on blocking or non-blocking BIO */
+static OSSL_CMP_MSG *CMP_sendreq(BIO *bio, const char *host, const char *path,
                        const char *server, const char *port,
-                       const OSSL_CMP_MSG *req, OSSL_CMP_MSG **resp,
-                       time_t max_time)
+                       const OSSL_CMP_MSG *req, time_t max_time)
 {
     HTTP_REQ_CTX *rctx;
-    int rv;
+    OSSL_CMP_MSG *re;
 
     if ((rctx = CMP_sendreq_new(bio, host, path, server, port, req,
                                 -1 /* default max resp line length */)) == NULL)
-        return -4;
+        return NULL;
 
-    rv = HTTP_REQ_CTX_sendreq_d2i(rctx, max_time,
-                                  ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                                  (ASN1_VALUE **)resp);
+    re = (OSSL_CMP_MSG *)HTTP_REQ_CTX_sendreq_d2i(rctx, max_time,
+                                                  ASN1_ITEM_rptr(OSSL_CMP_MSG));
 
     /* this indirectly calls ERR_clear_error(): */
     HTTP_REQ_CTX_free(rctx);
 
-    return rv;
+    return re;
 }
 
 /*
  * Send the PKIMessage req and on success place the response in *res.
  * Any previous error is likely to be removed by ERR_clear_error().
- * returns 0 on success, else a CMP error reason code defined in cmp.h
  */
-int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
-                              OSSL_CMP_MSG **res)
+OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
+                                        const OSSL_CMP_MSG *req)
 {
-    int rv;
     char *server_host = NULL;
     char server_port[32];
-    char *path = NULL;
     BIO *bio, *hbio = NULL;
-    int err = ERR_R_MALLOC_FAILURE;
     time_t max_time;
+    OSSL_CMP_MSG *res = NULL;
 
     if (ctx == NULL || req == NULL || res == NULL
-            || ctx->serverName == NULL || ctx->serverPort == 0)
-        return CMP_R_NULL_ARGUMENT;
+            || ctx->serverName == NULL || ctx->serverPort == 0) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
 
     max_time = ctx->msgtimeout > 0 ? time(NULL) + ctx->msgtimeout : 0;
 
     if ((hbio = CMP_new_http_bio(ctx)) == NULL)
         goto err;
 
-    /* tentatively set error, which allows accumulating diagnostic info */
-    (void)ERR_set_mark();
-    CMPerr(0, CMP_R_ERROR_CONNECTING);
-    rv = BIO_connect_retry(hbio, ctx->msgtimeout);
-    if (rv <= 0) {
-        err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_ERROR_CONNECTING;
+    if (BIO_connect_retry(hbio, ctx->msgtimeout) <= 0)
         goto err;
-    } else {
-        (void)ERR_pop_to_mark(); /* discard diagnostic info */
-    }
 
     /* callback can be used to wrap or prepend TLS session */
     if (ctx->http_cb != NULL) {
-        if ((bio = (*ctx->http_cb)(ctx, hbio, 1)) == NULL)
+        bio = (*ctx->http_cb)(ctx, hbio, 1);
+        if (bio == NULL)
             goto err;
         hbio = bio;
     }
@@ -174,39 +160,29 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         BIO_snprintf(server_port, sizeof(server_port), "%d", ctx->serverPort);
     }
 
-    rv = CMP_sendreq(hbio, ctx->serverName, ctx->serverPath,
-                     server_host, server_port, req, res, max_time);
-    OPENSSL_free(path);
-    if (rv == -3)
-        err = CMP_R_FAILED_TO_SEND_REQUEST;
-    else if (rv == -2)
-        err = CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE;
-    else if (rv == -1)
-        err = CMP_R_ERROR_DECODING_MESSAGE;
-    else if (rv == 0) /* timeout */
-        err = CMP_R_READ_TIMEOUT;
-    else
-        err = 0;
+    res = CMP_sendreq(hbio, ctx->serverName, ctx->serverPath,
+                      server_host, server_port, req, max_time);
 
  err:
-    if (err != 0) {
-        if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL)
-            err = CMP_R_TLS_ERROR;
-        CMPerr(0, err);
-        if (err == CMP_R_TLS_ERROR || err == CMP_R_CONNECT_TIMEOUT
-                || err == CMP_R_ERROR_CONNECTING)
+    if (res == NULL) {
+        if (ERR_GET_LIB(ERR_peek_error()) == ERR_LIB_SSL
+                || ERR_GET_REASON(ERR_peek_error()) == BIO_R_CONNECT_TIMEOUT
+                || ERR_GET_REASON(ERR_peek_error()) == BIO_R_CONNECT_ERROR)
             add_conn_error_hint(ctx, ERR_peek_error());
     }
 
-    if (ctx->http_cb && (*ctx->http_cb)(ctx, hbio, ERR_peek_error()) == NULL)
-        err = ERR_R_MALLOC_FAILURE;
+    if (ctx->http_cb != NULL
+            && (*ctx->http_cb)(ctx, hbio, ERR_peek_error()) == NULL) {
+        OSSL_CMP_MSG_free(res);
+        res = NULL;
+    }
     BIO_free_all(hbio); /*
                          * also frees any (e.g., SSL/TLS) BIOs linked with hbio
                          * and, like BIO_reset(hbio), calls SSL_shutdown() to
                          * notify/alert peer
                          */
 
-    return err;
+    return res;
 }
 
 int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,

@@ -49,10 +49,11 @@ int HTTP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx, const char *content_type,
 int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx);
 # if !defined(OPENSSL_NO_SOCK)
 /* TODO: unexport this (undocumented and actually just internal) function? */
-int HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
-                             const ASN1_ITEM *it, ASN1_VALUE **presp);
-int HTTP_get_asn1(const char *url, const char *proxy, const char *proxy_port,
-                  int timeout, const ASN1_ITEM *it, ASN1_VALUE **presp);
+ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
+                                     const ASN1_ITEM *it);
+ASN1_VALUE *HTTP_get_asn1(const char *url,
+                          const char *proxy, const char *proxy_port,
+                          int timeout, const ASN1_ITEM *it);
 int HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
                        const char *proxyuser, const char *proxypass,
                        long timeout, BIO *bio_err, const char *prog);
