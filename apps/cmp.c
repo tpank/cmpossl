@@ -866,8 +866,18 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
 
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_SOCK)
-        OSSL_CMP_load_cert_crl_http_timeout(file, opt_crl_timeout,
-                                            &x, NULL, bio_err);
+        int rv = X509_load_http(file, opt_crl_timeout, &x);
+
+        if (rv != 1)
+            BIO_printf(bio_err, "%s loading cert from '%s'\n",
+                       rv == 0 ? "timeout" :
+                       rv == -1 ? "ASN.1 parse error" :
+                       rv == -4 ? "error" :
+                       rv == -5 ? "https not supported" : "transfer error",
+                       file);
+#else
+        BIO_printf(bio_err, "http(s) not supported loading cert from '%s'\n",
+                   url);
 #endif
         goto end;
     }
@@ -1177,33 +1187,43 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
  * TODO DvO push this and related functions upstream (PR #autofmt)
  * this function is used by load_crls_fmt and LOCAL_load_crl_crldp
  */
-static X509_CRL *load_crl_autofmt(const char *infile, int format,
+static X509_CRL *load_crl_autofmt(const char *file, int format,
                                   const char *desc)
 {
     X509_CRL *crl = NULL;
     BIO *bio_bak = bio_err;
 
     bio_err = NULL;
-    /* BIO_printf(bio_out, "loading %s from '%s'\n", desc, infile); */
-    format = adjust_format(&infile, format, 0);
+    /* BIO_printf(bio_out, "loading %s from '%s'\n", desc, file); */
+    format = adjust_format(&file, format, 0);
     if (format == FORMAT_HTTP) {
 #if !defined(OPENSSL_NO_SOCK)
-        OSSL_CMP_load_cert_crl_http_timeout(infile, opt_crl_timeout, NULL,
-                                            &crl, bio_err);
+        int rv = X509_CRL_load_http(file, opt_crl_timeout, &crl);
+
+        if (rv != 1)
+            BIO_printf(bio_err, "%s loading CRL from '%s'\n",
+                       rv == 0 ? "timeout" :
+                       rv == -1 ? "ASN.1 parse error" :
+                       rv == -4 ? "error" :
+                       rv == -5 ? "https not supported" : "transfer error",
+                       file);
+#else
+        BIO_printf(bio_err, "http(s) not supported loading CRL from '%s'\n",
+                   url);
 #endif
         goto end;
     }
-    crl = load_crl(infile, format);
+    crl = load_crl(file, format);
     if (crl == NULL) {
         ERR_clear_error();
-        crl = load_crl(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
+        crl = load_crl(file, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
     }
  end:
     bio_err = bio_bak;
     if (crl == NULL) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc,
-                   infile);
+                   file);
     }
     return crl;
 }

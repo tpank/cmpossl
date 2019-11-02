@@ -75,7 +75,6 @@ static void print_stuff(BIO *berr, SSL *con, int full);
 static int ocsp_resp_cb(SSL *s, void *arg);
 #endif
 static int ldap_ExtendedResponse_parse(const char *buf, long rem);
-static char *base64encode (const void *buf, size_t len);
 static int is_dNS_name(const char *host);
 
 static int saved_errno;
@@ -2398,83 +2397,9 @@ int s_client_main(int argc, char **argv)
         }
         break;
     case PROTO_CONNECT:
-        {
-            enum {
-                error_proto,     /* Wrong protocol, not even HTTP */
-                error_connect,   /* CONNECT failed */
-                success
-            } foundit = error_connect;
-            BIO *fbio = BIO_new(BIO_f_buffer());
-
-            BIO_push(fbio, sbio);
-            BIO_printf(fbio, "CONNECT %s HTTP/1.0\r\n", connectstr);
-            /*
-             * Workaround for broken proxies which would otherwise close
-             * the connection when entering tunnel mode (eg Squid 2.6)
-             */
-            BIO_printf(fbio, "Proxy-Connection: Keep-Alive\r\n");
-
-            /* Support for basic (base64) proxy authentication */
-            if (proxyuser != NULL) {
-                size_t l;
-                char *proxyauth, *proxyauthenc;
-
-                l = strlen(proxyuser);
-                if (proxypass != NULL)
-                    l += strlen(proxypass);
-                proxyauth = app_malloc(l + 2, "Proxy auth string");
-                BIO_snprintf(proxyauth, l + 2, "%s:%s", proxyuser,
-                             (proxypass != NULL) ? proxypass : "");
-                proxyauthenc = base64encode(proxyauth, strlen(proxyauth));
-                BIO_printf(fbio, "Proxy-Authorization: Basic %s\r\n",
-                           proxyauthenc);
-                OPENSSL_clear_free(proxyauth, strlen(proxyauth));
-                OPENSSL_clear_free(proxyauthenc, strlen(proxyauthenc));
-            }
-
-            /* Terminate the HTTP CONNECT request */
-            BIO_printf(fbio, "\r\n");
-            (void)BIO_flush(fbio);
-            /*
-             * The first line is the HTTP response.  According to RFC 7230,
-             * it's formatted exactly like this:
-             *
-             * HTTP/d.d ddd Reason text\r\n
-             */
-            mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
-            if (mbuf_len < (int)strlen("HTTP/1.0 200")) {
-                BIO_printf(bio_err,
-                           "%s: HTTP CONNECT failed, insufficient response "
-                           "from proxy (got %d octets)\n", prog, mbuf_len);
-                (void)BIO_flush(fbio);
-                BIO_pop(fbio);
-                BIO_free(fbio);
-                goto shut;
-            }
-            if (mbuf[8] != ' ') {
-                BIO_printf(bio_err,
-                           "%s: HTTP CONNECT failed, incorrect response "
-                           "from proxy\n", prog);
-                foundit = error_proto;
-            } else if (mbuf[9] != '2') {
-                BIO_printf(bio_err, "%s: HTTP CONNECT failed: %s ", prog,
-                           &mbuf[9]);
-            } else {
-                foundit = success;
-            }
-            if (foundit != error_proto) {
-                /* Read past all following headers */
-                do {
-                    mbuf_len = BIO_gets(fbio, mbuf, BUFSIZZ);
-                } while (mbuf_len > 2);
-            }
-            (void)BIO_flush(fbio);
-            BIO_pop(fbio);
-            BIO_free(fbio);
-            if (foundit != success) {
-                goto shut;
-            }
-        }
+        if (!HTTP_proxy_connect(sbio, host, port, proxyuser, proxypass,
+                                0 /* no timeout */, bio_err, prog))
+            goto shut;
         break;
     case PROTO_IRC:
         {
@@ -3568,29 +3493,6 @@ static int ldap_ExtendedResponse_parse(const char *buf, long rem)
     /* There is more data, but we don't care... */
  end:
     return ret;
-}
-
-/*
- * BASE64 encoder: used only for encoding basic proxy authentication credentials
- */
-static char *base64encode (const void *buf, size_t len)
-{
-    int i;
-    size_t outl;
-    char  *out;
-
-    /* Calculate size of encoded data */
-    outl = (len / 3);
-    if (len % 3 > 0)
-        outl++;
-    outl <<= 2;
-    out = app_malloc(outl + 1, "base64 encode buffer");
-
-    i = EVP_EncodeBlock((unsigned char *)out, buf, len);
-    assert(i <= (int)outl);
-    if (i < 0)
-        *out = '\0';
-    return out;
 }
 
 /*

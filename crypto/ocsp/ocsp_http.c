@@ -14,28 +14,28 @@
 
 #ifndef OPENSSL_NO_OCSP
 
+HTTP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
+                               int maxline)
+{
+    return HTTP_sendreq_new(io, path,
+                            NULL, NULL, /* no proxy used */
+                            "application/ocsp-request",
+                            ASN1_ITEM_rptr(OCSP_REQUEST), (ASN1_VALUE *)req,
+                            maxline);
+}
+
 int OCSP_REQ_CTX_set1_req(HTTP_REQ_CTX *rctx, const OCSP_REQUEST *req)
 {
     return HTTP_REQ_CTX_i2d(rctx, "application/ocsp-request",
                             ASN1_ITEM_rptr(OCSP_REQUEST), (ASN1_VALUE *)req);
 }
 
-HTTP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
-                               int maxline)
+int OCSP_sendreq(OCSP_RESPONSE **presp, HTTP_REQ_CTX *rctx, time_t max_time)
 {
-    return HTTP_sendreq_new(io, path, "application/ocsp-request",
-                            ASN1_ITEM_rptr(OCSP_REQUEST), (ASN1_VALUE *)req,
-                            maxline);
+    return HTTP_REQ_CTX_nbio_d2i(rctx, max_time,
+                                 ASN1_ITEM_rptr(OCSP_RESPONSE),
+                                 (ASN1_VALUE **)presp) == 1 ? 1 : 0;
 }
-
-int OCSP_sendreq_nbio(OCSP_RESPONSE **presp, HTTP_REQ_CTX *rctx)
-{
-    return HTTP_REQ_CTX_nbio_d2i(rctx,
-                                 (ASN1_VALUE **)presp,
-                                 ASN1_ITEM_rptr(OCSP_RESPONSE));
-}
-
-/* Blocking HTTP request handler: now a special case of non-blocking I/O */
 
 OCSP_RESPONSE *OCSP_sendreq_bio(BIO *b, const char *path, OCSP_REQUEST *req)
 {
@@ -43,21 +43,16 @@ OCSP_RESPONSE *OCSP_sendreq_bio(BIO *b, const char *path, OCSP_REQUEST *req)
     HTTP_REQ_CTX *ctx;
     int rv;
 
-    ctx = OCSP_sendreq_new(b, path, req, -1);
-
+    ctx = OCSP_sendreq_new(b, path, req, -1 /* default max resp line length */);
     if (ctx == NULL)
         return NULL;
 
-    do {
-        rv = OCSP_sendreq_nbio(&resp, ctx);
-    } while ((rv == -1) && BIO_should_retry(b));
+    rv = OCSP_sendreq(&resp, ctx, 0 /* max_time */);
 
+    /* this indirectly calls ERR_clear_error(): */
     HTTP_REQ_CTX_free(ctx);
 
-    if (rv)
-        return resp;
-
-    return NULL;
+    return rv == 1 ? resp : NULL;
 }
 
 #endif

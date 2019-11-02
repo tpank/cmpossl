@@ -159,11 +159,11 @@ typedef struct ocsp_service_locator_st OCSP_SERVICELOC;
 
 DECLARE_ASN1_DUP_FUNCTION(OCSP_CERTID)
 
-int OCSP_REQ_CTX_set1_req(HTTP_REQ_CTX *rctx, const OCSP_REQUEST *req);
 OCSP_RESPONSE *OCSP_sendreq_bio(BIO *b, const char *path, OCSP_REQUEST *req);
 HTTP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
                                int maxline);
-int OCSP_sendreq_nbio(OCSP_RESPONSE **presp, HTTP_REQ_CTX *rctx);
+int OCSP_sendreq(OCSP_RESPONSE **presp, HTTP_REQ_CTX *rctx, time_t max_time);
+int OCSP_REQ_CTX_set1_req(HTTP_REQ_CTX *rctx, const OCSP_REQUEST *req);
 
 OCSP_CERTID *OCSP_cert_to_id(const EVP_MD *dgst, const X509 *subject,
                              const X509 *issuer);

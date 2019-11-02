@@ -1535,40 +1535,18 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
                                       const STACK_OF(CONF_VALUE) *headers,
                                       OCSP_REQUEST *req, int req_timeout)
 {
-    int fd;
     int rv;
     int i;
     int add_host = 1;
     HTTP_REQ_CTX *ctx = NULL;
     OCSP_RESPONSE *rsp = NULL;
-    fd_set confds;
-    struct timeval tv;
+    time_t max_time = req_timeout == -1 ? 0 : time(NULL) + req_timeout;
 
-    if (req_timeout != -1)
-        BIO_set_nbio(cbio, 1);
-
-    rv = BIO_do_connect(cbio);
-
-    if ((rv <= 0) && ((req_timeout == -1) || !BIO_should_retry(cbio))) {
-        BIO_puts(bio_err, "Error connecting BIO\n");
+    rv = BIO_connect_retry(cbio, req_timeout);
+    if (rv <= 0) {
+        BIO_puts(bio_err,
+                 rv < 0 ? "Error connecting BIO\n": "Timeout on connect\n");
         return NULL;
-    }
-
-    if (BIO_get_fd(cbio, &fd) < 0) {
-        BIO_puts(bio_err, "Can't get connection fd\n");
-        goto err;
-    }
-
-    if (req_timeout != -1 && rv <= 0) {
-        FD_ZERO(&confds);
-        openssl_fdset(fd, &confds);
-        tv.tv_usec = 0;
-        tv.tv_sec = req_timeout;
-        rv = select(fd + 1, NULL, (void *)&confds, NULL, &tv);
-        if (rv == 0) {
-            BIO_puts(bio_err, "Timeout on connect\n");
-            return NULL;
-        }
     }
 
     ctx = OCSP_sendreq_new(cbio, path, NULL, -1);
@@ -1589,34 +1567,12 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
     if (!OCSP_REQ_CTX_set1_req(ctx, req))
         goto err;
 
-    for (;;) {
-        rv = OCSP_sendreq_nbio(&rsp, ctx);
-        if (rv != -1)
-            break;
-        if (req_timeout == -1)
-            continue;
-        FD_ZERO(&confds);
-        openssl_fdset(fd, &confds);
-        tv.tv_usec = 0;
-        tv.tv_sec = req_timeout;
-        if (BIO_should_read(cbio)) {
-            rv = select(fd + 1, (void *)&confds, NULL, NULL, &tv);
-        } else if (BIO_should_write(cbio)) {
-            rv = select(fd + 1, NULL, (void *)&confds, NULL, &tv);
-        } else {
-            BIO_puts(bio_err, "Unexpected retry condition\n");
-            goto err;
-        }
-        if (rv == 0) {
-            BIO_puts(bio_err, "Timeout on request\n");
-            break;
-        }
-        if (rv == -1) {
-            BIO_puts(bio_err, "Select error\n");
-            break;
-        }
+    rv = OCSP_sendreq(&rsp, ctx, max_time);
+    if (rv == 0)
+        BIO_puts(bio_err, "Timeout on request\n");
+    if (rv < 0)
+        BIO_puts(bio_err, "I/O error\n");
 
-    }
  err:
     HTTP_REQ_CTX_free(ctx);
 
@@ -1633,13 +1589,11 @@ OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,
     SSL_CTX *ctx = NULL;
     OCSP_RESPONSE *resp = NULL;
 
-    cbio = BIO_new_connect(host);
+    cbio = HTTP_new_bio(host, port, NULL, NULL /* no proxy used */);
     if (cbio == NULL) {
         BIO_printf(bio_err, "Error creating connect BIO\n");
         goto end;
     }
-    if (port != NULL)
-        BIO_set_conn_port(cbio, port);
     if (use_ssl == 1) {
         BIO *sbio;
         ctx = SSL_CTX_new(TLS_client_method());

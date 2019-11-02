@@ -381,7 +381,10 @@ int BIO_sock_info(int sock,
  * load_cert_crl_http() in apps/lib/apps.c, simplifying also other uses
  * of select(), e.g., in query_responder() in apps/ocsp.c
  */
-/* wait if timeout > 0. returns < 0 on error, 0 on timeout, > 0 on success */
+/*
+ * wait if timeout > 0. If for_read is 0 then assume for write.
+ * returns < 0 on error, 0 on timeout, > 0 on success
+ */
 int BIO_socket_wait(int fd, int for_read, long timeout)
 {
     fd_set confds;
