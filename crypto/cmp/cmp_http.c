@@ -66,7 +66,7 @@ static BIO *CMP_new_http_bio(const OSSL_CMP_CTX *ctx)
 static HTTP_REQ_CTX *CMP_sendreq_new(BIO *bio, const char *host,
                                      const char *path,
                                      const char *server, const char *port,
-                                     const OSSL_CMP_MSG *req)
+                                     const OSSL_CMP_MSG *req, long timeout)
 {
     STACK_OF(CONF_VALUE) *headers = NULL;
     HTTP_REQ_CTX *rctx = NULL;
@@ -77,7 +77,7 @@ static HTTP_REQ_CTX *CMP_sendreq_new(BIO *bio, const char *host,
     rctx = HTTP_sendreq_new(bio, path, server, port,
                             headers, host, "application/pkixcmp",
                             ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                            (ASN1_VALUE *)req, -1);
+                            (ASN1_VALUE *)req, timeout, -1);
     sk_CONF_VALUE_pop_free(headers, X509V3_conf_free);
     return rctx;
 }
@@ -85,21 +85,21 @@ static HTTP_REQ_CTX *CMP_sendreq_new(BIO *bio, const char *host,
 /* Send out CMP request and get response on blocking or non-blocking BIO */
 static OSSL_CMP_MSG *CMP_sendreq(BIO *bio, const char *host, const char *path,
                        const char *server, const char *port,
-                       const OSSL_CMP_MSG *req, time_t max_time)
+                       const OSSL_CMP_MSG *req, long timeout)
 {
-    HTTP_REQ_CTX *rctx;
-    OSSL_CMP_MSG *re;
+    HTTP_REQ_CTX *rctx =
+        CMP_sendreq_new(bio, host, path, server, port, req, timeout);
+    OSSL_CMP_MSG *res;
 
-    if ((rctx = CMP_sendreq_new(bio, host, path, server, port, req)) == NULL)
+    if (rctx == NULL)
         return NULL;
 
-    re = (OSSL_CMP_MSG *)HTTP_REQ_CTX_sendreq_d2i(rctx, max_time,
-                                                  ASN1_ITEM_rptr(OSSL_CMP_MSG));
+    res = (OSSL_CMP_MSG *)
+        HTTP_REQ_CTX_sendreq_d2i(rctx, ASN1_ITEM_rptr(OSSL_CMP_MSG));
 
     /* this indirectly calls ERR_clear_error(): */
     HTTP_REQ_CTX_free(rctx);
-
-    return re;
+    return res;
 }
 
 /*
@@ -112,7 +112,8 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
     char *server_host = NULL;
     char server_port[32];
     BIO *bio, *hbio = NULL;
-    time_t max_time;
+    time_t start_time = ctx->msgtimeout > 0 ? time(NULL) : 0;
+    long elapsed_time;
     OSSL_CMP_MSG *res = NULL;
 
     if (ctx == NULL || req == NULL || res == NULL
@@ -120,8 +121,6 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-
-    max_time = ctx->msgtimeout > 0 ? time(NULL) + ctx->msgtimeout : 0;
 
     if ((hbio = CMP_new_http_bio(ctx)) == NULL)
         goto err;
@@ -148,8 +147,10 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
         BIO_snprintf(server_port, sizeof(server_port), "%d", ctx->serverPort);
     }
 
+    elapsed_time = ctx->msgtimeout > 0 ? (long)time(NULL) - start_time : 0;
     res = CMP_sendreq(hbio, ctx->serverName, ctx->serverPath,
-                      server_host, server_port, req, max_time);
+                      server_host, server_port, req,
+                      ctx->msgtimeout > 0 ? ctx->msgtimeout - elapsed_time : 0);
 
  err:
     if (res == NULL) {

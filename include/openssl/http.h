@@ -33,15 +33,9 @@ HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
                                const STACK_OF(CONF_VALUE) *headers,
                                const char *host,
                                const char *content_type, const ASN1_ITEM *it,
-                               ASN1_VALUE *req, int maxline);
-ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, const char *server,
-                             const char *port, const char *path,
-                             const STACK_OF(CONF_VALUE) *headers,
-                             const char *host, const char *content_type,
-                             ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                             int timeout, int maxline, const ASN1_ITEM *rsp_it);
+                               ASN1_VALUE *req, long timeout, int maxline);
 /* TODO: unexport this (undocumented and actually just internal) function? */
-HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, int maxline);
+HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline);
 void HTTP_REQ_CTX_free(HTTP_REQ_CTX *rctx);
 /* TODO: unexport this (undocumented and actually just internal) function? */
 BIO *HTTP_REQ_CTX_get0_mem_bio(HTTP_REQ_CTX *rctx);
@@ -57,8 +51,13 @@ int HTTP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx, const char *content_type,
 int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx);
 # ifndef OPENSSL_NO_SOCK
 /* TODO: unexport this (undocumented and actually just internal) function? */
-ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
-                                     const ASN1_ITEM *it);
+ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it);
+ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, const char *server,
+                             const char *port, const char *path,
+                             const STACK_OF(CONF_VALUE) *headers,
+                             const char *host, const char *content_type,
+                             ASN1_VALUE *req, const ASN1_ITEM *req_it,
+                             int timeout, int maxline, const ASN1_ITEM *rsp_it);
 ASN1_VALUE *HTTP_get_asn1(const char *url,
                           const char *proxy, const char *proxy_port,
                           int timeout, const ASN1_ITEM *it);

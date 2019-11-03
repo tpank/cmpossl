@@ -14,15 +14,15 @@
 
 #ifndef OPENSSL_NO_OCSP
 
-HTTP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
+HTTP_REQ_CTX *OCSP_sendreq_new(BIO *bio, const char *path, OCSP_REQUEST *req,
                                int maxline)
 {
-    return HTTP_sendreq_new(io, path,
+    return HTTP_sendreq_new(bio, path,
                             NULL, NULL, /* no proxy used */
                             NULL /* headers */, NULL /* host */,
                             "application/ocsp-request",
                             ASN1_ITEM_rptr(OCSP_REQUEST), (ASN1_VALUE *)req,
-                            maxline);
+                            0 /* no timeout, blocking indefinite */, maxline);
 }
 
 int OCSP_REQ_CTX_set1_req(HTTP_REQ_CTX *rctx, const OCSP_REQUEST *req)
@@ -33,10 +33,10 @@ int OCSP_REQ_CTX_set1_req(HTTP_REQ_CTX *rctx, const OCSP_REQUEST *req)
 
 # if !defined(OPENSSL_NO_SOCK)
 
-int OCSP_sendreq(OCSP_RESPONSE **presp, HTTP_REQ_CTX *rctx, time_t max_time)
+int OCSP_sendreq(OCSP_RESPONSE **presp, HTTP_REQ_CTX *rctx)
 {
     *presp = (OCSP_RESPONSE *)
-        HTTP_REQ_CTX_sendreq_d2i(rctx, max_time, ASN1_ITEM_rptr(OCSP_RESPONSE));
+        HTTP_REQ_CTX_sendreq_d2i(rctx, ASN1_ITEM_rptr(OCSP_RESPONSE));
     return *presp != NULL;
 }
 
@@ -50,7 +50,7 @@ OCSP_RESPONSE *OCSP_sendreq_bio(BIO *b, const char *path, OCSP_REQUEST *req)
     if (ctx == NULL)
         return NULL;
 
-    rv = OCSP_sendreq(&resp, ctx, 0 /* max_time */);
+    rv = OCSP_sendreq(&resp, ctx);
 
     /* this indirectly calls ERR_clear_error(): */
     HTTP_REQ_CTX_free(ctx);

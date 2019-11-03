@@ -13,7 +13,7 @@ OCSP_REQ_CTX_set1_req, OCSP_sendreq_bio - OCSP responder query functions
  HTTP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
                                 int maxline);
 
- int OCSP_sendreq(OCSP_RESPONSE **presp, HTTP_REQ_CTX *rctx, time_t max_time);
+ int OCSP_sendreq(OCSP_RESPONSE **presp, HTTP_REQ_CTX *rctx);
 
  void HTTP_REQ_CTX_free(HTTP_REQ_CTX *rctx);
 
@@ -35,7 +35,6 @@ default value of 4k is used. The OCSP request B<req> may be set to B<NULL>
 and provided later if required.
 
 OCSP_sendreq() performs I/O on the OCSP request context B<rctx>. 
-If B<max_time> is not 0 then it waits until the given time else indefinitely.
 When the operation is complete it returns the response in B<*presp>.
 
 HTTP_REQ_CTX_free() frees up the OCSP context B<rctx>.

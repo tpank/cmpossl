@@ -37,6 +37,7 @@ struct http_req_ctx_st {
     BIO *mem;                   /* Memory BIO response is built into */
     unsigned long asn1_len;     /* ASN1 length of response */
     unsigned long max_resp_len; /* Maximum length of response */
+    time_t max_time;            /* Maximum end time of the transfer, or 0 */
 };
 
 #define HTTP_MAX_RESP_LENGTH    (100 * 1024)
@@ -95,7 +96,7 @@ BIO *HTTP_new_bio(const char *server, const char *server_port,
 }
 #endif /* !defined(OPENSSL_NO_SOCK) */
 
-HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, int maxline)
+HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline)
 {
     HTTP_REQ_CTX *rctx;
 
@@ -116,6 +117,7 @@ HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, int maxline)
         HTTP_REQ_CTX_free(rctx);
         return NULL;
     }
+    rctx->max_time = timeout > 0 ? time(NULL) + timeout : 0;
     return rctx;
 }
 
@@ -235,7 +237,7 @@ HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
                                const STACK_OF(CONF_VALUE) *headers,
                                const char *host,
                                const char *content_type, const ASN1_ITEM *it,
-                               ASN1_VALUE *req, int maxline)
+                               ASN1_VALUE *req, long timeout, int maxline)
 {
     HTTP_REQ_CTX *rctx = NULL;
     int i;
@@ -246,7 +248,7 @@ HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
         return 0;
     }
 
-    rctx = HTTP_REQ_CTX_new(bio, maxline);
+    rctx = HTTP_REQ_CTX_new(bio, timeout, maxline);
     if (rctx == NULL)
         return NULL;
 
@@ -558,11 +560,10 @@ int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx)
 #ifndef OPENSSL_NO_SOCK
 
 /* Exchange ASN.1-encoded request and response via HTTP on (non-)blocking BIO */
-ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
-                                     const ASN1_ITEM *it)
+ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it)
 {
     int sending = 1;
-    int blocking = max_time == 0;
+    int blocking = rctx->max_time == 0;
     int rv, len;
     const unsigned char *p;
     ASN1_VALUE *resp = NULL;
@@ -577,7 +578,7 @@ ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
     if (rv == -1) {
         /* BIO_should_retry was true */
         sending = 0;
-        if (!blocking && BIO_wait(rctx->io, max_time - time(NULL)) <= 0)
+        if (!blocking && BIO_wait(rctx->io, rctx->max_time - time(NULL)) <= 0)
             return NULL;
         goto retry;
     }
@@ -615,7 +616,6 @@ ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
     HTTP_REQ_CTX *rctx = NULL;
     int use_ssl;
     ASN1_VALUE *resp;
-    time_t max_time = timeout > 0 ? time(NULL) + timeout : 0;
 
     if (url == NULL || it == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
@@ -632,11 +632,11 @@ ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
     if (bio == NULL)
         goto err;
 
-    if (BIO_connect_retry(bio, timeout) <= 0)
+    rctx = HTTP_REQ_CTX_new(bio, timeout, 1024);
+    if (rctx == NULL)
         goto err;
 
-    rctx = HTTP_REQ_CTX_new(bio, 1024);
-    if (rctx == NULL)
+    if (BIO_connect_retry(bio, timeout /* almost no time passed so far */) <= 0)
         goto err;
     if (!HTTP_REQ_CTX_http(rctx, "GET", path,
                            proxy != NULL ? host : NULL, port))
@@ -644,7 +644,7 @@ ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
     if (!HTTP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
 
-    resp = HTTP_REQ_CTX_sendreq_d2i(rctx, max_time, it);
+    resp = HTTP_REQ_CTX_sendreq_d2i(rctx, it);
 
  err:
     OPENSSL_free(host);
@@ -668,17 +668,21 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, const char *server,
 {
     HTTP_REQ_CTX *rctx = NULL;
     ASN1_VALUE *rsp = NULL;
-    time_t max_time = timeout == -1 ? 0 : time(NULL) + timeout;
+    time_t start_time = timeout > 0 ? time(NULL) : 0;
+    long elapsed_time;
 
     if (BIO_connect_retry(bio, timeout) <= 0)
         return NULL;
 
+    elapsed_time = timeout > 0 ? (long)time(NULL) - start_time : 0;
     rctx = HTTP_sendreq_new(bio, path, server, port, headers, host,
-                           content_type, req_it, req, maxline);
+                            content_type, req_it, req,
+                            timeout > 0 ? timeout - elapsed_time : 0,
+                            maxline);
     if (rctx == NULL)
         return NULL;
 
-    rsp = HTTP_REQ_CTX_sendreq_d2i(rctx, max_time, rsp_it);
+    rsp = HTTP_REQ_CTX_sendreq_d2i(rctx, rsp_it);
     HTTP_REQ_CTX_free(rctx);
     return rsp;
 }
