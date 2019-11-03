@@ -18,6 +18,7 @@
 #  include <openssl/crmf.h>
 #  include <openssl/cmperr.h>
 #  include <openssl/cmp_util.h>
+#  include <openssl/http.h>
 
 /* explicit #includes not strictly needed since implied by the above: */
 #  include <openssl/types.h>
@@ -274,9 +275,7 @@ int OSSL_CMP_CTX_set_serverPort(OSSL_CMP_CTX *ctx, int port);
 int OSSL_CMP_CTX_set1_proxyName(OSSL_CMP_CTX *ctx, const char *name);
 int OSSL_CMP_CTX_set_proxyPort(OSSL_CMP_CTX *ctx, int port);
 #  define OSSL_CMP_DEFAULT_PORT 80
-typedef BIO *(*OSSL_cmp_http_cb_t) (OSSL_CMP_CTX *ctx, BIO *hbio,
-                                    unsigned long detail);
-int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_http_cb_t cb);
+int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, HTTP_bio_cb_t cb);
 int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg);
 void *OSSL_CMP_CTX_get_http_cb_arg(const OSSL_CMP_CTX *ctx);
 typedef OSSL_CMP_MSG *(*OSSL_cmp_transfer_cb_t) (OSSL_CMP_CTX *ctx,
@@ -363,9 +362,6 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
                            BIO *bio_err, const char *prog);
 OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
                                         const OSSL_CMP_MSG *req);
-int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
-                                        X509 **pcert, X509_CRL **pcrl,
-                                        BIO *bio_err);
 #  endif
 
 /* from cmp_client.c */

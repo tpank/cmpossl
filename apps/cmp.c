@@ -2083,8 +2083,9 @@ static const char *tls_error_hint(unsigned long err)
     }
 }
 
-static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
+static BIO *tls_http_cb(void *arg, BIO *hbio, unsigned long detail)
 {
+    OSSL_CMP_CTX *ctx = (OSSL_CMP_CTX *)arg;
     SSL_CTX *ssl_ctx = OSSL_CMP_CTX_get_http_cb_arg(ctx);
     BIO *sbio = NULL;
 

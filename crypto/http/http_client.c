@@ -121,6 +121,7 @@ HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline)
     return rctx;
 }
 
+/* this indirectly calls ERR_clear_error() */
 void HTTP_REQ_CTX_free(HTTP_REQ_CTX *rctx)
 {
     if (!rctx)
@@ -147,7 +148,7 @@ void HTTP_REQ_CTX_set_max_resp_len(HTTP_REQ_CTX *rctx, unsigned long len)
 
 /*
  * Create HTTP header using given op and path (or "/" in case path is NULL).
- * server host name and port must be given if and only if a proxy is used.
+ * Server name and port must be given if and only if a proxy is used.
  */
 int HTTP_REQ_CTX_http(HTTP_REQ_CTX *rctx, const char *op, const char *path,
                       const char *server, const char *port)
@@ -655,11 +656,25 @@ ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it)
     return resp;
 }
 
-/*
+/*-
  * Exchange ASN.1-encoded request and response via given BIO.
+ *
+ * bio_update_fn is an optional BIO connect/disconnect callback function,
+ * which has the prototype
+ *   typedef BIO *(*HTTP_bio_cb_t) (void *arg, BIO *bio, unsigned long detail);
+ * It may modify the HTTP BIO given in the bio argument.
+ * On connect the B<detail> argument is 1.
+ * On disconnect it is 0 if no error occurred or else the last error code.
+ * For instance, on connect a TLS BIO may be prepended to implement HTTPS,
+ * and on disconnect some error diagnostics and/or cleanup may be done.
+ * The callback function should return NULL to indicate failure.
+ * It may make use of a custom defined argument 'arg' given.
+ *
  * Server name and port must be given if and only if a proxy is used.
  */
-ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, const char *server,
+ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
+                             HTTP_bio_cb_t bio_update_fn, void *arg,
+                             const char *server,
                              const char *port, const char *path,
                              const STACK_OF(CONF_VALUE) *headers,
                              const char *host, const char *content_type,
@@ -670,9 +685,17 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, const char *server,
     ASN1_VALUE *rsp = NULL;
     time_t start_time = timeout > 0 ? time(NULL) : 0;
     long elapsed_time;
+    unsigned long err;
 
     if (BIO_connect_retry(bio, timeout) <= 0)
         return NULL;
+
+    /* callback can be used to wrap or prepend TLS session */
+    if (bio_update_fn != NULL) {
+        bio = (*bio_update_fn)(arg, bio, 1 /* connect */);
+        if (bio == NULL)
+            return NULL;
+    }
 
     elapsed_time = timeout > 0 ? (long)time(NULL) - start_time : 0;
     rctx = HTTP_sendreq_new(bio, path, server, port, headers, host,
@@ -683,8 +706,63 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, const char *server,
         return NULL;
 
     rsp = HTTP_REQ_CTX_sendreq_d2i(rctx, rsp_it);
+    err = ERR_peek_error();
+
+    if (rsp == NULL) {
+        char buf[200];
+
+        if (ERR_GET_LIB(err) == ERR_LIB_SSL
+                || ERR_GET_REASON(err) == BIO_R_CONNECT_TIMEOUT
+                || ERR_GET_REASON(err) == BIO_R_CONNECT_ERROR)
+        {
+            BIO_snprintf(buf, 200, "host '%s' port %s", server, port);
+            ERR_add_error_data(1, buf);
+            if (err == 0) {
+                BIO_snprintf(buf, 200, "server has disconnected%s",
+                             arg != NULL ? " violating the protocol" :
+                             ", likely because it requires the use of TLS");
+                ERR_add_error_data(1, buf);
+            }
+        }
+    }
+
+    /* callback can be used to clean up TLS session. err does not equal 1 */
+    if (bio_update_fn != NULL
+            && (*bio_update_fn)(arg, bio, err) == NULL) {
+        ASN1_item_free(rsp, rsp_it);
+        rsp = NULL;
+    }
+
     HTTP_REQ_CTX_free(rctx);
     return rsp;
+}
+
+ASN1_VALUE *HTTP_post_asn1(const char *host, const char *port,
+                           HTTP_bio_cb_t bio_update_fn, void *arg,
+                           const char *path,
+                           const char *proxy, const char *proxy_port,
+                           const STACK_OF(CONF_VALUE) *headers,
+                           const char *content_type,
+                           ASN1_VALUE *req, const ASN1_ITEM *req_it,
+                           int timeout, int maxline, const ASN1_ITEM *rsp_it)
+{
+    BIO *bio = HTTP_new_bio(host, port, proxy, proxy_port);
+    ASN1_VALUE *res;
+
+    if (bio == NULL)
+        return NULL;
+    res = HTTP_sendreq_bio(bio, bio_update_fn, arg,
+                           bio_update_fn == NULL && proxy != NULL ? host : NULL,
+                           port, path, headers, host, content_type,
+                           req, req_it, timeout, maxline, rsp_it);
+    /*
+     * Use BIO_free_all since bio_update_fn may append to bio, forming chain.
+     * This also frees any (e.g., SSL/TLS) BIOs linked with bio and,
+     * like BIO_reset(bio), calls SSL_shutdown() to notify/alert the peer
+     */
+    BIO_free_all(bio);
+
+    return res;
 }
 
 /* BASE64 encoder used for encoding basic proxy authentication credentials */

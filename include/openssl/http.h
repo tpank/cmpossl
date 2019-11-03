@@ -52,12 +52,23 @@ int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx);
 # ifndef OPENSSL_NO_SOCK
 /* TODO: unexport this (undocumented and actually just internal) function? */
 ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it);
-ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, const char *server,
-                             const char *port, const char *path,
+typedef BIO *(*HTTP_bio_cb_t) (void *arg, BIO *bio, unsigned long detail);
+ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
+                             HTTP_bio_cb_t bio_update_fn, void *arg,
+                             const char *server, const char *port,
+                             const char *path,
                              const STACK_OF(CONF_VALUE) *headers,
                              const char *host, const char *content_type,
                              ASN1_VALUE *req, const ASN1_ITEM *req_it,
                              int timeout, int maxline, const ASN1_ITEM *rsp_it);
+ASN1_VALUE *HTTP_post_asn1(const char *host, const char *port,
+                           HTTP_bio_cb_t bio_update_fn, void *arg,
+                           const char *path,
+                           const char *proxy, const char *proxy_port,
+                           const STACK_OF(CONF_VALUE) *headers,
+                           const char *content_type,
+                           ASN1_VALUE *req, const ASN1_ITEM *req_it,
+                           int timeout, int maxline, const ASN1_ITEM *rsp_it);
 ASN1_VALUE *HTTP_get_asn1(const char *url,
                           const char *proxy, const char *proxy_port,
                           int timeout, const ASN1_ITEM *it);
