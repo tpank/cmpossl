@@ -1535,39 +1535,11 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
                                       const STACK_OF(CONF_VALUE) *headers,
                                       OCSP_REQUEST *req, int req_timeout)
 {
-    int i;
-    int add_host = 1;
-    HTTP_REQ_CTX *ctx = NULL;
-    OCSP_RESPONSE *rsp = NULL;
-    time_t max_time = req_timeout == -1 ? 0 : time(NULL) + req_timeout;
-
-    if (BIO_connect_retry(cbio, req_timeout) <= 0)
-        return NULL;
-
-    ctx = OCSP_sendreq_new(cbio, path, NULL, -1);
-    if (ctx == NULL)
-        return NULL;
-
-    for (i = 0; i < sk_CONF_VALUE_num(headers); i++) {
-        CONF_VALUE *hdr = sk_CONF_VALUE_value(headers, i);
-        if (add_host == 1 && strcasecmp("host", hdr->name) == 0)
-            add_host = 0;
-        if (!HTTP_REQ_CTX_add1_header(ctx, hdr->name, hdr->value))
-            goto err;
-    }
-
-    if (add_host == 1 && HTTP_REQ_CTX_add1_header(ctx, "Host", host) == 0)
-        goto err;
-
-    if (!OCSP_REQ_CTX_set1_req(ctx, req))
-        goto err;
-
-    (void)OCSP_sendreq(&rsp, ctx, max_time);
-
- err:
-    HTTP_REQ_CTX_free(ctx);
-
-    return rsp;
+    return (OCSP_RESPONSE *)
+        HTTP_sendreq_bio(cbio, NULL, NULL /* no proxy used */,
+                         path, headers, host, "application/ocsp-request",
+                         (ASN1_VALUE *)req, ASN1_ITEM_rptr(OCSP_REQUEST),
+                         req_timeout, -1, ASN1_ITEM_rptr(OCSP_RESPONSE));
 }
 
 OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,

@@ -15,6 +15,7 @@
 
 # include <openssl/bio.h>
 # include <openssl/asn1.h>
+# include <openssl/conf.h>
 
 # ifdef  __cplusplus
 extern "C" {
@@ -27,10 +28,18 @@ BIO *HTTP_new_bio(const char *server, const char *server_port,
                   const char *proxy, const char *proxy_port);
 # endif
 
-HTTP_REQ_CTX *HTTP_sendreq_new(BIO *io, const char *path,
+HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
                                const char *server, const char *port,
+                               const STACK_OF(CONF_VALUE) *headers,
+                               const char *host,
                                const char *content_type, const ASN1_ITEM *it,
                                ASN1_VALUE *req, int maxline);
+ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, const char *server,
+                             const char *port, const char *path,
+                             const STACK_OF(CONF_VALUE) *headers,
+                             const char *host, const char *content_type,
+                             ASN1_VALUE *req, const ASN1_ITEM *req_it,
+                             int timeout, int maxline, const ASN1_ITEM *rsp_it);
 /* TODO: unexport this (undocumented and actually just internal) function? */
 HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, int maxline);
 void HTTP_REQ_CTX_free(HTTP_REQ_CTX *rctx);

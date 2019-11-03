@@ -228,25 +228,41 @@ int HTTP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx, const char *content_type,
 /*
  * Create HTTP_REQ_CTX structure using the values provided.
  * If 'req' == NULL then 'it' and 'content_type' are ignored.
- * Server host name and port must be given if and only if a proxy is used.
+ * Server name and port must be given if and only if a proxy is used.
  */
-HTTP_REQ_CTX *HTTP_sendreq_new(BIO *io, const char *path,
+HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
                                const char *server, const char *port,
+                               const STACK_OF(CONF_VALUE) *headers,
+                               const char *host,
                                const char *content_type, const ASN1_ITEM *it,
                                ASN1_VALUE *req, int maxline)
 {
     HTTP_REQ_CTX *rctx = NULL;
+    int i;
+    int add_host = 1;
 
-    if (io == NULL || path == NULL) {
+    if (bio == NULL || path == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
         return 0;
     }
 
-    rctx = HTTP_REQ_CTX_new(io, maxline);
+    rctx = HTTP_REQ_CTX_new(bio, maxline);
     if (rctx == NULL)
         return NULL;
 
     if (!HTTP_REQ_CTX_http(rctx, "POST", path, server, port))
+        goto err;
+
+    for (i = 0; i < sk_CONF_VALUE_num(headers); i++) {
+        CONF_VALUE *hdr = sk_CONF_VALUE_value(headers, i);
+
+        if (add_host && strcasecmp("host", hdr->name) == 0)
+            add_host = 0;
+        if (!HTTP_REQ_CTX_add1_header(rctx, hdr->name, hdr->value))
+            goto err;
+    }
+
+    if (add_host && HTTP_REQ_CTX_add1_header(rctx, "Host", host) == 0)
         goto err;
 
     if (req != NULL && !HTTP_REQ_CTX_i2d(rctx, content_type, it, req))
@@ -637,6 +653,34 @@ ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, time_t max_time,
     BIO_free_all(bio);
     HTTP_REQ_CTX_free(rctx);
     return resp;
+}
+
+/*
+ * Exchange ASN.1-encoded request and response via given BIO.
+ * Server name and port must be given if and only if a proxy is used.
+ */
+ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, const char *server,
+                             const char *port, const char *path,
+                             const STACK_OF(CONF_VALUE) *headers,
+                             const char *host, const char *content_type,
+                             ASN1_VALUE *req, const ASN1_ITEM *req_it,
+                             int timeout, int maxline, const ASN1_ITEM *rsp_it)
+{
+    HTTP_REQ_CTX *rctx = NULL;
+    ASN1_VALUE *rsp = NULL;
+    time_t max_time = timeout == -1 ? 0 : time(NULL) + timeout;
+
+    if (BIO_connect_retry(bio, timeout) <= 0)
+        return NULL;
+
+    rctx = HTTP_sendreq_new(bio, path, server, port, headers, host,
+                           content_type, req_it, req, maxline);
+    if (rctx == NULL)
+        return NULL;
+
+    rsp = HTTP_REQ_CTX_sendreq_d2i(rctx, max_time, rsp_it);
+    HTTP_REQ_CTX_free(rctx);
+    return rsp;
 }
 
 /* BASE64 encoder used for encoding basic proxy authentication credentials */

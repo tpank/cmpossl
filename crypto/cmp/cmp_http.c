@@ -63,34 +63,23 @@ static BIO *CMP_new_http_bio(const OSSL_CMP_CTX *ctx)
     return cbio;
 }
 
-static HTTP_REQ_CTX *CMP_sendreq_new(BIO *io, const char *host,
+static HTTP_REQ_CTX *CMP_sendreq_new(BIO *bio, const char *host,
                                      const char *path,
                                      const char *server, const char *port,
-                                     const OSSL_CMP_MSG *req, int maxline)
+                                     const OSSL_CMP_MSG *req)
 {
-    HTTP_REQ_CTX *rctx = HTTP_sendreq_new(io, path, server, port,
-                                          NULL, NULL, NULL, maxline);
+    STACK_OF(CONF_VALUE) *headers = NULL;
+    HTTP_REQ_CTX *rctx = NULL;
 
-    if (rctx == NULL)
+    if (!X509V3_add_value("Pragma", "no-cache", &headers))
         return NULL;
 
-    if (host != NULL) {
-        if (!HTTP_REQ_CTX_add1_header(rctx, "Host", host))
-            goto err;
-    }
-    if (!HTTP_REQ_CTX_add1_header(rctx, "Pragma", "no-cache"))
-        goto err;
-
-    if (req != NULL && !HTTP_REQ_CTX_i2d(rctx, "application/pkixcmp",
-                                         ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                                         (ASN1_VALUE *)req))
-        goto err;
-
+    rctx = HTTP_sendreq_new(bio, path, server, port,
+                            headers, host, "application/pkixcmp",
+                            ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                            (ASN1_VALUE *)req, -1);
+    sk_CONF_VALUE_pop_free(headers, X509V3_conf_free);
     return rctx;
-
- err:
-    HTTP_REQ_CTX_free(rctx);
-    return NULL;
 }
 
 /* Send out CMP request and get response on blocking or non-blocking BIO */
@@ -101,8 +90,7 @@ static OSSL_CMP_MSG *CMP_sendreq(BIO *bio, const char *host, const char *path,
     HTTP_REQ_CTX *rctx;
     OSSL_CMP_MSG *re;
 
-    if ((rctx = CMP_sendreq_new(bio, host, path, server, port, req,
-                                -1 /* default max resp line length */)) == NULL)
+    if ((rctx = CMP_sendreq_new(bio, host, path, server, port, req)) == NULL)
         return NULL;
 
     re = (OSSL_CMP_MSG *)HTTP_REQ_CTX_sendreq_d2i(rctx, max_time,
