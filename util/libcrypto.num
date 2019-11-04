@@ -4425,6 +4425,7 @@ OCSP_resp_get0_respdata                 4530	3_0_0	EXIST::FUNCTION:OCSP
 EVP_MD_CTX_set_pkey_ctx                 4531	3_0_0	EXIST::FUNCTION:
 EVP_PKEY_meth_set_digest_custom         4532	3_0_0	EXIST::FUNCTION:
 EVP_PKEY_meth_get_digest_custom         4533	3_0_0	EXIST::FUNCTION:
+<<<<<<< HEAD
 EVP_MAC_CTX_new                         ?	3_0_0	EXIST::FUNCTION:
 EVP_MAC_CTX_new_id                      ?	3_0_0	NOEXIST::FUNCTION:
 EVP_MAC_CTX_free                        ?	3_0_0	EXIST::FUNCTION:
@@ -4939,8 +4940,8 @@ OSSL_CMP_SRV_CTX_set_accept_unprotected ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_accept_raverified  ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_grant_implicit_confirm ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_proxy_connect                  ?	3_0_0	EXIST::FUNCTION:CMP,SOCK
-BIO_wait                                ?	3_0_0	EXIST::FUNCTION:SOCK
-BIO_connect_retry                       ?	3_0_0	EXIST::FUNCTION:SOCK
+OSSL_BIO_wait                           ?	3_0_0	EXIST::FUNCTION:SOCK
+OSSL_BIO_connect_retry                  ?	3_0_0	EXIST::FUNCTION:SOCK
 ERR_load_HTTP_strings                   ?	3_0_0	EXIST::FUNCTION:
 HTTP_parse_url                          ?	3_0_0	EXIST::FUNCTION:
 HTTP_new_bio                            ?	3_0_0	EXIST::FUNCTION:SOCK
@@ -4950,6 +4951,7 @@ HTTP_REQ_CTX_free                       ?	3_0_0	EXIST::FUNCTION:
 HTTP_REQ_CTX_get0_mem_bio               ?	3_0_0	EXIST::FUNCTION:
 HTTP_REQ_CTX_set_max_resp_len           ?	3_0_0	EXIST::FUNCTION:
 HTTP_REQ_CTX_http                       ?	3_0_0	EXIST::FUNCTION:
+HTTP_REQ_CTX_header                     ?	3_0_0	EXIST::FUNCTION:
 HTTP_REQ_CTX_add1_header                ?	3_0_0	EXIST::FUNCTION:
 HTTP_REQ_CTX_i2d                        ?	3_0_0	EXIST::FUNCTION:
 HTTP_REQ_CTX_nbio                       ?	3_0_0	EXIST::FUNCTION:

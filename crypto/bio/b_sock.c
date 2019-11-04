@@ -414,7 +414,7 @@ static int bio_wait(BIO *bio, long timeout)
  * wait on BIO if timeout > 0; call BIOerr(...) unless success.
  * returns < 0 on error, 0 on timeout, > 0 on success
  */
-int BIO_wait(BIO *bio, long timeout)
+int OSSL_BIO_wait(BIO *bio, long timeout)
 {
     int rv = bio_wait(bio, timeout);
 
@@ -427,7 +427,7 @@ int BIO_wait(BIO *bio, long timeout)
  * connect via the given BIO; call BIOerr(...) unless success.
  * returns < 0 on error, 0 on timeout, > 0 on success
  */
-int BIO_connect_retry(BIO *bio, long timeout)
+int OSSL_BIO_connect_retry(BIO *bio, long timeout)
 {
     int blocking = timeout <= 0;
     time_t max_time = timeout > 0 ? time(NULL) + timeout : 0;

@@ -36,12 +36,16 @@ HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
                                ASN1_VALUE *req, long timeout, int maxline);
 /* TODO: unexport this (undocumented and actually just internal) function? */
 HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline);
+/* TODO: unexport this (documented but) meanwhile just internal function? */
 void HTTP_REQ_CTX_free(HTTP_REQ_CTX *rctx);
 /* TODO: unexport this (undocumented and actually just internal) function? */
 BIO *HTTP_REQ_CTX_get0_mem_bio(HTTP_REQ_CTX *rctx);
+/* TODO: unexport this (documented but) meanwhile just internal function? */
 void HTTP_REQ_CTX_set_max_resp_len(HTTP_REQ_CTX *rctx, unsigned long len);
-int HTTP_REQ_CTX_http(HTTP_REQ_CTX *rctx, const char *op, const char *path,
-                      const char *server, const char *port);
+/* TODO: unexport this (undocumented and actually just internal) function? */
+int HTTP_REQ_CTX_header(HTTP_REQ_CTX *rctx, const char *op, const char *path,
+                        const char *server, const char *port);
+/* TODO: unexport this (documented but) meanwhile just internal function? */
 int HTTP_REQ_CTX_add1_header(HTTP_REQ_CTX *rctx,
                              const char *name, const char *value);
 /* TODO: unexport this (undocumented and actually just internal) function? */
