@@ -583,8 +583,7 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
     if (rv == -1) {
         /* BIO_should_retry was true */
         sending = 0;
-        if (!blocking
-                && OSSL_BIO_wait(rctx->io, rctx->max_time - time(NULL)) <= 0)
+        if (!blocking && BIO_wait(rctx->io, rctx->max_time - time(NULL)) <= 0)
             return NULL;
         goto retry;
     }
@@ -642,7 +641,7 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
     if (rctx == NULL)
         goto err;
 
-    if (OSSL_BIO_connect_retry(bio, timeout /* still same timeout */) <= 0)
+    if (BIO_connect_retry(bio, timeout /* still same timeout */) <= 0)
         goto err;
     if (!OSSL_HTTP_REQ_CTX_header(rctx, "GET", path,
                              proxy != NULL ? host : NULL, port))
@@ -669,7 +668,7 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
  *   typedef BIO *(*HTTP_bio_cb_t) (void *ctx, BIO *bio, unsigned long detail);
  * The callback may modify the HTTP BIO provided in the bio argument,
  * whereby it may make use of any custom defined argument 'ctx'.
- * During connection establishment, just after OSSL_BIO_connect_retry(),
+ * During connection establishment, just after BIO_connect_retry(),
  * the callback function is invoked with the 'detail' argument being 1.
  * On disconnect 'detail' is 0 if no error occurred or else the last error code.
  * For instance, on connect the function may prepend a TLS BIO to implement HTTPS,
@@ -694,7 +693,7 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
     long elapsed_time;
     unsigned long err;
 
-    if (OSSL_BIO_connect_retry(bio, timeout) <= 0)
+    if (BIO_connect_retry(bio, timeout) <= 0)
         return NULL;
 
     /* callback can be used to wrap or prepend TLS session */
@@ -864,7 +863,7 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
     }
 
  retry:
-    rv = OSSL_BIO_wait(fbio, max_time - time(NULL));
+    rv = BIO_wait(fbio, max_time - time(NULL));
     if (rv <= 0) {
         BIO_printf(bio_err, "%s: HTTP CONNECT %s\n", prog,
                    rv == 0 ? "timed out" : "failed waiting for data");

@@ -4939,8 +4939,8 @@ OSSL_CMP_SRV_CTX_set_accept_unprotected ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_accept_raverified  ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_grant_implicit_confirm ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_proxy_connect                  ?	3_0_0	EXIST::FUNCTION:CMP,SOCK
-OSSL_BIO_wait                           ?	3_0_0	EXIST::FUNCTION:SOCK
-OSSL_BIO_connect_retry                  ?	3_0_0	EXIST::FUNCTION:SOCK
+BIO_wait                                ?	3_0_0	EXIST::FUNCTION:SOCK
+BIO_connect_retry                       ?	3_0_0	EXIST::FUNCTION:SOCK
 ERR_load_HTTP_strings                   ?	3_0_0	EXIST::FUNCTION:
 HTTP_parse_url                          ?	3_0_0	EXIST::FUNCTION:
 OSSL_HTTP_REQ_CTX_new                   ?	3_0_0	EXIST::FUNCTION:
