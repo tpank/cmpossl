@@ -52,7 +52,7 @@ int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx);
 # ifndef OPENSSL_NO_SOCK
 /* TODO: unexport this (undocumented and actually just internal) function? */
 ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it);
-typedef BIO *(*HTTP_bio_cb_t) (void *arg, BIO *bio, unsigned long detail);
+typedef BIO *(*HTTP_bio_cb_t) (void *ctx, BIO *bio, unsigned long detail);
 ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
                              HTTP_bio_cb_t bio_update_fn, void *arg,
                              const char *server, const char *port,

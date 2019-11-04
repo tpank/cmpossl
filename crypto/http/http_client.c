@@ -661,14 +661,16 @@ ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it)
  *
  * bio_update_fn is an optional BIO connect/disconnect callback function,
  * which has the prototype
- *   typedef BIO *(*HTTP_bio_cb_t) (void *arg, BIO *bio, unsigned long detail);
- * It may modify the HTTP BIO given in the bio argument.
- * On connect the B<detail> argument is 1.
- * On disconnect it is 0 if no error occurred or else the last error code.
- * For instance, on connect a TLS BIO may be prepended to implement HTTPS,
- * and on disconnect some error diagnostics and/or cleanup may be done.
- * The callback function should return NULL to indicate failure.
- * It may make use of a custom defined argument 'arg' given.
+ *   typedef BIO *(*HTTP_bio_cb_t) (void *ctx, BIO *bio, unsigned long detail);
+ * The callback may modify the HTTP BIO provided in the bio argument,
+ * whereby it may make use of any custom defined argument 'ctx'.
+ * During connection establishment, just after BIO_connect_retry(),
+ * the callback function is invoked with the 'detail' argument being 1.
+ * On disconnect 'detail' is 0 if no error occurred or else the last error code.
+ * For instance, on connect the function may prepend a TLS BIO to implement HTTPS,
+ * and after disconnect it may do some error diagnostics and/or specific cleanup.
+ * The function should return NULL to indicate failure.
+ * After disconnect the modified BIO will be deallocated using BIO_free_all().
  *
  * Server name and port must be given if and only if a proxy is used.
  */
@@ -756,9 +758,9 @@ ASN1_VALUE *HTTP_post_asn1(const char *host, const char *port,
                            port, path, headers, host, content_type,
                            req, req_it, timeout, maxline, rsp_it);
     /*
-     * Use BIO_free_all since bio_update_fn may append to bio, forming chain.
+     * Use BIO_free_all() because bio_update_fn may prepend or append to bio.
      * This also frees any (e.g., SSL/TLS) BIOs linked with bio and,
-     * like BIO_reset(bio), calls SSL_shutdown() to notify/alert the peer
+     * like BIO_reset(bio), calls SSL_shutdown() to notify/alert the peer.
      */
     BIO_free_all(bio);
 
