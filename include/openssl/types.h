@@ -184,7 +184,7 @@ typedef struct NAME_CONSTRAINTS_st NAME_CONSTRAINTS;
 
 typedef struct crypto_ex_data_st CRYPTO_EX_DATA;
 
-typedef struct http_req_ctx_st HTTP_REQ_CTX;
+typedef struct ossl_http_req_ctx_st OSSL_HTTP_REQ_CTX;
 typedef struct ocsp_response_st OCSP_RESPONSE;
 typedef struct ocsp_responder_id_st OCSP_RESPID;
 

@@ -2397,8 +2397,8 @@ int s_client_main(int argc, char **argv)
         }
         break;
     case PROTO_CONNECT:
-        if (!HTTP_proxy_connect(sbio, host, port, proxyuser, proxypass,
-                                0 /* no timeout */, bio_err, prog))
+        if (!OSSL_HTTP_proxy_connect(sbio, host, port, proxyuser, proxypass,
+                                     0 /* no timeout */, bio_err, prog))
             goto shut;
         break;
     case PROTO_IRC:

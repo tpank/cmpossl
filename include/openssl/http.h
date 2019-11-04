@@ -23,62 +23,47 @@ extern "C" {
 
 int HTTP_parse_url(const char *url, char **phost, char **pport, char **ppath,
                    int *pssl);
-# ifndef OPENSSL_NO_SOCK
-BIO *HTTP_new_bio(const char *server, const char *server_port,
-                  const char *proxy, const char *proxy_port);
-# endif
-
-HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
-                               const char *server, const char *port,
-                               const STACK_OF(CONF_VALUE) *headers,
-                               const char *host,
-                               const char *content_type, const ASN1_ITEM *it,
-                               ASN1_VALUE *req, long timeout, int maxline);
 /* TODO: unexport this (undocumented and actually just internal) function? */
-HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline);
+OSSL_HTTP_REQ_CTX *OSSL_HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline);
 /* TODO: unexport this (documented but) meanwhile just internal function? */
-void HTTP_REQ_CTX_free(HTTP_REQ_CTX *rctx);
+void OSSL_HTTP_REQ_CTX_free(OSSL_HTTP_REQ_CTX *rctx);
 /* TODO: unexport this (undocumented and actually just internal) function? */
-BIO *HTTP_REQ_CTX_get0_mem_bio(HTTP_REQ_CTX *rctx);
+BIO *OSSL_HTTP_REQ_CTX_get0_mem_bio(OSSL_HTTP_REQ_CTX *rctx);
 /* TODO: unexport this (documented but) meanwhile just internal function? */
-void HTTP_REQ_CTX_set_max_resp_len(HTTP_REQ_CTX *rctx, unsigned long len);
+void OSSL_HTTP_REQ_CTX_set_max_response_length(OSSL_HTTP_REQ_CTX *rctx,
+                                               unsigned long len);
 /* TODO: unexport this (undocumented and actually just internal) function? */
-int HTTP_REQ_CTX_header(HTTP_REQ_CTX *rctx, const char *op, const char *path,
-                        const char *server, const char *port);
-/* TODO: unexport this (documented but) meanwhile just internal function? */
-int HTTP_REQ_CTX_add1_header(HTTP_REQ_CTX *rctx,
-                             const char *name, const char *value);
-/* TODO: unexport this (undocumented and actually just internal) function? */
-int HTTP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx, const char *content_type,
-                     const ASN1_ITEM *it, ASN1_VALUE *req);
-/* TODO: unexport this (undocumented and actually just internal) function? */
-int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx);
-# ifndef OPENSSL_NO_SOCK
-/* TODO: unexport this (undocumented and actually just internal) function? */
-ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it);
-typedef BIO *(*HTTP_bio_cb_t) (void *ctx, BIO *bio, unsigned long detail);
-ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
-                             HTTP_bio_cb_t bio_update_fn, void *arg,
-                             const char *server, const char *port,
+int OSSL_HTTP_REQ_CTX_header(OSSL_HTTP_REQ_CTX *rctx, const char *op,
                              const char *path,
-                             const STACK_OF(CONF_VALUE) *headers,
-                             const char *host, const char *content_type,
-                             ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                             int timeout, int maxline, const ASN1_ITEM *rsp_it);
-ASN1_VALUE *HTTP_post_asn1(const char *host, const char *port,
-                           HTTP_bio_cb_t bio_update_fn, void *arg,
-                           const char *path,
-                           const char *proxy, const char *proxy_port,
-                           const STACK_OF(CONF_VALUE) *headers,
-                           const char *content_type,
-                           ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                           int timeout, int maxline, const ASN1_ITEM *rsp_it);
-ASN1_VALUE *HTTP_get_asn1(const char *url,
-                          const char *proxy, const char *proxy_port,
-                          int timeout, const ASN1_ITEM *it);
-int HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
-                       const char *proxyuser, const char *proxypass,
-                       long timeout, BIO *bio_err, const char *prog);
+                             const char *server, const char *port);
+/* TODO: unexport this (documented but) meanwhile just internal function? */
+int OSSL_HTTP_REQ_CTX_add1_header(OSSL_HTTP_REQ_CTX *rctx,
+                                  const char *name, const char *value);
+/* TODO: unexport this (undocumented and actually just internal) function? */
+int OSSL_HTTP_REQ_CTX_i2d(OSSL_HTTP_REQ_CTX *rctx, const char *content_type,
+                          const ASN1_ITEM *it, ASN1_VALUE *req);
+/* TODO: unexport this (undocumented and actually just internal) function? */
+int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx);
+# ifndef OPENSSL_NO_SOCK
+/* TODO: unexport this (undocumented and actually just internal) function? */
+ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
+                                          const ASN1_ITEM *it);
+typedef BIO *(*HTTP_bio_cb_t) (void *ctx, BIO *bio, unsigned long detail);
+ASN1_VALUE *OSSL_HTTP_post_asn1(const char *host, const char *port,
+                                HTTP_bio_cb_t bio_update_fn, void *arg,
+                                const char *path,
+                                const char *proxy, const char *proxy_port,
+                                const STACK_OF(CONF_VALUE) *headers,
+                                const char *content_type,
+                                ASN1_VALUE *req, const ASN1_ITEM *req_it,
+                                int timeout, int maxline,
+                                const ASN1_ITEM *rsp_it);
+ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
+                               const char *proxy, const char *proxy_port,
+                               int timeout, const ASN1_ITEM *it);
+int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
+                            const char *proxyuser, const char *proxypass,
+                            long timeout, BIO *bio_err, const char *prog);
 # endif
 
 # ifdef  __cplusplus

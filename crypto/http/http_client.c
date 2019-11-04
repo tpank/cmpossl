@@ -21,6 +21,8 @@
 #include "internal/sockets.h"
 #include "internal/cryptlib.h"
 
+#include "http_local.h"
+
 # define HTTP_PREFIX "HTTP/"
 # define HTTP_VERSION_PATT "1." /* or, e.g., "1.1" */
 # define HTTP_VERSION_MAX_LEN 3
@@ -29,7 +31,7 @@
 
 /* Opaque HTTP request status structure */
 
-struct http_req_ctx_st {
+struct ossl_http_req_ctx_st {
     int state;                  /* Current I/O state */
     unsigned char *iobuf;       /* Line buffer */
     int iobuflen;               /* Line buffer length */
@@ -68,37 +70,9 @@ struct http_req_ctx_st {
 /* Headers set, no final \r\n included */
 #define OHS_HTTP_HEADER         (9 | OHS_NOREAD)
 
-#ifndef OPENSSL_NO_SOCK
-BIO *HTTP_new_bio(const char *server, const char *server_port,
-                  const char *proxy, const char *proxy_port)
+OSSL_HTTP_REQ_CTX *OSSL_HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline)
 {
-    const char *host = proxy;
-    const char *port = proxy_port;
-    BIO *cbio = NULL;
-
-    if (server == NULL) {
-        HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
-        return NULL;
-    }
-
-    if (proxy == NULL) {
-        host = server;
-        port = server_port;
-    }
-    cbio = BIO_new_connect(host);
-    if (cbio == NULL)
-        goto end;
-    if (port != NULL)
-        (void)BIO_set_conn_port(cbio, port);
-
- end:
-    return cbio;
-}
-#endif /* !defined(OPENSSL_NO_SOCK) */
-
-HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline)
-{
-    HTTP_REQ_CTX *rctx;
+    OSSL_HTTP_REQ_CTX *rctx;
 
     if (io == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
@@ -114,7 +88,7 @@ HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline)
     rctx->iobuflen = maxline > 0 ? maxline : HTTP_MAX_LINE_LEN;
     rctx->iobuf = OPENSSL_malloc(rctx->iobuflen);
     if (rctx->iobuf == NULL || rctx->mem == NULL) {
-        HTTP_REQ_CTX_free(rctx);
+        OSSL_HTTP_REQ_CTX_free(rctx);
         return NULL;
     }
     rctx->max_time = timeout > 0 ? time(NULL) + timeout : 0;
@@ -122,7 +96,7 @@ HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline)
 }
 
 /* this indirectly calls ERR_clear_error() */
-void HTTP_REQ_CTX_free(HTTP_REQ_CTX *rctx)
+void OSSL_HTTP_REQ_CTX_free(OSSL_HTTP_REQ_CTX *rctx)
 {
     if (!rctx)
         return;
@@ -131,7 +105,7 @@ void HTTP_REQ_CTX_free(HTTP_REQ_CTX *rctx)
     OPENSSL_free(rctx);
 }
 
-BIO *HTTP_REQ_CTX_get0_mem_bio(HTTP_REQ_CTX *rctx)
+BIO *OSSL_HTTP_REQ_CTX_get0_mem_bio(OSSL_HTTP_REQ_CTX *rctx)
 {
     if (rctx == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
@@ -140,7 +114,8 @@ BIO *HTTP_REQ_CTX_get0_mem_bio(HTTP_REQ_CTX *rctx)
     return rctx->mem;
 }
 
-void HTTP_REQ_CTX_set_max_resp_len(HTTP_REQ_CTX *rctx, unsigned long len)
+void OSSL_HTTP_REQ_CTX_set_max_response_length(OSSL_HTTP_REQ_CTX *rctx,
+                                               unsigned long len)
 {
     /* TODO: unexport this function or add arg check and result value */
     rctx->max_resp_len = len != 0 ? len : HTTP_MAX_RESP_LENGTH;
@@ -150,8 +125,9 @@ void HTTP_REQ_CTX_set_max_resp_len(HTTP_REQ_CTX *rctx, unsigned long len)
  * Create HTTP header using given op and path (or "/" in case path is NULL).
  * Server name and port must be given if and only if a proxy is used.
  */
-int HTTP_REQ_CTX_header(HTTP_REQ_CTX *rctx, const char *op, const char *path,
-                        const char *server, const char *port)
+int OSSL_HTTP_REQ_CTX_header(OSSL_HTTP_REQ_CTX *rctx, const char *op,
+                             const char *path,
+                             const char *server, const char *port)
 {
     if (rctx == NULL || op == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
@@ -184,8 +160,8 @@ int HTTP_REQ_CTX_header(HTTP_REQ_CTX *rctx, const char *op, const char *path,
     return 1;
 }
 
-int HTTP_REQ_CTX_add1_header(HTTP_REQ_CTX *rctx,
-                             const char *name, const char *value)
+int OSSL_HTTP_REQ_CTX_add1_header(OSSL_HTTP_REQ_CTX *rctx,
+                                  const char *name, const char *value)
 {
     if (rctx == NULL || name == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
@@ -206,8 +182,8 @@ int HTTP_REQ_CTX_add1_header(HTTP_REQ_CTX *rctx,
     return 1;
 }
 
-int HTTP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx, const char *content_type,
-                     const ASN1_ITEM *it, ASN1_VALUE *req)
+int OSSL_HTTP_REQ_CTX_i2d(OSSL_HTTP_REQ_CTX *rctx, const char *content_type,
+                          const ASN1_ITEM *it, ASN1_VALUE *req)
 {
     static const char req_hdr[] =
         "Content-Type: %s\r\n"
@@ -229,18 +205,18 @@ int HTTP_REQ_CTX_i2d(HTTP_REQ_CTX *rctx, const char *content_type,
 }
 
 /*
- * Create HTTP_REQ_CTX structure using the values provided.
+ * Create OSSL_HTTP_REQ_CTX structure using the values provided.
  * If 'req' == NULL then 'it' and 'content_type' are ignored.
  * Server name and port must be given if and only if a proxy is used.
  */
-HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
-                               const char *server, const char *port,
-                               const STACK_OF(CONF_VALUE) *headers,
-                               const char *host,
-                               const char *content_type, const ASN1_ITEM *it,
-                               ASN1_VALUE *req, long timeout, int maxline)
+OSSL_HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
+                                    const char *server, const char *port,
+                                    const STACK_OF(CONF_VALUE) *headers,
+                                    const char *host, const char *content_type,
+                                    const ASN1_ITEM *it, ASN1_VALUE *req,
+                                    long timeout, int maxline)
 {
-    HTTP_REQ_CTX *rctx = NULL;
+    OSSL_HTTP_REQ_CTX *rctx = NULL;
     int i;
     int add_host = 1;
 
@@ -249,11 +225,11 @@ HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
         return 0;
     }
 
-    rctx = HTTP_REQ_CTX_new(bio, timeout, maxline);
+    rctx = OSSL_HTTP_REQ_CTX_new(bio, timeout, maxline);
     if (rctx == NULL)
         return NULL;
 
-    if (!HTTP_REQ_CTX_header(rctx, "POST", path, server, port))
+    if (!OSSL_HTTP_REQ_CTX_header(rctx, "POST", path, server, port))
         goto err;
 
     for (i = 0; i < sk_CONF_VALUE_num(headers); i++) {
@@ -261,20 +237,20 @@ HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
 
         if (add_host && strcasecmp("host", hdr->name) == 0)
             add_host = 0;
-        if (!HTTP_REQ_CTX_add1_header(rctx, hdr->name, hdr->value))
+        if (!OSSL_HTTP_REQ_CTX_add1_header(rctx, hdr->name, hdr->value))
             goto err;
     }
 
-    if (add_host && HTTP_REQ_CTX_add1_header(rctx, "Host", host) == 0)
+    if (add_host && OSSL_HTTP_REQ_CTX_add1_header(rctx, "Host", host) == 0)
         goto err;
 
-    if (req != NULL && !HTTP_REQ_CTX_i2d(rctx, content_type, it, req))
+    if (req != NULL && !OSSL_HTTP_REQ_CTX_i2d(rctx, content_type, it, req))
         goto err;
 
     return rctx;
 
  err:
-    HTTP_REQ_CTX_free(rctx);
+    OSSL_HTTP_REQ_CTX_free(rctx);
     return NULL;
 }
 
@@ -353,7 +329,7 @@ static int parse_http_line1(char *line)
  * Try exchanging ASN.1 request and response via HTTP on (non-)blocking BIO
  * returns 1 on success, 0 on error, -1 on BIO_should_retry
  */
-int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx)
+int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx)
 {
     int i, n;
     const unsigned char *p;
@@ -560,8 +536,36 @@ int HTTP_REQ_CTX_nbio(HTTP_REQ_CTX *rctx)
 
 #ifndef OPENSSL_NO_SOCK
 
+/* set up a new connection BIO, to HTTP server or to HTTP proxy if given */
+static BIO *HTTP_new_bio(const char *server, const char *server_port,
+                         const char *proxy, const char *proxy_port)
+{
+    const char *host = proxy;
+    const char *port = proxy_port;
+    BIO *cbio = NULL;
+
+    if (server == NULL) {
+        HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
+        return NULL;
+    }
+
+    if (proxy == NULL) {
+        host = server;
+        port = server_port;
+    }
+    cbio = BIO_new_connect(host);
+    if (cbio == NULL)
+        goto end;
+    if (port != NULL)
+        (void)BIO_set_conn_port(cbio, port);
+
+ end:
+    return cbio;
+}
+
 /* Exchange ASN.1-encoded request and response via HTTP on (non-)blocking BIO */
-ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it)
+ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
+                                          const ASN1_ITEM *it)
 {
     int sending = 1;
     int blocking = rctx->max_time == 0;
@@ -575,7 +579,7 @@ ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it)
     }
 
  retry:
-    rv = HTTP_REQ_CTX_nbio(rctx);
+    rv = OSSL_HTTP_REQ_CTX_nbio(rctx);
     if (rv == -1) {
         /* BIO_should_retry was true */
         sending = 0;
@@ -607,15 +611,15 @@ ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it)
  * Get ASN.1-encoded response via HTTP from server at given URL.
  * Assign the received message to *presp on success, else NULL.
  */
- ASN1_VALUE *HTTP_get_asn1(const char *url,
-                           const char *proxy, const char *proxy_port,
-                           int timeout, const ASN1_ITEM *it)
+ ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
+                                const char *proxy, const char *proxy_port,
+                                int timeout, const ASN1_ITEM *it)
 {
     char *host = NULL;
     char *port = NULL;
     char *path = NULL;
     BIO *bio = NULL;
-    HTTP_REQ_CTX *rctx = NULL;
+    OSSL_HTTP_REQ_CTX *rctx = NULL;
     int use_ssl;
     ASN1_VALUE *resp;
 
@@ -634,26 +638,26 @@ ASN1_VALUE *HTTP_REQ_CTX_sendreq_d2i(HTTP_REQ_CTX *rctx, const ASN1_ITEM *it)
     if (bio == NULL)
         goto err;
 
-    rctx = HTTP_REQ_CTX_new(bio, timeout, 1024);
+    rctx = OSSL_HTTP_REQ_CTX_new(bio, timeout, 1024);
     if (rctx == NULL)
         goto err;
 
     if (OSSL_BIO_connect_retry(bio, timeout /* still same timeout */) <= 0)
         goto err;
-    if (!HTTP_REQ_CTX_header(rctx, "GET", path,
+    if (!OSSL_HTTP_REQ_CTX_header(rctx, "GET", path,
                              proxy != NULL ? host : NULL, port))
         goto err;
-    if (!HTTP_REQ_CTX_add1_header(rctx, "Host", host))
+    if (!OSSL_HTTP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
 
-    resp = HTTP_REQ_CTX_sendreq_d2i(rctx, it);
+    resp = OSSL_HTTP_REQ_CTX_sendreq_d2i(rctx, it);
 
  err:
     OPENSSL_free(host);
     OPENSSL_free(path);
     OPENSSL_free(port);
     BIO_free_all(bio);
-    HTTP_REQ_CTX_free(rctx);
+    OSSL_HTTP_REQ_CTX_free(rctx);
     return resp;
 }
 
@@ -684,7 +688,7 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
                              ASN1_VALUE *req, const ASN1_ITEM *req_it,
                              int timeout, int maxline, const ASN1_ITEM *rsp_it)
 {
-    HTTP_REQ_CTX *rctx = NULL;
+    OSSL_HTTP_REQ_CTX *rctx = NULL;
     ASN1_VALUE *rsp = NULL;
     time_t start_time = timeout > 0 ? time(NULL) : 0;
     long elapsed_time;
@@ -708,7 +712,7 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
     if (rctx == NULL)
         return NULL;
 
-    rsp = HTTP_REQ_CTX_sendreq_d2i(rctx, rsp_it);
+    rsp = OSSL_HTTP_REQ_CTX_sendreq_d2i(rctx, rsp_it);
     err = ERR_peek_error();
 
     if (rsp == NULL) {
@@ -736,18 +740,19 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
         rsp = NULL;
     }
 
-    HTTP_REQ_CTX_free(rctx);
+    OSSL_HTTP_REQ_CTX_free(rctx);
     return rsp;
 }
 
-ASN1_VALUE *HTTP_post_asn1(const char *host, const char *port,
-                           HTTP_bio_cb_t bio_update_fn, void *arg,
-                           const char *path,
-                           const char *proxy, const char *proxy_port,
-                           const STACK_OF(CONF_VALUE) *headers,
-                           const char *content_type,
-                           ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                           int timeout, int maxline, const ASN1_ITEM *rsp_it)
+ASN1_VALUE *OSSL_HTTP_post_asn1(const char *host, const char *port,
+                                HTTP_bio_cb_t bio_update_fn, void *arg,
+                                const char *path,
+                                const char *proxy, const char *proxy_port,
+                                const STACK_OF(CONF_VALUE) *headers,
+                                const char *content_type,
+                                ASN1_VALUE *req, const ASN1_ITEM *req_it,
+                                int timeout, int maxline,
+                                const ASN1_ITEM *rsp_it)
 {
     BIO *bio = HTTP_new_bio(host, port, proxy, proxy_port);
     ASN1_VALUE *res;
@@ -794,11 +799,11 @@ static char *base64encode(const void *buf, size_t len)
     return out;
 }
 
-/* Promote the given connection BIO via the CONNECT method, used for TLS */
-/* this is typically called by an app, so bio_err and prog are used if given */
-int HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
-                       const char *proxyuser, const char *proxypass,
-                       long timeout, BIO *bio_err, const char *prog)
+/* Promote the given connection BIO via the CONNECT method, used for TLS. */
+/* This is typically called by an app, so bio_err and prog are used if given */
+int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
+                            const char *proxyuser, const char *proxypass,
+                            long timeout, BIO *bio_err, const char *prog)
 {
 # undef BUF_SIZE
 # define BUF_SIZE 1024*8

@@ -1554,11 +1554,11 @@ OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,
     }
 
     resp = (OCSP_RESPONSE *)
-        HTTP_post_asn1(host, port, tls_http_cb, ctx,
-                       path, NULL, NULL /* no proxy used */,
-                       headers, "application/ocsp-request",
-                       (ASN1_VALUE *)req, ASN1_ITEM_rptr(OCSP_REQUEST),
-                       req_timeout, -1, ASN1_ITEM_rptr(OCSP_RESPONSE));
+        OSSL_HTTP_post_asn1(host, port, tls_http_cb, ctx,
+                            path, NULL, NULL /* no proxy used */,
+                            headers, "application/ocsp-request",
+                            (ASN1_VALUE *)req, ASN1_ITEM_rptr(OCSP_REQUEST),
+                            req_timeout, -1, ASN1_ITEM_rptr(OCSP_RESPONSE));
 
     if (resp == NULL)
         BIO_printf(bio_err, "Error querying OCSP responder\n");

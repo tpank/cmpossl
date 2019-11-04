@@ -54,11 +54,11 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
     BIO_snprintf(proxy_port, sizeof(proxy_port), "%d", ctx->proxyPort);
 
     res = (OSSL_CMP_MSG *)
-        HTTP_post_asn1(ctx->serverName, server_port, ctx->http_cb, ctx,
-                       ctx->serverPath, ctx->proxyName, proxy_port,
-                       headers, "application/pkixcmp",
-                       (ASN1_VALUE *)req, ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                       ctx->msgtimeout, -1, ASN1_ITEM_rptr(OSSL_CMP_MSG));
+        OSSL_HTTP_post_asn1(ctx->serverName, server_port, ctx->http_cb, ctx,
+                            ctx->serverPath, ctx->proxyName, proxy_port,
+                            headers, "application/pkixcmp",
+                            (ASN1_VALUE *)req, ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                            ctx->msgtimeout, -1, ASN1_ITEM_rptr(OSSL_CMP_MSG));
 
     sk_CONF_VALUE_pop_free(headers, X509V3_conf_free);
     return res;
@@ -70,9 +70,9 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
     char server_port[32];
 
     BIO_snprintf(server_port, sizeof(server_port), "%d", ctx->serverPort);
-    return HTTP_proxy_connect(bio, ctx->serverName, server_port,
-                              NULL, NULL, /* no proxy auth */
-                              ctx->msgtimeout, bio_err, prog);
+    return OSSL_HTTP_proxy_connect(bio, ctx->serverName, server_port,
+                                   NULL, NULL, /* no proxy auth */
+                                   ctx->msgtimeout, bio_err, prog);
 }
 
 #endif /* !defined(OPENSSL_NO_SOCK) */
