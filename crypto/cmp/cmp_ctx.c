@@ -293,7 +293,7 @@ int OSSL_CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert)
  * it be rejected.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb)
+int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, ossl_cmp_certConf_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
@@ -334,7 +334,7 @@ void *OSSL_CMP_CTX_get_certConf_cb_arg(OSSL_CMP_CTX *ctx)
  * Set a callback function for log messages.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
+int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, ossl_cmp_log_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
@@ -1122,7 +1122,7 @@ int OSSL_CMP_CTX_set_proxyPort(OSSL_CMP_CTX *ctx, int port)
  * sets the http connect/disconnect callback function to be used for HTTP(S)
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_http_cb_t cb)
+int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, ossl_cmp_http_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
@@ -1164,7 +1164,7 @@ void *OSSL_CMP_CTX_get_http_cb_arg(OSSL_CMP_CTX *ctx)
  * Set callback function for sending CMP request and receiving response.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_transfer_cb_t cb)
+int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, ossl_cmp_transfer_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
@@ -1495,7 +1495,7 @@ int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
     char component[256];
     char msg[1024];
     int res;
-    OSSL_cmp_log_cb_t log_fn =
+    ossl_cmp_log_cb_t log_fn =
         ctx == NULL || ctx->log_cb == NULL ? OSSL_CMP_puts : ctx->log_cb;
 
     BIO_snprintf(component, sizeof(component), "OpenSSL:%s", func);
@@ -1514,7 +1514,7 @@ void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx)
     char msg[4096];
     const char *file, *data;
     int line, flags;
-    OSSL_cmp_log_cb_t log_fn =
+    ossl_cmp_log_cb_t log_fn =
         ctx == NULL || ctx->log_cb == NULL ? OSSL_CMP_puts : ctx->log_cb;
 
     while ((err = ERR_get_error_line_data(&file, &line, &data, &flags)) != 0) {

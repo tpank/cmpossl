@@ -28,7 +28,7 @@ typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
  * partly using OpenSSL ASN.1 types in order to ease handling it - such ASN.1
  * entries must be given first, in same order as ASN1_SEQUENCE(OSSL_CMP_SRV_CTX)
  */
-struct OSSL_cmp_srv_ctx_st {
+struct ossl_cmp_srv_ctx_st {
     X509 *certOut;              /* Certificate to be returned in cp/ip/kup */
     STACK_OF(X509) *chainOut;   /* Cert chain useful to validate certOut */
     STACK_OF(X509) *caPubsOut;  /* caPubs for ip */
