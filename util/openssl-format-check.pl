@@ -1,8 +1,21 @@
 #!/usr/bin/perl
-
-# This tool aims at checking the formatting rules of the OpenSSL coding guidelines.
-# It is in prototypical state and so is incomplete and yields some false positives.
-# Still it should be quite useful for detecting most typical formatting glitches.
+#
+# Copyright 2019 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the Apache License 2.0 (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+#
+# openssl-format-check.pl
+# - check source file(s) according to OpenSSL coding style
+#
+# usage:
+#   openssl-format-check.pl <files>
+#
+# checks adherence to the formatting rules of the OpenSSL coding guidelines.
+# This tool is in preliminary state: it is incomplete and yields some false
+# positives. Still it should be useful for detecting most typical glitches.
 
 use strict;
 use List::Util qw[min max];
