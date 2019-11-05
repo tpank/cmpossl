@@ -428,28 +428,20 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
 OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_MSG *msg = NULL;
-    OSSL_CMP_REVDETAILS *rd = NULL;
-    int ret;
+    OSSL_CMP_REVDETAILS *rd;
 
     if (!ossl_assert(ctx != NULL && ctx->oldCert != NULL))
         return NULL;
 
-    if ((msg = ossl_cmp_msg_create(ctx, OSSL_CMP_PKIBODY_RR)) == NULL)
-        goto err;
-
     if ((rd = OSSL_CMP_REVDETAILS_new()) == NULL)
         goto err;
 
-    if (!sk_OSSL_CMP_REVDETAILS_push(msg->body->value.rr, rd))
-        goto err;
-
     /* Fill the template from the contents of the certificate to be revoked */
-    ret = OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
-                                      NULL/* pubkey would be redundant */,
-                                      NULL/* subject would be redundant */,
-                                      X509_get_issuer_name(ctx->oldCert),
-                                      X509_get_serialNumber(ctx->oldCert));
-    if (ret == 0)
+    if (!OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
+                                     NULL/* pubkey would be redundant */,
+                                     NULL/* subject would be redundant */,
+                                     X509_get_issuer_name(ctx->oldCert),
+                                     X509_get_serialNumber(ctx->oldCert)))
         goto err;
 
     /* revocation reason code is optional */
@@ -457,6 +449,13 @@ OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx)
             && !add_crl_reason_extension(&rd->crlEntryDetails,
                                          ctx->revocationReason))
         goto err;
+
+    if ((msg = ossl_cmp_msg_create(ctx, OSSL_CMP_PKIBODY_RR)) == NULL)
+        goto err;
+
+    if (!sk_OSSL_CMP_REVDETAILS_push(msg->body->value.rr, rd))
+        goto err;
+    rd = NULL;
 
     /*
      * TODO: the Revocation Passphrase according to section 5.3.19.9 could be
