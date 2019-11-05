@@ -4862,3 +4862,4 @@ EVP_PKEY_key_fromdata_init              ?	3_0_0	EXIST::FUNCTION:
 EVP_PKEY_fromdata                       ?	3_0_0	EXIST::FUNCTION:
 EVP_PKEY_param_fromdata_settable        ?	3_0_0	EXIST::FUNCTION:
 EVP_PKEY_key_fromdata_settable          ?	3_0_0	EXIST::FUNCTION:
+OSSL_CMP_MSG_get0_header                ?	3_0_0	EXIST::FUNCTION:CMP
