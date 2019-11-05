@@ -351,7 +351,7 @@ int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm,
 
 
 int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm,
-                                  const X509_EXTENSION *ext)
+                                  X509_EXTENSION *ext)
 {
     int new = 0;
     OSSL_CRMF_CERTTEMPLATE *tmpl = OSSL_CRMF_MSG_get0_tmpl(crm);

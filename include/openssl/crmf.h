@@ -1,7 +1,7 @@
 /*-
- * Copyright 2007-2018 The OpenSSL Project Authors. All Rights Reserved.
- * Copyright Nokia 2007-2018
- * Copyright Siemens AG 2015-2018
+ * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright Nokia 2007-2019
+ * Copyright Siemens AG 2015-2019
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -11,12 +11,12 @@
  * CRMF (RFC 4211) implementation by M. Peylo, M. Viljanen, and D. von Oheimb.
  */
 
-#ifndef OSSL_HEADER_CRMF_H
-# define OSSL_HEADER_CRMF_H
+#ifndef OPENSSL_CRMF_H
+# define OPENSSL_CRMF_H
 
 # include <openssl/opensslconf.h>
 
-# ifndef OPENSSL_NO_CMP
+# ifndef OPENSSL_NO_CRMF
 #  include <openssl/opensslv.h>
 #  if OPENSSL_VERSION_NUMBER < 0x10100002L
 #   define ossl_inline __inline
@@ -185,7 +185,7 @@ int OSSL_CRMF_MSG_set_certReqId(OSSL_CRMF_MSG *crm, int rid);
 int OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm);
 int OSSL_CRMF_MSG_set0_extensions(OSSL_CRMF_MSG *crm, X509_EXTENSIONS *exts);
 
-int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm, const X509_EXTENSION *ext);
+int OSSL_CRMF_MSG_push0_extension(OSSL_CRMF_MSG *crm, X509_EXTENSION *ext);
 #  define OSSL_CRMF_POPO_NONE      -1
 #  define OSSL_CRMF_POPO_RAVERIFIED 0
 #  define OSSL_CRMF_POPO_SIGNATURE  1
@@ -211,8 +211,8 @@ X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
 #  ifdef __cplusplus
 }
 #  endif
-# endif /* !defined OPENSSL_NO_CMP */
-#endif /* !defined OSSL_HEADER_CRMF_H */
+# endif /* !defined OPENSSL_NO_CRMF */
+#endif /* !defined OPENSSL_CRMF_H */
 
 #if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(OSSL_HEADER_CRMF_ERROR_CODES)
 # define OSSL_HEADER_CRMF_ERROR_CODES

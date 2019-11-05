@@ -109,8 +109,8 @@ struct ossl_cmp_ctx_st {
     /* TODO: this should be a stack since there could be more than one */
     int failInfoCode; /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
-    ossl_cmp_log_cb_t log_cb; /* log callback for error/debug/etc. output */
-    ossl_cmp_certConf_cb_t certConf_cb;   /* callback for letting the user check
+    OSSL_cmp_log_cb_t log_cb; /* log callback for error/debug/etc. output */
+    OSSL_cmp_certConf_cb_t certConf_cb;   /* callback for letting the user check
                            the received certificate and reject if necessary */
     void *certConf_cb_arg; /* allows to store an argument individual to cb */
     X509_STORE *trusted_store;    /* store for trusted (root) certificates and
@@ -128,9 +128,9 @@ struct ossl_cmp_ctx_st {
     int totaltimeout; /* maximum number seconds an enrollment may take, incl.
          attempts polling for a response if a 'waiting' PKIStatus is received */
     time_t end_time;
-    ossl_cmp_http_cb_t http_cb;
+    OSSL_cmp_http_cb_t http_cb;
     void *http_cb_arg; /* allows to store optional argument to cb */
-    ossl_cmp_transfer_cb_t transfer_cb;
+    OSSL_cmp_transfer_cb_t transfer_cb;
     void *transfer_cb_arg; /* allows to store optional argument to cb */
 } /* OSSL_CMP_CTX */;
 
@@ -491,7 +491,7 @@ struct ossl_cmp_pkiheader_st {
     ASN1_OCTET_STRING *recipNonce; /* 6 */
     OSSL_CMP_PKIFREETEXT *freeText; /* 7 */
     STACK_OF(OSSL_CMP_ITAV) *generalInfo; /* 8 */
-} /* OSSL_CMP_HDR */;
+} /* OSSL_CMP_PKIHEADER */;
 
 typedef STACK_OF(OSSL_CMP_CHALLENGE) OSSL_CMP_POPODECKEYCHALLCONTENT;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_POPODECKEYCHALLCONTENT)
@@ -619,7 +619,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIBODY)
  *   }
  */
 struct ossl_cmp_msg_st {
-    OSSL_CMP_HDR *header;
+    OSSL_CMP_PKIHEADER *header;
     OSSL_CMP_PKIBODY *body;
     ASN1_BIT_STRING *protection; /* 0 */
     /* OSSL_CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
@@ -634,7 +634,7 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_MSG)
  * }
  */
 typedef struct cmp_protectedpart_st {
-    OSSL_CMP_HDR *header;
+    OSSL_CMP_PKIHEADER *header;
     OSSL_CMP_PKIBODY *body;
 } CMP_PROTECTEDPART;
 DECLARE_ASN1_FUNCTIONS(CMP_PROTECTEDPART)

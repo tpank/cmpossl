@@ -2109,7 +2109,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                                OSSL_CMP_MSG **res)
 {
     OSSL_CMP_MSG *req_new = NULL;
-    OSSL_CMP_HDR *hdr;
+    OSSL_CMP_PKIHEADER *hdr;
     int ret = CMP_R_ERROR_TRANSFERRING_OUT;
 
     if (req != NULL && opt_reqout != NULL &&
@@ -2130,7 +2130,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
            * The following workaround unfortunately requires re-protection.
            * --> GitHub issue#8
            */
-            OSSL_CMP_HDR_set1_transactionID(OSSL_CMP_MSG_get0_header
+            OSSL_CMP_PKIHEADER_set1_transactionID(OSSL_CMP_MSG_get0_header
                                             (req_new), NULL);
             OSSL_CMP_MSG_protect((OSSL_CMP_CTX *)ctx, req_new);
 # endif
@@ -2164,9 +2164,9 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     if ((opt_reqin != NULL || opt_rspin != NULL) &&
         /* need to satisfy nonce and transactionID checks */
         (!OSSL_CMP_CTX_set1_last_senderNonce(ctx,
-                                             OSSL_CMP_HDR_get0_recipNonce(hdr))
+                                             OSSL_CMP_PKIHEADER_get0_recipNonce(hdr))
          || !OSSL_CMP_CTX_set1_transactionID(ctx,
-                                             OSSL_CMP_HDR_get0_transactionID(hdr))
+                                             OSSL_CMP_PKIHEADER_get0_transactionID(hdr))
         ))
         goto err;
 
