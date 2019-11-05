@@ -170,7 +170,8 @@ while(<>) {
             my $head = $1;
             print "$ARGV:$line:outer {: $orig_"
                 if !(m/^\s*(typedef|struct|union)/) &&
-                $indent == INDENT_LEVEL; # $indent is already incremented
+                   $in_multiline_macro == 0 &&
+                   $indent == INDENT_LEVEL; # $indent is already incremented
             $line_opening_brace = $line;
         }
         if(m/^([^\}]*)\}/) { # first }
