@@ -18,7 +18,7 @@
 #include <openssl/err.h>
 
 typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
-                      (OSSL_CMP_SRV_CTX *ctx, OSSL_CMP_MSG *msg);
+    (OSSL_CMP_SRV_CTX *ctx, OSSL_CMP_MSG *msg);
 
 /*
  * this structure is used to store the context for the CMP mock server

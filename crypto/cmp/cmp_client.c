@@ -72,7 +72,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                 /* a specific error could be misleading here */
                 return 0;
             if (ossl_cmp_pkisi_get_pkistatus(crep->status)
-                    == OSSL_CMP_PKISTATUS_rejection)
+                == OSSL_CMP_PKISTATUS_rejection)
                 msg_type = "CertRepMessage with rejection status";
         }
     }
@@ -256,7 +256,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
                 goto err;
             }
             if ((pollRep = ossl_cmp_pollrepcontent_get0_pollrep(prc, rid))
-                    == NULL)
+                == NULL)
                 goto err;
             if (!ASN1_INTEGER_get_int64(&check_after, pollRep->checkAfter)) {
                 CMPerr(0, CMP_R_BAD_CHECKAFTER_IN_POLLREP);
@@ -507,7 +507,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     }
 
     if (ossl_cmp_pkisi_get_pkistatus(crep->status)
-            == OSSL_CMP_PKISTATUS_waiting) {
+        == OSSL_CMP_PKISTATUS_waiting) {
         OSSL_CMP_MSG_free(*resp);
         if (pollForResponse(ctx, rid, resp)) {
             goto retry; /* got rp/cp/kup which might still indicate 'waiting' */

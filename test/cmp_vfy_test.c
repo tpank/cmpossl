@@ -116,8 +116,8 @@ static int test_validate_msg_mac_alg_protection(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* secret value belonging to cmp-test/CMP_IP_waitingStatus_PBM.der */
-    const unsigned char sec_1[] =
-        { '9', 'p', 'p', '8', '-', 'b', '3', '5', 'i', '-', 'X', 'd', '3',
+    const unsigned char sec_1[] ={
+        '9', 'p', 'p', '8', '-', 'b', '3', '5', 'i', '-', 'X', 'd', '3',
         'Q', '-', 'u', 'd', 'N', 'R'
     };
 
@@ -135,8 +135,8 @@ static int test_validate_msg_mac_alg_protection(void)
 static int test_validate_msg_mac_alg_protection_bad(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
-    const unsigned char sec_bad[] =
-        { '9', 'p', 'p', '8', '-', 'b', '3', '5', 'i', '-', 'X', 'd', '3',
+    const unsigned char sec_bad[] = {
+        '9', 'p', 'p', '8', '-', 'b', '3', '5', 'i', '-', 'X', 'd', '3',
         'Q', '-', 'u', 'd', 'N', 'r'
     };
     fixture->expected = 0;
