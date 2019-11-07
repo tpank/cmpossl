@@ -538,8 +538,7 @@ static X509_STORE *X509_STORE_new_1(void)
                              sk_##TYPE##_new_null(), sk_##TYPE##_free)
 
 #define DEFINE_SET_CB_TEST(FIELD) \
-    static OSSL_cmp_##FIELD##_t \
-        OSSL_CMP_CTX_get_##FIELD(const CMP_CTX *ctx) \
+    static OSSL_cmp_##FIELD##_t OSSL_CMP_CTX_get_##FIELD(const CMP_CTX *ctx) \
     { \
         if (ctx == NULL) \
             CMPerr(0, CMP_R_NULL_ARGUMENT); \
