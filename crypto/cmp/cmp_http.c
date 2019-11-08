@@ -117,11 +117,11 @@ static int bio_connect(BIO *bio, int timeout)
 }
 
 /* adapted from apps/s_client.c */
-#undef BUFSIZZ
-#define BUFSIZZ 1024*8
-#define HTTP_PREFIX "HTTP/"
-#define HTTP_VERSION "1." /* or, e.g., "1.1" */
-#define HTTP_VERSION_MAX_LEN 3
+# undef BUFSIZZ
+# define BUFSIZZ 1024*8
+# define HTTP_PREFIX "HTTP/"
+# define HTTP_VERSION "1." /* or, e.g., "1.1" */
+# define HTTP_VERSION_MAX_LEN 3
 int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
                            BIO *bio_err, const char *prog)
 {
@@ -148,7 +148,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
      */
     BIO_printf(fbio, "Proxy-Connection: Keep-Alive\r\n");
 
-#ifdef OSSL_CMP_SUPPORT_PROXYUSER /* TODO, is not yet supported */
+# ifdef OSSL_CMP_SUPPORT_PROXYUSER /* TODO, is not yet supported */
     /* Support for basic (base64) proxy authentication */
     if (proxyuser != NULL) {
         size_t l;
@@ -165,7 +165,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
         OPENSSL_clear_free(proxyauth, strlen(proxyauth));
         OPENSSL_clear_free(proxyauthenc, strlen(proxyauthenc));
     }
-#endif
+# endif
     BIO_printf(fbio, "\r\n");
  flush_retry:
     if (!BIO_flush(fbio)) {

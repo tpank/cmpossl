@@ -417,7 +417,7 @@ int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx,
 int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
                                                 int value);
 
-#   ifdef  __cplusplus
+#  ifdef  __cplusplus
 }
 #  endif
 # endif /* !defined OPENSSL_NO_CMP */
