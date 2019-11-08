@@ -264,7 +264,7 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
 int OSSL_CMP_CTX_get_option(const OSSL_CMP_CTX *ctx, int opt);
 /* CMP-specific callback for logging and outputting the error queue: */
 int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb);
-#define OSSL_CMP_CTX_set_log_verbosity(ctx, level) \
+#  define OSSL_CMP_CTX_set_log_verbosity(ctx, level) \
     OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_LOG_VERBOSITY, level)
 void OSSL_CMP_CTX_print_errors(OSSL_CMP_CTX *ctx);
 /* message transfer: */
@@ -417,8 +417,8 @@ int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx,
 int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
                                                 int value);
 
-#   ifdef  __cplusplus
+#  ifdef  __cplusplus
 }
-#   endif
+#  endif
 # endif /* !defined OPENSSL_NO_CMP */
 #endif /* !defined OPENSSL_CMP_H */
