@@ -10,10 +10,10 @@
  */
 
 #ifndef _WIN32
-#include <unistd.h>
+# include <unistd.h>
 #else
-#include <windows.h>
-#define sleep(x) Sleep((x) * 1000)
+# include <windows.h>
+# define sleep(x) Sleep((x) * 1000)
 #endif
 
 #include "cmp_local.h"
