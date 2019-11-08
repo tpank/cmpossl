@@ -355,6 +355,15 @@ ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
 /* support application-level CMP debugging in cmp.c: */
 OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
 
+/* from cmp_vfy.c */
+/* TODO better push OSSL_CMP_cmp_timeframe() to crypto/x509/x509_vfy.c */
+int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
+                           const ASN1_TIME *end, X509_VERIFY_PARAM *vpm);
+int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg);
+int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
+                                X509_STORE *trusted_store, X509 *cert);
+int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
+
 #  ifdef  __cplusplus
 }
 #  endif
