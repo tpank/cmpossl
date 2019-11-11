@@ -855,6 +855,7 @@ int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
                                   OSSL_CMP_PKIFAILUREINFO *fail_info);
 int OSSL_CMP_CTX_set0_newCert(OSSL_CMP_CTX *ctx, X509 *cert);
 int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey);
+int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey);
 int OSSL_CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs);
 int OSSL_CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                                    STACK_OF(X509) *extraCertsIn);
@@ -868,9 +869,11 @@ int OSSL_CMP_CTX_set1_newCert(OSSL_CMP_CTX *ctx, const X509 *cert);
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx);
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx);
 
-/* from cmp_status.c */
+/* from cmp_status.c or actually cmp_lib.c */
+char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
+#  define OSSL_CMP_PKISI_BUFLEN 1024
 
-/* from cmp_hdr.c */
+/* from cmp_hdr.c or actually cmp_ctx.c */
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_senderNonce(const OSSL_CMP_CTX *ctx);
 
 /* from cmp_lib.c */
@@ -934,6 +937,10 @@ STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store);
 
 /* from cmp_vfy.c */
 void put_cert_verify_err(int func, int err);
+int ossl_cmp_validate_cert_path(OSSL_CMP_CTX *ctx,
+                                X509_STORE *trusted_store,
+                                const STACK_OF(X509) *extra_untrusted,
+                                X509 *cert, int defer_errors);
 
 /* from cmp_client.c */
 int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info, const char *txt);

@@ -475,28 +475,18 @@ int OSSL_CMP_CTX_set1_extraCertsOut(OSSL_CMP_CTX *ctx,
 }
 
 /*
- * OSSL_CMP_CTX_policyOID_push1() adds the certificate policy OID given by the
- * string to the X509_EXTENSIONS of the requested certificate template.
+ * adds the given certificate policy
+ * to the X509_EXTENSIONS of the requested certificate template.
  * returns 1 on success, -1 on parse error, and 0 on other error.
  */
-int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID)
+int OSSL_CMP_CTX_push0_policy(OSSL_CMP_CTX *ctx, POLICYINFO *pinfo)
 {
-    ASN1_OBJECT *policy;
-    POLICYINFO *pinfo = NULL;
-
-    if ((ctx == NULL) || (policyOID == NULL))
+    if ((ctx == NULL) || (pinfo == NULL))
         goto err;
-
-    if ((policy = OBJ_txt2obj(policyOID, 1)) == 0)
-        return -1; /* parse error */
 
     if ((ctx->policies == NULL) &&
         ((ctx->policies = CERTIFICATEPOLICIES_new()) == NULL))
         goto err;
-
-    if ((pinfo = POLICYINFO_new()) == NULL)
-        goto err;
-    pinfo->policyid = policy;
 
     return sk_POLICYINFO_push(ctx->policies, pinfo);
 
@@ -940,7 +930,7 @@ int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
 
     if (!EVP_PKEY_up_ref((EVP_PKEY *)pkey))
         return 0;
-    if (OSSL_CMP_CTX_set0_newPkey(ctx, pkey))
+    if (OSSL_CMP_CTX_set0_newPkey(ctx, 1 /* priv */, (EVP_PKEY *)pkey))
        return 1;
     EVP_PKEY_free((EVP_PKEY *)pkey); /* down ref */
     return 0;
@@ -955,14 +945,12 @@ int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
  * NOTE: uses the pointer directly!
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
+int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, int priv /* ignored in current standalone version */, EVP_PKEY *pkey)
 {
     if (ctx == NULL || pkey == NULL)
         goto err;
 
     EVP_PKEY_free(ctx->newPkey);
-    ctx->newPkey = NULL;
-
     ctx->newPkey = (EVP_PKEY *)pkey;
     return 1;
  err:
@@ -973,7 +961,7 @@ int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
 /*
  * gets the newPkey from the context, or NULL on error
  */
-EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx)
+EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx, int priv /* ignored in current standalone version */)
 {
     return ctx == NULL ? NULL : ctx->newPkey;
 }

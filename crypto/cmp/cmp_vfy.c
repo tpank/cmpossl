@@ -148,6 +148,14 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
     return 0;
 }
 
+int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
+                                X509_STORE *trusted_store, X509 *cert)
+{
+    return ossl_cmp_validate_cert_path(ctx, trusted_store,
+                                       ctx->untrusted_certs,
+                                       cert, 0 /* defer_errors */);
+}
+
 /*
  * Attempt to validate certificate and path using given store of trusted certs
  * (possibly including CRLs and a cert verification callback function) and
@@ -156,7 +164,7 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
  * as any following certConf exchange will likely clear the OpenSSL error queue.
  * Returns 1 on successful validation and 0 otherwise.
  */
-int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
+int ossl_cmp_validate_cert_path(OSSL_CMP_CTX *ctx,
                                 X509_STORE *trusted_store,
                                 const STACK_OF(X509) *extra_untrusted,
                                 X509 *cert, int defer_errors)
@@ -405,7 +413,7 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid, int fn)
  * Check if the given cert is acceptable as sender cert of the given message.
  * The subject DN must match, the subject key ID as well if present in the msg,
  * and the cert must be current (for checking this, the ctx should be given).
- * Note that cert revocation etc. is checked by OSSL_CMP_validate_cert_path().
+ * Note that cert revocation etc. is checked by ossl_cmp_validate_cert_path().
  * returns 0 on error or not acceptable, else 1
  */
 static int cert_acceptable(OSSL_CMP_CTX *ctx, X509 *cert,
@@ -454,7 +462,7 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, X509 *cert,
 static int validate_cert_and_msg(OSSL_CMP_CTX *ctx,
                                  X509 *cert, const OSSL_CMP_MSG *msg)
 {
-    return OSSL_CMP_validate_cert_path(ctx, ctx->trusted_store,
+    return ossl_cmp_validate_cert_path(ctx, ctx->trusted_store,
                                        msg->extraCerts, cert, 0)
         && CMP_verify_signature(ctx, msg, cert);
 }
@@ -619,7 +627,7 @@ static int find_validate_srvcert_and_msg(OSSL_CMP_CTX *ctx,
              * which catches errors
              */
             (void)ERR_set_mark();
-            ret = OSSL_CMP_validate_cert_path(ctx, extra_store,
+            ret = ossl_cmp_validate_cert_path(ctx, extra_store,
                                               msg->extraCerts, newcrt, 0);
             (void)ERR_pop_to_mark();
             X509_free(newcrt);
@@ -653,7 +661,7 @@ static int find_validate_srvcert_and_msg(OSSL_CMP_CTX *ctx,
             OSSL_CMP_add_error_line(" considering cert with subject");
             OSSL_CMP_add_error_txt(" = ", name);
             OPENSSL_free(name);
-            if (OSSL_CMP_validate_cert_path(ctx, extra_store,
+            if (ossl_cmp_validate_cert_path(ctx, extra_store,
                                             msg->extraCerts, scrt, 0))
                 goto end; /* ret == 1 */
         }
@@ -809,7 +817,7 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
         return fail_info;
 
     if (out_trusted != NULL &&
-        !OSSL_CMP_validate_cert_path(ctx, out_trusted, NULL, cert, 1))
+        !ossl_cmp_validate_cert_path(ctx, out_trusted, NULL, cert, 1))
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
 
     if (fail_info != 0) {
