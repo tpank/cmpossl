@@ -18,7 +18,7 @@
 #define sleep(x) Sleep((x) * 1000)
 #endif
 
-#include "cmp_int.h"
+#include "cmp_local.h"
 
 /* explicit #includes not strictly needed since implied by the above: */
 #include <openssl/bio.h>

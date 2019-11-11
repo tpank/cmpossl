@@ -22,7 +22,7 @@
 #include <openssl/asn1t.h>
 #include <openssl/ocsp.h>
 
-#include "cmp_int.h"
+#include "cmp_local.h"
 
 /* explicit #includes not strictly needed since implied by the above: */
 #include <ctype.h>

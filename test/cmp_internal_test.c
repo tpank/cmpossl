@@ -13,7 +13,7 @@
 
 #include "cmptestlib.h"
 
-#include "../crypto/cmp/cmp_int.h"
+#include "../crypto/cmp/cmp_local.h"
 
 static const char *server_f;
 static const char *ir_protected_f;

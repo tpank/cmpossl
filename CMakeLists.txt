@@ -19,10 +19,11 @@ set(CMP_SSL_INC_DIR ${PROJECT_SOURCE_DIR}/include/openssl)
 
 set(CMP_SSL_INC ${CMP_SSL_INC_DIR}/cmp.h
     ${CMP_SSL_INC_DIR}/cmperr.h
+    ${CMP_SSL_INC_DIR}/cmp_util.h
     ${CMP_SSL_INC_DIR}/crmf.h
     ${CMP_SSL_INC_DIR}/crmferr.h
     ${CMP_SSL_INC_DIR}/safestack_backport.h
-    ${LIBCMP_INTERNAL_INC}/cmp_int.h
+    ${LIBCMP_INTERNAL_INC}/cmp_local.h
 )
 
 file (COPY ${CMP_SSL_INC} DESTINATION ${LIBCMP_INC}/openssl)
@@ -47,8 +48,8 @@ set(CMP_SRC ${CMP_SRCDIR}/cmp_asn.c
     ${CMP_SRCDIR}/cmp_http.c
     ${CMP_SRCDIR}/cmp_lib.c
     ${CMP_SRCDIR}/cmp_msg.c
-    ${CMP_SRCDIR}/cmp_ses.c
-    ${CMP_SRCDIR}/cmp_srv.c
+    ${CMP_SRCDIR}/cmp_client.c
+    ${CMP_SRCDIR}/cmp_server.c
     ${CMP_SRCDIR}/cmp_vfy.c
 )
 
