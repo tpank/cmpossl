@@ -39,6 +39,7 @@
  */
 
 /* OpenSSL ASN.1 macros in CTX struct */
+/*
 ASN1_SEQUENCE(OSSL_CMP_CTX) = {
     ASN1_OPT(OSSL_CMP_CTX, referenceValue, ASN1_OCTET_STRING),
     ASN1_OPT(OSSL_CMP_CTX, secretValue, ASN1_OCTET_STRING),
@@ -66,6 +67,7 @@ ASN1_SEQUENCE(OSSL_CMP_CTX) = {
     ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, genm_itavs, OSSL_CMP_ITAV),
 } static_ASN1_SEQUENCE_END(OSSL_CMP_CTX)
 IMPLEMENT_STATIC_ASN1_ALLOC_FUNCTIONS(OSSL_CMP_CTX)
+*/
 
 /*
  * Get current certificate store containing trusted root CA certs
@@ -107,7 +109,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(const OSSL_CMP_CTX *ctx)
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
-                                      const STACK_OF(X509) *certs)
+                                      STACK_OF(X509) *certs)
 {
     if (ctx->untrusted_certs)
         sk_X509_pop_free(ctx->untrusted_certs, X509_free);
@@ -121,7 +123,7 @@ int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
  * OpenSSL ASN.1 types are initialized to NULL by the call to OSSL_CMP_CTX_new()
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
+static int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_INIT, CMP_R_INVALID_CONTEXT);
@@ -167,7 +169,7 @@ int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
     ctx->serverName = NULL;
     ctx->serverPort = 8080;
     /* serverPath must be an empty string if not set since it's not mandatory */
-    ctx->serverPath = OPENSSL_zalloc(1); /* freed by OSSL_CMP_CTX_delete() */
+    ctx->serverPath = OPENSSL_zalloc(1); /* freed by OSSL_CMP_CTX_free() */
     if (ctx->serverPath == NULL)
         goto err;
     ctx->proxyName = NULL;
@@ -214,7 +216,7 @@ int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
 /*
  * frees OSSL_CMP_CTX variables allocated in CMP_CTX_init and calls CMP_CTX_free
  */
-void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx)
+void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return;
@@ -228,18 +230,18 @@ void OSSL_CMP_CTX_delete(OSSL_CMP_CTX *ctx)
     OPENSSL_free(ctx->proxyName);
     X509_STORE_free(ctx->trusted_store);
     sk_X509_pop_free(ctx->untrusted_certs, X509_free);
-    OSSL_CMP_CTX_free(ctx);
+    OPENSSL_free(ctx);
 }
 
 /*
  * creates and initializes a OSSL_CMP_CTX structure
  * returns pointer to created OSSL_CMP_CTX on success, NULL on error
  */
-OSSL_CMP_CTX *OSSL_CMP_CTX_create(void)
+OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
 {
     OSSL_CMP_CTX *ctx = NULL;
 
-    if ((ctx = OSSL_CMP_CTX_new()) == NULL)
+    if ((ctx = OPENSSL_zalloc(sizeof(*ctx))) == NULL)
         goto err;
     if (!(OSSL_CMP_CTX_init(ctx)))
         goto err;
@@ -350,7 +352,7 @@ int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_log_cb_t cb)
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
-                                     const unsigned char *ref, size_t len)
+                                     const unsigned char *ref, int len)
 {
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_REFERENCEVALUE, CMP_R_INVALID_ARGS);
@@ -505,23 +507,23 @@ int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID)
 /*
  * add an itav for geninfo of the PKI message header
  */
-int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_ITAV *itav)
+int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
     if (ctx == NULL)
         return 0;
 
-    return OSSL_CMP_ITAV_stack_item_push0(&ctx->geninfo_itavs, itav);
+    return OSSL_CMP_ITAV_push0_stack_item(&ctx->geninfo_itavs, itav);
 }
 
 /*
  * add an itav for the body of outgoing general messages
  */
-int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, const OSSL_CMP_ITAV *itav)
+int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
     if (ctx == NULL)
         return 0;
 
-    return OSSL_CMP_ITAV_stack_item_push0(&ctx->genm_itavs, itav);
+    return OSSL_CMP_ITAV_push0_stack_item(&ctx->genm_itavs, itav);
 }
 
 /*
@@ -571,7 +573,7 @@ int OSSL_CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
  * Cert pointer is not consumed. It may be NULL to clear the entry.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, const X509 *cert)
+int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL)
         goto err;
@@ -582,7 +584,7 @@ int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, const X509 *cert)
     if (cert == NULL)
         return 1; /* srvCert has been cleared */
 
-    if ((ctx->srvCert = X509_dup((X509 *)cert)) == NULL) {
+    if ((ctx->srvCert = X509_dup(cert)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SRVCERT, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -769,7 +771,7 @@ int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
  * doing the IR with existing certificate.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, const X509 *cert)
+int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL || cert == NULL)
         goto err;
@@ -777,7 +779,7 @@ int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, const X509 *cert)
     X509_free(ctx->clCert);
     ctx->clCert = NULL;
 
-    if ((ctx->clCert = X509_dup((X509 *)cert)) == NULL) {
+    if ((ctx->clCert = X509_dup(cert)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CLCERT, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -889,7 +891,7 @@ X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx)
  * so the given pointer is not used directly.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
+int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
     if (ctx == NULL || pkey == NULL)
         goto err;
@@ -911,7 +913,7 @@ int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
  * the given pointer directly!
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
+int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
 {
     if (ctx == NULL || pkey == NULL)
         goto err;
@@ -919,7 +921,7 @@ int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
     EVP_PKEY_free(ctx->pkey);
     ctx->pkey = NULL;
 
-    ctx->pkey = (EVP_PKEY *)pkey;
+    ctx->pkey = pkey;
     return 1;
  err:
     CMPerr(CMP_F_OSSL_CMP_CTX_SET0_PKEY, CMP_R_NULL_ARGUMENT);
@@ -1152,7 +1154,7 @@ int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
  * Get argument optionally to be used by the http connect/disconnect callback
  * returns callback argument set previously (NULL if not set or on error)
  */
-void *OSSL_CMP_CTX_get_http_cb_arg(OSSL_CMP_CTX *ctx)
+void *OSSL_CMP_CTX_get_http_cb_arg(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;
@@ -1194,7 +1196,7 @@ int OSSL_CMP_CTX_set_transfer_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
  * Get argument optionally to be used by the transfer callback
  * returns callback argument set previously (NULL if not set or on error)
  */
-void *OSSL_CMP_CTX_get_transfer_cb_arg(OSSL_CMP_CTX *ctx)
+void *OSSL_CMP_CTX_get_transfer_cb_arg(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;

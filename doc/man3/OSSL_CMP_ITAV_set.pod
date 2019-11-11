@@ -2,27 +2,27 @@
 
 =head1 NAME
 
-OSSL_CMP_ITAV_set,
+OSSL_CMP_ITAV_set0,
 OSSL_CMP_ITAV_get0_type,
 OSSL_CMP_ITAV_get0_value,
-OSSL_CMP_ITAV_stack_item_push0
+OSSL_CMP_ITAV_push0_stack_item
 - OSSL_CMP_ITAV utility functions
 
 =head1 SYNOPSIS
 
   #include <openssl/cmp.h>
-  void OSSL_CMP_ITAV_set(OSSL_CMP_ITAV *itav,
+  void OSSL_CMP_ITAV_set0(OSSL_CMP_ITAV *itav,
                          const ASN1_OBJECT *type,
                          const ASN1_TYPE *value);
   ASN1_OBJECT *OSSL_CMP_ITAV_get0_type(const OSSL_CMP_ITAV *itav);
   ASN1_TYPE *OSSL_CMP_ITAV_get0_value(const OSSL_CMP_ITAV *itav);
 
-  int OSSL_CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
+  int OSSL_CMP_ITAV_push0_stack_item(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
                                      const OSSL_CMP_ITAV *itav);
 
 =head1 DESCRIPTION
 
-OSSL_CMP_ITAV_set() sets the B<itav> with an infoType of B<type> and an
+OSSL_CMP_ITAV_set0() sets the B<itav> with an infoType of B<type> and an
 infoValue of B<value>. This function uses the pointers B<type> and B<value>
 internally, so they must B<not> be freed up after the call.
 
@@ -32,7 +32,7 @@ B<itav>.
 OSSL_CMP_ITAV_get0_value() returns a direct pointer to the infoValue in
 the B<itav> as generic ASN1_TYPE*.
 
-OSSL_CMP_ITAV_stack_item_push0() pushes B<itav> to the stack pointed to
+OSSL_CMP_ITAV_push0_stack_item() pushes B<itav> to the stack pointed to
 by B<*itav_sk_p>. It creates a new stack if B<*itav_sk_p> points to NULL.
 
 =head1 NOTES
@@ -41,9 +41,9 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
 
-OSSL_CMP_ITAV_set() does not return a value.
+OSSL_CMP_ITAV_set0() does not return a value.
 
-OSSL_CMP_ITAV_stack_item_push0() returns 1 on success, 0 on error.
+OSSL_CMP_ITAV_push0_stack_item() returns 1 on success, 0 on error.
 
 =head1 EXAMPLE
 
@@ -62,14 +62,14 @@ included in the requests' PKIHeader's genInfo field.
     ASN1_TYPE_set(val, V_ASN1_INTEGER, asn1int);
 
     OSSL_CMP_ITAV *itav = OSSL_CMP_ITAV_new();
-    OSSL_CMP_ITAV_set(itav, type, val);
+    OSSL_CMP_ITAV_set0(itav, type, val);
 
     OSSL_CMP_CTX *ctx = OSSL_CMP_CTX_new();
     OSSL_CMP_CTX_geninfo_itav_push0(ctx, itav);
 
 =head1 SEE ALSO
 
-L<OSSL_CMP_CTX_create(3)>, L<ASN1_TYPE_set(3)>
+L<OSSL_CMP_CTX_new(3)>, L<ASN1_TYPE_set(3)>
 
 =head1 COPYRIGHT
 

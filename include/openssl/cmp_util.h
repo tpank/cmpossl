@@ -75,7 +75,6 @@ typedef int (*OSSL_cmp_log_cb_t) (const char *component,
                                   OSSL_CMP_severity level, const char *msg);
 
 # else /* ifndef CMP_STANDALONE */
-
 /*
  * convenience functions for CMP-specific logging via the trace API
  */
@@ -128,11 +127,10 @@ typedef int (*OSSL_cmp_log_cb_t)(const char *func, const char *file, int line,
 
 /* use of the logging callback for outputting error queue */
 void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
-
 # endif /* ifndef CMP_STANDALONE */
 
-#   ifdef  __cplusplus
+#  ifdef  __cplusplus
 }
-#   endif
+#  endif
 # endif /* !defined OPENSSL_NO_CMP */
 #endif /* !defined OPENSSL_CMP_UTIL_H */

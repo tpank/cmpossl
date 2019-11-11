@@ -736,7 +736,7 @@ example, to confirm that the certificate was received successfully.
 int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
                                 const X509 *cert);
 int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **
-                              itav_sk_p, const OSSL_CMP_ITAV *itav);
+                              itav_sk_p, OSSL_CMP_ITAV *itav);
 
 /*
 OSSL_CMP_CERTRESPONSE_get_certificate() attempts to retrieve the returned

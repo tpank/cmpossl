@@ -70,7 +70,7 @@ void OSSL_CMP_SRV_CTX_delete(OSSL_CMP_SRV_CTX *srv_ctx)
 {
     if (srv_ctx == NULL)
         return;
-    OSSL_CMP_CTX_delete(srv_ctx->ctx);
+    OSSL_CMP_CTX_free(srv_ctx->ctx);
     srv_ctx->ctx = NULL;
     OSSL_CMP_SRV_CTX_free(srv_ctx);
 }
@@ -639,7 +639,7 @@ OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void)
     if ((ctx = OSSL_CMP_SRV_CTX_new()) == NULL)
         goto oom;
     ctx->certReqId = -1;
-    if ((ctx->ctx = OSSL_CMP_CTX_create()) == NULL)
+    if ((ctx->ctx = OSSL_CMP_CTX_new()) == NULL)
         goto oom;
     ctx->pollCount = 0;
     ctx->checkAfterTime = 1;

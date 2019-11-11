@@ -128,8 +128,8 @@ ASN1_SEQUENCE(OSSL_CMP_ITAV) = {
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
 IMPLEMENT_ASN1_DUP_FUNCTION(OSSL_CMP_ITAV)
 
-void OSSL_CMP_ITAV_set(OSSL_CMP_ITAV *itav, const ASN1_OBJECT *type,
-                       const ASN1_TYPE *value)
+void OSSL_CMP_ITAV_set0(OSSL_CMP_ITAV *itav, const ASN1_OBJECT *type,
+                        ASN1_TYPE *value)
 {
     itav->infoType = (ASN1_OBJECT *)type;
     itav->infoValue.other = (ASN1_TYPE *)value;
@@ -149,8 +149,8 @@ ASN1_TYPE *OSSL_CMP_ITAV_get0_value(const OSSL_CMP_ITAV *itav)
     return itav->infoValue.other;
 }
 
-int OSSL_CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
-                                   const OSSL_CMP_ITAV *itav)
+int OSSL_CMP_ITAV_push0_stack_item(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
+                                   OSSL_CMP_ITAV *itav)
 {
     int created = 0;
 

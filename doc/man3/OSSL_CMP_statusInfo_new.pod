@@ -88,7 +88,7 @@ See the individual functions above.
 
 =head1 SEE ALSO
 
-L<OSSL_CMP_CTX_create(3)>, L<OSSL_CMP_certreq_new(3)>
+L<OSSL_CMP_CTX_new(3)>, L<OSSL_CMP_certreq_new(3)>
 
 =head1 COPYRIGHT
 

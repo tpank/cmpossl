@@ -4413,7 +4413,7 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-    cmp_ctx = OSSL_CMP_CTX_create();
+    cmp_ctx = OSSL_CMP_CTX_new();
     vpm = X509_VERIFY_PARAM_new();
     if (cmp_ctx == NULL || vpm == NULL) {
         BIO_printf(bio_err, "%s: out of memory\n", prog);
@@ -4578,7 +4578,7 @@ int cmp_main(int argc, char **argv)
 
     SSL_CTX_free(OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx));
     X509_STORE_free(OSSL_CMP_CTX_get_certConf_cb_arg(cmp_ctx));
-    OSSL_CMP_CTX_delete(cmp_ctx);
+    OSSL_CMP_CTX_free(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);
     release_engine(e);
 
