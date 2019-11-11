@@ -151,7 +151,7 @@ int OSSL_CMP_PKIHEADER_get_pvno(const OSSL_CMP_PKIHEADER *hdr)
 }
 
 /* returns the transactionID of the given PKIHeader or NULL on error */
-ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr)
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_transactionID(const OSSL_CMP_PKIHEADER *hdr)
 {
     return hdr != NULL ? hdr->transactionID : NULL;
 }
@@ -163,7 +163,7 @@ ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_senderNonce(const OSSL_CMP_PKIHEADER 
 }
 
 /* returns the recipNonce of the given PKIHeader or NULL on error */
-ASN1_OCTET_STRING *OSSL_CMP_PKIHEADER_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr)
+ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr)
 {
     return hdr != NULL ? hdr->recipNonce : NULL;
 }
@@ -549,7 +549,7 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         goto err;
 
     /* store senderNonce - for cmp with recipNonce in next outgoing msg */
-    OSSL_CMP_CTX_set1_last_senderNonce(ctx, hdr->senderNonce);
+    OSSL_CMP_CTX_set1_senderNonce(ctx, hdr->senderNonce);
 
 #if 0
     /*
@@ -1093,7 +1093,7 @@ OSSL_CMP_ITAV *OSSL_CMP_ITAV_gen(const ASN1_OBJECT *type,
 
     if (type == NULL || (itav = OSSL_CMP_ITAV_new()) == NULL)
         return NULL;
-    OSSL_CMP_ITAV_set0(itav, type, value);
+    OSSL_CMP_ITAV_set0(itav, (ASN1_OBJECT *)type, value);
     return itav;
 }
 
@@ -1790,9 +1790,9 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     }
 
     /* compare received nonce with the one we sent */
-    if (ctx->last_senderNonce != NULL &&
+    if (ctx->senderNonce != NULL &&
         (msg->header->recipNonce == NULL ||
-         ASN1_OCTET_STRING_cmp(ctx->last_senderNonce,
+         ASN1_OCTET_STRING_cmp(ctx->senderNonce,
                                msg->header->recipNonce) != 0)) {
         CMPerr(CMP_F_OSSL_CMP_MSG_CHECK_RECEIVED,
                CMP_R_RECIPNONCE_UNMATCHED);

@@ -77,7 +77,7 @@ LDLIBS  += -lcrypto
 LIBCMP_HDRS_= crmf.h cmp.h cmp_util.h cmperr.h crmferr.h safestack_backport.h
 LIBCMP_HDRS = $(patsubst %,include/openssl/%,$(LIBCMP_HDRS_))
 LIBCMP_INC_HDRS = $(patsubst %,$(LIBCMP_INC)/openssl/%,$(LIBCMP_HDRS_))
-CMP_SRCS_ = cmp_asn.c cmp_ctx.c cmp_err.c cmp_http.c cmp_lib.c cmp_msg.c cmp_ses.c cmp_srv.c cmp_vfy.c
+CMP_SRCS_ = cmp_asn.c cmp_ctx.c cmp_err.c cmp_http.c cmp_lib.c cmp_msg.c cmp_client.c cmp_server.c cmp_vfy.c
 CRMF_SRCS_ = crmf_asn.c crmf_err.c crmf_lib.c crmf_pbm.c
 LIBCMP_SRCS = $(patsubst %,crypto/crmf/%,$(CRMF_SRCS_)) $(patsubst %,crypto/cmp/%,$(CMP_SRCS_))
 

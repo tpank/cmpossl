@@ -156,10 +156,10 @@ static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
  * as any following certConf exchange will likely clear the OpenSSL error queue.
  * Returns 1 on successful validation and 0 otherwise.
  */
-int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
-                                const X509_STORE *trusted_store,
+int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
+                                X509_STORE *trusted_store,
                                 const STACK_OF(X509) *extra_untrusted,
-                                const X509 *cert, int defer_errors)
+                                X509 *cert, int defer_errors)
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
@@ -333,7 +333,7 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
 /* return 0 if time should not be checked or reference time is within frame,
    or else 1 if it s past the end, or -1 if it is before the start */
 int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
-                           const ASN1_TIME *end, const X509_VERIFY_PARAM *vpm)
+                           const ASN1_TIME *end, X509_VERIFY_PARAM *vpm)
 {
     time_t check_time, *ptime = NULL;
     unsigned long flags = vpm == NULL ? 0 :
@@ -451,8 +451,8 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, X509 *cert,
 /*
  * internal function
  */
-static int validate_cert_and_msg(const OSSL_CMP_CTX *ctx,
-                                 const X509 *cert, const OSSL_CMP_MSG *msg)
+static int validate_cert_and_msg(OSSL_CMP_CTX *ctx,
+                                 X509 *cert, const OSSL_CMP_MSG *msg)
 {
     return OSSL_CMP_validate_cert_path(ctx, ctx->trusted_store,
                                        msg->extraCerts, cert, 0)
@@ -799,7 +799,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
  * Note: While often handy, there is no hard requirement by CMP that
  * an EE must be able to validate the certificates it gets enrolled.
  */
-int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, const X509 *cert, int fail_info,
+int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
                          const char **text)
 {
     X509_STORE *out_trusted = OSSL_CMP_CTX_get_certConf_cb_arg(ctx);

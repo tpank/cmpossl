@@ -62,7 +62,7 @@ ASN1_SEQUENCE(OSSL_CMP_CTX) = {
     ASN1_OPT(OSSL_CMP_CTX, expected_sender, X509_NAME),
     ASN1_OPT(OSSL_CMP_CTX, transactionID, ASN1_OCTET_STRING),
     ASN1_OPT(OSSL_CMP_CTX, recipNonce, ASN1_OCTET_STRING),
-    ASN1_OPT(OSSL_CMP_CTX, last_senderNonce, ASN1_OCTET_STRING),
+    ASN1_OPT(OSSL_CMP_CTX, senderNonce, ASN1_OCTET_STRING),
     ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, geninfo_itavs, OSSL_CMP_ITAV),
     ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, genm_itavs, OSSL_CMP_ITAV),
 } static_ASN1_SEQUENCE_END(OSSL_CMP_CTX)
@@ -204,12 +204,12 @@ int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
     ctx->failInfoCode = -1;
 
     return OSSL_CMP_CTX_set0_statusString(ctx, NULL)
-        && OSSL_CMP_CTX_set0_newClCert(ctx, NULL)
+        && OSSL_CMP_CTX_set0_newCert(ctx, NULL)
         && OSSL_CMP_CTX_set1_caPubs(ctx, NULL)
         && OSSL_CMP_CTX_set1_extraCertsIn(ctx, NULL)
         && OSSL_CMP_CTX_set0_validatedSrvCert(ctx, NULL)
         && OSSL_CMP_CTX_set1_transactionID(ctx, NULL)
-        && OSSL_CMP_CTX_set1_last_senderNonce(ctx, NULL)
+        && OSSL_CMP_CTX_set1_senderNonce(ctx, NULL)
         && OSSL_CMP_CTX_set1_recipNonce(ctx, NULL);
 }
 
@@ -257,7 +257,7 @@ OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
  * returns the PKIStatus from the last CertRepMessage
  * or Revocation Response, -1 on error
  */
-int OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx)
+int OSSL_CMP_CTX_get_status(const OSSL_CMP_CTX *ctx)
 {
     return ctx != NULL ? ctx->lastPKIStatus : -1;
 }
@@ -266,7 +266,7 @@ int OSSL_CMP_CTX_status_get(OSSL_CMP_CTX *ctx)
  * returns the statusString from the last CertRepMessage
  * or Revocation Response, NULL on error
  */
-OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_statusString_get(OSSL_CMP_CTX *ctx)
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(const OSSL_CMP_CTX *ctx)
 {
     return ctx != NULL ? ctx->lastStatusString : NULL;
 }
@@ -325,7 +325,7 @@ int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void* arg)
  * optionally to be used by certConf callback
  * returns callback argument set previously (NULL if not set or on error)
  */
-void *OSSL_CMP_CTX_get_certConf_cb_arg(OSSL_CMP_CTX *ctx)
+void *OSSL_CMP_CTX_get_certConf_cb_arg(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;
@@ -366,7 +366,7 @@ int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
  * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
-                                  const size_t len)
+                                  const int len)
 {
     if (ctx == NULL){
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SECRETVALUE, CMP_R_NULL_ARGUMENT);
@@ -382,7 +382,7 @@ int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
  * The stack is duplicated so the caller must handle freeing it!
  * returns pointer to created stack on success, NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_CTX_extraCertsIn_get1(const OSSL_CMP_CTX *ctx)
+STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         goto err;
@@ -507,7 +507,7 @@ int OSSL_CMP_CTX_policyOID_push1(OSSL_CMP_CTX *ctx, const char *policyOID)
 /*
  * add an itav for geninfo of the PKI message header
  */
-int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
+int OSSL_CMP_CTX_push0_geninfo_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
     if (ctx == NULL)
         return 0;
@@ -518,7 +518,7 @@ int OSSL_CMP_CTX_geninfo_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 /*
  * add an itav for the body of outgoing general messages
  */
-int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
+int OSSL_CMP_CTX_push0_genm_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
     if (ctx == NULL)
         return 0;
@@ -531,7 +531,7 @@ int OSSL_CMP_CTX_genm_itav_push0(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
  * were received in the caPubs field of the last response message.
  * returns NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_CTX_caPubs_get1(const OSSL_CMP_CTX *ctx)
+STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         goto err;
@@ -739,7 +739,7 @@ int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx)
  * request's extensions field to request subject alternative names.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_subjectAltName_push1(OSSL_CMP_CTX *ctx,
+int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
                                       const GENERAL_NAME *name)
 {
     if (ctx == NULL || name == NULL) {
@@ -796,7 +796,7 @@ int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, X509 *cert)
  * and SANs. Its issuer is used as default recipient in the CMP message header.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_oldClCert(OSSL_CMP_CTX *ctx, const X509 *cert)
+int OSSL_CMP_CTX_set1_oldCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL || cert == NULL)
         goto err;
@@ -841,7 +841,7 @@ int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
  * returns 1 on success, 0 on error
  * TODO: this only permits for one client cert to be received...
  */
-int OSSL_CMP_CTX_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
+int OSSL_CMP_CTX_set0_newCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET0_NEWCLCERT, CMP_R_NULL_ARGUMENT);
@@ -858,7 +858,7 @@ int OSSL_CMP_CTX_set0_newClCert(OSSL_CMP_CTX *ctx, X509 *cert)
  * returns 1 on success, 0 on error
  * TODO: this only permits for one client cert to be received...
  */
-int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, const X509 *cert)
+int OSSL_CMP_CTX_set1_newCert(OSSL_CMP_CTX *ctx, const X509 *cert)
 {
     if (ctx == NULL || cert == NULL)
         goto err;
@@ -879,7 +879,7 @@ int OSSL_CMP_CTX_set1_newClCert(OSSL_CMP_CTX *ctx, const X509 *cert)
  * Get the (newly received in IP/KUP/CP) client certificate from the context
  * TODO: this only permits for one client cert to be received...
  */
-X509 *OSSL_CMP_CTX_get0_newClCert(const OSSL_CMP_CTX *ctx)
+X509 *OSSL_CMP_CTX_get0_newCert(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return NULL;
@@ -1034,13 +1034,13 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx)
  * stores the given nonce as the last senderNonce sent out
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
-                                       const ASN1_OCTET_STRING *nonce)
+int OSSL_CMP_CTX_set1_senderNonce(OSSL_CMP_CTX *ctx,
+                                  const ASN1_OCTET_STRING *nonce)
 {
     if (ctx == NULL || nonce == NULL)
         goto err;
 
-    return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->last_senderNonce, nonce);
+    return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->senderNonce, nonce);
 
  err:
     CMPerr(CMP_F_OSSL_CMP_CTX_SET1_LAST_SENDERNONCE, CMP_R_NULL_ARGUMENT);
@@ -1051,9 +1051,9 @@ int OSSL_CMP_CTX_set1_last_senderNonce(OSSL_CMP_CTX *ctx,
  * gets the sender nonce of the last message sent
  * returns a pointer to the nonce on success, NULL on error
  */
-ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_last_senderNonce(const OSSL_CMP_CTX *ctx)
+ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_senderNonce(const OSSL_CMP_CTX *ctx)
 {
-    return ctx == NULL ? NULL : ctx->last_senderNonce;
+    return ctx == NULL ? NULL : ctx->senderNonce;
 }
 
 /*
@@ -1280,7 +1280,7 @@ int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
  * Get the failinfo error code bits in OSSL_CMP_CTX
  * returns bit string as integer on success, -1 on error
  */
-int OSSL_CMP_CTX_failInfoCode_get(OSSL_CMP_CTX *ctx)
+int OSSL_CMP_CTX_get_failInfoCode(const OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return -1;
@@ -1509,7 +1509,7 @@ int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
 }
 
 /* print OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
-void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx)
+void OSSL_CMP_CTX_print_errors(OSSL_CMP_CTX *ctx)
 {
     unsigned long err;
     char component[256];

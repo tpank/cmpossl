@@ -68,13 +68,12 @@ int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
 #define OSSL_CMP_debug(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_DEBUG, msg)
 int  OSSL_CMP_log_init(void);
 void OSSL_CMP_log_close(void);
-void OSSL_CMP_print_errors(OSSL_CMP_CTX *ctx);
 
 typedef int (*OSSL_cmp_log_cb_t) (const char *component,
                                   const char *file, int lineno,
                                   OSSL_CMP_severity level, const char *msg);
 
-# else /* ifndef CMP_STANDALONE */
+# else /* ifdef CMP_STANDALONE */
 /*
  * convenience functions for CMP-specific logging via the trace API
  */
@@ -127,7 +126,7 @@ typedef int (*OSSL_cmp_log_cb_t)(const char *func, const char *file, int line,
 
 /* use of the logging callback for outputting error queue */
 void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
-# endif /* ifndef CMP_STANDALONE */
+# endif /* ifdef CMP_STANDALONE */
 
 #  ifdef  __cplusplus
 }

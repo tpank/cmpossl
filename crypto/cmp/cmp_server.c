@@ -28,7 +28,7 @@ typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
  * partly using OpenSSL ASN.1 types in order to ease handling it - such ASN.1
  * entries must be given first, in same order as ASN1_SEQUENCE(OSSL_CMP_SRV_CTX)
  */
-struct ossl_cmp_srv_ctx_st {
+struct OSSL_cmp_srv_ctx_st {
     X509 *certOut;              /* Certificate to be returned in cp/ip/kup */
     STACK_OF(X509) *chainOut;   /* Cert chain useful to validate certOut */
     STACK_OF(X509) *caPubsOut;  /* caPubs for ip */
@@ -57,16 +57,7 @@ struct ossl_cmp_srv_ctx_st {
 
 } /* OSSL_CMP_SRV_CTX */ ;
 
-ASN1_SEQUENCE(OSSL_CMP_SRV_CTX) = {
-    ASN1_OPT(OSSL_CMP_SRV_CTX, certOut, X509),
-        ASN1_SEQUENCE_OF_OPT(OSSL_CMP_SRV_CTX, chainOut, X509),
-        ASN1_SEQUENCE_OF_OPT(OSSL_CMP_SRV_CTX, caPubsOut, X509),
-        ASN1_SIMPLE(OSSL_CMP_SRV_CTX, pkiStatusOut, OSSL_CMP_PKISI),
-        ASN1_OPT(OSSL_CMP_SRV_CTX, certReq, OSSL_CMP_MSG)
-} static_ASN1_SEQUENCE_END(OSSL_CMP_SRV_CTX)
-IMPLEMENT_STATIC_ASN1_ALLOC_FUNCTIONS(OSSL_CMP_SRV_CTX)
-
-void OSSL_CMP_SRV_CTX_delete(OSSL_CMP_SRV_CTX *srv_ctx)
+void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx)
 {
     if (srv_ctx == NULL)
         return;
@@ -632,11 +623,11 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
  * creates and initializes a OSSL_CMP_SRV_CTX structure
  * returns pointer to created CMP_SRV_ on success, NULL on error
  */
-OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_create(void)
+OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void)
 {
-    OSSL_CMP_SRV_CTX *ctx = NULL;
+    OSSL_CMP_SRV_CTX *ctx = OPENSSL_zalloc(sizeof(OSSL_CMP_SRV_CTX));
 
-    if ((ctx = OSSL_CMP_SRV_CTX_new()) == NULL)
+    if (ctx == NULL)
         goto oom;
     ctx->certReqId = -1;
     if ((ctx->ctx = OSSL_CMP_CTX_new()) == NULL)
