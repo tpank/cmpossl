@@ -195,9 +195,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     CMPerr(0, bt == OSSL_CMP_PKIBODY_ERROR ? CMP_R_RECEIVED_ERROR :
            CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
 
-    if (bt == -1) {
-        ERR_add_error_data(1, "no message or invalid message type '-1'");
-    } else if (bt != OSSL_CMP_PKIBODY_ERROR) {
+    if (bt != OSSL_CMP_PKIBODY_ERROR) {
         ERR_add_error_data(3, "message type is '", bt_string, "'");
     } else {
         char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
