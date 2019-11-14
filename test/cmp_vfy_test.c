@@ -77,10 +77,11 @@ static int test_verify_popo(void)
     if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))) {
         tear_down(fixture);
         fixture = NULL;
+    } else {
+        fixture->additional_arg = 0;
+        fixture->expected = 1;
+        EXECUTE_TEST(execute_verify_popo_test, tear_down);
     }
-    fixture->additional_arg = 0;
-    fixture->expected = 1;
-    EXECUTE_TEST(execute_verify_popo_test, tear_down);
     return result;
 }
 
@@ -90,10 +91,11 @@ static int test_verify_popo_bad(void)
     if (!TEST_ptr(fixture->msg = load_pkimsg(ip_waiting_f))) {
         tear_down(fixture);
         fixture = NULL;
+    } else {
+        fixture->additional_arg = 0;
+        fixture->expected = 0;
+        EXECUTE_TEST(execute_verify_popo_test, tear_down);
     }
-    fixture->additional_arg = 0;
-    fixture->expected = 0;
-    EXECUTE_TEST(execute_verify_popo_test, tear_down);
     return result;
 }
 
