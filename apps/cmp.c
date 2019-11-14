@@ -2960,8 +2960,6 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         }
         EVP_PKEY_free(pkey); /* we do not need the handle any more */
     }
-    return ssl_ctx;
-
     if (opt_tls_trusted != NULL) {
         /* cannot do these before calling SSL_CTX_build_cert_chain() */
         if (!set1_store_parameters_crls(store, all_crls))
@@ -2975,7 +2973,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
                            SSL_VERIFY_PEER |
                            SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
     }
-
+    return ssl_ctx;
  err:
     SSL_CTX_free(ssl_ctx);
     return NULL;
