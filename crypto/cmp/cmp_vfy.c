@@ -21,6 +21,29 @@
 #include <openssl/x509.h>
 
 /*
+ * Call verification callback on signature verification error,
+ * which typically prints diagnostics but could also override the result
+ */
+static int handle_signature_error(const OSSL_CMP_CTX *cmp_ctx, X509 *cert)
+{
+    X509_STORE *ts = cmp_ctx->trusted;
+    X509_STORE_CTX_verify_cb verify_cb =
+        ts == NULL ? NULL : X509_STORE_get_verify_cb(ts);
+    X509_STORE_CTX *csc = X509_STORE_CTX_new();
+    int ok = 0;
+
+    if (csc != NULL && verify_cb != NULL /* implies ts != NULL */
+            && X509_STORE_CTX_init(csc, ts, NULL, NULL)) {
+        X509_STORE_CTX_set_current_cert(csc, cert);
+        X509_STORE_CTX_set_error_depth(csc, -1);
+        X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
+        ok = (*verify_cb)(0, csc); /* re-use cert verify error callback */
+    }
+    X509_STORE_CTX_free(csc);
+    return ok;
+}
+
+/*
  * Verify a message protected by signature according to section 5.1.3.3
  * (sha1+RSA/DSA or any other algorithm supported by OpenSSL)
  * returns 0 on error
@@ -30,7 +53,7 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 {
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART prot_part;
-    int err = 1;
+    int res = 0;
     int digest_nid, pk_nid;
     EVP_MD *digest = NULL;
     EVP_PKEY *pubkey = NULL;
@@ -45,15 +68,13 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     if (!cmp_ctx->ignore_keyusage
             && (X509_get_key_usage(cert) & X509v3_KU_DIGITAL_SIGNATURE) == 0) {
         CMPerr(0, CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE);
-        err = 2;
-        goto cert_err;
+        goto sig_err;
     }
 
     pubkey = X509_get_pubkey(cert);
     if (pubkey == NULL) {
         CMPerr(0, CMP_R_FAILED_EXTRACTING_PUBKEY);
-        err = 2;
-        goto cert_err;
+        goto sig_err;
     }
 
     /* create the DER representation of protected part */
@@ -71,48 +92,37 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
             || digest_nid == NID_undef || pk_nid == NID_undef
             || (digest = (EVP_MD *)EVP_get_digestbynid(digest_nid)) == NULL) {
         CMPerr(0, CMP_R_ALGORITHM_NOT_SUPPORTED);
-        err = 2;
-        goto end;
+        goto sig_err;
     }
 
     /* check msg->header->protectionAlg is consistent with public key type */
     if (EVP_PKEY_type(pk_nid) != EVP_PKEY_base_id(pubkey)) {
         CMPerr(0, CMP_R_WRONG_ALGORITHM_OID);
-        err = 2;
-        goto end;
+        goto sig_err;
     }
 
     if ((ctx = EVP_MD_CTX_new()) == NULL)
         goto end;
-    err = (EVP_VerifyInit_ex(ctx, digest, NULL)
-               && EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len)
-               && EVP_VerifyFinal(ctx, msg->protection->data,
-                                  msg->protection->length, pubkey) == 1)
-        ? 0 : 2;
+    if (EVP_VerifyInit_ex(ctx, digest, NULL)
+            && EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len)
+            && EVP_VerifyFinal(ctx, msg->protection->data,
+                               msg->protection->length, pubkey) == 1) {
+        res = 1;
+        goto end;
+    }
+
+ sig_err:
+    if (handle_signature_error(cmp_ctx, cert) == 1)
+        res = 1;
+    else
+        CMPerr(0, CMP_R_ERROR_VALIDATING_PROTECTION);
 
  end:
     EVP_MD_CTX_free(ctx);
     OPENSSL_free(prot_part_der);
     EVP_PKEY_free(pubkey);
 
- cert_err:
-    if (err == 2) { /* print diagnostics on cert verification error */
-        X509_STORE *ts = cmp_ctx->trusted;
-        X509_STORE_CTX *csc = X509_STORE_CTX_new();
-        X509_STORE_CTX_verify_cb verify_cb = ts == NULL ? NULL
-                                             : X509_STORE_get_verify_cb(ts);
-
-        if (csc != NULL && verify_cb != NULL /* implies ts != NULL */
-                && X509_STORE_CTX_init(csc, ts, NULL, NULL)) {
-            X509_STORE_CTX_set_current_cert(csc, cert);
-            X509_STORE_CTX_set_error_depth(csc, -1);
-            X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
-            (void)(*verify_cb)(0, csc);
-        }
-        CMPerr(0, CMP_R_ERROR_VALIDATING_PROTECTION);
-        X509_STORE_CTX_free(csc);
-    }
-    return err == 0;
+    return res;
 }
 
 /* Verify a message protected with PBMAC */
