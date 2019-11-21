@@ -47,7 +47,7 @@ int OSSL_CRMF_MSG_set1_##ctrlinf##_##atyp(OSSL_CRMF_MSG *msg,             \
 {                                                                         \
     OSSL_CRMF_ATTRIBUTETYPEANDVALUE *atav = NULL;                         \
                                                                           \
-    if (msg == NULL || in  == NULL)                                       \
+    if (msg == NULL || in == NULL)                                       \
         goto err;                                                         \
     if ((atav = OSSL_CRMF_ATTRIBUTETYPEANDVALUE_new()) == NULL)           \
         goto err;                                                         \
@@ -139,8 +139,8 @@ int OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo(
     return sk_OSSL_CRMF_SINGLEPUBINFO_push(pi->pubInfos, spi);
 }
 
-int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(
-                                 OSSL_CRMF_PKIPUBLICATIONINFO *pi, int action)
+int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(OSSL_CRMF_PKIPUBLICATIONINFO *pi,
+                                                int action)
 {
     if (pi == NULL
             || action < OSSL_CRMF_PUB_ACTION_DONTPUBLISH
@@ -457,7 +457,7 @@ int OSSL_CRMF_MSG_create_popo(OSSL_CRMF_MSG *crm, EVP_PKEY *pkey,
         {
             OSSL_CRMF_POPOSIGNINGKEY *ps = OSSL_CRMF_POPOSIGNINGKEY_new();
             if (ps == NULL
-                    || !CRMF_poposigningkey_init(ps, crm->certReq, pkey, dgst)){
+                    || !CRMF_poposigningkey_init(ps, crm->certReq, pkey, dgst)) {
                 OSSL_CRMF_POPOSIGNINGKEY_free(ps);
                 goto err;
             }
@@ -542,21 +542,23 @@ int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
              * the public key from the certificate template. This MUST be
              * exactly the same value as contained in the certificate template.
              */
+            const ASN1_ITEM *rptr = ASN1_ITEM_rptr(OSSL_CRMF_POPOSIGNINGKEYINPUT);
+
             if (pubkey == NULL
                     || sig->poposkInput->publicKey == NULL
                     || X509_PUBKEY_cmp(pubkey, sig->poposkInput->publicKey)
-                    || ASN1_item_verify(
-                           ASN1_ITEM_rptr(OSSL_CRMF_POPOSIGNINGKEYINPUT),
-                           sig->algorithmIdentifier, sig->signature,
-                           sig->poposkInput, X509_PUBKEY_get0(pubkey)) < 1)
+                    || ASN1_item_verify(rptr, sig->algorithmIdentifier,
+                                        sig->signature, sig->poposkInput,
+                                        X509_PUBKEY_get0(pubkey)) < 1)
                 break;
         } else {
             if (pubkey == NULL
                     || req->certReq->certTemplate->subject == NULL
                     || ASN1_item_verify(ASN1_ITEM_rptr(OSSL_CRMF_CERTREQUEST),
-                                    sig->algorithmIdentifier, sig->signature,
-                                    req->certReq,
-                                    X509_PUBKEY_get0(pubkey)) < 1)
+                                        sig->algorithmIdentifier,
+                                        sig->signature,
+                                        req->certReq,
+                                        X509_PUBKEY_get0(pubkey)) < 1)
                 break;
         }
         return 1;

@@ -224,14 +224,14 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     if ((crm = OSSL_CRMF_MSG_new()) == NULL)
         return NULL;
     if (!OSSL_CRMF_MSG_set_certReqId(crm, rid)
-            /*
-             * fill certTemplate, corresponding to CertificationRequestInfo
-             * of PKCS#10. The rkey param cannot be NULL so far -
-             * it could be NULL if centralized key creation was supported
-             */
-            || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
-                                            subject, ctx->issuer,
-                                            NULL/* serial */))
+        /*
+         * fill certTemplate, corresponding to CertificationRequestInfo
+         * of PKCS#10. The rkey param cannot be NULL so far -
+         * it could be NULL if centralized key creation was supported
+         */
+        || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
+                                        subject, ctx->issuer,
+                                        NULL /* serial */))
         goto err;
     if (ctx->days != 0) {
         time_t notBefore, notAfter;
@@ -331,10 +331,10 @@ OSSL_CMP_MSG *ossl_cmp_certReq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
             goto err;
         }
         if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID, rkey)) == NULL
-                || !OSSL_CRMF_MSG_create_popo(crm, privkey, ctx->digest,
-                                              ctx->popoMethod)
-                /* value.ir is same for cr and kur */
-                || !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
+            || !OSSL_CRMF_MSG_create_popo(crm, privkey, ctx->digest,
+                                          ctx->popoMethod)
+            /* value.ir is same for cr and kur */
+            || !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
             goto err;
         crm = NULL;
         /* TODO: here optional 2nd certreqmsg could be pushed to the stack */
@@ -439,8 +439,8 @@ OSSL_CMP_MSG *ossl_cmp_rr_new(OSSL_CMP_CTX *ctx)
 
     /* Fill the template from the contents of the certificate to be revoked */
     if (!OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
-                                     NULL/* pubkey would be redundant */,
-                                     NULL/* subject would be redundant */,
+                                     NULL /* pubkey would be redundant */,
+                                     NULL /* subject would be redundant */,
                                      X509_get_issuer_name(ctx->oldCert),
                                      X509_get_serialNumber(ctx->oldCert)))
         goto err;
@@ -566,7 +566,7 @@ int ossl_cmp_msg_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
         return 0;
 
     for (i = 0; i < sk_OSSL_CMP_ITAV_num(itavs); i++) {
-        if ((itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs,i))) == NULL)
+        if ((itav = OSSL_CMP_ITAV_dup(sk_OSSL_CMP_ITAV_value(itavs, i))) == NULL)
             return 0;
         if (!ossl_cmp_msg_gen_push0_ITAV(msg, itav)) {
             OSSL_CMP_ITAV_free(itav);
@@ -640,8 +640,8 @@ OSSL_CMP_MSG *ossl_cmp_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     }
     if (errorDetails != NULL)
         if ((msg->body->value.error->errorDetails =
-            sk_ASN1_UTF8STRING_deep_copy(errorDetails, ASN1_STRING_dup,
-                                         ASN1_STRING_free)) == NULL)
+             sk_ASN1_UTF8STRING_deep_copy(errorDetails, ASN1_STRING_dup,
+                                          ASN1_STRING_free)) == NULL)
             goto err;
 
     if (!unprotected && !ossl_cmp_msg_protect(ctx, msg))

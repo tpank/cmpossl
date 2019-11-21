@@ -44,19 +44,28 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
     if (!ossl_assert(ctx != NULL && rep != NULL))
         return 0;
 
-    if (ctx->unprotectedErrors) {
-        if (rcvd_type == OSSL_CMP_PKIBODY_ERROR) {
-            msg_type = "error response";
-        } else if (rcvd_type == OSSL_CMP_PKIBODY_RP
-                       && ossl_cmp_pkisi_get_pkistatus(
-                           ossl_cmp_revrepcontent_get_pkistatusinfo(
-                                                            rep->body->value.rp,
-                                                            OSSL_CMP_REVREQSID))
-                       == OSSL_CMP_PKISTATUS_rejection) {
-            msg_type = "revocation response message with rejection status";
-        } else if (rcvd_type == OSSL_CMP_PKIBODY_PKICONF) {
-            msg_type = "PKI Confirmation message";
-        } else if (rcvd_type == expected_type && IS_CREP(rcvd_type)) {
+    if (!ctx->unprotectedErrors)
+        return 0;
+
+    switch (rcvd_type) {
+    case OSSL_CMP_PKIBODY_ERROR:
+        msg_type = "error response";
+        break;
+    case OSSL_CMP_PKIBODY_RP: {
+            OSSL_CMP_PKISI *si =
+                ossl_cmp_revrepcontent_get_pkistatusinfo(rep->body->value.rp,
+                                                         OSSL_CMP_REVREQSID);
+            if (ossl_cmp_pkisi_get_pkistatus(si) == OSSL_CMP_PKISTATUS_rejection)
+                msg_type = "revocation response message with rejection status";
+            else
+                msg_type = "revocation response message without rejection status";
+            break;
+        }
+    case OSSL_CMP_PKIBODY_PKICONF:
+        msg_type = "PKI Confirmation message";
+        break;
+    default:
+        if (IS_CREP(rcvd_type)) {
             OSSL_CMP_CERTREPMESSAGE *crepmsg = rep->body->value.ip;
             OSSL_CMP_CERTRESPONSE *crep =
                 ossl_cmp_certrepmessage_get0_certresponse(crepmsg, -1);
@@ -66,7 +75,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                 return 0;
             /*-
              * TODO: handle multiple CertResponses in CertRepMsg, in case
-             *       multiple requests have been sent -->  GitHub issue#67
+             *       multiple requests have been sent --> GitHub issue#67
              */
             if (crep == NULL)
                 /* a specific error could be misleading here */
@@ -247,7 +256,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
 
             /*-
              * TODO: handle multiple PollRepContent elements, in case
-             *       multiple requests have been sent -->  GitHub issue#67
+             *       multiple requests have been sent --> GitHub issue#67
              */
             if (sk_OSSL_CMP_POLLREP_num(prc) > 1) {
                 CMPerr(0, CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED);
@@ -491,7 +500,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     }
     /*
      * TODO handle multiple CertResponses in CertRepMsg (in case multiple
-     * requests have been sent) -->  GitHub issue#67
+     * requests have been sent) --> GitHub issue#67
      */
     if ((crep = ossl_cmp_certrepmessage_get0_certresponse(crepmsg, rid)) == NULL)
         return 0;
@@ -592,9 +601,11 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     return ret;
 }
 
-#define INFO_CONTACTING_SERVER(ctx) OSSL_CMP_log2(INFO, "contacting %s:%d", \
-    (ctx)->serverName == NULL ? "(no server name)" : (ctx)->serverName, \
-    (ctx)->serverPort);
+#define INFO_CONTACTING_SERVER(ctx) \
+    OSSL_CMP_log2(INFO, "contacting %s:%d", \
+                  (ctx)->serverName == NULL ? \
+                  "(no server name)" : (ctx)->serverName, \
+                  (ctx)->serverPort);
 
 /*
  * Do the full sequence CR/IR/KUR/P10CR, CP/IP/KUP/CP,
@@ -701,7 +712,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         goto err;
     switch (ossl_cmp_pkisi_get_pkistatus(si)) {
     case OSSL_CMP_PKISTATUS_accepted:
-        /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)");*/
+        /* TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)"); */
         result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_grantedWithMods:
@@ -724,7 +735,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         break;
     case OSSL_CMP_PKISTATUS_revocationNotification:
         /* interpretation as warning or error depends on CA */
-        /*TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)");*/
+        /* TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)"); */
         result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_waiting:
@@ -756,7 +767,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         if (X509_NAME_cmp(issuer, OSSL_CRMF_CERTID_get0_issuer(cid)) != 0
                 || ASN1_INTEGER_cmp(serial,
                                     OSSL_CRMF_CERTID_get0_serialNumber(cid))
-                                    != 0) {
+            != 0) {
             CMPerr(0, CMP_R_WRONG_CERTID_IN_RP);
             result = NULL;
             goto err;

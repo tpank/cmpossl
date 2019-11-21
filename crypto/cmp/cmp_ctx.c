@@ -768,7 +768,7 @@ int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
  * returns 1 on success, 0 on error
  */
 int ossl_cmp_ctx_set1_recipNonce(OSSL_CMP_CTX *ctx,
-                            const ASN1_OCTET_STRING *nonce)
+                                 const ASN1_OCTET_STRING *nonce)
 {
     if (!ossl_assert(ctx != NULL))
         return 0;

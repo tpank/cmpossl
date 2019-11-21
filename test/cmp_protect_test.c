@@ -112,18 +112,18 @@ static int verify_signature(OSSL_CMP_MSG *msg,
     prot_part.body = msg->body;
     res =
         TEST_int_ge(l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der), 0)
-            && TEST_ptr(ctx = EVP_MD_CTX_new())
-            && TEST_true(EVP_DigestVerifyInit(ctx, NULL, digest, NULL, pkey))
-            && TEST_int_eq(EVP_DigestVerify(ctx, protection->data,
-                                            protection->length,
-                                            prot_part_der, l), 1);
+        && TEST_ptr(ctx = EVP_MD_CTX_new())
+        && TEST_true(EVP_DigestVerifyInit(ctx, NULL, digest, NULL, pkey))
+        && TEST_int_eq(EVP_DigestVerify(ctx, protection->data,
+                                        protection->length,
+                                        prot_part_der, l), 1);
     /* cleanup */
     EVP_MD_CTX_free(ctx);
     OPENSSL_free(prot_part_der);
     return res;
 }
 
-/* Calls OSSL_CMP_calc_protection and compares and verifies signature*/
+/* Calls OSSL_CMP_calc_protection and compares and verifies signature */
 static int execute_calc_protection_signature_test(CMP_PROTECT_TEST_FIXTURE *
                                                   fixture)
 {
@@ -493,7 +493,7 @@ int setup_tests(void)
             || !TEST_ptr(root = load_pem_cert(root_f))
             || !TEST_ptr(intermediate = load_pem_cert(intermediate_f)))
         return 0;
-    if(!TEST_int_eq(1, RAND_bytes(rand_data, OSSL_CMP_TRANSACTIONID_LENGTH)))
+    if (!TEST_int_eq(1, RAND_bytes(rand_data, OSSL_CMP_TRANSACTIONID_LENGTH)))
         return 0;
 
     /* Message protection tests */
