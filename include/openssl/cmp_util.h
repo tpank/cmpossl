@@ -19,7 +19,7 @@
 #  include <openssl/trace.h>
 #  include <openssl/x509.h>
 
-#  ifdef  __cplusplus
+#  ifdef __cplusplus
 extern "C" {
 #  endif
 

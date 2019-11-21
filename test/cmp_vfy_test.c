@@ -118,7 +118,7 @@ static int test_validate_msg_mac_alg_protection(void)
 {
     SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
     /* secret value belonging to cmp-test/CMP_IP_waitingStatus_PBM.der */
-    const unsigned char sec_1[] ={
+    const unsigned char sec_1[] = {
         '9', 'p', 'p', '8', '-', 'b', '3', '5', 'i', '-', 'X', 'd', '3',
         'Q', '-', 'u', 'd', 'N', 'R'
     };
@@ -215,7 +215,7 @@ static int test_validate_msg_signature_expected_sender(void)
     fixture->expected = 1;
     if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))
             || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert))
-        /* Set correct expected sender name*/
+        /* Set correct expected sender name */
             || !TEST_true(OSSL_CMP_CTX_set1_expected_sender(fixture->cmp_ctx,
                                              X509_get_subject_name(srvcert)))) {
         tear_down(fixture);
@@ -231,7 +231,7 @@ static int test_validate_msg_signature_unexpected_sender(void)
     fixture->expected = 0;
     if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))
             || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx, srvcert))
-        /* Set wrong expected sender name*/
+        /* Set wrong expected sender name */
             || !TEST_true(OSSL_CMP_CTX_set1_expected_sender(fixture->cmp_ctx,
                                                 X509_get_subject_name(root)))) {
         tear_down(fixture);
@@ -545,7 +545,7 @@ int setup_tests(void)
     if (!TEST_ptr(srvcert = load_pem_cert(server_f))
             || !TEST_ptr(clcert = load_pem_cert(client_f)))
         goto err;
-    if(!TEST_int_eq(1, RAND_bytes(rand_data, OSSL_CMP_TRANSACTIONID_LENGTH)))
+    if (!TEST_int_eq(1, RAND_bytes(rand_data, OSSL_CMP_TRANSACTIONID_LENGTH)))
         goto err;
     if (!TEST_ptr(ir_unprotected = load_pkimsg(ir_unprotected_f))
             || !TEST_ptr(ir_rmprotection = load_pkimsg(ir_rmprotection_f)))

@@ -195,7 +195,7 @@ static int execute_CTX_reqExtensions_have_SAN_test(
 {
     OSSL_CMP_CTX *ctx = fixture->ctx;
     const int len = 16;
-    unsigned char str[16 /* = len */ ];
+    unsigned char str[16 /* = len */];
     ASN1_OCTET_STRING *data = NULL;
     X509_EXTENSION *ext = NULL;
     X509_EXTENSIONS *exts = NULL;

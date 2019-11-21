@@ -37,9 +37,9 @@
 # ifndef openssl_fdset
 /* copied from apps/include/apps.h */
 #  if defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)
-#   define openssl_fdset(a,b) FD_SET((unsigned int)a, b)
+#   define openssl_fdset(a, b) FD_SET((unsigned int)a, b)
 #  else
-#   define openssl_fdset(a,b) FD_SET(a, b)
+#   define openssl_fdset(a, b) FD_SET(a, b)
 #  endif
 # endif
 
@@ -227,7 +227,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
 }
 
 /* TODO DvO: push this upstream with extended load_cert_crl_http() */
-typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
+typedef int (*http_fn)(OCSP_REQ_CTX *rctx, ASN1_VALUE **resp);
 /*
  * Even better would be to extend OCSP_REQ_CTX_nbio() and
  * thus OCSP_REQ_CTX_nbio_d2i() to include this retry behavior
@@ -237,7 +237,7 @@ typedef int (*http_fn)(OCSP_REQ_CTX *rctx,ASN1_VALUE **resp);
  * returns -4: other, -3: send, -2: receive, or -1: parse error, 0: timeout,
  * 1: success and then provides the received message via the *resp argument
  */
-static int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
+static int bio_http(BIO *bio /* could be removed if we could access rctx->io */,
                     OCSP_REQ_CTX *rctx, http_fn fn, ASN1_VALUE **resp,
                     time_t max_time)
 {
@@ -255,7 +255,7 @@ static int bio_http(BIO *bio/* could be removed if we could access rctx->io */,
                     rv = -3; /* send error */
                 } else {
                     if (*resp == pattern)
-                        rv = -2;/* receive error */
+                        rv = -2; /* receive error */
                     else
                         rv = -1; /* parse error */
                 }
