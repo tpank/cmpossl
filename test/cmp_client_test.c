@@ -73,9 +73,11 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
             || !TEST_true(OSSL_CMP_CTX_set_transfer_cb_arg(ctx,
                                                            fixture->srv_ctx))
             || !TEST_true(OSSL_CMP_CTX_set_option(ctx,
-                                              OSSL_CMP_OPT_UNPROTECTED_SEND, 1))
+                                                  OSSL_CMP_OPT_UNPROTECTED_SEND,
+                                                  1))
             || !TEST_true(OSSL_CMP_CTX_set_option(ctx,
-                                            OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1))
+                                                  OSSL_CMP_OPT_UNPROTECTED_ERRORS,
+                                                  1))
             || !TEST_true(OSSL_CMP_CTX_set1_oldCert(ctx, client_cert))
             || !TEST_true(OSSL_CMP_CTX_set1_pkey(ctx, client_key))
             || !TEST_true(OSSL_CMP_CTX_set1_srvCert(ctx, server_cert))
@@ -117,8 +119,8 @@ static int execute_exec_certrequest_ses_test(CMP_SES_TEST_FIXTURE *fixture)
             if (fixture->ca_pubs != NULL) {
                 STACK_OF(X509) *ca_pubs =
                     OSSL_CMP_CTX_get1_caPubs(fixture->cmp_ctx);
-                int ret = TEST_int_eq(0,
-                        STACK_OF_X509_cmp(fixture->ca_pubs, ca_pubs));
+                int ret = TEST_int_eq(0, STACK_OF_X509_cmp(fixture->ca_pubs,
+                                                           ca_pubs));
                 sk_X509_pop_free(ca_pubs, X509_free);
                 return ret;
             }
@@ -273,7 +275,7 @@ static int test_exchange_certConf(void)
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
     if (!TEST_true(ossl_cmp_ctx_set0_newCert(fixture->cmp_ctx,
-                                             X509_dup(client_cert)))){
+                                             X509_dup(client_cert)))) {
         tear_down(fixture);
         fixture = NULL;
     }

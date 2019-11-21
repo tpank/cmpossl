@@ -69,7 +69,8 @@ static OSSL_CMP_severity parse_level(const char *level)
 }
 
 const char *ossl_cmp_log_parse_metadata(const char *buf,
-                 OSSL_CMP_severity *level, char **func, char **file, int *line)
+                                        OSSL_CMP_severity *level,
+                                        char **func, char **file, int *line)
 {
     const char *p_func = buf;
     const char *p_file = buf == NULL ? NULL : strchr(buf, ':');
@@ -223,7 +224,7 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
         BIO_snprintf(component, sizeof(component), "OpenSSL:%s:%s",
                      ERR_lib_error_string(err), func_);
 #else
-        BIO_snprintf(component, sizeof(component), "%s",func_);
+        BIO_snprintf(component, sizeof(component), "%s", func_);
 #endif
         BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
                      data == NULL ? "" : " : ", data == NULL ? "" : data);
@@ -438,7 +439,7 @@ int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
         return 0;
     }
     if (bytes != NULL) {
-        if ((new =  ASN1_OCTET_STRING_new()) == NULL
+        if ((new = ASN1_OCTET_STRING_new()) == NULL
                 || !(ASN1_OCTET_STRING_set(new, bytes, len))) {
             ASN1_OCTET_STRING_free(new);
             return 0;
