@@ -100,7 +100,6 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
         CMPerr(0, CMP_R_WRONG_ALGORITHM_OID);
         goto sig_err;
     }
-
     if ((ctx = EVP_MD_CTX_new()) == NULL)
         goto end;
     if (EVP_VerifyInit_ex(ctx, digest, NULL)
@@ -289,11 +288,12 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
         }
         BIO_free(bio);
     }
-#if 0
-    /* TODO: we could check policies here too */
-    if (cert_error == X509_V_OK && ok == 2)
-        policies_print(NULL, ctx);
-#endif
+
+    /*
+     * TODO we could check policies here too, e.g.:
+     * if (cert_error == X509_V_OK && ok == 2)
+     *     policies_print(NULL, ctx);
+     */
 
     return ok;
 }
