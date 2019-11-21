@@ -55,7 +55,7 @@ struct OSSL_cmp_srv_ctx_st
     cmp_srv_process_cb_t process_error_cb;
     cmp_srv_process_cb_t process_genm_cb;
 
-} /* OSSL_CMP_SRV_CTX */ ;
+}; /* OSSL_CMP_SRV_CTX */
 
 void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx)
 {
@@ -123,7 +123,7 @@ int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
     OSSL_CMP_PKISI_free(srv_ctx->pkiStatusOut);
     return (srv_ctx->pkiStatusOut = ossl_cmp_statusinfo_new(status,
                                                             fail_info, text))
-            != NULL;
+        != NULL;
 }
 
 int OSSL_CMP_SRV_CTX_set1_certOut(OSSL_CMP_SRV_CTX *srv_ctx, X509 *cert)
@@ -367,7 +367,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         status->certHash = NULL;
         if (ossl_cmp_certstatus_set_certHash(status, srv_ctx->certOut))
             res = status->certHash == NULL ? 0 /* avoiding SCA false positive */
-                  : ASN1_OCTET_STRING_cmp(tmp, status->certHash) == 0;
+                : ASN1_OCTET_STRING_cmp(tmp, status->certHash) == 0;
         ASN1_OCTET_STRING_free(status->certHash);
         status->certHash = tmp;
         if (res == -1)
@@ -581,12 +581,12 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
         const char *data;
         int flags = 0;
         unsigned long err = ERR_peek_error_data(&data, &flags);
+        int fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_badRequest;
+        /* TODO fail_info could be more specific */
 
         error = CMP_R_ERROR_PROCESSING_MSG;
         if ((si = ossl_cmp_statusinfo_new(OSSL_CMP_PKISTATUS_rejection,
-                                          1<<OSSL_CMP_PKIFAILUREINFO_badRequest,
-                         /* TODO failure bit(s) may be could be more specific */
-                                          NULL)) == NULL)
+                                          fail_info, NULL)) == NULL)
             goto end;
         if ((details = sk_ASN1_UTF8STRING_new_null()) == NULL)
             goto end;
