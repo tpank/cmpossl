@@ -102,10 +102,10 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     }
     if ((ctx = EVP_MD_CTX_new()) == NULL)
         goto end;
-    if (EVP_VerifyInit_ex(ctx, digest, NULL)
-            && EVP_VerifyUpdate(ctx, prot_part_der, prot_part_der_len)
-            && EVP_VerifyFinal(ctx, msg->protection->data,
-                               msg->protection->length, pubkey) == 1) {
+    if (EVP_DigestVerifyInit(ctx, NULL, digest, NULL, pubkey)
+            && EVP_DigestVerify(ctx, msg->protection->data,
+                                msg->protection->length,
+                                prot_part_der, prot_part_der_len) == 1) {
         res = 1;
         goto end;
     }
@@ -857,7 +857,7 @@ int ossl_cmp_verify_popo(const OSSL_CMP_MSG *msg, int accept_RAVerified)
 {
     if (!ossl_assert(msg != NULL && msg->body != NULL))
         return 0;
-    switch(msg->body->type) {
+    switch (msg->body->type) {
     case OSSL_CMP_PKIBODY_P10CR: {
             X509_REQ *req = msg->body->value.p10cr;
             if (X509_REQ_verify(req, X509_REQ_get0_pubkey(req)) > 0)
