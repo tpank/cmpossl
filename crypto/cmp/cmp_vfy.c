@@ -333,19 +333,16 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
             return 0;
         }
         if (ASN1_OCTET_STRING_cmp(ckid, skid) != 0) {
-#ifdef hex_to_string
             char *str;
-#endif
+
             CMPerr(0, CMP_R_UNEXPECTED_SENDER);
             ossl_cmp_add_error_line("  certificate Subject Key Identifier does not match senderKID:");
-#ifdef hex_to_string
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
             ossl_cmp_add_error_txt("\n      actual = ", str);
             OPENSSL_free(str);
             str = OPENSSL_buf2hexstr(skid->data, skid->length);
             ossl_cmp_add_error_txt("\n    expected = ", str);
             OPENSSL_free(str);
-#endif
             return 0;
         }
     }
@@ -362,13 +359,13 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
 static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
                            X509_STORE *ts /* may be NULL */)
 {
-    X509_NAME *sender_name = NULL;
-    X509_VERIFY_PARAM *vpm = NULL;
+    X509_NAME *sender_name;
+    X509_VERIFY_PARAM *vpm;
     int time_cmp;
 
     vpm = ts != NULL ? X509_STORE_get0_param(ts) : NULL;
-    if (cert == NULL || msg == NULL || (ts != NULL && vpm == NULL))
-        return 0; /* TODO better flag and handle this as fatal internal error */
+    if (!ossl_assert(cert != NULL && msg != NULL && (ts == NULL || vpm != NULL)))
+        return 0;
 
     time_cmp = OSSL_CMP_cmp_timeframe(X509_get0_notBefore(cert),
                                       X509_get0_notAfter (cert), vpm);
@@ -411,10 +408,8 @@ static int find_acceptable_certs(STACK_OF(X509) *certs, const OSSL_CMP_MSG *msg,
 {
     int i;
 
-    if (sk == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(sk != NULL))
         return 0;
-    }
 
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
@@ -453,10 +448,8 @@ static int find_server_cert(X509_STORE *ts, /* may be NULL */
 {
     STACK_OF(X509) *trusted;
 
-    if (msg == NULL || found_certs == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(msg != NULL && found_certs != NULL))
         return 0;
-    }
 
     if (!find_acceptable_certs(untrusted, msg, ts, found_certs))
         return 0;
@@ -478,7 +471,8 @@ static int find_server_cert(X509_STORE *ts, /* may be NULL */
 }
 
 /*
- * Exceptional handling for 3GPP TS 33.310, only to use for IP and if the ctx
+ * Exceptional handling for 3GPP TS 33.310 [3G/LTE Network Domain Security
+ * (NDS);Authentication Framework (AF)], only to use for IP and if the ctx
  * option is explicitly set: use self-signed certificates from extraCerts as
  * trust anchor to validate server cert - provided it also can validate the
  * newly enrolled certificate
@@ -562,8 +556,10 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
         /* find server cert candidates from any available source */
         if (!find_server_cert(ctx->trusted, ctx->untrusted_certs,
-                              msg, found_crts))
+                              msg, found_crts)) {
+            ERR_clear_last_mark();
             goto end;
+        }
 
         /* select first server cert that can be validated */
         for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
@@ -584,9 +580,11 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             /* discard any diagnostic info on finding server cert */
             (void)ERR_pop_to_mark();
             /* store trusted srv cert for future msgs of same transaction */
-            if (ossl_cmp_ctx_set0_validatedSrvCert(ctx, scrt))
-                X509_up_ref(scrt);
+            if (X509_up_ref(scrt))
+                if (!ossl_cmp_ctx_set0_validatedSrvCert(ctx, scrt))
+                    X509_free(scrt);
         } else {
+            (void)ERR_clear_last_mark();
             scrt = NULL;
         }
  end:
@@ -606,7 +604,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
  * If ctx->permitTAInExtraCertsForIR is true, the trust anchor may be taken from
  * the extraCerts field when a self-signed certificate is found there which can
  * be used to validate the enrolled certificate returned in IP.
- *  This is according to the need given in 3GPP TS 33.310.
+ * This is according to the need given in 3GPP TS 33.310.
  *
  * returns 1 on success, 0 on error or validation failed
  */
@@ -658,15 +656,16 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         }
         break;
 
-        /* TODO: 5.1.3.2.  DH Key Pairs --> GitHub issue#87 */
+        /*
+         * 5.1.3.2 DH Key Pairs
+         * Not yet supported
+         */
     case NID_id_DHBasedMac:
         CMPerr(0, CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC);
         break;
 
         /*
          * 5.1.3.3.  Signature
-         * TODO: should that better white-list DSA/RSA etc.?
-         * -> check all possible options from OpenSSL, should there be macro?
          */
     default:
         if (!OBJ_find_sigid_algs(OBJ_obj2nid(alg->algorithm), NULL, &pk_nid)
@@ -694,7 +693,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
                 add_name_mismatch_data(NULL, sender_name, ctx->expected_sender);
                 break;
             }
-        }/* Note: if recipient was NULL-DN it could be learned here if needed */
+        } /* Note: if recipient was NULL-DN it could be learned here if needed */
 
         scrt = ctx->srvCert;
         if (scrt == NULL)
