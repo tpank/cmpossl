@@ -28,27 +28,32 @@ OSSL_CMP_cmp_timeframe() compares the given time period with the current time.
 If verification parameters are given and X509_V_FLAG_USE_CHECK_TIME is set
 the reference time included there is used instead of the current time.
 
-OSSL_CMP_validate_msg() validates the protection of the given PKIMessage
+OSSL_CMP_validate_msg() validates the protection of the given C<msg>
 using either password-based mac (PBM) or a signature algorithm.
 
 In case of signature algorithm, the certificate to use for protection
-validation is taken from ctx->srvCert if set. Otherwise potentially suitable
-sender certificates are determined by matching the PKIMessage's sender DN and
-senderKID to the certificates available in the PKIMessage's extraCerts,
-ctx->untrusted_certs, and ctx->trusted_store.  The first candidate that can be
-validated against ctx->trusted_store, utilizing ctx->untrusted_certs and
-extraCerts, is used.
+validation is taken from the certificates previously provided by calling
+L<OSSL_CMP_CTX_set1_srvCert(3)>. If not yet provided potentially suitable
+sender certificates are determined by matching the C<msg> sender DN and
+senderKID to the certificates available in the C<msg> extraCerts,
+and certificates provided before via L<OSSL_CMP_CTX_set1_untrusted_certs(3)>
+and L<OSSL_CMP_CTX_set0_trustedStore(3)>. The first candidate that can be
+validated against C<msg> extraCerts and provided certificates, is used.
 
 In case of successful validation of PBM protection of a certificate response,
-the certificates in the caPubs field (if any) are added to ctx->trusted_store,
-to be available for validating future messages in the same context.
-Those could e.g. apply to later Polling Responses (pollRep) or PKI Confirmation
-(PKIConf) messages in the same transaction.
+the certificates in the caPubs field (if any) are added to the certificates
+provided via L<OSSL_CMP_CTX_set0_trustedStore(3)>, to be available for
+validating future messages in the same context. Those could e.g. apply to later
+Polling Responses (pollRep) or PKI Confirmation (PKIConf) messages in the same
+transaction.
 
-If ctx->permitTAInExtraCertsForIR is true, a self-signed certificate from the
-PKIMessage's extraCerts field may also be used as trust anchor during
+If the option OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR was set by calling
+L<OSSL_CMP_CTX_set_option(3)>, a self-signed certificate from the
+C<msg> extraCerts field may also be used as trust anchor during
 protection validation if it can be used to validate the issued certificate
-returned in IP.  This is according to 3GPP TS 33.310.
+returned in IP.  This is according to TS 33.310
+[Network Domain Security (NDS); Authentication Framework (AF)] document
+specified by the The 3rd Generation Partnership Project (3GPP).
 
 OSSL_CMP_validate_cert_path() attempts to validate the given certificate and its
 path using the given store of trusted certs (possibly including CRLs and a cert
