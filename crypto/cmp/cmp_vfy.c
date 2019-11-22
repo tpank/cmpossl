@@ -20,29 +20,20 @@
 #include <openssl/err.h>
 #include <openssl/x509.h>
 
-/*
- * Call verification callback on signature verification error,
- * which typically prints diagnostics but could also override the result
- */
-static int handle_signature_error(const OSSL_CMP_CTX *cmp_ctx, X509 *cert)
+static void add_mem_bio_to_error_line(BIO *bio)
 {
-    X509_STORE *ts = cmp_ctx->trusted;
-    X509_STORE_CTX_verify_cb verify_cb =
-        ts == NULL ? NULL : X509_STORE_get_verify_cb(ts);
-    X509_STORE_CTX *csc = X509_STORE_CTX_new();
-    int ok = 0;
+    if (bio != NULL) {
+        char *str;
+        long len = BIO_get_mem_data(bio, &str);
 
-    if (csc != NULL && verify_cb != NULL /* implies ts != NULL */
-            && X509_STORE_CTX_init(csc, ts, NULL, NULL)) {
-        X509_STORE_CTX_set_current_cert(csc, cert);
-        X509_STORE_CTX_set_error_depth(csc, -1);
-        X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
-        ok = (*verify_cb)(0, csc); /* re-use cert verify error callback */
+        if (len > 0) {
+            str[len-1] = '\0'; /* replace last '\n', terminating str */
+            ossl_cmp_add_error_line(str);
+        }
     }
-    X509_STORE_CTX_free(csc);
-    return ok;
 }
 
+static void print_cert(BIO *bio, X509 *cert, unsigned long neg_cflags);
 /*
  * Verify a message protected by signature according to section 5.1.3.3
  * (sha1+RSA/DSA or any other algorithm supported by OpenSSL)
@@ -53,13 +44,14 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 {
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART prot_part;
-    int res = 0;
     int digest_nid, pk_nid;
     EVP_MD *digest = NULL;
     EVP_PKEY *pubkey = NULL;
     int l;
     size_t prot_part_der_len = 0;
     unsigned char *prot_part_der = NULL;
+    BIO *bio = BIO_new(BIO_s_mem()); /* may be NULL */
+    int res = 0;
 
     if (!ossl_assert(cmp_ctx != NULL && msg != NULL && cert != NULL))
         return 0;
@@ -111,15 +103,15 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     }
 
  sig_err:
-    if (handle_signature_error(cmp_ctx, cert) == 1)
-        res = 1;
-    else
-        CMPerr(0, CMP_R_ERROR_VALIDATING_PROTECTION);
+    print_cert(bio, cert, X509_FLAG_NO_EXTENSIONS);
+    CMPerr(0, CMP_R_ERROR_VALIDATING_PROTECTION);
+    add_mem_bio_to_error_line(bio);
 
  end:
     EVP_MD_CTX_free(ctx);
     OPENSSL_free(prot_part_der);
     EVP_PKEY_free(pubkey);
+    BIO_free(bio);
 
     return res;
 }
@@ -257,14 +249,11 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
         X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
         BIO *bio = BIO_new(BIO_s_mem()); /* may be NULL */
 
-        if (depth < 0)
-            BIO_printf(bio, "signature verification ");
-        else
-            BIO_printf(bio, "%s at depth=%d error=%d (%s)\n",
-                       X509_STORE_CTX_get0_parent_ctx(ctx) != NULL
-                       ? "CRL path validation" : "certificate verification",
-                       depth, cert_error,
-                       X509_verify_cert_error_string(cert_error));
+        BIO_printf(bio, "%s at depth=%d error=%d (%s)\n",
+                   X509_STORE_CTX_get0_parent_ctx(ctx) != NULL
+                   ? "CRL path validation" : "certificate verification",
+                   depth, cert_error,
+                   X509_verify_cert_error_string(cert_error));
         BIO_printf(bio, "failure for:\n");
         print_cert(bio, cert, X509_FLAG_NO_EXTENSIONS);
         if (cert_error == X509_V_ERR_CERT_UNTRUSTED
@@ -280,15 +269,7 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
             print_store_certs(bio, X509_STORE_CTX_get0_store(ctx));
         }
         CMPerr(0, CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
-        if (bio != NULL) {
-            char *str;
-            long len = BIO_get_mem_data(bio, &str);
-
-            if (len > 0) {
-                str[len-1] = '\0'; /* replace last '\n', terminating str */
-                ossl_cmp_add_error_line(str);
-            }
-        }
+        add_mem_bio_to_error_line(bio);
         BIO_free(bio);
     }
 
