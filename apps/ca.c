@@ -1470,7 +1470,8 @@ static int do_body(X509 **xret, EVP_PKEY *pkey, X509 *x509,
                    CONF *lconf, unsigned long certopt, unsigned long nameopt,
                    int default_op, int ext_copy, int selfsign)
 {
-    X509_NAME *name = NULL, *CAname = NULL, *subject = NULL;
+    const X509_NAME *name = NULL;
+    X509_NAME *CAname = NULL, *subject = NULL;
     const ASN1_TIME *tm;
     ASN1_STRING *str, *str2;
     ASN1_OBJECT *obj;
@@ -2036,7 +2037,8 @@ static int certify_spkac(X509 **xret, const char *infile, EVP_PKEY *pkey,
      * and we can use the same code as if you had a real X509 request.
      */
     req = X509_REQ_new();
-    if (req == NULL) {
+    n = X509_NAME_new();
+    if (req == NULL || n == NULL) {
         ERR_print_errors(bio_err);
         goto end;
     }
@@ -2044,8 +2046,6 @@ static int certify_spkac(X509 **xret, const char *infile, EVP_PKEY *pkey,
     /*
      * Build up the subject name set.
      */
-    n = X509_REQ_get_subject_name(req);
-
     for (i = 0;; i++) {
         if (sk_CONF_VALUE_num(sk) <= i)
             break;
@@ -2081,6 +2081,9 @@ static int certify_spkac(X509 **xret, const char *infile, EVP_PKEY *pkey,
                                         (unsigned char *)buf, -1, -1, 0))
             goto end;
     }
+    if (!X509_REQ_set_subject_name(req, n))
+        goto end;
+
     if (spki == NULL) {
         BIO_printf(bio_err, "Netscape SPKAC structure not found in %s\n",
                    infile);
@@ -2114,6 +2117,7 @@ static int certify_spkac(X509 **xret, const char *infile, EVP_PKEY *pkey,
                  verbose, req, ext_sect, lconf, certopt, nameopt, default_op,
                  ext_copy, 0);
  end:
+    X509_NAME_free(n);
     X509_REQ_free(req);
     CONF_free(parms);
     NETSCAPE_SPKI_free(spki);
