@@ -63,15 +63,15 @@ static EVP_PKEY *newkey = NULL;
 static X509 *cert = NULL;
 
 #define EXECUTE_MSG_CREATION_TEST(expr) \
-do { \
-    OSSL_CMP_MSG *msg = NULL; \
-    int good = fixture->expected != 0 ? \
-        TEST_ptr(msg = expr) && TEST_true(valid_asn1_encoding(msg)) : \
-        TEST_ptr_null(msg = expr); \
+    do { \
+        OSSL_CMP_MSG *msg = NULL; \
+        int good = fixture->expected != 0 ? \
+            TEST_ptr(msg = (expr)) && TEST_true(valid_asn1_encoding(msg)) : \
+            TEST_ptr_null(msg = (expr)); \
  \
-    OSSL_CMP_MSG_free(msg); \
-    return good; \
-} while (0)
+        OSSL_CMP_MSG_free(msg); \
+        return good; \
+    } while (0)
 
 /*-
  * The following tests call a cmp message creation function.
