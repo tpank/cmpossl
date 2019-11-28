@@ -27,7 +27,7 @@ static void add_mem_bio_to_error_line(BIO *bio)
         long len = BIO_get_mem_data(bio, &str);
 
         if (len > 0) {
-            str[len-1] = '\0'; /* replace last '\n', terminating str */
+            str[len - 1] = '\0'; /* replace last '\n', terminating str */
             ossl_cmp_add_error_line(str);
         }
     }
@@ -338,10 +338,12 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
             CMPerr(0, CMP_R_UNEXPECTED_SENDER);
             ossl_cmp_add_error_line("  certificate Subject Key Identifier does not match senderKID:");
             str = OPENSSL_buf2hexstr(ckid->data, ckid->length);
-            ossl_cmp_add_error_txt("\n      actual = ", str);
+            ossl_cmp_add_error_txt("\n      actual = ",
+                                   str != NULL ? str : "<null>");
             OPENSSL_free(str);
             str = OPENSSL_buf2hexstr(skid->data, skid->length);
-            ossl_cmp_add_error_txt("\n    expected = ", str);
+            ossl_cmp_add_error_txt("\n    expected = ",
+                                   str != NULL ? str : "<null>");
             OPENSSL_free(str);
             return 0;
         }
@@ -368,7 +370,7 @@ static int cert_acceptable(X509 *cert, const OSSL_CMP_MSG *msg,
         return 0;
 
     time_cmp = OSSL_CMP_cmp_timeframe(X509_get0_notBefore(cert),
-                                      X509_get0_notAfter (cert), vpm);
+                                      X509_get0_notAfter(cert), vpm);
     if (time_cmp != 0) {
         ossl_cmp_add_error_line(time_cmp > 0 ? "  certificate expired"
                                              : "  certificate not yet valid");
@@ -519,7 +521,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         return 0; /* other NULL cases already have been checked */
     if (sender->type != GEN_DIRNAME) {
         CMPerr(0, CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
-        return NULL; /* FR#42: support for more than X509_NAME */
+        return NULL;
     }
 
     /*
@@ -687,8 +689,6 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             /* set explicitly or subject of ctx->srvCert */
             X509_NAME *sender_name = msg->header->sender->d.directoryName;
             if (X509_NAME_cmp(ctx->expected_sender, sender_name) != 0) {
-                CMPerr(0, CMP_R_UNEXPECTED_SENDER);
-                add_name_mismatch_data(NULL, ctx->expected_sender, sender_name);
                 CMPerr(0, CMP_R_UNEXPECTED_SENDER);
                 add_name_mismatch_data(NULL, sender_name, ctx->expected_sender);
                 break;
