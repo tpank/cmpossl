@@ -276,11 +276,13 @@ typedef enum OPTION_choice {
     OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
 
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS,
-    OPT_DIGEST, OPT_MAC, OPT_EXTRACERTS, OPT_UNPROTECTEDREQUESTS,
+    OPT_DIGEST, OPT_MAC, OPT_EXTRACERTS,
+    OPT_UNPROTECTEDREQUESTS,
 
     OPT_CMD, OPT_INFOTYPE, OPT_GENINFO,
 
-    OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER, OPT_DAYS, OPT_REQEXTS,
+    OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER,
+    OPT_DAYS, OPT_REQEXTS,
     OPT_SANS, OPT_SAN_NODEFAULT,
     OPT_POLICIES, OPT_POLICIES_CRITICAL,
     OPT_POPO, OPT_CSR,
@@ -289,13 +291,15 @@ typedef enum OPTION_choice {
 
     OPT_OLDCERT, OPT_REVREASON,
 
-    OPT_OWNFORM, OPT_KEYFORM, OPT_CRLFORM, OPT_OTHERFORM, OPT_OTHERPASS,
+    OPT_OWNFORM, OPT_KEYFORM, OPT_CRLFORM, OPT_OTHERFORM,
+    OPT_OTHERPASS,
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
 
-    OPT_TLS_USED, OPT_TLS_CERT, OPT_TLS_KEY, OPT_TLS_KEYPASS, OPT_TLS_EXTRA,
-    OPT_TLS_TRUSTED, OPT_TLS_HOST,
+    OPT_TLS_USED, OPT_TLS_CERT, OPT_TLS_KEY,
+    OPT_TLS_KEYPASS,
+    OPT_TLS_EXTRA, OPT_TLS_TRUSTED, OPT_TLS_HOST,
 
     OPT_BATCH, OPT_REPEAT,
     OPT_REQIN, OPT_REQOUT, OPT_RSPIN, OPT_RSPOUT,
@@ -306,19 +310,19 @@ typedef enum OPTION_choice {
     OPT_SRV_CERT, OPT_SRV_KEY, OPT_SRV_KEYPASS,
     OPT_SRV_TRUSTED, OPT_SRV_UNTRUSTED,
     OPT_RSP_CERT, OPT_RSP_EXTRACERTS, OPT_RSP_CAPUBS,
-    OPT_POLL_COUNT, OPT_CHECKAFTER, OPT_GRANT_IMPLICITCONF,
-    OPT_PKISTATUS, OPT_FAILURE, OPT_FAILUREBITS, OPT_STATUSSTRING,
-    OPT_SEND_ERROR,
-    OPT_SEND_UNPROTECTED, OPT_SEND_UNPROT_ERR,
-    OPT_ACCEPT_UNPROTECTED, OPT_ACCEPT_UNPROT_ERR, OPT_ACCEPT_RAVERIFIED,
+    OPT_POLL_COUNT, OPT_CHECKAFTER,
+    OPT_GRANT_IMPLICITCONF,
+    OPT_PKISTATUS, OPT_FAILURE,
+    OPT_FAILUREBITS, OPT_STATUSSTRING,
+    OPT_SEND_ERROR, OPT_SEND_UNPROTECTED,
+    OPT_SEND_UNPROT_ERR, OPT_ACCEPT_UNPROTECTED,
+    OPT_ACCEPT_UNPROT_ERR, OPT_ACCEPT_RAVERIFIED,
 #endif
 
     OPT_CRL_DOWNLOAD, OPT_CRLS, OPT_CRL_TIMEOUT,
 #ifndef OPENSSL_NO_OCSP
-    OPT_OCSP_CHECK_ALL,
-    OPT_OCSP_USE_AIA,
-    OPT_OCSP_URL,
-    OPT_OCSP_TIMEOUT,
+    OPT_OCSP_CHECK_ALL, OPT_OCSP_USE_AIA,
+    OPT_OCSP_URL, OPT_OCSP_TIMEOUT,
     OPT_OCSP_STATUS,
 #endif
     OPT_V_ENUM                  /* OPT_CRLALL etc. */
@@ -332,7 +336,7 @@ const OPTIONS cmp_options[] = {
     {"section", OPT_SECTION, 's',
      "Section(s) in config file defining CMP options. \"\" = 'default'. Default 'cmp'"},
 
-    {OPT_MORE_STR, 0, 0, "\nMessage transfer options:"},
+    OPT_SECTION("Message transfer"),
     {"server", OPT_SERVER, 's',
      "address[:port] of CMP server. Default port 80"},
     {"proxy", OPT_PROXY, 's',
@@ -346,7 +350,7 @@ const OPTIONS cmp_options[] = {
     {"totaltimeout", OPT_TOTALTIMEOUT, 'n',
      "Overall time an enrollment incl. polling may take. Default 0 = none"},
 
-    {OPT_MORE_STR, 0, 0, "\nServer authentication options:"},
+    OPT_SECTION("Server authentication"),
     {"trusted", OPT_TRUSTED, 's',
      "Trusted CA certs used for CMP server authentication when verifying responses"},
     {OPT_MORE_STR, 0, 0, "unless -srvcert is given"},
@@ -371,7 +375,7 @@ const OPTIONS cmp_options[] = {
     {"cacertsout", OPT_CACERTSOUT, 's',
      "File to save received CA certificates"},
 
-    {OPT_MORE_STR, 0, 0, "\nClient authentication options:"},
+    OPT_SECTION("Client authentication"),
     {"ref", OPT_REF, 's',
      "Reference value to use as senderKID in case no -cert is given"},
     {"secret", OPT_SECRET, 's',
@@ -392,7 +396,7 @@ const OPTIONS cmp_options[] = {
     {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
      "Send messages without CMP-level protection"},
 
-    {OPT_MORE_STR, 0, 0, "\nGeneric message options:"},
+    OPT_SECTION("Generic message"),
     {"cmd", OPT_CMD, 's', "CMP request to send: ir/cr/kur/p10cr/rr/genm"},
     {"infotype", OPT_INFOTYPE, 's',
      "InfoType name for requesting specific info in genm, e.g. 'signKeyPairTypes'"},
@@ -401,7 +405,7 @@ const OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "given in the form <OID>:int:<n>, e.g. '1.2.3:int:987'"},
 
-    {OPT_MORE_STR, 0, 0, "\nCertificate enrollment options:"},
+    OPT_SECTION("Certificate enrollment"),
     {"newkey", OPT_NEWKEY, 's',
      "Private or public key for the requested cert. Default: CSR key or client key"},
     {"newkeypass", OPT_NEWKEYPASS, 's', "New private key pass phrase source"},
@@ -444,7 +448,7 @@ const OPTIONS cmp_options[] = {
     {"certout", OPT_CERTOUT, 's',
      "File to save the newly enrolled certificate"},
 
-    {OPT_MORE_STR, 0, 0, "\nCertificate enrollment and revocation options:"},
+    OPT_SECTION("Certificate enrollment and revocation"),
 
     {"oldcert", OPT_OLDCERT, 's',
      "Certificate to be updated (defaulting to -cert) or to be revoked in rr;"},
@@ -457,7 +461,7 @@ const OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "0..10 (see RFC5280, 5.3.1) or -1 for none. Default -1 = none"},
 
-    {OPT_MORE_STR, 0, 0, "\nCredentials format options:"},
+    OPT_SECTION("Credentials format"),
     {"ownform", OPT_OWNFORM, 's',
      "Format (PEM/DER/P12) to try first for client-side cert files. Default PEM"},
     {OPT_MORE_STR, 0, 0,
@@ -481,7 +485,7 @@ const OPTIONS cmp_options[] = {
      "prefixed by 'engine:', e.g. '-key engine:pkcs11:object=mykey;pin-value=1234'"},
 #endif
 
-    {OPT_MORE_STR, 0, 0, "\nTLS options:"},
+    OPT_SECTION("TLS"),
     {"tls_used", OPT_TLS_USED, '-',
      "Force using TLS (also when other TLS options are not set"},
     {"tls_cert", OPT_TLS_CERT, 's',
@@ -498,7 +502,7 @@ const OPTIONS cmp_options[] = {
     {"tls_host", OPT_TLS_HOST, 's',
      "Address to be checked (rather than -server) during TLS host name validation"},
 
-    {OPT_MORE_STR, 0, 0, "\nTesting and debugging options:"},
+    OPT_SECTION("Testing and debugging"),
     {"batch", OPT_BATCH, '-',
      "Do not interactively prompt for input when a password is required etc."},
     {"repeat", OPT_REPEAT, 'n',
@@ -562,8 +566,7 @@ const OPTIONS cmp_options[] = {
      "Accept RAVERIFED as proof-of-possession (POPO)"},
 #endif
 
-    {OPT_MORE_STR, 0, 0,
-     "\nSpecific certificate verification options, for both CMP and TLS:"},
+    OPT_SECTION("Specific CMP and TLS certificate verification"),
     {"crl_download", OPT_CRL_DOWNLOAD, '-',
      "Retrieve CRLs from distribution points given in certs as primary source"},
     {"crls", OPT_CRLS, 's',
@@ -595,13 +598,12 @@ const OPTIONS cmp_options[] = {
      "Enable certificate status from TLS server via OCSP (not multi-)stapling"},
 #endif
 
-    {OPT_MORE_STR, 0, 0, "\nStandard certificate verification options:"},
+    OPT_V_OPTIONS,
  /*
   * subsumes:
   * {"crl_check_all", OPT_CRLALL, '-',
   *  "Check CRLs not only for leaf certificate but for full certificate chain"},
   */
-    OPT_V_OPTIONS,
 
     {NULL}
 };
@@ -646,7 +648,8 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 #endif
 
     {(char **)&opt_tls_used}, {&opt_tls_cert}, {&opt_tls_key},
-    {&opt_tls_keypass}, {&opt_tls_extra}, {&opt_tls_trusted}, {&opt_tls_host},
+    {&opt_tls_keypass},
+    {&opt_tls_extra}, {&opt_tls_trusted}, {&opt_tls_host},
 
     {(char **)&opt_batch}, {(char **)&opt_repeat},
     {&opt_reqin}, {&opt_reqout}, {&opt_rspin}, {&opt_rspout},
@@ -661,12 +664,9 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {(char **)&opt_grant_implicitconf},
     {(char **)&opt_pkistatus}, {(char **)&opt_failure},
     {(char **)&opt_failurebits}, {&opt_statusstring},
-    {(char **)&opt_send_error},
-    {(char **)&opt_send_unprotected},
-    {(char **)&opt_send_unprot_err},
-    {(char **)&opt_accept_unprotected},
-    {(char **)&opt_accept_unprot_err},
-    {(char **)&opt_accept_raverified},
+    {(char **)&opt_send_error}, {(char **)&opt_send_unprotected},
+    {(char **)&opt_send_unprot_err}, {(char **)&opt_accept_unprotected},
+    {(char **)&opt_accept_unprot_err}, {(char **)&opt_accept_raverified},
 #endif
 
     {(char **)&opt_crl_download}, {&opt_crls}, {(char **)&opt_crl_timeout},
@@ -3612,7 +3612,7 @@ static int read_config(void)
      */
     for (i = OPT_SECTION - OPT_HELP, opt = &cmp_options[OPT_SECTION];
          opt->name; i++, opt++) {
-        if (!strcmp(opt->name, OPT_HELP_STR)
+        if (!strcmp(opt->name, OPT_SECTION_STR)
                 || !strcmp(opt->name, OPT_MORE_STR)) {
             i--;
             continue;
