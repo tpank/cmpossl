@@ -38,19 +38,19 @@ void OSSL_CMP_log_close(void);
 #  define OSSL_CMP_info(msg)  OSSL_CMP_log(INFO, msg)
 #  define OSSL_CMP_debug(msg) OSSL_CMP_log(DEBUG, msg)
 #  define OSSL_CMP_log(level, msg) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": %s\n", \
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": %s", \
                       OPENSSL_FUNC, msg))
 #  define OSSL_CMP_log1(level, fmt, arg1) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", \
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt, \
                       OPENSSL_FUNC, arg1))
 #  define OSSL_CMP_log2(level, fmt, arg1, arg2) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", \
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt, \
                       OPENSSL_FUNC, arg1, arg2))
 #  define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", \
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt, \
                       OPENSSL_FUNC, arg1, arg2, arg3))
 #  define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", \
+    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt, \
                       OPENSSL_FUNC, arg1, arg2, arg3, arg4))
 
 /*
