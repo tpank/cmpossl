@@ -140,7 +140,6 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         ossl_cmp_bodytype_to_string(ossl_cmp_msg_get_bodytype(req));
     int msgtimeout;
     int err, bt;
-    const char *bt_string;
     OSSL_cmp_transfer_cb_t transfer_cb = ctx->transfer_cb;
 
     if (transfer_cb == NULL) {
@@ -189,11 +188,17 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         return 0;
     }
 
+    bt = ossl_cmp_msg_get_bodytype(*rep);
+    /*
+     * The body type in the 'bt' variable is not yet verified.
+     * Still we use this preliminary value already for a progress report because
+     * the following msg verification may also produce log entries and may fail.
+     */
+    OSSL_CMP_log1(INFO, "received %s", ossl_cmp_bodytype_to_string(bt));
+
     if ((bt = ossl_cmp_msg_check_received(ctx, *rep, unprotected_exception,
                                           expected_type)) < 0)
         return 0;
-    bt_string = ossl_cmp_bodytype_to_string(bt);
-    OSSL_CMP_log1(INFO, "received %s", bt_string);
 
     if (bt == expected_type
         /* as an answer to polling, there could be IP/CP/KUP: */
@@ -205,7 +210,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
            CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
 
     if (bt != OSSL_CMP_PKIBODY_ERROR) {
-        ERR_add_error_data(3, "message type is '", bt_string, "'");
+        ERR_add_error_data(3, "message type is '",
+                           ossl_cmp_bodytype_to_string(bt), "'");
     } else {
         char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
         OSSL_CMP_PKISI *si = (*rep)->body->value.error->pKIStatusInfo;
