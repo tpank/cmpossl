@@ -366,12 +366,15 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
  * Note that cert revocation etc. is checked by OSSL_CMP_validate_cert_path().
  * returns 0 on error or not acceptable, else 1
  */
-static int cert_acceptable(const char *desc, X509 *cert, const OSSL_CMP_MSG *msg,
+static int cert_acceptable(const char *desc, X509 *cert,
+                           const STACK_OF(X509) *already_checked,
+                           const OSSL_CMP_MSG *msg,
                            X509_STORE *ts /* may be NULL */)
 {
     char *sub, *iss;
     X509_VERIFY_PARAM *vpm;
     int time_cmp;
+    int i;
 
     OSSL_CMP_log1(INFO, " considering %s with..", desc);
     if ((sub = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0)) != NULL)
@@ -380,6 +383,12 @@ static int cert_acceptable(const char *desc, X509 *cert, const OSSL_CMP_MSG *msg
         OSSL_CMP_log1(INFO, "  issuer  = %s", iss);
     OPENSSL_free(iss);
     OPENSSL_free(sub);
+
+    for (i = sk_X509_num(already_checked /* may be NULL */); i > 0; i--)
+        if (X509_cmp(sk_X509_value(already_checked, i - 1), cert) == 0) {
+            OSSL_CMP_info(" cert has already been checked");
+            return 0;
+        }
 
     vpm = ts != NULL ? X509_STORE_get0_param(ts) : NULL;
     if (!ossl_assert(cert != NULL && msg != NULL && (ts == NULL || vpm != NULL)))
@@ -410,20 +419,21 @@ static int cert_acceptable(const char *desc, X509 *cert, const OSSL_CMP_MSG *msg
  * returns 0 on error else 1
  */
 static int find_acceptable_certs(const char *desc, STACK_OF(X509) *certs,
+                                 const STACK_OF(X509) *already_checked,
                                  const OSSL_CMP_MSG *msg,
-                                 X509_STORE *ts,  /* may be NULL */
-                                 STACK_OF(X509) *sk)
+                                 X509_STORE *ts /* may be NULL */,
+                                 STACK_OF(X509) *found)
 {
     int i;
 
-    if (!ossl_assert(sk != NULL))
+    if (!ossl_assert(found != NULL))
         return 0;
 
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
 
-        if (cert_acceptable(desc, cert, msg, ts)
-                && !ossl_cmp_sk_X509_add1_cert(sk, cert, 1 /* no dups */, 0))
+        if (cert_acceptable(desc, cert, already_checked, msg, ts)
+                && !ossl_cmp_sk_X509_add1_cert(found, cert, 0, 0))
             return 0;
     }
 
@@ -441,9 +451,9 @@ static int find_acceptable_certs(const char *desc, STACK_OF(X509) *certs,
  *
  * returns 0 on error, else 1
  */
-static int find_server_cert(X509_STORE *ts, /* may be NULL */
-                            STACK_OF(X509) *untrusted, /* may be NULL */
+static int find_server_cert(STACK_OF(X509) *untrusted, /* may be NULL */
                             const OSSL_CMP_MSG *msg,
+                            X509_STORE *ts /* may be NULL */,
                             STACK_OF(X509) *found_certs)
 {
     STACK_OF(X509) *trusted;
@@ -452,7 +462,7 @@ static int find_server_cert(X509_STORE *ts, /* may be NULL */
         return 0;
 
     if (!find_acceptable_certs("cert from extraCerts or other untrusted source",
-                               untrusted, msg, ts, found_certs))
+                               untrusted, NULL, msg, ts, found_certs))
         return 0;
 
     if (ts != NULL) {
@@ -460,7 +470,7 @@ static int find_server_cert(X509_STORE *ts, /* may be NULL */
 
         trusted = ossl_cmp_X509_STORE_get1_certs(ts);
         ret = find_acceptable_certs("cert from trusted store",
-                                    trusted, msg, ts, found_certs);
+                                    trusted, untrusted, msg, ts, found_certs);
         sk_X509_pop_free(trusted, X509_free);
         if (ret == 0)
             return 0;
@@ -530,7 +540,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     (void)ERR_set_mark();
     if (ctx->validatedSrvCert != NULL
             && cert_acceptable("previously validated server cert",
-                               ctx->validatedSrvCert, msg, ctx->trusted)) {
+                               ctx->validatedSrvCert, NULL, msg, ctx->trusted)) {
         (void)ERR_pop_to_mark();
         scrt = ctx->validatedSrvCert;
         valid = 1;
@@ -561,8 +571,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             OSSL_CMP_log1(INFO, "matches msg senderKID   = %s", skid_str);
 
         /* find acceptable server cert candidates from any available source */
-        if (!find_server_cert(ctx->trusted, ctx->untrusted_certs,
-                              msg, found_crts))
+        if (!find_server_cert(ctx->untrusted_certs,
+                              msg, ctx->trusted, found_crts))
             goto end;
 
         /* enable clearing irrelevant errors in attempts to validate srv certs */
@@ -720,7 +730,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
             /* failure; add further cert matching & validation diagnostics: */
             if (ctx->srvCert != NULL)
-                (void)cert_acceptable("explicitly set server cert", scrt,
+                (void)cert_acceptable("explicitly set server cert", scrt, NULL,
                                       msg, ctx->trusted);
 
             /*
