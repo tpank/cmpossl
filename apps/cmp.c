@@ -679,7 +679,6 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {NULL}
 };
 
-#ifndef OPENSSL_NO_TRACE
 #define UNKNOWN "(unknown function)" /* the default string for OPENSSL_FUNC */
 #ifndef NDEBUG
 #define FUNC (strcmp(OPENSSL_FUNC, "(unknown function)") == 0 \
@@ -4117,14 +4116,8 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-#ifndef OPENSSL_NO_TRACE
-# define AND_LOGGING "and logging "
-#else
-# define AND_LOGGING ""
-    CMP_warn("logging is disabled; it may be enabled using the OpenSSL config option 'enable-trace'");
-#endif
     if (!OSSL_CMP_CTX_set_log_cb(cmp_ctx, log_to_stdout)) {
-        CMP_err1("cannot set up error reporting " AND_LOGGING "for '%s'", prog);
+        CMP_err1("cannot set up error reporting and logging for '%s'", prog);
         goto err;
     }
 
@@ -4306,9 +4299,7 @@ int cmp_main(int argc, char **argv)
     release_engine(e);
 
     NCONF_free(conf); /* must not do as long as opt_... variables are used */
-#ifndef OPENSSL_NO_TRACE
     OSSL_CMP_log_close();
-#endif
 
     return ret > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }

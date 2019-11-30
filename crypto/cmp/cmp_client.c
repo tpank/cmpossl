@@ -87,7 +87,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
     }
     if (msg_type == NULL)
         return 0;
-    OSSL_CMP_log2(WARN, "ignoring %s protection of %s",
+    OSSL_CMP_log2(WARN, ctx, "ignoring %s protection of %s",
                   invalid_protection ? "invalid" : "missing", msg_type);
     return 1;
 }
@@ -170,7 +170,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     OSSL_CMP_CTX_print_errors(ctx);
 #endif
 
-    OSSL_CMP_log1(INFO, "sending %s", req_type_string);
+    OSSL_CMP_log1(INFO, ctx, "sending %s", req_type_string);
     err = (*transfer_cb)(ctx, req, rep);
     ctx->msgtimeout = msgtimeout; /* restore original value */
 
@@ -194,7 +194,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
      * Still we use this preliminary value already for a progress report because
      * the following msg verification may also produce log entries and may fail.
      */
-    OSSL_CMP_log1(INFO, "received %s", ossl_cmp_bodytype_to_string(bt));
+    OSSL_CMP_log1(INFO, ctx, "received %s", ossl_cmp_bodytype_to_string(bt));
 
     if ((bt = ossl_cmp_msg_check_received(ctx, *rep, unprotected_exception,
                                           expected_type)) < 0)
@@ -246,7 +246,8 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
     OSSL_CMP_MSG *prep = NULL;
     OSSL_CMP_POLLREP *pollRep = NULL;
 
-    OSSL_CMP_info("received 'waiting' PKIStatus, starting to poll for response");
+    OSSL_CMP_info(ctx,
+                  "received 'waiting' PKIStatus, starting to poll for response");
     for (;;) {
         if ((preq = ossl_cmp_pollReq_new(ctx, rid)) == NULL)
             goto err;
@@ -280,7 +281,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
                 goto err;
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
-            OSSL_CMP_log1(INFO,
+            OSSL_CMP_log1(INFO, ctx,
                           "received polling response, waiting check_after =  "
                           "%ld sec before next polling request", check_after);
 
@@ -303,7 +304,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             prep = NULL;
             sleep((unsigned int)check_after);
         } else {
-            OSSL_CMP_info("got ip/cp/kup after polling");
+            OSSL_CMP_info(ctx, "got ip/cp/kup after polling");
             break;
         }
     }
@@ -397,11 +398,12 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
     privkey = OSSL_CMP_CTX_get0_newPkey(ctx, 1);
     switch (ossl_cmp_pkisi_get_pkistatus(crep->status)) {
     case OSSL_CMP_PKISTATUS_waiting:
-        OSSL_CMP_err("received \"waiting\" status for cert when actually aiming to extract cert");
+        OSSL_CMP_err(ctx,
+                     "received \"waiting\" status for cert when actually aiming to extract cert");
         CMPerr(0, CMP_R_ENCOUNTERED_WAITING);
         goto err;
     case OSSL_CMP_PKISTATUS_grantedWithMods:
-        OSSL_CMP_warn("received \"grantedWithMods\" for certificate");
+        OSSL_CMP_warn(ctx, "received \"grantedWithMods\" for certificate");
         crt = ossl_cmp_certresponse_get1_certificate(privkey, crep);
         break;
     case OSSL_CMP_PKISTATUS_accepted:
@@ -409,15 +411,17 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         break;
         /* get all information in case of a rejection before going to error */
     case OSSL_CMP_PKISTATUS_rejection:
-        OSSL_CMP_err("received \"rejection\" status rather than cert");
+        OSSL_CMP_err(ctx, "received \"rejection\" status rather than cert");
         CMPerr(0, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
     case OSSL_CMP_PKISTATUS_revocationWarning:
-        OSSL_CMP_warn("received \"revocationWarning\" - a revocation of the cert is imminent");
+        OSSL_CMP_warn(ctx,
+                      "received \"revocationWarning\" - a revocation of the cert is imminent");
         crt = ossl_cmp_certresponse_get1_certificate(privkey, crep);
         break;
     case OSSL_CMP_PKISTATUS_revocationNotification:
-        OSSL_CMP_warn("received \"revocationNotification\" - a revocation of the cert has occurred");
+        OSSL_CMP_warn(ctx,
+                      "received \"revocationNotification\" - a revocation of the cert has occurred");
         crt = ossl_cmp_certresponse_get1_certificate(privkey, crep);
         break;
     case OSSL_CMP_PKISTATUS_keyUpdateWarning:
@@ -428,7 +432,7 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         crt = ossl_cmp_certresponse_get1_certificate(privkey, crep);
         break;
     default:
-        OSSL_CMP_log1(ERROR,
+        OSSL_CMP_log1(ERROR, ctx,
                       "received unsupported PKIStatus %d for certificate",
                       ctx->status);
         CMPerr(0, CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
@@ -581,7 +585,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
             txt = "CMP client application did not accept it";
     }
     if (fail_info != 0) /* immediately log error before any certConf exchange */
-        OSSL_CMP_log1(ERROR,
+        OSSL_CMP_log1(ERROR, ctx,
                       "rejecting newly enrolled cert with subject: %s", subj);
 
     /*
@@ -608,7 +612,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
 }
 
 #define INFO_CONTACTING_SERVER(ctx) \
-    OSSL_CMP_log2(INFO, "contacting %s:%d", \
+    OSSL_CMP_log2(INFO, ctx, "contacting %s:%d", \
                   (ctx)->serverName == NULL ? \
                   "(no server name)" : (ctx)->serverName, \
                   (ctx)->serverPort);
@@ -718,30 +722,37 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         goto err;
     switch (ossl_cmp_pkisi_get_pkistatus(si)) {
     case OSSL_CMP_PKISTATUS_accepted:
-        /* TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)"); */
+        /*
+         * TODO OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=accepted)");
+         */
         result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_grantedWithMods:
         /*
-         * TODO OSSL_CMP_info("revocation accepted (PKIStatus=grantedWithMods)");
+         * TODO OSSL_CMP_info(ctx,
+         *                   "revocation accepted (PKIStatus=grantedWithMods)");
          */
         result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_rejection:
         /*
-         * TODO SSL_CMP_info("revocation accepted (PKIStatus=revocationWarning)");
+         * TODO SSL_CMP_info(ctx,
+         *                 "revocation accepted (PKIStatus=revocationWarning)");
          */
         CMPerr(0, CMP_R_REQUEST_REJECTED_BY_CA);
         goto err;
     case OSSL_CMP_PKISTATUS_revocationWarning:
         /*
-         * TODO OSSL_CMP_info("revocation accepted (PKIStatus=revocationNotification)");
+         * TODO OSSL_CMP_info(ctx,
+         *            "revocation accepted (PKIStatus=revocationNotification)");
          */
         result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_revocationNotification:
         /* interpretation as warning or error depends on CA */
-        /* TODO OSSL_CMP_info("revocation accepted (PKIStatus=accepted)"); */
+        /*
+         * TODO OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=accepted)");
+         */
         result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_waiting:
