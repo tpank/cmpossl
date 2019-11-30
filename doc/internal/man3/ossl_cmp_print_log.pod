@@ -1,0 +1,85 @@
+=pod
+
+=head1 NAME
+
+ossl_cmp_print_log,
+OSSL_CMP_alert,
+OSSL_CMP_err,
+OSSL_CMP_warn,
+OSSL_CMP_info,
+OSSL_CMP_debug,
+OSSL_CMP_log,
+OSSL_CMP_log1,
+OSSL_CMP_log2,
+OSSL_CMP_log3,
+OSSL_CMP_log4,
+ossl_cmp_log_parse_metadata
+- logging support for CMP
+
+=head1 SYNOPSIS
+
+ #include "cmp_local.h"
+
+ void ossl_cmp_print_log(OSSL_CMP_severity level, const OSSL_CMP_CTX *ctx,
+                         const char *func, const char *file, int line,
+                         const char *level_str, const char *format, ...);
+ #define OSSL_CMP_alert(msg)
+ #define OSSL_CMP_err(msg)
+ #define OSSL_CMP_warn(msg)
+ #define OSSL_CMP_info(msg)
+ #define OSSL_CMP_debug(msg)
+ #define OSSL_CMP_log(level, msg)
+ #define OSSL_CMP_log1(level, fmt, arg1)
+ #define OSSL_CMP_log2(level, fmt, arg1, arg2)
+ #define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3)
+ #define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4)
+ const char *ossl_cmp_log_parse_metadata(const char *buf,
+                                         OSSL_CMP_severity *level, char **func,
+                                         char **file, int *line);
+
+=head1 DESCRIPTION
+
+ossl_cmp_print_log() prints CMP log messages (i.e., diagnostic info) 
+via the log callback of the B<ctx> if the severity level is sufficient.
+If the trace API if enabled the function uses it, prepending the function name,
+filename, line number, and severity information to the message being output.
+In any case the B<level>, B<func>, B<file>, and B<line> parameters are passed
+to the log callback function. The B<func> and B<file> arguments may be NULL.
+
+OSSL_CMP_alert() outputs a simple alert message via the trace API.
+OSSL_CMP_err() outputs a simple error message via the trace API.
+OSSL_CMP_warn() outputs a simple warning message via the trace API.
+OSSL_CMP_info() outputs a simple info message via the trace API.
+OSSL_CMP_debug() outputs a simple debug message via the trace API.
+
+ossl_cmp_log_parse_metadata() parses the given message buffer I<buf> populated
+by L<OSSL_CMP_log(3)> etc.
+according to the pattern OSSL_CMP_LOG_START#level ": %s\n", filling in
+the variable pointed to by I<level> with the severity level or -1,
+the variable pointed to by I<func> with the function name string or NULL,
+the variable pointed to by I<file> with the filename string or NULL, and
+the variable pointed to by I<line> with the line number or -1.
+Any string returned via I<*func> and I<*file> must be freeed by the caller.
+
+=head1 RETURN VALUES
+
+ossl_cmp_log_parse_metadata() returns the pointer to the actual message text
+after the OSSL_CMP_LOG_PREFIX and level and ':' if found in the buffer,
+else the beginning of the buffer.
+
+All other functions return 1 on success, 0 on error.
+
+=head1 HISTORY
+
+The OpenSSL CMP support was added in OpenSSL 3.0.
+
+=head1 COPYRIGHT
+
+Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
+
+Licensed under the Apache License 2.0 (the "License").  You may not use
+this file except in compliance with the License.  You can obtain a copy
+in the file LICENSE in the source distribution or at
+L<https://www.openssl.org/source/license.html>.
+
+=cut

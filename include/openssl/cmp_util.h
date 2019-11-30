@@ -23,35 +23,9 @@
 extern "C" {
 #  endif
 
-/*
- * convenience functions for CMP-specific logging via the trace API
- */
 int  OSSL_CMP_log_open(void);
 void OSSL_CMP_log_close(void);
 #  define OSSL_CMP_LOG_PREFIX "CMP "
-/* in OSSL_CMP_LOG_START, cannot use OPENSSL_FUNC when expands to __func__ */
-#  define OSSL_CMP_LOG_START "%s:" OPENSSL_FILE ":" \
-    OPENSSL_MSTR(OPENSSL_LINE) ":" OSSL_CMP_LOG_PREFIX
-#  define OSSL_CMP_alert(msg) OSSL_CMP_log(ALERT, msg)
-#  define OSSL_CMP_err(msg)   OSSL_CMP_log(ERROR, msg)
-#  define OSSL_CMP_warn(msg)  OSSL_CMP_log(WARN, msg)
-#  define OSSL_CMP_info(msg)  OSSL_CMP_log(INFO, msg)
-#  define OSSL_CMP_debug(msg) OSSL_CMP_log(DEBUG, msg)
-#  define OSSL_CMP_log(level, msg) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": %s", \
-                      OPENSSL_FUNC, msg))
-#  define OSSL_CMP_log1(level, fmt, arg1) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt, \
-                      OPENSSL_FUNC, arg1))
-#  define OSSL_CMP_log2(level, fmt, arg1, arg2) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt, \
-                      OPENSSL_FUNC, arg1, arg2))
-#  define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt, \
-                      OPENSSL_FUNC, arg1, arg2, arg3))
-#  define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4) \
-    OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt, \
-                      OPENSSL_FUNC, arg1, arg2, arg3, arg4))
 
 /*
  * generalized logging/error callback mirroring the severity levels of syslog.h

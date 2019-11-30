@@ -311,7 +311,8 @@ int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
 }
 
 /* Return 0 if expect_name != NULL and there is no matching actual_name */
-static int check_name(const char *actual_desc, const X509_NAME *actual_name,
+static int check_name(OSSL_CMP_CTX *ctx,
+                      const char *actual_desc, const X509_NAME *actual_name,
                       const char *expect_desc, const X509_NAME *expect_name)
 {
     char *actual, *expect;
@@ -321,7 +322,7 @@ static int check_name(const char *actual_desc, const X509_NAME *actual_name,
 
     /* make sure that a matching name is there */
     if (actual_name == NULL) {
-        OSSL_CMP_log1(WARN, " missing %s", actual_desc);
+        OSSL_CMP_log1(WARN, ctx, " missing %s", actual_desc);
         return 0;
     }
     if (X509_NAME_cmp(actual_name, expect_name) == 0)
@@ -329,15 +330,16 @@ static int check_name(const char *actual_desc, const X509_NAME *actual_name,
 
     actual = X509_NAME_oneline(actual_name, NULL, 0);
     expect = X509_NAME_oneline(expect_name, NULL, 0);
-    OSSL_CMP_log2(INFO, " actual name in %s = %s", actual_desc, actual);
-    OSSL_CMP_log2(INFO, " does not match %s = %s", expect_desc, expect);
+    OSSL_CMP_log2(INFO, ctx, " actual name in %s = %s", actual_desc, actual);
+    OSSL_CMP_log2(INFO, ctx, " does not match %s = %s", expect_desc, expect);
     OPENSSL_free(expect);
     OPENSSL_free(actual);
     return 0;
 }
 
 /* Return 0 if skid != NULL and there is no matching subject key ID in cert */
-static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
+static int check_kid(OSSL_CMP_CTX *ctx,
+                     X509 *cert, const ASN1_OCTET_STRING *skid)
 {
     char *actual, *expect;
     const ASN1_OCTET_STRING *ckid = X509_get0_subject_key_id(cert);
@@ -347,16 +349,16 @@ static int check_kid(X509 *cert, const ASN1_OCTET_STRING *skid)
 
     /* make sure that the expected subject key identifier is there */
     if (ckid == NULL) {
-        OSSL_CMP_warn(" missing Subject Key Identifier in certificate");
+        OSSL_CMP_warn(ctx, " missing Subject Key Identifier in certificate");
         return 0;
     }
     if (ASN1_OCTET_STRING_cmp(ckid, skid) == 0)
         return 1;
 
     if ((actual = OPENSSL_buf2hexstr(ckid->data, ckid->length)) != NULL)
-        OSSL_CMP_log1(INFO, " cert Subject Key Identifier = %s", actual);
+        OSSL_CMP_log1(INFO, ctx, " cert Subject Key Identifier = %s", actual);
     if ((expect = OPENSSL_buf2hexstr(skid->data, skid->length)) != NULL)
-        OSSL_CMP_log1(INFO, " does not match senderKID    = %s", expect);
+        OSSL_CMP_log1(INFO, ctx, " does not match senderKID    = %s", expect);
     OPENSSL_free(expect);
     OPENSSL_free(actual);
     return 0;
@@ -380,17 +382,17 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, const char *desc, X509 *cert,
     int time_cmp;
     int i;
 
-    OSSL_CMP_log1(INFO, " considering %s with..", desc);
+    OSSL_CMP_log1(INFO, ctx, " considering %s with..", desc);
     if ((sub = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0)) != NULL)
-        OSSL_CMP_log1(INFO, "  subject = %s", sub);
+        OSSL_CMP_log1(INFO, ctx, "  subject = %s", sub);
     if ((iss = X509_NAME_oneline(X509_get_issuer_name(cert), NULL, 0)) != NULL)
-        OSSL_CMP_log1(INFO, "  issuer  = %s", iss);
+        OSSL_CMP_log1(INFO, ctx, "  issuer  = %s", iss);
     OPENSSL_free(iss);
     OPENSSL_free(sub);
 
     for (i = sk_X509_num(already_checked /* may be NULL */); i > 0; i--)
         if (X509_cmp(sk_X509_value(already_checked, i - 1), cert) == 0) {
-            OSSL_CMP_info(" cert has already been checked");
+            OSSL_CMP_info(ctx, " cert has already been checked");
             return 0;
         }
 
@@ -401,19 +403,20 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, const char *desc, X509 *cert,
     time_cmp = OSSL_CMP_cmp_timeframe(X509_get0_notBefore(cert),
                                       X509_get0_notAfter(cert), vpm);
     if (time_cmp != 0) {
-        OSSL_CMP_warn(time_cmp > 0 ? " cert has expired"
-                                   : " cert is not yet valid");
+        OSSL_CMP_warn(ctx, time_cmp > 0 ? " cert has expired"
+                                        : " cert is not yet valid");
         return 0;
     }
 
-    if (!check_name("cert subject", X509_get_subject_name(cert),
+    if (!check_name(ctx,
+                    "cert subject", X509_get_subject_name(cert),
                     "sender field", msg->header->sender->d.directoryName))
         return 0;
 
-    if (!check_kid(cert, msg->header->senderKID))
+    if (!check_kid(ctx, cert, msg->header->senderKID))
         return 0;
     /* acceptable also if there is no senderKID in msg header */
-    OSSL_CMP_info(" cert is acceptable");
+    OSSL_CMP_info(ctx, " cert is acceptable");
     return 1;
 }
 
@@ -477,7 +480,7 @@ static int find_server_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
             return 0;
     }
 
-    OSSL_CMP_log1(INFO,
+    OSSL_CMP_log1(INFO, ctx,
                   "found %d acceptable server certs", sk_X509_num(found_certs));
     return 1;
 }
@@ -564,14 +567,14 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             return NULL;
 
         /* start accumulating diagnostic info via CMP logging */
-        OSSL_CMP_info("trying to find an acceptable server cert that..");
+        OSSL_CMP_info(ctx, "trying to find an acceptable server cert that..");
         sname = X509_NAME_oneline(sender->d.directoryName, NULL, 0);
         if (sname != NULL)
-            OSSL_CMP_log1(INFO, "matches msg sender name = %s", sname);
+            OSSL_CMP_log1(INFO, ctx, "matches msg sender name = %s", sname);
         skid_str = skid == NULL ? NULL
                                 : OPENSSL_buf2hexstr(skid->data, skid->length);
         if (skid_str != NULL)
-            OSSL_CMP_log1(INFO, "matches msg senderKID   = %s", skid_str);
+            OSSL_CMP_log1(INFO, ctx, "matches msg senderKID   = %s", skid_str);
 
         /* find acceptable server cert candidates from any available source */
         if (!find_server_cert(ctx, msg, found_crts))
@@ -717,7 +720,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
          * Mitigates risk to accept misused certificate of an unauthorized
          * entity of a trusted hierarchy.
          */
-        if (!check_name("sender DN field",
+        if (!check_name(ctx, "sender DN field",
                         msg->header->sender->d.directoryName,
                         "expected sender", ctx->expected_sender))
             break;
@@ -790,7 +793,8 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
         return -1;
 
     if (sk_X509_num(msg->extraCerts) > 10)
-        OSSL_CMP_warn("received CMP message contains more than 10 extraCerts");
+        OSSL_CMP_warn(ctx,
+                      "received CMP message contains more than 10 extraCerts");
     /*
      * Store any provided extraCerts in ctx for validation and for future use,
      * such that they are also available to ctx->certConf_cb and the peer does
