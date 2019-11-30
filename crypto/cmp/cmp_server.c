@@ -339,6 +339,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req)
 static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
                                       OSSL_CMP_MSG *req)
 {
+    OSSL_CMP_CTX *ctx = srv_ctx->ctx;
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTSTATUS *status = NULL;
     ASN1_OCTET_STRING *tmp = NULL;
@@ -346,10 +347,10 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
     int num = sk_OSSL_CMP_CERTSTATUS_num(req->body->value.certConf);
 
     if (num == 0) {
-        OSSL_CMP_err("certificate rejected by client");
+        OSSL_CMP_err(ctx, "certificate rejected by client");
     } else {
         if (num > 1)
-            OSSL_CMP_warn("All CertStatus but the first will be ignored");
+            OSSL_CMP_warn(ctx, "All CertStatus but the first will be ignored");
         status = sk_OSSL_CMP_CERTSTATUS_value(req->body->value.certConf,
                                               OSSL_CMP_CERTREQID);
     }
@@ -382,13 +383,13 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
             int pki_status = ossl_cmp_pkisi_get_pkistatus(status->statusInfo);
             const char *str = ossl_cmp_PKIStatus_to_string(pki_status);
 
-            OSSL_CMP_log2(INFO, "certificate rejected by client %s %s",
+            OSSL_CMP_log2(INFO, ctx, "certificate rejected by client %s %s",
                           str == NULL ? "without" : "with",
                           str == NULL ? "PKIStatus" : str);
         }
     }
 
-    if ((msg = ossl_cmp_pkiconf_new(srv_ctx->ctx)) == NULL) {
+    if ((msg = ossl_cmp_pkiconf_new(ctx)) == NULL) {
         CMPerr(0, CMP_R_ERROR_CREATING_PKICONF);
         return NULL;
     }
@@ -461,12 +462,12 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                                  int accept_unprotected_requests)
 {
     if (accept_unprotected_requests) {
-        OSSL_CMP_log1(WARN, "ignoring %s protection of request message",
+        OSSL_CMP_log1(WARN, ctx, "ignoring %s protection of request message",
                       invalid_protection ? "invalid" : "missing");
         return 1;
     }
     if (req->body->type == OSSL_CMP_PKIBODY_ERROR && ctx->unprotectedErrors) {
-        OSSL_CMP_warn("ignoring missing protection of error message");
+        OSSL_CMP_warn(ctx, "ignoring missing protection of error message");
         return 1;
     }
     return 0;
