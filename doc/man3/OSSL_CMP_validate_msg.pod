@@ -32,31 +32,35 @@ OSSL_CMP_validate_msg() validates the protection of the given C<msg>
 using either password-based mac (PBM) or a signature algorithm.
 
 In case of signature algorithm, the certificate to use for the signature check
-is preferrably the one provided by a call to L<OSSL_CMP_CTX_set1_srvCert(3)>.
-If this not set then candidate sender certificates are tried from
+is preferably the one provided by a call to L<OSSL_CMP_CTX_set1_srvCert(3)>.
+If this not set then candidate sender certificates are taken from
 the list of certificates received in the C<msg> extraCerts, then any
 certificates provided before via L<OSSL_CMP_CTX_set1_untrusted_certs(3)>, and
 then all trusted certificates provided via L<OSSL_CMP_CTX_set0_trustedStore(3)>,
-where a candidate is only accepable if its subject matches the C<msg> sender DN,
-its subject key identifier matches the senderKID (as far as present), and it can
-be verified using any trust store set via L<OSSL_CMP_CTX_set0_trustedStore(3)>.
-Any cert that has been successfully used to check a message signatures is cached
-such that subsequent messages in the same transaction can be verified quicker.
-
-In case of successful validation of PBM protection of a certificate response,
-the certificates in the caPubs field (if any) are added to the certificates
-provided via L<OSSL_CMP_CTX_set0_trustedStore(3)>, to be available for
-validating future messages in the same context. Those could e.g. apply to later
-Polling Responses (pollRep) or PKI Confirmation (PKIConf) messages in the same
-transaction.
+where a candidate is acceptable only if has not expired, its subject DN matches
+the C<msg> sender DN (as far as present), and its subject key identifier
+is present and matches the senderKID (as far as the latter present).
+Each acceptable cert is tried in the given order to see if the message
+signature check succeeds and the cert and its path can be verified
+using any trust store set via L<OSSL_CMP_CTX_set0_trustedStore(3)>.
 
 If the option OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR was set by calling
-L<OSSL_CMP_CTX_set_option(3)>, a self-signed certificate from the
-C<msg> extraCerts field may also be used as trust anchor during
-protection validation if it can be used to validate the issued certificate
-returned in IP.  This is according to TS 33.310
-[Network Domain Security (NDS); Authentication Framework (AF)] document
-specified by the The 3rd Generation Partnership Project (3GPP).
+L<OSSL_CMP_CTX_set_option(3)>, for an Initialization Response (IP) message
+any self-signed certificate from the C<msg> extraCerts field may also be used
+as trust anchor for the path verification of an acceptable cert if it can be
+used also to validate the issued certificate returned in the IP message. This is
+according to TS 33.310 [Network Domain Security (NDS); Authentication Framework
+(AF)] document specified by the The 3rd Generation Partnership Project (3GPP).
+
+Any cert that has been found as described above is cached and tried first when
+validating the signatures of subsequent messages in the same transaction.
+
+After successful validation of PBM-based protection of a certificate response
+the certificates in the caPubs field (if any) are added to the trusted
+certificates provided via L<OSSL_CMP_CTX_set0_trustedStore(3)>, such that
+they are available for validating subsequent messages in the same context.
+Those could apply to any Polling Response (pollRep), error, or PKI Confirmation
+(PKIConf) messages following in the same or future transactions.
 
 OSSL_CMP_validate_cert_path() attempts to validate the given certificate and its
 path using the given store of trusted certs (possibly including CRLs and a cert
