@@ -342,7 +342,7 @@ static int ossl_cmp_vprint_log(OSSL_CMP_severity level,
         OSSL_TRACE_BEGIN(CMP) {
             int printed =
                 BIO_snprintf(hugebuf, sizeof(hugebuf),
-                             "%s:%s:%d:" OSSL_CMP_LOG_PREFIX "%s:",
+                             "%s:%s:%d:" OSSL_CMP_LOG_PREFIX "%s: ",
                              func, file, line, level_str);
             if (printed > 0 && (size_t)printed < sizeof(hugebuf)) {
                 if (BIO_vsnprintf(hugebuf + printed,
