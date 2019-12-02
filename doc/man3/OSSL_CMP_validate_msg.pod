@@ -31,14 +31,17 @@ the reference time included there is used instead of the current time.
 OSSL_CMP_validate_msg() validates the protection of the given C<msg>
 using either password-based mac (PBM) or a signature algorithm.
 
-In case of signature algorithm, the certificate to use for protection
-validation is taken from the certificates previously provided by calling
-L<OSSL_CMP_CTX_set1_srvCert(3)>. If not yet provided potentially suitable
-sender certificates are determined by matching the C<msg> sender DN and
-senderKID to the certificates available in the C<msg> extraCerts,
-and certificates provided before via L<OSSL_CMP_CTX_set1_untrusted_certs(3)>
-and L<OSSL_CMP_CTX_set0_trustedStore(3)>. The first candidate that can be
-validated against C<msg> extraCerts and provided certificates, is used.
+In case of signature algorithm, the certificate to use for the signature check
+is preferrably the one provided by a call to L<OSSL_CMP_CTX_set1_srvCert(3)>.
+If this not set then candidate sender certificates are tried from
+the list of certificates received in the C<msg> extraCerts, then any
+certificates provided before via L<OSSL_CMP_CTX_set1_untrusted_certs(3)>, and
+then all trusted certificates provided via L<OSSL_CMP_CTX_set0_trustedStore(3)>,
+where a candidate is only accepable if its subject matches the C<msg> sender DN,
+its subject key identifier matches the senderKID (as far as present), and it can
+be verified using any trust store set via L<OSSL_CMP_CTX_set0_trustedStore(3)>.
+Any cert that has been successfully used to check a message signatures is cached
+such that subsequent messages in the same transaction can be verified quicker.
 
 In case of successful validation of PBM protection of a certificate response,
 the certificates in the caPubs field (if any) are added to the certificates

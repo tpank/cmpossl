@@ -367,7 +367,7 @@ static int check_kid(OSSL_CMP_CTX *ctx,
 /*
  * Check if the given cert is acceptable as sender cert of the given message.
  * The subject DN must match, the subject key ID as well if present in the msg,
- * and the cert must be current (for checking this, the ts should be given).
+ * and the cert must be current (checked if ctx->trusted is not NULL).
  * Note that cert revocation etc. is checked by OSSL_CMP_validate_cert_path().
  *
  * Returns 0 on error or not acceptable, else 1.
@@ -424,7 +424,7 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, const char *desc, X509 *cert,
  * Find in the list of certs all acceptable certs (see cert_acceptable()).
  * Add them to sk (if not a duplicate to an existing one).
  *
- * Returns 0 on error, else 1.
+ * Returns -1 on error, else the number of acceptable certs found.
  */
 static int find_acceptable_certs(OSSL_CMP_CTX *ctx,
                                  const char *desc, STACK_OF(X509) *certs,
@@ -432,20 +432,19 @@ static int find_acceptable_certs(OSSL_CMP_CTX *ctx,
                                  const OSSL_CMP_MSG *msg,
                                  STACK_OF(X509) *found)
 {
-    int i;
-
-    if (!ossl_assert(found != NULL))
-        return 0;
+    int i, n = 0;
 
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
 
-        if (cert_acceptable(ctx, desc, cert, already_checked, msg)
-                && !ossl_cmp_sk_X509_add1_cert(found, cert, 0, 0))
-            return 0;
+        if (cert_acceptable(ctx, desc, cert, already_checked, msg)) {
+            n++;
+            if (found != NULL && !ossl_cmp_sk_X509_add1_cert(found, cert, 0, 0))
+                return -1;
+        }
     }
 
-    return 1;
+    return n;
 }
 
 /*
@@ -459,22 +458,22 @@ static int find_acceptable_certs(OSSL_CMP_CTX *ctx,
  *
  * Returns 0 on error, else 1.
  */
-static int find_server_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-                            STACK_OF(X509) *found_certs)
+static int find_server_certs(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
+                             STACK_OF(X509) *found_certs)
 {
     if (!ossl_assert(msg != NULL && found_certs != NULL))
         return 0;
 
-    if (!find_acceptable_certs(ctx,
-                               "cert from extraCerts or other untrusted source",
-                               ctx->untrusted_certs, NULL, msg, found_certs))
+    if (find_acceptable_certs(ctx,
+                              "cert from extraCerts or other untrusted source",
+                              ctx->untrusted_certs, NULL, msg, found_certs) < 0)
         return 0;
 
     if (ctx->trusted != NULL) {
         STACK_OF(X509) *trusted = ossl_cmp_X509_STORE_get1_certs(ctx->trusted);
         int ret = find_acceptable_certs(ctx, "cert from trusted store",
                                         trusted, ctx->untrusted_certs,
-                                        msg, found_certs);
+                                        msg, found_certs) >= 0;
         sk_X509_pop_free(trusted, X509_free);
         if (ret == 0)
             return 0;
@@ -485,12 +484,19 @@ static int find_server_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     return 1;
 }
 
+static int srv_cert_valid(OSSL_CMP_CTX *ctx, X509_STORE *store,
+                          X509 *scrt, const OSSL_CMP_MSG *msg)
+{
+    return OSSL_CMP_validate_cert_path(ctx, store, scrt)
+        && verify_signature(ctx, msg, scrt);
+}
+
 /*
  * Exceptional handling for 3GPP TS 33.310 [3G/LTE Network Domain Security
  * (NDS);Authentication Framework (AF)], only to use for IP and if the ctx
  * option is explicitly set: use self-signed certificates from extraCerts as
- * trust anchor to validate server cert - provided it also can validate the
- * newly enrolled certificate
+ * trust anchor to validate server cert and msg -
+ * provided it also can validate the newly enrolled certificate
  *
  * Returns 0 on error, else 1.
  */
@@ -503,8 +509,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
     if (store != NULL /* store does not include CRLs */
             && ossl_cmp_X509_STORE_add1_certs(store, msg->extraCerts,
                                               1 /* self-signed only */))
-        valid = OSSL_CMP_validate_cert_path(ctx, store, scrt);
-
+        valid = srv_cert_valid(ctx, store, scrt, msg);
     if (valid) {
         /*
          * verify that the newly enrolled certificate (which is assumed to have
@@ -525,11 +530,10 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
     return valid;
 }
 
-/* Find and validate any potentially usable server cert */
+/* Find acceptable server cert that successfully validates msg */
 static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
-    X509 *scrt = NULL;
-    int valid = 0;
+    X509 *scrt = ctx->validatedSrvCert;
     GENERAL_NAME *sender = msg->header->sender;
 
     if (sender == NULL || msg->body == NULL)
@@ -544,12 +548,11 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
      * used for validating any further msgs where extraCerts may be left out
      */
     (void)ERR_set_mark();
-    if (ctx->validatedSrvCert != NULL
+    if (scrt != NULL
             && cert_acceptable(ctx, "previously validated server cert",
-                               ctx->validatedSrvCert, NULL, msg)) {
+                               scrt, NULL, msg)
+            && srv_cert_valid(ctx, ctx->trusted, scrt, msg)) {
         (void)ERR_pop_to_mark();
-        scrt = ctx->validatedSrvCert;
-        valid = 1;
     } else {
         STACK_OF(X509) *found_crts;
         char *sname;
@@ -577,28 +580,35 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             OSSL_CMP_log1(INFO, ctx, "matches msg senderKID   = %s", skid_str);
 
         /* find acceptable server cert candidates from any available source */
-        if (!find_server_cert(ctx, msg, found_crts))
+        scrt = NULL;
+        if (!find_server_certs(ctx, msg, found_crts))
             goto end;
 
         /* enable clearing irrelevant errors in attempts to validate srv certs */
         (void)ERR_set_mark();
 
-        /* select first server cert that can be validated */
-        for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
+        /* select first server cert that can be validated and verifies msg */
+        for (i = 0; i < sk_X509_num(found_crts); i++) {
             scrt = sk_X509_value(found_crts, i);
-            valid = OSSL_CMP_validate_cert_path(ctx, ctx->trusted, scrt);
+            if (srv_cert_valid(ctx, ctx->trusted, scrt, msg))
+                break;
         }
+        if (i == sk_X509_num(found_crts))
+            scrt = NULL;
 
         /* exceptional 3GPP TS 33.310 handling */
-        if (!valid && ctx->permitTAInExtraCertsForIR
+        if (scrt == NULL && ctx->permitTAInExtraCertsForIR
                 && ossl_cmp_msg_get_bodytype(msg) == OSSL_CMP_PKIBODY_IP) {
-            for (i = 0; !valid && i < sk_X509_num(found_crts); i++) {
+            for (i = 0; i < sk_X509_num(found_crts); i++) {
                 scrt = sk_X509_value(found_crts, i);
-                valid = srv_cert_valid_3gpp(ctx, scrt, msg);
+                if (srv_cert_valid_3gpp(ctx, scrt, msg))
+                    break;
             }
+            if (i == sk_X509_num(found_crts))
+                scrt = NULL;
         }
 
-        if (valid) {
+        if (scrt != NULL) {
             /* discard any diagnostic info on validating acceptable srv certs */
             (void)ERR_pop_to_mark();
 
@@ -608,11 +618,11 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
                     X509_free(scrt);
         } else {
             (void)ERR_clear_last_mark();
-            scrt = NULL;
         }
+
  end:
         if (scrt == NULL) {
-            CMPerr(0, CMP_R_NO_VALID_SERVER_CERT_FOUND);
+            CMPerr(0, CMP_R_NO_SUITABLE_SERVER_CERT);
             if (sname != NULL) {
                 ossl_cmp_add_error_txt(NULL, "for msg sender name = ");
                 ossl_cmp_add_error_txt(NULL, sname);
@@ -649,7 +659,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     X509_ALGOR *alg;
     int nid = NID_undef, pk_nid = NID_undef;
     const ASN1_OBJECT *algorOID = NULL;
-    X509 *scrt = NULL;
+    X509 *scrt;
 
     if (!ossl_assert(ctx != NULL && msg != NULL && msg->header != NULL))
         return 0;
@@ -724,42 +734,30 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
                         msg->header->sender->d.directoryName,
                         "expected sender", ctx->expected_sender))
             break;
-
         /* Note: if recipient was NULL-DN it could be learned here if needed */
+
         scrt = ctx->srvCert;
-        if (scrt == NULL)
+        if (scrt == NULL) {
             scrt = find_srvcert(ctx, msg);
-        else
+            if (scrt != NULL)
+                return 1;
+            /* failure; add further cert matching & validation diagnostics: */
+            if (msg->header->senderKID == NULL)
+                ossl_cmp_add_error_data("no senderKID in CMP header");
+            if (find_acceptable_certs(ctx, "cert from extraCerts",
+                                      msg->extraCerts, NULL, msg, NULL) == 0)
+                ossl_cmp_add_error_data("no acceptable cert in extraCerts");
+        } else {
             /*
-             * We'll try using ctx->srvCert even if not acceptable.
+             * We try using ctx->srvCert for sig check even if not acceptable.
              * cert_acceptable() is called here just to add diagnostics.
              */
             (void)cert_acceptable(ctx, "explicitly set server cert", scrt,
                                   NULL, msg);
-        if (scrt != NULL) {
             if (verify_signature(ctx, msg, scrt))
                 return 1;
-
-            /* failure; add further cert matching & validation diagnostics: */
             CMPerr(0, CMP_R_NO_SUITABLE_SERVER_CERT);
-
-            /*
-             * Potentially the server cert finding algorithm took wrong cert:
-             * the server certificate may not have a subject key identifier
-             * (including such in EE certs is only a "SHOULD" requirement in
-             * RFC 5280, section 4.2.1.2) or the CMP server is not conforming
-             * with RFC 4210 and is failing to set senderKID although having
-             * several keys associated with its name.
-             */
-            if (!X509_find_by_issuer_and_serial(msg->extraCerts,
-                                                X509_get_issuer_name(scrt),
-                                                (ASN1_INTEGER *)
-                                                X509_get0_serialNumber(scrt)))
-                ossl_cmp_add_error_line("cert used for signature verification attempt is not in extraCerts");
-
-            if (msg->header->senderKID == NULL) {
-                ossl_cmp_add_error_line("no senderKID in CMP header; risk that correct server cert could not be identified");
-            }
+            ossl_cmp_add_error_data("explicitly set server cert does not fit");
         }
         break;
     }
