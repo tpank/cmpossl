@@ -487,13 +487,13 @@ static int find_server_certs(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
 static int srv_cert_valid(OSSL_CMP_CTX *ctx, X509_STORE *store,
                           X509 *scrt, const OSSL_CMP_MSG *msg)
 {
-    return OSSL_CMP_validate_cert_path(ctx, store, scrt)
-        && verify_signature(ctx, msg, scrt);
+    return verify_signature(ctx, msg, scrt)
+        && OSSL_CMP_validate_cert_path(ctx, store, scrt);
 }
 
 /*
  * Exceptional handling for 3GPP TS 33.310 [3G/LTE Network Domain Security
- * (NDS);Authentication Framework (AF)], only to use for IP and if the ctx
+ * (NDS); Authentication Framework (AF)], only to use for IP and if the ctx
  * option is explicitly set: use self-signed certificates from extraCerts as
  * trust anchor to validate server cert and msg -
  * provided it also can validate the newly enrolled certificate
