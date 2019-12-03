@@ -119,8 +119,8 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
 }
 
 /* Verify a message protected with PBMAC */
-static int CMP_verify_PBMAC(const OSSL_CMP_MSG *msg,
-                            const ASN1_OCTET_STRING *secret)
+static int verify_PBMAC(const OSSL_CMP_MSG *msg,
+                        const ASN1_OCTET_STRING *secret)
 {
     ASN1_BIT_STRING *protection = NULL;
     int valid = 0;
@@ -153,10 +153,11 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
-    const int err = CMP_R_POTENTIALLY_INVALID_CERTIFICATE;
 
-    if (!ossl_assert(ctx != NULL && cert != NULL))
+    if (ctx == NULL || cert == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
 
     if (trusted_store == NULL) {
         CMPerr(0, CMP_R_MISSING_TRUST_STORE);
@@ -171,8 +172,9 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
     valid = X509_verify_cert(csc) > 0;
 
     /* make sure suitable error is queued even if callback did not do */
-    if (!valid && ERR_GET_REASON(ERR_peek_last_error()) != err)
-        CMPerr(0, err);
+    if (!valid && ERR_GET_REASON(ERR_peek_last_error())
+        != CMP_R_POTENTIALLY_INVALID_CERTIFICATE)
+        CMPerr(0, CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
 
  err:
     X509_STORE_CTX_free(csc);
@@ -378,7 +380,8 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, const char *desc, X509 *cert,
 {
     X509_STORE *ts = ctx->trusted;
     char *sub, *iss;
-    X509_VERIFY_PARAM *vpm;
+    X509_VERIFY_PARAM *vpm = ts != NULL ? X509_STORE_get0_param(ts) : NULL;
+
     int time_cmp;
     int i;
 
@@ -395,10 +398,6 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, const char *desc, X509 *cert,
             OSSL_CMP_info(ctx, " cert has already been checked");
             return 0;
         }
-
-    vpm = ts != NULL ? X509_STORE_get0_param(ts) : NULL;
-    if (!ossl_assert(cert != NULL && msg != NULL && (ts == NULL || vpm != NULL)))
-        return 0;
 
     time_cmp = OSSL_CMP_cmp_timeframe(X509_get0_notBefore(cert),
                                       X509_get0_notAfter(cert), vpm);
@@ -421,7 +420,7 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, const char *desc, X509 *cert,
 }
 
 static int check_msg_valid_cert(OSSL_CMP_CTX *ctx, X509_STORE *store,
-                          X509 *scrt, const OSSL_CMP_MSG *msg)
+                                X509 *scrt, const OSSL_CMP_MSG *msg)
 {
     return verify_signature(ctx, msg, scrt)
         && OSSL_CMP_validate_cert_path(ctx, store, scrt);
@@ -476,15 +475,17 @@ static int check_msg_with_certs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *certs,
 
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
-        int in_extraCerts = already_checked == NULL &&
-            X509_find_by_issuer_and_serial(msg->extraCerts,
-                                           X509_get_issuer_name(cert),
-                                           (ASN1_INTEGER *)
-                                           X509_get0_serialNumber(cert));
+        int in_extraCerts = already_checked == NULL && cert != NULL
+            && X509_find_by_issuer_and_serial(msg->extraCerts,
+                                              X509_get_issuer_name(cert),
+                                              (ASN1_INTEGER *)
+                                              X509_get0_serialNumber(cert));
+        if (!ossl_assert(cert != NULL))
+            return 0;
         if (!mode_3gpp && already_checked == NULL && !in_extraCerts
                 && n_acceptable_extraCerts == 0) {
-                OSSL_CMP_warn(ctx, "no acceptable cert in extraCerts");
-                n_acceptable_extraCerts++; /* thus warning is shown only once */
+            OSSL_CMP_warn(ctx, "no acceptable cert in extraCerts");
+            n_acceptable_extraCerts++; /* thus warning is shown only once */
         }
         if (!cert_acceptable(ctx,
                              already_checked != 0 ? "cert from trusted store" :
@@ -626,8 +627,11 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     const ASN1_OBJECT *algorOID = NULL;
     X509 *scrt;
 
-    if (!ossl_assert(ctx != NULL && msg != NULL && msg->header != NULL))
+    if (ctx == NULL || msg == NULL
+            || msg->header == NULL || msg->body == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
+    }
 
     if ((alg = msg->header->protectionAlg) == NULL /* unprotected message */
             || msg->protection == NULL || msg->protection->data == NULL) {
@@ -642,7 +646,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     switch (nid) {
         /* 5.1.3.1.  Shared Secret Information */
     case NID_id_PasswordBasedMAC:
-        if (CMP_verify_PBMAC(msg, ctx->secretValue)) {
+        if (verify_PBMAC(msg, ctx->secretValue)) {
             /*
              * RFC 4210, 5.3.2: 'Note that if the PKI Message Protection is
              * "shared secret information", then any certificate transported in
@@ -813,7 +817,7 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
 
     /* if not yet present, learn transactionID */
     if (ctx->transactionID == NULL
-            && !OSSL_CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
+        && !OSSL_CMP_CTX_set1_transactionID(ctx, msg->header->transactionID))
         return -1;
 
     if ((rcvd_type = ossl_cmp_msg_get_bodytype(msg)) < 0) {
