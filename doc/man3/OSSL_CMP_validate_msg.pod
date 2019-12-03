@@ -21,7 +21,7 @@ OSSL_CMP_print_cert_verify_cb
 =head1 DESCRIPTION
 
 This is the API for validating the protection of CMP messages,
-which includes validating CMP server certificates and their paths
+which includes validating CMP message sender certificates and their paths
 while optionally checking the revocation status of the certificates(s).
 
 OSSL_CMP_cmp_timeframe() compares the given time period with the current time.
@@ -33,8 +33,8 @@ using either password-based mac (PBM) or a signature algorithm.
 
 In case of signature algorithm, the certificate to use for the signature check
 is preferably the one provided by a call to L<OSSL_CMP_CTX_set1_srvCert(3)>.
-If this not set then candidate sender certificates are taken from
-the list of certificates received in the C<msg> extraCerts, then any
+If no such sender cert has been pinned then candidate sender certificates are
+taken from the list of certificates received in the C<msg> extraCerts, then any
 certificates provided before via L<OSSL_CMP_CTX_set1_untrusted_certs(3)>, and
 then all trusted certificates provided via L<OSSL_CMP_CTX_set0_trustedStore(3)>,
 where a candidate is acceptable only if has not expired, its subject DN matches
