@@ -757,8 +757,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
                                   NULL, msg);
             if (verify_signature(ctx, msg, scrt))
                 return 1;
-            CMPerr(0, CMP_R_NO_SUITABLE_SERVER_CERT);
-            ossl_cmp_add_error_data("explicitly set server cert does not fit");
+            CMPerr(0, CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG);
         }
         break;
     }
