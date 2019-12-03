@@ -484,7 +484,7 @@ static int find_server_certs(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     return 1;
 }
 
-static int srv_cert_valid(OSSL_CMP_CTX *ctx, X509_STORE *store,
+static int check_msg_valid_cert(OSSL_CMP_CTX *ctx, X509_STORE *store,
                           X509 *scrt, const OSSL_CMP_MSG *msg)
 {
     return verify_signature(ctx, msg, scrt)
@@ -500,8 +500,8 @@ static int srv_cert_valid(OSSL_CMP_CTX *ctx, X509_STORE *store,
  *
  * Returns 0 on error, else 1.
  */
-static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
-                               const OSSL_CMP_MSG *msg)
+static int check_msg_valid_cert_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
+                                     const OSSL_CMP_MSG *msg)
 {
     int valid = 0;
     X509_STORE *store = X509_STORE_new();
@@ -509,7 +509,7 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
     if (store != NULL /* store does not include CRLs */
             && ossl_cmp_X509_STORE_add1_certs(store, msg->extraCerts,
                                               1 /* self-signed only */))
-        valid = srv_cert_valid(ctx, store, scrt, msg);
+        valid = check_msg_valid_cert(ctx, store, scrt, msg);
     if (valid) {
         /*
          * verify that the newly enrolled certificate (which is assumed to have
@@ -530,8 +530,8 @@ static int srv_cert_valid_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
     return valid;
 }
 
-/* Find acceptable server cert that successfully validates msg */
-static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
+/* verify message signature with any acceptable and valid candidate cert */
+static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
     X509 *scrt = ctx->validatedSrvCert;
     GENERAL_NAME *sender = msg->header->sender;
@@ -540,7 +540,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         return 0; /* other NULL cases already have been checked */
     if (sender->type != GEN_DIRNAME) {
         CMPerr(0, CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
-        return NULL;
+        return 0;
     }
 
     /*
@@ -551,8 +551,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     if (scrt != NULL
             && cert_acceptable(ctx, "previously validated server cert",
                                scrt, NULL, msg)
-            && (srv_cert_valid(ctx, ctx->trusted, scrt, msg)
-                || srv_cert_valid_3gpp(ctx, scrt, msg))) {
+            && (check_msg_valid_cert(ctx, ctx->trusted, scrt, msg)
+                    || check_msg_valid_cert_3gpp(ctx, scrt, msg))) {
         (void)ERR_pop_to_mark();
     } else {
         STACK_OF(X509) *found_crts;
@@ -568,7 +568,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
         /* sk_TYPE_find to use compfunc X509_cmp, not ptr comparison */
         if ((found_crts = sk_X509_new_null()) == NULL)
-            return NULL;
+            return 0;
 
         /* start accumulating diagnostic info via CMP logging */
         OSSL_CMP_info(ctx, "trying to find an acceptable server cert that..");
@@ -591,7 +591,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         /* select first server cert that can be validated and verifies msg */
         for (i = 0; i < sk_X509_num(found_crts); i++) {
             scrt = sk_X509_value(found_crts, i);
-            if (srv_cert_valid(ctx, ctx->trusted, scrt, msg))
+            if (check_msg_valid_cert(ctx, ctx->trusted, scrt, msg))
                 break;
         }
         if (i == sk_X509_num(found_crts))
@@ -602,7 +602,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
                 && ossl_cmp_msg_get_bodytype(msg) == OSSL_CMP_PKIBODY_IP) {
             for (i = 0; i < sk_X509_num(found_crts); i++) {
                 scrt = sk_X509_value(found_crts, i);
-                if (srv_cert_valid_3gpp(ctx, scrt, msg))
+                if (check_msg_valid_cert_3gpp(ctx, scrt, msg))
                     break;
             }
             if (i == sk_X509_num(found_crts))
@@ -638,7 +638,7 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         sk_X509_pop_free(found_crts, X509_free);
     }
 
-    return scrt;
+    return scrt != NULL;
 }
 
 /*
@@ -739,8 +739,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
         scrt = ctx->srvCert;
         if (scrt == NULL) {
-            scrt = find_srvcert(ctx, msg);
-            if (scrt != NULL)
+            if (check_msg_find_cert(ctx, msg))
                 return 1;
             /* failure; add further cert matching & validation diagnostics: */
             if (msg->header->senderKID == NULL)
