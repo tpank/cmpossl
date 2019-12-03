@@ -68,7 +68,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_MULTIPLE_SAN_SOURCES                       102
 #  define CMP_R_NO_STDIO                                   194
 #  define CMP_R_NO_SUITABLE_SERVER_CERT                    145
-#  define CMP_R_NO_VALID_SERVER_CERT_FOUND                 146
+#  define CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG              146
 #  define CMP_R_NULL_ARGUMENT                              103
 #  define CMP_R_PKIBODY_ERROR                              147
 #  define CMP_R_PKISTATUSINFO_NOT_FOUND                    132
