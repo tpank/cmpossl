@@ -551,7 +551,8 @@ static X509 *find_srvcert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     if (scrt != NULL
             && cert_acceptable(ctx, "previously validated server cert",
                                scrt, NULL, msg)
-            && srv_cert_valid(ctx, ctx->trusted, scrt, msg)) {
+            && (srv_cert_valid(ctx, ctx->trusted, scrt, msg)
+                || srv_cert_valid_3gpp(ctx, scrt, msg))) {
         (void)ERR_pop_to_mark();
     } else {
         STACK_OF(X509) *found_crts;
