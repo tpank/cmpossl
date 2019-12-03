@@ -2129,7 +2129,7 @@ CMP_R_MULTIPLE_SAN_SOURCES:102:multiple san sources
 CMP_R_MISSING_SENDER_IDENTIFICATION:111:missing sender identification
 CMP_R_MULTIPLE_SAN_SOURCES:102:multiple san sources
 CMP_R_NO_STDIO:194:no stdio
-CMP_R_NO_SUITABLE_SERVER_CERT:161:no suitable server cert
+CMP_R_NO_SUITABLE_SENDER_CERT:161:no suitable sender cert
 CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG:162:srvcert does not validate msg
 CMP_R_NULL_ARGUMENT:103:null argument
 CMP_R_PKIBODY_ERROR:163:pkibody error
