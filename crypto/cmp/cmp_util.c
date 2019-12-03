@@ -226,9 +226,10 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
         BIO_snprintf(component, sizeof(component), "%s",func_);
 #endif
         BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
-                     data == NULL ? "" : " : ", data == NULL ? "" : data);
+                     data == NULL || *data == '\0' ? "" : " : ",
+                     data == NULL ? "" : data);
         if (log_fn(component, file, line, OSSL_CMP_LOG_ERR, msg) <= 0)
-            break;              /* abort outputting the error report */
+            break; /* abort outputting the error report */
     }
 }
 
