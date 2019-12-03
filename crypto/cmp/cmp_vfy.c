@@ -431,7 +431,7 @@ static int check_msg_valid_cert(OSSL_CMP_CTX *ctx, X509_STORE *store,
  * Exceptional handling for 3GPP TS 33.310 [3G/LTE Network Domain Security
  * (NDS); Authentication Framework (AF)], only to use for IP and if the ctx
  * option is explicitly set: use self-signed certificates from extraCerts as
- * trust anchor to validate server cert and msg -
+ * trust anchor to validate sender cert and msg -
  * provided it also can validate the newly enrolled certificate
  */
 static int check_msg_valid_cert_3gpp(OSSL_CMP_CTX *ctx, X509 *scrt,
@@ -496,7 +496,7 @@ static int check_msg_with_certs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *certs,
             n_acceptable_extraCerts++;
         if (mode_3gpp ? check_msg_valid_cert_3gpp(ctx, cert, msg)
                       : check_msg_valid_cert(ctx, ctx->trusted, cert, msg)) {
-            /* store successful srv cert for future msgs of same transaction */
+            /* store successfull sender cert for further msgs in transaction */
             if (X509_up_ref(cert)
                     && !ossl_cmp_ctx_set0_validatedSrvCert(ctx, cert))
                 X509_free(cert);
@@ -533,7 +533,7 @@ static int check_msg_all_certs(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
 /* verify message signature with any acceptable and valid candidate cert */
 static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
-    X509 *scrt = ctx->validatedSrvCert;
+    X509 *scrt = ctx->validatedSrvCert; /* previous successful sender cert */
     GENERAL_NAME *sender = msg->header->sender;
     char *sname;
     const ASN1_OCTET_STRING *skid = msg->header->senderKID;
@@ -553,7 +553,7 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
      */
     (void)ERR_set_mark();
     if (scrt != NULL
-            && cert_acceptable(ctx, "previously validated server cert",
+            && cert_acceptable(ctx, "previously validated sender cert",
                                scrt, NULL, msg)
             && (check_msg_valid_cert(ctx, ctx->trusted, scrt, msg)
                     || check_msg_valid_cert_3gpp(ctx, scrt, msg))) {
@@ -562,7 +562,7 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     }
     (void)ERR_pop_to_mark();
 
-    /* release any cached cert, which proved no more successfully usable */
+    /* release any cached sender cert that proved no more successfully usable */
     (void)ossl_cmp_ctx_set0_validatedSrvCert(ctx, NULL);
 
     /* start accumulating diagnostic info via CMP logging */
@@ -577,7 +577,7 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     else
         OSSL_CMP_info(ctx, "while msg header does not contain senderKID");
 
-    /* enable clearing irrelevant errors in attempts to validate srv certs */
+    /* enable clearing irrelevant errors in attempts to validate sender certs */
     (void)ERR_set_mark();
 
     if (check_msg_all_certs(ctx, msg, 0 /* using ctx->trusted */)
@@ -589,7 +589,7 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     }
     (void)ERR_clear_last_mark();
 
-    CMPerr(0, CMP_R_NO_SUITABLE_SERVER_CERT);
+    CMPerr(0, CMP_R_NO_SUITABLE_SENDER_CERT);
     if (sname != NULL) {
         ossl_cmp_add_error_txt(NULL, "for msg sender name = ");
         ossl_cmp_add_error_txt(NULL, sname);
@@ -608,7 +608,7 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 /*
  * Validate the protection of the given PKIMessage using either password-
  * based mac (PBM) or a signature algorithm. In the case of signature algorithm,
- * the certificate can be provided in ctx->srvCert,
+ * the sender certificate can have been pinned by providing it in ctx->srvCert,
  * else it is taken from ctx->untrusted_certs (which should include extraCerts
  * first) and from ctx->trusted and validated against ctx->trusted.
  *
@@ -705,12 +705,12 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         if (scrt == NULL) {
             if (check_msg_find_cert(ctx, msg))
                 return 1;
-        } else {
+        } else { /* use pinned sender cert */
             /*
              * We try using ctx->srvCert for sig check even if not acceptable.
              * cert_acceptable() is called here just to add diagnostics.
              */
-            (void)cert_acceptable(ctx, "explicitly set server cert", scrt,
+            (void)cert_acceptable(ctx, "explicitly set sender cert", scrt,
                                   NULL, msg);
             if (verify_signature(ctx, msg, scrt))
                 return 1;
