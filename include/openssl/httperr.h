@@ -27,8 +27,6 @@ int ERR_load_HTTP_strings(void);
  * HTTP function codes.
  */
 # ifndef OPENSSL_NO_DEPRECATED_3_0
-#   define HTTP_F_HTTP_PARSE_URL                            0
-#   define HTTP_F_PARSE_HTTP_LINE1                          0
 # endif
 
 /*

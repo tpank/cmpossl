@@ -17,8 +17,8 @@
  * whether it is SSL.
  */
 
-int HTTP_parse_url(const char *url, char **phost, char **pport, char **ppath,
-                   int *pssl)
+int OSSL_HTTP_parse_url(const char *url, char **phost, char **pport,
+                        char **ppath, int *pssl)
 {
     char *p, *buf;
 
@@ -101,11 +101,11 @@ int HTTP_parse_url(const char *url, char **phost, char **pport, char **ppath,
     return 1;
 
  mem_err:
-    HTTPerr(HTTP_F_HTTP_PARSE_URL, ERR_R_MALLOC_FAILURE);
+    HTTPerr(0, ERR_R_MALLOC_FAILURE);
     goto err;
 
  parse_err:
-    HTTPerr(HTTP_F_HTTP_PARSE_URL, HTTP_R_ERROR_PARSING_URL);
+    HTTPerr(0, HTTP_R_ERROR_PARSING_URL);
 
  err:
     OPENSSL_free(buf);

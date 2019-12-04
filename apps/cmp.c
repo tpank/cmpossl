@@ -1602,7 +1602,7 @@ static OCSP_RESPONSE *get_ocsp_resp(X509 *cert, X509 *issuer,
     }
     DEBUG_print_cert("certstatus query", cert);
     DEBUG_print("cert_status:", "using AIA URL:", url);
-    if (!HTTP_parse_url(url, &host, &port, &path, &use_ssl)) {
+    if (!OSSL_HTTP_parse_url(url, &host, &port, &path, &use_ssl)) {
         BIO_printf(bio_err, "cert_status: cannot parse AIA URL: %s\n", url);
         goto end;
     }

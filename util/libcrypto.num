@@ -4942,7 +4942,7 @@ OSSL_CMP_proxy_connect                  ?	3_0_0	EXIST::FUNCTION:CMP,SOCK
 BIO_wait                                ?	3_0_0	EXIST::FUNCTION:SOCK
 BIO_connect_retry                       ?	3_0_0	EXIST::FUNCTION:SOCK
 ERR_load_HTTP_strings                   ?	3_0_0	EXIST::FUNCTION:
-HTTP_parse_url                          ?	3_0_0	EXIST::FUNCTION:
+OSSL_HTTP_parse_url                     ?	3_0_0	EXIST::FUNCTION:
 OSSL_HTTP_REQ_CTX_new                   ?	3_0_0	EXIST::FUNCTION:
 OSSL_HTTP_REQ_CTX_free                  ?	3_0_0	EXIST::FUNCTION:
 OSSL_HTTP_REQ_CTX_get0_mem_bio          ?	3_0_0	EXIST::FUNCTION:

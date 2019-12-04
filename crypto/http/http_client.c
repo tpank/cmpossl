@@ -268,7 +268,7 @@ static int parse_http_line1(char *line)
     for (p = line; *p && !ossl_isspace(*p); p++)
         continue;
     if (*p == '\0') {
-        HTTPerr(HTTP_F_PARSE_HTTP_LINE1, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
+        HTTPerr(0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
@@ -277,7 +277,7 @@ static int parse_http_line1(char *line)
         p++;
 
     if (*p == '\0') {
-        HTTPerr(HTTP_F_PARSE_HTTP_LINE1, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
+        HTTPerr(0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
@@ -286,7 +286,7 @@ static int parse_http_line1(char *line)
         continue;
 
     if (*q == '\0') {
-        HTTPerr(HTTP_F_PARSE_HTTP_LINE1, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
+        HTTPerr(0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
@@ -313,7 +313,7 @@ static int parse_http_line1(char *line)
             *r = 0;
     }
     if (retcode != 200) {
-        HTTPerr(HTTP_F_PARSE_HTTP_LINE1, HTTP_R_SERVER_RESPONSE_ERROR);
+        HTTPerr(0, HTTP_R_SERVER_RESPONSE_ERROR);
         if (*q == '\0')
             ERR_add_error_data(2, "Code=", p);
         else
@@ -627,7 +627,7 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
         return NULL;
     }
 
-    if (!HTTP_parse_url(url, &host, &port, &path, &use_ssl))
+    if (!OSSL_HTTP_parse_url(url, &host, &port, &path, &use_ssl))
         goto err;
     if (use_ssl) {
         HTTPerr(0, HTTP_R_TLS_NOT_SUPPORTED);

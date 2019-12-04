@@ -21,8 +21,8 @@
 extern "C" {
 # endif
 
-int HTTP_parse_url(const char *url, char **phost, char **pport, char **ppath,
-                   int *pssl);
+int OSSL_HTTP_parse_url(const char *url, char **phost, char **pport,
+                        char **ppath, int *pssl);
 /* TODO: unexport this (undocumented and actually just internal) function? */
 OSSL_HTTP_REQ_CTX *OSSL_HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline);
 /* TODO: unexport this (documented but) meanwhile just internal function? */
