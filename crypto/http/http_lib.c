@@ -118,4 +118,3 @@ int OSSL_HTTP_parse_url(const char *url, char **phost, char **pport,
     return 0;
 
 }
-

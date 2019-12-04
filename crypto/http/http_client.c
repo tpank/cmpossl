@@ -23,9 +23,9 @@
 
 #include "http_local.h"
 
-# define HTTP_PREFIX "HTTP/"
-# define HTTP_VERSION_PATT "1." /* or, e.g., "1.1" */
-# define HTTP_VERSION_MAX_LEN 3
+#define HTTP_PREFIX "HTTP/"
+#define HTTP_VERSION_PATT "1." /* or, e.g., "1.1" */
+#define HTTP_VERSION_MAX_LEN 3
 
 /* Stateful HTTP request code, supporting blocking and non-blocking I/O */
 
@@ -47,28 +47,17 @@ struct ossl_http_req_ctx_st {
 
 /* HTTP states */
 
-/* If set no reading should be performed */
-#define OHS_NOREAD              0x1000
-/* Error condition */
-#define OHS_ERROR               (0 | OHS_NOREAD)
-/* First line being read */
-#define OHS_FIRSTLINE           1
-/* MIME headers being read */
-#define OHS_HEADERS             2
-/* HTTP initial header (tag + length) being read */
-#define OHS_ASN1_HEADER         3
-/* HTTP content octets being read */
-#define OHS_ASN1_CONTENT        4
-/* First call: ready to start I/O */
-#define OHS_ASN1_WRITE_INIT     (5 | OHS_NOREAD)
-/* Request being sent */
-#define OHS_ASN1_WRITE          (6 | OHS_NOREAD)
-/* Request being flushed */
-#define OHS_ASN1_FLUSH          (7 | OHS_NOREAD)
-/* Completed */
-#define OHS_DONE                (8 | OHS_NOREAD)
-/* Headers set, no final \r\n included */
-#define OHS_HTTP_HEADER         (9 | OHS_NOREAD)
+#define OHS_NOREAD          0x1000 /* If set no reading should be performed */
+#define OHS_ERROR           (0 | OHS_NOREAD) /* Error condition */
+#define OHS_FIRSTLINE       1 /* First line being read */
+#define OHS_HEADERS         2 /* MIME headers being read */
+#define OHS_ASN1_HEADER     3 /* HTTP initial header (tag+length) being read */
+#define OHS_ASN1_CONTENT    4 /* HTTP content octets being read */
+#define OHS_ASN1_WRITE_INIT (5 | OHS_NOREAD) /* 1st call: ready to start I/O */
+#define OHS_ASN1_WRITE      (6 | OHS_NOREAD) /* Request being sent */
+#define OHS_ASN1_FLUSH      (7 | OHS_NOREAD) /* Request being flushed */
+#define OHS_DONE            (8 | OHS_NOREAD) /* Completed */
+#define OHS_HTTP_HEADER     (9 | OHS_NOREAD) /* Headers set, w/o final \r\n */
 
 OSSL_HTTP_REQ_CTX *OSSL_HTTP_REQ_CTX_new(BIO *io, long timeout, int maxline)
 {
@@ -610,9 +599,9 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
  * Get ASN.1-encoded response via HTTP from server at given URL.
  * Assign the received message to *presp on success, else NULL.
  */
- ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
-                                const char *proxy, const char *proxy_port,
-                                int timeout, const ASN1_ITEM *it)
+ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
+                               const char *proxy, const char *proxy_port,
+                               int timeout, const ASN1_ITEM *it)
 {
     char *host = NULL;
     char *port = NULL;
@@ -644,7 +633,7 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
     if (BIO_connect_retry(bio, timeout /* still same timeout */) <= 0)
         goto err;
     if (!OSSL_HTTP_REQ_CTX_header(rctx, "GET", path,
-                             proxy != NULL ? host : NULL, port))
+                                  proxy != NULL ? host : NULL, port))
         goto err;
     if (!OSSL_HTTP_REQ_CTX_add1_header(rctx, "Host", host))
         goto err;
@@ -671,8 +660,8 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
  * During connection establishment, just after BIO_connect_retry(),
  * the callback function is invoked with the 'detail' argument being 1.
  * On disconnect 'detail' is 0 if no error occurred or else the last error code.
- * For instance, on connect the function may prepend a TLS BIO to implement HTTPS,
- * and after disconnect it may do some error diagnostics and/or specific cleanup.
+ * For instance, on connect the funct may prepend a TLS BIO to implement HTTPS;
+ * after disconnect it may do some error diagnostics and/or specific cleanup.
  * The function should return NULL to indicate failure.
  * After disconnect the modified BIO will be deallocated using BIO_free_all().
  *
@@ -719,8 +708,7 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
 
         if (ERR_GET_LIB(err) == ERR_LIB_SSL
                 || ERR_GET_REASON(err) == BIO_R_CONNECT_TIMEOUT
-                || ERR_GET_REASON(err) == BIO_R_CONNECT_ERROR)
-        {
+                || ERR_GET_REASON(err) == BIO_R_CONNECT_ERROR) {
             BIO_snprintf(buf, 200, "host '%s' port %s", server, port);
             ERR_add_error_data(1, buf);
             if (err == 0) {
@@ -777,7 +765,7 @@ static char *base64encode(const void *buf, size_t len)
 {
     int i;
     size_t outl;
-    char  *out;
+    char *out;
 
     /* Calculate size of encoded data */
     outl = (len / 3);
@@ -805,7 +793,7 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
                             long timeout, BIO *bio_err, const char *prog)
 {
 # undef BUF_SIZE
-# define BUF_SIZE 1024*8
+# define BUF_SIZE 1024 * 8
     char *mbuf = OPENSSL_malloc(BUF_SIZE);
     char *mbufp;
     int mbuf_len = 0;
