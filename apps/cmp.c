@@ -1142,8 +1142,8 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
     for (i = 0; ret && i < sk_X509_num(*certs); i++) {
         int cmp;
         cert = sk_X509_value(*certs, i);
-        cmp = OSSL_CMP_cmp_timeframe(X509_get0_notBefore(cert),
-                                     X509_get0_notAfter (cert), vpm);
+        cmp = X509_cmp_timeframe(vpm, X509_get0_notBefore(cert),
+                                 X509_get0_notAfter (cert));
         if (cmp != 0) {
             char *s = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
             CMP_warn3("certificate from '%s' with subject '%s' %s", file, s,
@@ -2693,9 +2693,8 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx,
             if (crls == NULL)
                 goto err;
             while ((crl = sk_X509_CRL_shift(crls)) != NULL) {
-                int cmp = OSSL_CMP_cmp_timeframe(X509_CRL_get0_lastUpdate(crl),
-                                                 X509_CRL_get0_nextUpdate(crl),
-                                                 vpm);
+                int cmp = X509_cmp_timeframe(vpm, X509_CRL_get0_lastUpdate(crl),
+                                             X509_CRL_get0_nextUpdate(crl));
                 if (cmp != 0) {
           /* well, should ignore expiration of base CRL if delta CRL is valid */
                     char *issuer = X509_NAME_oneline(X509_CRL_get_issuer(crl),
