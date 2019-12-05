@@ -11,8 +11,8 @@ B<openssl> B<cmp>
 [B<-config> I<filename>]
 [B<-section> I<names>]
 
-[B<-server> I<address[:port]]
-[B<-proxy> I<address[:port]]
+[B<-server> I<address[:port]>]
+[B<-proxy> I<address[:port]>]
 [B<-path> I<remote_path>]
 [B<-msgtimeout> I<seconds>]
 [B<-totaltimeout> I<seconds>]
