@@ -374,7 +374,9 @@ int X509_sign(X509 *x, EVP_PKEY *pkey, const EVP_MD *md);
 int X509_sign_ctx(X509 *x, EVP_MD_CTX *ctx);
 # if !defined(OPENSSL_NO_SOCK)
 X509 *X509_load_http(const char *url, long timeout);
+#define X509_http_nbio(url) X509_load_http(url, 0) /* backward compatibility */
 X509_CRL *X509_CRL_load_http(const char *url, long timeout);
+#define X509_CRL_http_nbio(url) X509_CRL_load_http(url, 0) /* compatibility */
 # endif
 int X509_REQ_sign(X509_REQ *x, EVP_PKEY *pkey, const EVP_MD *md);
 int X509_REQ_sign_ctx(X509_REQ *x, EVP_MD_CTX *ctx);

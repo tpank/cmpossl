@@ -159,14 +159,14 @@ typedef struct ocsp_service_locator_st OCSP_SERVICELOC;
 
 DECLARE_ASN1_DUP_FUNCTION(OCSP_CERTID)
 
-OSSL_HTTP_REQ_CTX *OCSP_sendreq_new(BIO *bio, const char *path,
-                                    OCSP_REQUEST *req, int maxline);
-/* TODO: remove this (documented but) meanwhile obsolete function? */
-int OCSP_REQ_CTX_set1_req(OSSL_HTTP_REQ_CTX *rctx, const OCSP_REQUEST *req);
-#  if !defined(OPENSSL_NO_SOCK)
-int OCSP_sendreq(OCSP_RESPONSE **presp, OSSL_HTTP_REQ_CTX *rctx);
 OCSP_RESPONSE *OCSP_sendreq_bio(BIO *b, const char *path, OCSP_REQUEST *req);
+OCSP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
+                               int maxline);
+#  if !defined(OPENSSL_NO_SOCK)
+int OCSP_sendreq_nbio(OCSP_RESPONSE **presp, OCSP_REQ_CTX *rctx);
 #  endif
+/* TODO: remove this (documented but) meanwhile obsolete function? */
+int OCSP_REQ_CTX_set1_req(OCSP_REQ_CTX *rctx, const OCSP_REQUEST *req);
 
 OCSP_CERTID *OCSP_cert_to_id(const EVP_MD *dgst, const X509 *subject,
                              const X509 *issuer);
@@ -227,6 +227,8 @@ int OCSP_check_validity(ASN1_GENERALIZEDTIME *thisupd,
 
 int OCSP_request_verify(OCSP_REQUEST *req, STACK_OF(X509) *certs,
                         X509_STORE *store, unsigned long flags);
+
+#  define OCSP_parse_url OSSL_HTTP_parse_url /* for backward compatibility */
 
 int OCSP_id_issuer_cmp(const OCSP_CERTID *a, const OCSP_CERTID *b);
 int OCSP_id_cmp(const OCSP_CERTID *a, const OCSP_CERTID *b);

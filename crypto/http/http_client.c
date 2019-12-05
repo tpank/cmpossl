@@ -1,5 +1,6 @@
 /*
  * Copyright 2001-2019 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright Siemens AG 2018-2019
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -793,7 +794,7 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
                             long timeout, BIO *bio_err, const char *prog)
 {
 # undef BUF_SIZE
-# define BUF_SIZE 1024 * 8
+# define BUF_SIZE (8 * 1024)
     char *mbuf = OPENSSL_malloc(BUF_SIZE);
     char *mbufp;
     int mbuf_len = 0;

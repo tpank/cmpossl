@@ -1,7 +1,6 @@
 /*
  * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
- * Copyright Nokia 2007-2019
- * Copyright Siemens AG 2015-2019
+ * Copyright Siemens AG 2018-2019
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -11,6 +10,22 @@
 
 #ifndef OSSL_CRYPTO_HTTP_LOCAL_H
 # define OSSL_CRYPTO_HTTP_LOCAL_H
+
+/* name aliases for legacy names with name prefix "OCSP_" */
+typedef OCSP_REQ_CTX OSSL_HTTP_REQ_CTX;
+/* functions meanwhile only used internally */
+# define OSSL_HTTP_REQ_CTX_new          OCSP_REQ_CTX_new
+# define OSSL_HTTP_REQ_CTX_free         OCSP_REQ_CTX_free
+# define OSSL_HTTP_REQ_CTX_header       OCSP_REQ_CTX_http
+# define OSSL_HTTP_REQ_CTX_add1_header  OCSP_REQ_CTX_add1_header
+# define OSSL_HTTP_REQ_CTX_i2d          OCSP_REQ_CTX_i2d
+# define OSSL_HTTP_REQ_CTX_nbio         OCSP_REQ_CTX_nbio
+# ifndef OPENSSL_NO_SOCK
+#  define OSSL_HTTP_REQ_CTX_sendreq_d2i OCSP_REQ_CTX_nbio_d2i
+# endif
+/* functions that are meanwhile unused */
+# define OSSL_HTTP_REQ_CTX_get0_mem_bio OCSP_REQ_CTX_get0_mem_bio /* undoc'd */
+# define OSSL_HTTP_REQ_CTX_set_max_response_length OCSP_set_max_response_length
 
 OSSL_HTTP_REQ_CTX *HTTP_sendreq_new(BIO *bio, const char *path,
                                     const char *server, const char *port,
