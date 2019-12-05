@@ -288,30 +288,6 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
     return ok;
 }
 
-/*
- * Return 0 if time should not be checked or reference time is within frame,
- * or else 1 if it s past the end, or -1 if it is before the start
- */
-/* TODO remove definition when respective PR has been merged */
-int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
-                           const ASN1_TIME *end, X509_VERIFY_PARAM *vpm)
-{
-    time_t check_time, *ptime = NULL;
-    unsigned long flags = vpm == NULL ? 0 : X509_VERIFY_PARAM_get_flags(vpm);
-
-    if ((flags & X509_V_FLAG_USE_CHECK_TIME) != 0) {
-        check_time = X509_VERIFY_PARAM_get_time(vpm);
-        ptime = &check_time;
-    } else if ((flags & X509_V_FLAG_NO_CHECK_TIME) != 0) {
-        return 0; /* ok */
-    }
-    if (end != NULL && X509_cmp_time(end, ptime) < 0)
-        return 1;
-    if (start != NULL && X509_cmp_time(start, ptime) > 0)
-        return -1;
-    return 0;
-}
-
 /* Return 0 if expect_name != NULL and there is no matching actual_name */
 static int check_name(OSSL_CMP_CTX *ctx,
                       const char *actual_desc, const X509_NAME *actual_name,
@@ -399,8 +375,8 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, const char *desc, X509 *cert,
             return 0;
         }
 
-    time_cmp = OSSL_CMP_cmp_timeframe(X509_get0_notBefore(cert),
-                                      X509_get0_notAfter(cert), vpm);
+    time_cmp = X509_cmp_timeframe(vpm, X509_get0_notBefore(cert),
+                                  X509_get0_notAfter(cert));
     if (time_cmp != 0) {
         OSSL_CMP_warn(ctx, time_cmp > 0 ? " cert has expired"
                                         : " cert is not yet valid");
