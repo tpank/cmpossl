@@ -7,37 +7,40 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <string.h>
 #include <openssl/http.h>
-#include <openssl/err.h>
 #include <openssl/httperr.h>
+#include <openssl/err.h>
+#include <string.h>
 
 /*
  * Parse a URL and split it up into host, port and path components and
- * whether it is SSL.
+ * whether it indicates SSL/TLS. Return 1 on success, 0 on error.
  */
 
 int OSSL_HTTP_parse_url(const char *url, char **phost, char **pport,
                         char **ppath, int *pssl)
 {
     char *p, *buf;
-
     char *host, *port;
+
+    if (url == NULL
+        || phost == NULL || pport == NULL || ppath == NULL || pssl == NULL) {
+        HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
+        return 0;
+    }
 
     *phost = NULL;
     *pport = NULL;
     *ppath = NULL;
 
     /* dup the buffer since we are going to mess with it */
-    buf = OPENSSL_strdup(url);
-    if (!buf)
-        goto mem_err;
+    if ((buf = OPENSSL_strdup(url)) == NULL)
+        goto err;
 
     /* Check for initial colon */
     p = strchr(buf, ':');
     if (p == NULL)
         goto parse_err;
-
     *(p++) = '\0';
 
     if (strcmp(buf, "http") == 0) {
@@ -52,9 +55,7 @@ int OSSL_HTTP_parse_url(const char *url, char **phost, char **pport,
     /* Check for double slash */
     if ((p[0] != '/') || (p[1] != '/'))
         goto parse_err;
-
     p += 2;
-
     host = p;
 
     /* Check for trailing part of path */
@@ -66,9 +67,8 @@ int OSSL_HTTP_parse_url(const char *url, char **phost, char **pport,
         /* Set start of path to 0 so hostname is valid */
         *p = '\0';
     }
-
     if (*ppath == NULL)
-        goto mem_err;
+        goto err;
 
     p = host;
     if (host[0] == '[') {
@@ -80,41 +80,30 @@ int OSSL_HTTP_parse_url(const char *url, char **phost, char **pport,
         *p = '\0';
         p++;
     }
+    if ((*phost = OPENSSL_strdup(host)) == NULL)
+        goto err;
 
     /* Look for optional ':' for port number */
     if ((p = strchr(p, ':'))) {
         *p = 0;
         port = p + 1;
     }
-
-    *pport = OPENSSL_strdup(port);
-    if (*pport == NULL)
-        goto mem_err;
-
-    *phost = OPENSSL_strdup(host);
-
-    if (*phost == NULL)
-        goto mem_err;
+    if ((*pport = OPENSSL_strdup(port)) == NULL)
+        goto err;
 
     OPENSSL_free(buf);
-
     return 1;
-
- mem_err:
-    HTTPerr(0, ERR_R_MALLOC_FAILURE);
-    goto err;
 
  parse_err:
     HTTPerr(0, HTTP_R_ERROR_PARSING_URL);
 
  err:
-    OPENSSL_free(buf);
     OPENSSL_free(*ppath);
     *ppath = NULL;
     OPENSSL_free(*pport);
     *pport = NULL;
     OPENSSL_free(*phost);
     *phost = NULL;
+    OPENSSL_free(buf);
     return 0;
-
 }
