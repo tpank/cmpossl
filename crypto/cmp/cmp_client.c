@@ -182,7 +182,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         }
         else {
             CMPerr(0, CMP_R_ERROR_SENDING_REQUEST);
-            ossl_cmp_add_error_data(req_type_string);
+            ERR_add_error_data(1, req_type_string);
         }
         *rep = NULL;
         return 0;
@@ -540,7 +540,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         return 0;
     cert = get1_cert_status(ctx, (*resp)->body->type, crep);
     if (cert == NULL) {
-        ossl_cmp_add_error_data("cannot extract certificate from response");
+        ERR_add_error_data(1, "cannot extract certificate from response");
         return 0;
     }
     if (!ossl_cmp_ctx_set0_newCert(ctx, cert))
