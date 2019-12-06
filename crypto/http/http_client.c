@@ -610,7 +610,7 @@ ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
     BIO *bio = NULL;
     OSSL_HTTP_REQ_CTX *rctx = NULL;
     int use_ssl;
-    ASN1_VALUE *resp;
+    ASN1_VALUE *resp = NULL;
 
     if (url == NULL || it == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
