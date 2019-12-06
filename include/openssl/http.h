@@ -21,26 +21,27 @@
 extern "C" {
 # endif
 
-int OSSL_HTTP_parse_url(const char *url, char **phost, char **pport,
-                        char **ppath, int *pssl);
 # ifndef OPENSSL_NO_SOCK
-typedef BIO *(*HTTP_bio_cb_t) (void *ctx, BIO *bio, unsigned long detail);
+typedef BIO *(*HTTP_bio_cb_t) (void *arg, BIO *bio, unsigned long detail);
+ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
+                               const char *proxy, const char *proxy_port,
+                               HTTP_bio_cb_t bio_update_fn, void *arg,
+                               long timeout, const ASN1_ITEM *it);
 ASN1_VALUE *OSSL_HTTP_post_asn1(const char *host, const char *port,
-                                HTTP_bio_cb_t bio_update_fn, void *arg,
                                 const char *path,
                                 const char *proxy, const char *proxy_port,
+                                HTTP_bio_cb_t bio_update_fn, void *arg,
                                 const STACK_OF(CONF_VALUE) *headers,
                                 const char *content_type,
                                 ASN1_VALUE *req, const ASN1_ITEM *req_it,
                                 long timeout, int maxline,
                                 const ASN1_ITEM *rsp_it);
-ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
-                               const char *proxy, const char *proxy_port,
-                               long timeout, const ASN1_ITEM *it);
 int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
                             const char *proxyuser, const char *proxypass,
                             long timeout, BIO *bio_err, const char *prog);
 # endif
+int OSSL_HTTP_parse_url(const char *url, char **phost, char **pport,
+                        char **ppath, int *pssl);
 
 /*
  * The following functions are used only internally but are kept public under

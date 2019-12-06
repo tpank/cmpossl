@@ -1530,7 +1530,6 @@ static BIO *tls_http_cb(void *arg, BIO *cbio, unsigned long detail)
 
     if (detail == 1) { /* connecting */
         BIO *sbio = BIO_new_ssl(ctx, 1);
-
         cbio = sbio != NULL ? BIO_push(sbio, cbio) : NULL;
     }
     return cbio;
@@ -1555,11 +1554,11 @@ OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,
     }
 
     resp = (OCSP_RESPONSE *)
-        OSSL_HTTP_post_asn1(host, port, tls_http_cb, ctx,
-                            path, NULL, NULL /* no proxy used */,
+        OSSL_HTTP_post_asn1(host, port, path, NULL, NULL /* no proxy used */,
+                            tls_http_cb, ctx,
                             headers, "application/ocsp-request",
                             (ASN1_VALUE *)req, ASN1_ITEM_rptr(OCSP_REQUEST),
-                            req_timeout, -1, ASN1_ITEM_rptr(OCSP_RESPONSE));
+                            req_timeout, 0, ASN1_ITEM_rptr(OCSP_RESPONSE));
 
     if (resp == NULL)
         BIO_printf(bio_err, "Error querying OCSP responder\n");

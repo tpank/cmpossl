@@ -3099,7 +3099,7 @@ d2i_OCSP_SERVICELOC                     3163	3_0_0	EXIST::FUNCTION:OCSP
 GENERAL_NAME_print                      3164	3_0_0	EXIST::FUNCTION:
 CMS_ReceiptRequest_get0_values          3165	3_0_0	EXIST::FUNCTION:CMS
 a2i_ASN1_INTEGER                        3166	3_0_0	EXIST::FUNCTION:
-OCSP_sendreq_bio                        3167	3_0_0	EXIST::FUNCTION:OCSP,SOCK
+OCSP_sendreq_bio                        3167	3_0_0	EXIST::FUNCTION:OCSP
 PKCS12_SAFEBAG_create_crl               3168	3_0_0	EXIST::FUNCTION:
 d2i_X509_NAME                           3169	3_0_0	EXIST::FUNCTION:
 IDEA_cfb64_encrypt                      3170	3_0_0	EXIST::FUNCTION:IDEA
@@ -4940,6 +4940,7 @@ OSSL_CMP_SRV_CTX_set_accept_raverified  ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_grant_implicit_confirm ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_proxy_connect                  ?	3_0_0	EXIST::FUNCTION:CMP,SOCK
 BIO_wait                                ?	3_0_0	EXIST::FUNCTION:SOCK
+BIO_socket_wait                         ?	3_0_0	EXIST::FUNCTION:SOCK
 BIO_connect_retry                       ?	3_0_0	EXIST::FUNCTION:SOCK
 ERR_load_HTTP_strings                   ?	3_0_0	EXIST::FUNCTION:
 OSSL_HTTP_post_asn1                     ?	3_0_0	EXIST::FUNCTION:SOCK

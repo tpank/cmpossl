@@ -32,11 +32,13 @@ int ERR_load_HTTP_strings(void);
 /*
  * HTTP reason codes.
  */
+# define HTTP_R_CONNECT_FAILURE                           100
 # define HTTP_R_ERROR_PARSING_URL                         101
 # define HTTP_R_ERROR_SENDING                             102
 # define HTTP_R_ERROR_RECEIVING                           103
-# define HTTP_R_SERVER_RESPONSE_ERROR                     104
-# define HTTP_R_SERVER_RESPONSE_PARSE_ERROR               105
-# define HTTP_R_TLS_NOT_SUPPORTED                         106
+# define HTTP_R_SERVER_RESPONSE_PARSE_ERROR               104
+# define HTTP_R_SERVER_SENT_ERROR                         105
+# define HTTP_R_SERVER_SENT_WRONG_HTTP_VERSION            106
+# define HTTP_R_TLS_NOT_SUPPORTED                         107
 
 #endif

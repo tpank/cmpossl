@@ -182,7 +182,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         if (err == BIO_R_TRANSFER_ERROR
                 || err == BIO_R_TRANSFER_TIMEOUT
                 || err == HTTP_R_ERROR_RECEIVING
-                || err == HTTP_R_SERVER_RESPONSE_ERROR
+                || err == HTTP_R_SERVER_SENT_ERROR
                 || err == HTTP_R_SERVER_RESPONSE_PARSE_ERROR) {
             CMPerr(0, not_received);
         }
