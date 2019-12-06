@@ -376,47 +376,48 @@ int BIO_sock_info(int sock,
     return 1;
 }
 
-/* TODO using this function, simplify further other uses of select() in apps/ */
+/* TODO use this function, simplify further other uses of select() in apps/ */
 /*
- * wait if timeout > 0. If for_read is 0 then assume for write.
- * returns < 0 on error, 0 on timeout, > 0 on success
+ * Wait on fd at most until max_time. If for_read is 0 then assume for write.
+ * Returns < 0 on error, 0 on timeout, > 0 on success.
  */
-int BIO_socket_wait(int fd, int for_read, long timeout)
+int BIO_socket_wait(int fd, int for_read, time_t max_time)
 {
     fd_set confds;
     struct timeval tv;
+    time_t now = time(NULL);
 
-    if (timeout <= 0)
+    if (max_time <= now)
         return 0;
 
     FD_ZERO(&confds);
     openssl_fdset(fd, &confds);
     tv.tv_usec = 0;
-    tv.tv_sec = timeout;
+    tv.tv_sec = max_time - now; /* this might overflow the type of tv_sec */
     return select(fd + 1, for_read ? &confds : NULL,
                   for_read ? NULL : &confds, NULL, &tv);
 }
 
 /*
- * wait on BIO if timeout > 0.
- * returns < 0 on error, 0 on timeout, > 0 on success
+ * Wait on BIO at most until max_time.
+ * Returns < 0 on error, 0 on timeout, > 0 on success.
  */
-static int bio_wait(BIO *bio, long timeout)
+static int bio_wait(BIO *bio, time_t max_time)
 {
     int fd;
 
     if (BIO_get_fd(bio, &fd) <= 0)
         return -1;
-    return BIO_socket_wait(fd, BIO_should_read(bio), timeout);
+    return BIO_socket_wait(fd, BIO_should_read(bio), max_time);
 }
 
 /*
- * wait on BIO if timeout > 0; call BIOerr(...) unless success.
- * returns < 0 on error, 0 on timeout, > 0 on success
+ * Wait on BIO at most until max_time; call BIOerr(...) unless success.
+ * Returns < 0 on error, 0 on timeout, > 0 on success.
  */
-int BIO_wait(BIO *bio, long timeout)
+int BIO_wait(BIO *bio, time_t max_time)
 {
-    int rv = bio_wait(bio, timeout);
+    int rv = bio_wait(bio, max_time);
 
     if (rv <= 0)
         BIOerr(0, rv == 0 ? BIO_R_TRANSFER_TIMEOUT : BIO_R_TRANSFER_ERROR);
@@ -425,17 +426,23 @@ int BIO_wait(BIO *bio, long timeout)
 
 /*
  * connect via the given BIO; call BIOerr(...) unless success.
- * returns < 0 on error, 0 on timeout, > 0 on success
+ * timeout == 0 means infinite, < 0 leads to immediate timeout error
+ * Returns < 0 on error, 0 on timeout, > 0 on success.
  */
 int BIO_connect_retry(BIO *bio, long timeout)
 {
-    int blocking = timeout <= 0;
+    int blocking = timeout == 0;
     time_t max_time = timeout > 0 ? time(NULL) + timeout : 0;
     int rv;
 
     if (bio == NULL) {
         BIOerr(0, ERR_R_PASSED_NULL_PARAMETER);
         return -1;
+    }
+
+    if (timeout < 0) {
+        BIOerr(0, BIO_R_CONNECT_TIMEOUT);
+        return 0;
     }
 
     if (!blocking)
@@ -462,7 +469,7 @@ int BIO_connect_retry(BIO *bio, long timeout)
     if (rv <= 0 && BIO_should_retry(bio)) {
         if (blocking)
             goto retry;
-        rv = bio_wait(bio, max_time - time(NULL));
+        rv = bio_wait(bio, max_time);
         if (rv > 0)
             goto retry;
         BIOerr(0, rv == 0 ? BIO_R_CONNECT_TIMEOUT : BIO_R_CONNECT_ERROR);

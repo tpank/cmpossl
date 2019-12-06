@@ -573,7 +573,7 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
     if (rv == -1) {
         /* BIO_should_retry was true */
         sending = 0;
-        if (!blocking && BIO_wait(rctx->io, rctx->max_time - time(NULL)) <= 0)
+        if (!blocking && BIO_wait(rctx->io, rctx->max_time) <= 0)
             return NULL;
         goto retry;
     }
@@ -602,7 +602,7 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
  */
 ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
                                const char *proxy, const char *proxy_port,
-                               int timeout, const ASN1_ITEM *it)
+                               long timeout, const ASN1_ITEM *it)
 {
     char *host = NULL;
     char *port = NULL;
@@ -675,7 +675,7 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
                              const STACK_OF(CONF_VALUE) *headers,
                              const char *host, const char *content_type,
                              ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                             int timeout, int maxline, const ASN1_ITEM *rsp_it)
+                             long timeout, int maxline, const ASN1_ITEM *rsp_it)
 {
     OSSL_HTTP_REQ_CTX *rctx = NULL;
     ASN1_VALUE *rsp = NULL;
@@ -685,6 +685,7 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
 
     if (BIO_connect_retry(bio, timeout) <= 0)
         return NULL;
+    /* now timeout is guaranteed to be >= 0 */
 
     /* callback can be used to wrap or prepend TLS session */
     if (bio_update_fn != NULL) {
@@ -693,10 +694,12 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
             return NULL;
     }
 
-    elapsed_time = timeout > 0 ? (long)time(NULL) - start_time : 0;
+    elapsed_time = timeout == 0 ? 0 : (long)time(NULL) - start_time;
     rctx = HTTP_sendreq_new(bio, path, server, port, headers, host,
                             content_type, req_it, req,
-                            timeout > 0 ? timeout - elapsed_time : 0,
+                            timeout == 0 ? 0
+                                         : timeout <= elapsed_time ? -1
+                                         : timeout - elapsed_time,
                             maxline);
     if (rctx == NULL)
         return NULL;
@@ -739,7 +742,7 @@ ASN1_VALUE *OSSL_HTTP_post_asn1(const char *host, const char *port,
                                 const STACK_OF(CONF_VALUE) *headers,
                                 const char *content_type,
                                 ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                                int timeout, int maxline,
+                                long timeout, int maxline,
                                 const ASN1_ITEM *rsp_it)
 {
     BIO *bio = HTTP_new_bio(host, port, proxy, proxy_port);
@@ -852,7 +855,7 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
     }
 
  retry:
-    rv = BIO_wait(fbio, max_time - time(NULL));
+    rv = BIO_wait(fbio, max_time);
     if (rv <= 0) {
         BIO_printf(bio_err, "%s: HTTP CONNECT %s\n", prog,
                    rv == 0 ? "timed out" : "failed waiting for data");

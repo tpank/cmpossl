@@ -40,7 +40,7 @@ ASN1_VALUE *HTTP_sendreq_bio(BIO *bio,
                              const STACK_OF(CONF_VALUE) *headers,
                              const char *host, const char *content_type,
                              ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                             int timeout, int maxline,
+                             long timeout, int maxline,
                              const ASN1_ITEM *rsp_it);
 
 #endif /* !defined OSSL_CRYPTO_HTTP_LOCAL_H */

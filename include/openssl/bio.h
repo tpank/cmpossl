@@ -649,7 +649,8 @@ int BIO_dgram_sctp_msg_waiting(BIO *b);
 # ifndef OPENSSL_NO_SOCK
 int BIO_sock_should_retry(int i);
 int BIO_sock_non_fatal_error(int error);
-int BIO_wait(BIO *bio, long timeout);
+int BIO_socket_wait(int fd, int for_read, time_t max_time);
+int BIO_wait(BIO *bio, time_t max_time);
 int BIO_connect_retry(BIO *bio, long timeout);
 # endif
 

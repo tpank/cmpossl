@@ -32,11 +32,11 @@ ASN1_VALUE *OSSL_HTTP_post_asn1(const char *host, const char *port,
                                 const STACK_OF(CONF_VALUE) *headers,
                                 const char *content_type,
                                 ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                                int timeout, int maxline,
+                                long timeout, int maxline,
                                 const ASN1_ITEM *rsp_it);
 ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
                                const char *proxy, const char *proxy_port,
-                               int timeout, const ASN1_ITEM *it);
+                               long timeout, const ASN1_ITEM *it);
 int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
                             const char *proxyuser, const char *proxypass,
                             long timeout, BIO *bio_err, const char *prog);
