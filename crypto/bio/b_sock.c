@@ -379,7 +379,7 @@ int BIO_sock_info(int sock,
 /* TODO use this function, simplify further other uses of select() in apps/ */
 /*
  * Wait on fd at most until max_time. If for_read is 0 then assume for write.
- * Returns < 0 on error, 0 on timeout, > 0 on success.
+ * Returns -1 on error, 0 on timeout, and 1 on success.
  */
 int BIO_socket_wait(int fd, int for_read, time_t max_time)
 {
@@ -400,7 +400,7 @@ int BIO_socket_wait(int fd, int for_read, time_t max_time)
 
 /*
  * Wait on BIO at most until max_time.
- * Returns < 0 on error, 0 on timeout, > 0 on success.
+ * Returns -1 on error, 0 on timeout, and 1 on success.
  */
 static int bio_wait(BIO *bio, time_t max_time)
 {
@@ -413,7 +413,7 @@ static int bio_wait(BIO *bio, time_t max_time)
 
 /*
  * Wait on BIO at most until max_time; call BIOerr(...) unless success.
- * Returns < 0 on error, 0 on timeout, > 0 on success.
+ * Returns -1 on error, 0 on timeout, and 1 on success.
  */
 int BIO_wait(BIO *bio, time_t max_time)
 {
@@ -425,9 +425,9 @@ int BIO_wait(BIO *bio, time_t max_time)
 }
 
 /*
- * connect via the given BIO; call BIOerr(...) unless success.
- * timeout == 0 means infinite, < 0 leads to immediate timeout error
- * Returns < 0 on error, 0 on timeout, > 0 on success.
+ * Connect via the given BIO using BIO_do_connect() until success/timeout/error.
+ * Parameter timeout == 0 means infinite, < 0 leads to immediate timeout error.
+ * Returns -1 on error, 0 on timeout, and 1 on success.
  */
 int BIO_connect_retry(BIO *bio, long timeout)
 {
