@@ -41,7 +41,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
     STACK_OF(CONF_VALUE) *headers = NULL;
     OSSL_CMP_MSG *res = NULL;
 
-    if (ctx == NULL || req == NULL || res == NULL
+    if (ctx == NULL || req == NULL
             || ctx->serverName == NULL || ctx->serverPort == 0) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
