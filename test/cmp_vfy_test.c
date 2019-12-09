@@ -21,6 +21,10 @@ static const char *ir_protected_f;
 static const char *ir_unprotected_f;
 static const char *ir_rmprotection_f;
 static const char *ip_waiting_f;
+static const char *instacert_f;
+static const char *instaca_f;
+static const char *ir_protected_0_extracerts;
+static const char *ir_protected_2_extracerts;
 
 typedef struct test_fixture {
     const char *test_case_name;
@@ -60,6 +64,8 @@ static X509 *clcert = NULL;
 /* chain */
 static X509 *endentity1 = NULL, *endentity2 = NULL,
     *intermediate = NULL, *root = NULL;
+/* INSTA chain */
+static X509 *insta_cert = NULL, *instaca_cert = NULL;
 
 static unsigned char rand_data[OSSL_CMP_TRANSACTIONID_LENGTH];
 static OSSL_CMP_MSG *ir_unprotected, *ir_rmprotection;
@@ -195,6 +201,71 @@ static int test_validate_msg_signature_srvcert_ok(void)
     EXECUTE_TEST(execute_validate_msg_test, tear_down);
     return result;
 }
+
+static int test_validate_msg_signature_srvcert_untrusted(void)
+{
+    STACK_OF(X509) *untrusted = NULL;
+    SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
+    fixture->expected = 1;
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_0_extracerts))
+            || !TEST_ptr(untrusted =
+                         OSSL_CMP_CTX_get0_untrusted_certs(fixture->cmp_ctx))
+            || !TEST_int_lt(0, STACK_OF_X509_push1(untrusted, instaca_cert))
+            || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx,
+                                                    insta_cert))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
+    return result;
+}
+
+static int test_validate_msg_signature_srvcert_trusted(void)
+{
+    X509_STORE *trustedStore = NULL;
+    SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
+    fixture->expected = 1;
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_0_extracerts))
+            || !TEST_ptr(trustedStore = X509_STORE_new())
+            || !TEST_int_lt(0, X509_STORE_add_cert(trustedStore, instaca_cert))
+            || !TEST_int_lt(0, OSSL_CMP_CTX_set0_trustedStore(fixture->cmp_ctx,
+                                                              trustedStore))
+            || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx,
+                                                    insta_cert))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
+    return result;
+}
+
+static int test_validate_msg_signature_srvcert_extracert(void)
+{
+    SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
+    fixture->expected = 1;
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_2_extracerts))
+            || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx,
+                                                    insta_cert))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
+    return result;
+}
+
+
+static int test_validate_msg_signature_srvcert_absent(void)
+{
+    SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
+    fixture->expected = 0;
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_f))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
+    return result;
+}
+
 
 static int test_validate_msg_signature_srvcert_bad(void)
 {
@@ -348,7 +419,7 @@ static int execute_MSG_check_received_test(CMP_VFY_TEST_FIXTURE *fixture)
             return 0;
         if (!TEST_int_eq(0,
             ASN1_OCTET_STRING_cmp(OSSL_CMP_HDR_get0_transactionID(header),
-                                 fixture->cmp_ctx->transactionID)))
+                                  fixture->cmp_ctx->transactionID)))
             return 0;
     }
 
@@ -498,6 +569,8 @@ void cleanup_tests(void)
     X509_free(endentity2);
     X509_free(intermediate);
     X509_free(root);
+    X509_free(insta_cert);
+    X509_free(instaca_cert);
     OSSL_CMP_MSG_free(ir_unprotected);
     OSSL_CMP_MSG_free(ir_rmprotection);
     return;
@@ -525,12 +598,19 @@ int setup_tests(void)
             || !TEST_ptr(ir_protected_f = test_get_argument(6))
             || !TEST_ptr(ir_unprotected_f = test_get_argument(7))
             || !TEST_ptr(ip_waiting_f = test_get_argument(8))
-            || !TEST_ptr(ir_rmprotection_f = test_get_argument(9))) {
+            || !TEST_ptr(ir_rmprotection_f = test_get_argument(9))
+            || !TEST_ptr(instacert_f = test_get_argument(10))
+            || !TEST_ptr(instaca_f = test_get_argument(11))
+            || !TEST_ptr(ir_protected_0_extracerts = test_get_argument(12))
+            || !TEST_ptr(ir_protected_2_extracerts = test_get_argument(13))) {
         TEST_error("usage: cmp_vfy_test server.crt client.crt "
                    "EndEntity1.crt EndEntity2.crt "
                    "Root_CA.crt Intermediate_CA.crt "
                    "CMP_IR_protected.der CMP_IR_unprotected.der "
-                   "IP_waitingStatus_PBM.der IR_rmprotection.der\n");
+                   "IP_waitingStatus_PBM.der IR_rmprotection.der "
+                   "insta.cert.pem insta_ca.cert.pem "
+                   "IR_protected_0_extraCerts.der "
+                   "IR_protected_2_extraCerts.der\n");
         return 0;
     }
 
@@ -539,6 +619,10 @@ int setup_tests(void)
             || !TEST_ptr(endentity2 = load_pem_cert(endentity2_f))
             || !TEST_ptr(root = load_pem_cert(root_f))
             || !TEST_ptr(intermediate = load_pem_cert(intermediate_f)))
+        goto err;
+
+    if (!TEST_ptr(insta_cert = load_pem_cert(instacert_f))
+            || !TEST_ptr(instaca_cert = load_pem_cert(instaca_f)))
         goto err;
 
     /* Load certificates for message validation */
@@ -557,6 +641,10 @@ int setup_tests(void)
     ADD_TEST(test_validate_msg_signature_trusted_ok);
     ADD_TEST(test_validate_msg_signature_trusted_expired);
     ADD_TEST(test_validate_msg_signature_srvcert_ok);
+    ADD_TEST(test_validate_msg_signature_srvcert_untrusted);
+    ADD_TEST(test_validate_msg_signature_srvcert_trusted);
+    ADD_TEST(test_validate_msg_signature_srvcert_extracert);
+    ADD_TEST(test_validate_msg_signature_srvcert_absent);
     ADD_TEST(test_validate_msg_signature_srvcert_bad);
     ADD_TEST(test_validate_msg_signature_expected_sender);
     ADD_TEST(test_validate_msg_signature_unexpected_sender);
