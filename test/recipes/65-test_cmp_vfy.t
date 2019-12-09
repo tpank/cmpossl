@@ -29,4 +29,8 @@ ok(run(test(["cmp_vfy_test",
              data_file("IR_protected.der"),
              data_file("IR_unprotected.der"),
              data_file("IP_waitingStatus_PBM.der"),
-             data_file("IR_rmprotection.der")])));
+             data_file("IR_rmprotection.der"),
+             data_file("insta.cert.pem"),
+             data_file("insta_ca.cert.pem"),
+             data_file("IR_protected_0_extraCerts.der"),
+             data_file("IR_protected_2_extraCerts.der")])));
