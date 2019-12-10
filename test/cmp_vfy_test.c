@@ -202,6 +202,22 @@ static int test_validate_msg_signature_srvcert_ok(void)
     return result;
 }
 
+static int test_validate_msg_signature_srvcert_wrong_signature(void)
+{
+    SETUP_TEST_FIXTURE(CMP_VFY_TEST_FIXTURE, set_up);
+    fixture->expected = 0;
+    if (!TEST_ptr(fixture->msg = load_pkimsg(ir_protected_2_extracerts))
+            || !TEST_true(OSSL_CMP_CTX_set1_srvCert(fixture->cmp_ctx,
+                                                    insta_cert))
+            || !TEST_true(ASN1_BIT_STRING_set_bit(fixture->msg->protection, 10,
+                    !ASN1_BIT_STRING_get_bit(fixture->msg->protection, 10)))) {
+        tear_down(fixture);
+        fixture = NULL;
+    }
+    EXECUTE_TEST(execute_validate_msg_test, tear_down);
+    return result;
+}
+
 static int test_validate_msg_signature_srvcert_untrusted(void)
 {
     STACK_OF(X509) *untrusted = NULL;
@@ -644,6 +660,7 @@ int setup_tests(void)
     ADD_TEST(test_validate_msg_signature_srvcert_untrusted);
     ADD_TEST(test_validate_msg_signature_srvcert_trusted);
     ADD_TEST(test_validate_msg_signature_srvcert_extracert);
+    ADD_TEST(test_validate_msg_signature_srvcert_wrong_signature);
     ADD_TEST(test_validate_msg_signature_srvcert_absent);
     ADD_TEST(test_validate_msg_signature_srvcert_bad);
     ADD_TEST(test_validate_msg_signature_expected_sender);
