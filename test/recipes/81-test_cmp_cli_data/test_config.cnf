@@ -3,9 +3,6 @@ batch = 1
 #proxy = 194.145.60.1:9400
 totaltimeout = 8 # prevent, e.g., infinite polling due to error
 trusted = root.crt
-cert = signer.crt
-key  = signer.p12
-keypass = pass:12345
 newkey = test.ECC256p.pem
 newkeypass = pass:
 cmd = ir
@@ -26,6 +23,9 @@ path = /ejbca/publicweb/cmp/ECCEndEntity
 recipient = /CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL/C=DE
 subject = "/CN=ECC-EE/OU=For test purposes only/O=CMPforOpenSSL/C=DE"
 pbm_secret = pass:SecretCmp
+cert = signer.crt
+key  = signer.p12
+keypass = pass:12345
 ignore_keyusage = 0
 unprotectederrors = 1 # EJBCA sends error messages and negative responses without protection
 column = 0
@@ -51,7 +51,7 @@ column = 1
 sleep = 3
 
 [CmpWsRa] # this is a Siemens-only test configuration
-attime = 1533160800
+#attime = 1564704000
 server_cn = localhost
 server_ip = 127.0.0.1
 server_port = 9080
@@ -62,6 +62,9 @@ recipient = /CN=PPKI Playground ECC Issuing CA v1.0/OU=Corporate Technology/OU=F
 ra = /CN=Product PKI Playground CMP Signer/OU=PPKI Playground/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
 subject = /CN=ECC-EE/OU=PPKI Playground/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
 pbm_secret = pass:SecretCmp
+cert = signer.crt
+key  = signer.p12
+keypass = pass:12345
 ignore_keyusage = 0
 unprotectederrors = 1 # EJBCA sends error messages and negative responses without protection
 column = 0
