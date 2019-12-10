@@ -2237,7 +2237,7 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
     /* copy vpm to store */
     if (!X509_STORE_set1_param(ts, vpm)) {
         BIO_printf(bio_err, "error setting verification parameters\n");
-        ERR_print_errors(bio_err);
+        OSSL_CMP_CTX_print_errors(cmp_ctx);
         return 0;
     }
 
@@ -2894,7 +2894,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
                                       SSL_BUILD_CHAIN_FLAG_UNTRUSTED |
                                       SSL_BUILD_CHAIN_FLAG_NO_ROOT)) {
             CMP_warn("could not build cert chain for own TLS cert");
-            ERR_print_errors(bio_err);
+            OSSL_CMP_CTX_print_errors(cmp_ctx);
         }
 
         /* If present we append to the list also the certs from opt_tls_extra */
