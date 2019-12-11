@@ -107,6 +107,27 @@ const char *ossl_cmp_log_parse_metadata(const char *buf,
     return msg;
 }
 
+int OSSL_CMP_print_to_bio(BIO* bio, const char *func, const char *file,
+                          int line, OSSL_CMP_severity level, const char *msg)
+{
+    char *level_string =
+        level == OSSL_CMP_LOG_EMERG ? "EMERG" :
+        level == OSSL_CMP_LOG_ALERT ? "ALERT" :
+        level == OSSL_CMP_LOG_CRIT ? "CRIT" :
+        level == OSSL_CMP_LOG_ERR ? "error" :
+        level == OSSL_CMP_LOG_WARNING ? "warning" :
+        level == OSSL_CMP_LOG_NOTICE ? "NOTE" :
+        level == OSSL_CMP_LOG_INFO ? "info" :
+        level == OSSL_CMP_LOG_DEBUG ? "DEBUG" : "(unknown level)";
+
+#ifndef NDEBUG
+# define UNKNOWN "(unknown function)" /* the default string for OPENSSL_FUNC */
+    const char *func_ = func != NULL && strcmp(func, UNKNOWN) != 0 ? func : "";
+    if (BIO_printf(bio, "%s:%s:%d:", func_, file, line) < 0)
+        return 0;
+#endif
+    return BIO_printf(bio, "CMP %s: %s\n", level_string, msg) >= 0;
+}
 
 /*
  * auxiliary function for incrementally reporting texts via the error queue

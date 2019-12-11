@@ -679,7 +679,6 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {NULL}
 };
 
-#define UNKNOWN "(unknown function)" /* the default string for OPENSSL_FUNC */
 #ifndef NDEBUG
 #define FUNC (strcmp(OPENSSL_FUNC, "(unknown function)") == 0 \
               ? "" : "OPENSSL_FUNC")
@@ -706,25 +705,10 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 #define CMP_err2(msg, a1, a2    ) CMP_ERR(msg    "%s", a1, a2, "")
 #define CMP_err3(msg, a1, a2, a3) CMP_ERR(msg        , a1, a2, a3)
 
-static int log_to_stdout(const char *func, const char *file, int line,
-                         OSSL_CMP_severity level, const char *msg)
+static int print_to_bio_out(const char *func, const char *file, int line,
+                            OSSL_CMP_severity level, const char *msg)
 {
-    char *level_string =
-        level == OSSL_CMP_LOG_EMERG ? "EMERG" :
-        level == OSSL_CMP_LOG_ALERT ? "ALERT" :
-        level == OSSL_CMP_LOG_CRIT ? "CRIT" :
-        level == OSSL_CMP_LOG_ERR ? "error" :
-        level == OSSL_CMP_LOG_WARNING ? "warning" :
-        level == OSSL_CMP_LOG_NOTICE ? "NOTE" :
-        level == OSSL_CMP_LOG_INFO ? "info" :
-        level == OSSL_CMP_LOG_DEBUG ? "DEBUG" : "(unknown level)";
-
-#ifndef NDEBUG
-    const char *func_ = func != NULL && strcmp(func, UNKNOWN) != 0 ? func : "";
-    if (BIO_printf(bio_out, "%s:%s:%d:", func_, file, line) < 0)
-        return 0;
-#endif
-    return BIO_printf(bio_out, "CMP %s: %s\n", level_string, msg) >= 0;
+    return OSSL_CMP_print_to_bio(bio_out, func, file, line, level, msg);
 }
 
 /* code duplicated from crypto/cmp/cmp_util.c */
@@ -4115,7 +4099,7 @@ int cmp_main(int argc, char **argv)
         goto err;
     }
 
-    if (!OSSL_CMP_CTX_set_log_cb(cmp_ctx, log_to_stdout)) {
+    if (!OSSL_CMP_CTX_set_log_cb(cmp_ctx, print_to_bio_out)) {
         CMP_err1("cannot set up error reporting and logging for '%s'", prog);
         goto err;
     }

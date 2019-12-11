@@ -43,6 +43,12 @@ static void tear_down(CMP_VFY_TEST_FIXTURE *fixture)
     OPENSSL_free(fixture);
 }
 
+static int print_to_bio_out(const char *func, const char *file, int line,
+                            OSSL_CMP_severity level, const char *msg)
+{
+    return OSSL_CMP_print_to_bio(bio_out, func, file, line, level, msg);
+}
+
 static CMP_VFY_TEST_FIXTURE *set_up(const char *const test_case_name)
 {
     CMP_VFY_TEST_FIXTURE *fixture;
@@ -50,7 +56,8 @@ static CMP_VFY_TEST_FIXTURE *set_up(const char *const test_case_name)
     if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
         return NULL;
     fixture->test_case_name = test_case_name;
-    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new())) {
+    if (!TEST_ptr(fixture->cmp_ctx = OSSL_CMP_CTX_new())
+            || !OSSL_CMP_CTX_set_log_cb(fixture->cmp_ctx, print_to_bio_out)) {
         tear_down(fixture);
         return NULL;
     }

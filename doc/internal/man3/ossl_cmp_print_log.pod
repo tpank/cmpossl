@@ -36,6 +36,8 @@ ossl_cmp_log_parse_metadata
  const char *ossl_cmp_log_parse_metadata(const char *buf,
                                          OSSL_CMP_severity *level, char **func,
                                          char **file, int *line);
+ int ossl_cmp_log_to_bio(BIO* bio, const char *func, const char *file, int line,
+                         OSSL_CMP_severity level, const char *msg);
 
 =head1 DESCRIPTION
 
