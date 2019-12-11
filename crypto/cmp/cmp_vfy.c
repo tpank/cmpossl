@@ -300,7 +300,7 @@ static int check_name(OSSL_CMP_CTX *ctx,
 
     /* make sure that a matching name is there */
     if (actual_name == NULL) {
-        OSSL_CMP_log1(WARN, ctx, " missing %s", actual_desc);
+        OSSL_CMP_log1(WARN, ctx, "missing %s", actual_desc);
         return 0;
     }
     if (X509_NAME_cmp(actual_name, expect_name) == 0)
@@ -327,7 +327,7 @@ static int check_kid(OSSL_CMP_CTX *ctx,
 
     /* make sure that the expected subject key identifier is there */
     if (ckid == NULL) {
-        OSSL_CMP_warn(ctx, " missing Subject Key Identifier in certificate");
+        OSSL_CMP_warn(ctx, "missing Subject Key Identifier in certificate");
         return 0;
     }
     if (ASN1_OCTET_STRING_cmp(ckid, skid) == 0)
@@ -378,8 +378,8 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, const char *desc, X509 *cert,
     time_cmp = X509_cmp_timeframe(vpm, X509_get0_notBefore(cert),
                                   X509_get0_notAfter(cert));
     if (time_cmp != 0) {
-        OSSL_CMP_warn(ctx, time_cmp > 0 ? " cert has expired"
-                                        : " cert is not yet valid");
+        OSSL_CMP_warn(ctx, time_cmp > 0 ? "cert has expired"
+                                        : "cert is not yet valid");
         return 0;
     }
 
@@ -398,8 +398,15 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, const char *desc, X509 *cert,
 static int check_msg_valid_cert(OSSL_CMP_CTX *ctx, X509_STORE *store,
                                 X509 *scrt, const OSSL_CMP_MSG *msg)
 {
-    return verify_signature(ctx, msg, scrt)
-        && OSSL_CMP_validate_cert_path(ctx, store, scrt);
+    if (!verify_signature(ctx, msg, scrt)) {
+        OSSL_CMP_warn(ctx, "msg signature verification failed");
+        return 0;
+    }
+    if (!OSSL_CMP_validate_cert_path(ctx, store, scrt)) {
+        OSSL_CMP_warn(ctx, "cert path validation failed");
+        return 0;
+    }
+    return 1;
 }
 
 /*
@@ -448,6 +455,15 @@ static int check_msg_with_certs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *certs,
                                 const OSSL_CMP_MSG *msg, int mode_3gpp)
 {
     int i, n_acceptable_extraCerts = 0;
+
+    if (sk_X509_num(certs) <= 0) {
+        if (already_checked == NULL)
+            OSSL_CMP_warn(ctx, "no extraCerts and no other untrusted certs");
+        else
+            OSSL_CMP_warn(ctx, mode_3gpp ? "no extraCerts"
+                                         : "no certs in trusted store");
+        return 0;
+    }
 
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
@@ -498,7 +514,9 @@ static int check_msg_all_certs(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     if (check_msg_with_certs(ctx, ctx->untrusted_certs, NULL, msg, mode_3gpp))
         return 1;
 
-    if (ctx->trusted != NULL) {
+    if (ctx->trusted == NULL) {
+        OSSL_CMP_warn(ctx, mode_3gpp ? "no extraCerts" : "no trusted store");
+    } else {
         STACK_OF(X509) *trusted = ossl_cmp_X509_STORE_get1_certs(ctx->trusted);
         ret = check_msg_with_certs(ctx, trusted, ctx->untrusted_certs,
                                    msg, mode_3gpp);
@@ -512,9 +530,10 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 {
     X509 *scrt = ctx->validatedSrvCert; /* previous successful sender cert */
     GENERAL_NAME *sender = msg->header->sender;
-    char *sname;
+    char *sname = NULL;
+    char *skid_str = NULL;
     const ASN1_OCTET_STRING *skid = msg->header->senderKID;
-    char *skid_str;
+    OSSL_cmp_log_cb_t backup_log_cb = ctx->log_cb;
     int res = 0;
 
     if (sender == NULL || msg->body == NULL)
@@ -542,29 +561,37 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     /* release any cached sender cert that proved no more successfully usable */
     (void)ossl_cmp_ctx_set0_validatedSrvCert(ctx, NULL);
 
-    /* start accumulating diagnostic info via CMP logging */
-    OSSL_CMP_info(ctx, "trying to verify msg signature with valid cert that..");
-    sname = X509_NAME_oneline(sender->d.directoryName, NULL, 0);
-    if (sname != NULL)
-        OSSL_CMP_log1(INFO, ctx, "matches msg sender name = %s", sname);
-    skid_str = skid == NULL ? NULL
-                            : OPENSSL_buf2hexstr(skid->data, skid->length);
-    if (skid_str != NULL)
-        OSSL_CMP_log1(INFO, ctx, "matches msg senderKID   = %s", skid_str);
-    else
-        OSSL_CMP_info(ctx, "while msg header does not contain senderKID");
-
     /* enable clearing irrelevant errors in attempts to validate sender certs */
     (void)ERR_set_mark();
+    ctx->log_cb = NULL; /* temporarily disable logging diagnostic info */
 
     if (check_msg_all_certs(ctx, msg, 0 /* using ctx->trusted */)
             || check_msg_all_certs(ctx, msg, 1 /* 3gpp */)) {
         /* discard any diagnostic info on trying to use certs */
+        ctx->log_cb = backup_log_cb; /* restore any logging */
         (void)ERR_pop_to_mark();
         res = 1;
         goto end;
     }
+    /* failed finding a sender cert that verifies the message signature */
+    ctx->log_cb = backup_log_cb; /* restore any logging */
     (void)ERR_clear_last_mark();
+
+    sname = X509_NAME_oneline(sender->d.directoryName, NULL, 0);
+    skid_str = skid == NULL ? NULL
+                            : OPENSSL_buf2hexstr(skid->data, skid->length);
+    if (ctx->log_cb != NULL) {
+        OSSL_CMP_info(ctx, "verifying msg signature with valid cert that..");
+        if (sname != NULL)
+            OSSL_CMP_log1(INFO, ctx, "matches msg sender name = %s", sname);
+        if (skid_str != NULL)
+            OSSL_CMP_log1(INFO, ctx, "matches msg senderKID   = %s", skid_str);
+        else
+            OSSL_CMP_info(ctx, "while msg header does not contain senderKID");
+        /* re-do the above checks (just) for logging diagnostic information */
+        check_msg_all_certs(ctx, msg, 0 /* using ctx->trusted */);
+        check_msg_all_certs(ctx, msg, 1 /* 3gpp */);
+    }
 
     CMPerr(0, CMP_R_NO_SUITABLE_SENDER_CERT);
     if (sname != NULL) {
@@ -690,10 +717,11 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
              * We try using ctx->srvCert for sig check even if not acceptable.
              * cert_acceptable() is called here just to add diagnostics.
              */
-            (void)cert_acceptable(ctx, "explicitly set sender cert", scrt,
-                                  NULL, msg);
             if (verify_signature(ctx, msg, scrt))
                 return 1;
+            /* call cert_acceptable() for logging diagnostic information */
+            (void)cert_acceptable(ctx, "explicitly set sender cert", scrt,
+                                  NULL, msg);
             CMPerr(0, CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG);
         }
         break;
