@@ -4811,6 +4811,7 @@ OSSL_CMP_CTX_set1_transactionID         ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_senderNonce           ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_log_open                       ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_log_close                      ?	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_print_to_bio                   ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_print_errors_cb                ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CRMF_CERTID_get0_issuer            ?	3_0_0	EXIST::FUNCTION:CRMF
 OSSL_CRMF_CERTID_get0_serialNumber      ?	3_0_0	EXIST::FUNCTION:CRMF
