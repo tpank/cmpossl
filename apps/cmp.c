@@ -709,7 +709,6 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
 static int log_to_stdout(const char *func, const char *file, int line,
                          OSSL_CMP_severity level, const char *msg)
 {
-    const char *func_ = func != NULL && strcmp(func, UNKNOWN) != 0 ? func : "";
     char *level_string =
         level == OSSL_CMP_LOG_EMERG ? "EMERG" :
         level == OSSL_CMP_LOG_ALERT ? "ALERT" :
@@ -721,6 +720,7 @@ static int log_to_stdout(const char *func, const char *file, int line,
         level == OSSL_CMP_LOG_DEBUG ? "DEBUG" : "(unknown level)";
 
 #ifndef NDEBUG
+    const char *func_ = func != NULL && strcmp(func, UNKNOWN) != 0 ? func : "";
     if (BIO_printf(bio_out, "%s:%s:%d:", func_, file, line) < 0)
         return 0;
 #endif
