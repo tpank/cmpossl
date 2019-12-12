@@ -752,9 +752,9 @@ void ossl_cmp_add_error_txt(const char *separator, const char *txt);
 int ossl_cmp_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert,
                                 int no_dup, int prepend);
 int ossl_cmp_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
-                                int no_self_signed, int no_dups, int prepend);
+                                int no_self_issued, int no_dups, int prepend);
 int ossl_cmp_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
-                                   int only_self_signed);
+                                   int only_self_issued);
 STACK_OF(X509) *ossl_cmp_X509_STORE_get1_certs(X509_STORE *store);
 int ossl_cmp_asn1_octet_string_set1(ASN1_OCTET_STRING **tgt,
                                     const ASN1_OCTET_STRING *src);

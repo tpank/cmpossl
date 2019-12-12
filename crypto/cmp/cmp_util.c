@@ -289,7 +289,7 @@ int ossl_cmp_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
 }
 
 int ossl_cmp_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
-                                int no_self_signed, int no_dups, int prepend)
+                                int no_self_issued, int no_dups, int prepend)
 /* compiler would allow 'const' for the list of certs, yet they are up-ref'ed */
 {
     int i;
@@ -301,7 +301,7 @@ int ossl_cmp_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
 
-        if (!no_self_signed || X509_check_issued(cert, cert) != X509_V_OK) {
+        if (!no_self_issued || X509_check_issued(cert, cert) != X509_V_OK) {
             if (!ossl_cmp_sk_X509_add1_cert(sk, cert, no_dups, prepend))
                 return 0;
         }
@@ -310,7 +310,7 @@ int ossl_cmp_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
 }
 
 int ossl_cmp_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
-                                   int only_self_signed)
+                                   int only_self_issued)
 {
     int i;
 
@@ -323,7 +323,7 @@ int ossl_cmp_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
     for (i = 0; i < sk_X509_num(certs); i++) {
         X509 *cert = sk_X509_value(certs, i);
 
-        if (!only_self_signed || X509_check_issued(cert, cert) == X509_V_OK)
+        if (!only_self_issued || X509_check_issued(cert, cert) == X509_V_OK)
             if (!X509_STORE_add_cert(store, cert)) /* ups cert ref counter */
                 return 0;
     }
@@ -413,10 +413,10 @@ STACK_OF(X509) *ossl_cmp_build_cert_chain(STACK_OF(X509) *certs, X509 *cert)
 
     chain = X509_STORE_CTX_get0_chain(csc);
 
-    /* result list to store the up_ref'ed not self-signed certificates */
+    /* result list to store the up_ref'ed not self-issued certificates */
     if ((result = sk_X509_new_null()) == NULL)
         goto err;
-    if (!ossl_cmp_sk_X509_add1_certs(result, chain, 1 /* no self-signed */,
+    if (!ossl_cmp_sk_X509_add1_certs(result, chain, 1 /* no self-issued */,
                                      1 /* no duplicates */, 0)) {
         sk_X509_free(result);
         result = NULL;
