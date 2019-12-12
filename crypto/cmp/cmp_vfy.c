@@ -191,7 +191,7 @@ static void print_cert(BIO *bio, X509 *cert, unsigned long neg_cflags)
         BIO_printf(bio, "    certificate\n");
         X509_print_ex(bio, cert, flags, ~X509_FLAG_NO_SUBJECT);
         if (X509_check_issued((X509 *)cert, cert) == X509_V_OK) {
-            BIO_printf(bio, "        self-signed\n");
+            BIO_printf(bio, "        self-issued\n");
         } else {
             BIO_printf(bio, " ");
             X509_print_ex(bio, cert, flags, ~X509_FLAG_NO_ISSUER);
@@ -588,7 +588,7 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             OSSL_CMP_log1(INFO, ctx, "matches msg senderKID   = %s", skid_str);
         else
             OSSL_CMP_info(ctx, "while msg header does not contain senderKID");
-        /* re-do the above checks (just) for logging diagnostic information */
+        /* re-do the above checks (just) for adding diagnostic information */
         check_msg_all_certs(ctx, msg, 0 /* using ctx->trusted */);
         check_msg_all_certs(ctx, msg, 1 /* 3gpp */);
     }
@@ -713,15 +713,13 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             if (check_msg_find_cert(ctx, msg))
                 return 1;
         } else { /* use pinned sender cert */
-            /*
-             * We try using ctx->srvCert for sig check even if not acceptable.
-             * cert_acceptable() is called here just to add diagnostics.
-             */
+            /* use ctx->srvCert for signature check even if not acceptable */
             if (verify_signature(ctx, msg, scrt))
                 return 1;
-            /* call cert_acceptable() for logging diagnostic information */
+            /* call cert_acceptable() for adding diagnostic information */
             (void)cert_acceptable(ctx, "explicitly set sender cert", scrt,
                                   NULL, msg);
+            OSSL_CMP_warn(ctx, "msg signature verification failed");
             CMPerr(0, CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG);
         }
         break;
