@@ -310,20 +310,20 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_OPTIONALVALIDITY)
  * }
  */
 struct ossl_crmf_certtemplate_st {
-    ASN1_INTEGER *version;           /* 0 */
-    ASN1_INTEGER *serialNumber;      /* 1 */ /* serialNumber MUST be omitted  */
-             /* This field is assigned by the CA during certificate creation  */
-    X509_ALGOR *signingAlg;          /* 2 */  /* signingAlg MUST be omitted   */
-             /* This field is assigned by the CA during certificate creation  */
-    X509_NAME *issuer;               /* 3 */
-    OSSL_CRMF_OPTIONALVALIDITY *validity; /* 4 */
-    X509_NAME *subject;              /* 5 */
-    X509_PUBKEY *publicKey;          /* 6 */
-    ASN1_BIT_STRING *issuerUID;      /* 7 */  /* deprecated in version 2      */
-                  /* According to rfc 3280: UniqueIdentifier  ::=  BIT STRING */
-    ASN1_BIT_STRING *subjectUID;     /* 8 */  /* deprecated in version 2      */
-                      /* Could be X509_EXTENSION*S*, but that's only cosmetic */
-    STACK_OF(X509_EXTENSION) *extensions; /* 9 */
+    ASN1_INTEGER *version;
+    ASN1_INTEGER *serialNumber; /* serialNumber MUST be omitted */
+    /* This field is assigned by the CA during certificate creation */
+    X509_ALGOR *signingAlg; /* signingAlg MUST be omitted */
+    /* This field is assigned by the CA during certificate creation */
+    X509_NAME *issuer;
+    OSSL_CRMF_OPTIONALVALIDITY *validity;
+    X509_NAME *subject;
+    X509_PUBKEY *publicKey;
+    ASN1_BIT_STRING *issuerUID; /* deprecated in version 2 */
+    /* According to rfc 3280: UniqueIdentifier ::= BIT STRING */
+    ASN1_BIT_STRING *subjectUID; /* deprecated in version 2 */
+    /* Could be X509_EXTENSION*S*, but that's only cosmetic */
+    STACK_OF(X509_EXTENSION) *extensions;
 } /* OSSL_CRMF_CERTTEMPLATE */;
 
 /*-

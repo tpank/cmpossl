@@ -400,7 +400,7 @@ static int execute_X509_STORE_test(CMP_PROTECT_TEST_FIXTURE *fixture)
 static int test_X509_STORE(void)
 {
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
-    fixture->callback_arg = 0;  /* self-signed allowed */
+    fixture->callback_arg = 0; /* self-issued allowed */
     if (!TEST_ptr(fixture->certs = sk_X509_new_null())
             || !sk_X509_push(fixture->certs, endentity1)
             || !sk_X509_push(fixture->certs, endentity2)
@@ -414,12 +414,12 @@ static int test_X509_STORE(void)
     return result;
 }
 
-static int test_X509_STORE_only_self_signed(void)
+static int test_X509_STORE_only_self_issued(void)
 {
     SETUP_TEST_FIXTURE(CMP_PROTECT_TEST_FIXTURE, set_up);
     fixture->certs = sk_X509_new_null();
     fixture->chain = sk_X509_new_null();
-    fixture->callback_arg = 1;  /* only self-signed */
+    fixture->callback_arg = 1; /* only self-issued */
     if (!TEST_true(sk_X509_push(fixture->certs, endentity1))
             || !TEST_true(sk_X509_push(fixture->certs, endentity2))
             || !TEST_true(sk_X509_push(fixture->certs, root))
@@ -521,7 +521,7 @@ int setup_tests(void)
 #endif
 
     ADD_TEST(test_X509_STORE);
-    ADD_TEST(test_X509_STORE_only_self_signed);
+    ADD_TEST(test_X509_STORE_only_self_issued);
 
     return 1;
 }
