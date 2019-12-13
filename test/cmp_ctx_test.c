@@ -298,7 +298,7 @@ static int test_cmp_ctx_log_cb(void)
     return result;
 }
 
-static BIO *test_http_cb(void *arg, BIO *bio, unsigned long detail)
+static BIO *test_http_cb(BIO *bio, void *arg, int use_ssl, int detail)
 {
     return NULL;
 }

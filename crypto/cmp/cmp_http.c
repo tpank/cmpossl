@@ -55,10 +55,11 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
 
     res = (OSSL_CMP_MSG *)
         OSSL_HTTP_post_asn1(ctx->serverName, server_port, ctx->serverPath,
+                            OSSL_CMP_CTX_get_http_cb_arg(ctx) != NULL,
                             ctx->proxyName, proxy_port, ctx->http_cb, ctx,
                             headers, "application/pkixcmp",
-                            (ASN1_VALUE *)req, ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                            ctx->msgtimeout, 0, ASN1_ITEM_rptr(OSSL_CMP_MSG));
+                            (ASN1_VALUE *)req, ASN1_ITEM_rptr(OSSL_CMP_MSG), 0,
+                            0, ctx->msgtimeout, ASN1_ITEM_rptr(OSSL_CMP_MSG));
 
     sk_CONF_VALUE_pop_free(headers, X509V3_conf_free);
     return res;
@@ -71,7 +72,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
 
     BIO_snprintf(server_port, sizeof(server_port), "%d", ctx->serverPort);
     return OSSL_HTTP_proxy_connect(bio, ctx->serverName, server_port,
-                                   NULL, NULL, /* no proxy auth */
+                                   NULL, NULL, /* no proxy credentials */
                                    ctx->msgtimeout, bio_err, prog);
 }
 

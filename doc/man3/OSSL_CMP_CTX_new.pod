@@ -321,16 +321,17 @@ Port defaults to OSSL_CMP_DEFAULT_PORT = 80 if not set explicitly.
 OSSL_CMP_CTX_set_http_cb() sets the optional BIO connect/disconnect callback
 function, which has the prototype
 
- typedef BIO *(*HTTP_bio_cb_t) (void *ctx, BIO *bio, unsigned long detail);
+ typedef BIO *(*HTTP_bio_cb_t) (BIO *bio, void *ctx, int connect, int detail);
 
-The callback may modify the BIO B<bio> given by OSSL_CMP_MSG_http_perform(),
+The callback may modify the BIO B<bio> provided by OSSL_CMP_MSG_http_perform(),
 whereby it may make use of a custom defined argument B<ctx>
 stored in the OSSL_CMP_CTX by means of OSSL_CMP_CTX_set_http_cb_arg().
-During connection establishment, just after BIO_connect_retry(),
-the callback function is invoked with the B<detail> argument being 1.
-On disconnect B<detail> is 0 if no error occurred or else the last error code.
-For instance, on connect the function may prepend a TLS BIO to implement HTTPS,
-and after disconnect it may do some error diagnostics and/or specific cleanup.
+During connection establishment, just after calling BIO_connect_retry(),
+the function is invoked with the B<connect> argument being 1 and the B<detail>
+argument being 1 if HTTPS is requested, i.e., SSL/TLS should be enabled. On
+disconnect B<connect> is 0 and B<detail> is 1 in case no error occurred, else 0.
+For instance, on connect the function may prepend a TLS BIO to implement HTTPS;
+after disconnect it may do some diagnostic output and/or specific cleanup.
 The function should return NULL to indicate failure.
 After disconnect the modified BIO will be deallocated using BIO_free_all().
 

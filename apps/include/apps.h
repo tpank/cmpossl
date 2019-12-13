@@ -231,6 +231,21 @@ void print_cert_checks(BIO *bio, X509 *x,
 
 void store_setup_crl_download(X509_STORE *st);
 
+# ifndef OPENSSL_NO_SOCK
+ASN1_VALUE *app_http_post_asn1(const char *host, const char *port,
+                               const char *path, const char *proxy,
+                               const char *proxy_port, SSL_CTX *ctx,
+                               const STACK_OF(CONF_VALUE) *headers,
+                               const char *content_type,
+                               ASN1_VALUE *req, const ASN1_ITEM *req_it,
+                               long timeout, const ASN1_ITEM *rsp_it);
+ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
+                              const char *proxy_port, SSL_CTX *ssl_ctx,
+                              const STACK_OF(CONF_VALUE) *headers,
+                              long timeout, const ASN1_ITEM *it);
+# endif
+const char *app_tls_error_hint(unsigned long err);
+
 # define EXT_COPY_NONE   0
 # define EXT_COPY_ADD    1
 # define EXT_COPY_ALL    2

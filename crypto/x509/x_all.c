@@ -214,11 +214,18 @@ int X509_sign_ctx(X509 *x, EVP_MD_CTX *ctx)
 }
 
 #if !defined(OPENSSL_NO_SOCK)
+static ASN1_VALUE *simple_get_asn1(const char *url, long timeout,
+                                   const ASN1_ITEM *it)
+{
+    return OSSL_HTTP_get_asn1(url, NULL, NULL /* no proxy and port */,
+                              NULL /* no callback for SSL/TLS */, NULL,
+                              NULL /* headers */, 1024 /* maxline */,
+                              0 /* max_resp_len */, timeout, it);
+}
+
 X509 *X509_load_http(const char *url, long timeout)
 {
-    return (X509 *)OSSL_HTTP_get_asn1(url, NULL, NULL /* no proxy and port */,
-                                      NULL /* no callback for SSL/TLS */, NULL,
-                                      timeout, ASN1_ITEM_rptr(X509));
+    return (X509 *)simple_get_asn1(url, timeout, ASN1_ITEM_rptr(X509));
 }
 #endif
 
@@ -253,9 +260,7 @@ int X509_CRL_sign_ctx(X509_CRL *x, EVP_MD_CTX *ctx)
 #if !defined(OPENSSL_NO_SOCK)
 X509_CRL *X509_CRL_load_http(const char *url, long timeout)
 {
-    return (X509_CRL *)OSSL_HTTP_get_asn1(url, NULL, NULL /* no proxy & port */,
-                                          NULL /* no callback for SSL */, NULL,
-                                          timeout, ASN1_ITEM_rptr(X509_CRL));
+    return (X509_CRL *)simple_get_asn1(url, timeout, ASN1_ITEM_rptr(X509_CRL));
 }
 #endif
 

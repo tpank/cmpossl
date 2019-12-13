@@ -1524,17 +1524,6 @@ static int send_ocsp_response(BIO *cbio, OCSP_RESPONSE *resp)
 }
 
 # ifndef OPENSSL_NO_SOCK
-static BIO *tls_http_cb(void *arg, BIO *cbio, unsigned long detail)
-{
-    SSL_CTX *ctx = (SSL_CTX *)arg;
-
-    if (detail == 1) { /* connecting */
-        BIO *sbio = BIO_new_ssl(ctx, 1);
-        cbio = sbio != NULL ? BIO_push(sbio, cbio) : NULL;
-    }
-    return cbio;
-}
-
 OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,
                                  const char *host, const char *path,
                                  const char *port, int use_ssl,
@@ -1554,11 +1543,10 @@ OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,
     }
 
     resp = (OCSP_RESPONSE *)
-        OSSL_HTTP_post_asn1(host, port, path, NULL, NULL /* no proxy used */,
-                            tls_http_cb, ctx,
-                            headers, "application/ocsp-request",
-                            (ASN1_VALUE *)req, ASN1_ITEM_rptr(OCSP_REQUEST),
-                            req_timeout, 0, ASN1_ITEM_rptr(OCSP_RESPONSE));
+        app_http_post_asn1(host, port, path, NULL, NULL /* no proxy used */,
+                           ctx, headers, "application/ocsp-request",
+                           (ASN1_VALUE *)req, ASN1_ITEM_rptr(OCSP_REQUEST),
+                           req_timeout, ASN1_ITEM_rptr(OCSP_RESPONSE));
 
     if (resp == NULL)
         BIO_printf(bio_err, "Error querying OCSP responder\n");

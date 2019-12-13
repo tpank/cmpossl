@@ -12,10 +12,12 @@ OSSL_HTTP_parse_url
 
  #include <openssl/http.h>
 
- typedef BIO *(*HTTP_bio_cb_t) (void *arg, BIO *bio, unsigned long detail);
+ typedef BIO *(*HTTP_bio_cb_t) (BIO *bio, void *arg, int connect, int detail);
  ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
                                 const char *proxy, const char *proxy_port,
                                 HTTP_bio_cb_t bio_update_fn, void *arg,
+                                const STACK_OF(CONF_VALUE) *headers,
+                                int maxline, unsigned long max_resp_len,
                                 long timeout, const ASN1_ITEM *it);
  ASN1_VALUE *OSSL_HTTP_post_asn1(const char *host, const char *port,
                                  const char *path,
@@ -24,8 +26,8 @@ OSSL_HTTP_parse_url
                                  const STACK_OF(CONF_VALUE) *headers,
                                  const char *content_type,
                                  ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                                 long timeout, int maxline,
-                                 const ASN1_ITEM *rsp_it);
+                                 int maxline, unsigned long max_resp_len,
+                                 long timeout, const ASN1_ITEM *rsp_it);
  int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
                              const char *proxyuser, const char *proxypass,
                              long timeout, BIO *bio_err, const char *prog);
@@ -44,8 +46,10 @@ with the ASN.1 structure defined in B<req_it> and the given B<content_type>
 to the given B<host> and optional B<port> and B<path>,
 optionally via B<proxy> and B<port>.
 The optional list B<headers> may contain additional custom HTTP header lines.
-The B<maxline> may be used to give the response header maximum line length,
-while the value 0 indicates the default value, which currently is 4096.
+The B<maxline> parameter specifies the response header maximum line length,
+where 0 indicates the default value, which currently is 4k.
+The B<max_resp_len> parameter specifies the maximum response length,
+where 0 indicates the default value, which currently is 100k.
 The expected structure of the response is specified by B<rsp_it>.
 
 Both function have the following parameters in common.
@@ -58,26 +62,27 @@ The optional parameter B<bio_update_fn> with its optional argument B<arg>
 may be used to modify the connection BIO used internally. B<bio_update_fn>
 is a BIO connect/disconnect callback function with the prototype
 
-   typedef BIO *(*HTTP_bio_cb_t) (void *arg, BIO *bio, unsigned long detail);
+   typedef BIO *(*HTTP_bio_cb_t) (BIO *bio, void *arg, int connect, int detail);
 
 The callback may modify the HTTP BIO provided in the B<bio> argument,
-whereby it may make use of a custom defined argument 'arg',
+whereby it may make use of a custom defined argument B<arg>,
 which may for instance refer to an I<SSL_CTX> structure.
 During connection establishment, just after calling BIO_connect_retry(),
-the function is invoked with the B<detail> argument being 1.
-On disconnect B<detail> is 0 if no error occurred or else the last error code.
+the function is invoked with the B<connect> argument being 1 and the B<detail>
+argument being 1 if HTTPS is requested, i.e., SSL/TLS should be enabled. On
+disconnect B<connect> is 0 and B<detail> is 1 in case no error occurred, else 0.
 For instance, on connect the function may prepend a TLS BIO to implement HTTPS;
-after disconnect it may do some error diagnostics and/or specific cleanup.
+after disconnect it may do some diagnostic output and/or specific cleanup.
 The function should return NULL to indicate failure. Here is an example:
 
-static BIO *tls_http_cb(void *arg, BIO *cbio, unsigned long detail)
+static BIO *tls_http_cb(BIO *cbio, void *arg, int connect, int detail)
 {
     SSL_CTX *ctx = (SSL_CTX *)arg;
 
-    if (detail == 1) { /* connecting */
+    if (connect && detail) { /* connecting with TLS */
         BIO *sbio = BIO_new_ssl(ctx, 1);
         cbio = sbio != NULL ? BIO_push(sbio, cbio) : NULL;
-    } else { /* disconnecting */
+    } else if (!connect && !detail) { /* disconnecting after error */
         const char *hint = tls_error_hint(detail);
         if (hint != NULL)
             ERR_add_error_data(1, hint);
@@ -99,9 +104,10 @@ set up an SSL/TLS connection via an HTTP proxy.
 
 OSSL_HTTP_parse_url() parses its input string B<url> as a URL and splits it up
 into host, port and path components and a flag whether it begins with 'https'.
-It returns the resulting string components via the given addresses of strings
-and integer pointers. The strings must be deallocated by the caller using
-<OPENSSL_free(3)> unless they are NULL, which is their default value on error.
+As far as the result pointer arguments are not NULL it assigns via
+them copies of the respective input string components. The strings returned
+this way must be deallocated by the caller using <OPENSSL_free(3)>
+unless they are NULL, which is their default value on error.
 The host component may be a DNS name or an IPv4 or an IPv6 address. The port
 component may be absent and defaults to 80 for http, else 443 for https.
 

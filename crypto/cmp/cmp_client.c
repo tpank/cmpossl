@@ -617,10 +617,12 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
 }
 
 #define INFO_CONTACTING_SERVER(ctx) \
-    OSSL_CMP_log2(INFO, ctx, "contacting %s:%d", \
+    OSSL_CMP_log2(INFO, (ctx), "contacting %s:%d",      \
                   (ctx)->serverName == NULL ? \
-                  "(no server name)" : (ctx)->serverName, \
-                  (ctx)->serverPort);
+                  "(no server name)" : (ctx)->serverName, (ctx)->serverPort) \
+        && (ctx)->proxyName == NULL ? 1 : \
+        OSSL_CMP_log2(INFO, (ctx),                                      \
+                      "using proxy %s:%d", (ctx)->proxyName, (ctx)->proxyPort);
 
 /*
  * Do the full sequence CR/IR/KUR/P10CR, CP/IP/KUP/CP,

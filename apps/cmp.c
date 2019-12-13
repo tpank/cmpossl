@@ -47,6 +47,7 @@ static char *opt_config = NULL;
 #define DEFAULT_SECTION "default"
 static char *opt_section = CMP_SECTION;
 #define HTTP_HDR "http://"
+#define HTTPS_HDR "https://"
 
 #undef PROG
 #define PROG cmp_main
@@ -338,9 +339,9 @@ const OPTIONS cmp_options[] = {
 
     OPT_SECTION("Message transfer"),
     {"server", OPT_SERVER, 's',
-     "address[:port] of CMP server. Default port 80"},
+     "host[:port][/path] of CMP server. Default port 80"},
     {"proxy", OPT_PROXY, 's',
-     "address[:port] of optional HTTP(S) proxy. Default port 80."},
+     "host[:port] of optional HTTP(S) proxy. Default port 80."},
     {OPT_MORE_STR, 0, 0,
      "The env variable 'no_proxy' (or else NO_PROXY) is respected"},
     {"path", OPT_PATH, 's',
@@ -500,7 +501,7 @@ const OPTIONS cmp_options[] = {
      "Trusted certificates to use for verifying the TLS server certificate;"},
     {OPT_MORE_STR, 0, 0, "this implies host name validation"},
     {"tls_host", OPT_TLS_HOST, 's',
-     "Address to be checked (rather than -server) during TLS host name validation"},
+     "Host to be checked (rather than -server) during TLS host name validation"},
 
     OPT_SECTION("Testing and debugging"),
     {"batch", OPT_BATCH, '-',
@@ -2059,48 +2060,23 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
     return res;
 }
 
-static const char *tls_error_hint(unsigned long err)
-{
-    switch(ERR_GET_REASON(err)) {
-/*  case 0x1408F10B: */ /* xSL_F_SSL3_GET_RECORD */
-    case SSL_R_WRONG_VERSION_NUMBER:
-/*  case 0x140770FC: */ /* xSL_F_SSL23_GET_SERVER_HELLO */
-    case SSL_R_UNKNOWN_PROTOCOL:
-        return "The server does not support (a recent version of) TLS";
-/*  case 0x1407E086: */ /* xSL_F_SSL3_GET_SERVER_HELLO */
-/*  case 0x1409F086: */ /* xSL_F_SSL3_WRITE_PENDING */
-/*  case 0x14090086: */ /* xSL_F_SSL3_GET_SERVER_CERTIFICATE */
-/*  case 0x1416F086: */ /* xSL_F_TLS_PROCESS_SERVER_CERTIFICATE */
-    case SSL_R_CERTIFICATE_VERIFY_FAILED:
-        return "Cannot authenticate server via its TLS certificate, likely due to mismatch with our trusted TLS certs or missing revocation status";
-/*  case 0x14094418: */ /* xSL_F_SSL3_READ_BYTES */
-    case SSL_AD_REASON_OFFSET+TLS1_AD_UNKNOWN_CA:
-        return "Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor or missing revocation status";
-    case SSL_AD_REASON_OFFSET+SSL3_AD_HANDSHAKE_FAILURE:
-        return "Server requires our TLS certificate but did not receive one";
-    default: /* no error or no hint available for error */
-        return NULL;
-    }
-}
-
-static BIO *tls_http_cb(void *arg, BIO *hbio, unsigned long detail)
+static BIO *tls_http_cb(BIO *hbio, void *arg, int connect, int detail)
 {
     OSSL_CMP_CTX *ctx = (OSSL_CMP_CTX *)arg;
     SSL_CTX *ssl_ctx = OSSL_CMP_CTX_get_http_cb_arg(ctx);
     BIO *sbio = NULL;
 
-    if (detail == 1) { /* connecting */
+    if (connect && detail) { /* connecting with TLS */
         SSL *ssl;
-
 #if !defined(OPENSSL_NO_SOCK)
         if ((opt_proxy != NULL
                 && !OSSL_CMP_proxy_connect(hbio, ctx, bio_err, prog))
-                    || (sbio = BIO_new(BIO_f_ssl())) == NULL) {
+                || (sbio = BIO_new(BIO_f_ssl())) == NULL) {
             hbio = NULL;
             goto end;
         }
 #endif
-        if ((ssl = SSL_new(ssl_ctx)) == NULL) {
+        if (ssl_ctx == NULL || (ssl = SSL_new(ssl_ctx)) == NULL) {
             BIO_free(sbio);
             hbio = sbio = NULL;
             goto end;
@@ -2112,19 +2088,18 @@ static BIO *tls_http_cb(void *arg, BIO *hbio, unsigned long detail)
         BIO_set_ssl(sbio, ssl, BIO_CLOSE);
 
         hbio = BIO_push(sbio, hbio);
-    } else { /* disconnecting */
-        const char *hint = tls_error_hint(detail);
+    } else if (!connect && !detail) { /* disconnecting after error */
+        const char *hint = app_tls_error_hint(ERR_peek_error());
         if (hint != NULL)
             ERR_add_error_data(1, hint);
         /*
-         * as a workaround for OpenSSL double free, do not pop the sbio, but
-         * rely on BIO_free_all() done by OSSL_CMP_MSG_http_perform()
+         * as workaround for libssl double free, do not pop the sbio,
+         * but rely on BIO_free_all() done by OSSL_HTTP_post_asn1()
          */
     }
  end:
     if (ssl_ctx != NULL) {
         X509_STORE *ts = SSL_CTX_get_cert_store(ssl_ctx);
-
         if (ts != NULL)
             /* indicate if OSSL_CMP_MSG_http_perform() with TLS is active */
             (void)X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_SBIO, sbio);
@@ -2194,24 +2169,36 @@ static int atoint(const char *str)
         return (int)res;
 }
 
-static int parse_addr(OSSL_CMP_CTX *ctx,
-                      char **opt_string, int port, const char *name)
+static int parse_url(char **phost, int port, char **ppath, const char *desc)
 {
     char *port_string;
+    char *path;
 
-    if (strncmp(*opt_string, HTTP_HDR, strlen(HTTP_HDR)) == 0)
-        (*opt_string) += strlen(HTTP_HDR);
-
-    if ((port_string = strrchr(*opt_string, ':')) == NULL) {
-        CMP_info2("using default port %d for %s", port, name);
-        return port;
+    if (strncmp(*phost, HTTP_HDR, strlen(HTTP_HDR)) == 0)
+        (*phost) += strlen(HTTP_HDR);
+    else if (strncmp(*phost, HTTPS_HDR, strlen(HTTPS_HDR)) == 0) {
+        (*phost) += strlen(HTTPS_HDR);
+        port = 443;
     }
-    *(port_string++) = '\0';
-    port = atoint(port_string);
-    if ((port <= 0) || (port > 65535)) {
-        CMP_err2("invalid %s port '%s' given, sane range 1-65535",
-                 name, port_string);
-        return 0;
+
+    if ((port_string = strrchr(*phost, ':')) == NULL) {
+        CMP_info2("using default port %d for %s", port, desc);
+        path = ppath == NULL ? NULL : strchr(*phost, '/');
+    } else {
+        *(port_string++) = '\0';
+        path = ppath == NULL ? NULL : strchr(port_string, '/');
+        if (path != NULL)
+            *path = '\0';
+        port = atoint(port_string);
+        if ((port <= 0) || (port > 65535)) {
+            CMP_err2("invalid %s port '%s' given, sane range 1-65535",
+                     desc, port_string);
+            return 0;
+        }
+    }
+    if (path != NULL) {
+        *path = '\0';
+        opt_path = path + 1;
     }
     return port;
 }
@@ -3247,10 +3234,10 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     int ret = 0;
 
     if (opt_server == NULL) {
-        CMP_err("missing server address[:port]");
+        CMP_err("missing server host[:port]");
         goto err;
-    } else if ((server_port =
-                parse_addr(ctx, &opt_server, server_port, "server")) == 0) {
+    } else if ((server_port = parse_url(&opt_server, server_port,
+                                        &opt_path, "server")) == 0) {
         goto err;
     }
     if (!OSSL_CMP_CTX_set1_serverName(ctx, opt_server)
@@ -3263,7 +3250,7 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         if (no_proxy == NULL)
             no_proxy = getenv("NO_PROXY");
         if ((proxy_port =
-             parse_addr(ctx, &opt_proxy, proxy_port, "proxy")) == 0)
+             parse_url(&opt_proxy, proxy_port, NULL, "proxy")) == 0)
             goto err;
         if (no_proxy == NULL || strstr(no_proxy, opt_server) == NULL) {
             if (!(OSSL_CMP_CTX_set1_proxyName(ctx, opt_proxy)
@@ -4163,6 +4150,7 @@ int cmp_main(int argc, char **argv)
         CMP_err("cannot set up CMP context");
         goto err;
     }
+
     for (i = 0; i < opt_repeat; i++) {
         /* everything is ready, now connect and perform the command! */
         switch (opt_cmd) {
@@ -4218,14 +4206,13 @@ int cmp_main(int argc, char **argv)
             char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
             const char *string = OSSL_CMP_CTX_snprint_PKIStatus(cmp_ctx, buf,
                                                          OSSL_CMP_PKISI_BUFLEN);
-
             CMP_print(bio_err,
                       status == OSSL_CMP_PKISTATUS_accepted ? "info" :
                       status == OSSL_CMP_PKISTATUS_rejection ? "server error" :
                       status == OSSL_CMP_PKISTATUS_waiting ? "internal error"
                                                            : "warning",
-                      "received from %s %s %s", opt_server,
-                      string != NULL ? string : "<unknown PKIStatus>", "");
+                      "received from %s:%d %s", opt_server, server_port,
+                      string != NULL ? string : "<unknown PKIStatus>");
             OPENSSL_free(buf);
         }
 
