@@ -19,7 +19,7 @@ OSSL_HTTP_parse_url
                                 const STACK_OF(CONF_VALUE) *headers,
                                 int maxline, unsigned long max_resp_len,
                                 long timeout, const ASN1_ITEM *it);
- ASN1_VALUE *OSSL_HTTP_post_asn1(const char *host, const char *port,
+ ASN1_VALUE *OSSL_HTTP_post_asn1(const char *server, const char *port,
                                  const char *path,
                                  const char *proxy, const char *proxy_port,
                                  HTTP_bio_cb_t bio_update_fn, void *arg,
@@ -43,7 +43,7 @@ optionally via B<proxy> and B<port_port>.
 
 OSSL_HTTP_post_asn1() uses the HTTP POST method to send a request B<req>
 with the ASN.1 structure defined in B<req_it> and the given B<content_type>
-to the given B<host> and optional B<port> and B<path>,
+to the given B<server> and optional B<port> and B<path>,
 optionally via B<proxy> and B<port>.
 The optional list B<headers> may contain additional custom HTTP header lines.
 The B<maxline> parameter specifies the response header maximum line length,

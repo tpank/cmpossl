@@ -28,6 +28,8 @@ static const ERR_STRING_DATA HTTP_str_reasons[] = {
     "missing redirect location"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_REDIRECTION_FROM_HTTPS_TO_HTTP),
     "redirection from https to http"},
+    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_REDIRECTION_NOT_ENABLED),
+    "redirection not enabled"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_RESPONE_LINE_TOO_LONG),
     "respone line too long"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR),
@@ -37,7 +39,7 @@ static const ERR_STRING_DATA HTTP_str_reasons[] = {
     "server sent wrong http version"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_STATUS_CODE_UNSUPPORTED),
     "status code unsupported"},
-    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_TLS_NOT_SUPPORTED), "tls not supported"},
+    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_TLS_NOT_ENABLED), "tls not enabled"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_TOO_MANY_REDIRECTIONS),
     "too many redirections"},
     {0, NULL}

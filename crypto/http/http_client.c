@@ -231,13 +231,13 @@ static int OSSL_HTTP_REQ_CTX_add1_headers(OSSL_HTTP_REQ_CTX *rctx,
 /*-
  * Create OSSL_HTTP_REQ_CTX structure using the values provided.
  * If !use_http_proxy then the 'server' and 'port' parameters are ignored.
- * If method_GET then the 'content_type', 'it, and 'req' parameters are ignored.
+ * If req == NULL then use GET and ignore content_type and req_it, else POST.
  */
 OSSL_HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *bio, int use_http_proxy,
                                     const char *server, const char *port,
                                     const char *path,
                                     const STACK_OF(CONF_VALUE) *headers,
-                                    int method_GET, const char *content_type,
+                                    const char *content_type,
                                     const ASN1_ITEM *it, ASN1_VALUE *req,
                                     int maxline, unsigned long max_resp_len,
                                     long timeout)
@@ -251,14 +251,14 @@ OSSL_HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *bio, int use_http_proxy,
     /* remaining parameters are checked indirectly by the functions called */
 
     rctx =
-        OSSL_HTTP_REQ_CTX_new(bio, method_GET, maxline, max_resp_len, timeout);
+        OSSL_HTTP_REQ_CTX_new(bio, req == NULL, maxline, max_resp_len, timeout);
     if (rctx == NULL)
         return NULL;
 
     if (OSSL_HTTP_REQ_CTX_header(rctx, use_http_proxy ? server : NULL, port,
                                  path)
         && OSSL_HTTP_REQ_CTX_add1_headers(rctx, headers, server)
-        && (method_GET || OSSL_HTTP_REQ_CTX_i2d(rctx, content_type, it, req)))
+        && (req == NULL || OSSL_HTTP_REQ_CTX_i2d(rctx, content_type, it, req)))
         return rctx;
 
     OSSL_HTTP_REQ_CTX_free(rctx);
@@ -474,6 +474,7 @@ int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx)
                     rctx->state = OHS_REDIRECT;
                     goto next_line;
                 }
+                HTTPerr(0, HTTP_R_REDIRECTION_NOT_ENABLED);
                 /* redirection is not supported/recommended for POST */
                 /* fall through */
             default:
@@ -655,6 +656,122 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
     return resp;
 }
 
+static long update_timeout(long timeout, time_t start_time)
+{
+    long elapsed_time;
+
+    if (timeout == 0)
+        return 0;
+    elapsed_time = (long)time(NULL) - start_time;
+    return timeout <= elapsed_time ? -1 : timeout - elapsed_time;
+}
+
+/*-
+ * Exchange HTTP request and response via given BIO.
+ * If req == NULL then use GET and ignore content_type and req_it, else POST.
+ * The redirection_url output (freed by caller) parameter is used only for GET.
+ *
+ * bio_update_fn is an optional BIO connect/disconnect callback function,
+ * which has the prototype
+ *   typedef BIO *(*HTTP_bio_cb_t) (BIO *bio, void *arg, int conn, int detail);
+ * The callback may modify the HTTP BIO provided in the bio argument,
+ * whereby it may make use of any custom defined argument 'arg'.
+ * During connection establishment, just after BIO_connect_retry(),
+ * the callback function is invoked with the 'conn' argument being 1
+ * 'detail' indicating whether a HTTPS (i.e., TLS) connection is requested.
+ * On disconnect 'conn' is 0 and 'detail' indicates that no error occurred.
+ * For instance, on connect the funct may prepend a TLS BIO to implement HTTPS;
+ * after disconnect it may do some error diagnostics and/or specific cleanup.
+ * The function should return NULL to indicate failure.
+ * After disconnect the modified BIO will be deallocated using BIO_free_all().
+ */
+ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
+                          const char *path, int use_ssl,
+                          const char *proxy, const char *proxy_port,
+                          HTTP_bio_cb_t bio_update_fn, void *arg,
+                          const STACK_OF(CONF_VALUE) *headers,
+                          const char *content_type,
+                          ASN1_VALUE *req, const ASN1_ITEM *req_it,
+                          int maxline, unsigned long max_resp_len, long timeout,
+                          const ASN1_ITEM *rsp_it, char **redirection_url)
+{
+    time_t start_time = timeout > 0 ? time(NULL) : 0;
+    BIO *bio;
+    OSSL_HTTP_REQ_CTX *rctx;
+    ASN1_VALUE *resp;
+
+    if (use_ssl && bio_update_fn == NULL) {
+        HTTPerr(0, HTTP_R_TLS_NOT_ENABLED);
+        return NULL;
+    }
+    /* remaining parameters are checked indirectly by the functions called */
+
+    if ((bio = HTTP_new_bio(server, port, proxy, proxy_port)) == NULL)
+        return NULL;
+
+    if (BIO_connect_retry(bio, timeout) <= 0)
+        return NULL;
+    /* now timeout is guaranteed to be >= 0 */
+
+    /* callback can be used to wrap or prepend TLS session */
+    if (bio_update_fn != NULL) {
+        BIO *orig_bio = bio;
+        bio = (*bio_update_fn)(bio, arg, 1 /* connect */, use_ssl);
+        if (bio == NULL) {
+            BIO_free(orig_bio);
+            return NULL;
+        }
+    }
+
+    rctx = HTTP_REQ_CTX_new(bio, !use_ssl && proxy != NULL, server, port, path,
+                            headers, content_type, req_it, req, maxline,
+                            max_resp_len, update_timeout(timeout, start_time));
+    if (rctx == NULL)
+        return NULL;
+
+    resp = OSSL_HTTP_REQ_CTX_sendreq_d2i(rctx, rsp_it);
+    if (resp == NULL) {
+        if (rctx->redirection_url != NULL) {
+            if (redirection_url == NULL)
+                HTTPerr(0, HTTP_R_REDIRECTION_NOT_ENABLED);
+            else
+                /* may be NULL if out of memory: */
+                (*redirection_url) = OPENSSL_strdup(rctx->redirection_url);
+        } else {
+            char buf[200];
+            unsigned long err = ERR_peek_error();
+            if (ERR_GET_LIB(err) == ERR_LIB_SSL
+                    || ERR_GET_REASON(err) == BIO_R_CONNECT_TIMEOUT
+                    || ERR_GET_REASON(err) == BIO_R_CONNECT_ERROR) {
+                BIO_snprintf(buf, 200, "server '%s' port %s", server, port);
+                ERR_add_error_data(1, buf);
+                if (err == 0) {
+                    BIO_snprintf(buf, 200, "server has disconnected%s",
+                                 use_ssl ? " violating the protocol" :
+                                 ", likely because it requires the use of TLS");
+                    ERR_add_error_data(1, buf);
+                }
+            }
+        }
+    }
+    OSSL_HTTP_REQ_CTX_free(rctx);
+
+    /* callback can be used to clean up TLS session */
+    if (bio_update_fn != NULL
+            && (*bio_update_fn)(bio, arg, 0, resp != NULL) == NULL) {
+        ASN1_item_free(resp, rsp_it);
+        resp = NULL;
+    }
+
+    /*
+     * Use BIO_free_all() because bio_update_fn may prepend or append to bio.
+     * This also frees any (e.g., SSL/TLS) BIOs linked with bio and,
+     * like BIO_reset(bio), calls SSL_shutdown() to notify/alert the peer.
+     */
+    BIO_free_all(bio);
+    return resp;
+}
+
 static int redirection_ok(int n_redir, const char *old_url, const char *new_url)
 {
     static const char *const https = "https:";
@@ -672,16 +789,6 @@ static int redirection_ok(int n_redir, const char *old_url, const char *new_url)
     return 1;
 }
 
-static long update_timeout(long timeout, time_t start_time)
-{
-    long elapsed_time;
-
-    if (timeout == 0)
-        return 0;
-    elapsed_time = (long)time(NULL) - start_time;
-    return timeout <= elapsed_time ? -1 : timeout - elapsed_time;
-}
-
 /*
  * Get ASN.1-encoded response via HTTP from server at given URL.
  * Assign the received message to *presp on success, else NULL.
@@ -694,15 +801,13 @@ ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
                                long timeout, const ASN1_ITEM *it)
 {
     time_t start_time = timeout > 0 ? time(NULL) : 0;
-    char *current_url;
+    char *current_url, *redirection_url;
     int n_redirs = 0;
     char *host;
     char *port;
     char *path;
-    BIO *bio = NULL;
-    OSSL_HTTP_REQ_CTX *rctx = NULL;
     int use_ssl;
-    ASN1_VALUE *resp = NULL;
+    ASN1_VALUE *resp;
 
     if (url == NULL || it == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
@@ -714,152 +819,31 @@ ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
  redirected:
     if (!OSSL_HTTP_parse_url(current_url, &host, &port, &path, &use_ssl))
         goto end;
-    if (use_ssl && bio_update_fn == NULL) {
-        HTTPerr(0, HTTP_R_TLS_NOT_SUPPORTED);
-        goto end;
-    }
-    bio = HTTP_new_bio(host, port, proxy, proxy_port);
-    if (bio == NULL)
-        goto end;
 
-    /* callback can be used to wrap or prepend TLS session */
-    if (bio_update_fn != NULL) {
-        BIO *orig_bio = bio;
-        bio = (*bio_update_fn)(bio, arg, 1 /* connect */, use_ssl);
-        if (bio == NULL) {
-            BIO_free(orig_bio);
-            goto end;
-        }
-    }
-    rctx = HTTP_REQ_CTX_new(bio, !use_ssl && proxy != NULL, host, port, path,
-                            headers, 1, NULL, NULL, NULL, maxline,
-                            max_resp_len, update_timeout(timeout, start_time));
-    if (rctx == NULL)
-        goto end;
-
-    if (BIO_connect_retry(bio, update_timeout(timeout, start_time)) <= 0)
-        goto end;
-
-    resp = OSSL_HTTP_REQ_CTX_sendreq_d2i(rctx, it);
-
- end:
-    /* callback can be used to clean up TLS session. err does not equal 1 */
-    if (bio != NULL && bio_update_fn != NULL
-            && (*bio_update_fn)(bio, arg, 0, resp != NULL) == NULL) {
-        ASN1_item_free(resp, it);
-        resp = NULL;
-    }
-
-    /*
-     * Use BIO_free_all() because bio_update_fn may prepend or append to bio.
-     * This also frees any (e.g., SSL/TLS) BIOs linked with bio and,
-     * like BIO_reset(bio), calls SSL_shutdown() to notify/alert the peer.
-     */
-    BIO_free_all(bio);
-
+    resp = HTTP_transfer(host, port, path, use_ssl, proxy, proxy_port,
+                         bio_update_fn, arg, headers, NULL, NULL, NULL,
+                         maxline, max_resp_len,
+                         update_timeout(timeout, start_time),
+                         it, &redirection_url);
     OPENSSL_free(host);
     OPENSSL_free(port);
     OPENSSL_free(path);
 
-    if (rctx != NULL && resp == NULL && rctx->redirection_url != NULL) {
-        if (redirection_ok(n_redirs++, current_url, rctx->redirection_url)) {
+    if (resp == NULL && redirection_url != NULL) {
+        if (redirection_ok(n_redirs++, current_url, redirection_url)) {
             OPENSSL_free(current_url);
-            current_url = OPENSSL_strdup(rctx->redirection_url);
-            OSSL_HTTP_REQ_CTX_free(rctx);
-            rctx = NULL;
-            bio = NULL;
-            if (current_url != NULL)
-                goto redirected;
+            current_url = redirection_url;
+            goto redirected;
         }
+        OPENSSL_free(redirection_url);
     }
 
-    OSSL_HTTP_REQ_CTX_free(rctx);
+ end:
     OPENSSL_free(current_url);
     return resp;
 }
 
-/*-
- * Exchange ASN.1-encoded request and response via given BIO.
- *
- * bio_update_fn is an optional BIO connect/disconnect callback function,
- * which has the prototype
- *   typedef BIO *(*HTTP_bio_cb_t) (BIO *bio, void *arg, int conn, int detail);
- * The callback may modify the HTTP BIO provided in the bio argument,
- * whereby it may make use of any custom defined argument 'arg'.
- * During connection establishment, just after BIO_connect_retry(),
- * the callback function is invoked with the 'conn' argument being 1
- * 'detail' indicating whether a HTTPS (i.e., TLS) connection is requested.
- * On disconnect 'conn' is 0 and 'detail' indicates that no error occurred.
- * For instance, on connect the funct may prepend a TLS BIO to implement HTTPS;
- * after disconnect it may do some error diagnostics and/or specific cleanup.
- * The function should return NULL to indicate failure.
- * After disconnect the modified BIO will be deallocated using BIO_free_all().
- */
-ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, HTTP_bio_cb_t bio_update_fn, void *arg,
-                             const char *server, const char *port,
-                             const char *path, int use_ssl, int use_proxy,
-                             const STACK_OF(CONF_VALUE) *headers,
-                             const char *content_type,
-                             ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                             int maxline, unsigned long max_resp_len,
-                             long timeout, const ASN1_ITEM *rsp_it)
-{
-    time_t start_time = timeout > 0 ? time(NULL) : 0;
-    OSSL_HTTP_REQ_CTX *rctx = NULL;
-    ASN1_VALUE *resp = NULL;
-
-    /* parameters are checked indirectly by the functions called */
-
-    if (BIO_connect_retry(bio, timeout) <= 0)
-        return NULL;
-    /* now timeout is guaranteed to be >= 0 */
-
-    /* callback can be used to wrap or prepend TLS session */
-    if (bio_update_fn != NULL) {
-        BIO *orig_bio = bio;
-        bio = (*bio_update_fn)(bio, arg, 1 /* connect */, use_ssl);
-        if (bio == NULL) {
-            BIO_free(orig_bio);
-            return NULL;
-        }
-    }
-
-    rctx = HTTP_REQ_CTX_new(bio, !use_ssl && use_proxy, server, port, path,
-                            headers, 0, content_type, req_it, req, maxline,
-                            max_resp_len, update_timeout(timeout, start_time));
-    if (rctx == NULL)
-        return NULL;
-
-    resp = OSSL_HTTP_REQ_CTX_sendreq_d2i(rctx, rsp_it);
-    if (resp == NULL) {
-        char buf[200];
-        unsigned long err = ERR_peek_error();
-        if (ERR_GET_LIB(err) == ERR_LIB_SSL
-                || ERR_GET_REASON(err) == BIO_R_CONNECT_TIMEOUT
-                || ERR_GET_REASON(err) == BIO_R_CONNECT_ERROR) {
-            BIO_snprintf(buf, 200, "host '%s' port %s", server, port);
-            ERR_add_error_data(1, buf);
-            if (err == 0) {
-                BIO_snprintf(buf, 200, "server has disconnected%s",
-                             use_ssl ? " violating the protocol" :
-                             ", likely because it requires the use of TLS");
-                ERR_add_error_data(1, buf);
-            }
-        }
-    }
-
-    /* callback can be used to clean up TLS session */
-    if (bio_update_fn != NULL
-            && (*bio_update_fn)(bio, arg, 0, resp != NULL) == NULL) {
-        ASN1_item_free(resp, rsp_it);
-        resp = NULL;
-    }
-
-    OSSL_HTTP_REQ_CTX_free(rctx);
-    return resp;
-}
-
-ASN1_VALUE *OSSL_HTTP_post_asn1(const char *host, const char *port,
+ASN1_VALUE *OSSL_HTTP_post_asn1(const char *server, const char *port,
                                 const char *path, int use_ssl,
                                 const char *proxy, const char *proxy_port,
                                 HTTP_bio_cb_t bio_update_fn, void *arg,
@@ -869,25 +853,15 @@ ASN1_VALUE *OSSL_HTTP_post_asn1(const char *host, const char *port,
                                 int maxline, unsigned long max_resp_len,
                                 long timeout, const ASN1_ITEM *rsp_it)
 {
-    BIO *bio = HTTP_new_bio(host, port, proxy, proxy_port);
-    ASN1_VALUE *res;
-
-    /* parameters are checked indirectly by the functions called */
-    if (bio == NULL)
+    if (req == NULL) {
+        HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
         return NULL;
+    }
+    /* remaining parameters are checked indirectly */
 
-    res = HTTP_sendreq_bio(bio, bio_update_fn, arg,
-                           host, port, path, use_ssl, proxy != NULL,
-                           headers, content_type,
-                           req, req_it, maxline, max_resp_len, timeout, rsp_it);
-    /*
-     * Use BIO_free_all() because bio_update_fn may prepend or append to bio.
-     * This also frees any (e.g., SSL/TLS) BIOs linked with bio and,
-     * like BIO_reset(bio), calls SSL_shutdown() to notify/alert the peer.
-     */
-    BIO_free_all(bio);
-
-    return res;
+    return HTTP_transfer(server, port, path, use_ssl, proxy, proxy_port,
+                         bio_update_fn, arg, headers, content_type, req, req_it,
+                         maxline, max_resp_len, timeout, rsp_it, NULL);
 }
 
 /* BASE64 encoder used for encoding basic proxy authentication credentials */

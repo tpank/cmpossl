@@ -29,7 +29,7 @@ ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
                                const STACK_OF(CONF_VALUE) *headers,
                                int maxline, unsigned long max_resp_len,
                                long timeout, const ASN1_ITEM *it);
-ASN1_VALUE *OSSL_HTTP_post_asn1(const char *host, const char *port,
+ASN1_VALUE *OSSL_HTTP_post_asn1(const char *server, const char *port,
                                 const char *path, int use_ssl,
                                 const char *proxy, const char *proxy_port,
                                 HTTP_bio_cb_t bio_update_fn, void *arg,

@@ -23,7 +23,7 @@ OCSP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
                                int maxline)
 {
     return HTTP_REQ_CTX_new(io, 0 /* no HTTP proxy used */, NULL, NULL, path,
-                            NULL /* headers */, 0, "application/ocsp-request",
+                            NULL /* headers */, "application/ocsp-request",
                             ASN1_ITEM_rptr(OCSP_REQUEST), (ASN1_VALUE *)req,
                             maxline, 0 /* default max_resp_len */,
                             0 /* no timeout, blocking indefinite */);
