@@ -2070,6 +2070,7 @@ CMP_R_ALGORITHM_NOT_SUPPORTED:139:algorithm not supported
 CMP_R_BAD_REQUEST_ID:108:bad request id
 CMP_R_CERTID_NOT_FOUND:109:certid not found
 CMP_R_CERTIFICATE_NOT_FOUND:112:certificate not found
+CMP_R_CERTREQMSG_NOT_FOUND:156:certreqmsg not found
 CMP_R_CERTRESPONSE_NOT_FOUND:113:certresponse not found
 CMP_R_CERT_AND_KEY_DO_NOT_MATCH:114:cert and key do not match
 CMP_R_ERROR_CALCULATING_PROTECTION:115:error calculating protection
@@ -2084,11 +2085,16 @@ CMP_R_ERROR_CREATING_POLLREP:123:error creating pollrep
 CMP_R_ERROR_CREATING_POLLREQ:124:error creating pollreq
 CMP_R_ERROR_CREATING_RP:125:error creating rp
 CMP_R_ERROR_CREATING_RR:126:error creating rr
+CMP_R_ERROR_DECODING_MESSAGE:157:error decoding message
 CMP_R_ERROR_PARSING_PKISTATUS:107:error parsing pkistatus
+CMP_R_ERROR_PROCESSING_CERTREQ:158:error processing certreq
+CMP_R_ERROR_PROCESSING_MSG:159:error processing msg
 CMP_R_ERROR_PROTECTING_MESSAGE:127:error protecting message
 CMP_R_ERROR_SETTING_CERTHASH:128:error setting certhash
+CMP_R_ERROR_TRANSFERRING_OUT:160:error transferring out
 CMP_R_ERROR_VALIDATING_PROTECTION:140:error validating protection
 CMP_R_FAILED_EXTRACTING_PUBKEY:141:failed extracting pubkey
+CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE:161:failed to receive pkimessage
 CMP_R_FAILURE_OBTAINING_RANDOM:110:failure obtaining random
 CMP_R_FAIL_INFO_OUT_OF_RANGE:129:fail info out of range
 CMP_R_INVALID_ARGS:100:invalid args
@@ -2114,6 +2120,7 @@ CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG:151:srvcert does not validate msg
 CMP_R_TRANSACTIONID_UNMATCHED:152:transactionid unmatched
 CMP_R_UNEXPECTED_PKIBODY:133:unexpected pkibody
 CMP_R_UNEXPECTED_PVNO:153:unexpected pvno
+CMP_R_UNEXPECTED_REQUEST_ID:162:unexpected request id
 CMP_R_UNKNOWN_ALGORITHM_ID:134:unknown algorithm id
 CMP_R_UNKNOWN_CERT_TYPE:135:unknown cert type
 CMP_R_UNSUPPORTED_ALGORITHM:136:unsupported algorithm
@@ -2121,6 +2128,7 @@ CMP_R_UNSUPPORTED_KEY_TYPE:137:unsupported key type
 CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC:154:\
 	unsupported protection alg dhbasedmac
 CMP_R_WRONG_ALGORITHM_OID:138:wrong algorithm oid
+CMP_R_WRONG_CERT_HASH:163:wrong cert hash
 CMP_R_WRONG_PBM_VALUE:155:wrong pbm value
 CMS_R_ADD_SIGNER_ERROR:99:add signer error
 CMS_R_ATTRIBUTE_ERROR:161:attribute error

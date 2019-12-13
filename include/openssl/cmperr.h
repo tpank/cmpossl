@@ -37,6 +37,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_BAD_REQUEST_ID                             108
 #  define CMP_R_CERTID_NOT_FOUND                           109
 #  define CMP_R_CERTIFICATE_NOT_FOUND                      112
+#  define CMP_R_CERTREQMSG_NOT_FOUND                       156
 #  define CMP_R_CERTRESPONSE_NOT_FOUND                     113
 #  define CMP_R_CERT_AND_KEY_DO_NOT_MATCH                  114
 #  define CMP_R_ERROR_CALCULATING_PROTECTION               115
@@ -51,11 +52,16 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_ERROR_CREATING_POLLREQ                     124
 #  define CMP_R_ERROR_CREATING_RP                          125
 #  define CMP_R_ERROR_CREATING_RR                          126
+#  define CMP_R_ERROR_DECODING_MESSAGE                     157
 #  define CMP_R_ERROR_PARSING_PKISTATUS                    107
+#  define CMP_R_ERROR_PROCESSING_CERTREQ                   158
+#  define CMP_R_ERROR_PROCESSING_MSG                       159
 #  define CMP_R_ERROR_PROTECTING_MESSAGE                   127
 #  define CMP_R_ERROR_SETTING_CERTHASH                     128
+#  define CMP_R_ERROR_TRANSFERRING_OUT                     160
 #  define CMP_R_ERROR_VALIDATING_PROTECTION                140
 #  define CMP_R_FAILED_EXTRACTING_PUBKEY                   141
+#  define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               161
 #  define CMP_R_FAILURE_OBTAINING_RANDOM                   110
 #  define CMP_R_FAIL_INFO_OUT_OF_RANGE                     129
 #  define CMP_R_INVALID_ARGS                               100
@@ -79,12 +85,14 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_TRANSACTIONID_UNMATCHED                    152
 #  define CMP_R_UNEXPECTED_PKIBODY                         133
 #  define CMP_R_UNEXPECTED_PVNO                            153
+#  define CMP_R_UNEXPECTED_REQUEST_ID                      162
 #  define CMP_R_UNKNOWN_ALGORITHM_ID                       134
 #  define CMP_R_UNKNOWN_CERT_TYPE                          135
 #  define CMP_R_UNSUPPORTED_ALGORITHM                      136
 #  define CMP_R_UNSUPPORTED_KEY_TYPE                       137
 #  define CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC      154
 #  define CMP_R_WRONG_ALGORITHM_OID                        138
+#  define CMP_R_WRONG_CERT_HASH                            163
 #  define CMP_R_WRONG_PBM_VALUE                            155
 
 # endif
