@@ -25,7 +25,7 @@
 #  include <openssl/x509.h>
 #  include <openssl/x509v3.h>
 
-#  ifdef  __cplusplus
+#  ifdef __cplusplus
 extern "C" {
 #  endif
 
@@ -127,9 +127,9 @@ extern "C" {
 #  define OSSL_CMP_PKIFAILUREINFO_duplicateCertReq 26
 #  define OSSL_CMP_PKIFAILUREINFO_MAX 26
 #  define OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN \
-    ( (1<<(OSSL_CMP_PKIFAILUREINFO_MAX+1)) - 1)
+    ((1 << (OSSL_CMP_PKIFAILUREINFO_MAX + 1)) - 1)
 #  if OSSL_CMP_PKIFAILUREINFO_MAX_BIT_PATTERN > INT_MAX
-#   error  CMP_PKIFAILUREINFO_MAX bit pattern does not fit in type int
+#   error CMP_PKIFAILUREINFO_MAX bit pattern does not fit in type int
 #  endif
 
 typedef ASN1_BIT_STRING OSSL_CMP_PKIFAILUREINFO;
@@ -349,6 +349,12 @@ ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
 /* from cmp_msg.c */
 /* support application-level CMP debugging in cmp.c: */
 OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
+
+/* from cmp_vfy.c */
+int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg);
+int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
+                                X509_STORE *trusted_store, X509 *cert);
+int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
 #  ifdef  __cplusplus
 }
