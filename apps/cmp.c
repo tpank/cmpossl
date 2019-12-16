@@ -1282,7 +1282,6 @@ static void DEBUG_print(const char *msg, const char *s1, const char *s2)
  * returns 1 on success, 0 on error.
  */
 #define X509_STORE_EX_DATA_HOST 0
-#define X509_STORE_EX_DATA_SBIO 1
 static int truststore_set_host_etc(X509_STORE *ts, char *host)
 {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
@@ -1302,7 +1301,7 @@ static int truststore_set_host_etc(X509_STORE *ts, char *host)
      */
     if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, host))
         return 0;
-    return (host && X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host))
+    return (host != NULL && X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host))
                 || X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
 }
 
@@ -2098,12 +2097,6 @@ static BIO *tls_http_cb(BIO *hbio, void *arg, int connect, int detail)
          */
     }
  end:
-    if (ssl_ctx != NULL) {
-        X509_STORE *ts = SSL_CTX_get_cert_store(ssl_ctx);
-        if (ts != NULL)
-            /* indicate if OSSL_CMP_MSG_http_perform() with TLS is active */
-            (void)X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_SBIO, sbio);
-    }
     return hbio;
 }
 
@@ -2119,18 +2112,12 @@ static BIO *tls_http_cb(BIO *hbio, void *arg, int connect, int detail)
  */
 static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 {
+    int res = OSSL_CMP_print_cert_verify_cb(ok, ctx); /* print diagnostics */
+
     if (ok == 0 && ctx != NULL) {
         int cert_error = X509_STORE_CTX_get_error(ctx);
         X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
-        BIO *sbio = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_SBIO);
-        SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
-                                          SSL_get_ex_data_X509_STORE_CTX_idx());
-        const char *expected = NULL;
-
-        if (sbio != 0 /* OSSL_CMP_MSG_http_perform() with TLS is active */
-            && !ssl) /* ssl_add_cert_chain() is active */
-            return ok; /* avoid printing spurious errors */
-
+        const char *host = NULL;
         switch (cert_error) {
         case X509_V_ERR_HOSTNAME_MISMATCH:
         case X509_V_ERR_IP_ADDRESS_MISMATCH:
@@ -2140,15 +2127,15 @@ static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
              * This works for names we set ourselves but not verify_hostname
              * used for OSSL_CMP_certConf_cb.
              */
-            expected = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
-            if (expected != NULL)
-                CMP_info1("TLS connection expected host = %s", expected);
+            host = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
+            if (host != NULL)
+                ERR_add_error_data(2, "\nexpected hostname = ", host);
             break;
         default:
             break;
         }
     }
-    return OSSL_CMP_print_cert_verify_cb(ok, ctx); /* print diagnostics */
+    return res;
 }
 
 /*!*****************************************************************************

@@ -17,6 +17,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/httperr.h>
+#include <openssl/cmperr.h>
 #include <openssl/buffer.h>
 #include <openssl/http.h>
 #include "internal/sockets.h"
@@ -713,6 +714,7 @@ ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
     if ((bio = HTTP_new_bio(server, port, proxy, proxy_port)) == NULL)
         return NULL;
 
+    (void)ERR_set_mark(); /* prepare removing any spurious libssl errors */
     if (BIO_connect_retry(bio, timeout) <= 0)
         goto end;
     /* now timeout is guaranteed to be >= 0 */
@@ -745,10 +747,14 @@ ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
         } else {
             char buf[200];
             unsigned long err = ERR_peek_error();
-            if (ERR_GET_LIB(err) == ERR_LIB_SSL
-                    || ERR_GET_REASON(err) == BIO_R_CONNECT_TIMEOUT
-                    || ERR_GET_REASON(err) == BIO_R_CONNECT_ERROR) {
-                BIO_snprintf(buf, 200, "from %s:%s", server, port);
+            int lib = ERR_GET_LIB(err);
+            int reason = ERR_GET_REASON(err);
+            if (lib == ERR_LIB_SSL
+                    || (lib == ERR_LIB_BIO && reason == BIO_R_CONNECT_TIMEOUT)
+                    || (lib == ERR_LIB_BIO && reason == BIO_R_CONNECT_ERROR)
+                    || (lib == ERR_LIB_CMP
+                        && reason == CMP_R_POTENTIALLY_INVALID_CERTIFICATE)) {
+                BIO_snprintf(buf, 200, "server=%s:%s", server, port);
                 ERR_add_error_data(1, buf);
                 if (err == 0) {
                     BIO_snprintf(buf, 200, "server has disconnected%s",
@@ -775,6 +781,13 @@ ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
      * like BIO_reset(bio), calls SSL_shutdown() to notify/alert the peer.
      */
     BIO_free_all(bio);
+
+    if (resp != NULL)
+        /* remove any spurious error queue entries by ssl_add_cert_chain() */
+        (void)ERR_pop_to_mark();
+    else
+        (void)ERR_clear_last_mark();
+
     return resp;
 }
 
