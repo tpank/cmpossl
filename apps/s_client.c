@@ -948,7 +948,7 @@ int s_client_main(int argc, char **argv)
     int prexit = 0;
     int sdebug = 0;
     int reconnect = 0, verify = SSL_VERIFY_NONE, vpmtouched = 0;
-    int ret = 1, in_init = 1, i, nbio_test = 0, s = -1, k, width, state = 0;
+    int ret = 1, in_init = 1, i, nbio_test = 0, sock = -1, k, width, state = 0;
     int sbuf_len, sbuf_off, cmdletters = 1;
     int socket_family = AF_UNSPEC, socket_type = SOCK_STREAM, protocol = 0;
     int starttls_proto = PROTO_OFF, crl_format = FORMAT_PEM, crl_download = 0;
@@ -2094,16 +2094,16 @@ int s_client_main(int argc, char **argv)
     }
 
  re_start:
-    if (init_client(&s, host, port, bindhost, bindport, socket_family,
+    if (init_client(&sock, host, port, bindhost, bindport, socket_family,
                     socket_type, protocol) == 0) {
         BIO_printf(bio_err, "connect:errno=%d\n", get_last_socket_error());
-        BIO_closesocket(s);
+        BIO_closesocket(sock);
         goto end;
     }
-    BIO_printf(bio_c_out, "CONNECTED(%08X)\n", s);
+    BIO_printf(bio_c_out, "CONNECTED(%08X)\n", sock);
 
     if (c_nbio) {
-        if (!BIO_socket_nbio(s, 1)) {
+        if (!BIO_socket_nbio(sock, 1)) {
             ERR_print_errors(bio_err);
             goto end;
         }
@@ -2115,21 +2115,21 @@ int s_client_main(int argc, char **argv)
 
 #ifndef OPENSSL_NO_SCTP
         if (protocol == IPPROTO_SCTP)
-            sbio = BIO_new_dgram_sctp(s, BIO_NOCLOSE);
+            sbio = BIO_new_dgram_sctp(sock, BIO_NOCLOSE);
         else
 #endif
-            sbio = BIO_new_dgram(s, BIO_NOCLOSE);
+            sbio = BIO_new_dgram(sock, BIO_NOCLOSE);
 
         if ((peer_info.addr = BIO_ADDR_new()) == NULL) {
             BIO_printf(bio_err, "memory allocation failure\n");
-            BIO_closesocket(s);
+            BIO_closesocket(sock);
             goto end;
         }
-        if (!BIO_sock_info(s, BIO_SOCK_INFO_ADDRESS, &peer_info)) {
+        if (!BIO_sock_info(sock, BIO_SOCK_INFO_ADDRESS, &peer_info)) {
             BIO_printf(bio_err, "getsockname:errno=%d\n",
                        get_last_socket_error());
             BIO_ADDR_free(peer_info.addr);
-            BIO_closesocket(s);
+            BIO_closesocket(sock);
             goto end;
         }
 
@@ -2166,7 +2166,7 @@ int s_client_main(int argc, char **argv)
         }
     } else
 #endif /* OPENSSL_NO_DTLS */
-        sbio = BIO_new_socket(s, BIO_NOCLOSE);
+        sbio = BIO_new_socket(sock, BIO_NOCLOSE);
 
     if (nbio_test) {
         BIO *test;
@@ -3117,8 +3117,8 @@ int s_client_main(int argc, char **argv)
     timeout.tv_usec = 500000;  /* some extreme round-trip */
     do {
         FD_ZERO(&readfds);
-        openssl_fdset(s, &readfds);
-    } while (select(s + 1, &readfds, NULL, NULL, &timeout) > 0
+        openssl_fdset(sock, &readfds);
+    } while (select(sock + 1, &readfds, NULL, NULL, &timeout) > 0
              && BIO_read(sbio, sbuf, BUFSIZZ) > 0);
 
     BIO_closesocket(SSL_get_fd(con));
