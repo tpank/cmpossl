@@ -378,15 +378,20 @@ int BIO_sock_info(int sock,
 
 /* TODO use this function, simplify further other uses of select() in apps/ */
 /*
- * Wait on fd at most until max_time. If for_read is 0 then assume for write.
+ * Wait on fd at most until max_time; succeed immediately if max_time == 0.
+ * If for_read == 0 then assume to wait for writing, else wait for reading.
  * Returns -1 on error, 0 on timeout, and 1 on success.
  */
 int BIO_socket_wait(int fd, int for_read, time_t max_time)
 {
     fd_set confds;
     struct timeval tv;
-    time_t now = time(NULL);
+    time_t now;
 
+    if (max_time == 0)
+        return 1;
+
+    now = time(NULL);
     if (max_time <= now)
         return 0;
 
@@ -399,7 +404,7 @@ int BIO_socket_wait(int fd, int for_read, time_t max_time)
 }
 
 /*
- * Wait on BIO at most until max_time.
+ * Wait on BIO at most until max_time; succeed immediately if max_time == 0.
  * Returns -1 on error, 0 on timeout, and 1 on success.
  */
 static int bio_wait(BIO *bio, time_t max_time)
@@ -412,7 +417,8 @@ static int bio_wait(BIO *bio, time_t max_time)
 }
 
 /*
- * Wait on BIO at most until max_time; call BIOerr(...) unless success.
+ * Wait on BIO at most until max_time; succeed immediately if max_time == 0.
+ * Call BIOerr(...) unless success.
  * Returns -1 on error, 0 on timeout, and 1 on success.
  */
 int BIO_wait(BIO *bio, time_t max_time)
@@ -467,8 +473,7 @@ int BIO_connect_retry(BIO *bio, long timeout)
         goto retry;
     }
     if (rv <= 0 && BIO_should_retry(bio)) {
-        if (blocking)
-            goto retry;
+        /* will not actually wait if timeout == 0 (i.e., blocking BIO) */
         rv = bio_wait(bio, max_time);
         if (rv > 0)
             goto retry;

@@ -25,8 +25,9 @@
 #include "http_local.h"
 
 #define HTTP_PREFIX "HTTP/"
-#define HTTP_VERSION_PATT "1." /* or, e.g., "1.1" */
-#define HTTP_VERSION_MAX_LEN 3
+#define HTTP_VERSION_PATT "1." /* allow 1.x */
+#define HTTP_VERSION_STR_LEN 3
+#define HTTP_LINE1_MINLEN ((int)strlen(HTTP_PREFIX HTTP_VERSION_PATT "x 200\n"))
 #define HTTP_VERSION_MAX_REDIRECTIONS 50
 
 #define HTTP_STATUS_CODE_OK                200
@@ -584,12 +585,12 @@ int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx)
 
 #ifndef OPENSSL_NO_SOCK
 
-/* set up a new connection BIO, to HTTP server or to HTTP proxy if given */
+/* set up a new connection BIO, to HTTP server or to HTTP(S) proxy if given */
 static BIO *HTTP_new_bio(const char *server, const char *server_port,
                          const char *proxy, const char *proxy_port)
 {
-    const char *host = proxy;
-    const char *port = proxy_port;
+    const char *host = server;
+    const char *port = server_port;
     BIO *cbio = NULL;
 
     if (server == NULL) {
@@ -597,9 +598,9 @@ static BIO *HTTP_new_bio(const char *server, const char *server_port,
         return NULL;
     }
 
-    if (proxy == NULL) {
-        host = server;
-        port = server_port;
+    if (proxy != NULL) {
+        host = proxy;
+        port = proxy_port;
     }
     cbio = BIO_new_connect(host);
     if (cbio == NULL)
@@ -631,7 +632,8 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
     if (rv == -1) {
         /* BIO_should_retry was true */
         sending = 0;
-        if (!blocking && BIO_wait(rctx->io, rctx->max_time) <= 0)
+        /* will not actually wait if rctx->max_time == 0 */
+        if (BIO_wait(rctx->io, rctx->max_time) <= 0)
             return NULL;
         goto retry;
     }
@@ -698,7 +700,7 @@ ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
     time_t start_time = timeout > 0 ? time(NULL) : 0;
     BIO *bio;
     OSSL_HTTP_REQ_CTX *rctx;
-    ASN1_VALUE *resp;
+    ASN1_VALUE *resp = NULL;
 
     if (use_ssl && bio_update_fn == NULL) {
         HTTPerr(0, HTTP_R_TLS_NOT_ENABLED);
@@ -706,11 +708,13 @@ ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
     }
     /* remaining parameters are checked indirectly by the functions called */
 
+    if (redirection_url != NULL)
+        *redirection_url = NULL;
     if ((bio = HTTP_new_bio(server, port, proxy, proxy_port)) == NULL)
         return NULL;
 
     if (BIO_connect_retry(bio, timeout) <= 0)
-        return NULL;
+        goto end;
     /* now timeout is guaranteed to be >= 0 */
 
     /* callback can be used to wrap or prepend TLS session */
@@ -718,8 +722,8 @@ ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
         BIO *orig_bio = bio;
         bio = (*bio_update_fn)(bio, arg, 1 /* connect */, use_ssl);
         if (bio == NULL) {
-            BIO_free(orig_bio);
-            return NULL;
+            bio = orig_bio;
+            goto end;
         }
     }
 
@@ -728,6 +732,7 @@ ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
                             max_resp_len, update_timeout(timeout, start_time));
     if (rctx == NULL)
         return NULL;
+
 
     resp = OSSL_HTTP_REQ_CTX_sendreq_d2i(rctx, rsp_it);
     if (resp == NULL) {
@@ -743,7 +748,7 @@ ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
             if (ERR_GET_LIB(err) == ERR_LIB_SSL
                     || ERR_GET_REASON(err) == BIO_R_CONNECT_TIMEOUT
                     || ERR_GET_REASON(err) == BIO_R_CONNECT_ERROR) {
-                BIO_snprintf(buf, 200, "server '%s' port %s", server, port);
+                BIO_snprintf(buf, 200, "from %s:%s", server, port);
                 ERR_add_error_data(1, buf);
                 if (err == 0) {
                     BIO_snprintf(buf, 200, "server has disconnected%s",
@@ -763,6 +768,7 @@ ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
         resp = NULL;
     }
 
+ end:
     /*
      * Use BIO_free_all() because bio_update_fn may prepend or append to bio.
      * This also frees any (e.g., SSL/TLS) BIOs linked with bio and,
@@ -903,7 +909,7 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
 # define BUF_SIZE (8 * 1024)
     char *mbuf = OPENSSL_malloc(BUF_SIZE);
     char *mbufp;
-    int mbuf_len = 0;
+    int read_len = 0;
     int rv;
     int ret = 0;
     BIO *fbio = BIO_new(BIO_f_buffer());
@@ -921,8 +927,7 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
     }
     BIO_push(fbio, bio);
 
-    /* CONNECT seems only to be specified for HTTP/1.1 in RFC 2817/7231 */
-    BIO_printf(fbio, "CONNECT %s:%d "HTTP_PREFIX"1.1\r\n", server, port);
+    BIO_printf(fbio, "CONNECT %s:%s "HTTP_PREFIX"1.0\r\n", server, port);
 
     /*
      * Workaround for broken proxies which would otherwise close
@@ -960,6 +965,7 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
     }
 
  retry:
+    /* will not actually wait if timeout == 0 */
     rv = BIO_wait(fbio, max_time);
     if (rv <= 0) {
         BIO_printf(bio_err, "%s: HTTP CONNECT %s\n", prog,
@@ -973,13 +979,13 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
      *
      * HTTP/d.d ddd Reason text\r\n
      */
-    mbuf_len = BIO_gets(fbio, mbuf, BUF_SIZE);
+    read_len = BIO_gets(fbio, mbuf, BUF_SIZE);
     /* as the BIO may not block, we need to wait that the first line comes in */
-    if (mbuf_len < (int)strlen(HTTP_PREFIX""HTTP_VERSION_PATT" 200"))
+    if (read_len < HTTP_LINE1_MINLEN)
         goto retry;
 
     /* RFC 7231 4.3.6: any 2xx status code is valid */
-    if (strncmp(mbuf, HTTP_PREFIX, strlen(HTTP_PREFIX) != 0)) {
+    if (strncmp(mbuf, HTTP_PREFIX, strlen(HTTP_PREFIX)) != 0) {
         HTTPerr(0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
         BIO_printf(bio_err, "%s: HTTP CONNECT failed, non-HTTP response\n",
                    prog);
@@ -990,31 +996,37 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
     if (strncmp(mbufp, HTTP_VERSION_PATT, strlen(HTTP_VERSION_PATT)) != 0) {
         HTTPerr(0, HTTP_R_SERVER_SENT_WRONG_HTTP_VERSION);
         BIO_printf(bio_err, "%s: HTTP CONNECT failed, bad HTTP version %.*s\n",
-                   prog, HTTP_VERSION_MAX_LEN, mbufp);
+                   prog, HTTP_VERSION_STR_LEN, mbufp);
+        goto end;
     } else {
-        mbufp += HTTP_VERSION_MAX_LEN;
+        mbufp += HTTP_VERSION_STR_LEN;
         if (strncmp(mbufp, " 2", strlen(" 2")) != 0) {
             mbufp += 1;
-            if (mbuf[mbuf_len - 2] == '\r' && mbuf[mbuf_len - 1] == '\n') {
-                mbuf_len -= 2;
-                mbuf[mbuf_len] = '\0';
+            /* chop (any number of) trailing '\r' and '\n' */
+            while (read_len > 0
+                   && (mbuf[read_len - 1] == '\r'
+                       || mbuf[read_len - 1] == '\n')) {
+                read_len--;
+                mbuf[read_len] = '\0';
             }
             HTTPerr(0, HTTP_R_CONNECT_FAILURE);
             ERR_add_error_data(1, mbufp);
             BIO_printf(bio_err, "%s: HTTP CONNECT failed: %s\n", prog, mbufp);
+            goto end;
         } else {
             ret = 1;
         }
     }
 
-    /*
-     * TODO: This does not necessarily catch the case when the full HTTP
-     * response came in in more than a single TCP message.
-     * Read past all following headers
-     */
-    do
-        mbuf_len = BIO_gets(fbio, mbuf, BUF_SIZE);
-    while (mbuf_len > 2);
+    /* Read past all following headers */
+    do {
+        /*
+         * TODO: This does not necessarily catch the case when the full HTTP
+         * response came in in more than a single TCP message.
+         */
+        read_len = BIO_gets(fbio, mbuf, BUF_SIZE);
+    }
+    while (read_len > 2);
 
  end:
     if (fbio != NULL) {

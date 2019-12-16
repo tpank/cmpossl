@@ -2182,7 +2182,7 @@ static int parse_url(char **phost, int port, char **ppath, const char *desc)
     }
 
     if ((port_string = strrchr(*phost, ':')) == NULL) {
-        CMP_info2("using default port %d for %s", port, desc);
+        /* using default port */
         path = ppath == NULL ? NULL : strchr(*phost, '/');
     } else {
         *(port_string++) = '\0';

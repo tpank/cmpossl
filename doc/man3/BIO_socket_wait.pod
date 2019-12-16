@@ -19,9 +19,11 @@ BIO_connect_retry
 
 BIO_socket_wait() waits on the socket B<fd> for reading if B<for_read> is not 0,
 else for writing, at most until B<max_time>.
+It succeeds immediately if B<max_time> == 0 (which means no timeout given).
 
-BIO_wait() waits on the socket underlying the given B<bio>, for read if B<bio>
-is supposed to read, else for write, at most until B<max_time>.
+BIO_wait() waits on the socket underlying the given B<bio>, for reading if
+B<bio> is supposed to read, else for writing, at most until B<max_time>.
+It succeeds immediately if B<max_time> == 0 (which means no timeout given).
 
 BIO_connect_retry() connects via the given B<bio>, retrying BIO_do_connect()
 until success or a timeout or error condition is reached.
