@@ -3717,7 +3717,7 @@ static int opt_nat(void)
     return result;
 }
 
-/* returns 0 on success, 1 on error, -1 on -help (i.e., stop with success) */
+/* returns 1 on success, 0 on error, -1 on -help (i.e., stop with success) */
 static int get_opts(int argc, char **argv)
 {
     OPTION_CHOICE o;
@@ -4057,11 +4057,11 @@ static int get_opts(int argc, char **argv)
         CMP_err1("unknown parameter %s", argv[0]);
         goto opt_err;
     }
-    return 0;
+    return 1;
 
  opt_err:
     CMP_err1("use -help for summary of '%s' options", prog);
-    return 1;
+    return 0;
 }
 
 int cmp_main(int argc, char **argv)
@@ -4071,6 +4071,7 @@ int cmp_main(int argc, char **argv)
     int ret = 1; /* default: failure */
     X509 *newcert = NULL;
     ENGINE *e = NULL;
+    int ret = 0; /* default: failure */
 
     if (argc <= 1) {
         opt_help(cmp_options);
@@ -4136,9 +4137,9 @@ int cmp_main(int argc, char **argv)
     (void)BIO_flush(bio_err); /* prevent interference with opt_help() */
 
     ret = get_opts(argc, argv);
-    if (ret != 0)
+    if (ret <= 0)
         goto err;
-    ret = 1;
+    ret = 0;
 
     if (opt_batch) {
 #ifndef OPENSSL_NO_ENGINE
@@ -4259,7 +4260,7 @@ int cmp_main(int argc, char **argv)
         if (!OSSL_CMP_CTX_reinit(cmp_ctx))
             goto err;
     }
-    ret = 0;
+    ret = 1;
  err:
     /*  in case we ended up here on error without proper cleaning */
     cleanse(opt_keypass);
@@ -4272,7 +4273,7 @@ int cmp_main(int argc, char **argv)
     cleanse(opt_srv_secret);
     OSSL_CMP_SRV_CTX_free(srv_ctx);
 #endif
-    if (ret > 0)
+    if (ret != 1)
         OSSL_CMP_CTX_print_errors(cmp_ctx);
 
     SSL_CTX_free(OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx));
@@ -4284,7 +4285,7 @@ int cmp_main(int argc, char **argv)
     NCONF_free(conf); /* must not do as long as opt_... variables are used */
     OSSL_CMP_log_close();
 
-    return ret > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
+    return ret == 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 #endif
