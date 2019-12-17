@@ -132,6 +132,7 @@ typedef enum {
 } cmp_cmd_t;
 
 static char *opt_server = NULL;
+static char server_port_s[32];
 static int server_port = 80;
 
 static char *opt_proxy = NULL;
@@ -1629,7 +1630,9 @@ static OCSP_RESPONSE *get_ocsp_resp(X509 *cert, X509 *issuer,
     }
 # endif
     /* process_responder is defined ocsp.c */
+# ifndef OPENSSL_NO_SOCK
     resp = process_responder(req, host, path, port, use_ssl, NULL, timeout);
+# endif
     if (resp == NULL) {
         BIO_puts(bio_err, "cert_status: error querying OCSP responder\n");
         goto end;
@@ -2018,8 +2021,8 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
     if (opt_rspin != NULL) {
         res = read_PKIMESSAGE(ctx, &opt_rspin);
     } else {
-        const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
 #ifndef NDEBUG
+        const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
         if (opt_mock_srv) {
             OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
             res = OSSL_CMP_mock_server_perform(ctx, actual_req);
@@ -2059,47 +2062,6 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
     return res;
 }
 
-static BIO *tls_http_cb(BIO *hbio, void *arg, int connect, int detail)
-{
-    OSSL_CMP_CTX *ctx = (OSSL_CMP_CTX *)arg;
-    SSL_CTX *ssl_ctx = OSSL_CMP_CTX_get_http_cb_arg(ctx);
-    BIO *sbio = NULL;
-
-    if (connect && detail) { /* connecting with TLS */
-        SSL *ssl;
-#if !defined(OPENSSL_NO_SOCK)
-        if ((opt_proxy != NULL
-                && !OSSL_CMP_proxy_connect(hbio, ctx, bio_err, prog))
-                || (sbio = BIO_new(BIO_f_ssl())) == NULL) {
-            hbio = NULL;
-            goto end;
-        }
-#endif
-        if (ssl_ctx == NULL || (ssl = SSL_new(ssl_ctx)) == NULL) {
-            BIO_free(sbio);
-            hbio = sbio = NULL;
-            goto end;
-        }
-
-        SSL_set_tlsext_host_name(ssl, opt_server);
-
-        SSL_set_connect_state(ssl);
-        BIO_set_ssl(sbio, ssl, BIO_CLOSE);
-
-        hbio = BIO_push(sbio, hbio);
-    } else if (!connect && !detail) { /* disconnecting after error */
-        const char *hint = app_tls_error_hint(ERR_peek_error());
-        if (hint != NULL)
-            ERR_add_error_data(1, hint);
-        /*
-         * as workaround for libssl double free, do not pop the sbio,
-         * but rely on BIO_free_all() done by OSSL_HTTP_post_asn1()
-         */
-    }
- end:
-    return hbio;
-}
-
 /*
  * This function is a callback used by OpenSSL's verify_cert function.
  * It is called at the end of a cert verification to allow an opportunity
@@ -2110,7 +2072,7 @@ static BIO *tls_http_cb(BIO *hbio, void *arg, int connect, int detail)
  * ssl_add_cert_chain() -> X509_verify_cert() where errors are ignored.
  * returns 0 if and only if the cert verification is considered failed.
  */
-static int cert_verify_cb (int ok, X509_STORE_CTX *ctx)
+static int print_cert_verify_cb (int ok, X509_STORE_CTX *ctx)
 {
     int res = OSSL_CMP_print_cert_verify_cb(ok, ctx); /* print diagnostics */
 
@@ -2219,7 +2181,7 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
         return 0;
     }
 
-    X509_STORE_set_verify_cb(ts, cert_verify_cb);
+    X509_STORE_set_verify_cb(ts, print_cert_verify_cb);
 
     if (crls != NULL
             && !add_crls_store(ts, crls)) /* ups the references to crls */
@@ -2795,11 +2757,12 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx,
  * set up ssl_ctx for the OSSL_CMP_CTX based on options from config file/CLI.
  * Returns pointer on success, NULL on error
  */
-static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
+static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e,
                               STACK_OF(X509_CRL) *all_crls)
 {
+    STACK_OF(X509) *untrusted_certs = OSSL_CMP_CTX_get0_untrusted_certs(ctx);
     EVP_PKEY *pkey = NULL;
-    X509_STORE *store = NULL;
+    X509_STORE *trust_store = NULL;
     SSL_CTX *ssl_ctx;
     int i;
 
@@ -2822,10 +2785,12 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
 #endif /* OPENSSL_NO_OCSP */
 
     if (opt_tls_trusted != NULL) {
-        if ((store = load_certstore(opt_tls_trusted,
-                                    "trusted TLS certificates")) == NULL)
+        if ((trust_store = load_certstore(opt_tls_trusted,
+                                          "trusted TLS certificates")) == NULL)
             goto err;
-        SSL_CTX_set_cert_store(ssl_ctx, store);
+        SSL_CTX_set_cert_store(ssl_ctx, trust_store);
+        /* for improved diagnostics on SSL_CTX_build_cert_chain() errors: */
+        X509_STORE_set_verify_cb(trust_store, print_cert_verify_cb);
     }
 
     if (opt_tls_cert != NULL && opt_tls_key != NULL) {
@@ -2872,7 +2837,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
                                       SSL_BUILD_CHAIN_FLAG_UNTRUSTED |
                                       SSL_BUILD_CHAIN_FLAG_NO_ROOT)) {
             CMP_warn("could not build cert chain for own TLS cert");
-            OSSL_CMP_CTX_print_errors(cmp_ctx);
+            OSSL_CMP_CTX_print_errors(ctx);
         }
 
         /* If present we append to the list also the certs from opt_tls_extra */
@@ -2927,11 +2892,12 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     }
     if (opt_tls_trusted != NULL) {
         /* cannot do these before calling SSL_CTX_build_cert_chain() */
-        if (!set1_store_parameters_crls(store, all_crls))
+        if (!set1_store_parameters_crls(trust_store, all_crls))
             goto err;
         /* enable and parameterize server hostname/IP address check */
-        if (!truststore_set_host_etc(store, opt_tls_host != NULL ?
-                                            opt_tls_host : opt_server))
+        if (!truststore_set_host_etc(trust_store,
+                                     opt_tls_host != NULL ?
+                                     opt_tls_host : opt_server))
             /* TODO: is the server host name correct for TLS via proxy? */
             goto err;
         SSL_CTX_set_verify(ssl_ctx,
@@ -3009,7 +2975,7 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 
         if (!load_certs_autofmt(opt_cert, &certs, opt_ownform, 1,
             opt_keypass, "CMP client certificate (and optionally extra certs)"))
-       /* opt_keypass is needed in case opt_cert is an encrypted PKCS#12 file */
+            /* opt_keypass is needed if opt_cert is an encrypted PKCS#12 file */
             goto err;
 
         clcert = sk_X509_delete(certs, 0);
@@ -3227,6 +3193,7 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
                                         &opt_path, "server")) == 0) {
         goto err;
     }
+    BIO_snprintf(server_port_s, sizeof(server_port_s), "%d", server_port);
     if (!OSSL_CMP_CTX_set1_serverName(ctx, opt_server)
             || !OSSL_CMP_CTX_set_serverPort(ctx, server_port)
             || !OSSL_CMP_CTX_set1_serverPath(ctx, opt_path))
@@ -3312,15 +3279,20 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_tls_used) {
-        SSL_CTX *ssl_ctx;
-
-        ssl_ctx = setup_ssl_ctx(e, OSSL_CMP_CTX_get0_untrusted_certs(ctx),
-                                all_crls);
-        if (ssl_ctx == NULL)
+        APP_HTTP_TLS_INFO *info = OPENSSL_zalloc(sizeof(*info));
+        if (info == NULL)
             goto err;
-
-        (void)OSSL_CMP_CTX_set_http_cb(ctx, tls_http_cb);
-        (void)OSSL_CMP_CTX_set_http_cb_arg(ctx, ssl_ctx);
+        (void)OSSL_CMP_CTX_set_http_cb_arg(ctx, info);
+        info->server = opt_server;
+        info->port = server_port_s;
+        info->use_proxy = opt_proxy != NULL;
+        info->timeout = OSSL_CMP_CTX_get_option(ctx, OSSL_CMP_OPT_MSGTIMEOUT);
+        info->ssl_ctx = setup_ssl_ctx(ctx, e, all_crls);
+        if (info->ssl_ctx == NULL)
+            goto err; /* info will be freed along with CMP ctx */
+#ifndef OPENSSL_NO_SOCK
+        (void)OSSL_CMP_CTX_set_http_cb(ctx, app_http_tls_cb);
+#endif
     } else {
 #ifndef OPENSSL_NO_OCSP
         if (opt_ocsp_status)
@@ -4046,9 +4018,9 @@ int cmp_main(int argc, char **argv)
 {
     char *configfile = NULL;
     int i;
-    int ret = 1; /* default: failure */
     X509 *newcert = NULL;
     ENGINE *e = NULL;
+    APP_HTTP_TLS_INFO *http_tls_info;
     int ret = 0; /* default: failure */
 
     if (argc <= 1) {
@@ -4254,7 +4226,11 @@ int cmp_main(int argc, char **argv)
     if (ret != 1)
         OSSL_CMP_CTX_print_errors(cmp_ctx);
 
-    SSL_CTX_free(OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx));
+    http_tls_info = OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx);
+    if (http_tls_info != NULL) {
+        SSL_CTX_free(http_tls_info->ssl_ctx);
+        OPENSSL_free(http_tls_info);
+    }
     X509_STORE_free(OSSL_CMP_CTX_get_certConf_cb_arg(cmp_ctx));
     OSSL_CMP_CTX_free(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);

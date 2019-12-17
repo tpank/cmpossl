@@ -1934,50 +1934,40 @@ void store_setup_crl_download(X509_STORE *st)
 }
 
 #ifndef OPENSSL_NO_SOCK
-static BIO *tls_http_cb(BIO *cbio, void *arg, int connect, int detail)
+static const char *tls_error_hint(void)
 {
-    SSL_CTX *ctx = (SSL_CTX *)arg;
+    unsigned long err = ERR_peek_error();
 
-    if (connect && detail) { /* connecting with TLS */
-        BIO *sbio = BIO_new_ssl(ctx, 1);
-        cbio = sbio != NULL ? BIO_push(sbio, cbio) : NULL;
+    if (ERR_GET_LIB(err) != ERR_LIB_SSL)
+        err = ERR_peek_last_error();
+    if (ERR_GET_LIB(err) != ERR_LIB_SSL)
+        return NULL;
+
+    switch (ERR_GET_REASON(err)) {
+    case SSL_R_WRONG_VERSION_NUMBER:
+        return "The server does not support (a suitable version of) TLS";
+    case SSL_R_UNKNOWN_PROTOCOL:
+        return "The server does not support HTTPS";
+    case SSL_R_CERTIFICATE_VERIFY_FAILED:
+        return "Cannot authenticate server via its TLS certificate, likely due to mismatch with our trusted TLS certs or missing revocation status";
+    case SSL_AD_REASON_OFFSET + TLS1_AD_UNKNOWN_CA:
+        return "Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor or missing revocation status";
+    case SSL_AD_REASON_OFFSET + SSL3_AD_HANDSHAKE_FAILURE:
+        return "Server requires our TLS certificate but did not receive one";
+    default: /* no error or no hint available for error */
+        return NULL;
     }
-    return cbio;
 }
 
-ASN1_VALUE *app_http_post_asn1(const char *host, const char *port,
-                               const char *path, const char *proxy,
-                               const char *proxy_port, SSL_CTX *ctx,
-                               const STACK_OF(CONF_VALUE) *headers,
-                               const char *content_type,
-                               ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                               long timeout, const ASN1_ITEM *rsp_it)
+BIO *app_http_tls_cb(BIO *hbio, void *arg, int connect, int detail)
 {
-    return OSSL_HTTP_post_asn1(host, port, path, 0 /* no SSL */,
-                               proxy, proxy_port, tls_http_cb, ctx,
-                               headers, "application/ocsp-request",
-                               req, req_it, 0 /* maxline */,
-                               0 /* max_resp_len */, timeout, rsp_it);
-}
-
-struct proxy_tls_http_info {
-    const char *server;
-    const char *port;
-    int use_proxy;
-    long timeout;
-    SSL_CTX *ssl_ctx;
-};
-
-static BIO *proxy_tls_http_cb(BIO *hbio, void *arg, int connect, int detail)
-{
-    struct proxy_tls_http_info *info = (struct proxy_tls_http_info *)arg;
+    APP_HTTP_TLS_INFO *info = (APP_HTTP_TLS_INFO *)arg;
     SSL_CTX *ssl_ctx = info->ssl_ctx;
     BIO *sbio = NULL;
 
     if (connect && detail) { /* connecting with TLS */
         SSL *ssl;
 
-# if !defined(OPENSSL_NO_SOCK)
         if ((info->use_proxy
              && !OSSL_HTTP_proxy_connect(hbio, info->server, info->port,
                                          NULL, NULL, /* no proxy credentials */
@@ -1985,7 +1975,6 @@ static BIO *proxy_tls_http_cb(BIO *hbio, void *arg, int connect, int detail)
                 || (sbio = BIO_new(BIO_f_ssl())) == NULL) {
             return NULL;
         }
-# endif
         if (ssl_ctx == NULL || (ssl = SSL_new(ssl_ctx)) == NULL) {
             BIO_free(sbio);
             return NULL;
@@ -1998,12 +1987,12 @@ static BIO *proxy_tls_http_cb(BIO *hbio, void *arg, int connect, int detail)
 
         hbio = BIO_push(sbio, hbio);
     } else if (!connect && !detail) { /* disconnecting after error */
-        const char *hint = app_tls_error_hint(ERR_peek_error());
+        const char *hint = tls_error_hint();
         if (hint != NULL)
             ERR_add_error_data(1, hint);
         /*
          * as workaround for libssl double free, do not pop the sbio,
-         * but rely on BIO_free_all() done by OSSL_HTTP_get_asn1()
+         * but rely on BIO_free_all() done by HTTP_transfer() in http_client.c
          */
     }
     return hbio;
@@ -2014,7 +2003,7 @@ ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
                               const STACK_OF(CONF_VALUE) *headers,
                               long timeout, const ASN1_ITEM *it)
 {
-    struct proxy_tls_http_info info;
+    APP_HTTP_TLS_INFO info;
     char *server;
     char *port;
     int use_ssl;
@@ -2038,7 +2027,7 @@ ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
     info.use_proxy = proxy != NULL;
     info.timeout = timeout;
     info.ssl_ctx = ssl_ctx;
-    resp = OSSL_HTTP_get_asn1(url, proxy, proxy_port, proxy_tls_http_cb, &info,
+    resp = OSSL_HTTP_get_asn1(url, proxy, proxy_port, app_http_tls_cb, &info,
                               headers, 0 /* maxline */, 0 /* max_resp_len */,
                               timeout, it);
  end:
@@ -2048,25 +2037,28 @@ ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
 
 }
 
-#endif
-
-const char *app_tls_error_hint(unsigned long err)
+ASN1_VALUE *app_http_post_asn1(const char *host, const char *port,
+                               const char *path, const char *proxy,
+                               const char *proxy_port, SSL_CTX *ssl_ctx,
+                               const STACK_OF(CONF_VALUE) *headers,
+                               const char *content_type,
+                               ASN1_VALUE *req, const ASN1_ITEM *req_it,
+                               long timeout, const ASN1_ITEM *rsp_it)
 {
-    switch (ERR_GET_REASON(err)) {
-    case SSL_R_WRONG_VERSION_NUMBER:
-        return "The server does not support (a suitable version of) TLS";
-    case SSL_R_UNKNOWN_PROTOCOL:
-        return "The server does not support HTTPS";
-    case SSL_R_CERTIFICATE_VERIFY_FAILED:
-        return "Cannot authenticate server via its TLS certificate, likely due to mismatch with our trusted TLS certs or missing revocation status";
-    case SSL_AD_REASON_OFFSET + TLS1_AD_UNKNOWN_CA:
-        return "Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor or missing revocation status";
-    case SSL_AD_REASON_OFFSET + SSL3_AD_HANDSHAKE_FAILURE:
-        return "Server requires our TLS certificate but did not receive one";
-    default: /* no error or no hint available for error */
-        return NULL;
-    }
+    APP_HTTP_TLS_INFO info;
+
+    info.server = host;
+    info.port = port;
+    info.use_proxy = proxy != NULL;
+    info.timeout = timeout;
+    info.ssl_ctx = ssl_ctx;
+    return OSSL_HTTP_post_asn1(host, port, path, ssl_ctx != NULL,
+                               proxy, proxy_port, app_http_tls_cb, &info,
+                               headers, content_type, req, req_it, 0 /* maxline */,
+                               0 /* max_resp_len */, timeout, rsp_it);
 }
+
+#endif
 
 /*
  * Platform-specific sections

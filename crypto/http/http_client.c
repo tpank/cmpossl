@@ -749,7 +749,7 @@ ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
             unsigned long err = ERR_peek_error();
             int lib = ERR_GET_LIB(err);
             int reason = ERR_GET_REASON(err);
-            if (lib == ERR_LIB_SSL
+            if (lib == ERR_LIB_SSL || lib == ERR_LIB_HTTP
                     || (lib == ERR_LIB_BIO && reason == BIO_R_CONNECT_TIMEOUT)
                     || (lib == ERR_LIB_BIO && reason == BIO_R_CONNECT_ERROR)
                     || (lib == ERR_LIB_CMP

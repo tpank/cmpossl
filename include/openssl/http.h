@@ -17,12 +17,13 @@
 # include <openssl/asn1.h>
 # include <openssl/conf.h>
 
+
 # ifdef __cplusplus
 extern "C" {
 # endif
 
-# ifndef OPENSSL_NO_SOCK
 typedef BIO *(*HTTP_bio_cb_t) (BIO *bio, void *arg, int connect, int detail);
+# ifndef OPENSSL_NO_SOCK
 ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
                                const char *proxy, const char *proxy_port,
                                HTTP_bio_cb_t bio_update_fn, void *arg,

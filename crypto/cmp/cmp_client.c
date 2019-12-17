@@ -140,7 +140,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     const char *req_type_string =
         ossl_cmp_bodytype_to_string(ossl_cmp_msg_get_bodytype(req));
     int msgtimeout;
-    int err, bt;
+    int bt;
     OSSL_cmp_transfer_cb_t transfer_cb = ctx->transfer_cb;
 
     if (transfer_cb == NULL) {
@@ -148,7 +148,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         transfer_cb = OSSL_CMP_MSG_http_perform;
 #else
         CMPerr(0, CMP_R_NO_SOCK_TRANSFER);
-        ossl_cmp_add_error_txt("; ", "HTTP transfer not possible due to OPENSSL_NO_OCSP or OPENSSL_NO_SOCK");
+        ossl_cmp_add_error_txt(NULL, "HTTP transfer not possible due to OPENSSL_NO_OCSP or OPENSSL_NO_SOCK");
         return 0;
 #endif
     }
@@ -172,18 +172,21 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 #endif
 
     OSSL_CMP_log1(INFO, ctx, "sending %s", req_type_string);
-    err = 0;
     *rep = (*transfer_cb)(ctx, req);
-    if (*rep == NULL)
-        err = ERR_GET_REASON(ERR_peek_error());
     ctx->msgtimeout = msgtimeout; /* restore original value */
 
-    if (err != 0) {
-        if (err == BIO_R_TRANSFER_ERROR
-                || err == BIO_R_TRANSFER_TIMEOUT
-                || err == HTTP_R_ERROR_RECEIVING
-                || err == HTTP_R_SERVER_SENT_ERROR
-                || err == HTTP_R_SERVER_RESPONSE_PARSE_ERROR) {
+    if (*rep == NULL) {
+        int err = ERR_peek_error();
+        int lib = ERR_GET_LIB(err);
+        int reason = ERR_GET_REASON(err);
+        if ((lib == ERR_LIB_BIO && (reason == BIO_R_TRANSFER_ERROR
+                                    || reason == BIO_R_TRANSFER_TIMEOUT))
+            || (lib == ERR_LIB_HTTP && reason != HTTP_R_ERROR_SENDING
+                && reason != HTTP_R_TLS_NOT_ENABLED
+                && reason != HTTP_R_REDIRECTION_NOT_ENABLED
+                && reason != HTTP_R_TOO_MANY_REDIRECTIONS
+                && reason != HTTP_R_REDIRECTION_FROM_HTTPS_TO_HTTP
+                && reason != HTTP_R_CONNECT_FAILURE)) {
             CMPerr(0, not_received);
         }
         else {

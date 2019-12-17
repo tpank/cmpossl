@@ -231,7 +231,20 @@ void print_cert_checks(BIO *bio, X509 *x,
 
 void store_setup_crl_download(X509_STORE *st);
 
+typedef struct app_http_tls_info_st {
+    const char *server;
+    const char *port;
+    int use_proxy;
+    long timeout;
+    SSL_CTX *ssl_ctx;
+} APP_HTTP_TLS_INFO;
+BIO *app_http_tls_cb(BIO *hbio, /* APP_HTTP_TLS_INFO */ void *arg,
+                     int connect, int detail);
 # ifndef OPENSSL_NO_SOCK
+ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
+                              const char *proxy_port, SSL_CTX *ssl_ctx,
+                              const STACK_OF(CONF_VALUE) *headers,
+                              long timeout, const ASN1_ITEM *it);
 ASN1_VALUE *app_http_post_asn1(const char *host, const char *port,
                                const char *path, const char *proxy,
                                const char *proxy_port, SSL_CTX *ctx,
@@ -239,12 +252,7 @@ ASN1_VALUE *app_http_post_asn1(const char *host, const char *port,
                                const char *content_type,
                                ASN1_VALUE *req, const ASN1_ITEM *req_it,
                                long timeout, const ASN1_ITEM *rsp_it);
-ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
-                              const char *proxy_port, SSL_CTX *ssl_ctx,
-                              const STACK_OF(CONF_VALUE) *headers,
-                              long timeout, const ASN1_ITEM *it);
 # endif
-const char *app_tls_error_hint(unsigned long err);
 
 # define EXT_COPY_NONE   0
 # define EXT_COPY_ADD    1
