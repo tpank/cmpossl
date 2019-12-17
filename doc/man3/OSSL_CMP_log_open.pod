@@ -38,6 +38,8 @@ OSSL_CMP_print_errors_cb
  typedef int (*OSSL_cmp_log_cb_t) (const char *component,
                                    const char *file, int line,
                                    OSSL_CMP_severity level, const char *msg);
+ int OSSL_CMP_print_to_bio(BIO* bio, const char *component, const char *file,
+                           int line, OSSL_CMP_severity level, const char *msg);
  void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
 
 =head1 DESCRIPTION
@@ -58,7 +60,7 @@ with the following type:
                                   OSSL_CMP_severity level, const char *msg);
 
 The parameters may provide
-a component identifier (which may be a library name or function name) or NULL,
+some component info (which may be a module name and/or function name) or NULL,
 a file pathname or NULL,
 a line number or 0 indicating the source code location,
 a severity level, and
@@ -85,7 +87,7 @@ OSSL_CMP_log_close() may be called when all activities are finished to flush
 any pending CMP-specific log output and deallocate related resources.
 It may be called multiple times. It does get called at OpenSSL stutdown.
 
-OSSL_CMP_print_to_bio() prints the given function name, filename, line number,
+OSSL_CMP_print_to_bio() prints the given component info, filename, line number,
 severity level, and log message or error queue message to the given B<bio>.
 
 OSSL_CMP_print_errors_cb() outputs any entries in the OpenSSL error queue.

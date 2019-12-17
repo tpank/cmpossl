@@ -114,10 +114,10 @@ static const char *improve_func_name(const char *func)
                         : strcmp(func, UNKNOWN_FUNC) == 0 ? "" : func;
 }
 
-int OSSL_CMP_print_to_bio(BIO* bio, const char *func, const char *file,
+int OSSL_CMP_print_to_bio(BIO* bio, const char *component, const char *file,
                           int line, OSSL_CMP_severity level, const char *msg)
 {
-    char *level_string =
+    const char *level_string =
         level == OSSL_CMP_LOG_EMERG ? "EMERG" :
         level == OSSL_CMP_LOG_ALERT ? "ALERT" :
         level == OSSL_CMP_LOG_CRIT ? "CRIT" :
@@ -126,9 +126,12 @@ int OSSL_CMP_print_to_bio(BIO* bio, const char *func, const char *file,
         level == OSSL_CMP_LOG_NOTICE ? "NOTE" :
         level == OSSL_CMP_LOG_INFO ? "info" :
         level == OSSL_CMP_LOG_DEBUG ? "DEBUG" : "(unknown level)";
-
 #ifndef NDEBUG
-    if (BIO_printf(bio, "%s:%s:%d:", improve_func_name(func), file, line) < 0)
+    const char *comp = improve_func_name(component);
+
+    if (component == NULL || comp[0] == '\0')
+        comp = "CMP";
+    if (BIO_printf(bio, "%s:%s:%d:", comp, file, line) < 0)
         return 0;
 #endif
     return BIO_printf(bio, OSSL_CMP_LOG_PREFIX"%s: %s\n",
@@ -233,17 +236,11 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
     int line, flags;
 
     while ((err = ERR_get_error_all(&file, &line, &func, &data, &flags)) != 0) {
-        char component[128];
-        const char *improved_func_name = improve_func_name(func);
-
+        const char *component = improve_func_name(func);
+        if (*component == '\0')
+            component = ERR_lib_error_string(err);
         if (!(flags & ERR_TXT_STRING))
             data = NULL;
-#ifdef OSSL_CMP_PRINT_LIBINFO
-        BIO_snprintf(component, sizeof(component), "OpenSSL:%s:%s",
-                     ERR_lib_error_string(err), improved_func_name);
-#else
-        BIO_snprintf(component, sizeof(component), "%s", improved_func_name);
-#endif
         BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
                      data == NULL || *data == '\0' ? "" : " : ",
                      data == NULL ? "" : data);
@@ -251,7 +248,7 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
 #ifndef OPENSSL_NO_STDIO
             BIO *bio = BIO_new_fp(stderr, BIO_NOCLOSE);
             if (bio != NULL) {
-                OSSL_CMP_print_to_bio(bio, func, file, line,
+                OSSL_CMP_print_to_bio(bio, component, file, line,
                                       OSSL_CMP_LOG_ERR, msg);
                 BIO_free(bio);
             }
