@@ -1963,11 +1963,10 @@ BIO *app_http_tls_cb(BIO *hbio, void *arg, int connect, int detail)
 {
     APP_HTTP_TLS_INFO *info = (APP_HTTP_TLS_INFO *)arg;
     SSL_CTX *ssl_ctx = info->ssl_ctx;
+    SSL *ssl;
     BIO *sbio = NULL;
 
     if (connect && detail) { /* connecting with TLS */
-        SSL *ssl;
-
         if ((info->use_proxy
              && !OSSL_HTTP_proxy_connect(hbio, info->server, info->port,
                                          NULL, NULL, /* no proxy credentials */

@@ -194,14 +194,14 @@ int OSSL_HTTP_REQ_CTX_i2d(OSSL_HTTP_REQ_CTX *rctx, const char *content_type,
     static const char req_hdr[] =
         "Content-Type: %s\r\n"
         "Content-Length: %d\r\n\r\n";
-    int reqlen = ASN1_item_i2d(req, NULL, it);
+    int reqlen;
 
     if (rctx == NULL || content_type == NULL || it == NULL || req == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
         return 0;
     }
 
-    if (reqlen <= 0
+    if ((reqlen = ASN1_item_i2d(req, NULL, it)) <= 0
             || BIO_printf(rctx->mem, req_hdr, content_type, reqlen) <= 0)
         return 0;
     if (ASN1_item_i2d_bio(it, rctx->mem, req) <= 0)
@@ -618,7 +618,6 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
                                           const ASN1_ITEM *it)
 {
     int sending = 1;
-    int blocking = rctx->max_time == 0;
     int rv, len;
     const unsigned char *p;
     ASN1_VALUE *resp = NULL;
@@ -641,7 +640,7 @@ ASN1_VALUE *OSSL_HTTP_REQ_CTX_sendreq_d2i(OSSL_HTTP_REQ_CTX *rctx,
 
     if (rv == 0) {
         if (rctx->redirection_url == NULL) { /* an error occurred */
-            if (sending && !blocking)
+            if (sending)
                 HTTPerr(0, HTTP_R_ERROR_SENDING);
             else
                 HTTPerr(0, HTTP_R_ERROR_RECEIVING);
@@ -1020,11 +1019,11 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
                    && (mbuf[read_len - 1] == '\r'
                        || mbuf[read_len - 1] == '\n')) {
                 read_len--;
-                mbuf[read_len] = '\0';
             }
+            mbuf[read_len] = '\0';
             HTTPerr(0, HTTP_R_CONNECT_FAILURE);
-            ERR_add_error_data(1, mbufp);
-            BIO_printf(bio_err, "%s: HTTP CONNECT failed: %s\n", prog, mbufp);
+            ERR_add_error_data(2, "Reason=", mbufp);
+            BIO_printf(bio_err, "%s: HTTP CONNECT failed, Reason=%s\n", prog, mbufp);
             goto end;
         } else {
             ret = 1;
