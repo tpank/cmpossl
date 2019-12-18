@@ -344,6 +344,16 @@ static int ossl_cmp_vprint_log(OSSL_CMP_severity level,
     if (level > ctx->log_verbosity) /* excludes the case level is unknown */
         return 1; /* suppress output since severity is not sufficient */
 
+    if (format == NULL || args == NULL)
+        return 0;
+
+    if (func == NULL)
+        func = "(unset function name)";
+    if (file == NULL)
+        file = "(unset file name)";
+    if (level_str == NULL)
+        level_str = "(unset level string)";
+
 #ifndef OPENSSL_NO_TRACE
     if (OSSL_TRACE_ENABLED(CMP)) {
         OSSL_TRACE_BEGIN(CMP) {
@@ -375,6 +385,8 @@ int ossl_cmp_print_log(OSSL_CMP_severity level, const OSSL_CMP_CTX *ctx,
     va_list args;
     int res;
 
+    if (format == NULL)
+        return 0;
     va_start(args, format);
     res = ossl_cmp_vprint_log(level, ctx, func, file, line, level_str,
                               format, args);
