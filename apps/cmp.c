@@ -4068,7 +4068,6 @@ int cmp_main(int argc, char **argv)
 {
     char *configfile = NULL;
     int i;
-    int ret = 1; /* default: failure */
     X509 *newcert = NULL;
     ENGINE *e = NULL;
     int ret = 0; /* default: failure */
