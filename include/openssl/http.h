@@ -22,23 +22,38 @@
 extern "C" {
 # endif
 
-typedef BIO *(*HTTP_bio_cb_t) (BIO *bio, void *arg, int connect, int detail);
+typedef BIO *(*OSSL_HTTP_bio_cb_t)(BIO *bio, void *arg, int connect, int detail);
 # ifndef OPENSSL_NO_SOCK
+BIO *OSSL_HTTP_get(const char *url, const char *proxy, const char *proxy_port,
+                   OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
+                   const STACK_OF(CONF_VALUE) *headers,
+                   int maxline, unsigned long max_resp_len, long timeout,
+                   const char *expected_content_type, int expect_asn1);
 ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
                                const char *proxy, const char *proxy_port,
-                               HTTP_bio_cb_t bio_update_fn, void *arg,
+                               OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
                                const STACK_OF(CONF_VALUE) *headers,
                                int maxline, unsigned long max_resp_len,
-                               long timeout, const ASN1_ITEM *it);
+                               long timeout, const char *expected_content_type,
+                               const ASN1_ITEM *it);
 ASN1_VALUE *OSSL_HTTP_post_asn1(const char *server, const char *port,
                                 const char *path, int use_ssl,
                                 const char *proxy, const char *proxy_port,
-                                HTTP_bio_cb_t bio_update_fn, void *arg,
+                                OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
                                 const STACK_OF(CONF_VALUE) *headers,
                                 const char *content_type,
                                 ASN1_VALUE *req, const ASN1_ITEM *req_it,
                                 int maxline, unsigned long max_resp_len,
-                                long timeout, const ASN1_ITEM *rsp_it);
+                                long timeout, const char *expected_ct,
+                                const ASN1_ITEM *rsp_it);
+BIO *OSSL_HTTP_transfer(const char *server, const char *port, const char *path,
+                        int use_ssl, const char *proxy, const char *proxy_port,
+                        OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
+                        const STACK_OF(CONF_VALUE) *headers,
+                        const char *content_type, BIO *req_mem,
+                        int maxline, unsigned long max_resp_len, long timeout,
+                        const char *expected_ct, int expect_asn1,
+                        char **redirection_url);
 int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
                             const char *proxyuser, const char *proxypass,
                             long timeout, BIO *bio_err, const char *prog);
@@ -53,7 +68,9 @@ int OSSL_HTTP_parse_url(const char *url, char **phost, char **pport,
 # ifndef OPENSSL_NO_OCSP
 /* The parameters of this fn, which never was documented, have been changed: */
 OCSP_REQ_CTX *OCSP_REQ_CTX_new(BIO *io, int method_GET, int maxline,
-                               unsigned long max_resp_len, long timeout);
+                               unsigned long max_resp_len, long timeout,
+                               const char *expected_content_type,
+                               int expect_asn1);
 void OCSP_REQ_CTX_free(OCSP_REQ_CTX *rctx);
 BIO *OCSP_REQ_CTX_get0_mem_bio(OCSP_REQ_CTX *rctx);
 void OCSP_set_max_response_length(OCSP_REQ_CTX *rctx, unsigned long len);

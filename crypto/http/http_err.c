@@ -19,11 +19,19 @@ static const ERR_STRING_DATA HTTP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_CONNECT_FAILURE), "connect failure"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_ERROR_PARSING_ASN1_LENGTH),
     "error parsing asn1 length"},
+    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_ERROR_PARSING_CONTENT_LENGTH),
+    "error parsing content length"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_ERROR_PARSING_URL), "error parsing url"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_ERROR_RECEIVING), "error receiving"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_ERROR_SENDING), "error sending"},
+    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_INCONSISTENT_CONTENT_LENGTH),
+    "inconsistent content length"},
+    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_MAX_RESP_LEN_EXCEEDED),
+    "max resp len exceeded"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_MISSING_ASN1_ENCODING),
     "missing asn1 encoding"},
+    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_MISSING_CONTENT_TYPE),
+    "missing content type"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_MISSING_REDIRECT_LOCATION),
     "missing redirect location"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_REDIRECTION_FROM_HTTPS_TO_HTTP),
@@ -42,6 +50,8 @@ static const ERR_STRING_DATA HTTP_str_reasons[] = {
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_TLS_NOT_ENABLED), "tls not enabled"},
     {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_TOO_MANY_REDIRECTIONS),
     "too many redirections"},
+    {ERR_PACK(ERR_LIB_HTTP, 0, HTTP_R_UNEXPECTED_CONTENT_TYPE),
+    "unexpected content type"},
     {0, NULL}
 };
 

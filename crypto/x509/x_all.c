@@ -220,7 +220,8 @@ static ASN1_VALUE *simple_get_asn1(const char *url, long timeout,
     return OSSL_HTTP_get_asn1(url, NULL, NULL /* no proxy and port */,
                               NULL /* no callback for SSL/TLS */, NULL,
                               NULL /* headers */, 1024 /* maxline */,
-                              0 /* max_resp_len */, timeout, it);
+                              0 /* max_resp_len */, timeout,
+                              NULL /* expected_content_type */, it);
 }
 
 X509 *X509_load_http(const char *url, long timeout)

@@ -2000,7 +2000,8 @@ BIO *app_http_tls_cb(BIO *hbio, void *arg, int connect, int detail)
 ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
                               const char *proxy_port, SSL_CTX *ssl_ctx,
                               const STACK_OF(CONF_VALUE) *headers,
-                              long timeout, const ASN1_ITEM *it)
+                              long timeout, const char *expected_content_type,
+                              const ASN1_ITEM *it)
 {
     APP_HTTP_TLS_INFO info;
     char *server;
@@ -2028,7 +2029,7 @@ ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
     info.ssl_ctx = ssl_ctx;
     resp = OSSL_HTTP_get_asn1(url, proxy, proxy_port, app_http_tls_cb, &info,
                               headers, 0 /* maxline */, 0 /* max_resp_len */,
-                              timeout, it);
+                              timeout, expected_content_type, it);
  end:
     OPENSSL_free(server);
     OPENSSL_free(port);
@@ -2054,7 +2055,7 @@ ASN1_VALUE *app_http_post_asn1(const char *host, const char *port,
     return OSSL_HTTP_post_asn1(host, port, path, ssl_ctx != NULL,
                                proxy, proxy_port, app_http_tls_cb, &info,
                                headers, content_type, req, req_it, 0 /* maxline */,
-                               0 /* max_resp_len */, timeout, rsp_it);
+                               0 /* max_resp_len */, timeout, NULL, rsp_it);
 }
 
 #endif

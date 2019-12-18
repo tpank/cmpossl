@@ -4943,6 +4943,8 @@ BIO_wait                                ?	3_0_0	EXIST::FUNCTION:SOCK
 BIO_socket_wait                         ?	3_0_0	EXIST::FUNCTION:SOCK
 BIO_connect_retry                       ?	3_0_0	EXIST::FUNCTION:SOCK
 ERR_load_HTTP_strings                   ?	3_0_0	EXIST::FUNCTION:
-OSSL_HTTP_post_asn1                     ?	3_0_0	EXIST::FUNCTION:SOCK
+OSSL_HTTP_get                           ?	3_0_0	EXIST::FUNCTION:SOCK
 OSSL_HTTP_get_asn1                      ?	3_0_0	EXIST::FUNCTION:SOCK
+OSSL_HTTP_post_asn1                     ?	3_0_0	EXIST::FUNCTION:SOCK
+OSSL_HTTP_transfer                      ?	3_0_0	EXIST::FUNCTION:SOCK
 OSSL_HTTP_proxy_connect                 ?	3_0_0	EXIST::FUNCTION:SOCK

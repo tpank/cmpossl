@@ -40,6 +40,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
     char proxy_port[32];
     STACK_OF(CONF_VALUE) *headers = NULL;
     OSSL_CMP_MSG *res = NULL;
+    const char *const content_type_pkix = "application/pkixcmp";
 
     if (ctx == NULL || req == NULL
             || ctx->serverName == NULL || ctx->serverPort == 0) {
@@ -58,9 +59,10 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
                             OSSL_CMP_CTX_get_http_cb_arg(ctx) != NULL,
                             ctx->proxyName, proxy_port, ctx->http_cb,
                             OSSL_CMP_CTX_get_http_cb_arg(ctx),
-                            headers, "application/pkixcmp",
-                            (ASN1_VALUE *)req, ASN1_ITEM_rptr(OSSL_CMP_MSG), 0,
-                            0, ctx->msgtimeout, ASN1_ITEM_rptr(OSSL_CMP_MSG));
+                            headers, content_type_pkix,
+                            (ASN1_VALUE *)req, ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                            0, 0, ctx->msgtimeout, content_type_pkix,
+                            ASN1_ITEM_rptr(OSSL_CMP_MSG));
 
     sk_CONF_VALUE_pop_free(headers, X509V3_conf_free);
     return res;

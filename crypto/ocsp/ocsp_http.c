@@ -22,11 +22,17 @@ int OCSP_REQ_CTX_set1_req(OCSP_REQ_CTX *rctx, const OCSP_REQUEST *req)
 OCSP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
                                int maxline)
 {
-    return HTTP_REQ_CTX_new(io, 0 /* no HTTP proxy used */, NULL, NULL, path,
-                            NULL /* headers */, "application/ocsp-request",
-                            ASN1_ITEM_rptr(OCSP_REQUEST), (ASN1_VALUE *)req,
-                            maxline, 0 /* default max_resp_len */,
-                            0 /* no timeout, blocking indefinite */);
+    BIO *req_mem = HTTP_ASN1_item2BIO(ASN1_ITEM_rptr(OCSP_REQUEST),
+                                      (ASN1_VALUE *)req);
+    OCSP_REQ_CTX *res =
+        HTTP_REQ_CTX_new(io, 0 /* no HTTP proxy used */, NULL, NULL, path,
+                         NULL /* headers */, "application/ocsp-request",
+                         req_mem /* may be NULL */,
+                         maxline, 0 /* default max_resp_len */,
+                         0 /* no timeout, blocking indefinite */, NULL,
+                         1 /* expect_asn1 */);
+    BIO_free(req_mem);
+    return res;
 }
 
 # ifndef OPENSSL_NO_SOCK

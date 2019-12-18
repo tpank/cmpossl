@@ -27,30 +27,23 @@ typedef OCSP_REQ_CTX OSSL_HTTP_REQ_CTX;
 # define OSSL_HTTP_REQ_CTX_get0_mem_bio OCSP_REQ_CTX_get0_mem_bio /* undoc'd */
 # define OSSL_HTTP_REQ_CTX_set_max_response_length OCSP_set_max_response_length
 
+BIO *HTTP_ASN1_item2BIO(const ASN1_ITEM *it, ASN1_VALUE *val);
 OSSL_HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *bio, int use_http_proxy,
                                     const char *server, const char *port,
                                     const char *path,
                                     const STACK_OF(CONF_VALUE) *headers,
-                                    const char *content_type,
-                                    const ASN1_ITEM *it, ASN1_VALUE *req,
+                                    const char *content_type, BIO *req_mem,
                                     int maxline, unsigned long max_resp_len,
-                                    long timeout);
-ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, HTTP_bio_cb_t bio_update_fn, void *arg,
-                             const char *server, const char *port,
+                                    long timeout,
+                                    const char *expected_content_type,
+                                    int expect_asn1);
+ASN1_VALUE *HTTP_sendreq_bio(BIO *bio, OSSL_HTTP_bio_cb_t bio_update_fn,
+                             void *arg, const char *server, const char *port,
                              const char *path, int use_ssl, int use_proxy,
                              const STACK_OF(CONF_VALUE) *headers,
                              const char *content_type,
                              ASN1_VALUE *req, const ASN1_ITEM *req_it,
                              int maxline, unsigned long max_resp_len,
                              long timeout, const ASN1_ITEM *rsp_it);
-ASN1_VALUE *HTTP_transfer(const char *server, const char *port,
-                          const char *path, int use_ssl,
-                          const char *proxy, const char *proxy_port,
-                          HTTP_bio_cb_t bio_update_fn, void *arg,
-                          const STACK_OF(CONF_VALUE) *headers,
-                          const char *content_type,
-                          ASN1_VALUE *req, const ASN1_ITEM *req_it,
-                          int maxline, unsigned long max_resp_len, long timeout,
-                          const ASN1_ITEM *rsp_it, char **redirection_url);
 
 #endif /* !defined OSSL_CRYPTO_HTTP_LOCAL_H */
