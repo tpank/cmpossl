@@ -354,7 +354,7 @@ which has the type
 Returns 1 on success, 0 on error.
 
 Default is NULL, which implies the use of L<OSSL_CMP_MSG_http_perform(3)>.
-The callback should send the CMP request messaage it obtains via the B<req> 
+The callback should send the CMP request messaage it obtains via the B<req>
 parameter and on success return the response.
 The transfer callback may make use of a custom defined argument stored in
 the ctx by means of OSSL_CMP_CTX_set_transfer_cb_arg(), which may be retrieved

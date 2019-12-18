@@ -35,7 +35,7 @@ response header maximum line length of B<maxline>. If B<maxline> is zero a
 default value of 4k is used. The OCSP request B<req> may be set to B<NULL>
 and provided later if required.
 
-OCSP_sendreq_nbio() performs I/O on the OCSP request context B<rctx>. 
+OCSP_sendreq_nbio() performs I/O on the OCSP request context B<rctx>.
 When the operation is complete it returns the response in B<*presp>.
 
 OCSP_REQ_CTX_free() frees up the OCSP context B<rctx>.
