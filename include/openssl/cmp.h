@@ -358,8 +358,6 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
  * from cmp_http.c
  */
 #  if !defined(OPENSSL_NO_SOCK)
-int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
-                           BIO *bio_err, const char *prog);
 OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
                                         const OSSL_CMP_MSG *req);
 #  endif

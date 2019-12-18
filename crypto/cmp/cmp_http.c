@@ -68,15 +68,4 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
     return res;
 }
 
-int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
-                           BIO *bio_err, const char *prog)
-{
-    char server_port[32];
-
-    BIO_snprintf(server_port, sizeof(server_port), "%d", ctx->serverPort);
-    return OSSL_HTTP_proxy_connect(bio, ctx->serverName, server_port,
-                                   NULL, NULL, /* no proxy credentials */
-                                   ctx->msgtimeout, bio_err, prog);
-}
-
 #endif /* !defined(OPENSSL_NO_SOCK) */
