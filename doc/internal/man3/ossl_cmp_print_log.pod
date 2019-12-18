@@ -23,40 +23,45 @@ ossl_cmp_add_error_line
 
  #include "cmp_local.h"
 
- void ossl_cmp_print_log(OSSL_CMP_severity level, const OSSL_CMP_CTX *ctx,
-                         const char *func, const char *file, int line,
-                         const char *level_str, const char *format, ...);
- #define OSSL_CMP_alert(msg)
- #define OSSL_CMP_err(msg)
- #define OSSL_CMP_warn(msg)
- #define OSSL_CMP_info(msg)
- #define OSSL_CMP_debug(msg)
- #define OSSL_CMP_log(level, msg)
- #define OSSL_CMP_log1(level, fmt, arg1)
- #define OSSL_CMP_log2(level, fmt, arg1, arg2)
- #define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3)
- #define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4)
+ int ossl_cmp_print_log(OSSL_CMP_severity level, const OSSL_CMP_CTX *ctx,
+                        const char *func, const char *file, int line,
+                        const char *level_str, const char *format, ...);
+ #define OSSL_CMP_alert(ctx, msg)
+ #define OSSL_CMP_err(ctx, msg)
+ #define OSSL_CMP_warn(ctx, msg)
+ #define OSSL_CMP_info(ctx, msg)
+ #define OSSL_CMP_debug(ctx, (msg)
+ #define OSSL_CMP_log(level, ctx, msg)
+ #define OSSL_CMP_log1(level, ctx, fmt, arg1)
+ #define OSSL_CMP_log2(level, ctx, fmt, arg1, arg2)
+ #define OSSL_CMP_log3(level, ctx, fmt, arg1, arg2, arg3)
+ #define OSSL_CMP_log4(level, ctx, fmt, arg1, arg2, arg3, arg4)
  const char *ossl_cmp_log_parse_metadata(const char *buf,
                                          OSSL_CMP_severity *level, char **func,
                                          char **file, int *line);
+
  void ossl_cmp_add_error_txt(const char *separator, const char *txt);
  #define ossl_cmp_add_error_data(txt)
  #define ossl_cmp_add_error_line(txt)
 
 =head1 DESCRIPTION
 
-ossl_cmp_print_log() prints CMP log messages (i.e., diagnostic info) 
-via the log callback of the B<ctx> if the severity level is sufficient.
+ossl_cmp_print_log() prints CMP log messages (i.e., diagnostic info) via the
+log callback of the B<ctx> if present and the severity level is sufficient.
 If the trace API if enabled the function uses it, prepending the function name,
 filename, line number, and severity information to the message being output.
-In any case the B<level>, B<func>, B<file>, and B<line> parameters are passed
-to the log callback function. The B<func> and B<file> arguments may be NULL.
+In any case the B<level>, B<func>, B<file>, and B<line> parameters
+and the message constructed using the given B<format> and variable further
+argument list are passed to the log callback function (unless it is NULL).
+The B<ctx>, B<func>, B<file>, and B<level_str> arguments may be NULL.
 
-OSSL_CMP_alert() outputs a simple alert message via the trace API.
-OSSL_CMP_err() outputs a simple error message via the trace API.
-OSSL_CMP_warn() outputs a simple warning message via the trace API.
-OSSL_CMP_info() outputs a simple info message via the trace API.
-OSSL_CMP_debug() outputs a simple debug message via the trace API.
+OSSL_CMP_alert(), OSSL_CMP_err(), OSSL_CMP_warn(), OSSL_CMP_info(), and
+OSSL_CMP_debug() output a simple alert/error/warning/info/debug message
+via ossl_cmp_print_log().
+
+OSSL_CMP_log(), OSSL_CMP_log1(), OSSL_CMP_log2(), OSSL_CMP_log3(), and
+OSSL_CMP_log4() output a log message with the given severity,
+constructing the message text from the given format and arguments.
 
 ossl_cmp_log_parse_metadata() parses the given message buffer I<buf> populated
 by L<OSSL_CMP_log(3)> etc.
