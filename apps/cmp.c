@@ -2027,11 +2027,9 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
             OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
             res = OSSL_CMP_mock_server_perform(ctx, actual_req);
         } else {
-#endif
 #if !defined(OPENSSL_NO_SOCK)
             res = OSSL_CMP_MSG_http_perform(ctx, actual_req);
 #endif
-#ifndef NDEBUG
         }
 #endif
     }
