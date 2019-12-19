@@ -329,12 +329,12 @@ static size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
 }
 #endif
 
-static int ossl_cmp_vprint_log(OSSL_CMP_severity level,
-                               const OSSL_CMP_CTX *ctx,
-                               const char *func, const char *file, int line,
-                               const char *level_str,
-                               const char *format, va_list args)
+/* Print CMP log messages (i.e., diagnostic info) via the log cb of the ctx */
+int ossl_cmp_print_log(OSSL_CMP_severity level, const OSSL_CMP_CTX *ctx,
+                       const char *func, const char *file, int line,
+                       const char *level_str, const char *format, ...)
 {
+    va_list args;
     char hugebuf[1024 * 2];
     int res = 0;
 
@@ -344,8 +344,10 @@ static int ossl_cmp_vprint_log(OSSL_CMP_severity level,
     if (level > ctx->log_verbosity) /* excludes the case level is unknown */
         return 1; /* suppress output since severity is not sufficient */
 
-    if (format == NULL || args == NULL)
+    if (format == NULL)
         return 0;
+
+    va_start(args, format);
 
     if (func == NULL)
         func = "(unset function name)";
@@ -374,22 +376,6 @@ static int ossl_cmp_vprint_log(OSSL_CMP_severity level,
             res = ctx->log_cb(func, file, line, level, hugebuf);
     }
 #endif
-    return res;
-}
-
-/* Print CMP log messages (i.e., diagnostic info) via the log cb of the ctx */
-int ossl_cmp_print_log(OSSL_CMP_severity level, const OSSL_CMP_CTX *ctx,
-                       const char *func, const char *file, int line,
-                       const char *level_str, const char *format, ...)
-{
-    va_list args;
-    int res;
-
-    if (format == NULL)
-        return 0;
-    va_start(args, format);
-    res = ossl_cmp_vprint_log(level, ctx, func, file, line, level_str,
-                              format, args);
     va_end(args);
     return res;
 }
