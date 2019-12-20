@@ -687,7 +687,7 @@ static BIO *HTTP_new_bio(const char *server, const char *server_port,
 {
     const char *host = server;
     const char *port = server_port;
-    BIO *cbio = NULL;
+    BIO *cbio;
 
     if (server == NULL) {
         HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
