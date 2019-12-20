@@ -1040,7 +1040,7 @@ static char *base64encode(const void *buf, size_t len)
         return 0;
 
     i = EVP_EncodeBlock((unsigned char *)out, buf, len);
-    if (!ossl_assert(i <= (int)outl)) {
+    if (!ossl_assert((size_t)i <= outl)) {
         OPENSSL_free(out);
         return NULL;
     }
