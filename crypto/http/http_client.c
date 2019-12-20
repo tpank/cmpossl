@@ -665,7 +665,7 @@ int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx)
         if (!check_set_resp_len(rctx, resp_len))
             return 0;
 
-    content:
+ content:
         rctx->state = OHS_CONTENT;
 
         /* Fall thru */
@@ -730,7 +730,7 @@ static BIO *OSSL_HTTP_REQ_CTX_transfer(OSSL_HTTP_REQ_CTX *rctx)
         return NULL;
     }
 
-    for(;;) {
+    for (;;) {
         rv = OSSL_HTTP_REQ_CTX_nbio(rctx);
         if (rv != -1)
             break;
@@ -937,9 +937,9 @@ BIO *OSSL_HTTP_get(const char *url, const char *proxy, const char *proxy_port,
     if ((current_url = OPENSSL_strdup(url)) == NULL)
         return NULL;
 
-    for(;;) {
+    for (;;) {
         if (!OSSL_HTTP_parse_url(current_url, &host, &port, &path, &use_ssl))
-           break;
+            break;
 
         resp = OSSL_HTTP_transfer(host, port, path, use_ssl, proxy, proxy_port,
                                   bio_update_fn, arg, headers, NULL, NULL,
@@ -983,7 +983,7 @@ ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
     if ((mem = OSSL_HTTP_get(url, proxy, proxy_port, bio_update_fn, arg,
                              headers, maxline, max_resp_len, timeout,
                              expected_content_type, 1 /* expect_asn1 */))
-         != NULL)
+        != NULL)
         resp = BIO_mem_d2i(mem, it);
     BIO_free(mem);
     return resp;
@@ -1114,16 +1114,15 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
     /* Terminate the HTTP CONNECT request */
     BIO_printf(fbio, "\r\n");
 
-    for(;;) {
-         if (BIO_flush(fbio) != 0)
-             break;
-             /* potentially needs to be retried if BIO is non-blocking */
-         if (!BIO_should_retry(fbio))
-             break;
+    for (;;) {
+        if (BIO_flush(fbio) != 0)
+            break;
+        /* potentially needs to be retried if BIO is non-blocking */
+        if (!BIO_should_retry(fbio))
+            break;
     }
 
-
-    for(;;) {
+    for (;;) {
         /* will not actually wait if timeout == 0 */
         rv = BIO_wait(fbio, max_time);
         if (rv <= 0) {
@@ -1132,14 +1131,13 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
             goto end;
         }
 
-        /*
-         * The first line is the HTTP response.  According to RFC 7230,
-         * it's formatted exactly like this:
-         *
+        /*-
+         * The first line is the HTTP response.
+         * According to RFC 7230, it is formatted exactly like this:
          * HTTP/d.d ddd Reason text\r\n
          */
         read_len = BIO_gets(fbio, mbuf, BUF_SIZE);
-        /* as the BIO may not block, we need to wait that the first line comes in */
+        /* the BIO may not block, so we must wait for the 1st line to come in */
         if (read_len < HTTP_LINE1_MINLEN)
             continue;
 
@@ -1154,29 +1152,25 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
         mbufp = mbuf + strlen(HTTP_PREFIX);
         if (strncmp(mbufp, HTTP_VERSION_PATT, strlen(HTTP_VERSION_PATT)) != 0) {
             HTTPerr(0, HTTP_R_SERVER_SENT_WRONG_HTTP_VERSION);
-            BIO_printf(bio_err, "%s: HTTP CONNECT failed, bad HTTP version %.*s\n",
+            BIO_printf(bio_err,
+                       "%s: HTTP CONNECT failed, bad HTTP version %.*s\n",
                        prog, HTTP_VERSION_STR_LEN, mbufp);
             goto end;
-        } else {
-            mbufp += HTTP_VERSION_STR_LEN;
-            if (strncmp(mbufp, " 2", strlen(" 2")) != 0) {
-                mbufp += 1;
-                /* chop (any number of) trailing '\r' and '\n' */
-                while (read_len > 0
-                       && (mbuf[read_len - 1] == '\r'
-                           || mbuf[read_len - 1] == '\n')) {
-                    read_len--;
-                }
-                mbuf[read_len] = '\0';
-                HTTPerr(0, HTTP_R_CONNECT_FAILURE);
-                ERR_add_error_data(2, "Reason=", mbufp);
-                BIO_printf(bio_err, "%s: HTTP CONNECT failed, Reason=%s\n",
-                           prog, mbufp);
-                goto end;
-            } else {
-                ret = 1;
-            }
         }
+        mbufp += HTTP_VERSION_STR_LEN;
+        if (strncmp(mbufp, " 2", strlen(" 2")) != 0) {
+            mbufp += 1;
+            /* chop any trailing whitespace */
+            while (read_len > 0 && ossl_isspace(mbuf[read_len - 1]))
+                read_len--;
+            mbuf[read_len] = '\0';
+            HTTPerr(0, HTTP_R_CONNECT_FAILURE);
+            ERR_add_error_data(2, "Reason=", mbufp);
+            BIO_printf(bio_err, "%s: HTTP CONNECT failed, Reason=%s\n",
+                       prog, mbufp);
+            goto end;
+        }
+        ret = 1;
         break;
     }
 
