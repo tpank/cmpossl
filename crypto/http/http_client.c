@@ -392,7 +392,7 @@ static int parse_http_line1(char *line)
 static int check_set_resp_len(OSSL_HTTP_REQ_CTX *rctx, unsigned long len)
 {
     const char *tag = NULL;
-    long val;
+    unsigned long val;
 
     if (len > rctx->max_resp_len) {
         HTTPerr(0, HTTP_R_MAX_RESP_LEN_EXCEEDED);
@@ -407,8 +407,8 @@ static int check_set_resp_len(OSSL_HTTP_REQ_CTX *rctx, unsigned long len)
     if (tag != NULL) {
         char len_str[32];
         char str[32];
-        BIO_snprintf(len_str, sizeof(len_str), "%ld", len);
-        BIO_snprintf(str, sizeof(str), "%ld", val);
+        BIO_snprintf(len_str, sizeof(len_str), "%lu", len);
+        BIO_snprintf(str, sizeof(str), "%lu", val);
         ERR_add_error_data(4, "length=", len_str, tag, str);
         return 0;
     }
