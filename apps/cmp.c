@@ -2021,8 +2021,8 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
     if (opt_rspin != NULL) {
         res = read_PKIMESSAGE(ctx, &opt_rspin);
     } else {
-#ifndef NDEBUG
         const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
+#ifndef NDEBUG
         if (opt_mock_srv) {
             OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
             res = OSSL_CMP_mock_server_perform(ctx, actual_req);
