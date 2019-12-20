@@ -320,55 +320,56 @@ OSSL_HTTP_REQ_CTX *HTTP_REQ_CTX_new(BIO *bio, int use_http_proxy,
 static int parse_http_line1(char *line)
 {
     int retcode;
-    char *p, *q, *r;
+    char *code, *reason, *end;
 
-    /* Skip to first white space (past protocol info) */
-    for (p = line; *p && !ossl_isspace(*p); p++)
+    /* Skip to first whitespace (past protocol info) */
+    for (code = line; *code && !ossl_isspace(*code); code++)
         continue;
-    if (*p == '\0') {
+    if (*code == '\0') {
         HTTPerr(0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
-    /* Skip past white space to start of response code */
-    while (*p && ossl_isspace(*p))
-        p++;
+    /* Skip past whitespace to start of response code */
+    while (*code != '\0' && ossl_isspace(*code))
+        code++;
 
-    if (*p == '\0') {
+    if (*code == '\0') {
         HTTPerr(0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
     /* Find end of response code: first whitespace after start of code */
-    for (q = p; *q && !ossl_isspace(*q); q++)
+    for (reason = code; *reason != '\0' && !ossl_isspace(*reason); reason++)
         continue;
 
-    if (*q == '\0') {
+    if (*reason == '\0') {
         HTTPerr(0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
         return 0;
     }
 
     /* Set end of response code and start of message */
-    *q++ = 0;
+    *reason++ = 0;
 
     /* Attempt to parse numeric code */
-    retcode = strtoul(p, &r, 10);
+    retcode = strtoul(code, &end, 10);
 
-    if (*r)
+    if (*end != '\0')
         return 0;
 
-    /* Skip over any leading white space in message */
-    while (*q && ossl_isspace(*q))
-        q++;
+    /* Skip over any leading whitespace in message */
+    while (*reason != '\0' && ossl_isspace(*reason))
+        reason++;
 
-    if (*q) {
+    if (*reason != '\0') {
         /*
-         * Finally zap any trailing white space in message (include CRLF)
+         * Finally zap any trailing whitespace in message (include CRLF)
          */
 
-        /* We know q has a non white space character so this is OK */
-        for (r = q + strlen(q) - 1; ossl_isspace(*r); r--)
-            *r = 0;
+        /* chop any trailing whitespace from reason */
+        /* We know reason has a non-whitespace character so this is OK */
+        for (end = reason + strlen(reason) - 1; ossl_isspace(*end); end--)
+            *end = '\0';
     }
 
     switch (retcode) {
@@ -381,10 +382,10 @@ static int parse_http_line1(char *line)
             HTTPerr(0, HTTP_R_STATUS_CODE_UNSUPPORTED);
         else
             HTTPerr(0, HTTP_R_SERVER_SENT_ERROR);
-        if (*q == '\0')
-            ERR_add_error_data(2, "Code=", p);
+        if (*reason == '\0')
+            ERR_add_error_data(2, "Code=", code);
         else
-            ERR_add_error_data(4, "Code=", p, ",Reason=", q);
+            ERR_add_error_data(4, "Code=", code, ",Reason=", reason);
         return 0;
     }
 }
