@@ -511,7 +511,7 @@ int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx)
         /* Attempt to read a line in */
  next_line:
         /*
-         * Due to strance memory BIO behavior with BIO_gets we have to check
+         * Due to strange memory BIO behavior with BIO_gets we have to check
          * there's a complete line in there before calling BIO_gets or we'll
          * just get a partial read.
          */
