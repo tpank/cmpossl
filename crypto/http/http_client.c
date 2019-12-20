@@ -730,15 +730,15 @@ static BIO *OSSL_HTTP_REQ_CTX_transfer(OSSL_HTTP_REQ_CTX *rctx)
         return NULL;
     }
 
- retry:
-    rv = OSSL_HTTP_REQ_CTX_nbio(rctx);
-    if (rv == -1) {
+    for(;;) {
+        rv = OSSL_HTTP_REQ_CTX_nbio(rctx);
+        if (rv != -1)
+            break;
         /* BIO_should_retry was true */
         sending = 0;
         /* will not actually wait if rctx->max_time == 0 */
         if (BIO_wait(rctx->io, rctx->max_time) <= 0)
             return NULL;
-        goto retry;
     }
 
     if (rv == 0) {
@@ -937,29 +937,29 @@ BIO *OSSL_HTTP_get(const char *url, const char *proxy, const char *proxy_port,
     if ((current_url = OPENSSL_strdup(url)) == NULL)
         return NULL;
 
- redirected:
-    if (!OSSL_HTTP_parse_url(current_url, &host, &port, &path, &use_ssl))
-        goto end;
+    for(;;) {
+        if (!OSSL_HTTP_parse_url(current_url, &host, &port, &path, &use_ssl))
+           break;
 
-    resp = OSSL_HTTP_transfer(host, port, path, use_ssl, proxy, proxy_port,
-                              bio_update_fn, arg, headers, NULL, NULL,
-                              maxline, max_resp_len,
-                              update_timeout(timeout, start_time),
-                              expected_content_type, expect_asn1,
-                              &redirection_url);
-    OPENSSL_free(host);
-    OPENSSL_free(port);
-    OPENSSL_free(path);
-    if (resp == NULL && redirection_url != NULL) {
-        if (redirection_ok(++n_redirs, current_url, redirection_url)) {
-            OPENSSL_free(current_url);
-            current_url = redirection_url;
-            goto redirected;
+        resp = OSSL_HTTP_transfer(host, port, path, use_ssl, proxy, proxy_port,
+                                  bio_update_fn, arg, headers, NULL, NULL,
+                                  maxline, max_resp_len,
+                                  update_timeout(timeout, start_time),
+                                  expected_content_type, expect_asn1,
+                                  &redirection_url);
+        OPENSSL_free(host);
+        OPENSSL_free(port);
+        OPENSSL_free(path);
+        if (resp == NULL && redirection_url != NULL) {
+            if (redirection_ok(++n_redirs, current_url, redirection_url)) {
+                OPENSSL_free(current_url);
+                current_url = redirection_url;
+                continue;
+            }
+            OPENSSL_free(redirection_url);
         }
-        OPENSSL_free(redirection_url);
+        break;
     }
-
- end:
     OPENSSL_free(current_url);
     return resp;
 }
@@ -1114,65 +1114,70 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
     /* Terminate the HTTP CONNECT request */
     BIO_printf(fbio, "\r\n");
 
- flush_retry:
-    if (!BIO_flush(fbio)) {
-        /* potentially needs to be retried if BIO is non-blocking */
-        if (BIO_should_retry(fbio))
-            goto flush_retry;
+    for(;;) {
+         if (BIO_flush(fbio) != 0)
+             break;
+             /* potentially needs to be retried if BIO is non-blocking */
+         if (!BIO_should_retry(fbio))
+             break;
     }
 
- retry:
-    /* will not actually wait if timeout == 0 */
-    rv = BIO_wait(fbio, max_time);
-    if (rv <= 0) {
-        BIO_printf(bio_err, "%s: HTTP CONNECT %s\n", prog,
-                   rv == 0 ? "timed out" : "failed waiting for data");
-        goto end;
-    }
 
-    /*
-     * The first line is the HTTP response.  According to RFC 7230,
-     * it's formatted exactly like this:
-     *
-     * HTTP/d.d ddd Reason text\r\n
-     */
-    read_len = BIO_gets(fbio, mbuf, BUF_SIZE);
-    /* as the BIO may not block, we need to wait that the first line comes in */
-    if (read_len < HTTP_LINE1_MINLEN)
-        goto retry;
+    for(;;) {
+        /* will not actually wait if timeout == 0 */
+        rv = BIO_wait(fbio, max_time);
+        if (rv <= 0) {
+            BIO_printf(bio_err, "%s: HTTP CONNECT %s\n", prog,
+                       rv == 0 ? "timed out" : "failed waiting for data");
+            goto end;
+        }
 
-    /* RFC 7231 4.3.6: any 2xx status code is valid */
-    if (strncmp(mbuf, HTTP_PREFIX, strlen(HTTP_PREFIX)) != 0) {
-        HTTPerr(0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
-        BIO_printf(bio_err, "%s: HTTP CONNECT failed, non-HTTP response\n",
-                   prog);
-        /* Wrong protocol, not even HTTP, so stop reading headers */
-        goto end;
-    }
-    mbufp = mbuf + strlen(HTTP_PREFIX);
-    if (strncmp(mbufp, HTTP_VERSION_PATT, strlen(HTTP_VERSION_PATT)) != 0) {
-        HTTPerr(0, HTTP_R_SERVER_SENT_WRONG_HTTP_VERSION);
-        BIO_printf(bio_err, "%s: HTTP CONNECT failed, bad HTTP version %.*s\n",
-                   prog, HTTP_VERSION_STR_LEN, mbufp);
-        goto end;
-    } else {
-        mbufp += HTTP_VERSION_STR_LEN;
-        if (strncmp(mbufp, " 2", strlen(" 2")) != 0) {
-            mbufp += 1;
-            /* chop (any number of) trailing '\r' and '\n' */
-            while (read_len > 0
-                   && (mbuf[read_len - 1] == '\r'
-                       || mbuf[read_len - 1] == '\n')) {
-                read_len--;
-            }
-            mbuf[read_len] = '\0';
-            HTTPerr(0, HTTP_R_CONNECT_FAILURE);
-            ERR_add_error_data(2, "Reason=", mbufp);
-            BIO_printf(bio_err, "%s: HTTP CONNECT failed, Reason=%s\n", prog, mbufp);
+        /*
+         * The first line is the HTTP response.  According to RFC 7230,
+         * it's formatted exactly like this:
+         *
+         * HTTP/d.d ddd Reason text\r\n
+         */
+        read_len = BIO_gets(fbio, mbuf, BUF_SIZE);
+        /* as the BIO may not block, we need to wait that the first line comes in */
+        if (read_len < HTTP_LINE1_MINLEN)
+            continue;
+
+        /* RFC 7231 4.3.6: any 2xx status code is valid */
+        if (strncmp(mbuf, HTTP_PREFIX, strlen(HTTP_PREFIX)) != 0) {
+            HTTPerr(0, HTTP_R_SERVER_RESPONSE_PARSE_ERROR);
+            BIO_printf(bio_err, "%s: HTTP CONNECT failed, non-HTTP response\n",
+                       prog);
+            /* Wrong protocol, not even HTTP, so stop reading headers */
+            goto end;
+        }
+        mbufp = mbuf + strlen(HTTP_PREFIX);
+        if (strncmp(mbufp, HTTP_VERSION_PATT, strlen(HTTP_VERSION_PATT)) != 0) {
+            HTTPerr(0, HTTP_R_SERVER_SENT_WRONG_HTTP_VERSION);
+            BIO_printf(bio_err, "%s: HTTP CONNECT failed, bad HTTP version %.*s\n",
+                       prog, HTTP_VERSION_STR_LEN, mbufp);
             goto end;
         } else {
-            ret = 1;
+            mbufp += HTTP_VERSION_STR_LEN;
+            if (strncmp(mbufp, " 2", strlen(" 2")) != 0) {
+                mbufp += 1;
+                /* chop (any number of) trailing '\r' and '\n' */
+                while (read_len > 0
+                       && (mbuf[read_len - 1] == '\r'
+                           || mbuf[read_len - 1] == '\n')) {
+                    read_len--;
+                }
+                mbuf[read_len] = '\0';
+                HTTPerr(0, HTTP_R_CONNECT_FAILURE);
+                ERR_add_error_data(2, "Reason=", mbufp);
+                BIO_printf(bio_err, "%s: HTTP CONNECT failed, Reason=%s\n",
+                           prog, mbufp);
+                goto end;
+            } else {
+                ret = 1;
+            }
         }
+        break;
     }
 
     /* Read past all following headers */
