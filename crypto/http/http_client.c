@@ -508,7 +508,6 @@ int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx)
     case OHS_REDIRECT:
 
         /* Attempt to read a line in */
-
  next_line:
         /*
          * Due to strance memory BIO behavior with BIO_gets we have to check
@@ -621,8 +620,8 @@ int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx)
         }
 
         rctx->state = OHS_ASN1_HEADER;
-        /* Fall thru */
 
+        /* Fall thru */
     case OHS_ASN1_HEADER:
         /*
          * Now reading ASN1 header: can read at least 2 bytes which is enough
@@ -669,7 +668,6 @@ int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx)
         rctx->state = OHS_CONTENT;
 
         /* Fall thru */
-
     case OHS_CONTENT:
     default:
         n = BIO_get_mem_data(rctx->mem, NULL);
@@ -679,9 +677,6 @@ int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx)
         rctx->state = OHS_DONE;
         return 1;
     }
-
-    return 0;
-
 }
 
 #ifndef OPENSSL_NO_SOCK
