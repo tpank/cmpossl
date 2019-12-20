@@ -39,7 +39,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
     char server_port[32];
     char proxy_port[32];
     STACK_OF(CONF_VALUE) *headers = NULL;
-    OSSL_CMP_MSG *res = NULL;
+    OSSL_CMP_MSG *res;
     const char *const content_type_pkix = "application/pkixcmp";
 
     if (ctx == NULL || req == NULL
