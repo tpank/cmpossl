@@ -1096,13 +1096,16 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
         if (proxypass != NULL)
             len += strlen(proxypass);
         proxyauth = OPENSSL_malloc(len + 2);
+        if (proxyauth == NULL)
+            goto end;
         BIO_snprintf(proxyauth, len + 2, "%s:%s", proxyuser,
                      (proxypass != NULL) ? proxypass : "");
         proxyauthenc = base64encode(proxyauth, strlen(proxyauth));
-        if (proxyauthenc != NULL)
+        if (proxyauthenc != NULL) {
             BIO_printf(fbio, "Proxy-Authorization: Basic %s\r\n", proxyauthenc);
+            OPENSSL_clear_free(proxyauthenc, strlen(proxyauthenc));
+        }
         OPENSSL_clear_free(proxyauth, strlen(proxyauth));
-        OPENSSL_clear_free(proxyauthenc, strlen(proxyauthenc));
         if (proxyauthenc == NULL)
             goto end;
     }
