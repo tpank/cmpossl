@@ -485,7 +485,7 @@ static int check_msg_with_certs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *certs,
         n_acceptable_certs++;
         if (mode_3gpp ? check_msg_valid_cert_3gpp(ctx, cert, msg)
                       : check_msg_valid_cert(ctx, ctx->trusted, cert, msg)) {
-            /* store successfull sender cert for further msgs in transaction */
+            /* store successful sender cert for further msgs in transaction */
             if (X509_up_ref(cert)
                     && !ossl_cmp_ctx_set0_validatedSrvCert(ctx, cert))
                 X509_free(cert);
