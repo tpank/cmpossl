@@ -94,7 +94,7 @@ Available CMP certificate request PKIMessage B<bodytype>s are:
 
 =back
 
-CMP_certrep_new() creates a PKIMessage for certificate response, which can
+ossl_cmp_certrep_new() creates a PKIMessage for certificate response, which can
 be either of IP/CP/KUP, depending on the given B<bodytype>.
 
 Available CMP certificate response PKIMessage B<bodytype>s are:
@@ -137,31 +137,31 @@ The list of all CMP PKIMessage B<bodytype>s is:
  #define OSSL_CMP_PKIBODY_POLLREQ  25
  #define OSSL_CMP_PKIBODY_POLLREP  26
 
-CMP_rr_new() creates a Revocation Request message from the
+ossl_cmp_rr_new() creates a Revocation Request message from the
 information set via OSSL_CMP_CTX_set1_oldClCert().
 
-CMP_rp_new() creates a Revocation Response message with status set to
+ossl_cmp_rp_new() creates a Revocation Response message with status set to
 B<si> and CertID set to B<cid>. Consumes B<cid>.
 Accepts unprotected errors if B<uprot_err> != 0.
 
-CMP_certConf_new() creates a Certificate Confirmation message for the last
+ossl_cmp_certConf_new() creates a Certificate Confirmation message for the last
 received certificate. PKIStatus defaults to B<accepted> if the B<fail_info> bit
 field is 0. Else it is taken as the failInfo of the PKIStatusInfo, PKIStatus is
 set to B<rejected>, and B<text> is copied to statusString unless it is NULL.
 
-CMP_pkiconf_new() creates a PKI Confirmation message.
+ossl_cmp_pkiconf_new() creates a PKI Confirmation message.
 
-CMP_pollReq_new() creates a Polling Request message with certReqId set to
+ossl_cmp_pollReq_new() creates a Polling Request message with certReqId set to
 B<crid>.
 
-CMP_pollRep_new() creates a Polling Response message with certReqId set to
+ossl_cmp_pollRep_new() creates a Polling Response message with certReqId set to
 B<crid> and pollAfter to B<poll_after>.
 
-CMP_genm_new() creates a new General Message with an empty ITAV stack.
+ossl_cmp_genm_new() creates a new General Message with an empty ITAV stack.
 
-CMP_genp_new() creates a new General Response with an empty ITAV stack.
+ossl_cmp_genp_new() creates a new General Response with an empty ITAV stack.
 
-CMP_error_new() creates a new Error Message with the given contents,
+ossl_cmp_error_new() creates a new Error Message with the given contents,
 copying B<si> and B<errorDetails>.
 
 =head1 NOTES
