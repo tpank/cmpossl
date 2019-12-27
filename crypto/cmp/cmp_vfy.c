@@ -21,20 +21,6 @@
 #include <openssl/err.h>
 #include <openssl/x509.h>
 
-static void add_mem_bio_to_error_line(BIO *bio)
-{
-    if (bio != NULL) {
-        char *str;
-        long len = BIO_get_mem_data(bio, &str);
-
-        if (len > 0) {
-            str[len - 1] = '\0'; /* replace last '\n', terminating str */
-            ossl_cmp_add_error_line(str);
-        }
-    }
-}
-
-static void print_cert(BIO *bio, X509 *cert, unsigned long neg_cflags);
 /*
  * Verify a message protected by signature according to section 5.1.3.3
  * (sha1+RSA/DSA or any other algorithm supported by OpenSSL).
@@ -105,9 +91,11 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     }
 
  sig_err:
-    print_cert(bio, cert, X509_FLAG_NO_EXTENSIONS);
+    res = X509_print_ex_brief(bio, cert, X509_FLAG_NO_EXTENSIONS);
     CMPerr(0, CMP_R_ERROR_VALIDATING_PROTECTION);
-    add_mem_bio_to_error_line(bio);
+    if (res)
+        ERR_add_error_mem_bio("\n", bio);
+    res = 0;
 
  end:
     EVP_MD_CTX_free(ctx);
@@ -179,113 +167,6 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
  err:
     X509_STORE_CTX_free(csc);
     return valid;
-}
-
-/* Helper functions for improving certificate verification error diagnostics */
-static void print_cert(BIO *bio, X509 *cert, unsigned long neg_cflags)
-{
-    if (cert != NULL) {
-        unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
-            XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
-
-        BIO_printf(bio, "    certificate\n");
-        X509_print_ex(bio, cert, flags, ~X509_FLAG_NO_SUBJECT);
-        if (X509_check_issued((X509 *)cert, cert) == X509_V_OK) {
-            BIO_printf(bio, "        self-issued\n");
-        } else {
-            BIO_printf(bio, " ");
-            X509_print_ex(bio, cert, flags, ~X509_FLAG_NO_ISSUER);
-        }
-        X509_print_ex(bio, cert, flags,
-                      ~(X509_FLAG_NO_SERIAL | X509_FLAG_NO_VALIDITY));
-        if (X509_cmp_current_time(X509_get0_notBefore(cert)) > 0)
-            BIO_printf(bio, "        not yet valid\n");
-
-        if (X509_cmp_current_time(X509_get0_notAfter(cert)) < 0)
-            BIO_printf(bio, "        no more valid\n");
-
-        X509_print_ex(bio, cert, flags, ~(neg_cflags));
-    } else {
-        BIO_printf(bio, "    (no certificate)\n");
-    }
-}
-
-static void print_certs(BIO *bio, const STACK_OF(X509) *certs)
-{
-    if (certs != NULL && sk_X509_num(certs) > 0) {
-        int i;
-
-        for (i = 0; i < sk_X509_num(certs); i++) {
-            X509 *cert = sk_X509_value(certs, i);
-            if (cert != NULL)
-                print_cert(bio, cert, 0);
-        }
-    } else {
-        BIO_printf(bio, "    (no certificates)\n");
-    }
-}
-
-static void print_store_certs(BIO *bio, X509_STORE *store)
-{
-    if (store != NULL) {
-        STACK_OF(X509) *certs = ossl_cmp_X509_STORE_get1_certs(store);
-        print_certs(bio, certs);
-        sk_X509_pop_free(certs, X509_free);
-    } else {
-        BIO_printf(bio, "    (no certificate store)\n");
-    }
-}
-
-/*
- * Diagnostic function that may be registered using
- * X509_STORE_set_verify_cb(), such that it gets called by OpenSSL's
- * verify_cert() function at the end of a cert verification as an opportunity
- * to gather and queue information regarding a (failing) cert verification,
- * and to possibly change the result of the verification (not done here).
- * The CLI also calls it on error while cert status checking using OCSP stapling
- * via a callback function set with SSL_CTX_set_tlsext_status_cb().
- *
- * Returns 0 if and only if the cert verification is considered failed.
- */
-int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
-{
-    if (ok == 0 && ctx != NULL) {
-        int cert_error = X509_STORE_CTX_get_error(ctx);
-        int depth = X509_STORE_CTX_get_error_depth(ctx);
-        X509 *cert = X509_STORE_CTX_get_current_cert(ctx);
-        BIO *bio = BIO_new(BIO_s_mem()); /* may be NULL */
-
-        BIO_printf(bio, "%s at depth=%d error=%d (%s)\n",
-                   X509_STORE_CTX_get0_parent_ctx(ctx) != NULL
-                   ? "CRL path validation" : "certificate verification",
-                   depth, cert_error,
-                   X509_verify_cert_error_string(cert_error));
-        BIO_printf(bio, "failure for:\n");
-        print_cert(bio, cert, X509_FLAG_NO_EXTENSIONS);
-        if (cert_error == X509_V_ERR_CERT_UNTRUSTED
-                || cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT
-                || cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN
-                || cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT
-                || cert_error == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
-                || cert_error == X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER
-                || cert_error == X509_V_ERR_STORE_LOOKUP) {
-            BIO_printf(bio, "non-trusted certs:\n");
-            print_certs(bio, X509_STORE_CTX_get0_untrusted(ctx));
-            BIO_printf(bio, "trust store:\n");
-            print_store_certs(bio, X509_STORE_CTX_get0_store(ctx));
-        }
-        CMPerr(0, CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
-        add_mem_bio_to_error_line(bio);
-        BIO_free(bio);
-    }
-
-    /*
-     * TODO we could check policies here too, e.g.:
-     * if (cert_error == X509_V_OK && ok == 2)
-     *     policies_print(NULL, ctx);
-     */
-
-    return ok;
 }
 
 /* Return 0 if expect_name != NULL and there is no matching actual_name */
@@ -520,7 +401,7 @@ static int check_msg_all_certs(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
         OSSL_CMP_warn(ctx, mode_3gpp ? "no self-issued extraCerts"
                                      : "no trusted store");
     } else {
-        STACK_OF(X509) *trusted = ossl_cmp_X509_STORE_get1_certs(ctx->trusted);
+        STACK_OF(X509) *trusted = X509_STORE_get1_all_certs(ctx->trusted);
         ret = check_msg_with_certs(ctx, trusted,
                                    mode_3gpp ? "self-issued extraCerts"
                                              : "certs in trusted store",
@@ -601,12 +482,12 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
     CMPerr(0, CMP_R_NO_SUITABLE_SENDER_CERT);
     if (sname != NULL) {
-        ossl_cmp_add_error_txt(NULL, "for msg sender name = ");
-        ossl_cmp_add_error_txt(NULL, sname);
+        ERR_add_error_txt(NULL, "for msg sender name = ");
+        ERR_add_error_txt(NULL, sname);
     }
     if (skid_str != NULL) {
-        ossl_cmp_add_error_txt(" and ", "for msg senderKID = ");
-        ossl_cmp_add_error_txt(NULL, skid_str);
+        ERR_add_error_txt(" and ", "for msg senderKID = ");
+        ERR_add_error_txt(NULL, skid_str);
     }
 
  end:

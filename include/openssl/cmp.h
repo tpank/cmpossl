@@ -352,7 +352,6 @@ OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
 int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg);
 int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
                                 X509_STORE *trusted_store, X509 *cert);
-int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
 #  ifdef  __cplusplus
 }
