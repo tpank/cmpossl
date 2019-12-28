@@ -42,6 +42,10 @@
 #include <openssl/x509.h>
 
 static char *opt_config = NULL;
+/*
+ * TODO add example [cmp] section to apps/openssl.cnf
+ * as requested in https://github.com/mpeylo/cmpossl/issues/124
+ */
 #define CMP_SECTION "cmp"
 #define SECTION_NAME_MAX 40 /* max length of section name */
 #define DEFAULT_SECTION "default"
