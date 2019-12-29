@@ -265,24 +265,24 @@ static int execute_cmp_ctx_log_cb_test(OSSL_CMP_CTX_TEST_FIXTURE *fixture)
     if (!TEST_true(OSSL_CMP_CTX_set_log_cb(ctx, NULL))) {
         res = 0;
     } else {
-        OSSL_CMP_err(ctx, "this should be printed as CMP error message");
-        OSSL_CMP_warn(ctx, "this should be printed as CMP warning message");
-        OSSL_CMP_debug(ctx, "this should not be printed");
+        ossl_cmp_err(ctx, "this should be printed as CMP error message");
+        ossl_cmp_warn(ctx, "this should be printed as CMP warning message");
+        ossl_cmp_debug(ctx, "this should not be printed");
         TEST_true(OSSL_CMP_CTX_set_log_verbosity(ctx, OSSL_CMP_LOG_DEBUG));
-        OSSL_CMP_debug(ctx, "this should be printed as CMP debug message");
+        ossl_cmp_debug(ctx, "this should be printed as CMP debug message");
         TEST_true(OSSL_CMP_CTX_set_log_verbosity(ctx, OSSL_CMP_LOG_INFO));
     }
     if (!TEST_true(OSSL_CMP_CTX_set_log_cb(ctx, test_log_cb))) {
         res = 0;
     } else {
         test_log_line = OPENSSL_LINE + 1;
-        OSSL_CMP_log2(INFO, ctx, "%s%c", "o", 'k');
+        ossl_cmp_log2(INFO, ctx, "%s%c", "o", 'k');
         if (!TEST_int_eq(test_log_cb_res, 1))
             res = 0;
         OSSL_CMP_CTX_set_log_verbosity(ctx, OSSL_CMP_LOG_ERR);
         test_log_cb_res = -1; /* callback should not be called at all */
         test_log_line = OPENSSL_LINE + 1;
-        OSSL_CMP_log2(INFO, ctx, "%s%c", "o", 'k');
+        ossl_cmp_log2(INFO, ctx, "%s%c", "o", 'k');
         if (!TEST_int_eq(test_log_cb_res, -1))
             res = 0;
     }
@@ -786,8 +786,8 @@ int setup_tests(void)
     ADD_TEST(test_CTX_set_get_log_cb);
     /*
      * also tests OSSL_CMP_log_open(), OSSL_CMP_CTX_set_log_verbosity(),
-     * OSSL_CMP_err(), OSSL_CMP_warn(), * OSSL_CMP_debug(),
-     * OSSL_CMP_log2(), ossl_cmp_log_parse_metadata(), and OSSL_CMP_log_close()
+     * ossl_cmp_err(), ossl_cmp_warn(), * ossl_cmp_debug(),
+     * ossl_cmp_log2(), ossl_cmp_log_parse_metadata(), and OSSL_CMP_log_close()
      * with OSSL_CMP_severity OSSL_CMP_LOG_ERR/WARNING/DEBUG/INFO:
      */
     ADD_TEST(test_cmp_ctx_log_cb);
