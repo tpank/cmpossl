@@ -225,14 +225,14 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     if ((crm = OSSL_CRMF_MSG_new()) == NULL)
         return NULL;
     if (!OSSL_CRMF_MSG_set_certReqId(crm, rid)
-        /*
-         * fill certTemplate, corresponding to CertificationRequestInfo
-         * of PKCS#10. The rkey param cannot be NULL so far -
-         * it could be NULL if centralized key creation was supported
-         */
-        || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
-                                        subject, ctx->issuer,
-                                        NULL /* serial */))
+            /*
+             * fill certTemplate, corresponding to CertificationRequestInfo
+             * of PKCS#10. The rkey param cannot be NULL so far -
+             * it could be NULL if centralized key creation was supported
+             */
+            || !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
+                                            subject, ctx->issuer,
+                                            NULL /* serial */))
         goto err;
     if (ctx->days != 0) {
         time_t notBefore, notAfter;
