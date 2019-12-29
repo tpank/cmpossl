@@ -334,10 +334,10 @@ OSSL_CMP_MSG *ossl_cmp_certReq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
             goto err;
         }
         if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID, rkey)) == NULL
-            || !OSSL_CRMF_MSG_create_popo(crm, privkey, ctx->digest,
-                                          ctx->popoMethod)
-            /* value.ir is same for cr and kur */
-            || !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
+                || !OSSL_CRMF_MSG_create_popo(crm, privkey, ctx->digest,
+                                              ctx->popoMethod)
+                /* value.ir is same for cr and kur */
+                || !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
             goto err;
         crm = NULL;
         /* TODO: here optional 2nd certreqmsg could be pushed to the stack */
