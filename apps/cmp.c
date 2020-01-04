@@ -603,11 +603,11 @@ const OPTIONS cmp_options[] = {
 #endif
 
     OPT_V_OPTIONS,
- /*
-  * subsumes:
-  * {"crl_check_all", OPT_CRLALL, '-',
-  *  "Check CRLs not only for leaf certificate but for full certificate chain"},
-  */
+    /*
+     * subsumes:
+     * {"crl_check_all", OPT_CRLALL, '-',
+     *  "Check CRLs not only for leaf certificate but for full certificate chain"},
+     */
 
     {NULL}
 };
@@ -1232,7 +1232,7 @@ static STACK_OF(X509_CRL) *load_crls_fmt(const char *infile, int format,
         if (crls == NULL)
             return NULL;
         crl = load_crl_autofmt(infile, format, desc);
-     /* using load_crl_autofmt because of http capabilities including timeout */
+        /* using load_crl_autofmt because of http capabilities incl. timeout */
         if (crl == NULL) {
             sk_X509_CRL_free(crls);
             return NULL;
@@ -1862,7 +1862,6 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
          * then OCSP, then CRLs
          */
 
-        if (ssl != NULL && i == 0 && ocsp_stapling)
         /*
          * OCSP (not multi-)stapling
          *
@@ -1872,6 +1871,7 @@ static int check_revocation_ocsp_crls(X509_STORE_CTX *ctx)
          * What we can do here is to defer status checking of the first cert.
          * This will then be performed by ocsp_stapling_cb().
          */
+        if (ssl != NULL && i == 0 && ocsp_stapling)
             continue;
         if (!check_cert_revocation(ctx, NULL))
             return 0;
@@ -2003,12 +2003,13 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             ret = CMP_R_ERROR_TRANSFERRING_IN;
             if ((req_new = read_PKIMESSAGE(ctx, &opt_reqin)) == NULL)
                 goto err;
-          /*
-           * The transaction ID in req_new may not be fresh. In this case the
-           * Insta Demo CA correctly complains: "Transaction id already in use."
-           * The following workaround unfortunately requires re-protection.
-           * --> GitHub issue#8
-           */
+            /*-
+             * The transaction ID in req_new may not be fresh.
+             * In this case the Insta Demo CA correctly complains:
+             * "Transaction id already in use."
+             * The following workaround unfortunately requires re-protection.
+             * See also https://github.com/mpeylo/cmpossl/issues/8
+             */
 #if defined USE_TRANSACTIONID_WORKAROUND
             OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_MSG_get0_header
                                             (req_new), NULL);
@@ -2064,18 +2065,18 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 static const char *tls_error_hint(unsigned long err)
 {
     switch(ERR_GET_REASON(err)) {
-/*  case 0x1408F10B: */ /* xSL_F_SSL3_GET_RECORD */
+        /*  case 0x1408F10B: */ /* xSL_F_SSL3_GET_RECORD */
     case SSL_R_WRONG_VERSION_NUMBER:
-/*  case 0x140770FC: */ /* xSL_F_SSL23_GET_SERVER_HELLO */
+        /*  case 0x140770FC: */ /* xSL_F_SSL23_GET_SERVER_HELLO */
     case SSL_R_UNKNOWN_PROTOCOL:
         return "The server does not support (a recent version of) TLS";
-/*  case 0x1407E086: */ /* xSL_F_SSL3_GET_SERVER_HELLO */
-/*  case 0x1409F086: */ /* xSL_F_SSL3_WRITE_PENDING */
-/*  case 0x14090086: */ /* xSL_F_SSL3_GET_SERVER_CERTIFICATE */
-/*  case 0x1416F086: */ /* xSL_F_TLS_PROCESS_SERVER_CERTIFICATE */
+        /*  case 0x1407E086: */ /* xSL_F_SSL3_GET_SERVER_HELLO */
+        /*  case 0x1409F086: */ /* xSL_F_SSL3_WRITE_PENDING */
+        /*  case 0x14090086: */ /* xSL_F_SSL3_GET_SERVER_CERTIFICATE */
+        /*  case 0x1416F086: */ /* xSL_F_TLS_PROCESS_SERVER_CERTIFICATE */
     case SSL_R_CERTIFICATE_VERIFY_FAILED:
         return "Cannot authenticate server via its TLS certificate, likely due to mismatch with our trusted TLS certs or missing revocation status";
-/*  case 0x14094418: */ /* xSL_F_SSL3_READ_BYTES */
+        /*  case 0x14094418: */ /* xSL_F_SSL3_READ_BYTES */
     case SSL_AD_REASON_OFFSET+TLS1_AD_UNKNOWN_CA:
         return "Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor or missing revocation status";
     case SSL_AD_REASON_OFFSET+SSL3_AD_HANDSHAKE_FAILURE:
@@ -2666,7 +2667,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx,
     if (opt_crl_timeout == 0)
         opt_crl_timeout = -1;
     if (opt_crls != NULL) {
-/* TODO DvO extract load_multiple_crls() and push upstream (PR #multifile) */
+        /* TODO DvO extract load_multiple_crls() and push upstream (PR #multifile) */
         X509_CRL *crl;
         STACK_OF(X509_CRL) *crls;
 
@@ -2684,7 +2685,10 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx,
                 int cmp = X509_cmp_timeframe(vpm, X509_CRL_get0_lastUpdate(crl),
                                              X509_CRL_get0_nextUpdate(crl));
                 if (cmp != 0) {
-          /* well, should ignore expiration of base CRL if delta CRL is valid */
+                    /*
+                     * well, should ignore expiration of base CRL
+                     * if delta CRL is valid
+                     */
                     char *issuer = X509_NAME_oneline(X509_CRL_get_issuer(crl),
                                                      NULL, 0);
                     CMP_warn3("CRL from '%s' issued by '%s' %s",
@@ -2755,7 +2759,10 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx,
                                         opt_otherpass,
                                         "trusted CMP server certificate");
             if (srvcert == NULL)
-  /* opt_otherpass is needed in case opt_srvcert is an encrypted PKCS#12 file */
+                /*
+                 * opt_otherpass is needed in case
+                 * opt_srvcert is an encrypted PKCS#12 file
+                 */
                 goto err;
             if (!OSSL_CMP_CTX_set1_srvCert(ctx, srvcert)) {
                 X509_free(srvcert);
@@ -2842,7 +2849,10 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     if (opt_ocsp_status) {
         SSL_CTX_set_tlsext_status_type(ssl_ctx, TLSEXT_STATUSTYPE_ocsp);
         SSL_CTX_set_tlsext_status_cb(ssl_ctx, ocsp_stapling_cb);
-/* untrusted certs may help chain building verifying stapled OCSP responses */
+        /*
+         * untrusted certs may help chain building
+         * verifying stapled OCSP responses
+         */
         SSL_CTX_set_tlsext_status_arg(ssl_ctx, untrusted_certs);
     }
 #endif /* OPENSSL_NO_OCSP */
@@ -2861,10 +2871,10 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
         if (!load_certs_autofmt(opt_tls_cert, &certs, opt_ownform, 1,
                                 opt_tls_keypass,
                                 "TLS client certificate (optionally with chain)"))
-        /*
-         * opt_tls_keypass is needed in case opt_tls_cert is an encrypted
-         * PKCS#12 file
-         */
+            /*
+             * opt_tls_keypass is needed in case opt_tls_cert is an encrypted
+             * PKCS#12 file
+             */
             goto err;
 
         cert = sk_X509_delete(certs, 0);
@@ -3035,7 +3045,7 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 
         if (!load_certs_autofmt(opt_cert, &certs, opt_ownform, 1,
             opt_keypass, "CMP client certificate (and optionally extra certs)"))
-       /* opt_keypass is needed in case opt_cert is an encrypted PKCS#12 file */
+            /* opt_keypass is needed if opt_cert is an encrypted PKCS#12 file */
             goto err;
 
         clcert = sk_X509_delete(certs, 0);
@@ -3213,7 +3223,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     if (opt_oldcert != NULL) {
         X509 *oldcert = load_cert_autofmt(opt_oldcert, opt_ownform, opt_keypass,
                                           "certificate to be updated/revoked");
-    /* opt_keypass is needed in case opt_oldcert is an encrypted PKCS#12 file */
+        /* opt_keypass is needed if opt_oldcert is an encrypted PKCS#12 file */
         if (oldcert == NULL)
             goto err;
         if (!OSSL_CMP_CTX_set1_oldCert(ctx, oldcert)) {
@@ -3626,10 +3636,10 @@ static int read_config(void)
                 continue; /* option not provided */
             }
             break;
-        /*
-         * do not use '<' in cmp_options. Incorrect treatment
-         * somewhere in args_verify() can wrongly set badarg = 1
-         */
+            /*
+             * do not use '<' in cmp_options. Incorrect treatment
+             * somewhere in args_verify() can wrongly set badarg = 1
+             */
         case '<':
         case 's':
         case 'M':
