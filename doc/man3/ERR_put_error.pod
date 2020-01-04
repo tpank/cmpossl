@@ -48,8 +48,9 @@ The total length of the string data per error is limited to 4096 characters.
 
 ERR_add_error_txt() appends the given text string as additional data to the
 last error queue entry, after inserting the optional separator string if it is
-not NULL and the top error entry does not yet have additional data. The B<sep>
-argument may be for instance "\n" to insert a line break when needed.
+not NULL and the top error entry does not yet have additional data.
+In case the separator is at the end of the text it is not appended to the data.
+The B<sep> argument may be for instance "\n" to insert a line break when needed.
 If the associated data would become more than 4096 characters long
 (which is the limit given above)
 it is split over sufficiently many new copies of the last error queue entry.

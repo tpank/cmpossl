@@ -73,12 +73,14 @@ void ERR_add_error_txt(const char *separator, const char *txt)
     do {
         size_t available_len, data_len;
         const char *curr = txt, *next = txt;
+        const char *leading_separator = separator;
+        int trailing_separator = 0;
         char *tmp;
 
         ERR_peek_last_error_all(&file, &line, &func, &data, &flags);
         if ((flags & ERR_TXT_STRING) == 0) {
             data = "";
-            separator = "";
+            leading_separator = "";
         }
         data_len = strlen(data);
 
@@ -90,7 +92,7 @@ void ERR_add_error_txt(const char *separator, const char *txt)
             available_len = MAX_DATA_LEN - data_len - strlen(separator) - 1;
         /* MAX_DATA_LEN > available_len >= 0 */
 
-        if (separator[0] == '\0') {
+        if (*separator == '\0') {
             const size_t len_next = strlen(next);
 
             if (len_next <= available_len) {
@@ -105,10 +107,13 @@ void ERR_add_error_txt(const char *separator, const char *txt)
             while (*next != '\0' && (size_t)(next - txt) <= available_len) {
                 curr = next;
                 next = strstr(curr, separator);
-                if (next != NULL)
+                if (next != NULL) {
                     next += strlen(separator);
-                else
+                    trailing_separator = *next == '\0';
+                }
+                else {
                     next = curr + strlen(curr);
+                }
             }
             if ((size_t)(next - txt) <= available_len)
                 curr = NULL; /* the above loop implies *next == '\0' */
@@ -125,7 +130,16 @@ void ERR_add_error_txt(const char *separator, const char *txt)
             put_error(ERR_LIB_CMP, func, err, file, line);
             txt = curr;
         } else {
-            ERR_add_error_data(2, separator, txt);
+            if (trailing_separator) {
+                tmp = OPENSSL_strndup(txt, next - strlen(separator) - txt);
+                if (tmp == NULL)
+                    return;
+                /* output txt without the trailing separator */
+                ERR_add_error_data(2, leading_separator, tmp);
+                OPENSSL_free(tmp);
+            } else {
+                ERR_add_error_data(2, leading_separator, txt);
+            }
             txt = next; /* finished */
         }
     } while (*txt != '\0');
@@ -137,11 +151,9 @@ void ERR_add_error_mem_bio(const char *separator, BIO *bio)
         char *str;
         long len = BIO_get_mem_data(bio, &str);
 
-        if (len > 0) {
-            str[len - 1] = '\0'; /* replace last '\n', terminating str */
-            ERR_add_error_txt(separator, str);
-        }
-    }
+        if (len > 0)
+             ERR_add_error_txt(separator, str);
+     }
 }
 
 static int print_bio(const char *str, size_t len, void *bp)
