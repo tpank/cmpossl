@@ -808,7 +808,6 @@ int X509_NAME_print_ex(BIO *out, const X509_NAME *nm, int indent,
                        unsigned long flags);
 int X509_print_ex(BIO *bp, X509 *x, unsigned long nmflag,
                   unsigned long cflag);
-int X509_print_ex_brief(BIO *bio, X509 *cert, unsigned long neg_cflags);
 int X509_print(BIO *bp, X509 *x);
 int X509_ocspid_print(BIO *bp, X509 *x);
 int X509_CRL_print_ex(BIO *out, X509_CRL *x, unsigned long nmflag);

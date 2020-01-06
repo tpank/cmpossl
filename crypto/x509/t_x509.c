@@ -15,6 +15,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include "crypto/asn1.h"
+#include "crypto/x509.h"
 
 #ifndef OPENSSL_NO_STDIO
 int X509_print_fp(FILE *fp, X509 *x)
@@ -385,7 +386,7 @@ int X509_aux_print(BIO *out, X509 *x, int indent)
  * Helper functions for improving certificate verification error diagnostics
  */
 
-int X509_print_ex_brief(BIO *bio, X509 *cert, unsigned long neg_cflags)
+int x509_print_ex_brief(BIO *bio, X509 *cert, unsigned long neg_cflags)
 {
     unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
         XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
@@ -424,7 +425,7 @@ static int print_certs(BIO *bio, const STACK_OF(X509) *certs)
 
     for (i = 0; i < sk_X509_num(certs); i++) {
         X509 *cert = sk_X509_value(certs, i);
-        if (cert != NULL && !X509_print_ex_brief(bio, cert, 0))
+        if (cert != NULL && !x509_print_ex_brief(bio, cert, 0))
             return 0;
     }
     return 1;
@@ -458,7 +459,7 @@ int X509_STORE_CTX_print_verify_cb(int ok, X509_STORE_CTX *ctx)
                    depth, cert_error,
                    X509_verify_cert_error_string(cert_error));
         BIO_printf(bio, "failure for:\n");
-        X509_print_ex_brief(bio, cert, X509_FLAG_NO_EXTENSIONS);
+        x509_print_ex_brief(bio, cert, X509_FLAG_NO_EXTENSIONS);
         if (cert_error == X509_V_ERR_CERT_UNTRUSTED
                 || cert_error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT
                 || cert_error == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN

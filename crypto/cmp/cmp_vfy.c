@@ -20,6 +20,7 @@
 #include <openssl/crmf.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
+#include "crypto/x509.h"
 
 /*
  * Verify a message protected by signature according to section 5.1.3.3
@@ -91,7 +92,7 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     }
 
  sig_err:
-    res = X509_print_ex_brief(bio, cert, X509_FLAG_NO_EXTENSIONS);
+    res = x509_print_ex_brief(bio, cert, X509_FLAG_NO_EXTENSIONS);
     CMPerr(0, CMP_R_ERROR_VALIDATING_PROTECTION);
     if (res)
         ERR_add_error_mem_bio("\n", bio);

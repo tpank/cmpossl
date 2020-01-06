@@ -4992,7 +4992,6 @@ i2d_X509_PUBKEY_fp                      ?	3_0_0	EXIST::FUNCTION:STDIO
 d2i_X509_PUBKEY_bio                     ?	3_0_0	EXIST::FUNCTION:
 i2d_X509_PUBKEY_bio                     ?	3_0_0	EXIST::FUNCTION:
 X509_cmp_timeframe                      ?	3_0_0	EXIST::FUNCTION:
-X509_print_ex_brief                     ?	3_0_0	EXIST::FUNCTION:
 PKCS8_pkey_add1_attr                    ?	3_0_0	EXIST::FUNCTION:
 PKCS8_pkey_add1_attr_by_OBJ             ?	3_0_0	EXIST::FUNCTION:
 EVP_PKEY_private_check                  ?	3_0_0	EXIST::FUNCTION:
