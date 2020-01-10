@@ -107,14 +107,14 @@ const char *ossl_cmp_log_parse_metadata(const char *buf,
     return msg;
 }
 
-# define UNKNOWN_FUNC "(unknown function)" /* the default for OPENSSL_FUNC */
+#define UNKNOWN_FUNC "(unknown function)" /* the default for OPENSSL_FUNC */
 static const char *improve_func_name(const char *func)
 {
     return func == NULL ? UNKNOWN_FUNC
                         : strcmp(func, UNKNOWN_FUNC) == 0 ? "" : func;
 }
 
-int OSSL_CMP_print_to_bio(BIO* bio, const char *component, const char *file,
+int OSSL_CMP_print_to_bio(BIO *bio, const char *component, const char *file,
                           int line, OSSL_CMP_severity level, const char *msg)
 {
     const char *level_string =
@@ -151,7 +151,7 @@ static void put_error(int lib, const char *func, int reason,
 
 #define ERR_print_errors_cb_LIMIT 4096 /* size of char buf[] variable there */
 #define TYPICAL_MAX_OUTPUT_BEFORE_DATA 100
-#define MAX_DATA_LEN (ERR_print_errors_cb_LIMIT-TYPICAL_MAX_OUTPUT_BEFORE_DATA)
+#define MAX_DATA_LEN (ERR_print_errors_cb_LIMIT - TYPICAL_MAX_OUTPUT_BEFORE_DATA)
 void ossl_cmp_add_error_txt(const char *separator, const char *txt)
 {
     const char *file = NULL;

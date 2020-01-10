@@ -122,9 +122,9 @@ int OSSL_CRMF_MSG_set0_SinglePubInfo(OSSL_CRMF_SINGLEPUBINFO *spi,
     return 1;
 }
 
-int OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo(
-                                 OSSL_CRMF_PKIPUBLICATIONINFO *pi,
-                                 OSSL_CRMF_SINGLEPUBINFO *spi)
+int
+OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo(OSSL_CRMF_PKIPUBLICATIONINFO *pi,
+                                                     OSSL_CRMF_SINGLEPUBINFO *spi)
 {
     if (pi == NULL || spi == NULL) {
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_PKIPUBLICATIONINFO_PUSH0_SINGLEPUBINFO,
