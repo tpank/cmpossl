@@ -185,9 +185,9 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_PKMACVALUE)
 typedef struct ossl_crmf_popoprivkey_st {
     int type;
     union {
-        ASN1_BIT_STRING *thisMessage; /* 0 */     /* Deprecated */
+        ASN1_BIT_STRING *thisMessage; /* 0 */ /* Deprecated */
         ASN1_INTEGER *subsequentMessage; /* 1 */
-        ASN1_BIT_STRING *dhMAC; /* 2 */           /* Deprecated */
+        ASN1_BIT_STRING *dhMAC; /* 2 */ /* Deprecated */
         OSSL_CRMF_PKMACVALUE *agreeMAC; /* 3 */
         /*
          * TODO: This is not ASN1_NULL but CMS_ENVELOPEDDATA which should be

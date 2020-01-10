@@ -25,24 +25,23 @@ typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
  */
 struct OSSL_cmp_srv_ctx_st
 {
-    OSSL_CMP_CTX *ctx;          /* Client CMP context, partly reused for srv */
-
+    OSSL_CMP_CTX *ctx;            /* Client CMP context partly reused for srv */
     OSSL_CMP_PKISI *pkiStatusOut; /* PKIStatusInfo to be returned */
-    X509 *certOut;              /* Certificate to be returned in cp/ip/kup */
-    STACK_OF(X509) *chainOut;   /* Cert chain useful to validate certOut */
-    STACK_OF(X509) *caPubsOut;  /* caPubs for ip */
+    X509 *certOut;                /* Certificate to be returned in cp/ip/kup */
+    STACK_OF(X509) *chainOut;     /* Cert chain useful to validate certOut */
+    STACK_OF(X509) *caPubsOut;    /* caPubs for ip */
 
-    OSSL_CMP_MSG *certReq;      /* ir/cr/p10cr/kur saved in case of polling */
-    int certReqId;              /* id saved in case of polling */
-    unsigned int pollCount;     /* Number of polls before cert response */
-    int64_t checkAfterTime;     /* time to wait for the next poll in seconds */
+    OSSL_CMP_MSG *certReq;        /* ir/cr/p10cr/kur saved in case of polling */
+    int certReqId;                /* id saved in case of polling */
+    unsigned int pollCount;       /* Number of polls before cert response */
+    int64_t checkAfterTime;       /* time to wait for the next poll in seconds */
 
-    int grantImplicitConfirm;   /* Grant implicit confirmation if requested */
-    int sendError;              /* Always send error if true */
-    int sendUnprotectedErrors;  /* Send error and rejection msgs unprotected */
+    int grantImplicitConfirm;     /* Grant implicit confirmation if requested */
+    int sendError;                /* Always send error if true */
+    int sendUnprotectedErrors;    /* Send error and rejection msgs unprotected */
     int acceptUnprotectedRequests; /* Accept requests with no/invalid prot. */
-    int acceptRAVerified;       /* Accept ir/cr/kur with POPO RAVerified */
-    int encryptcert;            /* Encrypt certs in cert response message */
+    int acceptRAVerified;         /* Accept ir/cr/kur with POPO RAVerified */
+    int encryptcert;              /* Encrypt certs in cert response message */
 
     /* callbacks for message processing */
     cmp_srv_process_cb_t process_ir_cb;

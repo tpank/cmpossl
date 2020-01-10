@@ -118,7 +118,7 @@ static int bio_connect(BIO *bio, int timeout)
 
 /* adapted from apps/s_client.c */
 # undef BUFSIZZ
-# define BUFSIZZ 1024*8
+# define BUFSIZZ (1024 * 8)
 # define HTTP_PREFIX "HTTP/"
 # define HTTP_VERSION "1." /* or, e.g., "1.1" */
 # define HTTP_VERSION_MAX_LEN 3
@@ -482,7 +482,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
      */
     if (ctx->http_cb == NULL /* no TLS */
             && ctx->proxyName != NULL && ctx->proxyPort != 0)
-        pos = BIO_snprintf(path, pathlen-1, "http://%s:%d",
+        pos = BIO_snprintf(path, pathlen - 1, "http://%s:%d",
                            ctx->serverName, ctx->serverPort);
 
     /* make sure path includes a forward slash */
