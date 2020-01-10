@@ -107,14 +107,14 @@ const char *ossl_cmp_log_parse_metadata(const char *buf,
     return msg;
 }
 
-# define UNKNOWN_FUNC "(unknown function)" /* the default for OPENSSL_FUNC */
+#define UNKNOWN_FUNC "(unknown function)" /* the default for OPENSSL_FUNC */
 static const char *improve_func_name(const char *func)
 {
     return func == NULL ? UNKNOWN_FUNC
                         : strcmp(func, UNKNOWN_FUNC) == 0 ? "" : func;
 }
 
-int OSSL_CMP_print_to_bio(BIO* bio, const char *component, const char *file,
+int OSSL_CMP_print_to_bio(BIO *bio, const char *component, const char *file,
                           int line, OSSL_CMP_severity level, const char *msg)
 {
     const char *level_string =
