@@ -58,31 +58,21 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
         return NULL;
     fixture->test_case_name = test_case_name;
     if (!TEST_ptr(fixture->srv_ctx = OSSL_CMP_SRV_CTX_new())
-            || !TEST_true(OSSL_CMP_SRV_CTX_set_accept_unprotected(
-                                                           fixture->srv_ctx, 1))
-            || !TEST_true(OSSL_CMP_SRV_CTX_set1_certOut(fixture->srv_ctx,
-                                                        client_cert))
-            || !TEST_ptr(srv_cmp_ctx = OSSL_CMP_SRV_CTX_get0_ctx(
-                                                              fixture->srv_ctx))
-            || !TEST_true(OSSL_CMP_CTX_set1_clCert(srv_cmp_ctx, server_cert))
-            || !TEST_true(OSSL_CMP_CTX_set1_pkey(srv_cmp_ctx, server_key)))
+            || !OSSL_CMP_SRV_CTX_set_accept_unprotected(fixture->srv_ctx, 1)
+            || !OSSL_CMP_SRV_CTX_set1_certOut(fixture->srv_ctx, client_cert)
+            || (srv_cmp_ctx = OSSL_CMP_SRV_CTX_get0_ctx(fixture->srv_ctx)) == NULL
+            || !OSSL_CMP_CTX_set1_clCert(srv_cmp_ctx, server_cert)
+            || !OSSL_CMP_CTX_set1_pkey(srv_cmp_ctx, server_key))
         goto err;
     if (!TEST_ptr(fixture->cmp_ctx = ctx = OSSL_CMP_CTX_new())
-            || !TEST_true(OSSL_CMP_CTX_set_transfer_cb(ctx,
-                                                  OSSL_CMP_mock_server_perform))
-            || !TEST_true(OSSL_CMP_CTX_set_transfer_cb_arg(ctx,
-                                                           fixture->srv_ctx))
-            || !TEST_true(OSSL_CMP_CTX_set_option(ctx,
-                                                  OSSL_CMP_OPT_UNPROTECTED_SEND,
-                                                  1))
-            || !TEST_true(OSSL_CMP_CTX_set_option(ctx,
-                                                  OSSL_CMP_OPT_UNPROTECTED_ERRORS,
-                                                  1))
-            || !TEST_true(OSSL_CMP_CTX_set1_oldCert(ctx, client_cert))
-            || !TEST_true(OSSL_CMP_CTX_set1_pkey(ctx, client_key))
-            || !TEST_true(OSSL_CMP_CTX_set1_srvCert(ctx, server_cert))
-            || !TEST_true(OSSL_CMP_CTX_set1_referenceValue(ctx,
-                                                           ref, sizeof(ref))))
+            || !OSSL_CMP_CTX_set_transfer_cb(ctx, OSSL_CMP_mock_server_perform)
+            || !OSSL_CMP_CTX_set_transfer_cb_arg(ctx, fixture->srv_ctx)
+            || !OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_SEND, 1)
+            || !OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1)
+            || !OSSL_CMP_CTX_set1_oldCert(ctx, client_cert)
+            || !OSSL_CMP_CTX_set1_pkey(ctx, client_key)
+            || !OSSL_CMP_CTX_set1_srvCert(ctx, server_cert)
+            || !OSSL_CMP_CTX_set1_referenceValue(ctx, ref, sizeof(ref)))
         goto err;
     fixture->exec_cert_ses_cb = NULL;
     return fixture;
@@ -255,27 +245,30 @@ static int test_exec_GENM_ses(void)
 
 static int execute_exchange_certConf_test(CMP_SES_TEST_FIXTURE *fixture)
 {
-    return TEST_int_eq(fixture->expected,
-                       ossl_cmp_exchange_certConf(fixture->cmp_ctx,
-                                    OSSL_CMP_PKIFAILUREINFO_addInfoNotAvailable,
-                                    "abcdefg"));
+    int res =
+        ossl_cmp_exchange_certConf(fixture->cmp_ctx,
+                                   OSSL_CMP_PKIFAILUREINFO_addInfoNotAvailable,
+                                   "abcdefg");
+    return TEST_int_eq(fixture->expected, res);
 }
 
 static int execute_exchange_error_test(CMP_SES_TEST_FIXTURE *fixture)
 {
-    return TEST_int_eq(fixture->expected,
-                       ossl_cmp_exchange_error(fixture->cmp_ctx,
-                                    OSSL_CMP_PKISTATUS_rejection,
-                                    OSSL_CMP_PKIFAILUREINFO_unsupportedVersion,
-                                    "foobar"));
+    int res =
+        ossl_cmp_exchange_error(fixture->cmp_ctx,
+                                OSSL_CMP_PKISTATUS_rejection,
+                                OSSL_CMP_PKIFAILUREINFO_unsupportedVersion,
+                                "foobar");
+
+    return TEST_int_eq(fixture->expected, res);
 }
 
 static int test_exchange_certConf(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
-    if (!TEST_true(ossl_cmp_ctx_set0_newCert(fixture->cmp_ctx,
-                                             X509_dup(client_cert)))) {
+    if (!ossl_cmp_ctx_set0_newCert(fixture->cmp_ctx,
+                                   X509_dup(client_cert))) {
         tear_down(fixture);
         fixture = NULL;
     }
