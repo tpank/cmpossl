@@ -542,9 +542,9 @@ int setup_tests(void)
     /* Set test time stamps */
     struct tm ts = { 0 };
 
-    ts.tm_year = 2018 - 1900;
+    ts.tm_year = 2018 - 1900;      /* 2018 */
     ts.tm_mon = 1;                 /* February */
-    ts.tm_mday = 18;
+    ts.tm_mday = 18;               /* 18th */
     test_time_valid = mktime(&ts); /* February 18th 2018 */
     ts.tm_year += 10;              /* February 18th 2028 */
     test_time_after_expiration = mktime(&ts);

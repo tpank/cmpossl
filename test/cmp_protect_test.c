@@ -20,7 +20,7 @@ typedef struct test_fixture {
     OSSL_CMP_CTX *cmp_ctx;
     /* for protection tests */
     OSSL_CMP_MSG *msg;
-    OSSL_CMP_PKISI *si;      /* for error and response messages */
+    OSSL_CMP_PKISI *si; /* for error and response messages */
     ASN1_OCTET_STRING *secret;
     EVP_PKEY *privkey;
     EVP_PKEY *pubkey;
@@ -86,7 +86,8 @@ static int execute_calc_protection_pbmac_test(CMP_PROTECT_TEST_FIXTURE *fixture)
     ASN1_BIT_STRING *protection =
         ossl_cmp_calc_protection(fixture->msg, fixture->secret, NULL);
     int res = TEST_ptr(protection)
-        && TEST_true(ASN1_STRING_cmp(protection, fixture->msg->protection) == 0);
+            && TEST_true(ASN1_STRING_cmp(protection,
+                                         fixture->msg->protection) == 0);
 
     ASN1_BIT_STRING_free(protection);
     return res;

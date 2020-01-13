@@ -55,7 +55,7 @@ static void put_error(int lib, const char *func, int reason,
 }
 
 #define TYPICAL_MAX_OUTPUT_BEFORE_DATA 100
-#define MAX_DATA_LEN (ERR_PRINT_BUF_SIZE-TYPICAL_MAX_OUTPUT_BEFORE_DATA)
+#define MAX_DATA_LEN (ERR_PRINT_BUF_SIZE - TYPICAL_MAX_OUTPUT_BEFORE_DATA)
 void ERR_add_error_txt(const char *separator, const char *txt)
 {
     const char *file = NULL;
@@ -98,8 +98,7 @@ void ERR_add_error_txt(const char *separator, const char *txt)
             if (len_next <= available_len) {
                 next += len_next;
                 curr = NULL; /* no need to split */
-            }
-            else {
+            } else {
                 next += available_len;
                 curr = next; /* will split at this point */
             }
@@ -110,8 +109,7 @@ void ERR_add_error_txt(const char *separator, const char *txt)
                 if (next != NULL) {
                     next += strlen(separator);
                     trailing_separator = *next == '\0';
-                }
-                else {
+                } else {
                     next = curr + strlen(curr);
                 }
             }
@@ -152,8 +150,8 @@ void ERR_add_error_mem_bio(const char *separator, BIO *bio)
         long len = BIO_get_mem_data(bio, &str);
 
         if (len > 0)
-             ERR_add_error_txt(separator, str);
-     }
+            ERR_add_error_txt(separator, str);
+    }
 }
 
 static int print_bio(const char *str, size_t len, void *bp)
