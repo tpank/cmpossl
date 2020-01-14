@@ -88,10 +88,9 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE         158
 #  define CMP_R_MISSING_PRIVATE_KEY                        193
 #  define CMP_R_MISSING_PROTECTION                         159
+#  define CMP_R_MISSING_SENDER_IDENTIFICATION              111
 #  define CMP_R_MISSING_TRUST_STORE                        154
 #  define CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED           160
-#  define CMP_R_MULTIPLE_SAN_SOURCES                       102
-#  define CMP_R_MISSING_SENDER_IDENTIFICATION              111
 #  define CMP_R_MULTIPLE_SAN_SOURCES                       102
 #  define CMP_R_NO_STDIO                                   194
 #  define CMP_R_NO_SUITABLE_SENDER_CERT                    161
