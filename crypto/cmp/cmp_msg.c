@@ -994,3 +994,12 @@ OSSL_CMP_MSG *ossl_cmp_msg_load(const char *file)
     BIO_free(bio);
     return msg;
 }
+
+OSSL_CMP_MSG *OSSL_d2i_CMP_MSG(BIO *bio) {
+    return OSSL_d2i_CMP_MSG_bio(bio, NULL);
+}
+
+int OSSL_i2d_CMP_MSG(OSSL_CMP_MSG * msg, BIO* bio) {
+    return OSSL_i2d_CMP_MSG_bio(bio, msg);
+}
+

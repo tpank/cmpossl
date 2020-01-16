@@ -4941,3 +4941,5 @@ OSSL_CMP_SRV_CTX_set_send_unprotected_errors ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_accept_unprotected ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_accept_raverified  ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_set_grant_implicit_confirm ?	3_0_0	EXIST::FUNCTION:CMP
+OSSL_d2i_CMP_MSG                        ?	3_0_0	EXIST::FUNCTION:CMP
+OSSL_i2d_CMP_MSG                        ?	3_0_0	EXIST::FUNCTION:CMP

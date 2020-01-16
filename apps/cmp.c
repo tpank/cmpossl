@@ -179,8 +179,8 @@ static char *opt_reqout = NULL;
 static char *opt_rspin = NULL;
 static char *opt_rspout = NULL;
 
-#ifndef NDEBUG
-static int opt_mock_srv = 0;
+static int opt_use_mock_srv = 0;
+static char *opt_port = NULL;
 
 static char *opt_srv_ref = NULL;
 static char *opt_srv_secret = NULL;
@@ -209,7 +209,6 @@ static int opt_accept_unprot_err = 0;
 static int opt_accept_raverified = 0;
 
 static OSSL_CMP_SRV_CTX *srv_ctx = NULL;
-#endif /* NDEBUG */
 
 static int opt_crl_download = 0;
 static char *opt_crls = NULL;
@@ -308,8 +307,7 @@ typedef enum OPTION_choice {
     OPT_BATCH, OPT_REPEAT,
     OPT_REQIN, OPT_REQOUT, OPT_RSPIN, OPT_RSPOUT,
 
-#ifndef NDEBUG
-    OPT_MOCK_SRV,
+    OPT_USE_MOCK_SRV, OPT_PORT,
     OPT_SRV_REF, OPT_SRV_SECRET,
     OPT_SRV_CERT, OPT_SRV_KEY, OPT_SRV_KEYPASS,
     OPT_SRV_TRUSTED, OPT_SRV_UNTRUSTED,
@@ -321,7 +319,6 @@ typedef enum OPTION_choice {
     OPT_SEND_ERROR, OPT_SEND_UNPROTECTED,
     OPT_SEND_UNPROT_ERR, OPT_ACCEPT_UNPROTECTED,
     OPT_ACCEPT_UNPROT_ERR, OPT_ACCEPT_RAVERIFIED,
-#endif
 
     OPT_CRL_DOWNLOAD, OPT_CRLS, OPT_CRL_TIMEOUT,
 #ifndef OPENSSL_NO_OCSP
@@ -517,8 +514,8 @@ const OPTIONS cmp_options[] = {
      "Process sequence of CMP responses provided in file(s), skipping server"},
     {"rspout", OPT_RSPOUT, 's', "Save sequence of CMP responses to file(s)"},
 
-#ifndef NDEBUG
-    {"mock_srv", OPT_MOCK_SRV, '-', "Mock the server"},
+    {"use_mock_srv", OPT_USE_MOCK_SRV, '-', "Mock the server internally"},
+    {"port", OPT_PORT, 's', "HTTP server port to run the mock server on"},
     {"srv_ref", OPT_SRV_REF, 's',
      "Reference value to use as senderKID of server in case no -cert is given"},
     {"srv_secret", OPT_SRV_SECRET, 's',
@@ -568,7 +565,6 @@ const OPTIONS cmp_options[] = {
      "Accept unprotected error messages from client"},
     {"accept_raverified", OPT_ACCEPT_RAVERIFIED, '-',
      "Accept RAVERIFED as proof-of-possession (POPO)"},
-#endif
 
     OPT_SECTION("Specific CMP and TLS certificate verification"),
     {"crl_download", OPT_CRL_DOWNLOAD, '-',
@@ -658,8 +654,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {(char **)&opt_batch}, {(char **)&opt_repeat},
     {&opt_reqin}, {&opt_reqout}, {&opt_rspin}, {&opt_rspout},
 
-#ifndef NDEBUG
-    {(char **)&opt_mock_srv},
+    {(char **)&opt_use_mock_srv}, {&opt_port},
     {&opt_srv_ref}, {&opt_srv_secret},
     {&opt_srv_cert}, {&opt_srv_key}, {&opt_srv_keypass},
     {&opt_srv_trusted}, {&opt_srv_untrusted},
@@ -671,7 +666,6 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {(char **)&opt_send_error}, {(char **)&opt_send_unprotected},
     {(char **)&opt_send_unprot_err}, {(char **)&opt_accept_unprotected},
     {(char **)&opt_accept_unprot_err}, {(char **)&opt_accept_raverified},
-#endif
 
     {(char **)&opt_crl_download}, {&opt_crls}, {(char **)&opt_crl_timeout},
 #ifndef OPENSSL_NO_OCSP
@@ -2024,18 +2018,13 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             ret = 0;
     } else {
         const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
-#ifndef NDEBUG
-        if (opt_mock_srv) {
-            OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
+        if (opt_use_mock_srv) {
             ret = OSSL_CMP_mock_server_perform(ctx, actual_req, res);
         } else {
-#endif
 #if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
             ret = OSSL_CMP_MSG_http_perform(ctx, actual_req, res);
 #endif
-#ifndef NDEBUG
         }
-#endif
     }
 
     if (ret != 0 || (*res) == NULL)
@@ -2484,7 +2473,6 @@ static int transform_opts(OSSL_CMP_CTX *ctx)
     return 1;
 }
 
-#ifndef NDEBUG
 static int setup_srv_ctx(ENGINE *e)
 {
     OSSL_CMP_CTX *ctx = NULL;
@@ -2516,7 +2504,7 @@ static int setup_srv_ctx(ENGINE *e)
                 goto err;
         }
     } else if (opt_srv_cert == NULL && opt_srv_key == NULL) {
-        CMP_err("server credentials must be set if -mock_srv is used");
+        CMP_err("server credentials must be set if -use_mock_srv or -port is used");
         goto err;
     }
 
@@ -2625,7 +2613,7 @@ static int setup_srv_ctx(ENGINE *e)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1);
     if (opt_accept_raverified)
         (void)OSSL_CMP_SRV_CTX_set_accept_raverified(srv_ctx, 1);
-
+    OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
     return 1;
 
  err:
@@ -2633,7 +2621,6 @@ static int setup_srv_ctx(ENGINE *e)
     srv_ctx = NULL;
     return 0;
 }
-#endif /* !defined(NDEBUG) */
 
 /*
  * set up verification aspects of OSSL_CMP_CTX w.r.t. opts from config file/CLI.
@@ -3251,7 +3238,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
  * Prints reason for error to bio_err.
  * Returns 1 on success, 0 on error
  */
-static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
+static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 {
     STACK_OF(X509_CRL) *all_crls = NULL;
     int ret = 0;
@@ -3440,16 +3427,8 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
                                       opt_totaltimeout);
 
     if (opt_reqin != NULL || opt_reqout != NULL
-            || opt_rspin != NULL || opt_rspout != NULL
-#ifndef NDEBUG
-            || opt_mock_srv
-#endif
-        )
+            || opt_rspin != NULL || opt_rspout != NULL || opt_use_mock_srv)
         (void)OSSL_CMP_CTX_set_transfer_cb(ctx, read_write_req_resp);
-#ifndef NDEBUG
-    if (opt_mock_srv && !setup_srv_ctx(e))
-        goto err;
-#endif
 
     ret = 1;
 
@@ -3459,6 +3438,111 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
  oom:
     CMP_err("out of memory");
     goto err;
+}
+
+/* Quick and dirty CMP server: read in and parse input request */
+
+static BIO *init_cmp_server(const char *port)
+{
+# ifdef OPENSSL_NO_SOCK
+    CMP_err("Error setting up accept BIO - sockets not supported.\n");
+    return NULL;
+# else
+    BIO *acbio = NULL, *bufbio = NULL;
+
+    bufbio = BIO_new(BIO_f_buffer());
+    if (bufbio == NULL)
+        goto err;
+    acbio = BIO_new(BIO_s_accept());
+    if (acbio == NULL
+        || BIO_set_bind_mode(acbio, BIO_BIND_REUSEADDR) < 0
+        || BIO_set_accept_port(acbio, port) < 0) {
+            CMP_err("Error setting up accept BIO");
+        goto err;
+    }
+
+    BIO_set_accept_bios(acbio, bufbio);
+    bufbio = NULL;
+    if (BIO_do_accept(acbio) <= 0) {
+        CMP_err("Error starting accept");
+        goto err;
+    }
+
+    return acbio;
+
+ err:
+    BIO_free_all(acbio);
+    BIO_free(bufbio);
+    return NULL;
+# endif
+}
+
+static int do_cmp_server(OSSL_CMP_MSG **preq, BIO **pcbio, BIO *acbio)
+{
+# ifdef OPENSSL_NO_SOCK
+    return 0;
+# else
+    int len;
+    OSSL_CMP_MSG *req = NULL;
+    char inbuf[2048], reqbuf[2048];
+    BIO *cbio = NULL;
+    const char *client;
+
+    *preq = NULL;
+
+    /* Connection loss before accept() is routine, ignore silently */
+    if (BIO_do_accept(acbio) <= 0)
+        return 0;
+
+    cbio = BIO_pop(acbio);
+    *pcbio = cbio;
+    client = BIO_get_peer_name(cbio);
+
+    /* Read the request line. */
+    len = BIO_gets(cbio, reqbuf, sizeof(reqbuf));
+    if (len <= 0)
+        return 0;
+
+    if (strncmp(reqbuf, "POST ", 5) != 0) {
+        CMP_err1("Invalid request -- bad HTTP verb: %s", client);
+        return 0;
+    }
+
+    /* Read and skip past the headers. */
+    for (;;) {
+        len = BIO_gets(cbio, inbuf, sizeof(inbuf));
+        if (len <= 0)
+            return 0;
+        if ((inbuf[0] == '\r') || (inbuf[0] == '\n'))
+            break;
+    }
+
+    /* Try to read CMP request */
+        req = OSSL_d2i_CMP_MSG(cbio);
+
+    if (req == NULL) {
+        CMP_err("Error parsing CMP request");
+        return 0;
+    }
+    *preq = req;
+    return 1;
+#endif
+}
+
+static int send_cmp_response(BIO *cbio, OSSL_CMP_MSG *resp)
+{
+    char http_resp[] =
+        "HTTP/1.0 200 OK\r\nContent-type: application/pkixcmp\r\n"
+        "Content-Length: %d\r\n\r\n";
+
+    if (cbio == NULL)
+        return 0;
+    BIO_printf(cbio, http_resp, i2d_OSSL_CMP_MSG(resp, NULL));
+    if(OSSL_i2d_CMP_MSG(resp, cbio) <= 0)
+        return 0;
+
+    (void)BIO_flush(cbio);
+    return 1;
 }
 
 /*
@@ -3989,9 +4073,11 @@ static int get_opts(int argc, char **argv)
         case OPT_RSPOUT:
             opt_rspout = opt_str("rspout");
             break;
-#ifndef NDEBUG
-        case OPT_MOCK_SRV:
-            opt_mock_srv = 1;
+        case OPT_USE_MOCK_SRV:
+            opt_use_mock_srv = 1;
+            break;
+        case OPT_PORT:
+            opt_port = opt_str("port");
             break;
         case OPT_SRV_REF:
             opt_srv_ref = opt_str("srv_ref");
@@ -4062,7 +4148,6 @@ static int get_opts(int argc, char **argv)
         case OPT_ACCEPT_RAVERIFIED:
             opt_accept_raverified = 1;
             break;
-#endif
         }
     }
     argc = opt_num_rest();
@@ -4085,6 +4170,10 @@ int cmp_main(int argc, char **argv)
     X509 *newcert = NULL;
     ENGINE *e = NULL;
     int ret = 0; /* default: failure */
+    BIO *acbio = NULL;
+    BIO *cbio = NULL;
+    OSSL_CMP_MSG *req = NULL;
+    OSSL_CMP_MSG *resp = NULL;
 
     if (argc <= 1) {
         opt_help(cmp_options);
@@ -4168,110 +4257,146 @@ int cmp_main(int argc, char **argv)
 
     if (opt_engine != NULL)
         e = setup_engine_no_default(opt_engine, 0);
-    if (!setup_ctx(cmp_ctx, e)) {
-        CMP_err("cannot set up CMP context");
-        goto err;
+
+    if (opt_port != NULL) {
+        if (opt_use_mock_srv) {
+            CMP_err("cannot set up internal and HTTP mock server in parallel");
+            goto err;
+        }
+        if (opt_server != NULL) {
+            CMP_err("cannot set up client and HTTP mock server in parallel");
+            goto err;
+        }
     }
-    for (i = 0; i < opt_repeat; i++) {
-        /* everything is ready, now connect and perform the command! */
-        switch (opt_cmd) {
-        case CMP_IR:
-            newcert = OSSL_CMP_exec_IR_ses(cmp_ctx);
-            if (newcert == NULL)
+    if ((opt_use_mock_srv || opt_port != NULL)) {
+        if (!setup_srv_ctx(e))
+            goto err;
+        OSSL_CMP_CTX_set_transfer_cb_arg(cmp_ctx, srv_ctx);
+    }
+    if (opt_port != NULL) {
+        acbio = init_cmp_server(opt_port);
+        if (acbio == NULL)
+            goto err;
+        for(;;) {
+            if (!do_cmp_server(&req, &cbio, acbio))
+                continue;
+            if (req == NULL)
                 goto err;
-            break;
-        case CMP_KUR:
-            newcert = OSSL_CMP_exec_KUR_ses(cmp_ctx);
-            if (newcert == NULL)
+            if (OSSL_CMP_mock_server_perform(cmp_ctx, req, &resp) != 0)
                 goto err;
-            break;
-        case CMP_CR:
-            newcert = OSSL_CMP_exec_CR_ses(cmp_ctx);
-            if (newcert == NULL)
+            if (send_cmp_response(cbio, resp) == 0)
                 goto err;
-            break;
-        case CMP_P10CR:
-            newcert = OSSL_CMP_exec_P10CR_ses(cmp_ctx);
-            if (newcert == NULL)
-                goto err;
-            break;
-        case CMP_RR:
-            if (OSSL_CMP_exec_RR_ses(cmp_ctx) == NULL)
-                goto err;
-            break;
-        case CMP_GENM:
-            {
-                STACK_OF(OSSL_CMP_ITAV) *itavs;
-
-                if (opt_infotype != NID_undef) {
-                    OSSL_CMP_ITAV *itav =
-                        OSSL_CMP_ITAV_create(OBJ_nid2obj(opt_infotype), NULL);
-                    if (itav == NULL)
-                        goto err;
-                    OSSL_CMP_CTX_push0_genm_ITAV(cmp_ctx, itav);
-                }
-
-                if ((itavs = OSSL_CMP_exec_GENM_ses(cmp_ctx)) == NULL)
+            OSSL_CMP_MSG_free(req);
+            OSSL_CMP_MSG_free(resp);
+            req = resp = NULL;
+        }
+    }
+    if (opt_server != NULL) {
+        if (!setup_client_ctx(cmp_ctx, e)) {
+            CMP_err("cannot set up CMP context");
+            goto err;
+        }
+        for (i = 0; i < opt_repeat; i++) {
+            /* everything is ready, now connect and perform the command! */
+            switch (opt_cmd) {
+            case CMP_IR:
+                newcert = OSSL_CMP_exec_IR_ses(cmp_ctx);
+                if (newcert == NULL)
                     goto err;
-                print_itavs(itavs);
-                sk_OSSL_CMP_ITAV_pop_free(itavs, OSSL_CMP_ITAV_free);
+                break;
+            case CMP_KUR:
+                newcert = OSSL_CMP_exec_KUR_ses(cmp_ctx);
+                if (newcert == NULL)
+                    goto err;
+                break;
+            case CMP_CR:
+                newcert = OSSL_CMP_exec_CR_ses(cmp_ctx);
+                if (newcert == NULL)
+                    goto err;
+                break;
+            case CMP_P10CR:
+                newcert = OSSL_CMP_exec_P10CR_ses(cmp_ctx);
+                if (newcert == NULL)
+                    goto err;
+                break;
+            case CMP_RR:
+                if (OSSL_CMP_exec_RR_ses(cmp_ctx) == NULL)
+                    goto err;
+                break;
+            case CMP_GENM:
+                {
+                    STACK_OF(OSSL_CMP_ITAV) *itavs;
+
+                    if (opt_infotype != NID_undef) {
+                        OSSL_CMP_ITAV *itav =
+                            OSSL_CMP_ITAV_create(OBJ_nid2obj(opt_infotype), NULL);
+                        if (itav == NULL)
+                            goto err;
+                        OSSL_CMP_CTX_push0_genm_ITAV(cmp_ctx, itav);
+                    }
+
+                    if ((itavs = OSSL_CMP_exec_GENM_ses(cmp_ctx)) == NULL)
+                        goto err;
+                    print_itavs(itavs);
+                    sk_OSSL_CMP_ITAV_pop_free(itavs, OSSL_CMP_ITAV_free);
+                    break;
+                }
+            default:
                 break;
             }
-        default:
-            break;
-        }
 
-        {
-            /* print PKIStatusInfo (this is in case there has been no error) */
-            int status = OSSL_CMP_CTX_get_status(cmp_ctx);
-            char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
-            const char *string = OSSL_CMP_CTX_snprint_PKIStatus(cmp_ctx, buf,
-                                                         OSSL_CMP_PKISI_BUFLEN);
+            {
+                /* print PKIStatusInfo (this is in case there has been no error) */
+                int status = OSSL_CMP_CTX_get_status(cmp_ctx);
+                char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
+                const char *string = OSSL_CMP_CTX_snprint_PKIStatus(cmp_ctx, buf,
+                                                             OSSL_CMP_PKISI_BUFLEN);
 
-            CMP_print(bio_err,
-                      status == OSSL_CMP_PKISTATUS_accepted ? "info" :
-                      status == OSSL_CMP_PKISTATUS_rejection ? "server error" :
-                      status == OSSL_CMP_PKISTATUS_waiting ? "internal error"
-                                                           : "warning",
-                      "received from %s %s %s", opt_server,
-                      string != NULL ? string : "<unknown PKIStatus>", "");
-            OPENSSL_free(buf);
-        }
-
-        if (opt_cacertsout != NULL) {
-            STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_caPubs(cmp_ctx);
-
-            if (sk_X509_num(certs) > 0
-                    && save_certs(cmp_ctx, certs, opt_cacertsout, "CA") < 0) {
-                sk_X509_pop_free(certs, X509_free);
-                goto err;
+                CMP_print(bio_err,
+                          status == OSSL_CMP_PKISTATUS_accepted ? "info" :
+                          status == OSSL_CMP_PKISTATUS_rejection ? "server error" :
+                          status == OSSL_CMP_PKISTATUS_waiting ? "internal error"
+                                                               : "warning",
+                          "received from %s %s %s", opt_server,
+                          string != NULL ? string : "<unknown PKIStatus>", "");
+                OPENSSL_free(buf);
             }
-            sk_X509_pop_free(certs, X509_free);
-        }
 
-        if (opt_extracertsout != NULL) {
-            STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_extraCertsIn(cmp_ctx);
-            if (sk_X509_num(certs) > 0
-                    && save_certs(cmp_ctx, certs, opt_extracertsout,
-                                  "extra") < 0) {
+            if (opt_cacertsout != NULL) {
+                STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_caPubs(cmp_ctx);
+
+                if (sk_X509_num(certs) > 0
+                        && save_certs(cmp_ctx, certs, opt_cacertsout, "CA") < 0) {
+                    sk_X509_pop_free(certs, X509_free);
+                    goto err;
+                }
                 sk_X509_pop_free(certs, X509_free);
-                goto err;
             }
-            sk_X509_pop_free(certs, X509_free);
-        }
 
-        if (opt_certout != NULL && newcert != NULL) {
-            STACK_OF(X509) *certs = sk_X509_new_null();
-            if (certs == NULL || !sk_X509_push(certs, newcert)
-                    || save_certs(cmp_ctx, certs, opt_certout,
-                                  "enrolled") < 0) {
+            if (opt_extracertsout != NULL) {
+                STACK_OF(X509) *certs = OSSL_CMP_CTX_get1_extraCertsIn(cmp_ctx);
+                if (sk_X509_num(certs) > 0
+                        && save_certs(cmp_ctx, certs, opt_extracertsout,
+                                      "extra") < 0) {
+                    sk_X509_pop_free(certs, X509_free);
+                    goto err;
+                }
+                sk_X509_pop_free(certs, X509_free);
+            }
+
+            if (opt_certout != NULL && newcert != NULL) {
+                STACK_OF(X509) *certs = sk_X509_new_null();
+                if (certs == NULL || !sk_X509_push(certs, newcert)
+                        || save_certs(cmp_ctx, certs, opt_certout,
+                                      "enrolled") < 0) {
+                    sk_X509_free(certs);
+                    goto err;
+                }
                 sk_X509_free(certs);
-                goto err;
             }
-            sk_X509_free(certs);
+            if (!OSSL_CMP_CTX_reinit(cmp_ctx))
+                goto err;
         }
-        if (!OSSL_CMP_CTX_reinit(cmp_ctx))
-            goto err;
     }
     ret = 1;
  err:
@@ -4281,11 +4406,12 @@ int cmp_main(int argc, char **argv)
     cleanse(opt_otherpass);
     cleanse(opt_tls_keypass);
     cleanse(opt_secret);
-#ifndef NDEBUG
     cleanse(opt_srv_keypass);
     cleanse(opt_srv_secret);
     OSSL_CMP_SRV_CTX_free(srv_ctx);
-#endif
+    OSSL_CMP_MSG_free(req);
+    OSSL_CMP_MSG_free(resp);
+
     if (ret != 1)
         OSSL_CMP_CTX_print_errors(cmp_ctx);
 

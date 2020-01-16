@@ -122,7 +122,8 @@ B<openssl> B<cmp>
 [B<-no_check_time>]
 [B<-allow_proxy_certs>]
 
-[B<-mock_srv>]
+[B<-use_mock_srv>]
+[B<-port>]
 [B<-srv_ref>]
 [B<-srv_secret>]
 [B<-srv_cert>]
@@ -854,9 +855,13 @@ See the L<openssl-verify(1)> manual page for details.
 
 =over 4
 
-=item B<-mock_srv>
+=item B<-use_mock_srv>
 
-Mock the server.
+Mock the server internally.
+
+=item B<-port>
+
+HTTP server port to run the mock server on
 
 =item B<-srv_ref>
 
