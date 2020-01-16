@@ -496,7 +496,22 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req,
     }
     if (!X509_NAME_set(&ctx->recipient, req->header->sender->d.directoryName))
         return 0;
-
+    if (req->body != NULL)
+        switch (req->body->type) {
+        case OSSL_CMP_PKIBODY_IR:
+        case OSSL_CMP_PKIBODY_CR:
+        case OSSL_CMP_PKIBODY_KUR:
+        case OSSL_CMP_PKIBODY_P10CR:
+        case OSSL_CMP_PKIBODY_RR:
+            /*
+             * looks like a start of a new transaction,
+             * clear last transactionID and senderNonce
+             */
+            OSSL_CMP_CTX_set1_transactionID(ctx, NULL);
+            OSSL_CMP_CTX_set1_senderNonce(ctx, NULL);
+            break;
+        default: ; /* transactionID should be already initialized */
+        }
     if (ossl_cmp_msg_check_received(ctx, req, unprotected_exception,
                                     srv_ctx->acceptUnprotectedRequests) < 0) {
         CMPerr(0, CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE);
