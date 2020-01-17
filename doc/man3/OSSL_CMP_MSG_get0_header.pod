@@ -13,16 +13,15 @@ OSSL_CMP_MSG_get0_header
 
   OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
   OSSL_CMP_MSG *OSSL_d2i_CMP_MSG(BIO *bio);
-  int OSSL_i2d_CMP_MSG(OSSL_CMP_MSG * msg, BIO* bio);
-  
+  int OSSL_i2d_CMP_MSG(OSSL_CMP_MSG *msg, BIO *bio);
 
 =head1 DESCRIPTION
 
 OSSL_CMP_MSG_get0_header returns the header of the given CMP message.
 
-OSSL_d2i_CMP_MSG parses a OSSL_CMP_MSG from the BIO I<bio>.
+OSSL_d2i_CMP_MSG parses an ASN.1-encoded OSSL_CMP_MSG from the BIO I<bio>.
 
-OSSL_i2d_CMP_MSG writes the OSSL_CMP_MSG I<msg> to the he BIO I<bio>.
+OSSL_i2d_CMP_MSG writes the OSSL_CMP_MSG I<msg> in ASN.1 encoding to BIO I<bio>.
 
 =head1 NOTES
 
@@ -35,7 +34,7 @@ or NULL if the respective entry does not exist and on error.
 
 OSSL_d2i_CMP_MSG() returns the parsed message or NULL on error.
 
-OSSL_i2d_CMP_MSG returns 1 on success or 0 on error.
+OSSL_i2d_CMP_MSG() returns 1 on success or 0 on error.
 
 =head1 HISTORY
 
