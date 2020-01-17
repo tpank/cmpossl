@@ -851,17 +851,17 @@ See the L<openssl-verify(1)> manual page for details.
 =back
 
 
-=head2 Mock server options, used for test purposes only
+=head2 Mock server options, used for testing purposes only
 
 =over 4
 
 =item B<-use_mock_srv>
 
-Mock the server internally.
+Use the mock server (not a real one) for the client
 
 =item B<-port>
 
-HTTP server port to run the mock server on
+Act as CMP HTTP server mock-up listening on the given port
 
 =item B<-srv_ref>
 
