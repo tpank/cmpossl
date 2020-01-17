@@ -995,11 +995,12 @@ OSSL_CMP_MSG *ossl_cmp_msg_load(const char *file)
     return msg;
 }
 
-OSSL_CMP_MSG *OSSL_d2i_CMP_MSG(BIO *bio) {
-    return OSSL_d2i_CMP_MSG_bio(bio, NULL);
+OSSL_CMP_MSG *OSSL_d2i_CMP_MSG_bio(BIO *bio, OSSL_CMP_MSG **msg) {
+    return ASN1_d2i_bio_of(OSSL_CMP_MSG, OSSL_CMP_MSG_new,
+                           d2i_OSSL_CMP_MSG, bio, msg);
 }
 
-int OSSL_i2d_CMP_MSG(OSSL_CMP_MSG * msg, BIO* bio) {
-    return OSSL_i2d_CMP_MSG_bio(bio, msg);
+int OSSL_i2d_CMP_MSG_bio(BIO *bio, const OSSL_CMP_MSG *msg) {
+    return ASN1_i2d_bio_of(OSSL_CMP_MSG, i2d_OSSL_CMP_MSG, bio, msg);
 }
 

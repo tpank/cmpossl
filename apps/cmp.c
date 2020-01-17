@@ -3526,7 +3526,7 @@ static int do_cmp_server(OSSL_CMP_MSG **preq, BIO **pcbio, BIO *acbio)
     }
 
     /* Try to read CMP request */
-    req = OSSL_d2i_CMP_MSG(cbio);
+    req = OSSL_d2i_CMP_MSG_bio(cbio, NULL);
 
     if (req == NULL) {
         CMP_err("Error parsing CMP request");
@@ -3546,7 +3546,7 @@ static int send_cmp_response(BIO *cbio, OSSL_CMP_MSG *resp)
     if (cbio == NULL)
         return 0;
     BIO_printf(cbio, http_resp, i2d_OSSL_CMP_MSG(resp, NULL));
-    if (OSSL_i2d_CMP_MSG(resp, cbio) <= 0)
+    if (OSSL_i2d_CMP_MSG_bio(cbio, resp) <= 0)
         return 0;
 
     (void)BIO_flush(cbio);
