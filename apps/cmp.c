@@ -602,7 +602,7 @@ const OPTIONS cmp_options[] = {
     /*
      * subsumes:
      * {"crl_check_all", OPT_CRLALL, '-',
-     *  "Check CRLs not only for leaf certificate but for full certificate chain"},
+     *  "Check CRLs not only for leaf certificate but for full cert chain"},
      */
 
     {NULL}
@@ -613,7 +613,7 @@ typedef union {
     int *num;
     long *num_long;
 } varref;
-static varref cmp_vars[] = { /* must be in the same order as enumerated above! */
+static varref cmp_vars[] = { /* must be in same order as enumerated above! */
     {&opt_config}, {&opt_section},
 
     {&opt_server}, {&opt_proxy}, {&opt_path},
@@ -686,22 +686,23 @@ static varref cmp_vars[] = { /* must be in the same order as enumerated above! *
 #  define PRINT_LOCATION(bio) ((void)0)
 # endif
 # define CMP_print(bio, prefix, msg, a1, a2, a3) \
-    (PRINT_LOCATION(bio), BIO_printf(bio, "CMP %s: " msg "\n", prefix, a1, a2, a3))
+    (PRINT_LOCATION(bio), \
+     BIO_printf(bio, "CMP %s: " msg "\n", prefix, a1, a2, a3))
 # define CMP_INFO(msg, a1, a2, a3) CMP_print(bio_out, "info", msg, a1, a2, a3)
 # define CMP_info(msg)              CMP_INFO(msg"%s%s%s", "", "", "")
-# define CMP_info1(msg, a1        ) CMP_INFO(msg  "%s%s", a1, "", "")
-# define CMP_info2(msg, a1, a2    ) CMP_INFO(msg    "%s", a1, a2, "")
-# define CMP_info3(msg, a1, a2, a3) CMP_INFO(msg        , a1, a2, a3)
-# define CMP_WARN(msg, a1, a2, a3) CMP_print(bio_out, "warning", msg, a1, a2, a3)
+# define CMP_info1(msg, a1)         CMP_INFO(msg"%s%s",   a1, "", "")
+# define CMP_info2(msg, a1, a2)     CMP_INFO(msg"%s",     a1, a2, "")
+# define CMP_info3(msg, a1, a2, a3) CMP_INFO(msg,         a1, a2, a3)
+# define CMP_WARN(m, a1, a2, a3) CMP_print(bio_out, "warning", m, a1, a2, a3)
 # define CMP_warn(msg)              CMP_WARN(msg"%s%s%s", "", "", "")
-# define CMP_warn1(msg, a1        ) CMP_WARN(msg  "%s%s", a1, "", "")
-# define CMP_warn2(msg, a1, a2    ) CMP_WARN(msg    "%s", a1, a2, "")
-# define CMP_warn3(msg, a1, a2, a3) CMP_WARN(msg        , a1, a2, a3)
+# define CMP_warn1(msg, a1)         CMP_WARN(msg"%s%s",   a1, "", "")
+# define CMP_warn2(msg, a1, a2)     CMP_WARN(msg"%s",     a1, a2, "")
+# define CMP_warn3(msg, a1, a2, a3) CMP_WARN(msg,         a1, a2, a3)
 # define CMP_ERR(msg, a1, a2, a3) CMP_print(bio_err, "error", msg, a1, a2, a3)
 # define CMP_err(msg)              CMP_ERR(msg"%s%s%s", "", "", "")
-# define CMP_err1(msg, a1        ) CMP_ERR(msg  "%s%s", a1, "", "")
-# define CMP_err2(msg, a1, a2    ) CMP_ERR(msg    "%s", a1, a2, "")
-# define CMP_err3(msg, a1, a2, a3) CMP_ERR(msg        , a1, a2, a3)
+# define CMP_err1(msg, a1)         CMP_ERR(msg"%s%s",   a1, "", "")
+# define CMP_err2(msg, a1, a2)     CMP_ERR(msg"%s",     a1, a2, "")
+# define CMP_err3(msg, a1, a2, a3) CMP_ERR(msg,         a1, a2, a3)
 
 static int print_to_bio_out(const char *func, const char *file, int line,
                             OSSL_CMP_severity level, const char *msg)
@@ -1300,7 +1301,7 @@ static int truststore_set_host_etc(X509_STORE *ts, char *host)
 }
 
 static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */,
-                                    const STACK_OF(X509) *certs /* may be NULL */)
+                                    const STACK_OF(X509) *certs /* may NULL */)
 {
     int i;
 
@@ -1799,7 +1800,7 @@ static int ocsp_stapling_cb(SSL *ssl, STACK_OF(X509) *untrusted)
         }
     }
 
-    ctx = X509_STORE_CTX_new(); /* ctx needed for CRL checking and diagnostics */
+    ctx = X509_STORE_CTX_new(); /* ctx needed for CRL checking & diagnostics */
     if (ctx == NULL)
         goto end;
     if (!X509_STORE_CTX_init(ctx,
@@ -1989,6 +1990,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 {
     OSSL_CMP_MSG *req_new = NULL;
     OSSL_CMP_PKIHEADER *hdr;
+    ASN1_OCTET_STRING *nonce, *tid;
     int ret = CMP_R_ERROR_TRANSFERRING_OUT;
 
     if (req != NULL && opt_reqout != NULL
@@ -2010,8 +2012,8 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
              * See also https://github.com/mpeylo/cmpossl/issues/8
              */
 # if defined(USE_TRANSACTIONID_WORKAROUND)
-            OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_MSG_get0_header
-                                            (req_new), NULL);
+            hdr = OSSL_CMP_MSG_get0_header(req_new);
+            OSSL_CMP_CTX_set1_transactionID(hdr, NULL);
             ossl_cmp_msg_protect(ctx, req_new);
 # endif
         }
@@ -2036,12 +2038,12 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         goto err;
     ret = ERR_R_MALLOC_FAILURE;
     hdr = OSSL_CMP_MSG_get0_header(*res);
+    nonce = OSSL_CMP_HDR_get0_recipNonce(hdr);
+    tid = OSSL_CMP_HDR_get0_transactionID(hdr);
     if ((opt_reqin != NULL || opt_rspin != NULL)
         /* need to satisfy nonce and transactionID checks */
-            && (!OSSL_CMP_CTX_set1_senderNonce(ctx,
-                                               OSSL_CMP_HDR_get0_recipNonce(hdr))
-                    || !OSSL_CMP_CTX_set1_transactionID(ctx,
-                                         OSSL_CMP_HDR_get0_transactionID(hdr))))
+            && (!OSSL_CMP_CTX_set1_senderNonce(ctx, nonce)
+                    || !OSSL_CMP_CTX_set1_transactionID(ctx, tid)))
         goto err;
 
     if (opt_rspout != NULL && !write_PKIMESSAGE(ctx, *res, &opt_rspout)) {
@@ -2143,8 +2145,8 @@ static int cert_verify_cb(int ok, X509_STORE_CTX *ctx)
         int cert_error = X509_STORE_CTX_get_error(ctx);
         X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
         BIO *sbio = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_SBIO);
-        SSL *ssl =
-            X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+        int idx = SSL_get_ex_data_X509_STORE_CTX_idx();
+        SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, idx);
         const char *expected = NULL;
 
         if (sbio != 0 /* OSSL_CMP_MSG_http_perform() with TLS is active */
@@ -2497,17 +2499,17 @@ static int setup_srv_ctx(ENGINE *e)
     }
     if (opt_srv_secret != NULL) {
         int res;
-        char *pass_string;
-        if ((pass_string = get_passwd(opt_srv_secret,
-                                      "PBMAC secret of server"))) {
+        char *pass_str;
+
+        if ((pass_str = get_passwd(opt_srv_secret, "PBMAC secret of server"))) {
             cleanse(opt_srv_secret);
             res = OSSL_CMP_CTX_set1_referenceValue(ctx,
                                                    (unsigned char *)opt_srv_ref,
                                                    strlen(opt_srv_ref))
                     && OSSL_CMP_CTX_set1_secretValue(ctx,
-                                                     (unsigned char *)pass_string,
-                                                     strlen(pass_string));
-            OPENSSL_clear_free(pass_string, strlen(pass_string));
+                                                     (unsigned char *)pass_str,
+                                                     strlen(pass_str));
+            OPENSSL_clear_free(pass_str, strlen(pass_str));
             if (res == 0)
                 goto err;
         }
@@ -2582,7 +2584,8 @@ static int setup_srv_ctx(ENGINE *e)
                      (add_X509_stack_fn_t)OSSL_CMP_SRV_CTX_set1_chainOut, NULL))
         goto err;
     if (!setup_certs(opt_rsp_capubs, "caPubs for mock server", srv_ctx,
-                     (add_X509_stack_fn_t)OSSL_CMP_SRV_CTX_set1_caPubsOut, NULL))
+                     (add_X509_stack_fn_t)OSSL_CMP_SRV_CTX_set1_caPubsOut,
+                     NULL))
         goto err;
     (void)OSSL_CMP_SRV_CTX_set_pollCount(srv_ctx, opt_poll_count);
     (void)OSSL_CMP_SRV_CTX_set_checkAfterTime(srv_ctx, opt_checkafter);
@@ -2662,7 +2665,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx,
     if (opt_crl_timeout == 0)
         opt_crl_timeout = -1;
     if (opt_crls != NULL) {
-        /* TODO DvO extract load_multiple_crls() and push upstream (PR #multifile) */
+        /* TODO DvO load_multiple_crls() and push upstream (PR #multifile) */
         X509_CRL *crl;
         STACK_OF(X509_CRL) *crls;
 
@@ -4293,7 +4296,7 @@ int cmp_main(int argc, char **argv)
         }
         ret = 1;
 
-    srv_err:
+     srv_err:
         BIO_free(cbio);
         BIO_free_all(acbio);
         OSSL_CMP_MSG_free(req);
