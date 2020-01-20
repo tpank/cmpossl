@@ -124,6 +124,7 @@ B<openssl> B<cmp>
 
 [B<-use_mock_srv>]
 [B<-port>]
+[B<-max_msgs>]
 [B<-srv_ref>]
 [B<-srv_secret>]
 [B<-srv_cert>]
@@ -857,11 +858,15 @@ See the L<openssl-verify(1)> manual page for details.
 
 =item B<-use_mock_srv>
 
-Use the mock server (not a real one) for the client
+Use the mock server (not a real one) for the client.
 
 =item B<-port>
 
-Act as CMP HTTP server mock-up listening on the given port
+Act as CMP HTTP server mock-up listening on the given port.
+
+=item B<-max_msgs>
+
+max number of messages accepted by HTTP mock server. Default: 0 = unlimited.
 
 =item B<-srv_ref>
 
