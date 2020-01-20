@@ -181,6 +181,7 @@ static char *opt_rspout = NULL;
 
 static int opt_use_mock_srv = 0;
 static char *opt_port = NULL;
+static int opt_maxmsgs = -1;
 
 static char *opt_srv_ref = NULL;
 static char *opt_srv_secret = NULL;
@@ -307,7 +308,7 @@ typedef enum OPTION_choice {
     OPT_BATCH, OPT_REPEAT,
     OPT_REQIN, OPT_REQOUT, OPT_RSPIN, OPT_RSPOUT,
 
-    OPT_USE_MOCK_SRV, OPT_PORT,
+    OPT_USE_MOCK_SRV, OPT_PORT, OPT_MAXMSGS,
     OPT_SRV_REF, OPT_SRV_SECRET,
     OPT_SRV_CERT, OPT_SRV_KEY, OPT_SRV_KEYPASS,
     OPT_SRV_TRUSTED, OPT_SRV_UNTRUSTED,
@@ -516,6 +517,8 @@ const OPTIONS cmp_options[] = {
 
     {"use_mock_srv", OPT_USE_MOCK_SRV, '-', "Use mock server, not real one"},
     {"port", OPT_PORT, 's', "Act as HTTP mock server listening on given port"},
+    {"maxmsgs", OPT_MAXMSGS, 'n',
+     "amount of messages to be processed by the HTTP mock server, default: all"},
     {"srv_ref", OPT_SRV_REF, 's',
      "Reference value to use as senderKID of server in case no -cert is given"},
     {"srv_secret", OPT_SRV_SECRET, 's',
@@ -654,7 +657,7 @@ static varref cmp_vars[] = { /* must be in same order as enumerated above! */
     {(char **)&opt_batch}, {(char **)&opt_repeat},
     {&opt_reqin}, {&opt_reqout}, {&opt_rspin}, {&opt_rspout},
 
-    {(char **)&opt_use_mock_srv}, {&opt_port},
+    {(char **)&opt_use_mock_srv}, {&opt_port}, {(char **)&opt_maxmsgs},
     {&opt_srv_ref}, {&opt_srv_secret},
     {&opt_srv_cert}, {&opt_srv_key}, {&opt_srv_keypass},
     {&opt_srv_trusted}, {&opt_srv_untrusted},
@@ -4080,6 +4083,9 @@ static int get_opts(int argc, char **argv)
         case OPT_PORT:
             opt_port = opt_str("port");
             break;
+        case OPT_MAXMSGS:
+            opt_maxmsgs = opt_nat();
+            break;
         case OPT_SRV_REF:
             opt_srv_ref = opt_str("srv_ref");
             break;
@@ -4281,7 +4287,7 @@ int cmp_main(int argc, char **argv)
         acbio = init_http_server(opt_port);
         if (acbio == NULL)
             goto srv_err;
-        for (;;) {
+        for (i = 0; i < opt_maxmsgs || opt_maxmsgs <= 0; i++) {
             if (!http_server_get_req(&cbio, acbio))
                 continue;
             req = OSSL_d2i_CMP_MSG_bio(cbio, NULL);
