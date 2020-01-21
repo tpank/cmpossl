@@ -250,7 +250,8 @@ static char *opt_reqexts = NULL;
 static char *opt_sans = NULL;
 static int opt_san_nodefault = 0;
 static char *opt_policies = NULL;
-static int opt_policies_critical = 0;
+static char *opt_policy_oids = NULL;
+static int opt_policy_oids_critical = 0;
 static int opt_popo = OSSL_CRMF_POPO_NONE - 1;
 static char *opt_csr = NULL;
 static char *opt_out_trusted = NULL;
@@ -288,7 +289,7 @@ typedef enum OPTION_choice {
     OPT_NEWKEY, OPT_NEWKEYPASS, OPT_SUBJECT, OPT_ISSUER,
     OPT_DAYS, OPT_REQEXTS,
     OPT_SANS, OPT_SAN_NODEFAULT,
-    OPT_POLICIES, OPT_POLICIES_CRITICAL,
+    OPT_POLICIES, OPT_POLICY_OIDS, OPT_POLICY_OIDS_CRITICAL,
     OPT_POPO, OPT_CSR,
     OPT_OUT_TRUSTED, OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
     OPT_CERTOUT,
@@ -424,15 +425,17 @@ const OPTIONS cmp_options[] = {
     {"days", OPT_DAYS, 'n',
      "Number of days the new certificate is asked to be valid for"},
     {"reqexts", OPT_REQEXTS, 's',
-     "Name of section in config file defining certificate request extensions"},
+     "Name of config file section defining certificate request extensions"},
     {"sans", OPT_SANS, 's',
      "Subject Alternative Names (IPADDR/DNS/URI) to add as cert request extension"},
     {"san_nodefault", OPT_SAN_NODEFAULT, '-',
      "Do not take default SANs from reference certificate (see -oldcert)"},
     {"policies", OPT_POLICIES, 's',
+     "Name of config file section defining policies certifiate request extension"},
+    {"policy_oids", OPT_POLICY_OIDS, 's',
      "Policy OID(s) to add as certificate policies request extension"},
-    {"policies_critical", OPT_POLICIES_CRITICAL, '-',
-     "Flag the policies given with -policies as critical"},
+    {"policy_oids_critical", OPT_POLICY_OIDS_CRITICAL, '-',
+     "Flag the policy OID(s) given with -policy_oids as critical"},
     {"popo", OPT_POPO, 'n',
      "Set Proof-of-Possession (POPO) method for ir/cr/kur where"},
     {OPT_MORE_STR, 0, 0,
@@ -636,7 +639,7 @@ static varref cmp_vars[] = { /* must be in same order as enumerated above! */
     {&opt_newkey}, {&opt_newkeypass}, {&opt_subject}, {&opt_issuer},
     {(char **)&opt_days}, {&opt_reqexts},
     {&opt_sans}, {(char **)&opt_san_nodefault},
-    {&opt_policies}, {(char **)&opt_policies_critical},
+    {&opt_policies}, {&opt_policy_oids}, {(char **)&opt_policy_oids_critical},
     {(char **)&opt_popo}, {&opt_csr},
     {&opt_out_trusted},
     {(char **)&opt_implicitConfirm}, {(char **)&opt_disableConfirm},
@@ -3139,14 +3142,30 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     if (opt_days > 0)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_VALIDITYDAYS, opt_days);
 
-    if (opt_reqexts != NULL) {
+    if (opt_policies != NULL && opt_policy_oids != NULL) {
+        CMP_err("cannot have policies both via -policies and via -policy_oids");
+        goto err;
+    }
+
+    if (opt_reqexts != NULL || opt_policies != NULL) {
         X509V3_CTX ext_ctx;
         X509_EXTENSIONS *exts = sk_X509_EXTENSION_new_null();
 
+        if (exts == NULL)
+            goto err;
         X509V3_set_ctx(&ext_ctx, NULL, NULL, NULL, NULL, 0);
         X509V3_set_nconf(&ext_ctx, conf);
-        if (!X509V3_EXT_add_nconf_sk(conf, &ext_ctx, opt_reqexts, &exts)) {
-            CMP_err1("cannot load extension section '%s'", opt_reqexts);
+        if (opt_reqexts != NULL
+            && !X509V3_EXT_add_nconf_sk(conf, &ext_ctx, opt_reqexts, &exts)) {
+            CMP_err1("cannot load certificate request extension section '%s'",
+                     opt_reqexts);
+            sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
+            goto err;
+        }
+        if (opt_policies != NULL
+            && !X509V3_EXT_add_nconf_sk(conf, &ext_ctx, opt_policies, &exts)) {
+            CMP_err1("cannot load policy cert request extension section '%s'",
+                     opt_policies);
             sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
             goto err;
         }
@@ -3167,19 +3186,19 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
                                       OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT, 1);
     }
 
-    if (opt_policies_critical) {
-        if (opt_policies == NULL)
-            CMP_warn("-opt_policies_critical has no effect unless -policies is given");
+    if (opt_policy_oids_critical) {
+        if (opt_policy_oids == NULL)
+            CMP_warn("-opt_policy_oids_critical has no effect unless -policy_oids is given");
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_POLICIES_CRITICAL, 1);
     }
 
-    while (opt_policies != NULL) {
+    while (opt_policy_oids != NULL) {
         ASN1_OBJECT *policy;
         POLICYINFO *pinfo = NULL;
-        char *next = next_item(opt_policies);
+        char *next = next_item(opt_policy_oids);
 
-        if ((policy = OBJ_txt2obj(opt_policies, 1)) == 0) {
-            CMP_err1("unknown policy OID '%s'", opt_policies);
+        if ((policy = OBJ_txt2obj(opt_policy_oids, 1)) == 0) {
+            CMP_err1("unknown policy OID '%s'", opt_policy_oids);
             goto err;
         }
 
@@ -3188,11 +3207,11 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         pinfo->policyid = policy;
 
         if (!OSSL_CMP_CTX_push0_policy(ctx, pinfo)) {
-            CMP_err1("cannot add policy with OID '%s'", opt_policies);
+            CMP_err1("cannot add policy with OID '%s'", opt_policy_oids);
             POLICYINFO_free(pinfo);
             goto err;
         }
-        opt_policies = next;
+        opt_policy_oids = next;
     }
 
     if (opt_popo < OSSL_CRMF_POPO_NONE - 1
@@ -4004,8 +4023,11 @@ static int get_opts(int argc, char **argv)
         case OPT_POLICIES:
             opt_policies = opt_str("policies");
             break;
-        case OPT_POLICIES_CRITICAL:
-            opt_policies_critical = 1;
+        case OPT_POLICY_OIDS:
+            opt_policy_oids = opt_str("policy_oids");
+            break;
+        case OPT_POLICY_OIDS_CRITICAL:
+            opt_policy_oids_critical = 1;
             break;
         case OPT_POPO:
             if (opt_int(opt_arg(), &opt_popo) && opt_popo < OSSL_CRMF_POPO_NONE)
