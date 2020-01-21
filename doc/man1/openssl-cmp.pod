@@ -49,8 +49,9 @@ B<openssl> B<cmp>
 [B<-reqexts> I<name>]
 [B<-sans> I<spec>]
 [B<-san_nodefault>]
-[B<-policies> I<names>]
-[B<-policies_critical>]
+[B<-policies> I<name>]
+[B<-policy_oid> I<names>]
+[B<-policy_oids_critical>]
 [B<-popo> I<number>]
 [B<-csr> I<filename>]
 [B<-out_trusted> I<filenames>]
@@ -537,14 +538,21 @@ nor defined via B<-reqexts>,
 they are copied by default from the reference certificate (see B<-oldcert>).
 This can be disabled by giving the B<-san_nodefault> option.
 
-=item B<-policies> I<names>
+=item B<-policies> I<name>
+
+Name of section in OpenSSL config file defining policies to be set
+as certificate request extension.
+This option cannot be used together with B<-policy_oids>.
+
+=item B<-policy_oids> I<names>
 
 One or more OID(s), separated by commas or whitespace,
 to add as certificate policies request extension.
+This option cannot be used together with B<-policies>.
 
-=item B<-policies_critical>
+=item B<-policy_oids_critical>
 
-Flag the policies given with B<-policies> as critical.
+Flag the policies given with B<-policy_oids> as critical.
 
 =item B<-popo> I<number>
 
