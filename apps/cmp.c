@@ -4084,7 +4084,8 @@ static int get_opts(int argc, char **argv)
             opt_port = opt_str("port");
             break;
         case OPT_MAX_MSGS:
-            opt_max_msgs = opt_nat();
+            if ((opt_max_msgs = opt_nat()) < 0)
+                goto opt_err;
             break;
         case OPT_SRV_REF:
             opt_srv_ref = opt_str("srv_ref");
