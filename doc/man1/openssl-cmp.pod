@@ -866,16 +866,10 @@ Act as CMP HTTP server mock-up listening on the given port.
 
 =item B<-max_msgs>
 
-The CMP HTTP server can serve and respond a specified amount of messages or it
-is able to serve all received message until an error occours during request
-processing.
-This behavior can be controlled by the B<-max_msgs> followed by a non-negative
-number.
-If the parameter is set to a positive number this given number of CMP messages
-will be processes before terminating the CMP HTTP servers process.
-If the parameter is set to 0 or omitted the CMP HTTP server will serve all
-requests without terminating in between.
-But in any case the server will terminate if an message processing error occurs.
+Maximum number of messages the CMP HTTP server mock-up should handle,
+which must be non-negative.
+The default value is 0, which means that no limit is imposed.
+In any case the mock server terminates when a message processing error occurs.
 
 =item B<-srv_ref>
 
