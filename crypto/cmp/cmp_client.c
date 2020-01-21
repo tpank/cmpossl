@@ -332,10 +332,7 @@ int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
     OSSL_CMP_MSG *PKIconf = NULL;
     int success = 0;
 
-    /*
-     * check if all necessary options are set done by OSSL_CMP_certConf_new
-     * create Certificate Confirmation - certConf
-     */
+    /* OSSL_CMP_certConf_new() also checks if all necessary options are set */
     if ((certConf = ossl_cmp_certConf_new(ctx, fail_info, txt)) == NULL)
         goto err;
 
@@ -361,12 +358,9 @@ int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
     OSSL_CMP_MSG *PKIconf = NULL;
     int success = 0;
 
-    /*
-     * check if all necessary options are set is done in OSSL_CMP_error_new
-     * create Error Message - error
-     */
     if ((si = ossl_cmp_statusinfo_new(status, fail_info, txt)) == NULL)
         goto err;
+    /* OSSL_CMP_error_new() also checks if all necessary options are set */
     if ((error = ossl_cmp_error_new(ctx, si, -1, NULL, 0)) == NULL)
         goto err;
 
@@ -644,7 +638,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, int req_type, int req_err,
         ctx->end_time = time(NULL) + ctx->totaltimeout;
     ctx->status = -1;
 
-    /* check if all necessary options are set done by OSSL_CMP_certreq_new */
+    /* OSSL_CMP_certreq_new() also checks if all necessary options are set */
     if ((req = ossl_cmp_certReq_new(ctx, req_type, req_err)) == NULL)
         goto err;
 
@@ -698,10 +692,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 
     ctx->status = -1;
 
-    /*
-     * check if all necessary options are set is done in OSSL_CMP_rr_new
-     * create Revocation Request - ir
-     */
+    /* OSSL_CMP_rr_new() also checks if all necessary options are set */
     if ((rr = ossl_cmp_rr_new(ctx)) == NULL)
         goto end;
 
