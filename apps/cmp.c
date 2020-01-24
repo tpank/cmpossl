@@ -50,7 +50,7 @@ static char *opt_config = NULL;
 # define SECTION_NAME_MAX 40 /* max length of section name */
 # define DEFAULT_SECTION "default"
 static char *opt_section = CMP_SECTION;
-# define HTTP_HDR "http://"
+# define HTTP_PREFIX "http://"
 
 # undef PROG
 # define PROG cmp_main
@@ -135,10 +135,11 @@ typedef enum {
 } cmp_cmd_t;
 
 static char *opt_server = NULL;
-static int server_port = 80;
+static int server_port = OSSL_CMP_DEFAULT_PORT;
 
 static char *opt_proxy = NULL;
-static int proxy_port = 80;
+static int proxy_port = OSSL_CMP_DEFAULT_PORT;
+static char *opt_no_proxy = NULL;
 
 static char *opt_path = "/";
 static int opt_msgtimeout = -1;
@@ -272,7 +273,7 @@ typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_CONFIG, OPT_SECTION,
 
-    OPT_SERVER, OPT_PROXY, OPT_PATH,
+    OPT_SERVER, OPT_PROXY, OPT_NO_PROXY, OPT_PATH,
     OPT_MSGTIMEOUT, OPT_TOTALTIMEOUT,
 
     OPT_TRUSTED, OPT_UNTRUSTED, OPT_SRVCERT,
@@ -332,7 +333,7 @@ typedef enum OPTION_choice {
 } OPTION_CHOICE;
 
 const OPTIONS cmp_options[] = {
-    /* OPTION_CHOICE values must be in the same order as enumerated above!! */
+    /* entries must be in the same order as enumerated above!! */
     {"help", OPT_HELP, '-', "Display this summary"},
     {"config", OPT_CONFIG, 's',
      "Configuration file to use. \"\" = none. Default from env variable OPENSSL_CONF"},
@@ -344,8 +345,10 @@ const OPTIONS cmp_options[] = {
      "address[:port] of CMP server. Default port 80"},
     {"proxy", OPT_PROXY, 's',
      "address[:port] of optional HTTP(S) proxy. Default port 80."},
+    {"no_proxy", OPT_NO_PROXY, 's',
+     "List of addresses of servers not use use HTTP(S) proxy for."},
     {OPT_MORE_STR, 0, 0,
-     "The env variable 'no_proxy' (or else NO_PROXY) is respected"},
+     "Default from environment variable 'no_proxy', else 'NO_PROXY', else none"},
     {"path", OPT_PATH, 's',
      "HTTP path location inside the server (aka CMP alias). Default '/'"},
     {"msgtimeout", OPT_MSGTIMEOUT, 'n',
@@ -622,7 +625,7 @@ typedef union {
 static varref cmp_vars[] = { /* must be in same order as enumerated above! */
     {&opt_config}, {&opt_section},
 
-    {&opt_server}, {&opt_proxy}, {&opt_path},
+    {&opt_server}, {&opt_proxy}, {&opt_no_proxy}, {&opt_path},
     {(char **)&opt_msgtimeout}, {(char **)&opt_totaltimeout},
 
     {&opt_trusted}, {&opt_untrusted}, {&opt_srvcert},
@@ -2201,8 +2204,8 @@ static int parse_addr(OSSL_CMP_CTX *ctx,
 {
     char *port_string;
 
-    if (strncmp(*opt_string, HTTP_HDR, strlen(HTTP_HDR)) == 0)
-        (*opt_string) += strlen(HTTP_HDR);
+    if (strncmp(*opt_string, HTTP_PREFIX, strlen(HTTP_PREFIX)) == 0)
+        *opt_string += strlen(HTTP_PREFIX);
 
     if ((port_string = strrchr(*opt_string, ':')) == NULL) {
         CMP_info2("using default port %d for %s", port, name);
@@ -3265,6 +3268,24 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     return 0;
 }
 
+static int use_proxy(const char *no_proxy, const char *server)
+{
+    size_t sl = strlen(server);
+    const char *found = NULL;
+
+    if (no_proxy == NULL)
+        no_proxy = getenv("no_proxy");
+    if (no_proxy == NULL)
+        no_proxy = getenv("NO_PROXY");
+    if (no_proxy != NULL)
+        found = strstr(no_proxy, server);
+    while (found != NULL
+           && ((found != no_proxy && found[-1] != ' ' && found[-1] != ',')
+               || (found[sl] != '\0' && found[sl] != ' ' && found[sl] != ',')))
+        found = strstr(found + 1, server);
+    return found == NULL;
+}
+
 /*
  * set up the OSSL_CMP_CTX structure based on options from config file/CLI
  * while parsing options and checking their consistency.
@@ -3288,20 +3309,21 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             || !OSSL_CMP_CTX_set1_serverPath(ctx, opt_path))
         goto oom;
 
+    if (opt_proxy == NULL)
+        opt_proxy = getenv("http_proxy");
+    if (opt_proxy == NULL)
+        opt_proxy = getenv("HTTP_PROXY");
+    if (opt_proxy != NULL && opt_proxy[0] == '\0')
+        opt_proxy = NULL;
+    if (opt_proxy != NULL && !use_proxy(opt_no_proxy, opt_server))
+        opt_proxy = NULL;
     if (opt_proxy != NULL) {
-        const char *no_proxy = getenv("no_proxy");
-        if (no_proxy == NULL)
-            no_proxy = getenv("NO_PROXY");
         if ((proxy_port =
              parse_addr(ctx, &opt_proxy, proxy_port, "proxy")) == 0)
             goto err;
-        if (no_proxy == NULL || strstr(no_proxy, opt_server) == NULL) {
-            if (!(OSSL_CMP_CTX_set1_proxyName(ctx, opt_proxy)
-                      && OSSL_CMP_CTX_set_proxyPort(ctx, proxy_port)))
-                goto oom;
-        } else {
-            opt_proxy = NULL;
-        }
+        if (!(OSSL_CMP_CTX_set1_proxyName(ctx, opt_proxy)
+                  && OSSL_CMP_CTX_set_proxyPort(ctx, proxy_port)))
+            goto oom;
     }
 
     if (!transform_opts(ctx))
@@ -3862,6 +3884,9 @@ static int get_opts(int argc, char **argv)
             break;
         case OPT_PROXY:
             opt_proxy = opt_str("proxy");
+            break;
+        case OPT_NO_PROXY:
+            opt_no_proxy = opt_str("no_proxy");
             break;
         case OPT_PATH:
             opt_path = opt_str("path");
