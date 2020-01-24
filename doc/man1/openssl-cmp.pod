@@ -13,6 +13,7 @@ B<openssl> B<cmp>
 
 [B<-server> I<address[:port]>]
 [B<-proxy> I<address[:port]>]
+[B<-no_proxy> I<addresses>]
 [B<-path> I<remote_path>]
 [B<-msgtimeout> I<seconds>]
 [B<-totaltimeout> I<seconds>]
@@ -193,10 +194,14 @@ of the CMP server to connect to using HTTP/S transport.
 
 =item B<-proxy> I<address[:port]>
 
-The IP address or hostname and port (defaults to 80) of the HTTP proxy server,
-which can be given if needed for accessing the CMP server.
-TLS is not yet supported via proxy.
-The environment variable C<no_proxy> (or else C<NO_PROXY>) is respected.
+The IP address or hostname and port (defaults to 80) of the HTTP proxy server
+to be use for accessing the CMP server (unless NO_PROXY applies, see below).
+Defaults to value of environment variable 'http_proxy', else HTTP_PROXY.
+
+=item B<-no_proxy> I<addresses>
+List of addresses of servers not use use HTTP(S) proxy for,
+separated by commas or whitespace.
+Defaults to value of environment variable 'no_proxy', else NO_PROXY, else none.
 
 =item B<-path> I<remote_path>
 
