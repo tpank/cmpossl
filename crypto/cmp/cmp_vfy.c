@@ -49,7 +49,7 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     int digest_nid, pk_nid;
     EVP_MD *digest = NULL;
     EVP_PKEY *pubkey = NULL;
-    int l;
+    int len;
     size_t prot_part_der_len = 0;
     unsigned char *prot_part_der = NULL;
     BIO *bio = BIO_new(BIO_s_mem()); /* may be NULL */
@@ -75,10 +75,10 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     prot_part.header = msg->header;
     prot_part.body = msg->body;
 
-    l = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
-    if (l < 0 || prot_part_der == NULL)
+    len = i2d_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+    if (len < 0 || prot_part_der == NULL)
         goto end;
-    prot_part_der_len = (size_t) l;
+    prot_part_der_len = (size_t) len;
 
     /* verify signature of protected part */
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),
