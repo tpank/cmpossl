@@ -47,22 +47,24 @@ struct ossl_cmp_ctx_st {
     OSSL_HTTP_bio_cb_t http_cb;
     void *http_cb_arg; /* allows to store optional argument to cb */
 
-    /* server authentication */
-    int unprotectedErrors; /*-
-                            * accept neg. response with no/invalid protection
-                            * to cope with broken server
-                            */
+    /* server authentication
+     *
+     * accept neg. response with no/invalid protection
+     * to cope with broken server
+     */
+    int unprotectedErrors;
     X509 *srvCert; /* certificate used to identify the server */
     X509 *validatedSrvCert; /* caches any already validated server cert */
     X509_NAME *expected_sender; /* expected sender in pkiheader of response */
     X509_STORE *trusted; /* trust store maybe w CRLs and cert verify callback */
     STACK_OF(X509) *untrusted_certs; /* untrusted (intermediate) certs */
     int ignore_keyusage; /* ignore key usage entry when validating certs */
-    int permitTAInExtraCertsForIR; /*-
-                                    * allow use of root certs in extracerts
-                                    * when validating message protection;
-                                    * used for 3GPP-style E.7
-                                    */
+    /*-
+     * allow use of root certs in extracerts
+     * when validating message protection;
+     * used for 3GPP-style E.7
+     */
+    int permitTAInExtraCertsForIR;
 
     /* client authentication */
     int unprotectedSend; /* send unprotected PKI messages */
