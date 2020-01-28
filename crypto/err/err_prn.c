@@ -152,9 +152,10 @@ void ERR_add_error_mem_bio(const char *separator, BIO *bio)
         if (len > 0) {
             if (str[len - 1] != '\0') {
                 BIO_write(bio, "", 1);
-                BIO_get_mem_data(bio, &str);
+                len = BIO_get_mem_data(bio, &str);
             }
-            ERR_add_error_txt(separator, str);
+            if (len > 1)
+                ERR_add_error_txt(separator, str);
         }
     }
 }

@@ -56,8 +56,8 @@ If the associated data would become more than 4096 characters long
 it is split over sufficiently many new copies of the last error queue entry.
 
 ERR_add_error_mem_bio() is the same as ERR_add_error_txt() except that
-the text string is taken from the given memory BIO. ERR_add_error_mem_bio()
-appends a '\0' to the BIO if the text wasn't terminated before.
+the text string is taken from the given memory BIO.
+It appends '\0' to the BIO contents if not already NUL-terminated.
 
 L<ERR_load_strings(3)> can be used to register
 error strings so that the application can a generate human-readable
