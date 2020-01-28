@@ -49,8 +49,8 @@ struct ossl_cmp_ctx_st {
 
     /* server authentication */
     /*
-     * accept neg. response with no/invalid protection
-     * to cope with broken server
+     * unprotectedErrors may be set accept negative response with no protection
+     * of invalid protection in order to cope with broken server
      */
     int unprotectedErrors;
     X509 *srvCert; /* certificate used to identify the server */
@@ -59,10 +59,9 @@ struct ossl_cmp_ctx_st {
     X509_STORE *trusted; /* trust store maybe w CRLs and cert verify callback */
     STACK_OF(X509) *untrusted_certs; /* untrusted (intermediate) certs */
     int ignore_keyusage; /* ignore key usage entry when validating certs */
-    /*-
-     * allow use of root certs in extracerts
-     * when validating message protection;
-     * used for 3GPP-style E.7
+    /*
+     * permitTAInExtraCertsForIR allows use of root certs in extracerts
+     * when validating message protection; this is used for 3GPP-style E.7
      */
     int permitTAInExtraCertsForIR;
 
