@@ -49,8 +49,9 @@ struct ossl_cmp_ctx_st {
 
     /* server authentication */
     /*
-     * unprotectedErrors may be set accept negative response with no protection
-     * of invalid protection in order to cope with broken server
+     * unprotectedErrors may be set as workaround for broken server responses:
+     * accept missing or invalid protection of regular error messages, negative
+     * certificate responses (ip/cp/kup), revocation responses (rp), and PKIConf
      */
     int unprotectedErrors;
     X509 *srvCert; /* certificate used to identify the server */
