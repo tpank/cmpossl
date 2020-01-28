@@ -603,7 +603,7 @@ typedef struct ossl_cmp_pkibody_st {
          * crlann     [18] CRLAnnContent,            --CRL Announcement
          * CRLAnnContent ::= SEQUENCE OF CertificateList
          */
-        OSSL_CMP_CRLANNCONTENT *crlann;
+        OSSL_CMP_CRLANNCONTENT *crlann; /* 18 */
         /*-
          * PKIConfirmContent ::= NULL
          * pkiconf    [19] PKIConfirmContent,        --Confirmation
@@ -640,11 +640,11 @@ typedef struct ossl_cmp_pkibody_st {
         /*-
          * pollReq    [25] PollReqContent,           --Polling request
          */
-        OSSL_CMP_POLLREQCONTENT *pollReq;
+        OSSL_CMP_POLLREQCONTENT *pollReq; /* 25 */
         /*-
          * pollRep    [26] PollRepContent            --Polling response
          */
-        OSSL_CMP_POLLREPCONTENT *pollRep;
+        OSSL_CMP_POLLREPCONTENT *pollRep; /* 26 */
     } value;
 } OSSL_CMP_PKIBODY;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIBODY)
