@@ -108,6 +108,7 @@ const char *ossl_cmp_log_parse_metadata(const char *buf,
 }
 
 #define UNKNOWN_FUNC "(unknown function)" /* the default for OPENSSL_FUNC */
+/* strip useless pseudo-information "(unknown function)" by macros.h */
 static const char *improve_func_name(const char *func)
 {
     return func == NULL ? UNKNOWN_FUNC
