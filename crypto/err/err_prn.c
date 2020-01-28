@@ -147,9 +147,12 @@ void ERR_add_error_mem_bio(const char *separator, BIO *bio)
 {
     if (bio != NULL) {
         char *str;
-        long len = BIO_get_mem_data(bio, &str);
+        long len;
 
-        if (len > 0)
+        BIO_write(bio, "", 1);
+        len = BIO_get_mem_data(bio, &str);
+
+        if (len > 1)
             ERR_add_error_txt(separator, str);
     }
 }
