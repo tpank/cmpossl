@@ -4,11 +4,11 @@ batch = 1
 totaltimeout = 8 # prevent, e.g., infinite polling due to error
 trusted = root.crt
 newkey = test.ECC256p.pem
-newkeypass = pass:
+newkeypass = 
 cmd = ir
 out_trusted = root.crt
 certout = test.cert.pem
-policies = 1.2.3.4 # gets ignored
+policies = certificatePolicies
 policies_critical = 1 # gets ignored
 
 ############################# CA configurations
@@ -137,6 +137,12 @@ oldcert =
 csr =
 
 ############################# extra cert template contents
+
+[certificatePolicies]
+certificatePolicies = "critical, @pkiPolicy"
+
+[pkiPolicy]
+policyIdentifier =  1.2.3.4
 
 [reqexts]
 basicConstraints = CA:FALSE

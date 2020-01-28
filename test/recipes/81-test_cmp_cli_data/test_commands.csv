@@ -41,9 +41,12 @@ TBD,TBD,config default all set, -section,, -cmd,ir,, -cacertsout,test.cacerts.cr
 0,0,revreason cessationOfOperation, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,5
 0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 0,0,revreason certificateHold, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,6
+0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 0,0,revreason removeFromCRL, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,8
 1,TBD,revreason removeFromCRL - not on hold, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,8
+0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 1,1,revreason 7 (invalid), -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,7
+0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 0,0,revreason priviligeWithdrawn, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,9
 0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 0,0,revreason AACompromise, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,10
