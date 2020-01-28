@@ -47,8 +47,8 @@ struct ossl_cmp_ctx_st {
     OSSL_HTTP_bio_cb_t http_cb;
     void *http_cb_arg; /* allows to store optional argument to cb */
 
-    /* server authentication
-     *
+    /* server authentication */
+    /*
      * accept neg. response with no/invalid protection
      * to cope with broken server
      */
