@@ -87,6 +87,7 @@ B<openssl> B<cmp>
 [B<-reqout>]
 [B<-rspin>]
 [B<-rspout>]
+[B<-use_mock_srv>]
 
 [B<-crl_check>]
 [B<-crl_check_all>]
@@ -124,7 +125,6 @@ B<openssl> B<cmp>
 [B<-no_check_time>]
 [B<-allow_proxy_certs>]
 
-[B<-use_mock_srv>]
 [B<-port>]
 [B<-max_msgs>]
 [B<-srv_ref>]
@@ -154,8 +154,9 @@ B<openssl> B<cmp>
 =head1 DESCRIPTION
 
 The B<cmp> command is a client implementation for the Certificate
-Management Protocol (CMP) as defined in RFC4210. It can be used to
-request certificates from a CA server, update their certificates,
+Management Protocol (CMP) as defined in RFC4210.
+It can be used to request certificates from a CA server,
+update their certificates,
 request certificates to be revoked, and perform other CMP requests.
 
 =head1 OPTIONS
@@ -168,13 +169,15 @@ Display a summary of all options
 
 =item B<-config> I<filename>
 
-Configuration file to use. An empty string C<""> means none.
-Default filename is taken from the environment variable C<OPENSSL_CONF>.
+Configuration file to use.
+An empty string C<""> means none.
+Default filename is from the environment variable C<OPENSSL_CONF>.
 
 =item B<-section> I<names>
 
 Section(s) to use within config file defining CMP options.
-An empty string C<""> means no specific section. Default is C<cmp>.
+An empty string C<""> means no specific section.
+Default is C<cmp>.
 Multiple section names may be given, separated by commas or whitespace.
 Contents of sections named later may override contents of sections named before.
 In any case, as usual, the C<[default]> section and finally the unnamed
@@ -189,33 +192,39 @@ section (as far as present) can provide per-option fallback values.
 
 =item B<-server> I<address[:port]>
 
-The IP address or hostname and port (defaults to 80)
+The IP address or DNS hostname and optionally port (defaulting to 80)
 of the CMP server to connect to using HTTP/S transport.
 
-=item B<-proxy> I<address[:port]>
+=item B<-proxy> I<[http://]address[:port]>
 
-The IP address or hostname and port (defaults to 80) of the HTTP proxy server
-to be use for accessing the CMP server (unless NO_PROXY applies, see below).
-Defaults to value of environment variable 'http_proxy', else HTTP_PROXY.
+The IP address or DNS hostname and optionally port (defaulting to 80)
+of the HTTP(S) proxy server to use for reaching the CMP server
+unless no_proxy applies, see below.
+Defaults is from the environment variable C<http_proxy>, else C<HTTP_PROXY>,
+else none.
 
 =item B<-no_proxy> I<addresses>
-List of addresses of servers not use use HTTP(S) proxy for,
+List of IP addresses and/or DNS names of servers not use an HTTP(S) proxy for,
 separated by commas or whitespace.
-Defaults to value of environment variable 'no_proxy', else NO_PROXY, else none.
+Default is from the environment variable C<no_proxy>, else C<NO_PROXY>,
+else none.
 
 =item B<-path> I<remote_path>
 
-HTTP path location to use for the CMP server (aka CMP alias). Defaults to "/".
+HTTP path at the CMP server (aka CMP alias) to use for POST requests.
+Defaults to "/".
 
 =item B<-msgtimeout> I<seconds>
 
 Number of seconds (or 0 for infinite) a CMP message round trip is
-allowed to take before a timeout error is returned. Default is 120.
+allowed to take before a timeout error is returned.
+Default is 120.
 
 =item B<-totaltimeout> I<seconds>
 
 Maximum number seconds an enrollment may take, including attempts polling for
-certificates on C<waiting> PKIStatus. Default is 0 (infinite).
+certificates on C<waiting> PKIStatus.
+Default is 0 (infinite).
 
 =back
 
@@ -284,12 +293,14 @@ When a response is received, its sender must match the recipient of the request.
 =item B<-expect_sender> I<name>
 
 Distinguished Name (DN) of the expected sender of CMP response messages when
-MSG_SIG_ALG is used for protection. This can be used to ensure that only a
-particular entity is accepted to act as CMP server, and attackers are not
-able to use arbitrary certificates of a trusted PKI hieararchy to fraudulently
-pose as CMP server. Note that this option gives slightly more freedom than
-B<-srvcert> which pins down the server to a particular certificate, while
-B<-expect_sender> I<name> will continue to match after updates of the server cert.
+MSG_SIG_ALG is used for protection.
+This can be used to ensure that only a particular entity is accepted
+to act as CMP server, and attackers are not able to use arbitrary certificates
+of a trusted PKI hieararchy to fraudulently pose as CMP server.
+Note that this option gives slightly more freedom than B<-srvcert>,
+which pins down the server to a particular certificate,
+while B<-expect_sender> I<name> will continue to match after updates of the
+server cert.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by C<\>E<nbsp>(backslash), no spaces are skipped.
@@ -340,11 +351,13 @@ with a signature key."
 
 =item B<-extracertsout> I<filename>
 
-The file where to save any extra certificates received in a response message.
+The file where to save any extra certificates received in the extraCerts field
+of response messages.
 
 =item B<-cacertsout> I<filename>
 
-The file where to save any received CA certificates.
+The file where to save any CA certificates received in the caPubs field of
+initializiation response (ip) messages.
 
 =back
 
@@ -362,16 +375,18 @@ is typically used when authenticating with pre-shared key (password-based MAC).
 =item B<-secret> I<arg>
 
 Source of secret value to use for authenticating with pre-shared keys
-(password-based MAC). This takes precedence over the B<-cert> option.
+(password-based MAC).
+This takes precedence over the B<-cert> option.
 
 For more information about the format of B<arg> see the
 B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-cert> I<filename>
 
-The client's currently existing certificate. Unless the B<-secret> option
-indicating PBM is given, this will be used for signature-based message
-protection. Requires for the corresponding key to be given with B<-key>.
+The client's currently existing certificate.
+Unless the B<-secret> option indicating PBM is given,
+this will be used for signature-based message protection.
+Requires for the corresponding key to be given with B<-key>.
 For IR this can be used for authenticating a request message
 using an external entity certificate as defined in appendix E.7 of RFC 4210.
 For KUR this is also used as certificate to be updated if the B<-oldcert>
@@ -407,7 +422,8 @@ Defaults to C<sha256>.
 Specifies name of supported digest to use as the MAC algorithm in MSG_MAC_ALG.
 To get the names of supported MAC algorithms use B<openssl list -mac-algorithms>
 and possibly combine such a name with the name of a supported digest algorithm,
-e.g., hmacWithSHA256. Defaults to C<hmac-sha1> as per RFC 4210.
+e.g., hmacWithSHA256.
+Defaults to C<hmac-sha1> as per RFC 4210.
 
 =item B<-extracerts> I<sources>
 
@@ -429,7 +445,8 @@ Send messages without CMP-level protection.
 
 =item B<-cmd> I<ir|cr|kur|p10cr|rr|genm>
 
-CMP command to execute. Currently implemented commands are:
+CMP command to execute.
+Currently implemented commands are:
 
 =over 8
 
@@ -472,7 +489,7 @@ e.g., C<signKeyPairTypes>.
 
 =item B<-geninfo> I<OID:int:N>
 
-Set generalInfo in request PKIHeader with type OID and integer value N,
+generalInfo integer values to place in request PKIHeader with given OID,
 e.g., C<1.2.3:int:987>.
 
 =back
@@ -485,8 +502,9 @@ e.g., C<1.2.3:int:987>.
 =item B<-newkey> I<filename>
 
 The file containing the private or public key for the certificate requested
-in IR, CR or KUR.  Default is the public key in the PKCS#10 CSR given with the
-B<-csr> option, if any, or else the current client key, if given.
+in IR, CR or KUR.
+Default is the public key in the PKCS#10 CSR given with the B<-csr> option,
+if any, or else the current client key, if given.
 
 =item B<-newkeypass> I<arg>
 
@@ -499,8 +517,10 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 =item B<-subject> I<name>
 
 X509 Distinguished Name (DN) of subject to use in the requested certificate
-template. For KUR, it defaults to the subject DN of the reference certificate
-(see B<-oldcert>). This default is used for IR and CR only if no SANs are set.
+template.
+For KUR, it defaults to the subject DN of the reference certificate
+(see B<-oldcert>).
+This default is used for IR and CR only if no SANs are set.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by C<\>E<nbsp>(backslash), no spaces are skipped.
@@ -511,7 +531,7 @@ the subject DN is also used as sender of the PKI message.
 =item B<-issuer> I<name>
 
 X509 issuer Distinguished Name (DN) of the CA server
-to be put in the requested certificate template in IR/CR/KUR.
+to place in the requested certificate template in IR/CR/KUR.
 
 The argument must be formatted as I</type0=value0/type1=value1/type2=...>,
 characters may be escaped by C<\>E<nbsp>(backslash), no spaces are skipped.
@@ -522,7 +542,8 @@ the name given in this option is also set as the recipient of the CMP message.
 =item B<-days> I<number>
 
 Number of days the new certificate is requested to be valid for, counting from
-the current time of the host.  Also triggers the explicit request that the
+the current time of the host.
+Also triggers the explicit request that the
 validity period starts from the current time (as seen by the host).
 
 =item B<-reqexts> I<name>
@@ -561,7 +582,7 @@ Flag the policies given with B<-policy_oids> as critical.
 
 =item B<-popo> I<number>
 
-Set Proof-of-Possession (POPO) method in IR/CR/KUR; values: C<-1>..<2> where
+Proof-of-Possession (POPO) method to use for IR/CR/KUR; values: C<-1>..<2> where
 C<-1> = NONE, C<0> = RAVERIFIED, C<1> = SIGNATURE (default), C<2> = KEYENC.
 
 Note that a signature-based POPO can only produced if a private key
@@ -569,7 +590,8 @@ is provided via the B<-newkey> or B<-key> options.
 
 =item B<-csr> I<filename>
 
-CSR in PKCS#10 format to use in P10CR. This is for supporting legacy clients.
+CSR in PKCS#10 format to use in P10CR.
+This is for supporting legacy clients.
 
 =item B<-out_trusted> I<filenames>
 
@@ -598,12 +620,14 @@ an email address Subject Alternative Name matching the given email address.
 
 =item B<-implicitconfirm>
 
-Request implicit confirmation of the newly enrolled certificate.
+Request implicit confirmation of newly enrolled certificates.
 
 =item B<-disableconfirm>
 
-Do not send certificate confirmation message for newly enrolled certificate to
-cope with broken servers not supporting implicit confirmation correctly.
+Do not send certificate confirmation message for newly enrolled certificate
+without requesting implicit confirmation
+to cope with broken servers not supporting implicit confirmation correctly.
+B<WARNING:> This leads to behavior violating RFC 4210.
 
 =item B<-certout> I<filename>
 
@@ -619,7 +643,8 @@ The file where the newly enrolled certificate should be saved.
 =item B<-oldcert> I<filename>
 
 The certificate to be updated (i.e., renewed or re-keyed) in KUR
-or to be revoked in RR. It must be given for RR, else it defaults to B<-cert>.
+or to be revoked in RR.
+It must be given for RR, else it defaults to B<-cert>.
 
 The reference certificate determined in this way, if any, is also used for
 deriving default subject DN and Subject Alternative Names for IR, CR, and KUR.
@@ -662,11 +687,13 @@ Default value is PEM.
 
 =item B<-keyform> I<PEM|DER|P12>
 
-Format to try first when reading key files. Default value is PEM.
+Format to try first when reading key files.
+Default value is PEM.
 
 =item B<-crlform> I<PEM|DER>
 
-Format to try first when reading CRL files. Default value is PEM.
+Format to try first when reading CRL files.
+Default value is PEM.
 
 =item B<-otherform> I<PEM|DER|P12>
 
@@ -686,14 +713,16 @@ B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 =item B<-engine> I<id>
 
 Specifying a crypto engine B<id> will lead to obtaining a functional
-reference to the specified engine, initializing it if needed. The engine
-will be used for all algorithms supported for keys prefixed by C<engine:>.
+reference to the specified engine, initializing it if needed.
+The engine will be used for all algorithms supported for keys
+prefixed by C<engine:>.
 Engines may be defined in the OpenSSL config file as usual in an engine section.
 
 Options specifying keys, like B<-key>, B<-newkey>, B<-tls_key> can prefix
 C<engine:> to engine-specific identifiers for security tokens objects held by
-the engine. The following example utilizes the RFC 7512 PKCS #11 URI scheme as
-supported e.g. by libp11:
+the engine.
+ The following example utilizes the RFC 7512 PKCS #11 URI scheme
+as supported, e.g., by libp11:
 C<-key engine:pkcs11:object=my-private-key;type=private;pin-value=1234>
 
 =back
@@ -710,7 +739,8 @@ when connecting to CMP server.
 
 =item B<-tls_cert> I<filename>
 
-Client's TLS certificate. If the file includes further certificates,
+Client's TLS certificate.
+If the file includes further certificates,
 they are used for constructing the client cert chain provided to the TLS server.
 
 =item B<-tls_key> I<filename>
@@ -741,12 +771,13 @@ Each source may contain multiple certificates.
 =item B<-tls_host> I<name>
 
 Address to be checked (rather than B<-server> address) during hostname
-validation. This may be a Common Name, a DNS name, or an IP address.
+validation.
+This may be a Common Name, a DNS name, or an IP address.
 
 =back
 
 
-=head2 Testing and debugging options
+=head2 Client-side debugging options
 
 =over 4
 
@@ -784,6 +815,11 @@ Save sequence of CMP responses to file(s).
 Multiple filenames may be given, separated by commas and/or whitespace.
 As many files are written as needed to store the complete transaction.
 
+=item B<-use_mock_srv>
+
+Use the mock server (not a real one) for the client.
+
+
 =back
 
 
@@ -812,8 +848,9 @@ Compare B<X509_V_FLAG_CRL_CHECK>.
 
 =item B<-crls> I<URLs>
 
-Use given CRL(s) as secondary source of certificate revocation information. The
-URLs argument may be a single element or a comma- or whitespace-separated list,
+Use given CRL(s) as secondary source of certificate revocation information.
+The URLs argument may be a single element or a comma- or whitespace-separated
+list,
 each element starting with C<http:> or C<file:> or being a filename or pathname.
 
 This option enables CRL checking for, e.g., the CMP/TLS server certificate
@@ -823,7 +860,8 @@ Compare B<X509_V_FLAG_CRL_CHECK>.
 =item B<-crl_timeout> I<seconds>
 
 Timeout for online retrieval of CRL from CRL distribution points (CDS)
-or 0 for infinite. Default is 10 seconds.
+or 0 for infinite.
+Default is 10 seconds.
 
 =item B<-ocsp_check_all>
 
@@ -849,7 +887,8 @@ Default is 10 seconds.
 =item B<-ocsp_status>
 
 Enable certificate status for TLS server certificate via OCSP stapling.
-Multi-stapling is not (yet) supported. Not available before OpenSSL 1.1.
+Multi-stapling is not (yet) supported.
+Not available before OpenSSL 1.1.
 
 =item B<-policy>, B<-purpose>, B<-verify_name>, B<-verify_depth>,
 B<-auth_level>, B<-attime>, B<-ignore_critical>, B<-issuer_checks>,
@@ -865,13 +904,9 @@ See the L<openssl-verify(1)> manual page for details.
 =back
 
 
-=head2 Mock server options, used for testing purposes only
+=head2 Mock server options, for testing purposes only
 
 =over 4
-
-=item B<-use_mock_srv>
-
-Use the mock server (not a real one) for the client.
 
 =item B<-port>
 
@@ -988,8 +1023,10 @@ Note:
 when using CMP for the first time and experimenting with enrollment options
 it typically happens that errors occur until the configuration is correct.
 When the server side reports an error via CMP the client will by default
-check the protection of the response message. Yet there are CMP services
-based on EJBCA, which tends not to protect negative responses. In this case
+check the protection of the response message.
+Yet there are CMP services based on EJBCA,
+which tends not to protect negative responses.
+In this case
 the client will reject such error responses and their contents are not shown
 although they usually contain hints that would be helpful for debugging.
 In order to support debugging the setup the CMP client offers a workaround
@@ -1002,10 +1039,10 @@ the invocation should be all on one line.
 
 For enrolling its very first certificate the client generates a first client key
 and sends an initial request message to a CMP server running on the local host,
-using a pre-shared secret key for mutual authentication. In this example the
-client does not have the CA certificate yet, so we specify the name of the CA
-with the B<-recipient> option and save any CA certificates that we may receive
-in the C<capubs.pem> file.
+using a pre-shared secret key for mutual authentication.
+In this example the client does not have the CA certificate yet,
+so we specify the name of the CA with the B<-recipient> option
+and save any CA certificates that we may receive in the C<capubs.pem> file.
 
   openssl genrsa -out cl_key.pem
   openssl cmp -cmd ir -server 127.0.0.1:80 -path pkix/ \
@@ -1019,7 +1056,8 @@ in the C<capubs.pem> file.
 Then, when the client certificate and its related key pair needs to be updated,
 the client can send a key update request taking the certs in C<capubs.pem>
 as trusted for authenticating the server and using the previous cert and key
-for its own authentication. Then it can start using the new cert and key.
+for its own authentication.
+Then it can start using the new cert and key.
 
   openssl genrsa -out cl_key_new.pem
   openssl cmp -cmd kur -server 127.0.0.1:80 -path pkix/ \
@@ -1034,7 +1072,8 @@ This command sequence can be repated as often as needed.
 
 For CMP client invocations, in particular for certificate enrollment,
 usually many parameters need to be set, which is tedious and error-prone to do
-on the command line. Therefore the client also offers the possibility to read
+on the command line.
+Therefore the client also offers the possibility to read
 options from sections of the OpenSSL config file, usually called B<openssl.cnf>.
 The values found there can still be extended and even overridden by any
 subsequently loaded sections and on the command line.
