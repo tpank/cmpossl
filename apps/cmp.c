@@ -134,35 +134,17 @@ typedef enum {
     CMP_GENM
 } cmp_cmd_t;
 
+/* message transfer */
 static char *opt_server = NULL;
 static int server_port = OSSL_CMP_DEFAULT_PORT;
-
 static char *opt_proxy = NULL;
 static int proxy_port = OSSL_CMP_DEFAULT_PORT;
 static char *opt_no_proxy = NULL;
-
 static char *opt_path = "/";
 static int opt_msgtimeout = -1;
 static int opt_totaltimeout = -1;
 
-static int opt_tls_used = 0;
-static char *opt_tls_cert = NULL;
-static char *opt_tls_key = NULL;
-static char *opt_tls_keypass = NULL;
-static char *opt_tls_extra = NULL;
-static char *opt_tls_trusted = NULL;
-static char *opt_tls_host = NULL;
-
-static char *opt_ref = NULL;
-static char *opt_secret = NULL;
-static char *opt_cert = NULL;
-static char *opt_key = NULL;
-static char *opt_keypass = NULL;
-static char *opt_digest = NULL;
-static char *opt_mac = NULL;
-static char *opt_extracerts = NULL;
-static int opt_unprotectedRequests = 0;
-
+/* server authentication */
 static char *opt_trusted = NULL;
 static char *opt_untrusted = NULL;
 static char *opt_srvcert = NULL;
@@ -173,14 +155,78 @@ static int opt_unprotectedErrors = 0;
 static char *opt_extracertsout = NULL;
 static char *opt_cacertsout = NULL;
 
+/* client authentication */
+static char *opt_ref = NULL;
+static char *opt_secret = NULL;
+static char *opt_cert = NULL;
+static char *opt_key = NULL;
+static char *opt_keypass = NULL;
+static char *opt_digest = NULL;
+static char *opt_mac = NULL;
+static char *opt_extracerts = NULL;
+static int opt_unprotectedRequests = 0;
+
+/* generic message */
+static char *opt_cmd_s = NULL;
+static int opt_cmd = -1;
+static char *opt_geninfo = NULL;
+static char *opt_infotype_s = NULL;
+static int opt_infotype = NID_undef;
+
+/* certificate enrollment */
+static char *opt_newkey = NULL;
+static char *opt_newkeypass = NULL;
+static char *opt_subject = NULL;
+static char *opt_issuer = NULL;
+static int opt_days = 0;
+static char *opt_reqexts = NULL;
+static char *opt_sans = NULL;
+static int opt_san_nodefault = 0;
+static char *opt_policies = NULL;
+static char *opt_policy_oids = NULL;
+static int opt_policy_oids_critical = 0;
+static int opt_popo = OSSL_CRMF_POPO_NONE - 1;
+static char *opt_csr = NULL;
+static char *opt_out_trusted = NULL;
+static int opt_implicitConfirm = 0;
+static int opt_disableConfirm = 0;
+static char *opt_certout = NULL;
+
+/* certificate enrollment and revocation */
+static char *opt_oldcert = NULL;
+static int opt_revreason = CRL_REASON_NONE;
+
+/* credentials format */
+static char *opt_ownform_s = "PEM";
+static int opt_ownform = FORMAT_PEM;
+static char *opt_keyform_s = "PEM";
+static int opt_keyform = FORMAT_PEM;
+static char *opt_crlform_s = "PEM";
+static int opt_crlform = FORMAT_PEM;
+static char *opt_otherform_s = "PEM";
+static int opt_otherform = FORMAT_PEM;
+static char *opt_otherpass = NULL;
+static char *opt_engine = NULL;
+
+/* TLS connection */
+static int opt_tls_used = 0;
+static char *opt_tls_cert = NULL;
+static char *opt_tls_key = NULL;
+static char *opt_tls_keypass = NULL;
+static char *opt_tls_extra = NULL;
+static char *opt_tls_trusted = NULL;
+static char *opt_tls_host = NULL;
+
+/* client-side debugging */
 static int opt_batch = 0;
 static int opt_repeat = 1;
 static char *opt_reqin = NULL;
 static char *opt_reqout = NULL;
 static char *opt_rspin = NULL;
 static char *opt_rspout = NULL;
-
 static int opt_use_mock_srv = 0;
+
+/* server-side debugging */
 static char *opt_port = NULL;
 static int opt_max_msgs = 0;
 
@@ -210,14 +256,10 @@ static int opt_accept_unprotected = 0;
 static int opt_accept_unprot_err = 0;
 static int opt_accept_raverified = 0;
 
-static OSSL_CMP_SRV_CTX *srv_ctx = NULL;
-
+/* specific CMP and TLS certificate verification options */
 static int opt_crl_download = 0;
 static char *opt_crls = NULL;
 static int opt_crl_timeout = 10;
-
-static X509_VERIFY_PARAM *vpm = NULL;
-
 # ifndef OPENSSL_NO_OCSP
 #  include <openssl/ocsp.h>
 static int opt_ocsp_check_all = 0;
@@ -230,44 +272,10 @@ static int opt_ocsp_timeout = 10;
 static X509_STORE_CTX_check_revocation_fn check_revocation = NULL;
 static int opt_ocsp_status = 0;
 # endif
+static X509_VERIFY_PARAM *vpm = NULL;
 
-static char *opt_ownform_s = "PEM";
-static int opt_ownform = FORMAT_PEM;
-static char *opt_keyform_s = "PEM";
-static int opt_keyform = FORMAT_PEM;
-static char *opt_crlform_s = "PEM";
-static int opt_crlform = FORMAT_PEM;
-static char *opt_otherform_s = "PEM";
-static int opt_otherform = FORMAT_PEM;
-static char *opt_otherpass = NULL;
-static char *opt_engine = NULL;
 
-static char *opt_newkey = NULL;
-static char *opt_newkeypass = NULL;
-static char *opt_subject = NULL;
-static char *opt_issuer = NULL;
-static int opt_days = 0;
-static char *opt_reqexts = NULL;
-static char *opt_sans = NULL;
-static int opt_san_nodefault = 0;
-static char *opt_policies = NULL;
-static char *opt_policy_oids = NULL;
-static int opt_policy_oids_critical = 0;
-static int opt_popo = OSSL_CRMF_POPO_NONE - 1;
-static char *opt_csr = NULL;
-static char *opt_out_trusted = NULL;
-static int opt_implicitConfirm = 0;
-static int opt_disableConfirm = 0;
-static char *opt_certout = NULL;
-
-static char *opt_oldcert = NULL;
-static int opt_revreason = CRL_REASON_NONE;
-
-static char *opt_cmd_s = NULL;
-static int opt_cmd = -1;
-static char *opt_infotype_s = NULL;
-static int opt_infotype = NID_undef;
-static char *opt_geninfo = NULL;
+static OSSL_CMP_SRV_CTX *srv_ctx = NULL;
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
@@ -338,27 +346,29 @@ const OPTIONS cmp_options[] = {
     {"config", OPT_CONFIG, 's',
      "Configuration file to use. \"\" = none. Default from env variable OPENSSL_CONF"},
     {"section", OPT_SECTION, 's',
-     "Section(s) in config file defining CMP options. \"\" = 'default'. Default 'cmp'"},
+     "Section(s) in config file to get options from. \"\" = 'default'. Default 'cmp'"},
 
     OPT_SECTION("Message transfer"),
     {"server", OPT_SERVER, 's',
-     "address[:port] of CMP server. Default port 80"},
+     "address[:port] of CMP server. Default port 80."},
+    {OPT_MORE_STR, 0, 0,
+     "The address may be a DNS name or an IP address"},
     {"proxy", OPT_PROXY, 's',
-     "address[:port] of optional HTTP(S) proxy. Default port 80."},
+     "[http://]address[:port] of optional HTTP(S) proxy. Default port 80."},
     {"no_proxy", OPT_NO_PROXY, 's',
      "List of addresses of servers not use use HTTP(S) proxy for."},
     {OPT_MORE_STR, 0, 0,
      "Default from environment variable 'no_proxy', else 'NO_PROXY', else none"},
     {"path", OPT_PATH, 's',
-     "HTTP path location inside the server (aka CMP alias). Default '/'"},
+     "HTTP path (aka CMP alias) at the CMP server. Default \"/\""},
     {"msgtimeout", OPT_MSGTIMEOUT, 'n',
      "Timeout per CMP message round trip (or 0 for none). Default 120 seconds"},
     {"totaltimeout", OPT_TOTALTIMEOUT, 'n',
-     "Overall time an enrollment incl. polling may take. Default 0 = none"},
+     "Overall time an enrollment incl. polling may take. Default 0 = infinite"},
 
     OPT_SECTION("Server authentication"),
     {"trusted", OPT_TRUSTED, 's',
-     "Trusted CA certs used for CMP server authentication when verifying responses"},
+     "Trusted certs used for CMP server authentication when verifying responses"},
     {OPT_MORE_STR, 0, 0, "unless -srvcert is given"},
     {"untrusted", OPT_UNTRUSTED, 's',
      "Intermediate certs for chain construction verifying CMP/TLS/enrolled certs"},
@@ -377,9 +387,9 @@ const OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "WARNING: This setting leads to behavior allowing violation of RFC 4210"},
     {"extracertsout", OPT_EXTRACERTSOUT, 's',
-     "File to save received extra certificates"},
+     "File to save extra certificates received in the extraCerts field"},
     {"cacertsout", OPT_CACERTSOUT, 's',
-     "File to save received CA certificates"},
+     "File to save CA certificates received in the caPubs field of 'ip' messages"},
 
     OPT_SECTION("Client authentication"),
     {"ref", OPT_REF, 's',
@@ -394,11 +404,11 @@ const OPTIONS cmp_options[] = {
     {"keypass", OPT_KEYPASS, 's',
      "Client private key (and cert and old cert file) pass phrase source"},
     {"digest", OPT_DIGEST, 's',
-     "Digest to use in message protection and POPO signatures. Default 'sha256'"},
+     "Digest to use in message protection and POPO signatures. Default \"sha256\""},
     {"mac", OPT_MAC, 's',
-     "MAC algorithm to use in PBM-based message protection. Default 'hmac-sha1'"},
+     "MAC algorithm to use in PBM-based message protection. Default \"hmac-sha1\""},
     {"extracerts", OPT_EXTRACERTS, 's',
-     "Certificates to append in extraCerts field when sending messages"},
+     "Certificates to append in extraCerts field of outgoing messages"},
     {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
      "Send messages without CMP-level protection"},
 
@@ -407,9 +417,9 @@ const OPTIONS cmp_options[] = {
     {"infotype", OPT_INFOTYPE, 's',
      "InfoType name for requesting specific info in genm, e.g. 'signKeyPairTypes'"},
     {"geninfo", OPT_GENINFO, 's',
-     "Set generalInfo in request PKIHeader with type and integer value"},
+     "generalInfo integer values to place in request PKIHeader with given OID"},
     {OPT_MORE_STR, 0, 0,
-     "given in the form <OID>:int:<n>, e.g. '1.2.3:int:987'"},
+     "specified in the form <OID>:int:<n>, e.g. \"1.2.3:int:987\""},
 
     OPT_SECTION("Certificate enrollment"),
     {"newkey", OPT_NEWKEY, 's',
@@ -422,39 +432,39 @@ const OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "this default is used for ir and cr only if no Subject Alt Names are set"},
     {"issuer", OPT_ISSUER, 's',
-     "DN of the issuer, to be put in the requested certificate template;"},
+     "DN of the issuer to place in the requested certificate template"},
     {OPT_MORE_STR, 0, 0,
      "also used as recipient if neither -recipient nor -srvcert are given"},
     {"days", OPT_DAYS, 'n',
-     "Number of days the new certificate is asked to be valid for"},
+     "Requested validity time of the new certificate in number of days"},
     {"reqexts", OPT_REQEXTS, 's',
      "Name of config file section defining certificate request extensions"},
     {"sans", OPT_SANS, 's',
-     "Subject Alternative Names (IPADDR/DNS/URI) to add as cert request extension"},
+     "Subject Alt Names (IPADDR/DNS/URI) to add as (critical) cert req extension"},
     {"san_nodefault", OPT_SAN_NODEFAULT, '-',
      "Do not take default SANs from reference certificate (see -oldcert)"},
     {"policies", OPT_POLICIES, 's',
-     "Name of config file section defining policies certifiate request extension"},
+     "Name of config file section defining policies certificate request extension"},
     {"policy_oids", OPT_POLICY_OIDS, 's',
-     "Policy OID(s) to add as certificate policies request extension"},
+     "Policy OID(s) to add as policies certificate request extension"},
     {"policy_oids_critical", OPT_POLICY_OIDS_CRITICAL, '-',
      "Flag the policy OID(s) given with -policy_oids as critical"},
     {"popo", OPT_POPO, 'n',
-     "Set Proof-of-Possession (POPO) method for ir/cr/kur where"},
+     "Proof-of-Possession (POPO) method to use for ir/cr/kur where"},
     {OPT_MORE_STR, 0, 0,
      "-1 = NONE, 0 = RAVERIFIED, 1 = SIGNATURE (default), 2 = KEYENC"},
     {"csr", OPT_CSR, 's',
-     "CSR in PKCS#10 format to use in p10cr for legacy support"},
+     "CSR file in PKCS#10 format to use in p10cr for legacy support"},
     {"out_trusted", OPT_OUT_TRUSTED, 's',
-     "Trusted certificates to use for verifying the newly enrolled certificate"},
+     "Certificates to trust when verifying newly enrolled certificates"},
     {"implicitconfirm", OPT_IMPLICITCONFIRM, '-',
-     "Request implicit confirmation of newly enrolled certificate"},
+     "Request implicit confirmation of newly enrolled certificates"},
     {"disableconfirm", OPT_DISABLECONFIRM, '-',
-     "Do not confirm newly enrolled certificate."},
+     "Do not confirm newly enrolled certificate w/o requesting implicit"},
     {OPT_MORE_STR, 0, 0,
-     "WARNING: This setting leads to behavior violating RFC 4210"},
+     "confirmation. WARNING: This leads to behavior violating RFC 4210"},
     {"certout", OPT_CERTOUT, 's',
-     "File to save the newly enrolled certificate"},
+     "File to save newly enrolled certificate"},
 
     OPT_SECTION("Certificate enrollment and revocation"),
 
@@ -465,9 +475,9 @@ const OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "Its issuer is used as recipient unless -srvcert, -recipient or -issuer given"},
     {"revreason", OPT_REVREASON, 'n',
-     "Set reason code to be included in revocation request (rr); possible values:"},
+     "Reason code to include in revocation request (rr); possible values:"},
     {OPT_MORE_STR, 0, 0,
-     "0..10 (see RFC5280, 5.3.1) or -1 for none. Default -1 = none"},
+     "0..6, 8..10 (see RFC5280, 5.3.1) or -1. Default -1 = none included"},
 
     OPT_SECTION("Credentials format"),
     {"ownform", OPT_OWNFORM, 's',
@@ -493,9 +503,9 @@ const OPTIONS cmp_options[] = {
      "prefixed by 'engine:', e.g. '-key engine:pkcs11:object=mykey;pin-value=1234'"},
 # endif
 
-    OPT_SECTION("TLS"),
+    OPT_SECTION("TLS connection"),
     {"tls_used", OPT_TLS_USED, '-',
-     "Force using TLS (also when other TLS options are not set"},
+     "Force using TLS (also when other TLS options are not set)"},
     {"tls_cert", OPT_TLS_CERT, 's',
      "Client's TLS certificate. May include chain to be provided to TLS server"},
     {"tls_key", OPT_TLS_KEY, 's',
@@ -510,7 +520,7 @@ const OPTIONS cmp_options[] = {
     {"tls_host", OPT_TLS_HOST, 's',
      "Address to be checked (rather than -server) during TLS host name validation"},
 
-    OPT_SECTION("Testing and debugging"),
+    OPT_SECTION("Client-side debugging"),
     {"batch", OPT_BATCH, '-',
      "Do not interactively prompt for input when a password is required etc."},
     {"repeat", OPT_REPEAT, 'n',
@@ -522,9 +532,12 @@ const OPTIONS cmp_options[] = {
     {"rspout", OPT_RSPOUT, 's', "Save sequence of CMP responses to file(s)"},
 
     {"use_mock_srv", OPT_USE_MOCK_SRV, '-', "Use mock server, not real one"},
+
+    OPT_SECTION("Mock server"),
     {"port", OPT_PORT, 's', "Act as HTTP mock server listening on given port"},
     {"max_msgs", OPT_MAX_MSGS, 'n',
      "max number of messages accepted by HTTP mock server. Default: 0 = unlimited"},
+
     {"srv_ref", OPT_SRV_REF, 's',
      "Reference value to use as senderKID of server in case no -cert is given"},
     {"srv_secret", OPT_SRV_SECRET, 's',
@@ -534,6 +547,7 @@ const OPTIONS cmp_options[] = {
      "Private key used by the server for signing messages"},
     {"srv_keypass", OPT_SRV_KEYPASS, 's',
      "Server private key (and cert file) pass phrase source"},
+
     {"srv_trusted", OPT_SRV_TRUSTED, 's',
      "Trusted certificates for client authentication"},
     {"srv_untrusted", OPT_SRV_UNTRUSTED, 's',
@@ -550,6 +564,7 @@ const OPTIONS cmp_options[] = {
      "The checkAfter value (time to wait) to include in poll response"},
     {"grant_implicitconf", OPT_GRANT_IMPLICITCONF, '-',
      "Grant implicit confirmation of newly enrolled certificate"},
+
     {"pkistatus", OPT_PKISTATUS, 'n',
      "PKIStatus to be included in server response"},
     {"failure", OPT_FAILURE, 'n',
