@@ -554,7 +554,8 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req,
 /*
  * Mocks the server connection. Works similar to OSSL_CMP_MSG_http_perform.
  * A OSSL_CMP_SRV_CTX must be set as transfer_cb_arg
- * returns 0 on success and else a CMP error reason code defined in cmp.h
+ * returns 0 on success, else 1 and pushes a CMP error reason code defined
+ * in cmp.h to the error stack.
  */
 int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
                                  OSSL_CMP_MSG **rsp)
@@ -565,12 +566,16 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
     OSSL_CMP_PKIFREETEXT *details = NULL;
     int error = 0;
 
-    if (cmp_ctx == NULL || req == NULL || rsp == NULL)
-        return CMP_R_NULL_ARGUMENT;
+    if (cmp_ctx == NULL || req == NULL || rsp == NULL) {
+        error = CMP_R_NULL_ARGUMENT;
+        goto end;
+    }
     *rsp = NULL;
 
-    if ((srv_ctx = OSSL_CMP_CTX_get_transfer_cb_arg(cmp_ctx)) == NULL)
-        return CMP_R_ERROR_TRANSFERRING_OUT;
+    if ((srv_ctx = OSSL_CMP_CTX_get_transfer_cb_arg(cmp_ctx)) == NULL) {
+        error = CMP_R_ERROR_TRANSFERRING_OUT;
+        goto end;
+    }
 
     /* OSSL_CMP_MSG_dup encodes and decodes ASN.1, used for checking encoding */
     if ((srv_req = OSSL_CMP_MSG_dup(req)) == NULL) {
@@ -613,8 +618,11 @@ int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
     OSSL_CMP_MSG_free(srv_req);
     OSSL_CMP_MSG_free(srv_rsp);
     OSSL_CMP_PKISI_free(si);
-
-    return error;
+    if (error != 0) {
+        CMPerr(0, error);
+        return 0;
+    }
+    return 1;
 }
 
 /*
