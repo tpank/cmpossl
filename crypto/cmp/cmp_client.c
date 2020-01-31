@@ -139,7 +139,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     const char *req_type_string =
         ossl_cmp_bodytype_to_string(ossl_cmp_msg_get_bodytype(req));
     int msgtimeout;
-    int err, bt;
+    int err = 0;
+    int bt;
     OSSL_cmp_transfer_cb_t transfer_cb = ctx->transfer_cb;
 
     if (transfer_cb == NULL) {
@@ -171,7 +172,10 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 #endif
 
     OSSL_CMP_log1(INFO, ctx, "sending %s", req_type_string);
-    err = (*transfer_cb)(ctx, req, rep);
+
+    if (!(*transfer_cb)(ctx, req, rep)) {
+        err = ERR_GET_REASON(ERR_peek_error());
+    }
     ctx->msgtimeout = msgtimeout; /* restore original value */
 
     if (err != 0) {
@@ -179,8 +183,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                 || err == CMP_R_READ_TIMEOUT
                 || err == CMP_R_ERROR_DECODING_MESSAGE) {
             CMPerr(0, not_received);
-        }
-        else {
+        } else {
             CMPerr(0, CMP_R_ERROR_SENDING_REQUEST);
             ERR_add_error_data(1, req_type_string);
         }
