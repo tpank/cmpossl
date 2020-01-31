@@ -25,7 +25,8 @@ typedef OSSL_CMP_MSG *(*cmp_srv_process_cb_t)
  */
 struct OSSL_cmp_srv_ctx_st
 {
-    OSSL_CMP_CTX *ctx;            /* Client CMP context partly reused for srv */
+    OSSL_CMP_CTX *ctx; /* Client CMP context, partly reused for srv */
+
     OSSL_CMP_PKISI *pkiStatusOut; /* PKIStatusInfo to be returned */
     X509 *certOut;                /* Certificate to be returned in cp/ip/kup */
     STACK_OF(X509) *chainOut;     /* Cert chain useful to validate certOut */
@@ -354,7 +355,8 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
     }
 
     if (status != NULL) {
-        ASN1_OCTET_STRING *tmp;
+        ASN1_OCTET_STRING *digest;
+
         /* check cert request id */
         if (ossl_cmp_asn1_get_int(status->certReqId) != srv_ctx->certReqId) {
             /* in case of error, invalid reqId -1 */
@@ -362,14 +364,14 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
             return NULL;
         }
 
-        if ((tmp = ossl_cmp_get1_certHash(srv_ctx->certOut)) == NULL)
+        if ((digest = ossl_cmp_X509_digest(srv_ctx->certOut)) == NULL)
             return NULL;
-        if (ASN1_OCTET_STRING_cmp(status->certHash, tmp) != 0) {
-            ASN1_OCTET_STRING_free(tmp);
+        if (ASN1_OCTET_STRING_cmp(status->certHash, digest) != 0) {
+            ASN1_OCTET_STRING_free(digest);
             CMPerr(0, CMP_R_WRONG_CERT_HASH);
             return NULL;
         }
-        ASN1_OCTET_STRING_free(tmp);
+        ASN1_OCTET_STRING_free(digest);
         if (status->statusInfo != NULL
                 && status->statusInfo->status != OSSL_CMP_PKISTATUS_accepted) {
             int pki_status = ossl_cmp_pkisi_get_pkistatus(status->statusInfo);
