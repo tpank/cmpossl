@@ -342,8 +342,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
     OSSL_CMP_CTX *ctx = srv_ctx->ctx;
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTSTATUS *status = NULL;
-    ASN1_OCTET_STRING *tmp = NULL;
-    int res = -1;
+
     int num = sk_OSSL_CMP_CERTSTATUS_num(req->body->value.certConf);
 
     if (num == 0) {
@@ -356,6 +355,7 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
     }
 
     if (status != NULL) {
+        ASN1_OCTET_STRING *tmp;
         /* check cert request id */
         if (ossl_cmp_asn1_get_int(status->certReqId) != srv_ctx->certReqId) {
             /* in case of error, invalid reqId -1 */
@@ -363,21 +363,14 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
             return NULL;
         }
 
-        /* check cert hash by recalculating it in place */
-        tmp = status->certHash;
-        status->certHash = NULL;
-        if (ossl_cmp_certstatus_set_certHash(status, srv_ctx->certOut))
-            res = status->certHash == NULL ? 0 /* avoiding SCA false positive */
-                : ASN1_OCTET_STRING_cmp(tmp, status->certHash) == 0;
-        ASN1_OCTET_STRING_free(status->certHash);
-        status->certHash = tmp;
-        if (res == -1)
+        if ((tmp = ossl_cmp_get1_certHash(srv_ctx->certOut)) == NULL)
             return NULL;
-        if (res == 0) {
+        if (ASN1_OCTET_STRING_cmp(status->certHash, tmp) != 0) {
+            ASN1_OCTET_STRING_free(tmp);
             CMPerr(0, CMP_R_WRONG_CERT_HASH);
             return NULL;
         }
-
+        ASN1_OCTET_STRING_free(tmp);
         if (status->statusInfo != NULL
                 && status->statusInfo->status != OSSL_CMP_PKISTATUS_accepted) {
             int pki_status = ossl_cmp_pkisi_get_pkistatus(status->statusInfo);

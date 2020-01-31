@@ -885,8 +885,9 @@ OSSL_CMP_MSG *ossl_cmp_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
                                  int errorCode,
                                  OSSL_CMP_PKIFREETEXT *errorDetails,
                                  int unprotected);
-int ossl_cmp_certstatus_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
-                                     const X509 *cert);
+int ossl_cmp_certstatus_set0_certHash(OSSL_CMP_CERTSTATUS *certStatus,
+                                      ASN1_OCTET_STRING *hash);
+ASN1_OCTET_STRING *ossl_cmp_get1_certHash(const X509 *cert);
 OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
                                     const char *text);
 OSSL_CMP_MSG *ossl_cmp_pollReq_new(OSSL_CMP_CTX *ctx, int crid);
