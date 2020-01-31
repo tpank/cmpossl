@@ -430,8 +430,8 @@ static int CMP_sendreq(BIO *bio, const char *host, const char *path,
 /*
  * Send the PKIMessage req and on success place the response in *res.
  * Any previous error is likely to be removed by ERR_clear_error().
- * returns 0 on success, else 1 and pushes a CMP error reason code defined
- * in cmp.h to the error stack.
+ * returns 1 on success, else 0 and pushes a CMP error reason code defined
+ * in cmp_err.h to the error stack.
  */
 int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                               OSSL_CMP_MSG **res)
