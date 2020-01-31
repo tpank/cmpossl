@@ -656,24 +656,34 @@ OSSL_CMP_MSG *ossl_cmp_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     OSSL_CMP_MSG_free(msg);
     return NULL;
 }
+/*
+ * Place the hash into the certHash field of a OSSL_CMP_CERTSTATUS structure.
+ */
+int ossl_cmp_certstatus_set0_certHash(OSSL_CMP_CERTSTATUS *certStatus,
+                                      ASN1_OCTET_STRING *hash)
+{
+    if (!ossl_assert(certStatus != NULL))
+        return 0;
+    ASN1_OCTET_STRING_free(certStatus->certHash);
+    certStatus->certHash = hash;
+    return 1;
+}
 
 /*
- * OSSL_CMP_CERTSTATUS_set_certHash() calculates a hash of the certificate,
+ * ossl_cmp_get1_certHash() calculates a hash of the certificate,
  * using the same hash algorithm as is used to create and verify the
- * certificate signature, and places the hash into the certHash field of a
- * OSSL_CMP_CERTSTATUS structure. This is used in the certConf message,
+ * certificate signature. This is used in the certConf message,
  * for example, to confirm that the certificate was received successfully.
  */
-int ossl_cmp_certstatus_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
-                                     const X509 *cert)
+ASN1_OCTET_STRING *ossl_cmp_get1_certHash(const X509 *cert)
 {
     unsigned int len;
     unsigned char hash[EVP_MAX_MD_SIZE];
     int md_NID;
     const EVP_MD *md = NULL;
 
-    if (!ossl_assert(certStatus != NULL && cert != NULL))
-        return 0;
+    if (!ossl_assert(cert != NULL))
+        return NULL;
 
     /*-
      * select hash algorithm, as stated in Appendix F. Compilable ASN.1 defs:
@@ -682,20 +692,19 @@ int ossl_cmp_certstatus_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
      */
     if (OBJ_find_sigid_algs(X509_get_signature_nid(cert), &md_NID, NULL)
             && (md = EVP_get_digestbynid(md_NID)) != NULL) {
-        if (!X509_digest(cert, md, hash, &len))
-            goto err;
-        if (!ossl_cmp_asn1_octet_string_set1_bytes(&certStatus->certHash, hash,
-                                                   len))
-            goto err;
-    } else {
-        CMPerr(0, CMP_R_UNSUPPORTED_ALGORITHM);
-        return 0;
-    }
+        ASN1_OCTET_STRING *new = NULL;
 
-    return 1;
- err:
-    CMPerr(0, CMP_R_ERROR_SETTING_CERTHASH);
-    return 0;
+        if (!X509_digest(cert, md, hash, &len))
+            return NULL;
+        if ((new = ASN1_OCTET_STRING_new()) == NULL
+                || !(ASN1_OCTET_STRING_set(new, hash, len))) {
+            ASN1_OCTET_STRING_free(new);
+            return NULL;
+        }
+        return new;
+    }
+    CMPerr(0, CMP_R_UNSUPPORTED_ALGORITHM);
+    return NULL;
 }
 
 /*
@@ -707,6 +716,7 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTSTATUS *certStatus = NULL;
+    ASN1_OCTET_STRING *certHash = NULL;
     OSSL_CMP_PKISI *sinfo;
 
     if (!ossl_assert(ctx != NULL && ctx->newCert != NULL))
@@ -732,8 +742,12 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
      * the hash of the certificate, using the same hash algorithm
      * as is used to create and verify the certificate signature
      */
-    if (!ossl_cmp_certstatus_set_certHash(certStatus, ctx->newCert))
+    if ((certHash = ossl_cmp_get1_certHash(ctx->newCert)) == NULL)
         goto err;
+
+    if (!ossl_cmp_certstatus_set0_certHash(certStatus, certHash))
+        goto err;
+    certHash = NULL;
     /*
      * For any particular CertStatus, omission of the statusInfo field
      * indicates ACCEPTANCE of the specified certificate.  Alternatively,
@@ -756,6 +770,7 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
  err:
     CMPerr(0, CMP_R_ERROR_CREATING_CERTCONF);
     OSSL_CMP_MSG_free(msg);
+    ASN1_OCTET_STRING_free(certHash);
     return NULL;
 }
 
