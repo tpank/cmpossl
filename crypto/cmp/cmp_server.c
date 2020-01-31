@@ -548,8 +548,8 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, OSSL_CMP_MSG *req,
 /*
  * Mocks the server connection. Works similar to OSSL_CMP_MSG_http_perform.
  * A OSSL_CMP_SRV_CTX must be set as transfer_cb_arg
- * returns 0 on success, else 1 and pushes a CMP error reason code defined
- * in cmp.h to the error stack.
+ * returns 1 on success, else 0 and pushes a CMP error reason code defined
+ * in cmp_err.h to the error stack.
  */
 int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
                                  OSSL_CMP_MSG **rsp)
