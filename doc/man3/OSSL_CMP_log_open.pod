@@ -39,7 +39,7 @@ OSSL_CMP_print_errors_cb
  typedef int (*OSSL_cmp_log_cb_t)(const char *component,
                                   const char *file, int line,
                                   OSSL_CMP_severity level, const char *msg);
- int OSSL_CMP_print_to_bio(BIO* bio, const char *component, const char *file,
+ int OSSL_CMP_print_to_bio(BIO *bio, const char *component, const char *file,
                            int line, OSSL_CMP_severity level, const char *msg);
  void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
 
@@ -90,11 +90,13 @@ It may be called multiple times. It does get called at OpenSSL stutdown.
 
 OSSL_CMP_print_to_bio() prints the given component info, filename, line number,
 severity level, and log message or error queue message to the given B<bio>.
+B<component> usually is a function or module name.
+If it is NULL, empty, or "(unknown function)" then "CMP" is used as fallback.
 
 OSSL_CMP_print_errors_cb() outputs any entries in the OpenSSL error queue.
 It is similar to B<ERR_print_errors_cb()> but uses the CMP log callback function
-C<log_fn> for uniformity with CMP logging if not B<NULL>. Otherwise it uses
-B<ERR_print_errors(3)> to print to STDERR (unless OPENSSL_NO_STDIO is defined).
+C<log_fn> for uniformity with CMP logging if not B<NULL>. Otherwise it prints to
+STDERR using B<OSSL_CMP_print_to_bio(3)> (unless OPENSSL_NO_STDIO is defined).
 
 =head1 RETURN VALUES
 

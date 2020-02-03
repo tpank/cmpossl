@@ -108,11 +108,16 @@ const char *ossl_cmp_log_parse_metadata(const char *buf,
 }
 
 #define UNKNOWN_FUNC "(unknown function)" /* the default for OPENSSL_FUNC */
-/* strip useless pseudo-information "(unknown function)" by macros.h */
-static const char *improve_func_name(const char *func)
+/*
+ * substitute fallback if component/function name is NULL or empty or contains
+ * just pseudo-information "(unknown function)" due to -pedantic and macros.h
+ */
+static const char *improve_location_name(const char *func, const char *fallback)
 {
-    return func == NULL ? UNKNOWN_FUNC
-                        : strcmp(func, UNKNOWN_FUNC) == 0 ? "" : func;
+    if (!ossl_assert(fallback != NULL))
+        return NULL;
+    return func == NULL || *func == '\0' || strcmp(func, UNKNOWN_FUNC) == 0
+        ? fallback : func;
 }
 
 int OSSL_CMP_print_to_bio(BIO *bio, const char *component, const char *file,
@@ -127,12 +132,10 @@ int OSSL_CMP_print_to_bio(BIO *bio, const char *component, const char *file,
         level == OSSL_CMP_LOG_NOTICE ? "NOTE" :
         level == OSSL_CMP_LOG_INFO ? "info" :
         level == OSSL_CMP_LOG_DEBUG ? "DEBUG" : "(unknown level)";
-#ifndef NDEBUG
-    const char *comp = improve_func_name(component);
 
-    if (component == NULL || comp[0] == '\0')
-        comp = "CMP";
-    if (BIO_printf(bio, "%s:%s:%d:", comp, file, line) < 0)
+#ifndef NDEBUG
+    if (BIO_printf(bio, "%s:%s:%d:", improve_location_name(component, "CMP"),
+                   file, line) < 0)
         return 0;
 #endif
     return BIO_printf(bio, OSSL_CMP_LOG_PREFIX"%s: %s\n",
@@ -148,9 +151,9 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
     int line, flags;
 
     while ((err = ERR_get_error_all(&file, &line, &func, &data, &flags)) != 0) {
-        const char *component = improve_func_name(func);
-        if (*component == '\0')
-            component = ERR_lib_error_string(err);
+        const char *component =
+            improve_location_name(func, ERR_lib_error_string(err));
+
         if (!(flags & ERR_TXT_STRING))
             data = NULL;
         BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
@@ -159,6 +162,7 @@ void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn)
         if (log_fn == NULL) {
 #ifndef OPENSSL_NO_STDIO
             BIO *bio = BIO_new_fp(stderr, BIO_NOCLOSE);
+
             if (bio != NULL) {
                 OSSL_CMP_print_to_bio(bio, component, file, line,
                                       OSSL_CMP_LOG_ERR, msg);
