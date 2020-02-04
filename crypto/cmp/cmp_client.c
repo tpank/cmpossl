@@ -285,8 +285,8 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
             OSSL_CMP_log1(INFO, ctx,
-                          "received polling response, waiting check_after =  "
-                          "%ld sec before next polling request", check_after);
+                          "received polling response, waiting for check_after = %ld seconds",
+                          check_after);
 
             if (ctx->totaltimeout > 0) { /* total timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
