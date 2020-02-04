@@ -2015,19 +2015,22 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     OSSL_CMP_MSG *req_new = NULL;
     OSSL_CMP_PKIHEADER *hdr;
     ASN1_OCTET_STRING *nonce, *tid;
-    int ret = CMP_R_ERROR_TRANSFERRING_OUT;
+    int ret = 0;
 
     if (req != NULL && opt_reqout != NULL
-            && !write_PKIMESSAGE(ctx, req, &opt_reqout))
+            && !write_PKIMESSAGE(ctx, req, &opt_reqout)) {
+        CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
         goto err;
+    }
 
     if (opt_reqin != NULL) {
         if (opt_rspin != NULL) {
             CMP_warn("-reqin is ignored since -rspin is present");
         } else {
-            ret = CMP_R_ERROR_TRANSFERRING_IN;
-            if ((req_new = read_PKIMESSAGE(ctx, &opt_reqin)) == NULL)
+            if ((req_new = read_PKIMESSAGE(ctx, &opt_reqin)) == NULL) {
+                CMPerr(0, CMP_R_ERROR_TRANSFERRING_IN);
                 goto err;
+            }
             /*-
              * The transaction ID in req_new may not be fresh.
              * In this case the Insta Demo CA correctly complains:
@@ -2037,30 +2040,35 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
              */
 # if defined(USE_TRANSACTIONID_WORKAROUND)
             hdr = OSSL_CMP_MSG_get0_header(req_new);
-            OSSL_CMP_CTX_set1_transactionID(hdr, NULL);
-            ossl_cmp_msg_protect(ctx, req_new);
+            if (!OSSL_CMP_CTX_set1_transactionID(hdr, NULL)
+                    || !ossl_cmp_msg_protect(ctx, req_new))
+                goto err;
 # endif
         }
     }
 
-    ret = CMP_R_ERROR_TRANSFERRING_IN;
     if (opt_rspin != NULL) {
-        if ((*res = read_PKIMESSAGE(ctx, &opt_rspin)))
-            ret = 0;
+        if ((*res = read_PKIMESSAGE(ctx, &opt_rspin)) == NULL) {
+            CMPerr(0, CMP_R_ERROR_TRANSFERRING_IN);
+            goto err;
+        }
     } else {
         const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
+
         if (opt_use_mock_srv) {
             ret = OSSL_CMP_mock_server_perform(ctx, actual_req, res);
         } else {
 # if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
             ret = OSSL_CMP_MSG_http_perform(ctx, actual_req, res);
+# else
+            CMPerr(0, CMP_R_ERROR_TRANSFERRING_IN);
 # endif
         }
     }
-
-    if (ret != 0 || (*res) == NULL)
+    if (ret == 0 || *res == NULL)
         goto err;
-    ret = ERR_R_MALLOC_FAILURE;
+
+    ret = 0;
     hdr = OSSL_CMP_MSG_get0_header(*res);
     nonce = OSSL_CMP_HDR_get0_recipNonce(hdr);
     tid = OSSL_CMP_HDR_get0_transactionID(hdr);
@@ -2071,12 +2079,12 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         goto err;
 
     if (opt_rspout != NULL && !write_PKIMESSAGE(ctx, *res, &opt_rspout)) {
-        ret = CMP_R_ERROR_TRANSFERRING_OUT;
+        CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
         OSSL_CMP_MSG_free(*res);
         goto err;
     }
 
-    ret = 0;
+    ret = 1;
  err:
     OSSL_CMP_MSG_free(req_new);
     return ret;
@@ -4358,7 +4366,7 @@ int cmp_main(int argc, char **argv)
                 CMP_err("Error parsing CMP request");
                 goto srv_err;
             }
-            if (OSSL_CMP_mock_server_perform(cmp_ctx, req, &resp) != 0)
+            if (!OSSL_CMP_mock_server_perform(cmp_ctx, req, &resp))
                 goto srv_err;
             if (!http_server_send_cmp_response(cbio, resp))
                 goto srv_err;
