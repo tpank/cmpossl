@@ -438,8 +438,7 @@ static int execute_rp_create(CMP_MSG_TEST_FIXTURE *fixture)
     if (!TEST_ptr(ossl_cmp_revrepcontent_get_CertId(rpmsg->body->value.rp, 0)))
         goto err;
 
-    if (!TEST_ptr(ossl_cmp_revrepcontent_get_pkistatusinfo(rpmsg->body->value.rp,
-                                                           0)))
+    if (!TEST_ptr(ossl_cmp_revrepcontent_get_pkisi(rpmsg->body->value.rp, 0)))
         goto err;
 
     res = 1;
