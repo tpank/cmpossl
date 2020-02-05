@@ -14,7 +14,8 @@ OSSL_CMP_LOG_NOTICE,
 OSSL_CMP_LOG_INFO,
 OSSL_CMP_LOG_DEBUG,
 OSSL_CMP_print_to_bio,
-OSSL_CMP_print_errors_cb
+OSSL_CMP_print_errors_cb,
+OSSL_CMP_X509_digest
 - functions for logging and error reporting
 
 =head1 SYNOPSIS
@@ -41,6 +42,7 @@ OSSL_CMP_print_errors_cb
  int OSSL_CMP_print_to_bio(BIO* bio, const char *component, const char *file,
                            int line, OSSL_CMP_severity level, const char *msg);
  void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
+ ASN1_OCTET_STRING *OSSL_CMP_X509_digest(const X509 *cert);
 
 =head1 DESCRIPTION
 
@@ -95,9 +97,14 @@ It is similar to B<ERR_print_errors_cb()> but uses the CMP log callback function
 C<log_fn> for uniformity with CMP logging if not B<NULL>. Otherwise it uses
 B<ERR_print_errors(3)> to print to STDERR (unless OPENSSL_NO_STDIO is defined).
 
+OSSL_CMP_X509_digest() calculate a digest of the given certificate,
+using the same hash algorithm as in the certificate signature.
+
 =head1 RETURN VALUES
 
 OSSL_CMP_log_close() and OSSL_CMP_print_errors_cb() do not return anything.
+
+OSSL_CMP_X509_digest() returns an ASN1_OCTET_STRING on success, else NULL.
 
 All other functions return 1 on success, 0 on error.
 

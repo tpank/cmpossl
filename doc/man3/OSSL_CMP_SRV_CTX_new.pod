@@ -2,107 +2,118 @@
 
 =head1 NAME
 
-OSSL_CMP_mock_server_perform,
+OSSL_CMP_server_perform,
 OSSL_CMP_SRV_CTX_new,
 OSSL_CMP_SRV_CTX_free,
+OSSL_CMP_SRV_cert_request_cb_t,
+OSSL_CMP_SRV_rr_cb_t,
+OSSL_CMP_SRV_certConf_cb_t,
+OSSL_CMP_SRV_genm_cb_t,
+OSSL_CMP_SRV_error_cb_t,
+OSSL_CMP_SRV_pollReq_cb_t,
+OSSL_CMP_SRV_CTX_init,
 OSSL_CMP_SRV_CTX_get0_ctx,
-OSSL_CMP_SRV_CTX_set1_certOut,
-OSSL_CMP_SRV_CTX_set1_chainOut,
-OSSL_CMP_SRV_CTX_set1_caPubsOut,
-OSSL_CMP_SRV_CTX_set_statusInfo,
-OSSL_CMP_SRV_CTX_set_checkAfterTime,
-OSSL_CMP_SRV_CTX_set_pollCount,
-OSSL_CMP_SRV_CTX_set_send_error,
+OSSL_CMP_SRV_CTX_get0_custom_ctx,
 OSSL_CMP_SRV_CTX_set_send_unprotected_errors,
 OSSL_CMP_SRV_CTX_set_accept_unprotected,
 OSSL_CMP_SRV_CTX_set_accept_raverified,
 OSSL_CMP_SRV_CTX_set_grant_implicit_confirm
-- functions to control a CMP mock server
+- generic functions to set up and control a CMP server
 
 =head1 SYNOPSIS
 
-  #include <openssl/cmp.h>
-  int OSSL_CMP_mock_server_perform(OSSL_CMP_CTX *cmp_ctx,
-                                   const OSSL_CMP_MSG *req,
-                                   OSSL_CMP_MSG **res);
-  OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void);
-  void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx);
-  OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx);
+ #include <openssl/cmp.h>
+ int OSSL_CMP_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
+                             OSSL_CMP_MSG **res);
+ OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void);
+ void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx);
 
-  int OSSL_CMP_SRV_CTX_set1_certOut(OSSL_CMP_SRV_CTX *srv_ctx, X509 *cert);
-  int OSSL_CMP_SRV_CTX_set1_chainOut(OSSL_CMP_SRV_CTX *srv_ctx,
-                                     STACK_OF(X509) *chain);
-  int OSSL_CMP_SRV_CTX_set1_caPubsOut(OSSL_CMP_SRV_CTX *srv_ctx,
-                                      STACK_OF(X509) *caPubs);
+ typedef OSSL_CMP_PKISI *(*OSSL_CMP_SRV_cert_request_cb_t)(
+                                                 OSSL_CMP_SRV_CTX *srv_ctx, 
+                                                 const OSSL_CMP_MSG *req,
+                                                 int certReqId,
+                                                 X509 **certOut,
+                                                 STACK_OF(X509) **chainOut,
+                                                 STACK_OF(X509) **caPubs);
+ typedef OSSL_CMP_PKISI *(*OSSL_CMP_SRV_rr_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
+                                                 const OSSL_CMP_MSG *req,
+                                                 X509_NAME *issuer,
+                                                 ASN1_INTEGER *serial);
+ typedef int (*OSSL_CMP_SRV_certConf_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
+                                           const OSSL_CMP_MSG *req,
+                                           int certReqId,
+                                           ASN1_OCTET_STRING *certHash);
+ typedef int (*OSSL_CMP_SRV_genm_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
+                                       const OSSL_CMP_MSG *req,
+                                       STACK_OF(OSSL_CMP_ITAV) *in,
+                                       STACK_OF(OSSL_CMP_ITAV) **out);
+ typedef void (*OSSL_CMP_SRV_error_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
+                                         const OSSL_CMP_MSG *req);
+ typedef int (*OSSL_CMP_SRV_pollReq_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
+                                          const OSSL_CMP_MSG *req,
+                                          int certReqId, 
+                                          OSSL_CMP_MSG **certReq,
+                                          int64_t *check_after);
+ int OSSL_CMP_SRV_CTX_init(OSSL_CMP_SRV_CTX *srv_ctx, void *custom_ctx,
+                           OSSL_CMP_SRV_cert_request_cb_t process_cert_request,
+                           OSSL_CMP_SRV_rr_cb_t process_rr,
+                           OSSL_CMP_SRV_certConf_cb_t process_certConf,
+                           OSSL_CMP_SRV_genm_cb_t process_genm,
+                           OSSL_CMP_SRV_error_cb_t process_error,
+                           OSSL_CMP_SRV_pollReq_cb_t process_pollReq);
 
-  int OSSL_CMP_SRV_CTX_set_statusInfo(OSSL_CMP_SRV_CTX *srv_ctx, int status,
-                                      int fail_info, const char *text);
-  int OSSL_CMP_SRV_CTX_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx,
-                                          int64_t sec);
-  int OSSL_CMP_SRV_CTX_set_pollCount(OSSL_CMP_SRV_CTX *srv_ctx, int64_t count);
+ OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx);
+ void *OSSL_CMP_SRV_CTX_get0_custom_ctx(const OSSL_CMP_SRV_CTX *srv_ctx);
 
-  int OSSL_CMP_SRV_CTX_set_send_error(OSSL_CMP_SRV_CTX *srv_ctx, int error);
-  int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx,
-                                                   int value);
-  int OSSL_CMP_SRV_CTX_set_accept_unprotected(OSSL_CMP_SRV_CTX *srv_ctx,
-                                              int value);
-  int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx,
-                                             int raverified);
-  int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
-                                                  int value);
+ int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx,
+                                                  int val);
+ int OSSL_CMP_SRV_CTX_set_accept_unprotected(OSSL_CMP_SRV_CTX *srv_ctx, int val);
+ int OSSL_CMP_SRV_CTX_set_accept_raverified(OSSL_CMP_SRV_CTX *srv_ctx, int val);
+ int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
+                                                 int val);
 
 =head1 DESCRIPTION
 
 
-OSSL_CMP_mock_server_perform() mocks the server connection.
+OSSL_CMP_server_perform() implements a generic CMP server.
 It is used similarly to B<OSSL_CMP_MSG_http_perform()>.
 A B<OSSL_CMP_SRV_CTX> must be set as B<transfer_cb_arg>.
-Returns 0 on success and else a CMP error reason code defined in cmp.h.
+The funcion does the typical generic checks on incoming messages,
+then calls the appropriate callback function for more specific processing,
+and then assembles a result message (unless an internal error occurred).
 
 OSSL_CMP_SRV_CTX_new() creates and initializes a OSSL_CMP_SRV_CTX structure
 and returns a pointer to it on success, NULL on error.
 
 OSSL_CMP_SRV_CTX_free() deletes the given B<srv_ctx>.
 
+OSSL_CMP_SRV_CTX_init() sets in the given B<srv_ctx> a custom server context
+pointer as well as callback functions performing the specific processing of CMP 
+certificate requests, revocation requests, certificate confirmation requests,
+general messages, error messages, and poll requests.
+
 OSSL_CMP_SRV_CTX_get0_ctx() returns the B<OSSL_CMP_CTX> from the B<srv_ctx>.
 
-OSSL_CMP_SRV_CTX_set1_certOut() sets the certificate to be returned in
-cp/ip/kup.
-
-OSSL_CMP_SRV_CTX_set1_chainOut() sets the certificate chain to be added to
-the extraCerts in a cp/ip/kup. It should to useful to validate B<certOut>.
-
-OSSL_CMP_SRV_CTX_set1_caPubsOut() sets the caPubs to be returned in an ip.
-
-OSSL_CMP_SRV_CTX_set_statusInfo() sets the status info to be returned.
-
-OSSL_CMP_SRV_CTX_set_checkAfterTime() sets the time the client should wait
-for the next poll in seconds.
-
-OSSL_CMP_SRV_CTX_set_pollCount() sets the number of polls before cert response.
-
-OSSL_CMP_SRV_CTX_set_send_error() enables enforcement of error responses.
+OSSL_CMP_SRV_CTX_get0_custom_ctx() returns the custom server context from
+B<srv_ctx> that has been set using B<OSSL_CMP_SRV_CTX_init>.
 
 OSSL_CMP_SRV_CTX_set_send_unprotected_errors() enables sending error messages
 and other forms of negative responses unprotected.
 
 OSSL_CMP_SRV_CTX_set_accept_unprotected() enables acceptance of requests
-with no or invalid protection.
+without protection of with invalid protection.
 
 OSSL_CMP_SRV_CTX_set_accept_raverified() enables acceptance of ir/cr/kur
-with POPO 'RAVerified'.
+messages with POPO 'RAVerified'.
 
 OSSL_CMP_SRV_CTX_set_grant_implicit_confirm() enables granting implicit
-confirmation if requested.
+confirmation of newly enrolled certificates if requested.
 
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 =head1 RETURN VALUES
-
-OSSL_CMP_mock_server_perform() returns 0 on success and else a CMP error
-reason code defined in cmp.h.
 
 OSSL_CMP_SRV_CTX_new() returns a B<OSSL_CMP_SRV_CTX> structure on success,
 NULL on error.
@@ -111,6 +122,9 @@ OSSL_CMP_SRV_CTX_free() does not return a value.
 
 OSSL_CMP_SRV_CTX_get0_ctx() returns a B<OSSL_CMP_CTX> structure on success,
 NULL on error.
+
+OSSL_CMP_SRV_CTX_get0_custom_ctx() returns the custom server context
+that has been set using B<OSSL_CMP_SRV_CTX_init>.
 
 All other functions return 1 on success, 0 on error.
 
