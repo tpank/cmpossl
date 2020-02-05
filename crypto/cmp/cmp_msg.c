@@ -385,7 +385,7 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
             || !ASN1_INTEGER_set(resp->certReqId, certReqId))
         goto err;
 
-    status = ossl_cmp_pkisi_get_pkistatus(resp->status);
+    status = ossl_cmp_pkisi_get_status(resp->status);
     if (status != OSSL_CMP_PKISTATUS_rejection
             && status != OSSL_CMP_PKISTATUS_waiting && cert != NULL) {
         if (encrypted) {
@@ -416,7 +416,7 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
         goto err;
 
     if (!unprotectedErrors
-            || ossl_cmp_pkisi_get_pkistatus(si) != OSSL_CMP_PKISTATUS_rejection)
+            || ossl_cmp_pkisi_get_status(si) != OSSL_CMP_PKISTATUS_rejection)
         if (!ossl_cmp_msg_protect(ctx, msg))
             goto err;
 
@@ -511,7 +511,7 @@ OSSL_CMP_MSG *ossl_cmp_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     }
 
     if (!unprot_err
-            || ossl_cmp_pkisi_get_pkistatus(si) != OSSL_CMP_PKISTATUS_rejection)
+            || ossl_cmp_pkisi_get_status(si) != OSSL_CMP_PKISTATUS_rejection)
         if (!ossl_cmp_msg_protect(ctx, msg))
             goto err;
 
@@ -583,7 +583,8 @@ int ossl_cmp_msg_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
  * Creates a new General Message/Response with an empty itav stack
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-static OSSL_CMP_MSG *gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
+static OSSL_CMP_MSG *gen_new(OSSL_CMP_CTX *ctx, STACK_OF(OSSL_CMP_ITAV) *itavs,
+                             int body_type, int err_code)
 {
     OSSL_CMP_MSG *msg = NULL;
 
@@ -594,7 +595,7 @@ static OSSL_CMP_MSG *gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
         return NULL;
 
     if (ctx->genm_ITAVs != NULL
-            && !ossl_cmp_msg_gen_push1_ITAVs(msg, ctx->genm_ITAVs))
+            && !ossl_cmp_msg_gen_push1_ITAVs(msg, itavs))
         goto err;
 
     if (!ossl_cmp_msg_protect(ctx, msg))
@@ -610,20 +611,23 @@ static OSSL_CMP_MSG *gen_new(OSSL_CMP_CTX *ctx, int body_type, int err_code)
 
 OSSL_CMP_MSG *ossl_cmp_genm_new(OSSL_CMP_CTX *ctx)
 {
-    return gen_new(ctx, OSSL_CMP_PKIBODY_GENM, CMP_R_ERROR_CREATING_GENM);
+    return gen_new(ctx, ctx->genm_ITAVs,
+                   OSSL_CMP_PKIBODY_GENM, CMP_R_ERROR_CREATING_GENM);
 }
 
-OSSL_CMP_MSG *ossl_cmp_genp_new(OSSL_CMP_CTX *ctx)
+OSSL_CMP_MSG *ossl_cmp_genp_new(OSSL_CMP_CTX *ctx,
+                                STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
-    return gen_new(ctx, OSSL_CMP_PKIBODY_GENP, CMP_R_ERROR_CREATING_GENP);
+    return gen_new(ctx, itavs,
+                   OSSL_CMP_PKIBODY_GENP, CMP_R_ERROR_CREATING_GENP);
 }
 
 OSSL_CMP_MSG *ossl_cmp_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
                                  int errorCode,
-                                 OSSL_CMP_PKIFREETEXT *errorDetails,
-                                 int unprotected)
+                                 const char *details, int unprotected)
 {
     OSSL_CMP_MSG *msg = NULL;
+    OSSL_CMP_PKIFREETEXT *ft;
 
     if (!ossl_assert(ctx != NULL && si != NULL))
         return NULL;
@@ -641,11 +645,13 @@ OSSL_CMP_MSG *ossl_cmp_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
         if (!ASN1_INTEGER_set(msg->body->value.error->errorCode, errorCode))
             goto err;
     }
-    if (errorDetails != NULL)
-        if ((msg->body->value.error->errorDetails =
-             sk_ASN1_UTF8STRING_deep_copy(errorDetails, ASN1_STRING_dup,
-                                          ASN1_STRING_free)) == NULL)
+    if (details != NULL) {
+        if ((ft = sk_ASN1_UTF8STRING_new_null()) == NULL)
             goto err;
+        msg->body->value.error->errorDetails = ft;
+        if (!ossl_cmp_sk_ASN1_UTF8STRING_push_str(ft, details))
+            goto err;
+    }
 
     if (!unprotected && !ossl_cmp_msg_protect(ctx, msg))
         goto err;
@@ -707,7 +713,7 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
      * the hash of the certificate, using the same hash algorithm
      * as is used to create and verify the certificate signature
      */
-    if ((certHash = ossl_cmp_X509_digest(ctx->newCert)) == NULL)
+    if ((certHash = OSSL_CMP_X509_digest(ctx->newCert)) == NULL)
         goto err;
 
     if (!ossl_cmp_certstatus_set0_certHash(certStatus, certHash))
@@ -721,8 +727,8 @@ OSSL_CMP_MSG *ossl_cmp_certConf_new(OSSL_CMP_CTX *ctx, int fail_info,
      * the CA/RA.
      */
     sinfo = fail_info != 0 ?
-        ossl_cmp_statusinfo_new(OSSL_CMP_PKISTATUS_rejection, fail_info, text) :
-        ossl_cmp_statusinfo_new(OSSL_CMP_PKISTATUS_accepted, 0, text);
+        OSSL_CMP_STATUSINFO_new(OSSL_CMP_PKISTATUS_rejection, fail_info, text) :
+        OSSL_CMP_STATUSINFO_new(OSSL_CMP_PKISTATUS_accepted, 0, text);
     if (sinfo == NULL)
         goto err;
     certStatus->statusInfo = sinfo;
@@ -807,7 +813,7 @@ OSSL_CMP_MSG *ossl_cmp_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
  * returns NULL on error
  */
 OSSL_CMP_PKISI *
-ossl_cmp_revrepcontent_get_pkistatusinfo(OSSL_CMP_REVREPCONTENT *rrep, int rsid)
+ossl_cmp_revrepcontent_get_pkisi(OSSL_CMP_REVREPCONTENT *rrep, int rsid)
 {
     OSSL_CMP_PKISI *status;
 

@@ -28,7 +28,7 @@
 
 /* CMP functions related to PKIStatus */
 
-int ossl_cmp_pkisi_get_pkistatus(const OSSL_CMP_PKISI *si)
+int ossl_cmp_pkisi_get_status(const OSSL_CMP_PKISI *si)
 {
     if (!ossl_assert(si != NULL && si->status != NULL))
         return -1;
@@ -259,7 +259,7 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf,
  * note: strongly overlaps with TS_RESP_CTX_set_status_info()
  * and TS_RESP_CTX_add_failure_info() in ../ts/ts_rsp_sign.c
  */
-OSSL_CMP_PKISI *ossl_cmp_statusinfo_new(int status, int fail_info,
+OSSL_CMP_PKISI *OSSL_CMP_STATUSINFO_new(int status, int fail_info,
                                         const char *text)
 {
     OSSL_CMP_PKISI *si = OSSL_CMP_PKISI_new();

@@ -115,6 +115,8 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
      "missing trust store"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED),
     "multiple responses not supported"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MULTIPLE_REQUESTS_NOT_SUPPORTED),
+    "multiple requests not supported"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_MULTIPLE_SAN_SOURCES),
     "multiple san sources"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_NO_STDIO), "no stdio"},
