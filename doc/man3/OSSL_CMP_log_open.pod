@@ -14,7 +14,8 @@ OSSL_CMP_LOG_NOTICE,
 OSSL_CMP_LOG_INFO,
 OSSL_CMP_LOG_DEBUG,
 OSSL_CMP_print_to_bio,
-OSSL_CMP_print_errors_cb
+OSSL_CMP_print_errors_cb,
+OSSL_CMP_X509_digest
 - functions for logging and error reporting
 
 =head1 SYNOPSIS
@@ -38,9 +39,10 @@ OSSL_CMP_print_errors_cb
  typedef int (*OSSL_cmp_log_cb_t) (const char *component,
                                    const char *file, int line,
                                    OSSL_CMP_severity level, const char *msg);
- int OSSL_CMP_print_to_bio(BIO* bio, const char *func, const char *file,
+ int OSSL_CMP_print_to_bio(BIO* bio, const char *component, const char *file,
                            int line, OSSL_CMP_severity level, const char *msg);
  void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
+ ASN1_OCTET_STRING *OSSL_CMP_X509_digest(const X509 *cert);
 
 =head1 DESCRIPTION
 
@@ -60,7 +62,7 @@ with the following type:
                                   OSSL_CMP_severity level, const char *msg);
 
 The parameters may provide
-a component identifier (which may be a library name or function name) or NULL,
+some component info (which may be a module name and/or function name) or NULL,
 a file pathname or NULL,
 a line number or 0 indicating the source code location,
 a severity level, and
@@ -87,7 +89,7 @@ OSSL_CMP_log_close() may be called when all activities are finished to flush
 any pending CMP-specific log output and deallocate related resources.
 It may be called multiple times. It does get called at OpenSSL stutdown.
 
-OSSL_CMP_print_to_bio() prints the given function name, filename, line number,
+OSSL_CMP_print_to_bio() prints the given component info, filename, line number,
 severity level, and log message or error queue message to the given B<bio>.
 
 OSSL_CMP_print_errors_cb() outputs any entries in the OpenSSL error queue.
@@ -95,9 +97,14 @@ It is similar to B<ERR_print_errors_cb()> but uses the CMP log callback function
 C<log_fn> for uniformity with CMP logging if not B<NULL>. Otherwise it uses
 B<ERR_print_errors(3)> to print to STDERR (unless OPENSSL_NO_STDIO is defined).
 
+OSSL_CMP_X509_digest() calculate a digest of the given certificate,
+using the same hash algorithm as in the certificate signature.
+
 =head1 RETURN VALUES
 
 OSSL_CMP_log_close() and OSSL_CMP_print_errors_cb() do not return anything.
+
+OSSL_CMP_X509_digest() returns an ASN1_OCTET_STRING on success, else NULL.
 
 All other functions return 1 on success, 0 on error.
 
