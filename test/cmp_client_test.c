@@ -275,6 +275,8 @@ static int test_exchange_certConf(void)
         tear_down(fixture);
         fixture = NULL;
     }
+    fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
+    execute_exec_certrequest_ses_test(fixture);
     EXECUTE_TEST(execute_exchange_certConf_test, tear_down);
     return result;
 }
