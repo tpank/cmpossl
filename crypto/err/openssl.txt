@@ -2132,7 +2132,6 @@ CMP_R_NO_SUITABLE_SENDER_CERT:161:no suitable sender cert
 CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG:162:srvcert does not validate msg
 CMP_R_NULL_ARGUMENT:103:null argument
 CMP_R_PKIBODY_ERROR:163:pkibody error
-CMP_R_PKICONF_NOT_RECEIVED:164:pkiconf not received
 CMP_R_PKISTATUSINFO_NOT_FOUND:112:pkistatusinfo not found
 CMP_R_POLLREP_NOT_RECEIVED:165:pollrep not received
 CMP_R_POTENTIALLY_INVALID_CERTIFICATE:166:potentially invalid certificate

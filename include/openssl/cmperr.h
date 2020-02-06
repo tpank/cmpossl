@@ -98,7 +98,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG              162
 #  define CMP_R_NULL_ARGUMENT                              103
 #  define CMP_R_PKIBODY_ERROR                              163
-#  define CMP_R_PKICONF_NOT_RECEIVED                       164
 #  define CMP_R_PKISTATUSINFO_NOT_FOUND                    112
 #  define CMP_R_POLLREP_NOT_RECEIVED                       165
 #  define CMP_R_POTENTIALLY_INVALID_CERTIFICATE            166
