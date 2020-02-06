@@ -360,8 +360,11 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
 /* from cmp_server.c */
 typedef struct ossl_cmp_srv_ctx_st OSSL_CMP_SRV_CTX;
-int OSSL_CMP_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
-                            OSSL_CMP_MSG **res);
+int OSSL_CMP_SRV_process_request(OSSL_CMP_SRV_CTX *srv_ctx,
+                                 const OSSL_CMP_MSG *req,
+                                 OSSL_CMP_MSG **rsp);
+int OSSL_CMP_CTX_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
+                                OSSL_CMP_MSG **res);
 OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void);
 void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx);
 typedef OSSL_CMP_PKISI *(*OSSL_CMP_SRV_cert_request_cb_t)
@@ -371,16 +374,16 @@ typedef OSSL_CMP_PKISI *(*OSSL_CMP_SRV_rr_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                                 const OSSL_CMP_MSG *req,
                                                 X509_NAME *issuer,
                                                 ASN1_INTEGER *serial);
-typedef int (*OSSL_CMP_SRV_certConf_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
-                                          const OSSL_CMP_MSG *req,
-                                          int certReqId,
-                                          ASN1_OCTET_STRING *certHash);
 typedef int (*OSSL_CMP_SRV_genm_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                       const OSSL_CMP_MSG *req,
                                       STACK_OF(OSSL_CMP_ITAV) *in,
                                       STACK_OF(OSSL_CMP_ITAV) **out);
 typedef void (*OSSL_CMP_SRV_error_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                         const OSSL_CMP_MSG *req);
+typedef int (*OSSL_CMP_SRV_certConf_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
+                                          const OSSL_CMP_MSG *req,
+                                          int certReqId,
+                                          ASN1_OCTET_STRING *certHash);
 typedef int (*OSSL_CMP_SRV_pollReq_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                          const OSSL_CMP_MSG *req, int certReqId,
                                          OSSL_CMP_MSG **certReq,
@@ -388,11 +391,11 @@ typedef int (*OSSL_CMP_SRV_pollReq_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
 int OSSL_CMP_SRV_CTX_init(OSSL_CMP_SRV_CTX *srv_ctx, void *custom_ctx,
                           OSSL_CMP_SRV_cert_request_cb_t process_cert_request,
                           OSSL_CMP_SRV_rr_cb_t process_rr,
-                          OSSL_CMP_SRV_certConf_cb_t process_certConf,
                           OSSL_CMP_SRV_genm_cb_t process_genm,
                           OSSL_CMP_SRV_error_cb_t process_error,
+                          OSSL_CMP_SRV_certConf_cb_t process_certConf,
                           OSSL_CMP_SRV_pollReq_cb_t process_pollReq);
-OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx);
+OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_cmp_ctx(const OSSL_CMP_SRV_CTX *srv_ctx);
 void *OSSL_CMP_SRV_CTX_get0_custom_ctx(const OSSL_CMP_SRV_CTX *srv_ctx);
 int OSSL_CMP_SRV_CTX_set_send_unprotected_errors(OSSL_CMP_SRV_CTX *srv_ctx,
                                                  int val);
