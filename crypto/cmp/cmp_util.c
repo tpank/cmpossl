@@ -192,8 +192,7 @@ void ossl_cmp_add_error_txt(const char *separator, const char *txt)
             if (len_next <= available_len) {
                 next += len_next;
                 curr = NULL; /* no need to split */
-            }
-            else {
+            } else {
                 next += available_len;
                 curr = next; /* will split at this point */
             }
