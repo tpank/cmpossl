@@ -16,6 +16,8 @@
 #include "s_apps.h"
 #include "progs.h"
 
+#include "cmp_mock_srv.h"
+
 /* tweaks needed due to missing unistd.h on Windows */
 #ifdef _WIN32
 # define access _access
@@ -2056,7 +2058,7 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
 
         if (opt_use_mock_srv) {
-            ret = OSSL_CMP_mock_server_perform(ctx, actual_req, res);
+            ret = OSSL_CMP_CTX_server_perform(ctx, actual_req, res);
         } else {
 # if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
             ret = OSSL_CMP_MSG_http_perform(ctx, actual_req, res);
@@ -2518,11 +2520,11 @@ static int transform_opts(OSSL_CMP_CTX *ctx)
 static int setup_srv_ctx(ENGINE *e)
 {
     OSSL_CMP_CTX *ctx = NULL;
-    srv_ctx = OSSL_CMP_SRV_CTX_new();
+    srv_ctx = ossl_cmp_mock_srv_new();
 
     if (srv_ctx == NULL)
         return 0;
-    ctx = OSSL_CMP_SRV_CTX_get0_ctx(srv_ctx);
+    ctx = OSSL_CMP_SRV_CTX_get0_cmp_ctx(srv_ctx);
 
     if (opt_srv_ref == NULL && opt_srv_cert == NULL) {
         /* srv_cert should determine the sender */
@@ -2604,7 +2606,7 @@ static int setup_srv_ctx(ENGINE *e)
         if (cert == NULL)
             goto err;
         /* from server-sight the server is the client */
-        if (!OSSL_CMP_SRV_CTX_set1_certOut(srv_ctx, cert)) {
+        if (!ossl_cmp_mock_srv_set1_certOut(srv_ctx, cert)) {
             X509_free(cert);
             goto err;
         }
@@ -2613,14 +2615,15 @@ static int setup_srv_ctx(ENGINE *e)
     /* TODO TPa: find a cleaner solution than this hack with typecasts */
     if (!setup_certs(opt_rsp_extracerts,
                      "CMP extra certificates for mock server", srv_ctx,
-                     (add_X509_stack_fn_t)OSSL_CMP_SRV_CTX_set1_chainOut, NULL))
-        goto err;
-    if (!setup_certs(opt_rsp_capubs, "caPubs for mock server", srv_ctx,
-                     (add_X509_stack_fn_t)OSSL_CMP_SRV_CTX_set1_caPubsOut,
+                     (add_X509_stack_fn_t)ossl_cmp_mock_srv_set1_chainOut,
                      NULL))
         goto err;
-    (void)OSSL_CMP_SRV_CTX_set_pollCount(srv_ctx, opt_poll_count);
-    (void)OSSL_CMP_SRV_CTX_set_checkAfterTime(srv_ctx, opt_checkafter);
+    if (!setup_certs(opt_rsp_capubs, "caPubs for mock server", srv_ctx,
+                     (add_X509_stack_fn_t)ossl_cmp_mock_srv_set1_caPubsOut,
+                     NULL))
+        goto err;
+    (void)ossl_cmp_mock_srv_set_pollCount(srv_ctx, opt_poll_count);
+    (void)ossl_cmp_mock_srv_set_checkAfterTime(srv_ctx, opt_checkafter);
     if (opt_grant_implicitconf)
         (void)OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(srv_ctx, 1);
 
@@ -2639,12 +2642,12 @@ static int setup_srv_ctx(ENGINE *e)
         CMP_err("-failurebits out of range");
         goto err;
     }
-    if (!OSSL_CMP_SRV_CTX_set_statusInfo(srv_ctx, opt_pkistatus,
-                                         opt_failurebits, opt_statusstring))
+    if (!ossl_cmp_mock_srv_set_statusInfo(srv_ctx, opt_pkistatus,
+                                          opt_failurebits, opt_statusstring))
         goto err;
 
     if (opt_send_error)
-        (void)OSSL_CMP_SRV_CTX_set_send_error(srv_ctx, 1);
+        (void)ossl_cmp_mock_srv_set_send_error(srv_ctx, 1);
 
     if (opt_send_unprotected)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_SEND, 1);
@@ -2660,7 +2663,7 @@ static int setup_srv_ctx(ENGINE *e)
     return 1;
 
  err:
-    OSSL_CMP_SRV_CTX_free(srv_ctx);
+    ossl_cmp_mock_srv_free(srv_ctx);
     srv_ctx = NULL;
     return 0;
 }
@@ -4366,7 +4369,7 @@ int cmp_main(int argc, char **argv)
                 CMP_err("Error parsing CMP request");
                 goto srv_err;
             }
-            if (!OSSL_CMP_mock_server_perform(cmp_ctx, req, &resp))
+            if (!OSSL_CMP_CTX_server_perform(cmp_ctx, req, &resp))
                 goto srv_err;
             if (!http_server_send_cmp_response(cbio, resp))
                 goto srv_err;
@@ -4503,7 +4506,7 @@ int cmp_main(int argc, char **argv)
     cleanse(opt_secret);
     cleanse(opt_srv_keypass);
     cleanse(opt_srv_secret);
-    OSSL_CMP_SRV_CTX_free(srv_ctx);
+    ossl_cmp_mock_srv_free(srv_ctx);
 
     if (ret != 1)
         OSSL_CMP_CTX_print_errors(cmp_ctx);
@@ -4520,4 +4523,4 @@ int cmp_main(int argc, char **argv)
     return ret == 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
-#endif
+#endif /* !defined OPENSSL_NO_CMP */
