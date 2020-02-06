@@ -46,7 +46,8 @@ sub start_mock_server {
 }
 
 sub stop_mock_server {
-    system ("kill `lsof -i | grep 'TCP .*:$localport' | awk '{ print \$2 }'`");
+    my $pid = `lsof -i | grep 'TCP .*:$localport' | awk '{ print \$2 }'`;
+    system ("kill $pid") if $pid;
 }
 
 sub run_client {

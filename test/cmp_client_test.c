@@ -11,6 +11,8 @@
 
 #include "cmp_testlib.h"
 
+#include "apps/cmp_mock_srv.h"
+
 #ifndef NDEBUG /* tests need mock server, which is available only if !NDEBUG */
 
 static const char *server_key_f;
@@ -43,7 +45,7 @@ static unsigned char ref[CMP_TEST_REFVALUE_LENGTH];
 static void tear_down(CMP_SES_TEST_FIXTURE *fixture)
 {
     OSSL_CMP_CTX_free(fixture->cmp_ctx);
-    OSSL_CMP_SRV_CTX_free(fixture->srv_ctx);
+    ossl_cmp_mock_srv_free(fixture->srv_ctx);
     sk_X509_free(fixture->ca_pubs);
     OPENSSL_free(fixture);
 }
@@ -57,15 +59,16 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
     if (!TEST_ptr(fixture = OPENSSL_zalloc(sizeof(*fixture))))
         return NULL;
     fixture->test_case_name = test_case_name;
-    if (!TEST_ptr(fixture->srv_ctx = OSSL_CMP_SRV_CTX_new())
+    if (!TEST_ptr(fixture->srv_ctx = ossl_cmp_mock_srv_new())
             || !OSSL_CMP_SRV_CTX_set_accept_unprotected(fixture->srv_ctx, 1)
-            || !OSSL_CMP_SRV_CTX_set1_certOut(fixture->srv_ctx, client_cert)
-            || (srv_cmp_ctx = OSSL_CMP_SRV_CTX_get0_ctx(fixture->srv_ctx)) == NULL
+            || !ossl_cmp_mock_srv_set1_certOut(fixture->srv_ctx, client_cert)
+            || (srv_cmp_ctx =
+                OSSL_CMP_SRV_CTX_get0_cmp_ctx(fixture->srv_ctx)) == NULL
             || !OSSL_CMP_CTX_set1_clCert(srv_cmp_ctx, server_cert)
             || !OSSL_CMP_CTX_set1_pkey(srv_cmp_ctx, server_key))
         goto err;
     if (!TEST_ptr(fixture->cmp_ctx = ctx = OSSL_CMP_CTX_new())
-            || !OSSL_CMP_CTX_set_transfer_cb(ctx, OSSL_CMP_mock_server_perform)
+            || !OSSL_CMP_CTX_set_transfer_cb(ctx, OSSL_CMP_CTX_server_perform)
             || !OSSL_CMP_CTX_set_transfer_cb_arg(ctx, fixture->srv_ctx)
             || !OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_SEND, 1)
             || !OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1)
@@ -132,11 +135,11 @@ static int test_exec_RR_ses(void)
 static int test_exec_RR_ses_receive_error(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
-    OSSL_CMP_SRV_CTX_set_statusInfo(fixture->srv_ctx,
-                                    OSSL_CMP_PKISTATUS_rejection,
-                                    OSSL_CMP_CTX_FAILINFO_signerNotTrusted,
-                                    "test string");
-    OSSL_CMP_SRV_CTX_set_send_error(fixture->srv_ctx, 1);
+    ossl_cmp_mock_srv_set_statusInfo(fixture->srv_ctx,
+                                     OSSL_CMP_PKISTATUS_rejection,
+                                     OSSL_CMP_CTX_FAILINFO_signerNotTrusted,
+                                     "test string");
+    ossl_cmp_mock_srv_set_send_error(fixture->srv_ctx, 1);
     fixture->expected = 0;
     EXECUTE_TEST(execute_exec_RR_ses_test, tear_down);
     return result;
@@ -150,7 +153,7 @@ static int test_exec_IR_ses(void)
     fixture->ca_pubs = sk_X509_new_null();
     sk_X509_push(fixture->ca_pubs, server_cert);
     sk_X509_push(fixture->ca_pubs, server_cert);
-    OSSL_CMP_SRV_CTX_set1_caPubsOut(fixture->srv_ctx, fixture->ca_pubs);
+    ossl_cmp_mock_srv_set1_caPubsOut(fixture->srv_ctx, fixture->ca_pubs);
     EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     /* TODO: check also capubs returned */
     return result;
@@ -165,9 +168,9 @@ static int test_exec_IR_ses_poll(void)
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
     fixture->expected = 1;
 
-    OSSL_CMP_SRV_CTX_set_pollCount(fixture->srv_ctx, pollCount);
+    ossl_cmp_mock_srv_set_pollCount(fixture->srv_ctx, pollCount);
     /* TODO: better use 1 second and check that session takes 2..3 seconds */
-    OSSL_CMP_SRV_CTX_set_checkAfterTime(fixture->srv_ctx, checkAfter);
+    ossl_cmp_mock_srv_set_checkAfterTime(fixture->srv_ctx, checkAfter);
     EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     return result;
 }
@@ -181,8 +184,8 @@ static int test_exec_IR_ses_poll_timeout(void)
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
     fixture->expected = 0;
-    OSSL_CMP_SRV_CTX_set_pollCount(fixture->srv_ctx, pollCount + 1);
-    OSSL_CMP_SRV_CTX_set_checkAfterTime(fixture->srv_ctx, checkAfter);
+    ossl_cmp_mock_srv_set_pollCount(fixture->srv_ctx, pollCount + 1);
+    ossl_cmp_mock_srv_set_checkAfterTime(fixture->srv_ctx, checkAfter);
     OSSL_CMP_CTX_set_option(fixture->cmp_ctx, OSSL_CMP_OPT_TOTALTIMEOUT, tout);
     EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     return result;

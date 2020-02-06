@@ -27,9 +27,9 @@ struct ossl_cmp_srv_ctx_st
 
     OSSL_CMP_SRV_cert_request_cb_t process_cert_request;
     OSSL_CMP_SRV_rr_cb_t process_rr;
-    OSSL_CMP_SRV_certConf_cb_t process_certConf;
     OSSL_CMP_SRV_genm_cb_t process_genm;
     OSSL_CMP_SRV_error_cb_t process_error;
+    OSSL_CMP_SRV_certConf_cb_t process_certConf;
     OSSL_CMP_SRV_pollReq_cb_t process_pollReq;
 
     int sendUnprotectedErrors; /* Send error and rejection msgs unprotected */
@@ -68,28 +68,26 @@ OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void)
 int OSSL_CMP_SRV_CTX_init(OSSL_CMP_SRV_CTX *srv_ctx, void *custom_ctx,
                           OSSL_CMP_SRV_cert_request_cb_t process_cert_request,
                           OSSL_CMP_SRV_rr_cb_t process_rr,
-                          OSSL_CMP_SRV_certConf_cb_t process_certConf,
                           OSSL_CMP_SRV_genm_cb_t process_genm,
                           OSSL_CMP_SRV_error_cb_t process_error,
+                          OSSL_CMP_SRV_certConf_cb_t process_certConf,
                           OSSL_CMP_SRV_pollReq_cb_t process_pollReq)
 {
-    if (srv_ctx == NULL || custom_ctx == NULL
-            || process_cert_request == NULL || process_rr == NULL
-            || process_certConf == NULL || process_genm == NULL
-            || process_error == NULL || process_pollReq == NULL) {
+    if (srv_ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     srv_ctx->custom_ctx = custom_ctx;
+    srv_ctx->process_cert_request = process_cert_request;
     srv_ctx->process_rr = process_rr;
-    srv_ctx->process_certConf = process_certConf;
     srv_ctx->process_genm = process_genm;
     srv_ctx->process_error = process_error;
+    srv_ctx->process_certConf = process_certConf;
     srv_ctx->process_pollReq = process_pollReq;
     return 1;
 }
 
-OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_ctx(const OSSL_CMP_SRV_CTX *srv_ctx)
+OSSL_CMP_CTX *OSSL_CMP_SRV_CTX_get0_cmp_ctx(const OSSL_CMP_SRV_CTX *srv_ctx)
 {
     if (srv_ctx == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -184,20 +182,21 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         return NULL;
     }
 
-    /*
-     * TODO: handle multiple elements, in case multiple requests have
-     * been sent - see https://github.com/mpeylo/cmpossl/issues/67
-     */
-    if (sk_OSSL_CRMF_MSG_num(req->body->value.ir) != 1) {
-        CMPerr(0, CMP_R_MULTIPLE_REQUESTS_NOT_SUPPORTED);
-        return NULL;
-    }
-
     if (ossl_cmp_msg_get_bodytype(req) == OSSL_CMP_PKIBODY_P10CR) {
         certReqId = OSSL_CMP_CERTREQID;
     } else {
-        if ((crm = sk_OSSL_CRMF_MSG_value(req->body->value.ir,
-                                          OSSL_CMP_CERTREQID)) == NULL) {
+        OSSL_CRMF_MSGS *reqs = req->body->value.ir; /* same for cr and kur */
+
+        /*
+         * TODO: handle multiple elements, in case multiple requests have
+         * been sent - see https://github.com/mpeylo/cmpossl/issues/67
+         */
+        if (sk_OSSL_CRMF_MSG_num(reqs) != 1) {
+            CMPerr(0, CMP_R_MULTIPLE_REQUESTS_NOT_SUPPORTED);
+            return NULL;
+        }
+
+        if ((crm = sk_OSSL_CRMF_MSG_value(reqs, OSSL_CMP_CERTREQID)) == NULL) {
             CMPerr(0, CMP_R_CERTREQMSG_NOT_FOUND);
             return NULL;
         }
@@ -423,25 +422,28 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
 /*
  * returns 1 if a message was created and 0 on internal error
  */
-static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *req,
-                           OSSL_CMP_MSG **rsp)
+int OSSL_CMP_SRV_process_request(OSSL_CMP_SRV_CTX *srv_ctx,
+                                 const OSSL_CMP_MSG *req,
+                                 OSSL_CMP_MSG **rsp)
 {
     GENERAL_NAME *sender;
     OSSL_CMP_CTX *ctx;
 
-    if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL
-                     && rsp != NULL))
+    if (rsp != NULL)
+        *rsp = NULL;
+    if (srv_ctx == NULL || srv_ctx->ctx == NULL || req == NULL || rsp == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
-
+    }
     ctx = srv_ctx->ctx;
 
     sender = OSSL_CMP_MSG_get0_header(req)->sender;
     if (sender->type != GEN_DIRNAME) {
         CMPerr(0, CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
-        return 0;
+        goto err;
     }
     if (!OSSL_CMP_CTX_set1_recipient(ctx, sender->d.directoryName))
-        return 0;
+        goto err;
     if (req->body != NULL)
         switch (req->body->type) {
         case OSSL_CMP_PKIBODY_IR:
@@ -453,69 +455,63 @@ static int process_request(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *req,
              * looks like a start of a new transaction,
              * clear last transactionID and senderNonce
              */
-            OSSL_CMP_CTX_set1_transactionID(ctx, NULL);
-            OSSL_CMP_CTX_set1_senderNonce(ctx, NULL);
+            if (!OSSL_CMP_CTX_set1_transactionID(ctx, NULL)
+                    || !OSSL_CMP_CTX_set1_senderNonce(ctx, NULL))
+                goto err;
             break;
         default: ; /* transactionID should be already initialized */
         }
     if (ossl_cmp_msg_check_received(ctx, req, unprotected_exception,
-                                    srv_ctx->acceptUnprotected) < 0) {
-        CMPerr(0, CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE);
-        return 0;
-    }
+                                    srv_ctx->acceptUnprotected) < 0)
+        goto err;
 
     switch (ossl_cmp_msg_get_bodytype(req)) {
     case OSSL_CMP_PKIBODY_IR:
     case OSSL_CMP_PKIBODY_CR:
     case OSSL_CMP_PKIBODY_P10CR:
     case OSSL_CMP_PKIBODY_KUR:
-        *rsp = process_cert_request(srv_ctx, req);
+        if (srv_ctx->process_cert_request == NULL)
+            CMPerr(0, CMP_R_UNEXPECTED_PKIBODY);
+        else
+            *rsp = process_cert_request(srv_ctx, req);
         break;
     case OSSL_CMP_PKIBODY_RR:
-        *rsp = process_rr(srv_ctx, req);
+        if (srv_ctx->process_rr == NULL)
+            CMPerr(0, CMP_R_UNEXPECTED_PKIBODY);
+        else
+            *rsp = process_rr(srv_ctx, req);
         break;
     case OSSL_CMP_PKIBODY_GENM:
-        *rsp = process_genm(srv_ctx, req);
+        if (srv_ctx->process_genm == NULL)
+            CMPerr(0, CMP_R_UNEXPECTED_PKIBODY);
+        else
+            *rsp = process_genm(srv_ctx, req);
         break;
     case OSSL_CMP_PKIBODY_ERROR:
-        *rsp = process_error(srv_ctx, req);
+        if (srv_ctx->process_error == NULL)
+            CMPerr(0, CMP_R_UNEXPECTED_PKIBODY);
+        else
+            *rsp = process_error(srv_ctx, req);
         break;
     case OSSL_CMP_PKIBODY_CERTCONF:
-        *rsp = process_certConf(srv_ctx, req);
+        if (srv_ctx->process_certConf == NULL)
+            CMPerr(0, CMP_R_UNEXPECTED_PKIBODY);
+        else
+            *rsp = process_certConf(srv_ctx, req);
         break;
     case OSSL_CMP_PKIBODY_POLLREQ:
-        *rsp = process_pollReq(srv_ctx, req);
+        if (srv_ctx->process_pollReq == NULL)
+            CMPerr(0, CMP_R_UNEXPECTED_PKIBODY);
+        else
+            *rsp = process_pollReq(srv_ctx, req);
         break;
     default:
         CMPerr(0, CMP_R_UNEXPECTED_PKIBODY);
-        return 0;
-    }
-    return *rsp != NULL;
-}
-
-/*
- * Works similar to OSSL_CMP_MSG_http_perform.
- * A OSSL_CMP_SRV_CTX must be set as transfer_cb_arg.
- * returns 1 on success, else 0 and pushes an element on the error stack.
- */
-int OSSL_CMP_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
-                            OSSL_CMP_MSG **rsp)
-{
-    OSSL_CMP_SRV_CTX *srv_ctx = NULL;
-
-    if (rsp != NULL)
-        *rsp = NULL;
-    if (cmp_ctx == NULL || req == NULL || rsp == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return 0;
     }
 
-    if ((srv_ctx = OSSL_CMP_CTX_get_transfer_cb_arg(cmp_ctx)) == NULL) {
-        CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
-        return 0;
-    }
-
-    if (!process_request(srv_ctx, req, rsp)) {
+ err:
+    if (*rsp == NULL) {
+        /* on error, try to respond with CMP error message to client */
         const char *data;
         int flags = 0;
         unsigned long err = ERR_peek_error_data(&data, &flags);
@@ -523,22 +519,39 @@ int OSSL_CMP_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
         /* TODO fail_info could be more specific */
         OSSL_CMP_PKISI *si = NULL;
 
-        OSSL_CMP_MSG_free(*rsp);
         if ((si = OSSL_CMP_STATUSINFO_new(OSSL_CMP_PKISTATUS_rejection,
                                           fail_info, NULL)) == NULL)
             return 0;
         if (err == 0 || (flags & ERR_TXT_STRING) == 0)
             data = NULL;
-        *rsp = ossl_cmp_error_new(cmp_ctx, si,
+        *rsp = ossl_cmp_error_new(srv_ctx->ctx, si,
                                   err != 0 ? ERR_GET_REASON(err) : -1,
                                   data, srv_ctx->sendUnprotectedErrors);
         OSSL_CMP_PKISI_free(si);
-        if (*rsp == NULL) {
-            CMPerr(0, CMP_R_ERROR_CREATING_ERROR);
-            return 0;
-        }
-        /* no internal error, but CMP error message responded to client */
+    }
+    return *rsp != NULL;
+}
+
+/*
+ * Server interface that may substitute OSSL_CMP_MSG_http_perform at the client.
+ * The OSSL_CMP_SRV_CTX must be set as client_ctx->transfer_cb_arg.
+ * returns 1 on success, else 0 and pushes an element on the error stack.
+ */
+int OSSL_CMP_CTX_server_perform(OSSL_CMP_CTX *client_ctx,
+                                const OSSL_CMP_MSG *req,
+                                OSSL_CMP_MSG **rsp)
+{
+    OSSL_CMP_SRV_CTX *srv_ctx = NULL;
+
+    if (client_ctx == NULL || req == NULL || rsp == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
     }
 
-    return 1;
+    if ((srv_ctx = OSSL_CMP_CTX_get_transfer_cb_arg(client_ctx)) == NULL) {
+        CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
+        return 0;
+    }
+
+    return OSSL_CMP_SRV_process_request(srv_ctx, req, rsp);
 }

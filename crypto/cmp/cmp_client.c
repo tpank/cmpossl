@@ -53,9 +53,9 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
         break;
     case OSSL_CMP_PKIBODY_RP: {
             OSSL_CMP_PKISI *si =
-                ossl_cmp_revrepcontent_get_pkistatusinfo(rep->body->value.rp,
-                                                         OSSL_CMP_REVREQSID);
-            if (ossl_cmp_pkisi_get_pkistatus(si) == OSSL_CMP_PKISTATUS_rejection)
+                ossl_cmp_revrepcontent_get_pkisi(rep->body->value.rp,
+                                                 OSSL_CMP_REVREQSID);
+            if (ossl_cmp_pkisi_get_status(si) == OSSL_CMP_PKISTATUS_rejection)
                 msg_type = "revocation response message with rejection status";
             else
                 msg_type = "revocation response message without rejection status";
@@ -80,7 +80,7 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
             if (crep == NULL)
                 /* a specific error could be misleading here */
                 return 0;
-            if (ossl_cmp_pkisi_get_pkistatus(crep->status)
+            if (ossl_cmp_pkisi_get_status(crep->status)
                 == OSSL_CMP_PKISTATUS_rejection)
                 msg_type = "CertRepMessage with rejection status";
         }
@@ -102,7 +102,7 @@ static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si)
     if (!ossl_assert(ctx != NULL && si != NULL))
         return 0;
 
-    if ((ctx->status = ossl_cmp_pkisi_get_pkistatus(si)) < 0)
+    if ((ctx->status = ossl_cmp_pkisi_get_status(si)) < 0)
         return 0;
 
     ctx->failInfoCode = 0;
@@ -264,9 +264,9 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             int64_t check_after;
             OSSL_CMP_POLLREPCONTENT *prc = prep->body->value.pollRep;
 
-            /*-
-             * TODO: handle multiple PollRepContent elements, in case
-             *       multiple requests have been sent --> GitHub issue#67
+            /*
+             * TODO: handle multiple elements, in case multiple requests have
+             * been sent - see https://github.com/mpeylo/cmpossl/issues/67
              */
             if (sk_OSSL_CMP_POLLREP_num(prc) > 1) {
                 CMPerr(0, CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED);
@@ -361,7 +361,7 @@ int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
     OSSL_CMP_MSG *PKIconf = NULL;
     int success = 0;
 
-    if ((si = ossl_cmp_statusinfo_new(status, fail_info, txt)) == NULL)
+    if ((si = OSSL_CMP_STATUSINFO_new(status, fail_info, txt)) == NULL)
         goto err;
     /* OSSL_CMP_error_new() also checks if all necessary options are set */
     if ((error = ossl_cmp_error_new(ctx, si, -1, NULL, 0)) == NULL)
@@ -393,7 +393,7 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         return NULL;
 
     privkey = OSSL_CMP_CTX_get0_newPkey(ctx, 1);
-    switch (ossl_cmp_pkisi_get_pkistatus(crep->status)) {
+    switch (ossl_cmp_pkisi_get_status(crep->status)) {
     case OSSL_CMP_PKISTATUS_waiting:
         OSSL_CMP_err(ctx,
                      "received \"waiting\" status for cert when actually aiming to extract cert");
@@ -520,7 +520,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         }
     }
 
-    if (ossl_cmp_pkisi_get_pkistatus(crep->status)
+    if (ossl_cmp_pkisi_get_status(crep->status)
         == OSSL_CMP_PKISTATUS_waiting) {
         OSSL_CMP_MSG_free(*resp);
         if (pollForResponse(ctx, rid, resp)) {
@@ -590,7 +590,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
      * also more low-level errors with CertReqMessages get reported to server
      */
     if (!ctx->disableConfirm
-            && !ossl_cmp_hdr_check_implicitConfirm((*resp)->header)) {
+            && !ossl_cmp_hdr_has_implicitConfirm((*resp)->header)) {
         if (!ossl_cmp_exchange_certConf(ctx, fail_info, txt))
             ret = 0;
     }
@@ -711,10 +711,10 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     }
 
     /* evaluate PKIStatus field */
-    si = ossl_cmp_revrepcontent_get_pkistatusinfo(rrep, rsid);
+    si = ossl_cmp_revrepcontent_get_pkisi(rrep, rsid);
     if (!save_statusInfo(ctx, si))
         goto err;
-    switch (ossl_cmp_pkisi_get_pkistatus(si)) {
+    switch (ossl_cmp_pkisi_get_status(si)) {
     case OSSL_CMP_PKISTATUS_accepted:
         /*
          * TODO OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=accepted)");
