@@ -521,7 +521,7 @@ ASN1_OCTET_STRING *OSSL_CMP_X509_digest(const X509 *cert)
      * as is used to create and verify the certificate signature
      */
     if (!OBJ_find_sigid_algs(X509_get_signature_nid(cert), &md_NID, NULL)
-        || (md = EVP_get_digestbynid(md_NID)) == NULL) {
+            || (md = EVP_get_digestbynid(md_NID)) == NULL) {
         CMPerr(0, CMP_R_UNSUPPORTED_ALGORITHM);
         return NULL;
     }
