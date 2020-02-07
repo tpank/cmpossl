@@ -76,7 +76,7 @@ OSSL_CMP_validate_msg() returns 1 on success, 0 on error or validation failed.
 OSSL_CMP_validate_cert_path() returns 1 on successful validation and 0
 otherwise.
 
-OSSL_CMP_print_cert_verify_cb() returns 0 if and only if 
+OSSL_CMP_print_cert_verify_cb() returns 0 if and only if
 the cert verification is considered failed.
 
 =head1 SEE ALSO
