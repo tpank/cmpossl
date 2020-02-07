@@ -240,7 +240,7 @@ The following options can be set:
 
     OSSL_CMP_OPT_MAC_ALGNID
         The MAC algorithm NID to be used in RFC 4210's MSG_MAC_ALG,
-        if applicable used for message protection. 
+        if applicable used for message protection.
         Default is HMAC-SHA1 as per RFC 4210.
 
 =item B<OSSL_CMP_OPT_REVOCATION_REASON>

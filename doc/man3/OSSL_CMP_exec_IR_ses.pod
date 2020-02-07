@@ -62,7 +62,7 @@ CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
 OSSL_CMP_exec_IR_ses(), OSSL_CMP_exec_CR_ses(),
 OSSL_CMP_exec_P10CR_ses(), and OSSL_CMP_exec_KUR_ses() return a
-pointer to the newly obtained X509 certificate on success, B<NULL> on error. 
+pointer to the newly obtained X509 certificate on success, B<NULL> on error.
 This pointer will be freed implicitly by OSSL_CMP_CTX_free() or
 CSSL_CMP_CTX_reinit().
 
@@ -75,7 +75,7 @@ pointer to the received B<ITAV> sequence on success, B<NULL> on error.
 This pointer must be freed by the caller.
 
 OSSL_CMP_certConf_cb() returns B<fail_info> if it is not equal to B<0>,
-else B<0> on successful validation, 
+else B<0> on successful validation,
 or else a bit field with the B<OSSL_CMP_PKIFAILUREINFO_incorrectData> bit set.
 
 =head1 EXAMPLES
