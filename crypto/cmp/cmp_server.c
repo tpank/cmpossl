@@ -248,7 +248,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
     OSSL_CRMF_CERTTEMPLATE *tmpl;
     X509_NAME *issuer;
     ASN1_INTEGER *serial;
-    OSSL_CMP_PKISI *si = NULL;
+    OSSL_CMP_PKISI *si;
 
     if (!ossl_assert(srv_ctx != NULL && req != NULL))
         return NULL;
@@ -272,7 +272,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
     issuer = OSSL_CRMF_CERTTEMPLATE_get0_issuer(tmpl);
     serial = OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(tmpl);
     if ((certId = OSSL_CRMF_CERTID_gen(issuer, serial)) == NULL)
-        goto err;
+        return NULL;
     if ((si = srv_ctx->process_rr(srv_ctx, req, issuer, serial)) == NULL) {
         CMPerr(0, CMP_R_REQUEST_NOT_ACCEPTED);
         goto err;
