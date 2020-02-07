@@ -70,18 +70,25 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_MISSING_PRIVATE_KEY                        131
 #  define CMP_R_MISSING_PROTECTION                         143
 #  define CMP_R_MISSING_SENDER_IDENTIFICATION              111
-#  define CMP_R_MISSING_TRUST_STORE                        144
-#  define CMP_R_MULTIPLE_REQUESTS_NOT_SUPPORTED            164
+#  define CMP_R_MISSING_TRUST_STORE                        154
+#  define CMP_R_MULTIPLE_REQUESTS_NOT_SUPPORTED            195
 #  define CMP_R_MULTIPLE_SAN_SOURCES                       102
 #  define CMP_R_NO_STDIO                                   194
 #  define CMP_R_NO_SUITABLE_SENDER_CERT                    145
 #  define CMP_R_NULL_ARGUMENT                              103
-#  define CMP_R_PKIBODY_ERROR                              146
-#  define CMP_R_PKISTATUSINFO_NOT_FOUND                    132
-#  define CMP_R_POTENTIALLY_INVALID_CERTIFICATE            147
-#  define CMP_R_RECIPNONCE_UNMATCHED                       148
-#  define CMP_R_REQUEST_NOT_ACCEPTED                       149
-#  define CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED      150
+#  define CMP_R_PKIBODY_ERROR                              163
+#  define CMP_R_PKICONF_NOT_RECEIVED                       164
+#  define CMP_R_PKISTATUSINFO_NOT_FOUND                    144
+#  define CMP_R_POLLREP_NOT_RECEIVED                       165
+#  define CMP_R_POTENTIALLY_INVALID_CERTIFICATE            166
+#  define CMP_R_READ_TIMEOUT                               167
+#  define CMP_R_RECEIVED_ERROR                             168
+#  define CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP    169
+#  define CMP_R_RECIPNONCE_UNMATCHED                       170
+#  define CMP_R_REQUEST_NOT_ACCEPTED                       171
+#  define CMP_R_REQUEST_REJECTED_BY_CA                     172
+#  define CMP_R_RP_NOT_RECEIVED                            173
+#  define CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED      174
 #  define CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG              151
 #  define CMP_R_TRANSACTIONID_UNMATCHED                    152
 #  define CMP_R_UNEXPECTED_PKIBODY                         133
@@ -91,9 +98,9 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_UNKNOWN_CERT_TYPE                          135
 #  define CMP_R_UNSUPPORTED_ALGORITHM                      136
 #  define CMP_R_UNSUPPORTED_KEY_TYPE                       137
-#  define CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC      154
+#  define CMP_R_UNSUPPORTED_PROTECTION_ALG_DHBASEDMAC      187
 #  define CMP_R_WRONG_ALGORITHM_OID                        138
-#  define CMP_R_WRONG_CERT_HASH                            163
+#  define CMP_R_WRONG_CERT_HASH                            190
 #  define CMP_R_WRONG_PBM_VALUE                            155
 
 # endif
