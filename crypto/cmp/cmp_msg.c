@@ -220,18 +220,20 @@ static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
  * Create CRMF certificate request message for IR/CR/KUR
  * returns a pointer to the OSSL_CRMF_MSG on success, NULL on error
  */
-static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
-                              int rid, EVP_PKEY *rkey)
+static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype, int rid)
 {
     OSSL_CRMF_MSG *crm = NULL;
     X509 *refcert = ctx->oldClCert != NULL ? ctx->oldClCert : ctx->clCert;
-       /* refcert defaults to current client cert */
+    /* refcert defaults to current client cert */
+    EVP_PKEY *rkey = OSSL_CMP_CTX_get0_newPkey(ctx, /* ignored */ 0);
     STACK_OF(GENERAL_NAME) *default_sans = NULL;
     X509_NAME *subject = determine_subj(ctx, refcert, bodytype);
     int crit = ctx->setSubjectAltNameCritical || subject == NULL;
     /* RFC5280: subjectAltName MUST be critical if subject is null */
     X509_EXTENSIONS *exts = NULL;
 
+    if (rkey == NULL)
+        rkey = ctx->pkey; /* default is independent of ctx->oldClCert */
     if (rkey == NULL ||
         (bodytype == OSSL_CMP_PKIBODY_KUR && refcert == NULL)) {
         CMPerr(CMP_F_CRM_NEW, CMP_R_INVALID_ARGS);
@@ -242,7 +244,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
     if (!OSSL_CRMF_MSG_set_certReqId(crm, rid) ||
 
     /* fill certTemplate, corresponding to PKCS#10 CertificationRequestInfo */
-            /* rkey cannot be NULL so far - but it can be when
+            /* rkey is not allowed to be NULL so far - but it can be when
              * centralized key creation is supported --> GitHub issue#68 */
         !OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_MSG_get0_tmpl(crm), rkey,
                                      subject, ctx->issuer, NULL/* serial */))
@@ -304,7 +306,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype,
  * Create certificate request PKIMessage for IR/CR/KUR/P10CR
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
+OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
 {
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CRMF_MSG *crm = NULL;
@@ -328,15 +330,16 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type,int err_code)
 
     /* body */
     /* For P10CR the content has already been set in OSSL_CMP_MSG_create */
-     if (type != OSSL_CMP_PKIBODY_P10CR) {
-        EVP_PKEY *rkey = ctx->newPkey != NULL ? ctx->newPkey
-            : ctx->pkey; /* default is currenty client key */
+    if (type != OSSL_CMP_PKIBODY_P10CR) {
+        EVP_PKEY *privkey = OSSL_CMP_CTX_get0_newPkey(ctx, /* ignored */ 1);
 
-        if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID, rkey)) == NULL ||
-            !OSSL_CRMF_MSG_create_popo(crm, rkey, ctx->digest,
-                                       ctx->popoMethod) ||
-                      /* value.ir is same for cr and kur */
-            !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
+        if (privkey == NULL)
+            privkey = ctx->pkey; /* default is independent of ctx->oldClCert */
+        if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID)) == NULL
+            || !OSSL_CRMF_MSG_create_popo(crm, privkey, ctx->digest,
+                                          ctx->popoMethod)
+            /* value.ir is same for cr and kur */
+            || !sk_OSSL_CRMF_MSG_push(msg->body->value.ir, crm))
             goto err;
         crm = NULL;
         /* TODO: here optional 2nd certreqmsg could be pushed to the stack */

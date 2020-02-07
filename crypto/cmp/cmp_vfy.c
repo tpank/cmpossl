@@ -211,7 +211,7 @@ static void print_cert(BIO *bio, const X509 *cert, unsigned long neg_cflags) {
         BIO_printf(bio, "    certificate\n");
         X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_SUBJECT);
         if (X509_check_issued((X509 *)cert, (X509 *)cert) == X509_V_OK) {
-            BIO_printf(bio, "        self-signed\n");
+            BIO_printf(bio, "        self-issued\n");
         } else {
             BIO_printf(bio, " ");
             X509_print_ex(bio, (X509 *)cert, flags, ~X509_FLAG_NO_ISSUER);
