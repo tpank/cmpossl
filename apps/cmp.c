@@ -3223,7 +3223,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 
     while (opt_policy_oids != NULL) {
         ASN1_OBJECT *policy;
-        POLICYINFO *pinfo = NULL;
+        POLICYINFO *pinfo;
         char *next = next_item(opt_policy_oids);
 
         if ((policy = OBJ_txt2obj(opt_policy_oids, 1)) == 0) {
@@ -3231,8 +3231,10 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
 
-        if ((pinfo = POLICYINFO_new()) == NULL)
+        if ((pinfo = POLICYINFO_new()) == NULL) {
+            ASN1_OBJECT_free(policy);
             goto err;
+        }
         pinfo->policyid = policy;
 
         if (!OSSL_CMP_CTX_push0_policy(ctx, pinfo)) {
