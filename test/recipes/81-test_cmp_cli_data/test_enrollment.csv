@@ -12,7 +12,7 @@ TBD,TBD,is BLANK wrong error message, -section,, -cmd,ir,BLANK,,, -newkeypass,pa
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 0,0,newkeypass, -section,, -cmd,ir, -newkey,test.ECC256p_pass_12345.pem,, -newkeypass,pass:12345,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
 1,1,no newkeypass, -section,, -cmd,ir, -newkey,test.ECC256p_pass_12345.pem,,BLANK,,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
-0,0,read newkeypass from file, -section,, -cmd,ir, -newkey,test.ECC256p_pass_12345.pem,, -newkeypass,file:12345.txt,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
+0,TBD,read newkeypass from file, -section,, -cmd,ir, -newkey,test.ECC256p_pass_12345.pem,, -newkeypass,file:12345.txt,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
 1,1,missing newkeypass parameter, -section,, -cmd,ir, -newkey,test.ECC256p_pass_12345.pem,, -newkeypass,,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
 TBD,TBD,colon missing and no pw, -section,, -cmd,ir, -newkey,test.ECC256p_pass_12345.pem,, -newkeypass,pass,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
 1,1,newkeypass double ':', -section,, -cmd,ir, -newkey,test.ECC256p_pass_12345.pem,, -newkeypass,pass::12345,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
