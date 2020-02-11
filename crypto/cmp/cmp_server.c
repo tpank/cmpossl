@@ -308,9 +308,11 @@ static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
 static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
                                    const OSSL_CMP_MSG *req)
 {
+    OSSL_CMP_ERRORMSGCONTENT *errorContent = req->body->value.error;
     OSSL_CMP_MSG *msg = ossl_cmp_pkiconf_new(srv_ctx->ctx);
 
-    srv_ctx->process_error(srv_ctx, req);
+    srv_ctx->process_error(srv_ctx, req, errorContent->pKIStatusInfo,
+                           errorContent->errorCode, errorContent->errorDetails);
 
     if (msg == NULL)
         CMPerr(0, CMP_R_ERROR_CREATING_PKICONF);
