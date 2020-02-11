@@ -184,12 +184,13 @@ int ossl_cmp_pkisi_pkifailureinfo_check(const OSSL_CMP_PKISI *si, int bit_index)
  * place human-readable error string created from PKIStatusInfo in given buffer
  * returns pointer to the same buffer containing the string, or NULL on error
  */
-char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf,
-                                     size_t bufsize)
+static
+char *snprint_PKIStatusInfo_parts(long status, long fail_info,
+                                  const OSSL_CMP_PKIFREETEXT *status_strings,
+                                  char *buf, size_t bufsize)
 {
-    int status, failure, fail_info;
+    int failure;
     const char *status_string, *failure_string;
-    OSSL_CMP_PKIFREETEXT *status_strings;
     ASN1_UTF8STRING *text;
     int i;
     int printed_chars;
@@ -197,22 +198,22 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf,
     int n_status_strings;
     char *write_ptr = buf;
 
+    if (buf == NULL
+            || status < 0
+            || (status_string = ossl_cmp_PKIStatus_to_string(status)) == NULL)
+        return NULL;
+
 #define ADVANCE_BUFFER                                         \
     if (printed_chars < 0 || (size_t)printed_chars >= bufsize) \
         return NULL; \
     write_ptr += printed_chars; \
     bufsize -= printed_chars;
 
-    if (ctx == NULL
-            || buf == NULL
-            || (status = OSSL_CMP_CTX_get_status(ctx)) < 0
-            || (status_string = ossl_cmp_PKIStatus_to_string(status)) == NULL)
-        return NULL;
     printed_chars = BIO_snprintf(write_ptr, bufsize, "%s", status_string);
     ADVANCE_BUFFER;
 
     /* failInfo is optional and may be empty */
-    if ((fail_info = OSSL_CMP_CTX_get_failInfoCode(ctx)) > 0) {
+    if (fail_info > 0) {
         printed_chars = BIO_snprintf(write_ptr, bufsize, "; PKIFailureInfo: ");
         ADVANCE_BUFFER;
         for (failure = 0; failure <= OSSL_CMP_PKIFAILUREINFO_MAX; failure++) {
@@ -235,7 +236,6 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf,
     }
 
     /* statusString sequence is optional and may be empty */
-    status_strings = OSSL_CMP_CTX_get0_statusString(ctx);
     n_status_strings = sk_ASN1_UTF8STRING_num(status_strings);
     if (n_status_strings > 0) {
         printed_chars = BIO_snprintf(write_ptr, bufsize, "; StatusString%s: ",
@@ -251,6 +251,46 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf,
     }
 #undef ADVANCE_BUFFER
     return buf;
+}
+
+/*
+ * place human-readable error string created from PKIStatusInfo in given buffer
+ * returns pointer to the same buffer containing the string, or NULL on error
+ */
+char *OSSL_CMP_snprint_PKIStatusInfo(const OSSL_CMP_PKISI *statusInfo, char *buf,
+                                     size_t bufsize)
+{
+    int failure_info;
+
+    if (statusInfo == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+
+    failure_info = ossl_cmp_pkisi_get_pkifailureinfo(statusInfo);
+
+    return snprint_PKIStatusInfo_parts(ASN1_INTEGER_get(statusInfo->status),
+                                       failure_info,
+                                       statusInfo->statusString, buf, bufsize);
+}
+
+/*
+ * place human-readable error string created from a PKIStatusInfo fetched from
+ * ctx in given buffer
+ * returns pointer to the same buffer containing the string, or NULL on error
+ */
+char *OSSL_CMP_CTX_snprint_PKIStatus(const OSSL_CMP_CTX *ctx, char *buf,
+                                     size_t bufsize)
+{
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+
+    return snprint_PKIStatusInfo_parts(OSSL_CMP_CTX_get_status(ctx),
+                                       OSSL_CMP_CTX_get_failInfoCode(ctx),
+                                       OSSL_CMP_CTX_get0_statusString(ctx),
+                                       buf, bufsize);
 }
 
 /*
