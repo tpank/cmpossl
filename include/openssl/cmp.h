@@ -340,7 +340,9 @@ int OSSL_CMP_CTX_set1_senderNonce(OSSL_CMP_CTX *ctx,
                                   const ASN1_OCTET_STRING *nonce);
 
 /* from cmp_status.c */
-char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf,
+char *OSSL_CMP_CTX_snprint_PKIStatus(const OSSL_CMP_CTX *ctx, char *buf,
+                                     size_t bufsize);
+char *OSSL_CMP_snprint_PKIStatusInfo(const OSSL_CMP_PKISI *statusInfo, char *buf,
                                      size_t bufsize);
 OSSL_CMP_PKISI *
 OSSL_CMP_STATUSINFO_new(int status, int fail_info, const char *text);

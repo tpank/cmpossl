@@ -3,7 +3,8 @@
 =head1 NAME
 
 OSSL_CMP_STATUSINFO_new,
-OSSL_CMP_CTX_snprint_PKIStatus
+OSSL_CMP_CTX_snprint_PKIStatus,
+OSSL_CMP_snprint_PKIStatusInfo
 - function(s) for managing the CMP PKIStatus
 
 =head1 SYNOPSIS
@@ -11,8 +12,11 @@ OSSL_CMP_CTX_snprint_PKIStatus
  #include <openssl/cmp.h>
 
  OSSL_CMP_PKISI *OSSL_CMP_STATUSINFO_new(int status, int fail_info,
-                                          const char *text);
- char *OSSL_CMP_CTX_snprint_PKIStatus(OSSL_CMP_CTX *ctx, char *buf, int bufsize);
+                                         const char *text);
+ char *OSSL_CMP_CTX_snprint_PKIStatus(const OSSL_CMP_CTX *ctx, char *buf,
+                                      size_t bufsize);
+ char *OSSL_CMP_snprint_PKIStatusInfo(const OSSL_CMP_PKISI *statusInfo,
+                                      char *buf, size_t bufsize);
 
 =head1 DESCRIPTION
 
@@ -28,6 +32,10 @@ OSSL_CMP_CTX_snprint_PKIStatus() takes the PKIStatusInfo components contained
 in the given CMP context and places a human-readable string created from them
 in the given buffer, with the given maximal length.
 
+OSSL_CMP_snprint_PKIStatusInfo() takes the PKIStatusInfo components contained
+in the given statusInfo and places a human-readable string created from them
+in the given buffer, with the given maximal length.
+
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
@@ -38,6 +46,9 @@ OSSL_CMP_STATUSINFO_new()
 returns a pointer to the structure on success, or NULL on error.
 
 OSSL_CMP_CTX_snprint_PKIStatus()
+returns a copy of the buffer pointer containing the string or NULL on error.
+
+OSSL_CMP_snprint_PKIStatusInfo()
 returns a copy of the buffer pointer containing the string or NULL on error.
 
 =head1 HISTORY
