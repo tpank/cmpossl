@@ -247,15 +247,57 @@ static int process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
     return 1;
 }
 
-static void process_error(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *error)
+static void process_error(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *error,
+                          OSSL_CMP_PKISI *statusInfo, ASN1_INTEGER *errorCode,
+                          OSSL_CMP_PKIFREETEXT *errorDetails)
 {
+    BIO *bio = NULL;
+    char *buf = NULL;
+    char *sibuf;
+    int i;
+
     mock_srv_ctx *ctx = OSSL_CMP_SRV_CTX_get0_custom_ctx(srv_ctx);
 
     if (ctx == NULL || error == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return;
     }
-    /* todo make use of error, calling OSSL_CMP_CTX_snprint_PKIStatus() */
+
+    bio = BIO_new_fp(stderr, BIO_NOCLOSE);
+    if (bio == NULL)
+        goto err;
+
+    BIO_printf(bio, "got error:\n");
+    if (statusInfo == NULL) {
+        BIO_printf(bio, "pkiStatusInfo: absent\n");
+    } else {
+        buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
+        if (buf == NULL)
+            goto err;
+
+        sibuf = OSSL_CMP_snprint_PKIStatusInfo(statusInfo, buf,
+                                               OSSL_CMP_PKISI_BUFLEN);
+
+        BIO_printf(bio, "pkiStatusInfo: %s\n",
+                   sibuf != NULL ? sibuf: "<invalid>");
+    }
+    if (errorCode == NULL)
+        BIO_printf(bio, "errorCode: absent\n");
+    else
+        BIO_printf(bio, "errorCode: %ld\n", ASN1_INTEGER_get(errorCode));
+
+    if (errorDetails == NULL)
+        BIO_printf(bio, "errorDetails: absent\n");
+    else
+        for (i = 0; i < sk_ASN1_UTF8STRING_num(errorDetails); i++) {
+            BIO_printf(bio, "errorDetail:");
+            ASN1_STRING_print(bio, sk_ASN1_UTF8STRING_value(errorDetails, i));
+            BIO_printf(bio, "\n");
+        }
+
+ err:
+    OPENSSL_free(buf);
+    BIO_free(bio);
 }
 
 static int process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,

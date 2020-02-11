@@ -379,7 +379,10 @@ typedef int (*OSSL_CMP_SRV_genm_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                       STACK_OF(OSSL_CMP_ITAV) *in,
                                       STACK_OF(OSSL_CMP_ITAV) **out);
 typedef void (*OSSL_CMP_SRV_error_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
-                                        const OSSL_CMP_MSG *req);
+                                        const OSSL_CMP_MSG *req,
+                                        OSSL_CMP_PKISI *statusInfo,
+                                        ASN1_INTEGER *errorCode,
+                                        OSSL_CMP_PKIFREETEXT *errorDetails);
 typedef int (*OSSL_CMP_SRV_certConf_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                           const OSSL_CMP_MSG *req,
                                           int certReqId,
