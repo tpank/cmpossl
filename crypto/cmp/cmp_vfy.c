@@ -1,7 +1,7 @@
 /*
- * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
- * Copyright Nokia 2007-2019
- * Copyright Siemens AG 2015-2019
+ * Copyright 2007-2020 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright Nokia 2007-2020
+ * Copyright Siemens AG 2015-2020
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -142,6 +142,7 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
 {
     int valid = 0;
     X509_STORE_CTX *csc = NULL;
+    int err;
 
     if (ctx == NULL || cert == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -161,8 +162,8 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
     valid = X509_verify_cert(csc) > 0;
 
     /* make sure suitable error is queued even if callback did not do */
-    if (!valid && ERR_GET_REASON(ERR_peek_last_error())
-        != CMP_R_POTENTIALLY_INVALID_CERTIFICATE)
+    err = ERR_peek_last_error();
+    if (!valid && ERR_GET_REASON(err) != CMP_R_POTENTIALLY_INVALID_CERTIFICATE)
         CMPerr(0, CMP_R_POTENTIALLY_INVALID_CERTIFICATE);
 
  err:
@@ -175,7 +176,7 @@ static int check_name(OSSL_CMP_CTX *ctx,
                       const char *actual_desc, const X509_NAME *actual_name,
                       const char *expect_desc, const X509_NAME *expect_name)
 {
-    char *actual, *expect;
+    char *str;
 
     if (expect_name == NULL)
         return 1; /* no expectation, thus trivially fulfilled */
@@ -188,12 +189,12 @@ static int check_name(OSSL_CMP_CTX *ctx,
     if (X509_NAME_cmp(actual_name, expect_name) == 0)
         return 1;
 
-    actual = X509_NAME_oneline(actual_name, NULL, 0);
-    expect = X509_NAME_oneline(expect_name, NULL, 0);
-    ossl_cmp_log2(INFO, ctx, " actual name in %s = %s", actual_desc, actual);
-    ossl_cmp_log2(INFO, ctx, " does not match %s = %s", expect_desc, expect);
-    OPENSSL_free(expect);
-    OPENSSL_free(actual);
+    if ((str = X509_NAME_oneline(actual_name, NULL, 0)) != NULL)
+        ossl_cmp_log2(INFO, ctx, " actual name in %s = %s", actual_desc, str);
+    OPENSSL_free(str);
+    if ((str = X509_NAME_oneline(expect_name, NULL, 0)) != NULL)
+        ossl_cmp_log2(INFO, ctx, " does not match %s = %s", expect_desc, str);
+    OPENSSL_free(str);
     return 0;
 }
 
