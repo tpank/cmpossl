@@ -119,10 +119,10 @@ static int verify_PBMAC(const OSSL_CMP_MSG *msg,
         return 0; /* failed to generate protection string! */
 
     valid = msg->protection != NULL && msg->protection->length >= 0
-        && msg->protection->type == protection->type
-        && msg->protection->length == protection->length
-        && CRYPTO_memcmp(msg->protection->data, protection->data,
-                         protection->length) == 0;
+            && msg->protection->type == protection->type
+            && msg->protection->length == protection->length
+            && CRYPTO_memcmp(msg->protection->data, protection->data,
+                             protection->length) == 0;
     ASN1_BIT_STRING_free(protection);
     if (!valid)
         CMPerr(0, CMP_R_WRONG_PBM_VALUE);
