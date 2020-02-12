@@ -25,12 +25,10 @@ OSSL_CMP_SRV_CTX_set_grant_implicit_confirm
 
  #include <openssl/cmp.h>
 
- int OSSL_CMP_SRV_process_request(OSSL_CMP_SRV_CTX *srv_ctx,
-                                  const OSSL_CMP_MSG *req,
-                                  OSSL_CMP_MSG **rsp);
- int OSSL_CMP_CTX_server_perform(OSSL_CMP_CTX *client_ctx,
-                                 const OSSL_CMP_MSG *req,
-                                 OSSL_CMP_MSG **res);
+ OSSL_CMP_MSG *OSSL_CMP_SRV_process_request(OSSL_CMP_SRV_CTX *srv_ctx,
+                                            const OSSL_CMP_MSG *req);
+ OSSL_CMP_MSG *OSSL_CMP_CTX_server_perform(OSSL_CMP_CTX *client_ctx,
+                                           const OSSL_CMP_MSG *req);
  OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void);
  void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx);
 
@@ -90,8 +88,9 @@ It the typical generic checks on the given request message, calls
 the respective callback function (if present) for more specific processing,
 and then assembles a result message, which may be a CMP error message.
 
-OSSL_CMP_server_perform() is an interface to B<OSSL_CMP_SRV_process_request()>
-that can be used by a CMP client like B<OSSL_CMP_MSG_http_perform()>.
+OSSL_CMP_CTX_server_perform() is an interface to 
+B<OSSL_CMP_SRV_process_request()> that can be used by a CMP client like 
+B<OSSL_CMP_MSG_http_perform()>.
 The B<OSSL_CMP_SRV_CTX> must be set as B<transfer_cb_arg> of B<client_ctx>.
 
 OSSL_CMP_SRV_CTX_new() creates and initializes a OSSL_CMP_SRV_CTX structure

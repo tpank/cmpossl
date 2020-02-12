@@ -361,21 +361,10 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
                                 X509_STORE *trusted_store, X509 *cert);
 int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 
-/*
- * from cmp_http.c
- */
-/*
- * TODO dvo: push generic defs upstream with extended load_cert_crl_http(),
- * simplifying also other uses, e.g., in query_responder() in apps/ocsp.c
- */
-#  if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
-                           BIO *bio_err, const char *prog);
-int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-                              OSSL_CMP_MSG **out);
-int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
-                                        X509 **pcert, X509_CRL **pcrl,
-                                        BIO *bio_err);
+/* from cmp_http.c */
+#  if !defined(OPENSSL_NO_SOCK)
+OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
+                                        const OSSL_CMP_MSG *req);
 #  endif
 
 /* from cmp_client.c */
@@ -390,11 +379,10 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
 
 /* from cmp_server.c */
 typedef struct ossl_cmp_srv_ctx_st OSSL_CMP_SRV_CTX;
-int OSSL_CMP_SRV_process_request(OSSL_CMP_SRV_CTX *srv_ctx,
-                                 const OSSL_CMP_MSG *req,
-                                 OSSL_CMP_MSG **rsp);
-int OSSL_CMP_CTX_server_perform(OSSL_CMP_CTX *cmp_ctx, const OSSL_CMP_MSG *req,
-                                OSSL_CMP_MSG **res);
+OSSL_CMP_MSG *OSSL_CMP_SRV_process_request(OSSL_CMP_SRV_CTX *srv_ctx,
+                                           const OSSL_CMP_MSG *req);
+OSSL_CMP_MSG * OSSL_CMP_CTX_server_perform(OSSL_CMP_CTX *client_ctx,
+                                           const OSSL_CMP_MSG *req);
 OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void);
 void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx);
 typedef OSSL_CMP_PKISI *(*OSSL_CMP_SRV_cert_request_cb_t)

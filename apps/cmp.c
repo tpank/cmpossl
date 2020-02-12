@@ -52,7 +52,8 @@ static char *opt_config = NULL;
 # define SECTION_NAME_MAX 40 /* max length of section name */
 # define DEFAULT_SECTION "default"
 static char *opt_section = CMP_SECTION;
-# define HTTP_PREFIX "http://"
+# define HTTP_HDR "http://"
+# define HTTPS_HDR "https://"
 
 # undef PROG
 # define PROG cmp_main
@@ -138,6 +139,7 @@ typedef enum {
 
 /* message transfer */
 static char *opt_server = NULL;
+static char server_port_s[32];
 static int server_port = OSSL_CMP_DEFAULT_PORT;
 static char *opt_proxy = NULL;
 static int proxy_port = OSSL_CMP_DEFAULT_PORT;
@@ -275,9 +277,6 @@ static X509_STORE_CTX_check_revocation_fn check_revocation = NULL;
 static int opt_ocsp_status = 0;
 # endif
 static X509_VERIFY_PARAM *vpm = NULL;
-
-
-static OSSL_CMP_SRV_CTX *srv_ctx = NULL;
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
@@ -890,9 +889,10 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     cb_data.prompt_info = file;
 
     if (format == FORMAT_HTTP) {
-# if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        OSSL_CMP_load_cert_crl_http_timeout(file, opt_crl_timeout,
-                                            &x, NULL, bio_err);
+# if !defined(OPENSSL_NO_SOCK)
+        x = X509_load_http(file, NULL, NULL, opt_crl_timeout);
+# else
+        CMP_err1("http(s) not supported loading cert from '%s'\n", file);
 # endif
         goto end;
     }
@@ -1212,9 +1212,10 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
     /* BIO_printf(bio_out, "loading %s from '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
     if (format == FORMAT_HTTP) {
-# if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        OSSL_CMP_load_cert_crl_http_timeout(infile, opt_crl_timeout, NULL,
-                                            &crl, bio_err);
+# if !defined(OPENSSL_NO_SOCK)
+        crl = X509_CRL_load_http(infile, NULL, NULL, opt_crl_timeout);
+# else
+        CMP_err1("http(s) not supported loading CRL from '%s'\n", infile);
 # endif
         goto end;
     }
@@ -1302,7 +1303,6 @@ static void DEBUG_print(const char *msg, const char *s1, const char *s2)
  * returns 1 on success, 0 on error.
  */
 # define X509_STORE_EX_DATA_HOST 0
-# define X509_STORE_EX_DATA_SBIO 1
 static int truststore_set_host_etc(X509_STORE *ts, char *host)
 {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
@@ -1322,8 +1322,8 @@ static int truststore_set_host_etc(X509_STORE *ts, char *host)
      */
     if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, host))
         return 0;
-    return (host && X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host))
-            || X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
+    return (host != NULL && X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host))
+        || X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
 }
 
 static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */,
@@ -1624,7 +1624,7 @@ static OCSP_RESPONSE *get_ocsp_resp(X509 *cert, X509 *issuer,
     }
     DEBUG_print_cert("certstatus query", cert);
     DEBUG_print("cert_status:", "using AIA URL:", url);
-    if (!OCSP_parse_url(url, &host, &port, &path, &use_ssl)) {
+    if (!OSSL_HTTP_parse_url(url, &host, &port, &path, &use_ssl)) {
         BIO_printf(bio_err, "cert_status: cannot parse AIA URL: %s\n", url);
         goto end;
     }
@@ -2011,20 +2011,18 @@ static OSSL_CMP_MSG *read_PKIMESSAGE(OSSL_CMP_CTX *ctx, char **filenames)
  * to dump the sequence of requests and responses to files and/or
  * to take the sequence of requests and responses from files.
  */
-static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
-                               OSSL_CMP_MSG **res)
+static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
+                                         const OSSL_CMP_MSG *req)
 {
     OSSL_CMP_MSG *req_new = NULL;
+    OSSL_CMP_MSG *res = NULL;
     OSSL_CMP_PKIHEADER *hdr;
-    ASN1_OCTET_STRING *nonce, *tid;
-    int ret = 0;
 
     if (req != NULL && opt_reqout != NULL
             && !write_PKIMESSAGE(ctx, req, &opt_reqout)) {
         CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
         goto err;
     }
-
     if (opt_reqin != NULL) {
         if (opt_rspin != NULL) {
             CMP_warn("-reqin is ignored since -rspin is present");
@@ -2050,117 +2048,49 @@ static int read_write_req_resp(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     }
 
     if (opt_rspin != NULL) {
-        if ((*res = read_PKIMESSAGE(ctx, &opt_rspin)) == NULL) {
-            CMPerr(0, CMP_R_ERROR_TRANSFERRING_IN);
-            goto err;
-        }
+        res = read_PKIMESSAGE(ctx, &opt_rspin);
     } else {
         const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
-
         if (opt_use_mock_srv) {
-            ret = OSSL_CMP_CTX_server_perform(ctx, actual_req, res);
+            res = OSSL_CMP_MSG_http_perform(ctx, actual_req);
         } else {
-# if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-            ret = OSSL_CMP_MSG_http_perform(ctx, actual_req, res);
-# else
-            CMPerr(0, CMP_R_ERROR_TRANSFERRING_IN);
+# if !defined(OPENSSL_NO_SOCK)
+            res = OSSL_CMP_MSG_http_perform(ctx, actual_req);
 # endif
+# ifndef NDEBUG
+        }
+# endif
+    }
+
+    if (res == NULL) {
+        CMPerr(0, CMP_R_ERROR_TRANSFERRING_IN);
+        goto err;
+    }
+    if (opt_reqin != NULL || opt_rspin != NULL) {
+        /* need to satisfy nonce and transactionID checks */
+        ASN1_OCTET_STRING *nonce;
+        ASN1_OCTET_STRING *tid;
+
+        hdr = OSSL_CMP_MSG_get0_header(res);
+        nonce = OSSL_CMP_HDR_get0_recipNonce(hdr);
+        tid = OSSL_CMP_HDR_get0_transactionID(hdr);
+
+        if (!OSSL_CMP_CTX_set1_senderNonce(ctx, nonce)
+                || !OSSL_CMP_CTX_set1_transactionID(ctx, tid)) {
+            OSSL_CMP_MSG_free(res);
+            res = NULL;
+            goto err;
         }
     }
-    if (ret == 0 || *res == NULL)
-        goto err;
 
-    ret = 0;
-    hdr = OSSL_CMP_MSG_get0_header(*res);
-    nonce = OSSL_CMP_HDR_get0_recipNonce(hdr);
-    tid = OSSL_CMP_HDR_get0_transactionID(hdr);
-    if ((opt_reqin != NULL || opt_rspin != NULL)
-        /* need to satisfy nonce and transactionID checks */
-            && (!OSSL_CMP_CTX_set1_senderNonce(ctx, nonce)
-                    || !OSSL_CMP_CTX_set1_transactionID(ctx, tid)))
-        goto err;
-
-    if (opt_rspout != NULL && !write_PKIMESSAGE(ctx, *res, &opt_rspout)) {
-        CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
-        OSSL_CMP_MSG_free(*res);
-        goto err;
+    if (opt_rspout != NULL && !write_PKIMESSAGE(ctx, res, &opt_rspout)) {
+        OSSL_CMP_MSG_free(res);
+        res = NULL;
     }
 
-    ret = 1;
  err:
     OSSL_CMP_MSG_free(req_new);
-    return ret;
-}
-
-static const char *tls_error_hint(unsigned long err)
-{
-    switch (ERR_GET_REASON(err)) {
-        /* case 0x1408F10B: */ /* xSL_F_SSL3_GET_RECORD */
-    case SSL_R_WRONG_VERSION_NUMBER:
-        /* case 0x140770FC: */ /* xSL_F_SSL23_GET_SERVER_HELLO */
-    case SSL_R_UNKNOWN_PROTOCOL:
-        return "The server does not support (a recent version of) TLS";
-        /* case 0x1407E086: */ /* xSL_F_SSL3_GET_SERVER_HELLO */
-        /* case 0x1409F086: */ /* xSL_F_SSL3_WRITE_PENDING */
-        /* case 0x14090086: */ /* xSL_F_SSL3_GET_SERVER_CERTIFICATE */
-        /* case 0x1416F086: */ /* xSL_F_TLS_PROCESS_SERVER_CERTIFICATE */
-    case SSL_R_CERTIFICATE_VERIFY_FAILED:
-        return "Cannot authenticate server via its TLS certificate, likely due to mismatch with our trusted TLS certs or missing revocation status";
-        /* case 0x14094418: */ /* xSL_F_SSL3_READ_BYTES */
-    case SSL_AD_REASON_OFFSET + TLS1_AD_UNKNOWN_CA:
-        return "Server did not accept our TLS certificate, likely due to mismatch with server's trust anchor or missing revocation status";
-    case SSL_AD_REASON_OFFSET + SSL3_AD_HANDSHAKE_FAILURE:
-        return "Server requires our TLS certificate but did not receive one";
-    default: /* no error or no hint available for error */
-        return NULL;
-    }
-}
-
-static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
-{
-    SSL_CTX *ssl_ctx = OSSL_CMP_CTX_get_http_cb_arg(ctx);
-    BIO *sbio = NULL;
-
-    if (detail == 1) { /* connecting */
-        SSL *ssl;
-# if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        if ((opt_proxy != NULL
-             && !OSSL_CMP_proxy_connect(hbio, ctx, bio_err, prog))
-                || (sbio = BIO_new(BIO_f_ssl())) == NULL) {
-            hbio = NULL;
-            goto end;
-        }
-# endif
-        if ((ssl = SSL_new(ssl_ctx)) == NULL) {
-            BIO_free(sbio);
-            hbio = sbio = NULL;
-            goto end;
-        }
-
-        SSL_set_tlsext_host_name(ssl, opt_server);
-
-        SSL_set_connect_state(ssl);
-        BIO_set_ssl(sbio, ssl, BIO_CLOSE);
-
-        hbio = BIO_push(sbio, hbio);
-    } else { /* disconnecting */
-        const char *hint = tls_error_hint(detail);
-        if (hint != NULL)
-            ERR_add_error_data(1, hint);
-        /*
-         * as a workaround for OpenSSL double free, do not pop the sbio, but
-         * rely on BIO_free_all() done by OSSL_CMP_MSG_http_perform()
-         */
-    }
- end:
-    if (ssl_ctx != NULL) {
-        X509_STORE *ts = SSL_CTX_get_cert_store(ssl_ctx);
-
-        if (ts != NULL)
-            /* indicate if OSSL_CMP_MSG_http_perform() with TLS is active */
-            (void)X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_SBIO, sbio);
-    }
-    return hbio;
+    return res;
 }
 
 /*
@@ -2173,20 +2103,14 @@ static BIO *tls_http_cb(OSSL_CMP_CTX *ctx, BIO *hbio, unsigned long detail)
  * ssl_add_cert_chain() -> X509_verify_cert() where errors are ignored.
  * returns 0 if and only if the cert verification is considered failed.
  */
-static int cert_verify_cb(int ok, X509_STORE_CTX *ctx)
+static int print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
 {
+    int res = OSSL_CMP_print_cert_verify_cb(ok, ctx); /* print diagnostics */
+
     if (ok == 0 && ctx != NULL) {
         int cert_error = X509_STORE_CTX_get_error(ctx);
         X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
-        BIO *sbio = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_SBIO);
-        int idx = SSL_get_ex_data_X509_STORE_CTX_idx();
-        SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, idx);
-        const char *expected = NULL;
-
-        if (sbio != 0 /* OSSL_CMP_MSG_http_perform() with TLS is active */
-            && !ssl) /* ssl_add_cert_chain() is active */
-            return ok; /* avoid printing spurious errors */
-
+        const char *host = NULL;
         switch (cert_error) {
         case X509_V_ERR_HOSTNAME_MISMATCH:
         case X509_V_ERR_IP_ADDRESS_MISMATCH:
@@ -2196,15 +2120,15 @@ static int cert_verify_cb(int ok, X509_STORE_CTX *ctx)
              * This works for names we set ourselves but not verify_hostname
              * used for OSSL_CMP_certConf_cb.
              */
-            expected = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
-            if (expected != NULL)
-                CMP_info1("TLS connection expected host = %s", expected);
+            host = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
+            if (host != NULL)
+                ERR_add_error_data(2, "\nexpected hostname = ", host);
             break;
         default:
             break;
         }
     }
-    return OSSL_CMP_print_cert_verify_cb(ok, ctx); /* print diagnostics */
+    return res;
 }
 
 /*
@@ -2224,13 +2148,14 @@ static int atoint(const char *str)
         return (int)res;
 }
 
+
 static int parse_addr(OSSL_CMP_CTX *ctx,
                       char **opt_string, int port, const char *name)
 {
     char *port_string;
 
-    if (strncmp(*opt_string, HTTP_PREFIX, strlen(HTTP_PREFIX)) == 0)
-        *opt_string += strlen(HTTP_PREFIX);
+    if (strncmp(*opt_string, HTTP_HDR, strlen(HTTP_HDR)) == 0)
+        *opt_string += strlen(HTTP_HDR);
 
     if ((port_string = strrchr(*opt_string, ':')) == NULL) {
         CMP_info2("using default port %d for %s", port, name);
@@ -2275,7 +2200,7 @@ static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
         return 0;
     }
 
-    X509_STORE_set_verify_cb(ts, cert_verify_cb);
+    X509_STORE_set_verify_cb(ts, print_cert_verify_cb);
 
     if (crls != NULL
             && !add_crls_store(ts, crls)) /* ups the references to crls */
@@ -2517,14 +2442,15 @@ static int transform_opts(OSSL_CMP_CTX *ctx)
     return 1;
 }
 
-static int setup_srv_ctx(ENGINE *e)
+static OSSL_CMP_CTX *setup_srv_ctx(ENGINE *e)
 {
     OSSL_CMP_CTX *ctx = NULL;
-    srv_ctx = ossl_cmp_mock_srv_new();
+    OSSL_CMP_SRV_CTX *srv_ctx = ossl_cmp_mock_srv_new();
 
     if (srv_ctx == NULL)
-        return 0;
+        return NULL;
     ctx = OSSL_CMP_SRV_CTX_get0_cmp_ctx(srv_ctx);
+    OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
 
     if (opt_srv_ref == NULL && opt_srv_cert == NULL) {
         /* srv_cert should determine the sender */
@@ -2659,13 +2585,13 @@ static int setup_srv_ctx(ENGINE *e)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1);
     if (opt_accept_raverified)
         (void)OSSL_CMP_SRV_CTX_set_accept_raverified(srv_ctx, 1);
-    OSSL_CMP_CTX_set_transfer_cb_arg(ctx, srv_ctx);
-    return 1;
+
+    return ctx;
 
  err:
     ossl_cmp_mock_srv_free(srv_ctx);
     srv_ctx = NULL;
-    return 0;
+    return NULL;
 }
 
 /*
@@ -2860,11 +2786,12 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx,
  * set up ssl_ctx for the OSSL_CMP_CTX based on options from config file/CLI.
  * Returns pointer on success, NULL on error
  */
-static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
+static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e,
                               STACK_OF(X509_CRL) *all_crls)
 {
+    STACK_OF(X509) *untrusted_certs = OSSL_CMP_CTX_get0_untrusted_certs(ctx);
     EVP_PKEY *pkey = NULL;
-    X509_STORE *store = NULL;
+    X509_STORE *trust_store = NULL;
     SSL_CTX *ssl_ctx;
     int i;
 
@@ -2890,10 +2817,12 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
 # endif /* OPENSSL_NO_OCSP */
 
     if (opt_tls_trusted != NULL) {
-        if ((store = load_certstore(opt_tls_trusted,
-                                    "trusted TLS certificates")) == NULL)
+        if ((trust_store = load_certstore(opt_tls_trusted,
+                                          "trusted TLS certificates")) == NULL)
             goto err;
-        SSL_CTX_set_cert_store(ssl_ctx, store);
+        SSL_CTX_set_cert_store(ssl_ctx, trust_store);
+        /* for improved diagnostics on SSL_CTX_build_cert_chain() errors: */
+        X509_STORE_set_verify_cb(trust_store, print_cert_verify_cb);
     }
 
     if (opt_tls_cert != NULL && opt_tls_key != NULL) {
@@ -2940,7 +2869,7 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
                                       SSL_BUILD_CHAIN_FLAG_UNTRUSTED |
                                       SSL_BUILD_CHAIN_FLAG_NO_ROOT)) {
             CMP_warn("could not build cert chain for own TLS cert");
-            OSSL_CMP_CTX_print_errors(cmp_ctx);
+            OSSL_CMP_CTX_print_errors(ctx);
         }
 
         /* If present we append to the list also the certs from opt_tls_extra */
@@ -2995,10 +2924,10 @@ static SSL_CTX *setup_ssl_ctx(ENGINE *e, STACK_OF(X509) *untrusted_certs,
     }
     if (opt_tls_trusted != NULL) {
         /* cannot do these before calling SSL_CTX_build_cert_chain() */
-        if (!set1_store_parameters_crls(store, all_crls))
+        if (!set1_store_parameters_crls(trust_store, all_crls))
             goto err;
         /* enable and parameterize server hostname/IP address check */
-        if (!truststore_set_host_etc(store,
+        if (!truststore_set_host_etc(trust_store,
                                      opt_tls_host != NULL ?
                                      opt_tls_host : opt_server))
             /* TODO: is the server host name correct for TLS via proxy? */
@@ -3324,6 +3253,8 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 {
     STACK_OF(X509_CRL) *all_crls = NULL;
     int ret = 0;
+    char *proxy_host = NULL;
+    char *proxy_port_str = NULL;
 
     if (opt_server == NULL) {
         CMP_err("missing server address[:port]");
@@ -3332,26 +3263,35 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
                 parse_addr(ctx, &opt_server, server_port, "server")) == 0) {
         goto err;
     }
+    BIO_snprintf(server_port_s, sizeof(server_port_s), "%d", server_port);
     if (!OSSL_CMP_CTX_set1_serverName(ctx, opt_server)
             || !OSSL_CMP_CTX_set_serverPort(ctx, server_port)
             || !OSSL_CMP_CTX_set1_serverPath(ctx, opt_path))
         goto oom;
 
-    if (opt_proxy == NULL)
+    if (opt_proxy == NULL || opt_proxy[0] == '\0') {
         opt_proxy = getenv("http_proxy");
-    if (opt_proxy == NULL)
-        opt_proxy = getenv("HTTP_PROXY");
-    if (opt_proxy != NULL && opt_proxy[0] == '\0')
-        opt_proxy = NULL;
-    if (opt_proxy != NULL && !use_proxy(opt_no_proxy, opt_server))
-        opt_proxy = NULL;
+        if (opt_proxy == NULL || opt_proxy[0] == '\0') {
+            opt_proxy = getenv("HTTP_PROXY");
+            if (opt_proxy != NULL && opt_proxy[0] == '\0')
+                opt_proxy = NULL;
+        }
+    }
     if (opt_proxy != NULL) {
-        if ((proxy_port =
-             parse_addr(ctx, &opt_proxy, proxy_port, "proxy")) == 0)
+        if (!OSSL_HTTP_parse_url(opt_proxy, &proxy_host, &proxy_port_str, NULL,
+                                 NULL)) {
+            BIO_printf(bio_err, "cert_status: cannot parse PROXY URL: %s\n",
+                       opt_proxy);
             goto err;
-        if (!(OSSL_CMP_CTX_set1_proxyName(ctx, opt_proxy)
-                  && OSSL_CMP_CTX_set_proxyPort(ctx, proxy_port)))
-            goto oom;
+        }
+        if (use_proxy(opt_no_proxy, opt_server)) {
+
+            proxy_port = atoint(proxy_port_str);
+
+            if (!(OSSL_CMP_CTX_set1_proxyName(ctx, opt_proxy)
+                      && OSSL_CMP_CTX_set_proxyPort(ctx, proxy_port)))
+                goto oom;
+        }
     }
 
     if (!transform_opts(ctx))
@@ -3418,15 +3358,20 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_tls_used) {
-        SSL_CTX *ssl_ctx;
-
-        ssl_ctx = setup_ssl_ctx(e, OSSL_CMP_CTX_get0_untrusted_certs(ctx),
-                                all_crls);
-        if (ssl_ctx == NULL)
+        APP_HTTP_TLS_INFO *info = OPENSSL_zalloc(sizeof(*info));
+        if (info == NULL)
             goto err;
-
-        (void)OSSL_CMP_CTX_set_http_cb(ctx, tls_http_cb);
-        (void)OSSL_CMP_CTX_set_http_cb_arg(ctx, ssl_ctx);
+        (void)OSSL_CMP_CTX_set_http_cb_arg(ctx, info);
+        info->server = opt_server;
+        info->port = server_port_s;
+        info->use_proxy = opt_proxy != NULL;
+        info->timeout = OSSL_CMP_CTX_get_option(ctx, OSSL_CMP_OPT_MSGTIMEOUT);
+        info->ssl_ctx = setup_ssl_ctx(ctx, e, all_crls);
+        if (info->ssl_ctx == NULL)
+            goto err; /* info will be freed along with CMP ctx */
+# ifndef OPENSSL_NO_SOCK
+        (void)OSSL_CMP_CTX_set_http_cb(ctx, app_http_tls_cb);
+# endif
     } else {
 # ifndef OPENSSL_NO_OCSP
         if (opt_ocsp_status)
@@ -3517,6 +3462,8 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 
  err:
     sk_X509_CRL_pop_free(all_crls, X509_CRL_free);
+    OPENSSL_free(proxy_host);
+    OPENSSL_free(proxy_port_str);
     return ret;
  oom:
     CMP_err("out of memory");
@@ -3605,7 +3552,7 @@ static int http_server_get_req(BIO **pcbio, BIO *acbio)
 static int http_server_send_cmp_response(BIO *cbio, OSSL_CMP_MSG *resp)
 {
     char http_resp[] =
-        "HTTP/1.0 200 OK\r\nContent-type: application/pkixcmp\r\n"
+        "HTTP/1.0 200 OK\r\nContent-Type: application/pkixcmp\r\n"
         "Content-Length: %d\r\n\r\n";
 
     if (cbio == NULL)
@@ -4252,6 +4199,7 @@ int cmp_main(int argc, char **argv)
     int i;
     X509 *newcert = NULL;
     ENGINE *e = NULL;
+    APP_HTTP_TLS_INFO *http_tls_info;
     int ret = 0; /* default: failure */
 
     if (argc <= 1) {
@@ -4274,15 +4222,9 @@ int cmp_main(int argc, char **argv)
     if (opt_section[0] == '\0') /* empty string */
         opt_section = DEFAULT_SECTION;
 
-    cmp_ctx = OSSL_CMP_CTX_new();
     vpm = X509_VERIFY_PARAM_new();
-    if (cmp_ctx == NULL || vpm == NULL) {
+    if (vpm == NULL) {
         CMP_err("out of memory");
-        goto err;
-    }
-
-    if (!OSSL_CMP_CTX_set_log_cb(cmp_ctx, print_to_bio_out)) {
-        CMP_err1("cannot set up error reporting and logging for '%s'", prog);
         goto err;
     }
 
@@ -4348,11 +4290,17 @@ int cmp_main(int argc, char **argv)
         }
     }
     if ((opt_use_mock_srv || opt_port != NULL)) {
-        if (!setup_srv_ctx(e))
+        if ((cmp_ctx = setup_srv_ctx(e)) == NULL)
             goto err;
-        OSSL_CMP_CTX_set_transfer_cb_arg(cmp_ctx, srv_ctx);
+    } else if ((cmp_ctx = OSSL_CMP_CTX_new()) == NULL) {
+        CMP_err("out of memory");
+        goto err;
     }
 
+    if (!OSSL_CMP_CTX_set_log_cb(cmp_ctx, print_to_bio_out)) {
+        CMP_err1("cannot set up error reporting and logging for '%s'", prog);
+        goto err;
+    }
     /* act as very basic CMP HTTP server */
     if (opt_port != NULL) {
         BIO *acbio = NULL;
@@ -4371,7 +4319,7 @@ int cmp_main(int argc, char **argv)
                 CMP_err("Error parsing CMP request");
                 goto srv_err;
             }
-            if (!OSSL_CMP_CTX_server_perform(cmp_ctx, req, &resp))
+            if ((resp = OSSL_CMP_CTX_server_perform(cmp_ctx, req)) == NULL)
                 goto srv_err;
             if (!http_server_send_cmp_response(cbio, resp))
                 goto srv_err;
@@ -4501,6 +4449,7 @@ int cmp_main(int argc, char **argv)
     ret = 1;
 
  err:
+    /* in case we ended up here on error without proper cleaning */
     cleanse(opt_keypass);
     cleanse(opt_newkeypass);
     cleanse(opt_otherpass);
@@ -4508,12 +4457,16 @@ int cmp_main(int argc, char **argv)
     cleanse(opt_secret);
     cleanse(opt_srv_keypass);
     cleanse(opt_srv_secret);
-    ossl_cmp_mock_srv_free(srv_ctx);
+    ossl_cmp_mock_srv_free(OSSL_CMP_CTX_get_transfer_cb_arg(cmp_ctx));
 
     if (ret != 1)
         OSSL_CMP_CTX_print_errors(cmp_ctx);
 
-    SSL_CTX_free(OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx));
+    http_tls_info = OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx);
+    if (http_tls_info != NULL) {
+        SSL_CTX_free(http_tls_info->ssl_ctx);
+        OPENSSL_free(http_tls_info);
+    }
     X509_STORE_free(OSSL_CMP_CTX_get_certConf_cb_arg(cmp_ctx));
     OSSL_CMP_CTX_free(cmp_ctx);
     X509_VERIFY_PARAM_free(vpm);

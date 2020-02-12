@@ -53,7 +53,8 @@ sub stop_mock_server {
 sub run_client {
     ok(run(app(["openssl", "cmp",
                 # "-config", srctop_dir("test", "default.cnf"),
-                "-server", "127.0.0.1:" . $localport, # better than 'localhost'
+                "-server", "127.0.0.1:" . $localport, # better than 'localhost',
+                "-no_proxy", "127.0.0.1",
                 "-srvcert", catfile($datadir, "server.crt"),
                 "-no_check_time",
                 # "-unprotectedrequests",

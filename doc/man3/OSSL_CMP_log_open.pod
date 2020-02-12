@@ -15,6 +15,7 @@ OSSL_CMP_LOG_INFO,
 OSSL_CMP_LOG_DEBUG,
 OSSL_CMP_print_to_bio,
 OSSL_CMP_print_errors_cb,
+OSSL_cmp_log_cb_t,
 OSSL_CMP_X509_digest
 - functions for logging and error reporting
 
@@ -36,9 +37,9 @@ OSSL_CMP_X509_digest
  #define OSSL_CMP_LOG_INFO    6
  #define OSSL_CMP_LOG_DEBUG   7
 
- typedef int (*OSSL_cmp_log_cb_t) (const char *component,
-                                   const char *file, int line,
-                                   OSSL_CMP_severity level, const char *msg);
+ typedef int (*OSSL_cmp_log_cb_t)(const char *component,
+                                  const char *file, int line,
+                                  OSSL_CMP_severity level, const char *msg);
  int OSSL_CMP_print_to_bio(BIO* bio, const char *component, const char *file,
                            int line, OSSL_CMP_severity level, const char *msg);
  void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
