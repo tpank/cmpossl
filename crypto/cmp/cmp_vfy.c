@@ -116,13 +116,13 @@ static int verify_PBMAC(const OSSL_CMP_MSG *msg,
 
     /* generate expected protection for the message */
     if ((protection = ossl_cmp_calc_protection(msg, secret, NULL)) == NULL)
-        return 0;               /* failed to generate protection string! */
+        return 0; /* failed to generate protection string! */
 
-    valid = (msg->protection != NULL && msg->protection->length >= 0)
-        && (msg->protection->type == protection->type)
-        && (msg->protection->length == protection->length)
-        && (CRYPTO_memcmp(msg->protection->data, protection->data,
-                          protection->length) == 0);
+    valid = msg->protection != NULL && msg->protection->length >= 0
+        && msg->protection->type == protection->type
+        && msg->protection->length == protection->length
+        && CRYPTO_memcmp(msg->protection->data, protection->data,
+                         protection->length) == 0;
     ASN1_BIT_STRING_free(protection);
     if (!valid)
         CMPerr(0, CMP_R_WRONG_PBM_VALUE);
@@ -559,6 +559,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
                         /* adds both self-issued and not self-issued certs */
                         break;
                 }
+            default:
+                break;
             }
             return 1;
         }
@@ -692,8 +694,8 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     /* compare received nonce with the one we sent */
     if (ctx->senderNonce != NULL
             && (msg->header->recipNonce == NULL
-                    || ASN1_OCTET_STRING_cmp(ctx->senderNonce,
-                                             msg->header->recipNonce) != 0)) {
+                || ASN1_OCTET_STRING_cmp(ctx->senderNonce,
+                                         msg->header->recipNonce) != 0)) {
         CMPerr(0, CMP_R_RECIPNONCE_UNMATCHED);
         return -1;
     }

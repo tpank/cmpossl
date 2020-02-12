@@ -29,7 +29,8 @@ ossl_cmp_msg_gen_ITAVs_push1
 ossl_cmp_bodytype_to_string() returns the name of the given body type as string,
 or "illegal body type" on error.
 
-ossl_cmp_msg_get_bodytype() returns the body type of the given PKIMessage.
+ossl_cmp_msg_get_bodytype() returns the body type of the given PKIMessage,
+or -1 on error.
 
 ossl_cmp_msg_set_bodytype() sets the type of the message contained in
 the PKIMessage body field.
