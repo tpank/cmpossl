@@ -163,6 +163,8 @@ int ossl_cmp_mock_srv_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx, int sec)
 static OSSL_CMP_PKISI *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
                                             const OSSL_CMP_MSG *cert_req,
                                             int certReqId,
+                                            const OSSL_CRMF_MSG *crm,
+                                            const X509_REQ *p10cr,
                                             X509 **certOut,
                                             STACK_OF(X509) **chainOut,
                                             STACK_OF(X509) **caPubs)
@@ -172,11 +174,11 @@ static OSSL_CMP_PKISI *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     if (ctx == NULL || cert_req == NULL
             || certOut == NULL || chainOut == NULL || caPubs == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return 0;
+        return NULL;
     }
     if (ctx->sendError) {
         CMPerr(0, CMP_R_ERROR_PROCESSING_MSG);
-        return 0;
+        return NULL;
     }
 
     *certOut = NULL;
@@ -206,30 +208,33 @@ static OSSL_CMP_PKISI *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
 
 static OSSL_CMP_PKISI *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
                                   const OSSL_CMP_MSG *rr,
-                                  X509_NAME *issuer, ASN1_INTEGER *serial)
+                                  const X509_NAME *issuer,
+                                  const ASN1_INTEGER *serial)
 {
     mock_srv_ctx *ctx = OSSL_CMP_SRV_CTX_get0_custom_ctx(srv_ctx);
 
     if (ctx == NULL || rr == NULL || issuer == NULL || serial == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return 0;
+        return NULL;
     }
     if (ctx->sendError) {
         CMPerr(0, CMP_R_ERROR_PROCESSING_MSG);
-        return 0;
+        return NULL;
     }
 
     /* accept revocation only for the certificate we sent in ir/cr/kur */
     if (X509_NAME_cmp(issuer, X509_get_issuer_name(ctx->certOut)) != 0
             || ASN1_INTEGER_cmp(serial,
-                                X509_get0_serialNumber(ctx->certOut)) != 0)
+                                X509_get0_serialNumber(ctx->certOut)) != 0) {
+        CMPerr(0, CMP_R_REQUEST_NOT_ACCEPTED);
         return NULL;
+    }
     return OSSL_CMP_PKISI_dup(ctx->pkiStatusOut);
 }
 
 static int process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
                         const OSSL_CMP_MSG *genm,
-                        STACK_OF(OSSL_CMP_ITAV) *in,
+                        const STACK_OF(OSSL_CMP_ITAV) *in,
                         STACK_OF(OSSL_CMP_ITAV) **out)
 {
     mock_srv_ctx *ctx = OSSL_CMP_SRV_CTX_get0_custom_ctx(srv_ctx);
@@ -243,19 +248,21 @@ static int process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
         return 0;
     }
 
-    *out = in;
-    return 1;
+    *out = sk_OSSL_CMP_ITAV_deep_copy(in, OSSL_CMP_ITAV_dup,
+                                      OSSL_CMP_ITAV_free);
+    return *out != NULL;
 }
 
 static void process_error(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *error,
-                          OSSL_CMP_PKISI *statusInfo, ASN1_INTEGER *errorCode,
-                          OSSL_CMP_PKIFREETEXT *errorDetails)
+                          const OSSL_CMP_PKISI *statusInfo,
+                          const ASN1_INTEGER *errorCode,
+                          const OSSL_CMP_PKIFREETEXT *errorDetails)
 {
+    mock_srv_ctx *ctx = OSSL_CMP_SRV_CTX_get0_custom_ctx(srv_ctx);
     BIO *bio = NULL;
     char *buf = NULL;
     char *sibuf;
     int i;
-    mock_srv_ctx *ctx = OSSL_CMP_SRV_CTX_get0_custom_ctx(srv_ctx);
 
     if (ctx == NULL || error == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
@@ -304,7 +311,7 @@ static void process_error(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *error,
 
 static int process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
                             const OSSL_CMP_MSG *certConf,
-                            int certReqId, ASN1_OCTET_STRING *certHash)
+                            int certReqId, const ASN1_OCTET_STRING *certHash)
 {
     mock_srv_ctx *ctx = OSSL_CMP_SRV_CTX_get0_custom_ctx(srv_ctx);
     ASN1_OCTET_STRING *digest;
@@ -353,6 +360,8 @@ static int process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
 
     if (ctx->pollCount == 0) {
         *certReq = ctx->certReq;
+        ctx->certReq = NULL;
+        *check_after = 0;
     } else {
         ctx->pollCount--;
         *certReq = NULL;

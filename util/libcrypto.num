@@ -4644,6 +4644,7 @@ OSSL_CMP_ITAV_set0                      ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_ITAV_get0_type                 ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_ITAV_get0_value                ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_ITAV_push0_stack_item          ?	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_ITAV_dup                       ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_ITAV_free                      ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_free                       ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_dup                        ?	3_0_0	EXIST::FUNCTION:CMP
