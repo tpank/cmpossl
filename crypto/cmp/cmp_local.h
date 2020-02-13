@@ -244,7 +244,6 @@ struct ossl_cmp_itav_st {
     } infoValue;
 } /* OSSL_CMP_ITAV */;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
-DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_ITAV)
 
 typedef struct ossl_cmp_certorenccert_st {
     int type;
@@ -809,7 +808,7 @@ int ossl_cmp_hdr_push1_freeText(OSSL_CMP_PKIHEADER *hdr, ASN1_UTF8STRING *text);
 int ossl_cmp_hdr_generalInfo_push0_item(OSSL_CMP_PKIHEADER *hdr,
                                         OSSL_CMP_ITAV *itav);
 int ossl_cmp_hdr_generalInfo_push1_items(OSSL_CMP_PKIHEADER *hdr,
-                                         STACK_OF(OSSL_CMP_ITAV) *itavs);
+                                         const STACK_OF(OSSL_CMP_ITAV) *itavs);
 int ossl_cmp_hdr_set_implicitConfirm(OSSL_CMP_PKIHEADER *hdr);
 int ossl_cmp_hdr_has_implicitConfirm(const OSSL_CMP_PKIHEADER *hdr);
 # define OSSL_CMP_TRANSACTIONID_LENGTH 16
@@ -869,10 +868,10 @@ OSSL_CMP_MSG *ossl_cmp_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
                                    int64_t poll_after);
 int ossl_cmp_msg_gen_push0_ITAV(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav);
 int ossl_cmp_msg_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
-                                 STACK_OF(OSSL_CMP_ITAV) *itavs);
+                                 const STACK_OF(OSSL_CMP_ITAV) *itavs);
 OSSL_CMP_MSG *ossl_cmp_genm_new(OSSL_CMP_CTX *ctx);
 OSSL_CMP_MSG *ossl_cmp_genp_new(OSSL_CMP_CTX *ctx,
-                                STACK_OF(OSSL_CMP_ITAV) *itavs);
+                                const STACK_OF(OSSL_CMP_ITAV) *itavs);
 OSSL_CMP_MSG *ossl_cmp_error_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
                                  int errorCode,
                                  const char *details, int unprotected);

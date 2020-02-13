@@ -211,6 +211,7 @@ DECLARE_ASN1_ENCODE_FUNCTIONS(OSSL_CMP_MSG, OSSL_CMP_MSG, OSSL_CMP_MSG)
 typedef struct ossl_cmp_certstatus_st OSSL_CMP_CERTSTATUS;
 DEFINE_STACK_OF(OSSL_CMP_CERTSTATUS)
 typedef struct ossl_cmp_itav_st OSSL_CMP_ITAV;
+DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_ITAV)
 DEFINE_STACK_OF(OSSL_CMP_ITAV)
 typedef struct ossl_cmp_revrepcontent_st OSSL_CMP_REVREPCONTENT;
 typedef struct ossl_cmp_pkisi_st OSSL_CMP_PKISI;
@@ -371,24 +372,25 @@ OSSL_CMP_SRV_CTX *OSSL_CMP_SRV_CTX_new(void);
 void OSSL_CMP_SRV_CTX_free(OSSL_CMP_SRV_CTX *srv_ctx);
 typedef OSSL_CMP_PKISI *(*OSSL_CMP_SRV_cert_request_cb_t)
     (OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *req, int certReqId,
+     const OSSL_CRMF_MSG *crm, const X509_REQ *p10cr,
      X509 **certOut, STACK_OF(X509) **chainOut, STACK_OF(X509) **caPubs);
 typedef OSSL_CMP_PKISI *(*OSSL_CMP_SRV_rr_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                                 const OSSL_CMP_MSG *req,
-                                                X509_NAME *issuer,
-                                                ASN1_INTEGER *serial);
+                                                const X509_NAME *issuer,
+                                                const ASN1_INTEGER *serial);
 typedef int (*OSSL_CMP_SRV_genm_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                       const OSSL_CMP_MSG *req,
-                                      STACK_OF(OSSL_CMP_ITAV) *in,
+                                      const STACK_OF(OSSL_CMP_ITAV) *in,
                                       STACK_OF(OSSL_CMP_ITAV) **out);
 typedef void (*OSSL_CMP_SRV_error_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                         const OSSL_CMP_MSG *req,
-                                        OSSL_CMP_PKISI *statusInfo,
-                                        ASN1_INTEGER *errorCode,
-                                        OSSL_CMP_PKIFREETEXT *errorDetails);
+                                        const OSSL_CMP_PKISI *statusInfo,
+                                        const ASN1_INTEGER *errorCode,
+                                        const OSSL_CMP_PKIFREETEXT *errorDetails);
 typedef int (*OSSL_CMP_SRV_certConf_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                           const OSSL_CMP_MSG *req,
                                           int certReqId,
-                                          ASN1_OCTET_STRING *certHash);
+                                          const ASN1_OCTET_STRING *certHash);
 typedef int (*OSSL_CMP_SRV_pollReq_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                          const OSSL_CMP_MSG *req, int certReqId,
                                          OSSL_CMP_MSG **certReq,

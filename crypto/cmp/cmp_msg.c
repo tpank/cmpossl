@@ -559,7 +559,7 @@ int ossl_cmp_msg_gen_push0_ITAV(OSSL_CMP_MSG *msg, OSSL_CMP_ITAV *itav)
 }
 
 int ossl_cmp_msg_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
-                                 STACK_OF(OSSL_CMP_ITAV) *itavs)
+                                 const STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     int i;
     OSSL_CMP_ITAV *itav = NULL;
@@ -582,7 +582,8 @@ int ossl_cmp_msg_gen_push1_ITAVs(OSSL_CMP_MSG *msg,
  * Creates a new General Message/Response with an empty itav stack
  * returns a pointer to the PKIMessage on success, NULL on error
  */
-static OSSL_CMP_MSG *gen_new(OSSL_CMP_CTX *ctx, STACK_OF(OSSL_CMP_ITAV) *itavs,
+static OSSL_CMP_MSG *gen_new(OSSL_CMP_CTX *ctx,
+                             const STACK_OF(OSSL_CMP_ITAV) *itavs,
                              int body_type, int err_code)
 {
     OSSL_CMP_MSG *msg = NULL;
@@ -615,7 +616,7 @@ OSSL_CMP_MSG *ossl_cmp_genm_new(OSSL_CMP_CTX *ctx)
 }
 
 OSSL_CMP_MSG *ossl_cmp_genp_new(OSSL_CMP_CTX *ctx,
-                                STACK_OF(OSSL_CMP_ITAV) *itavs)
+                                const STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     return gen_new(ctx, itavs,
                    OSSL_CMP_PKIBODY_GENP, CMP_R_ERROR_CREATING_GENP);
