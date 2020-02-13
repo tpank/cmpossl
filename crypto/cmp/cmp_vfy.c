@@ -557,7 +557,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
                     if (!ossl_cmp_X509_STORE_add1_certs(ctx->trusted, certs, 0))
                         /* adds both self-issued and not self-issued certs */
-                        break;
+                        return 0;
+                    break;
                 }
             default:
                 break;
