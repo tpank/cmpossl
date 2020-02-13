@@ -34,7 +34,7 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     EVP_MD_CTX *ctx = NULL;
     CMP_PROTECTEDPART prot_part;
     int digest_nid, pk_nid;
-    EVP_MD *digest = NULL;
+    const EVP_MD *digest = NULL;
     EVP_PKEY *pubkey = NULL;
     int len;
     size_t prot_part_der_len = 0;
@@ -71,7 +71,7 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),
                              &digest_nid, &pk_nid)
             || digest_nid == NID_undef || pk_nid == NID_undef
-            || (digest = (EVP_MD *)EVP_get_digestbynid(digest_nid)) == NULL) {
+            || (digest = EVP_get_digestbynid(digest_nid)) == NULL) {
         CMPerr(0, CMP_R_ALGORITHM_NOT_SUPPORTED);
         goto sig_err;
     }
