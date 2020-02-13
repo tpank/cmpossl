@@ -360,6 +360,7 @@ static int check_msg_with_certs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *certs,
 
     for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
         X509 *cert = sk_X509_value(certs, i);
+
         if (!ossl_assert(cert != NULL))
             return 0;
         if (!cert_acceptable(ctx, "cert from", desc, cert,
@@ -369,9 +370,12 @@ static int check_msg_with_certs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *certs,
         if (mode_3gpp ? check_msg_valid_cert_3gpp(ctx, cert, msg)
                       : check_msg_valid_cert(ctx, ctx->trusted, cert, msg)) {
             /* store successful sender cert for further msgs in transaction */
-            if (X509_up_ref(cert)
-                    && !ossl_cmp_ctx_set0_validatedSrvCert(ctx, cert))
+            if (!X509_up_ref(cert))
+                return 0;
+            if (!ossl_cmp_ctx_set0_validatedSrvCert(ctx, cert)) {
                 X509_free(cert);
+                return 0;
+            }
             return 1;
         }
     }
@@ -547,6 +551,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
              * certificate by the initiator.'
              */
             switch (ossl_cmp_msg_get_bodytype(msg)) {
+            case -1:
+                return 0;
             case OSSL_CMP_PKIBODY_IP:
             case OSSL_CMP_PKIBODY_CP:
             case OSSL_CMP_PKIBODY_KUP:
@@ -558,8 +564,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
                     if (!ossl_cmp_X509_STORE_add1_certs(ctx->trusted, certs, 0))
                         /* adds both self-issued and not self-issued certs */
                         return 0;
-                    break;
                 }
+                break;
             default:
                 break;
             }
@@ -726,8 +732,10 @@ int ossl_cmp_verify_popo(const OSSL_CMP_MSG *msg, int accept_RAVerified)
     if (!ossl_assert(msg != NULL && msg->body != NULL))
         return 0;
     switch (msg->body->type) {
-    case OSSL_CMP_PKIBODY_P10CR: {
+    case OSSL_CMP_PKIBODY_P10CR:
+        {
             X509_REQ *req = msg->body->value.p10cr;
+
             if (X509_REQ_verify(req, X509_REQ_get0_pubkey(req)) > 0)
                 return 1;
             CMPerr(0, CMP_R_REQUEST_NOT_ACCEPTED);
