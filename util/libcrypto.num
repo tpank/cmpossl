@@ -4854,6 +4854,7 @@ EVP_KEYEXCH_number                      ?	3_0_0	EXIST::FUNCTION:
 EVP_KDF_number                          ?	3_0_0	EXIST::FUNCTION:
 EVP_SIGNATURE_number                    ?	3_0_0	EXIST::FUNCTION:
 OSSL_CMP_CTX_snprint_PKIStatus          ?	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_snprint_PKIStatusInfo          ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_HDR_get0_transactionID         ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_HDR_get0_recipNonce            ?	3_0_0	EXIST::FUNCTION:CMP
 X509_LOOKUP_store                       ?	3_0_0	EXIST::FUNCTION:
@@ -4925,16 +4926,6 @@ OSSL_CMP_MSG_get0_header                ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_validate_msg                   ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_validate_cert_path             ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_print_cert_verify_cb           ?	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_proxy_connect                  ?	3_0_0	EXIST::FUNCTION:CMP,OCSP,SOCK
-OSSL_CMP_MSG_http_perform               ?	3_0_0	EXIST::FUNCTION:CMP,OCSP,SOCK
-OSSL_CMP_load_cert_crl_http_timeout     ?	3_0_0	EXIST::FUNCTION:CMP,OCSP,SOCK
-OSSL_CMP_exec_IR_ses                    ?	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_exec_CR_ses                    ?	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_exec_P10CR_ses                 ?	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_exec_KUR_ses                   ?	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_exec_RR_ses                    ?	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_exec_GENM_ses                  ?	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_certConf_cb                    ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_process_request            ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_server_perform             ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_SRV_CTX_new                    ?	3_0_0	EXIST::FUNCTION:CMP
