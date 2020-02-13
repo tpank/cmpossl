@@ -159,7 +159,8 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     OSSL_CMP_PKISI *si = NULL;
     X509 *certOut = NULL;
     STACK_OF(X509) *chainOut = NULL, *caPubs = NULL;
-    OSSL_CRMF_MSG *crm = NULL;
+    const OSSL_CRMF_MSG *crm = NULL;
+    const X509_REQ *p10cr = NULL;
     int bodytype;
     int certReqId;
 
@@ -184,6 +185,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
 
     if (ossl_cmp_msg_get_bodytype(req) == OSSL_CMP_PKIBODY_P10CR) {
         certReqId = OSSL_CMP_CERTREQID;
+        p10cr = req->body->value.p10cr;
     } else {
         OSSL_CRMF_MSGS *reqs = req->body->value.ir; /* same for cr and kur */
 
@@ -210,7 +212,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
                                           NULL)) == NULL)
             return NULL;
     } else {
-        si = srv_ctx->process_cert_request(srv_ctx, req, certReqId,
+        si = srv_ctx->process_cert_request(srv_ctx, req, certReqId, crm, p10cr,
                                            &certOut, &chainOut, &caPubs);
         if (si == NULL)
             goto err;
@@ -273,10 +275,8 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
     serial = OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(tmpl);
     if ((certId = OSSL_CRMF_CERTID_gen(issuer, serial)) == NULL)
         return NULL;
-    if ((si = srv_ctx->process_rr(srv_ctx, req, issuer, serial)) == NULL) {
-        CMPerr(0, CMP_R_REQUEST_NOT_ACCEPTED);
+    if ((si = srv_ctx->process_rr(srv_ctx, req, issuer, serial)) == NULL)
         goto err;
-    }
 
     if ((msg = ossl_cmp_rp_new(srv_ctx->ctx, si, certId,
                                srv_ctx->sendUnprotectedErrors)) == NULL)
@@ -296,13 +296,17 @@ static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
                                   const OSSL_CMP_MSG *req)
 {
     OSSL_CMP_GENMSGCONTENT *itavs;
+    OSSL_CMP_MSG *msg;
 
     if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL))
         return NULL;
 
     if (!srv_ctx->process_genm(srv_ctx, req, req->body->value.genm, &itavs))
         return NULL;
-    return ossl_cmp_genp_new(srv_ctx->ctx, itavs);
+
+    msg = ossl_cmp_genp_new(srv_ctx->ctx, itavs);
+    sk_OSSL_CMP_ITAV_pop_free(itavs, OSSL_CMP_ITAV_free);
+    return msg;
 }
 
 static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
@@ -390,8 +394,8 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
         return NULL;
 
     if (certReq != NULL) {
-        if ((msg = process_cert_request(srv_ctx, certReq)) == NULL)
-            CMPerr(0, CMP_R_ERROR_PROCESSING_CERTREQ);
+        msg = process_cert_request(srv_ctx, certReq);
+        OSSL_CMP_MSG_free(certReq);
     } else {
         if ((msg = ossl_cmp_pollRep_new(srv_ctx->ctx, certReqId,
                                         check_after)) == NULL)
