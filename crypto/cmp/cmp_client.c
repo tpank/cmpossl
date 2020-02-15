@@ -608,11 +608,19 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     return ret;
 }
 
-#define INFO_CONTACTING_SERVER(ctx) \
-    OSSL_CMP_log2(INFO, ctx, "contacting %s:%d", \
-                  (ctx)->serverName == NULL ? \
-                  "(no server name)" : (ctx)->serverName, \
-                  (ctx)->serverPort);
+static void log_server_proxy_info(OSSL_CMP_CTX *ctx)
+{
+    const char *server = ctx->serverName;
+    const char *proxy = ctx->proxyName;
+
+    if (server == NULL)
+        server = "(no server name)";
+    if (proxy == NULL)
+        OSSL_CMP_log2(INFO, ctx, "contacting %s:%d", server, ctx->serverPort);
+    else
+        OSSL_CMP_log4(INFO, ctx, "contacting %s:%d via %s:%d",
+                      server, ctx->serverPort, proxy, ctx->proxyPort);
+}
 
 /*
  * Do the full sequence CR/IR/KUR/P10CR, CP/IP/KUP/CP,
@@ -645,7 +653,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, int req_type, int req_err,
     if ((req = ossl_cmp_certReq_new(ctx, req_type, req_err)) == NULL)
         goto err;
 
-    INFO_CONTACTING_SERVER(ctx);
+    log_server_proxy_info(ctx);
     if (!send_receive_check(ctx, req, &rep, rep_type, rep_err))
         goto err;
 
@@ -699,7 +707,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     if ((rr = ossl_cmp_rr_new(ctx)) == NULL)
         goto end;
 
-    INFO_CONTACTING_SERVER(ctx);
+    log_server_proxy_info(ctx);
     if (!send_receive_check(ctx, rr, &rp, OSSL_CMP_PKIBODY_RP,
                             CMP_R_RP_NOT_RECEIVED))
         goto end;
@@ -849,10 +857,15 @@ STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
     OSSL_CMP_MSG *genp = NULL;
     STACK_OF(OSSL_CMP_ITAV) *rcvd_itavs = NULL;
 
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_INVALID_ARGS);
+        return 0;
+    }
+
     if ((genm = ossl_cmp_genm_new(ctx)) == NULL)
         goto err;
 
-    INFO_CONTACTING_SERVER(ctx);
+    log_server_proxy_info(ctx);
     if (!send_receive_check(ctx, genm, &genp, OSSL_CMP_PKIBODY_GENP,
                             CMP_R_GENP_NOT_RECEIVED))
         goto err;
