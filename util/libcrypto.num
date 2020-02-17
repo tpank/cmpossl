@@ -4767,8 +4767,8 @@ OSSL_CMP_CTX_print_errors               ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_serverPath            ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set1_serverName            ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set_serverPort             ?	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_CTX_set1_proxyName             ?	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_CTX_set_proxyPort              ?	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_CTX_set1_proxy                 ?	3_0_0	EXIST::FUNCTION:CMP
+OSSL_CMP_CTX_set1_no_proxy              ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set_http_cb                ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_set_http_cb_arg            ?	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_CTX_get_http_cb_arg            ?	3_0_0	EXIST::FUNCTION:CMP
