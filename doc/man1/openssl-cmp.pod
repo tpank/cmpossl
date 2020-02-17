@@ -12,7 +12,7 @@ B<openssl> B<cmp>
 [B<-section> I<names>]
 
 [B<-server> I<address[:port]>]
-[B<-proxy> I<address[:port]>]
+[B<-proxy> I<[http://]address[:port][/path]>]
 [B<-no_proxy> I<addresses>]
 [B<-path> I<remote_path>]
 [B<-msgtimeout> I<seconds>]
@@ -178,7 +178,7 @@ Default filename is from the environment variable C<OPENSSL_CONF>.
 Section(s) to use within config file defining CMP options.
 An empty string C<""> means no specific section.
 Default is C<cmp>.
-Multiple section names may be given, separated by commas or whitespace.
+Multiple section names may be given, separated by commas and/or whitespace.
 Contents of sections named later may override contents of sections named before.
 In any case, as usual, the C<[default]> section and finally the unnamed
 section (as far as present) can provide per-option fallback values.
@@ -195,19 +195,18 @@ section (as far as present) can provide per-option fallback values.
 The IP address or DNS hostname and optionally port (defaulting to 80)
 of the CMP server to connect to using HTTP/S transport.
 
-=item B<-proxy> I<[http://]address[:port]>
+=item B<-proxy> I<[http://]address[:port][/path]>
 
-The IP address or DNS hostname and optionally port (defaulting to 80)
-of the HTTP(S) proxy server to use for reaching the CMP server
-unless no_proxy applies, see below.
-Defaults is from the environment variable C<http_proxy>, else C<HTTP_PROXY>,
-else none.
+The HTTP(S) proxy server to use for reaching the CMP server unless B<no_proxy>
+applies, see below.
+The optional "http://" prefix and any trailing path are ignored.
+Defaults to the environment variable C<http_proxy> if set, else C<HTTP_PROXY>
+in case no TLS is used, otherwise C<https_proxy> if set, else C<HTTPS_PROXY>.
 
 =item B<-no_proxy> I<addresses>
 List of IP addresses and/or DNS names of servers not use an HTTP(S) proxy for,
-separated by commas or whitespace.
-Default is from the environment variable C<no_proxy>, else C<NO_PROXY>,
-else none.
+separated by commas and/or whitespace.
+Default is from the environment variable C<no_proxy> if set, else C<NO_PROXY>.
 
 =item B<-path> I<remote_path>
 
@@ -241,7 +240,7 @@ during CMP server authentication.
 This option gives more flexibility than the B<-srvcert> option because
 it does not pin down the expected CMP server by allowing only one certificate.
 
-Multiple filenames may be given, separated by commas or whitespace.
+Multiple filenames may be given, separated by commas and/or whitespace.
 Each source may contain multiple certificates.
 
 =item B<-untrusted> I<sources>
@@ -429,7 +428,7 @@ Defaults to C<hmac-sha1> as per RFC 4210.
 
 Certificates to append in the extraCerts field when sending messages.
 
-Multiple filenames or URLs may be given, separated by commas or whitespace.
+Multiple filenames or URLs may be given, separated by commas and/or whitespace.
 Each source may contain multiple certificates.
 
 =item B<-unprotectedrequests>
@@ -572,7 +571,7 @@ This option cannot be used together with B<-policy_oids>.
 
 =item B<-policy_oids> I<names>
 
-One or more OID(s), separated by commas or whitespace,
+One or more OID(s), separated by commas and/or whitespace,
 to add as certificate policies request extension.
 This option cannot be used together with B<-policies>.
 
@@ -597,7 +596,7 @@ This is for supporting legacy clients.
 
 Trusted certificate(s) to use for verifying the newly enrolled certificate.
 
-Multiple filenames may be given, separated by commas or whitespace.
+Multiple filenames may be given, separated by commas and/or whitespace.
 Each source may contain multiple certificates.
 
 =item B<-verify_hostname> I<name>
@@ -765,7 +764,7 @@ Extra certificates to provide to TLS server during TLS handshake
 Trusted certificate(s) to use for verifying the TLS server certificate.
 This implies hostname validation.
 
-Multiple filenames may be given, separated by commas or whitespace.
+Multiple filenames may be given, separated by commas and/or whitespace.
 Each source may contain multiple certificates.
 
 =item B<-tls_host> I<name>

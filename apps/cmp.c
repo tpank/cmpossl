@@ -142,7 +142,6 @@ static char *opt_server = NULL;
 static char server_port_s[32];
 static int server_port = OSSL_CMP_DEFAULT_PORT;
 static char *opt_proxy = NULL;
-static int proxy_port = OSSL_CMP_DEFAULT_PORT;
 static char *opt_no_proxy = NULL;
 static char *opt_path = "/";
 static int opt_msgtimeout = -1;
@@ -355,9 +354,9 @@ const OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "The address may be a DNS name or an IP address"},
     {"proxy", OPT_PROXY, 's',
-     "[http://]address[:port] of optional HTTP(S) proxy. Default port 80."},
+     "[http://]address[:port][/path] of HTTP(S) proxy to use; path is ignored"},
     {"no_proxy", OPT_NO_PROXY, 's',
-     "List of addresses of servers not use use HTTP(S) proxy for."},
+     "List of addresses of servers not use use HTTP(S) proxy for"},
     {OPT_MORE_STR, 0, 0,
      "Default from environment variable 'no_proxy', else 'NO_PROXY', else none"},
     {"path", OPT_PATH, 's',
@@ -2151,7 +2150,6 @@ static int atoint(const char *str)
         return (int)res;
 }
 
-
 static int parse_addr(OSSL_CMP_CTX *ctx,
                       char **opt_string, int port, const char *name)
 {
@@ -3226,24 +3224,6 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     return 0;
 }
 
-static int use_proxy(const char *no_proxy, const char *server)
-{
-    size_t sl = strlen(server);
-    const char *found = NULL;
-
-    if (no_proxy == NULL)
-        no_proxy = getenv("no_proxy");
-    if (no_proxy == NULL)
-        no_proxy = getenv("NO_PROXY");
-    if (no_proxy != NULL)
-        found = strstr(no_proxy, server);
-    while (found != NULL
-           && ((found != no_proxy && found[-1] != ' ' && found[-1] != ',')
-               || (found[sl] != '\0' && found[sl] != ' ' && found[sl] != ',')))
-        found = strstr(found + 1, server);
-    return found == NULL;
-}
-
 /*
  * set up the OSSL_CMP_CTX structure based on options from config file/CLI
  * while parsing options and checking their consistency.
@@ -3270,30 +3250,8 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             || !OSSL_CMP_CTX_set1_serverPath(ctx, opt_path))
         goto oom;
 
-    if (opt_proxy == NULL || opt_proxy[0] == '\0') {
-        opt_proxy = getenv("http_proxy");
-        if (opt_proxy == NULL || opt_proxy[0] == '\0') {
-            opt_proxy = getenv("HTTP_PROXY");
-            if (opt_proxy != NULL && opt_proxy[0] == '\0')
-                opt_proxy = NULL;
-        }
-    }
-    if (opt_proxy != NULL) {
-        if (!OSSL_HTTP_parse_url(opt_proxy, &proxy_host, &proxy_port_str, NULL,
-                                 NULL)) {
-            BIO_printf(bio_err, "cert_status: cannot parse PROXY URL: %s\n",
-                       opt_proxy);
-            goto err;
-        }
-        if (use_proxy(opt_no_proxy, opt_server)) {
-
-            proxy_port = atoint(proxy_port_str);
-
-            if (!(OSSL_CMP_CTX_set1_proxyName(ctx, opt_proxy)
-                      && OSSL_CMP_CTX_set_proxyPort(ctx, proxy_port)))
-                goto oom;
-        }
-    }
+    if (opt_proxy != NULL && !OSSL_CMP_CTX_set1_proxy(ctx, opt_proxy))
+            goto oom;
 
     if (!transform_opts(ctx))
         goto err;

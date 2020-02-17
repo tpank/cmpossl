@@ -611,15 +611,15 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
 static void log_server_proxy_info(OSSL_CMP_CTX *ctx)
 {
     const char *server = ctx->serverName;
-    const char *proxy = ctx->proxyName;
+    const char *proxy = ctx->proxy;
 
     if (server == NULL)
         server = "(no server name)";
     if (proxy == NULL)
         OSSL_CMP_log2(INFO, ctx, "contacting %s:%d", server, ctx->serverPort);
     else
-        OSSL_CMP_log4(INFO, ctx, "contacting %s:%d via %s:%d",
-                      server, ctx->serverPort, proxy, ctx->proxyPort);
+        OSSL_CMP_log3(INFO, ctx, "contacting %s:%d via %s",
+                      server, ctx->serverPort, proxy);
 }
 
 /*

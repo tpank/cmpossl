@@ -38,7 +38,6 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
                                         const OSSL_CMP_MSG *req)
 {
     char server_port[32];
-    char proxy_port[32];
     STACK_OF(CONF_VALUE) *headers = NULL;
     OSSL_CMP_MSG *res = NULL;
     const char *const content_type_pkix = "application/pkixcmp";
@@ -53,12 +52,11 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
         return NULL;
 
     BIO_snprintf(server_port, sizeof(server_port), "%d", ctx->serverPort);
-    BIO_snprintf(proxy_port, sizeof(proxy_port), "%d", ctx->proxyPort);
 
     res = (OSSL_CMP_MSG *)
         OSSL_HTTP_post_asn1(ctx->serverName, server_port, ctx->serverPath,
                             OSSL_CMP_CTX_get_http_cb_arg(ctx) != NULL,
-                            ctx->proxyName, proxy_port, NULL, NULL,
+                            ctx->proxy, ctx->no_proxy, NULL, NULL,
                             ctx->http_cb, OSSL_CMP_CTX_get_http_cb_arg(ctx),
                             headers, content_type_pkix,
                             (ASN1_VALUE *)req, ASN1_ITEM_rptr(OSSL_CMP_MSG),
