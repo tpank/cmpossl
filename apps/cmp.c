@@ -915,15 +915,16 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
                     &cb_data, &pkey, &x, NULL);
         EVP_PKEY_free(pkey);
     } else {
-        BIO_printf(bio_err, "bad input format specified for %s\n",
-                   cert_descrip);
+        BIO_printf(bio_err, "bad input format specified for %s file '%s'\n",
+                   cert_descrip, file);
         goto end;
     }
 
  end:
     if (x == NULL) {
-        BIO_printf(bio_err, "unable to load certificate\n");
         ERR_print_errors(bio_err);
+        BIO_printf(bio_err, "unable to load %s from '%s'\n",
+                   cert_descrip, file);
     }
     BIO_free(cert);
     return (x);
@@ -1020,16 +1021,19 @@ static EVP_PKEY *load_key_autofmt(EVP_PKEY *(*load_fn)(const char *, int, int,
     EVP_PKEY *pkey;
     char *pass_string = get_passwd(pass, desc);
     BIO *bio_bak = bio_err;
+    int can_retry;
 
-    bio_err = NULL;
     format = adjust_format(&file, format, 1);
+    can_retry = format != FORMAT_HTTP && format != FORMAT_ENGINE;
+    if (can_retry)
+        bio_err = NULL; /* do not show errors on more than one try */
     pkey = (*load_fn)(file, format, 0, pass_string, e, desc);
-    if (pkey == NULL && format != FORMAT_HTTP && format != FORMAT_ENGINE) {
+    bio_err = bio_bak;
+    if (pkey == NULL && can_retry) {
         ERR_clear_error();
         pkey = (*load_fn)(file, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM,
                           0, pass_string, NULL, desc);
     }
-    bio_err = bio_bak;
     if (pkey == NULL && desc != NULL) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, file);
@@ -1062,19 +1066,15 @@ static X509 *load_cert_autofmt(const char *infile, int format,
     char *pass_string = get_passwd(pass, desc);
     BIO *bio_bak = bio_err;
 
-    bio_err = NULL;
     format = adjust_format(&infile, format, 0);
+    if (format != FORMAT_HTTP)
+        bio_err = NULL; /* do not show errors on more than one try */
     cert = load_cert_pass(infile, format, pass_string, desc);
+    bio_err = bio_bak;
     if (cert == NULL && format != FORMAT_HTTP) {
         ERR_clear_error();
         format = (format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
         cert = load_cert_pass(infile, format, pass_string, desc);
-    }
-    bio_err = bio_bak;
-    if (cert == NULL) {
-        ERR_print_errors(bio_err);
-        BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc,
-                   infile);
     }
     if (pass_string != NULL)
         OPENSSL_clear_free(pass_string, strlen(pass_string));
@@ -1088,16 +1088,19 @@ static X509_REQ *load_csr_autofmt(const char *infile, int format,
     X509_REQ *csr;
     /* BIO_printf(bio_out, "loading %s from file '%s'\n", desc, infile); */
     BIO *bio_bak = bio_err;
+    int can_retry;
 
-    bio_err = NULL;
     format = adjust_format(&infile, format, 0);
+    can_retry = format == FORMAT_PEM || format == FORMAT_ASN1;
+    if (can_retry)
+        bio_err = NULL; /* do not show errors on more than one try */
     csr = load_csr(infile, format, desc);
-    if (csr == NULL && (format == FORMAT_PEM || format == FORMAT_ASN1)) {
+    bio_err = bio_bak;
+    if (csr == NULL && can_retry) {
         ERR_clear_error();
         format = (format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
         csr = load_csr(infile, format, desc);
     }
-    bio_err = bio_bak;
     if (csr == NULL) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc,
@@ -1179,19 +1182,15 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
         return ret;
     }
     pass_string = get_passwd(pass, desc);
-    bio_err = NULL;
+    if (format != FORMAT_HTTP)
+        bio_err = NULL; /* do not show errors on more than one try */
     ret = load_certs_also_pkcs12(infile, certs, format, pass_string, desc);
-    if (!ret) {
+    bio_err = bio_bak;
+    if (!ret && format != FORMAT_HTTP) {
         int format2 = format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM;
 
         ERR_clear_error();
         ret = load_certs_also_pkcs12(infile, certs, format2, pass_string, desc);
-    }
-    bio_err = bio_bak;
-    if (!ret) {
-        ERR_print_errors(bio_err);
-        BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc,
-                   infile);
     }
     if (pass_string != NULL)
         OPENSSL_clear_free(pass_string, strlen(pass_string));
@@ -1207,10 +1206,11 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
 {
     X509_CRL *crl = NULL;
     BIO *bio_bak = bio_err;
+    int can_retry;
 
-    bio_err = NULL;
     /* BIO_printf(bio_out, "loading %s from '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
+    can_retry = format == FORMAT_PEM || format == FORMAT_ASN1;
     if (format == FORMAT_HTTP) {
 # if !defined(OPENSSL_NO_SOCK)
         crl = X509_CRL_load_http(infile, NULL, NULL, opt_crl_timeout);
@@ -1219,13 +1219,15 @@ static X509_CRL *load_crl_autofmt(const char *infile, int format,
 # endif
         goto end;
     }
+    if (can_retry)
+        bio_err = NULL; /* do not show errors on more than one try */
     crl = load_crl(infile, format);
-    if (crl == NULL) {
+    bio_err = bio_bak;
+    if (crl == NULL && can_retry) {
         ERR_clear_error();
         crl = load_crl(infile, format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
     }
  end:
-    bio_err = bio_bak;
     if (crl == NULL) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from file '%s'\n", desc,
@@ -1271,16 +1273,17 @@ static STACK_OF(X509_CRL) *load_crls_autofmt(const char *infile, int format,
     STACK_OF(X509_CRL) *crls;
     BIO *bio_bak = bio_err;
 
-    bio_err = NULL;
     format = adjust_format(&infile, format, 0);
+    if (format != FORMAT_HTTP)
+        bio_err = NULL; /* do not show errors on more than one try */
     crls = load_crls_fmt(infile, format, desc);
+    bio_err = bio_bak;
     if (crls == NULL && format != FORMAT_HTTP) {
         ERR_clear_error();
         crls = load_crls_fmt(infile,
                              format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM,
                              desc);
     }
-    bio_err = bio_bak;
     if (crls == NULL) {
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc,
@@ -2623,8 +2626,6 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx,
                 && !(flags & X509_V_FLAG_CRL_CHECK))
             CMP_warn("-crl_check_all has no effect without -crls, -crl_download, or -crl_check");
     }
-    if (opt_crl_timeout == 0)
-        opt_crl_timeout = -1;
     if (opt_crls != NULL) {
         /* TODO DvO load_multiple_crls() and push upstream (PR #multifile) */
         X509_CRL *crl;
