@@ -23,6 +23,7 @@
 # include <openssl/crypto.h>
 # include <openssl/buffer.h>
 # include <openssl/bio.h>
+# include <openssl/asn1.h>
 # include <openssl/err.h>
 # include "internal/nelem.h"
 
@@ -197,5 +198,7 @@ int crypto_free_ex_index_ex(OPENSSL_CTX *ctx, int class_index, int idx);
 const void *ossl_bsearch(const void *key, const void *base, int num,
                          int size, int (*cmp) (const void *, const void *),
                          int flags);
+
+char *sk_ASN1_UTF8STRING2text(STACK_OF(ASN1_UTF8STRING) *text, char sep);
 
 #endif

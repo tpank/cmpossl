@@ -260,7 +260,7 @@ static void process_error(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *error,
 {
     mock_srv_ctx *ctx = OSSL_CMP_SRV_CTX_get0_custom_ctx(srv_ctx);
     BIO *bio = NULL;
-    char *buf = NULL;
+    char buf[OSSL_CMP_PKISI_BUFLEN];
     char *sibuf;
     int i;
 
@@ -278,13 +278,7 @@ static void process_error(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *error,
     if (statusInfo == NULL) {
         BIO_printf(bio, "pkiStatusInfo: absent\n");
     } else {
-        buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
-        if (buf == NULL)
-            goto err;
-
-        sibuf = OSSL_CMP_snprint_PKIStatusInfo(statusInfo, buf,
-                                               OSSL_CMP_PKISI_BUFLEN);
-
+        sibuf = OSSL_CMP_snprint_PKIStatusInfo(statusInfo, buf, sizeof(buf));
         BIO_printf(bio, "pkiStatusInfo: %s\n",
                    sibuf != NULL ? sibuf: "<invalid>");
     }
@@ -305,7 +299,6 @@ static void process_error(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *error,
     }
 
  err:
-    OPENSSL_free(buf);
     BIO_free(bio);
 }
 
