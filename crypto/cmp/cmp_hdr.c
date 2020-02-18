@@ -269,7 +269,7 @@ int ossl_cmp_hdr_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         X509_get_subject_name(ctx->clCert) : ctx->subjectName;
     /*
      * The sender name is copied from the subject of the client cert, if any,
-     * or else from the the subject name provided for certification requests.
+     * or else from the subject name provided for certification requests.
      * As required by RFC 4210 section 5.1.1., if the sender name is not known
      * to the client it set to NULL-DN. In this case for identification at least
      * the senderKID must be set, which we take from any referenceValue given.
