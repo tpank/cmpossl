@@ -1989,7 +1989,7 @@ BIO *app_http_tls_cb(BIO *hbio, void *arg, int connect, int detail)
     } else if (!connect && !detail) { /* disconnecting after error */
         const char *hint = tls_error_hint();
         if (hint != NULL)
-            ERR_add_error_data(1, hint);
+            ERR_add_error_data(2, " : ", hint);
         /*
          * If we pop sbio and BIO_free() it this may lead to libssl double free.
          * Rely on BIO_free_all() done by OSSL_HTTP_transfer() in http_client.c
@@ -1999,7 +1999,7 @@ BIO *app_http_tls_cb(BIO *hbio, void *arg, int connect, int detail)
 }
 
 ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
-                              const char *proxy_port, SSL_CTX *ssl_ctx,
+                              const char *no_proxy, SSL_CTX *ssl_ctx,
                               const STACK_OF(CONF_VALUE) *headers,
                               long timeout, const char *expected_content_type,
                               const ASN1_ITEM *it)
@@ -2028,7 +2028,7 @@ ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
     info.use_proxy = proxy != NULL;
     info.timeout = timeout;
     info.ssl_ctx = ssl_ctx;
-    resp = OSSL_HTTP_get_asn1(url, proxy, proxy_port,
+    resp = OSSL_HTTP_get_asn1(url, proxy, no_proxy,
                               NULL, NULL, app_http_tls_cb, &info,
                               headers, 0 /* maxline */, 0 /* max_resp_len */,
                               timeout, expected_content_type, it);
@@ -2041,7 +2041,7 @@ ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
 
 ASN1_VALUE *app_http_post_asn1(const char *host, const char *port,
                                const char *path, const char *proxy,
-                               const char *proxy_port, SSL_CTX *ssl_ctx,
+                               const char *no_proxy, SSL_CTX *ssl_ctx,
                                const STACK_OF(CONF_VALUE) *headers,
                                const char *content_type,
                                ASN1_VALUE *req, const ASN1_ITEM *req_it,
@@ -2055,7 +2055,7 @@ ASN1_VALUE *app_http_post_asn1(const char *host, const char *port,
     info.timeout = timeout;
     info.ssl_ctx = ssl_ctx;
     return OSSL_HTTP_post_asn1(host, port, path, ssl_ctx != NULL,
-                               proxy, proxy_port,
+                               proxy, no_proxy,
                                NULL, NULL, app_http_tls_cb, &info,
                                headers, content_type, req, req_it,
                                0 /* maxline */,

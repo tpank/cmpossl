@@ -38,8 +38,8 @@ struct ossl_cmp_ctx_st {
     char *serverPath;
     char *serverName;
     int serverPort;
-    char *proxyName;
-    int proxyPort;
+    char *proxy;
+    char *no_proxy;
     int msgtimeout; /* max seconds to wait for each CMP message round trip */
     int totaltimeout; /* maximum number seconds an enrollment may take, incl. */
     /* attempts polling for a response if a 'waiting' PKIStatus is received */
@@ -911,5 +911,11 @@ typedef int (*ossl_cmp_allow_unprotected_cb_t)(const OSSL_CMP_CTX *ctx,
 int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                                 ossl_cmp_allow_unprotected_cb_t cb, int cb_arg);
 int ossl_cmp_verify_popo(const OSSL_CMP_MSG *msg, int accept_RAVerified);
+
+/* from cmp_client.c */
+int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
+                               const char *txt);
+int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
+                            const char *txt, int errorCode, const char *details);
 
 #endif /* !defined(OSSL_CRYPTO_CMP_LOCAL_H) */
