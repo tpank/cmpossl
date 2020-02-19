@@ -19,7 +19,7 @@
 
 # ifndef OPENSSL_NO_CMP
 
-#  ifdef __cplusplus
+#  ifdef  __cplusplus
 extern "C"
 #  endif
 int ERR_load_CMP_strings(void);
@@ -27,8 +27,8 @@ int ERR_load_CMP_strings(void);
 /*
  * CMP function codes.
  */
-#  ifndef OPENSSL_NO_DEPRECATED_3_0
-#  endif
+# ifndef OPENSSL_NO_DEPRECATED_3_0
+# endif
 
 /*
  * CMP reason codes.
@@ -74,6 +74,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_ERROR_SETTING_CERTHASH                     145
 #  define CMP_R_ERROR_TRANSFERRING_IN                      146
 #  define CMP_R_ERROR_TRANSFERRING_OUT                     147
+#  define CMP_R_ERROR_UNEXPECTED_CERTCONF                  196
 #  define CMP_R_ERROR_VALIDATING_PROTECTION                148
 #  define CMP_R_FAILED_EXTRACTING_PUBKEY                   149
 #  define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               150
@@ -90,12 +91,11 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_MISSING_PROTECTION                         159
 #  define CMP_R_MISSING_SENDER_IDENTIFICATION              111
 #  define CMP_R_MISSING_TRUST_STORE                        154
-#  define CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED           160
 #  define CMP_R_MULTIPLE_REQUESTS_NOT_SUPPORTED            195
+#  define CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED           160
 #  define CMP_R_MULTIPLE_SAN_SOURCES                       102
 #  define CMP_R_NO_STDIO                                   194
 #  define CMP_R_NO_SUITABLE_SENDER_CERT                    161
-#  define CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG              162
 #  define CMP_R_NULL_ARGUMENT                              103
 #  define CMP_R_PKIBODY_ERROR                              163
 #  define CMP_R_PKICONF_NOT_RECEIVED                       164
@@ -110,6 +110,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_REQUEST_REJECTED_BY_CA                     172
 #  define CMP_R_RP_NOT_RECEIVED                            173
 #  define CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED      174
+#  define CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG              162
 #  define CMP_R_TLS_ERROR                                  175
 #  define CMP_R_TOTAL_TIMEOUT                              176
 #  define CMP_R_TRANSACTIONID_UNMATCHED                    177

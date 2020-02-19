@@ -216,11 +216,11 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
                                            &certOut, &chainOut, &caPubs);
         if (si == NULL)
             goto err;
-        if (certOut != NULL)
-            OSSL_CMP_CTX_set_option(srv_ctx->ctx, OSSL_CMP_OPT_IMPLICITCONFIRM,
-                                    ossl_cmp_hdr_has_implicitConfirm(req->
-                                                                     header)
-                                        && srv_ctx->grantImplicitConfirm);
+        /* set OSSL_CMP_OPT_IMPLICITCONFIRM if and only if transaction ends */
+        OSSL_CMP_CTX_set_option(srv_ctx->ctx, OSSL_CMP_OPT_IMPLICITCONFIRM,
+                                ossl_cmp_hdr_has_implicitConfirm(req->header)
+                                    && srv_ctx->grantImplicitConfirm
+                                    && certOut != NULL /* not start polling */);
     }
 
     msg = ossl_cmp_certRep_new(srv_ctx->ctx, bodytype, certReqId, si,
@@ -332,6 +332,11 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTSTATUS *status = NULL;
 
+    if (OSSL_CMP_CTX_get_option(ctx, OSSL_CMP_OPT_IMPLICITCONFIRM) == 1) {
+        CMPerr(0, CMP_R_ERROR_UNEXPECTED_CERTCONF);
+        return NULL;
+    }
+
     if (num == 0) {
         OSSL_CMP_err(ctx, "certificate rejected by client");
     } else {
@@ -431,45 +436,66 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
 OSSL_CMP_MSG *OSSL_CMP_SRV_process_request(OSSL_CMP_SRV_CTX *srv_ctx,
                                            const OSSL_CMP_MSG *req)
 {
-    GENERAL_NAME *sender;
     OSSL_CMP_CTX *ctx;
+    OSSL_CMP_PKIHEADER *hdr;
+    int req_type, rsp_type;
     OSSL_CMP_MSG *rsp = NULL;
 
-    if (srv_ctx == NULL || srv_ctx->ctx == NULL || req == NULL) {
+    if (srv_ctx == NULL || srv_ctx->ctx == NULL
+            || req == NULL || req->body == NULL
+            || (hdr = OSSL_CMP_MSG_get0_header(req)) == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return 0;
     }
     ctx = srv_ctx->ctx;
 
-    sender = OSSL_CMP_MSG_get0_header(req)->sender;
-    if (sender->type != GEN_DIRNAME) {
+    if (hdr->sender->type != GEN_DIRNAME) {
         CMPerr(0, CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
         goto err;
     }
-    if (!OSSL_CMP_CTX_set1_recipient(ctx, sender->d.directoryName))
+    if (!OSSL_CMP_CTX_set1_recipient(ctx, hdr->sender->d.directoryName))
         goto err;
-    if (req->body != NULL)
-        switch (req->body->type) {
-        case OSSL_CMP_PKIBODY_IR:
-        case OSSL_CMP_PKIBODY_CR:
-        case OSSL_CMP_PKIBODY_KUR:
-        case OSSL_CMP_PKIBODY_P10CR:
-        case OSSL_CMP_PKIBODY_RR:
-            /*
-             * looks like a start of a new transaction,
-             * clear last transactionID and senderNonce
-             */
-            if (!OSSL_CMP_CTX_set1_transactionID(ctx, NULL)
-                    || !OSSL_CMP_CTX_set1_senderNonce(ctx, NULL))
-                goto err;
-            break;
-        default: ; /* transactionID should be already initialized */
+
+    req_type = ossl_cmp_msg_get_bodytype(req);
+    switch (req_type) {
+    case OSSL_CMP_PKIBODY_IR:
+    case OSSL_CMP_PKIBODY_CR:
+    case OSSL_CMP_PKIBODY_P10CR:
+    case OSSL_CMP_PKIBODY_KUR:
+    case OSSL_CMP_PKIBODY_RR:
+    case OSSL_CMP_PKIBODY_GENM:
+    case OSSL_CMP_PKIBODY_ERROR:
+        if (ctx->transactionID != NULL) {
+            char *tid;
+
+            tid = OPENSSL_buf2hexstr(ctx->transactionID->data,
+                                     ctx->transactionID->length);
+            OSSL_CMP_log1(WARN, ctx,
+                          "Assuming that last transaction with ID=%s got aborted",
+                          tid);
+            OPENSSL_free(tid);
         }
+        /* start of a new transaction, set transactionID and senderNonce */
+        if (!OSSL_CMP_CTX_set1_transactionID(ctx, hdr->transactionID)
+                || !ossl_cmp_ctx_set1_recipNonce(ctx, hdr->senderNonce))
+            goto err;
+        break;
+    default:
+        /* transactionID should be already initialized */
+        if (ctx->transactionID == NULL) {
+            CMPerr(0, CMP_R_UNEXPECTED_PKIBODY);
+            /* ignore any (extra) error in next two function calls: */
+            (void)OSSL_CMP_CTX_set1_transactionID(ctx, hdr->transactionID);
+            (void)ossl_cmp_ctx_set1_recipNonce(ctx, hdr->senderNonce);
+            goto err;
+        }
+    }
+
     if (ossl_cmp_msg_check_received(ctx, req, unprotected_exception,
                                     srv_ctx->acceptUnprotected) < 0)
         goto err;
 
-    switch (ossl_cmp_msg_get_bodytype(req)) {
+    switch (req_type) {
     case OSSL_CMP_PKIBODY_IR:
     case OSSL_CMP_PKIBODY_CR:
     case OSSL_CMP_PKIBODY_P10CR:
@@ -510,13 +536,14 @@ OSSL_CMP_MSG *OSSL_CMP_SRV_process_request(OSSL_CMP_SRV_CTX *srv_ctx,
             rsp = process_pollReq(srv_ctx, req);
         break;
     default:
+        /* TODO possibly support further request message types */
         CMPerr(0, CMP_R_UNEXPECTED_PKIBODY);
     }
 
  err:
     if (rsp == NULL) {
         /* on error, try to respond with CMP error message to client */
-        const char *data;
+        const char *data = NULL;
         int flags = 0;
         unsigned long err = ERR_peek_error_data(&data, &flags);
         int fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_badRequest;
@@ -526,12 +553,34 @@ OSSL_CMP_MSG *OSSL_CMP_SRV_process_request(OSSL_CMP_SRV_CTX *srv_ctx,
         if ((si = OSSL_CMP_STATUSINFO_new(OSSL_CMP_PKISTATUS_rejection,
                                           fail_info, NULL)) == NULL)
             return 0;
-        if (err == 0 || (flags & ERR_TXT_STRING) == 0)
-            data = NULL;
+        if (err != 0 && (flags & ERR_TXT_STRING) != 0)
+            data = ERR_reason_error_string(err);
         rsp = ossl_cmp_error_new(srv_ctx->ctx, si,
                                  err != 0 ? ERR_GET_REASON(err) : -1,
                                  data, srv_ctx->sendUnprotectedErrors);
         OSSL_CMP_PKISI_free(si);
+    }
+
+    /* possibly close the transaction */
+    rsp_type =
+        rsp != NULL ? ossl_cmp_msg_get_bodytype(rsp) : OSSL_CMP_PKIBODY_ERROR;
+    switch (rsp_type) {
+    case OSSL_CMP_PKIBODY_IP:
+    case OSSL_CMP_PKIBODY_CP:
+    case OSSL_CMP_PKIBODY_KUP:
+    case OSSL_CMP_PKIBODY_RP:
+        if (OSSL_CMP_CTX_get_option(ctx, OSSL_CMP_OPT_IMPLICITCONFIRM) == 0)
+            break;
+        /* fall through */
+
+    case OSSL_CMP_PKIBODY_PKICONF:
+    case OSSL_CMP_PKIBODY_GENP:
+    case OSSL_CMP_PKIBODY_ERROR:
+        /* TODO possibly support further terminating response message types */
+        (void)OSSL_CMP_CTX_set1_transactionID(ctx, NULL); /* ignore any error */
+
+    default: /* not closing transaction in other cases */
+        break;
     }
     return rsp;
 }

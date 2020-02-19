@@ -84,16 +84,16 @@ OSSL_CMP_SRV_CTX_set_grant_implicit_confirm
 =head1 DESCRIPTION
 
 OSSL_CMP_SRV_process_request() implements the generic aspects of a CMP server.
-It the typical generic checks on the given request message, calls
+It does the typical generic checks on the given request message, calls
 the respective callback function (if present) for more specific processing,
 and then assembles a result message, which may be a CMP error message.
 
 OSSL_CMP_CTX_server_perform() is an interface to 
-B<OSSL_CMP_SRV_process_request()> that can be used by a CMP client like 
-B<OSSL_CMP_MSG_http_perform()>.
+B<OSSL_CMP_SRV_process_request()> that can be used by a CMP client
+in the same way as B<OSSL_CMP_MSG_http_perform()>.
 The B<OSSL_CMP_SRV_CTX> must be set as B<transfer_cb_arg> of B<client_ctx>.
 
-OSSL_CMP_SRV_CTX_new() creates and initializes a OSSL_CMP_SRV_CTX structure
+OSSL_CMP_SRV_CTX_new() creates and initializes an OSSL_CMP_SRV_CTX structure
 and returns a pointer to it on success, NULL on error.
 
 OSSL_CMP_SRV_CTX_free() deletes the given B<srv_ctx>.
