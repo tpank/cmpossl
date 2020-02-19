@@ -816,7 +816,8 @@ As many files are written as needed to store the complete transaction.
 
 =item B<-use_mock_srv>
 
-Use the mock server (not a real one) for the client.
+Use the internal mock server for testing the client.
+This works at API level, bypassing HTTP transport.
 
 
 =back
@@ -913,14 +914,15 @@ Act as CMP HTTP server mock-up listening on the given port.
 
 =item B<-max_msgs>
 
-Maximum number of messages the CMP HTTP server mock-up should handle,
-which must be non-negative.
+Maximum number of CMP (request) messages the CMP HTTP server mock-up
+should handle, which must be non-negative.
 The default value is 0, which means that no limit is imposed.
-In any case the mock server terminates when a message processing error occurs.
+In any case the mock server terminates on internal errors, but not when it
+detects a CMP-level error that it can successfully answer with an error message.
 
 =item B<-srv_ref>
 
-Reference value to use as senderKID of server in case no B<-cert> is given.
+Reference value to use as senderKID of server in case no B<-srv_cert> is given.
 
 =item B<-srv_secret>
 
