@@ -29,7 +29,7 @@ my $rsp_cert = catfile($datadir, "client.crt");
 my $outfile = "newcert.crt";
 my $localport = 1700;
 
-plan tests => 2;
+plan tests => 3;
 
 sub start_mock_server {
     system ("LD_LIBRARY_PATH=../../ ../../apps/openssl cmp" .
@@ -67,10 +67,23 @@ sub run_client {
     unlink $outfile;
 }
 
+ok(run(app(["openssl", "cmp",
+            "-config", srctop_dir("test", "default.cnf"),
+            "-use_mock_srv", "-srv_ref", "mock server",
+            "-srv_secret", "pass:test", "-poll_count", "1",
+            "-rsp_cert", catfile($datadir, "client.crt"),
+            "-cmd", "cr", "-subject", "/CN=any",
+            "-newkey", catfile($datadir, "client.key"),
+            "-recipient", "/CN=mock server",
+            "-secret", "pass:test", "-ref", "client under test",
+            "-certout" , $outfile]))
+   && compare_text($outfile, $rsp_cert) == 0);
+unlink $outfile;
+
 start_mock_server("");
 run_client();
 stop_mock_server();
 
-start_mock_server("-poll_count 2 -checkafter 0");
+start_mock_server("-poll_count 2 -check_after 0");
 run_client();
 stop_mock_server();

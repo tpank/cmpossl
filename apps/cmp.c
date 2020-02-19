@@ -245,7 +245,7 @@ static char *opt_rsp_cert = NULL;
 static char *opt_rsp_extracerts = NULL;
 static char *opt_rsp_capubs = NULL;
 static int opt_poll_count = 0;
-static int opt_checkafter = 1;
+static int opt_check_after = 1;
 static int opt_grant_implicitconf = 0;
 
 static int opt_pkistatus = OSSL_CMP_PKISTATUS_accepted;
@@ -323,7 +323,7 @@ typedef enum OPTION_choice {
     OPT_SRV_CERT, OPT_SRV_KEY, OPT_SRV_KEYPASS,
     OPT_SRV_TRUSTED, OPT_SRV_UNTRUSTED,
     OPT_RSP_CERT, OPT_RSP_EXTRACERTS, OPT_RSP_CAPUBS,
-    OPT_POLL_COUNT, OPT_CHECKAFTER,
+    OPT_POLL_COUNT, OPT_CHECK_AFTER,
     OPT_GRANT_IMPLICITCONF,
     OPT_PKISTATUS, OPT_FAILURE,
     OPT_FAILUREBITS, OPT_STATUSSTRING,
@@ -560,8 +560,8 @@ const OPTIONS cmp_options[] = {
      "CA certificates to be included in mock ip response"},
     {"poll_count", OPT_POLL_COUNT, 'n',
      "Number of times the client must poll before receiving a certificate"},
-    {"checkafter", OPT_CHECKAFTER, 'n',
-     "The checkAfter value (time to wait) to include in poll response"},
+    {"check_after", OPT_CHECK_AFTER, 'n',
+     "The check_after value (time to wait) to include in poll response"},
     {"grant_implicitconf", OPT_GRANT_IMPLICITCONF, '-',
      "Grant implicit confirmation of newly enrolled certificate"},
 
@@ -683,7 +683,7 @@ static varref cmp_vars[] = { /* must be in same order as enumerated above! */
     {&opt_srv_cert}, {&opt_srv_key}, {&opt_srv_keypass},
     {&opt_srv_trusted}, {&opt_srv_untrusted},
     {&opt_rsp_cert}, {&opt_rsp_extracerts}, {&opt_rsp_capubs},
-    {(char **)&opt_poll_count}, {(char **)&opt_checkafter},
+    {(char **)&opt_poll_count}, {(char **)&opt_check_after},
     {(char **)&opt_grant_implicitconf},
     {(char **)&opt_pkistatus}, {(char **)&opt_failure},
     {(char **)&opt_failurebits}, {&opt_statusstring},
@@ -2559,7 +2559,7 @@ static OSSL_CMP_SRV_CTX *setup_srv_ctx(ENGINE *e)
                      NULL))
         goto err;
     (void)ossl_cmp_mock_srv_set_pollCount(srv_ctx, opt_poll_count);
-    (void)ossl_cmp_mock_srv_set_checkAfterTime(srv_ctx, opt_checkafter);
+    (void)ossl_cmp_mock_srv_set_checkAfterTime(srv_ctx, opt_check_after);
     if (opt_grant_implicitconf)
         (void)OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(srv_ctx, 1);
 
@@ -3180,12 +3180,6 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         opt_policy_oids = next;
     }
 
-    if (opt_popo < OSSL_CRMF_POPO_NONE - 1
-            || opt_popo > OSSL_CRMF_POPO_KEYENC) {
-        CMP_err1("invalid value '%d' for popo method (must be between -1 and 2)",
-                 opt_popo);
-        goto err;
-    }
     if (opt_popo >= OSSL_CRMF_POPO_NONE)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_POPOMETHOD,
                                       opt_popo);
@@ -3244,31 +3238,20 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     char *proxy_host = NULL;
     char *proxy_port_str = NULL;
 
-    if (opt_use_mock_srv) {
-        if (opt_server != NULL) {
-            CMP_err("cannot use both -use_mock_srv and -server options");
-            goto err;
-        }
-        if (opt_proxy != NULL) {
-            CMP_err("cannot use both -use_mock_srv and -proxy options");
-            goto err;
-        }
-    } else {
-        if (opt_server == NULL) {
-            CMP_err("missing server address[:port]");
-            goto err;
-        } else if ((server_port =
-                    parse_addr(&opt_server, server_port, "server")) == 0) {
-            goto err;
-        }
-        BIO_snprintf(server_port_s, sizeof(server_port_s), "%d", server_port);
-        if (!OSSL_CMP_CTX_set1_serverName(ctx, opt_server)
-                || !OSSL_CMP_CTX_set_serverPort(ctx, server_port)
-                || !OSSL_CMP_CTX_set1_serverPath(ctx, opt_path))
-            goto oom;
-        if (opt_proxy != NULL && !OSSL_CMP_CTX_set1_proxy(ctx, opt_proxy))
-            goto oom;
+    if (opt_server == NULL) {
+        CMP_err("missing server address[:port]");
+        goto err;
+    } else if ((server_port =
+                parse_addr(&opt_server, server_port, "server")) == 0) {
+        goto err;
     }
+    BIO_snprintf(server_port_s, sizeof(server_port_s), "%d", server_port);
+    if (!OSSL_CMP_CTX_set1_serverName(ctx, opt_server)
+            || !OSSL_CMP_CTX_set_serverPort(ctx, server_port)
+            || !OSSL_CMP_CTX_set1_serverPath(ctx, opt_path))
+        goto oom;
+    if (opt_proxy != NULL && !OSSL_CMP_CTX_set1_proxy(ctx, opt_proxy))
+        goto oom;
 
     if (!transform_opts())
         goto err;
@@ -3808,7 +3791,7 @@ static int opt_nat(void)
     int result = -1;
 
     if (opt_int(opt_arg(), &result) && result < 0)
-        BIO_printf(bio_err, "error: argument '%s' must be positive\n",
+        BIO_printf(bio_err, "error: argument '%s' must not be negative\n",
                    opt_arg());
     return result;
 }
@@ -3984,10 +3967,8 @@ static int get_opts(int argc, char **argv)
             opt_issuer = opt_str("issuer");
             break;
         case OPT_DAYS:
-            if (!opt_int(opt_arg(), &opt_days) || opt_days < 0) {
-                CMP_err("days must be a non-negative integer");
+            if ((opt_days = opt_nat()) < 0)
                 goto opt_err;
-            }
             break;
         case OPT_REQEXTS:
             opt_reqexts = opt_str("reqexts");
@@ -4008,8 +3989,12 @@ static int get_opts(int argc, char **argv)
             opt_policy_oids_critical = 1;
             break;
         case OPT_POPO:
-            if (opt_int(opt_arg(), &opt_popo) && opt_popo < OSSL_CRMF_POPO_NONE)
+            if (!opt_int(opt_arg(), &opt_popo)
+                    || opt_popo < OSSL_CRMF_POPO_NONE
+                    || opt_popo > OSSL_CRMF_POPO_KEYENC) {
+                CMP_err("invalid popo spec. Valid values are -1 .. 2");
                 goto opt_err;
+            }
             break;
         case OPT_CSR:
             opt_csr = opt_arg();
@@ -4034,7 +4019,7 @@ static int get_opts(int argc, char **argv)
                     || opt_revreason < CRL_REASON_NONE
                     || opt_revreason > CRL_REASON_AA_COMPROMISE
                     || opt_revreason == 7) {
-                CMP_err("invalid revreason. Valid values are -1..6, 8..10.");
+                CMP_err("invalid revreason. Valid values are -1 .. 6, 8 .. 10");
                 goto opt_err;
             }
             break;
@@ -4120,8 +4105,8 @@ static int get_opts(int argc, char **argv)
         case OPT_POLL_COUNT:
             opt_poll_count = opt_nat();
             break;
-        case OPT_CHECKAFTER:
-            opt_checkafter = opt_nat();
+        case OPT_CHECK_AFTER:
+            opt_check_after = opt_nat();
             break;
         case OPT_GRANT_IMPLICITCONF:
             opt_grant_implicitconf = 1;
@@ -4324,6 +4309,14 @@ int cmp_main(int argc, char **argv)
     /* else act as CMP client */
 
     if (opt_use_mock_srv) {
+        if (opt_server != NULL) {
+            CMP_err("cannot use both -use_mock_srv and -server options");
+            goto err;
+        }
+        if (opt_proxy != NULL) {
+            CMP_err("cannot use both -use_mock_srv and -proxy options");
+            goto err;
+        }
         opt_server = mock_server;;
         opt_proxy = "API";
     } else {

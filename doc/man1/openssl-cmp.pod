@@ -138,7 +138,7 @@ B<openssl> B<cmp>
 [B<-rsp_extracerts>]
 [B<-rsp_capubs>]
 [B<-poll_count>]
-[B<-checkafter>]
+[B<-check_after>]
 [B<-grant_implicitconf>]
 [B<-pkistatus>]
 [B<-failure>]
@@ -964,7 +964,7 @@ CA certificates to be included in mock ip response.
 
 Number oftimes the client must poll before receiving a certificate.
 
-=item B<-checkafter>
+=item B<-check_after>
 
 The checkAfter value (time to wait) to include in poll response.
 
