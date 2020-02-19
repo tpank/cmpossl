@@ -368,7 +368,7 @@ int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
  * returns 1 on success, 0 on error
  */
 int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
-                            const char *txt)
+                            const char *txt, int errorCode, const char *details)
 {
     OSSL_CMP_MSG *error = NULL;
     OSSL_CMP_PKISI *si = NULL;
@@ -378,7 +378,7 @@ int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
     if ((si = OSSL_CMP_STATUSINFO_new(status, fail_info, txt)) == NULL)
         goto err;
     /* OSSL_CMP_error_new() also checks if all necessary options are set */
-    if ((error = ossl_cmp_error_new(ctx, si, -1, NULL, 0)) == NULL)
+    if ((error = ossl_cmp_error_new(ctx, si, errorCode, details, 0)) == NULL)
         goto err;
 
     success = send_receive_check(ctx, error, &PKIconf, OSSL_CMP_PKIBODY_PKICONF,

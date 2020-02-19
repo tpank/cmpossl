@@ -8,8 +8,8 @@ newkeypass = pass:
 cmd = ir
 out_trusted = root.crt
 certout = test.cert.pem
-policies = 1.2.3.4 # gets ignored
-policies_critical = 1 # gets ignored
+policy_oids = 1.2.3.4 # gets ignored
+policy_oids_critical = 1 # gets ignored
 
 ############################# CA configurations
 

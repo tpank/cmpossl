@@ -27,7 +27,7 @@ typedef struct test_fixture {
     OSSL_CMP_SRV_CTX *srv_ctx;
     int expected;
     X509 *(*exec_cert_ses_cb) (OSSL_CMP_CTX *);
-    STACK_OF(X509) *ca_pubs;
+    STACK_OF(X509) *caPubs;
 } CMP_SES_TEST_FIXTURE;
 
 static EVP_PKEY *server_key = NULL;
@@ -46,7 +46,7 @@ static void tear_down(CMP_SES_TEST_FIXTURE *fixture)
 {
     OSSL_CMP_CTX_free(fixture->cmp_ctx);
     ossl_cmp_mock_srv_free(fixture->srv_ctx);
-    sk_X509_free(fixture->ca_pubs);
+    sk_X509_free(fixture->caPubs);
     OPENSSL_free(fixture);
 }
 
@@ -103,25 +103,23 @@ static int execute_exec_GENM_ses_test(CMP_SES_TEST_FIXTURE *fixture)
 
 static int execute_exec_certrequest_ses_test(CMP_SES_TEST_FIXTURE *fixture)
 {
-    X509 *res = NULL;
+    X509 *res;
 
-    if (fixture->expected != 0) {
-        if (TEST_ptr(res = fixture->exec_cert_ses_cb(fixture->cmp_ctx))
-                && (res == client_cert
-                        || TEST_int_eq(X509_cmp(res, client_cert), 0))) {
-            if (fixture->ca_pubs != NULL) {
-                STACK_OF(X509) *ca_pubs =
-                    OSSL_CMP_CTX_get1_caPubs(fixture->cmp_ctx);
-                int ret = TEST_int_eq(0, STACK_OF_X509_cmp(fixture->ca_pubs,
-                                                           ca_pubs));
-                sk_X509_pop_free(ca_pubs, X509_free);
-                return ret;
-            }
-            return 1;
-        }
+    if (fixture->expected == 0)
+        return TEST_ptr_null(fixture->exec_cert_ses_cb(fixture->cmp_ctx));
+
+    if (!TEST_ptr(res = fixture->exec_cert_ses_cb(fixture->cmp_ctx))
+            || !TEST_int_eq(X509_cmp(res, client_cert), 0))
         return 0;
+    /* TODO: check that cerfConf has been exchanged unless implicitConfirm */
+    if (fixture->caPubs != NULL) {
+        STACK_OF(X509) *caPubs = OSSL_CMP_CTX_get1_caPubs(fixture->cmp_ctx);
+        int ret = TEST_int_eq(STACK_OF_X509_cmp(fixture->caPubs, caPubs), 0);
+
+        sk_X509_pop_free(caPubs, X509_free);
+        return ret;
     }
-    return TEST_ptr_null(res = fixture->exec_cert_ses_cb(fixture->cmp_ctx));
+    return 1;
 }
 
 static int test_exec_RR_ses(void)
@@ -150,12 +148,11 @@ static int test_exec_IR_ses(void)
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
     fixture->expected = 1;
-    fixture->ca_pubs = sk_X509_new_null();
-    sk_X509_push(fixture->ca_pubs, server_cert);
-    sk_X509_push(fixture->ca_pubs, server_cert);
-    ossl_cmp_mock_srv_set1_caPubsOut(fixture->srv_ctx, fixture->ca_pubs);
+    fixture->caPubs = sk_X509_new_null();
+    sk_X509_push(fixture->caPubs, server_cert);
+    sk_X509_push(fixture->caPubs, server_cert);
+    ossl_cmp_mock_srv_set1_caPubsOut(fixture->srv_ctx, fixture->caPubs);
     EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
-    /* TODO: check also capubs returned */
     return result;
 }
 
@@ -167,11 +164,10 @@ static int test_exec_IR_ses_poll(void)
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
     fixture->expected = 1;
-
     ossl_cmp_mock_srv_set_pollCount(fixture->srv_ctx, pollCount);
-    /* TODO: better use 1 second and check that session takes 2..3 seconds */
     ossl_cmp_mock_srv_set_checkAfterTime(fixture->srv_ctx, checkAfter);
     EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
+    /* TODO: check that 2 rounds are done or session takes 2..3 seconds */
     return result;
 }
 
@@ -260,8 +256,8 @@ static int execute_exchange_error_test(CMP_SES_TEST_FIXTURE *fixture)
     int res =
         ossl_cmp_exchange_error(fixture->cmp_ctx,
                                 OSSL_CMP_PKISTATUS_rejection,
-                                OSSL_CMP_PKIFAILUREINFO_unsupportedVersion,
-                                "foobar");
+                                1 << OSSL_CMP_PKIFAILUREINFO_unsupportedVersion,
+                                "foo_status", 999, "foo_details");
 
     return TEST_int_eq(fixture->expected, res);
 }
@@ -269,14 +265,11 @@ static int execute_exchange_error_test(CMP_SES_TEST_FIXTURE *fixture)
 static int test_exchange_certConf(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
-    fixture->expected = 1;
-    if (!ossl_cmp_ctx_set0_newCert(fixture->cmp_ctx,
-                                   X509_dup(client_cert))) {
+    fixture->expected = 0; /* client should not send certConf immediately */
+    if (!ossl_cmp_ctx_set0_newCert(fixture->cmp_ctx, X509_dup(client_cert))) {
         tear_down(fixture);
         fixture = NULL;
     }
-    fixture->exec_cert_ses_cb = OSSL_CMP_exec_IR_ses;
-    execute_exec_certrequest_ses_test(fixture);
     EXECUTE_TEST(execute_exchange_certConf_test, tear_down);
     return result;
 }
@@ -284,7 +277,7 @@ static int test_exchange_certConf(void)
 static int test_exchange_error(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
-    fixture->expected = 1;
+    fixture->expected = 1; /* client may send error any time */
     EXECUTE_TEST(execute_exchange_error_test, tear_down);
     return result;
 }
