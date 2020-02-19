@@ -213,7 +213,7 @@ char *snprint_PKIStatusInfo_parts(long status, long fail_info,
     ADVANCE_BUFFER;
 
     /* failInfo is optional and may be empty */
-    if (fail_info > 0) {
+    if (fail_info != 0) {
         printed_chars = BIO_snprintf(write_ptr, bufsize, "; PKIFailureInfo: ");
         ADVANCE_BUFFER;
         for (failure = 0; failure <= OSSL_CMP_PKIFAILUREINFO_MAX; failure++) {
@@ -221,7 +221,7 @@ char *snprint_PKIStatusInfo_parts(long status, long fail_info,
                 failure_string = CMP_PKIFAILUREINFO_to_string(failure);
                 if (failure_string != NULL) {
                     printed_chars = BIO_snprintf(write_ptr, bufsize, "%s%s",
-                                                 failure > 0 ? ", " : "",
+                                                 failinfo_found ? ", " : "",
                                                  failure_string);
                     ADVANCE_BUFFER;
                     failinfo_found = 1;
