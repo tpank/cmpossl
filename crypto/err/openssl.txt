@@ -2143,7 +2143,7 @@ CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP:169:\
 	received negative checkafter in pollrep
 CMP_R_RECIPNONCE_UNMATCHED:170:recipnonce unmatched
 CMP_R_REQUEST_NOT_ACCEPTED:171:request not accepted
-CMP_R_REQUEST_REJECTED_BY_CA:172:request rejected by ca
+CMP_R_REQUEST_REJECTED_BY_SERVER:172:request rejected by server
 CMP_R_RP_NOT_RECEIVED:173:rp not received
 CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED:174:\
 	sender generalname type not supported

@@ -107,7 +107,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP    169
 #  define CMP_R_RECIPNONCE_UNMATCHED                       170
 #  define CMP_R_REQUEST_NOT_ACCEPTED                       171
-#  define CMP_R_REQUEST_REJECTED_BY_CA                     172
+#  define CMP_R_REQUEST_REJECTED_BY_SERVER                 172
 #  define CMP_R_RP_NOT_RECEIVED                            173
 #  define CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED      174
 #  define CMP_R_SRVCERT_DOES_NOT_VALIDATE_MSG              162

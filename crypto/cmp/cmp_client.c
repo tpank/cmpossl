@@ -423,7 +423,7 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         /* get all information in case of a rejection before going to error */
     case OSSL_CMP_PKISTATUS_rejection:
         OSSL_CMP_err(ctx, "received \"rejection\" status rather than cert");
-        CMPerr(0, CMP_R_REQUEST_REJECTED_BY_CA);
+        CMPerr(0, CMP_R_REQUEST_REJECTED_BY_SERVER);
         goto err;
     case OSSL_CMP_PKISTATUS_revocationWarning:
         OSSL_CMP_warn(ctx,
@@ -551,7 +551,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         return 0;
     cert = get1_cert_status(ctx, (*resp)->body->type, crep);
     if (cert == NULL) {
-        ERR_add_error_data(1, "cannot extract certificate from response");
+        ERR_add_error_data(1, "; cannot extract certificate from response");
         return 0;
     }
     if (!ossl_cmp_ctx_set0_newCert(ctx, cert))
@@ -755,7 +755,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
          * TODO SSL_CMP_info(ctx,
          *                 "revocation accepted (PKIStatus=revocationWarning)");
          */
-        CMPerr(0, CMP_R_REQUEST_REJECTED_BY_CA);
+        CMPerr(0, CMP_R_REQUEST_REJECTED_BY_SERVER);
         goto err;
     case OSSL_CMP_PKISTATUS_revocationWarning:
         /*
