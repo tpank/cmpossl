@@ -61,13 +61,16 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_ERROR_CREATING_POLLREQ                     124
 #  define CMP_R_ERROR_CREATING_RP                          125
 #  define CMP_R_ERROR_CREATING_RR                          126
+#  define CMP_R_ERROR_DECODING_MESSAGE                     166
 #  define CMP_R_ERROR_PARSING_PKISTATUS                    107
 #  define CMP_R_ERROR_PROCESSING_MESSAGE                   158
 #  define CMP_R_ERROR_PROTECTING_MESSAGE                   127
+#  define CMP_R_ERROR_SENDING_REQUEST                      168
 #  define CMP_R_ERROR_SETTING_CERTHASH                     128
 #  define CMP_R_ERROR_UNEXPECTED_CERTCONF                  160
 #  define CMP_R_ERROR_VALIDATING_PROTECTION                140
 #  define CMP_R_FAILED_EXTRACTING_PUBKEY                   141
+#  define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               171
 #  define CMP_R_FAILURE_OBTAINING_RANDOM                   110
 #  define CMP_R_FAIL_INFO_OUT_OF_RANGE                     129
 #  define CMP_R_INVALID_ARGS                               100

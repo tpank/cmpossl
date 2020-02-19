@@ -2103,13 +2103,16 @@ CMP_R_ERROR_CREATING_POLLREP:123:error creating pollrep
 CMP_R_ERROR_CREATING_POLLREQ:124:error creating pollreq
 CMP_R_ERROR_CREATING_RP:125:error creating rp
 CMP_R_ERROR_CREATING_RR:126:error creating rr
+CMP_R_ERROR_DECODING_MESSAGE:166:error decoding message
 CMP_R_ERROR_PARSING_PKISTATUS:107:error parsing pkistatus
 CMP_R_ERROR_PROCESSING_MESSAGE:158:error processing message
 CMP_R_ERROR_PROTECTING_MESSAGE:127:error protecting message
+CMP_R_ERROR_SENDING_REQUEST:168:error sending request
 CMP_R_ERROR_SETTING_CERTHASH:128:error setting certhash
 CMP_R_ERROR_UNEXPECTED_CERTCONF:160:error unexpected certconf
 CMP_R_ERROR_VALIDATING_PROTECTION:140:error validating protection
 CMP_R_FAILED_EXTRACTING_PUBKEY:141:failed extracting pubkey
+CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE:171:failed to receive pkimessage
 CMP_R_FAILURE_OBTAINING_RANDOM:110:failure obtaining random
 CMP_R_FAIL_INFO_OUT_OF_RANGE:129:fail info out of range
 CMP_R_INVALID_ARGS:100:invalid args
@@ -2593,12 +2596,12 @@ HTTP_R_MAX_RESP_LEN_EXCEEDED:117:max resp len exceeded
 HTTP_R_MISSING_ASN1_ENCODING:110:missing asn1 encoding
 HTTP_R_MISSING_CONTENT_TYPE:121:missing content type
 HTTP_R_MISSING_REDIRECT_LOCATION:111:missing redirect location
+HTTP_R_RECEIVED_ERROR:105:received error
+HTTP_R_RECEIVED_WRONG_HTTP_VERSION:106:received wrong http version
 HTTP_R_REDIRECTION_FROM_HTTPS_TO_HTTP:112:redirection from https to http
 HTTP_R_REDIRECTION_NOT_ENABLED:116:redirection not enabled
 HTTP_R_RESPONSE_LINE_TOO_LONG:113:response line too long
-HTTP_R_SERVER_RESPONSE_PARSE_ERROR:104:server response parse error
-HTTP_R_SERVER_SENT_ERROR:105:server sent error
-HTTP_R_SERVER_SENT_WRONG_HTTP_VERSION:106:server sent wrong http version
+HTTP_R_RESPONSE_PARSE_ERROR:104:response parse error
 HTTP_R_STATUS_CODE_UNSUPPORTED:114:status code unsupported
 HTTP_R_TLS_NOT_ENABLED:107:tls not enabled
 HTTP_R_TOO_MANY_REDIRECTIONS:115:too many redirections
