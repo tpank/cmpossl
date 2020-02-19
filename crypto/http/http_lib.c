@@ -15,6 +15,8 @@
 
 #include "http_local.h"
 
+#include "http_local.h"
+
 /*
  * Parse a URL and split it up into host, port and path components and
  * whether it indicates SSL/TLS. Return 1 on success, 0 on error.
