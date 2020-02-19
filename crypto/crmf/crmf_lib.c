@@ -303,7 +303,7 @@ static int crmf_asn1_get_int(const ASN1_INTEGER *a)
     return (int)res;
 }
 
-int OSSL_CRMF_MSG_get_certReqId(OSSL_CRMF_MSG *crm)
+int OSSL_CRMF_MSG_get_certReqId(const OSSL_CRMF_MSG *crm)
 {
     if (crm == NULL || /* not really needed: */ crm->certReq == NULL) {
         CRMFerr(CRMF_F_OSSL_CRMF_MSG_GET_CERTREQID, CRMF_R_NULL_ARGUMENT);
@@ -546,13 +546,15 @@ int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
 }
 
 /* retrieves the serialNumber of the given cert template or NULL on error */
-ASN1_INTEGER *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(OSSL_CRMF_CERTTEMPLATE *tmpl)
+ASN1_INTEGER
+*OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(const OSSL_CRMF_CERTTEMPLATE *tmpl)
 {
     return tmpl != NULL ? tmpl->serialNumber : NULL;
 }
 
 /* retrieves the issuer name of the given cert template or NULL on error */
-X509_NAME *OSSL_CRMF_CERTTEMPLATE_get0_issuer(OSSL_CRMF_CERTTEMPLATE *tmpl)
+X509_NAME
+*OSSL_CRMF_CERTTEMPLATE_get0_issuer(const OSSL_CRMF_CERTTEMPLATE *tmpl)
 {
     return tmpl != NULL ? tmpl->issuer : NULL;
 }
@@ -606,7 +608,7 @@ int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
  * returns a pointer to the decrypted certificate
  * returns NULL on error or if no certificate available
  */
-X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(OSSL_CRMF_ENCRYPTEDVALUE *ecert,
+X509 *OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(const OSSL_CRMF_ENCRYPTEDVALUE *ecert,
                                             EVP_PKEY *pkey)
 {
     X509 *cert = NULL; /* decrypted certificate */

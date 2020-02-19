@@ -45,12 +45,12 @@ static int execute_PKISI_test(CMP_STATUS_TEST_FIXTURE *fixture)
     ASN1_UTF8STRING *statusString = NULL;
     int res = 0, i;
 
-    if (!TEST_ptr(si = ossl_cmp_statusinfo_new(fixture->pkistatus,
+    if (!TEST_ptr(si = OSSL_CMP_STATUSINFO_new(fixture->pkistatus,
                                                fixture->pkifailure,
                                                fixture->text)))
         goto end;
 
-    status = ossl_cmp_pkisi_get_pkistatus(si);
+    status = ossl_cmp_pkisi_get_status(si);
     if (!TEST_int_eq(fixture->pkistatus, status)
             || !TEST_str_eq(fixture->str, ossl_cmp_PKIStatus_to_string(status)))
         goto end;
@@ -99,8 +99,8 @@ int setup_tests(void)
 {
     /*-
      * this tests all of:
-     * ossl_cmp_statusinfo_new()
-     * ossl_cmp_pkisi_get_pkistatus()
+     * OSSL_CMP_STATUSINFO_new()
+     * ossl_cmp_pkisi_get_status()
      * ossl_cmp_PKIStatus_to_string()
      * ossl_cmp_pkisi_get0_statusstring()
      * ossl_cmp_pkisi_get_pkifailureinfo()
