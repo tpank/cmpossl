@@ -1,7 +1,7 @@
 [default]
 batch = 1
 #proxy = 194.145.60.1:9400
-totaltimeout = 8 # prevent, e.g., infinite polling due to error
+totaltimeout = 10 # prevent, e.g., infinite polling due to error
 trusted = root.crt
 newkey = test.ECC256p.pem
 newkeypass = 

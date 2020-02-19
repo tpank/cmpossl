@@ -18,7 +18,7 @@ TODO,TODO,wrong syntax in recipient name: double '/', -section,, -recipient,/CN=
 1,1,wrong syntax in recipient name: trailing double '/', -section,, -recipient,_CA_DN//,BLANK,,BLANK,, -trusted,root.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
 TODO,TODO,wrong syntax in recipient name: missing '=', -section,, -recipient,/CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL/CDE,BLANK,,BLANK,, -trusted,root.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
 1,TODO,wrong syntax in recipient name: double '=' sign, -section,, -recipient,/CN=ECC Issuing CA v10/OU=For test purpose only/O=CMPforOpenSSL/C==DE,BLANK,,BLANK,, -trusted,root.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
-0,-,recipient name empty attributes, -section,, -recipient,/CN=/OU=/O=/C=,BLANK,,BLANK,, -trusted,root.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
+1,1,recipient name empty attributes, -section,, -recipient,/CN=/OU=/O=/C=,BLANK,,BLANK,, -trusted,root.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,
 0,0,config default with expected sender, -section,, -recipient,_CA_DN, -expect_sender,_SERVER_DN,BLANK,, -trusted,root.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
 TODO, -,expected sender lower case, -section,, -recipient,_CA_DN, -expect_sender,/CN=ecc issuing ca v10/OU=for test purpose only/O=cmpforopenssl/C=de,BLANK,, -trusted,root.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
