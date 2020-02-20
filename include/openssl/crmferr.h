@@ -62,10 +62,10 @@ int ERR_load_CRMF_strings(void);
 #  define CRMF_R_ITERATIONCOUNT_BELOW_100                  108
 #  define CRMF_R_MALFORMED_IV                              101
 #  define CRMF_R_NULL_ARGUMENT                             109
-#  define CRMF_R_POPO_INCONSISTENT_PUBLIC_KEY              118
-#  define CRMF_R_POPO_MISSING_PUBLIC_KEY                   119
-#  define CRMF_R_POPO_MISSING_SUBJECT                      120
-#  define CRMF_R_POPO_RAVERIFIED_NOT_ACCEPTED              117
+#  define CRMF_R_POPO_INCONSISTENT_PUBLIC_KEY              117
+#  define CRMF_R_POPO_MISSING_PUBLIC_KEY                   118
+#  define CRMF_R_POPO_MISSING_SUBJECT                      119
+#  define CRMF_R_POPO_RAVERIFIED_NOT_ACCEPTED              120
 #  define CRMF_R_SETTING_MAC_ALGOR_FAILURE                 110
 #  define CRMF_R_SETTING_OWF_ALGOR_FAILURE                 111
 #  define CRMF_R_UNSUPPORTED_ALGORITHM                     112

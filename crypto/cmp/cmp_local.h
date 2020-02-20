@@ -38,8 +38,8 @@ struct ossl_cmp_ctx_st {
     char *serverPath;
     char *serverName;
     int serverPort;
-    char *proxy;
-    char *no_proxy;
+    char *proxyName;
+    int proxyPort;
     int msgtimeout; /* max seconds to wait for each CMP message round trip */
     int totaltimeout; /* maximum number seconds an enrollment may take, incl. */
     /* attempts polling for a response if a 'waiting' PKIStatus is received */

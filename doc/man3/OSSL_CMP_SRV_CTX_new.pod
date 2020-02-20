@@ -88,7 +88,7 @@ It does the typical generic checks on the given request message, calls
 the respective callback function (if present) for more specific processing,
 and then assembles a result message, which may be a CMP error message.
 
-OSSL_CMP_CTX_server_perform() is an interface to 
+OSSL_CMP_CTX_server_perform() is an interface to
 B<OSSL_CMP_SRV_process_request()> that can be used by a CMP client
 in the same way as B<OSSL_CMP_MSG_http_perform()>.
 The B<OSSL_CMP_SRV_CTX> must be set as B<transfer_cb_arg> of B<client_ctx>.
