@@ -549,11 +549,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
 
     if (!save_statusInfo(ctx, crep->status))
         return 0;
-    cert = get1_cert_status(ctx, (*resp)->body->type, crep);
-    if (cert == NULL) {
-        ERR_add_error_data(1, "; cannot extract certificate from response");
+    if ((cert = get1_cert_status(ctx, (*resp)->body->type, crep)) == NULL)
         return 0;
-    }
     if (!ossl_cmp_ctx_set0_newCert(ctx, cert))
         return 0;
 
@@ -707,7 +704,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     const int rsid = OSSL_CMP_REVREQSID;
     OSSL_CMP_REVREPCONTENT *rrep = NULL;
     OSSL_CMP_PKISI *si = NULL;
-    char *buf = NULL;
+    char buf[OSSL_CMP_PKISI_BUFLEN];
     X509 *result = NULL;
 
     if (ctx == NULL) {
@@ -815,14 +812,9 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     }
 
  err:
-    /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
-    if (result == NULL) {
-        if ((buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL
-                && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf,
-                                                  OSSL_CMP_PKISI_BUFLEN) != NULL)
+    if (result == NULL
+            && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf, sizeof(buf)) != NULL)
             ERR_add_error_data(1, buf);
-        OPENSSL_free(buf);
-    }
 
  end:
     OSSL_CMP_MSG_free(rr);

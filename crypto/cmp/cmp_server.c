@@ -207,9 +207,10 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
 
     if (!ossl_cmp_verify_popo(req, srv_ctx->acceptRAVerified)) {
         /* Proof of possession could not be verified */
-        if ((si = OSSL_CMP_STATUSINFO_new(OSSL_CMP_PKISTATUS_rejection,
-                                          1 << OSSL_CMP_PKIFAILUREINFO_badPOP,
-                                          NULL)) == NULL)
+        si = OSSL_CMP_STATUSINFO_new(OSSL_CMP_PKISTATUS_rejection,
+                                     1 << OSSL_CMP_PKIFAILUREINFO_badPOP,
+                                     ERR_reason_error_string(ERR_peek_error()));
+        if (si == NULL)
             return NULL;
     } else {
         si = srv_ctx->process_cert_request(srv_ctx, req, certReqId, crm, p10cr,
