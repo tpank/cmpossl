@@ -3079,6 +3079,8 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
  */
 static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 {
+    if (opt_subject == NULL && opt_oldcert == NULL && opt_cert == NULL)
+        CMP_warn("no -subject given, neither -oldcert nor -cert available as default");
     if (!set_name(opt_subject, OSSL_CMP_CTX_set1_subjectName, ctx, "subject")
             || !set_name(opt_issuer, OSSL_CMP_CTX_set1_issuer, ctx, "issuer"))
         goto err;
