@@ -548,6 +548,11 @@ int setup_tests(void)
     ts.tm_year += 10;              /* February 18th 2028 */
     test_time_after_expiration = mktime(&ts);
 
+    if (!test_skip_common_options()) {
+        TEST_error("Error parsing test options\n");
+        return 0;
+    }
+
     RAND_bytes(rand_data, OSSL_CMP_TRANSACTIONID_LENGTH);
     if (!TEST_ptr(server_f = test_get_argument(0))
             || !TEST_ptr(client_f = test_get_argument(1))
