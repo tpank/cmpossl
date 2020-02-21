@@ -11,6 +11,7 @@
 #ifndef OSSL_APPS_CMP_MOCK_SRV_H
 # define OSSL_APPS_CMP_MOCK_SRV_H
 
+# include <openssl/opensslconf.h>
 # ifndef OPENSSL_NO_CMP
 
 #  include <openssl/cmp.h>

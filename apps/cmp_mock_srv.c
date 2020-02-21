@@ -8,12 +8,14 @@
  * https://www.openssl.org/source/license.html
  */
 
-#ifndef OPENSSL_NO_CMP
+#include "cmp_mock_srv.h"
+# ifdef OPENSSL_NO_CMP
+NON_EMPTY_TRANSLATION_UNIT
+#else
 
 # include <openssl/cmp.h>
 # include <openssl/err.h>
 # include <openssl/cmperr.h>
-# include "cmp_mock_srv.h"
 
 /* the context for the CMP mock server */
 typedef struct
