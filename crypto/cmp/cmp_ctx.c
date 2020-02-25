@@ -1429,6 +1429,8 @@ static int CMP_log_fd(const char *component, const char *file, int lineno,
         file = "(no file)";
     if (msg == NULL)
         msg = "(no message)";
+    if (lineno < 0)
+        lineno = 0;
 
 #ifndef NDEBUG
     len  = snprintf(loc+len , sizeof(loc)-len, "%s():", component);
