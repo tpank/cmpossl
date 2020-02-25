@@ -505,7 +505,7 @@ const OPTIONS cmp_options[] = {
 
     OPT_SECTION("TLS connection"),
     {"tls_used", OPT_TLS_USED, '-',
-     "Force using TLS (also when other TLS options are not set)"},
+     "Enable using TLS (also when other TLS options are not set)"},
     {"tls_cert", OPT_TLS_CERT, 's',
      "Client's TLS certificate. May include chain to be provided to TLS server"},
     {"tls_key", OPT_TLS_KEY, 's',
@@ -3294,11 +3294,13 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     if (!setup_verification_ctx(ctx, &all_crls))
         goto err;
 
-    if (opt_tls_trusted != NULL || opt_tls_host != NULL)
-        opt_tls_used = 1;
-    if (opt_tls_cert != NULL || opt_tls_key != NULL
-            || opt_tls_keypass != NULL) {
-        opt_tls_used = 1;
+    if ((opt_tls_cert != NULL || opt_tls_key != NULL
+         || opt_tls_keypass != NULL || opt_tls_extra != NULL
+         || opt_tls_trusted != NULL || opt_tls_host != NULL)
+            && !opt_tls_used)
+        CMP_warn("TLS options(s) given but not -tls_used");
+    if ((opt_tls_cert != NULL || opt_tls_key != NULL
+         || opt_tls_keypass != NULL) && opt_tls_used) {
         if (opt_tls_key == NULL) {
             CMP_err("missing -tls_key option");
             goto err;

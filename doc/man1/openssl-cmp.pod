@@ -733,7 +733,7 @@ C<-key engine:pkcs11:object=my-private-key;type=private;pin-value=1234>
 
 =item B<-tls_used>
 
-Force using TLS (even when other TLS_related options are not set)
+Enable using TLS (even when other TLS_related options are not set)
 when connecting to CMP server.
 
 =item B<-tls_cert> I<filename>
