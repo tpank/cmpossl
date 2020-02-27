@@ -152,7 +152,7 @@ sub load_tests {
 	open(my $data, '<', $file) || die "Cannot load $file\n";
 	LOOP: while (my $line = <$data>) {
 		chomp $line;
-		next LOOP if $line =~ m/TLS/i; # skip tests requiring TLS
+		# next LOOP if ($line =~ m/tls_/i); # skip tests requiring TLS
 		$line =~ s{\r\n}{\n}g; # adjust line endings
 		$line =~ s{_CA_DN}{$ca_dn}g;
 		$line =~ s{_SERVER_DN}{$server_dn}g;
