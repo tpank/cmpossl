@@ -1437,21 +1437,21 @@ static int CMP_log_fd(const char *component, const char *file, int lineno,
     len += snprintf(loc+len , sizeof(loc)-len, "%s:", file);
     len += snprintf(loc+len , sizeof(loc)-len, "%d:", lineno);
 #else
-    if (level == OSSL_LOG_DEBUG)
+    if (level == OSSL_CMP_LOG_DEBUG)
         return 1;
     len += snprintf(loc+len , sizeof(loc)-len, "CMP");
 #endif
 
     switch(level) {
-    case OSSL_LOG_EMERG  : lvl = "EMERGENCY"; break;
-    case OSSL_LOG_ALERT  : lvl = "ALERT"; break;
-    case OSSL_LOG_CRIT   : lvl = "CRITICAL" ; break;
-    case OSSL_LOG_ERR    : lvl = "ERROR"; break;
-    case OSSL_LOG_WARNING: lvl = "WARNING" ; break;
-    case OSSL_LOG_NOTICE : lvl = "NOTICE" ; break;
-    case OSSL_LOG_INFO   : lvl = "INFO" ; break;
+    case OSSL_CMP_LOG_EMERG  : lvl = "EMERGENCY"; break;
+    case OSSL_CMP_LOG_ALERT  : lvl = "ALERT"; break;
+    case OSSL_CMP_LOG_CRIT   : lvl = "CRITICAL" ; break;
+    case OSSL_CMP_LOG_ERR    : lvl = "ERROR"; break;
+    case OSSL_CMP_LOG_WARNING: lvl = "WARNING" ; break;
+    case OSSL_CMP_LOG_NOTICE : lvl = "NOTICE" ; break;
+    case OSSL_CMP_LOG_INFO   : lvl = "INFO" ; break;
 #ifndef NDEBUG
-    case OSSL_LOG_DEBUG  : lvl = "DEBUG"; break;
+    case OSSL_CMP_LOG_DEBUG  : lvl = "DEBUG"; break;
 #endif
     default: break;
     }
@@ -1470,7 +1470,7 @@ int OSSL_CMP_puts(const char *component, const char *file, int lineno,
                   OSSL_CMP_severity level, const char *msg)
 {
 #ifndef OPENSSL_NO_STDIO
-    FILE *fd = level <= OSSL_LOG_WARNING ? stderr : stdout;
+    FILE *fd = level <= OSSL_CMP_LOG_WARNING ? stderr : stdout;
     return CMP_log_fd(component, file, lineno, level, msg, fd);
 #endif
 }
@@ -1517,7 +1517,7 @@ void OSSL_CMP_CTX_print_errors(OSSL_CMP_CTX *ctx)
                      ERR_func_error_string(err));
         BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
                      data == NULL ? "" : " : ", data == NULL ? "" : data);
-        if (log_fn(component, file, line, OSSL_LOG_ERR, msg) <= 0)
+        if (log_fn(component, file, line, OSSL_CMP_LOG_ERR, msg) <= 0)
             break;              /* abort outputting the error report */
     }
 }
