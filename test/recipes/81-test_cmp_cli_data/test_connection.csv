@@ -67,7 +67,7 @@ BIG TBD Key file doesnt match,TBD Key file doesnt match,tls big .pem filebig con
 1,-,tls keypass prefix wrong, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,passo:12345,BLANK,,BLANK,
 1,-,tls keypass empty password, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:,BLANK,,BLANK,
 1,-,tls keypass missing argument, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,,BLANK,,BLANK,
-0,-,tls keyopass no prefix, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,12345,BLANK,,BLANK,
+0,-,tls keypass no prefix, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,12345,BLANK,,BLANK,
 1,-,tls no keypass, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_cert,EJBCACMPSignerTLS.p12,BLANK,,BLANK,,BLANK,
 1,-,tls no cert, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345,BLANK,,BLANK,
 1,-,tls no key, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12,BLANK,, -tls_keypass,pass:12345,BLANK,,BLANK,
@@ -75,7 +75,7 @@ BIG TBD Key file doesnt match,TBD Key file doesnt match,tls big .pem filebig con
 1,-,random file as tls_key, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,random.txt, -tls_keypass,pass:12345,BLANK,,BLANK,
 1,-,random file as keypass, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,random.txt,BLANK,,BLANK,
 1,-,expired tls_cert, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS_expired.p12, -tls_key,EJBCACMPSignerTLS_expired.p12, -tls_keypass,pass:12345,BLANK,,BLANK,
-0,-,tls keyopass from file, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,file:12345.txt,BLANK,,BLANK,
+-,-,tls keypass from file, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,file:12345.txt,BLANK,,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
 0,-,tls host, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt, -tls_host,ip-172-16-0-203.ec2.internal
 0,-,tls_trusted without tls_host, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,

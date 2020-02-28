@@ -75,12 +75,8 @@ sleep = 0
 [connection]
 msgtimeout = 15
 totaltimeout =
-tls_used =
-tls_cert =
-tls_key =
-tls_keypass =
-tls_trusted =
-tls_host =
+tls_used = 0
+tls_host = "Product PKI Playground TLS Client" # temporary hack instead of 'localhost'
 
 [credentials]
 ref =
