@@ -703,7 +703,7 @@ static varref cmp_vars[] = { /* must be in same order as enumerated above! */
 
 # ifndef NDEBUG
 #  define FUNC (strcmp(OPENSSL_FUNC, "(unknown function)") == 0 \
-                ? "" : "OPENSSL_FUNC")
+                ? "CMP" : "OPENSSL_FUNC")
 #  define PRINT_LOCATION(bio) BIO_printf(bio, "%s:%s:%d:", \
                                          FUNC, OPENSSL_FILE, OPENSSL_LINE)
 # else
@@ -2181,11 +2181,11 @@ static int add_crls_store(X509_STORE *st, STACK_OF(X509_CRL) *crls)
 
 static int set1_store_parameters_crls(X509_STORE *ts, STACK_OF(X509_CRL) *crls)
 {
-    if (ts == NULL || vpm == NULL)
+    if (ts == NULL)
         return 0;
 
     /* copy vpm to store */
-    if (!X509_STORE_set1_param(ts, vpm)) {
+    if (!X509_STORE_set1_param(ts, vpm /* may be NULL */)) {
         BIO_printf(bio_err, "error setting verification parameters\n");
         OSSL_CMP_CTX_print_errors(cmp_ctx);
         return 0;
@@ -2732,7 +2732,11 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx,
                 && (ts = load_certstore(opt_trusted, "trusted certificates"))
             == NULL)
             goto err;
-        if (!set1_store_parameters_crls(ts, *all_crls)
+        if (!set1_store_parameters_crls(ts, *all_crls) /* also copies vpm */
+                /*
+                 * clear any expected host/ip/email address;
+                 * opt_expect_sender is used instead
+                 */
                 || !truststore_set_host_etc(ts, NULL_host)
                 || !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
@@ -2824,8 +2828,8 @@ static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e,
     }
 
     if (opt_tls_cert != NULL && opt_tls_key != NULL) {
-        X509 *cert = NULL;
-        STACK_OF(X509) *certs = NULL;
+        X509 *cert;
+        STACK_OF(X509) *certs;
 
         if (!load_certs_autofmt(opt_tls_cert, &certs, opt_ownform, 1,
                                 opt_tls_keypass,
@@ -3309,6 +3313,17 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         }
     }
 
+    if (opt_msgtimeout >= 0) /* must do this before setup_ssl_ctx() */
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_MSGTIMEOUT,
+                                      opt_msgtimeout);
+    if (opt_totaltimeout >= 0)
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_TOTALTIMEOUT,
+                                      opt_totaltimeout);
+
+    if (opt_reqin != NULL || opt_reqout != NULL
+            || opt_rspin != NULL || opt_rspout != NULL || opt_use_mock_srv)
+        (void)OSSL_CMP_CTX_set_transfer_cb(ctx, read_write_req_resp);
+
     if (opt_tls_used) {
         APP_HTTP_TLS_INFO *info = OPENSSL_zalloc(sizeof(*info));
 
@@ -3402,17 +3417,6 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             goto err;
         }
     }
-
-    if (opt_msgtimeout >= 0)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_MSGTIMEOUT,
-                                      opt_msgtimeout);
-    if (opt_totaltimeout >= 0)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_TOTALTIMEOUT,
-                                      opt_totaltimeout);
-
-    if (opt_reqin != NULL || opt_reqout != NULL
-            || opt_rspin != NULL || opt_rspout != NULL || opt_use_mock_srv)
-        (void)OSSL_CMP_CTX_set_transfer_cb(ctx, read_write_req_resp);
 
     ret = 1;
 
