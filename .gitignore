@@ -13,6 +13,7 @@
 /tmp.*
 /configdata.pm
 /include_cmp
+test/recipes/81-test_cmp_cli_data/SimpleLra
 
 # *all* Makefiles
 Makefile
