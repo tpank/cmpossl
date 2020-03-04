@@ -788,11 +788,11 @@ int ossl_cmp_ctx_set1_recipNonce(OSSL_CMP_CTX *ctx,
                                  const ASN1_OCTET_STRING *nonce);
 
 /* from cmp_status.c */
-int ossl_cmp_pkisi_get_status(const OSSL_CMP_PKISI *statusInfo);
+int ossl_cmp_pkisi_get_status(const OSSL_CMP_PKISI *si);
 const char *ossl_cmp_PKIStatus_to_string(int status);
-OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusstring(const OSSL_CMP_PKISI *si);
+OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusString(const OSSL_CMP_PKISI *si);
 int ossl_cmp_pkisi_get_pkifailureinfo(const OSSL_CMP_PKISI *si);
-int ossl_cmp_pkisi_pkifailureinfo_check(const OSSL_CMP_PKISI *si, int bit_index);
+int ossl_cmp_pkisi_check_pkifailureinfo(const OSSL_CMP_PKISI *si, int index);
 
 /* from cmp_hdr.c */
 int ossl_cmp_hdr_set_pvno(OSSL_CMP_PKIHEADER *hdr, int pvno);

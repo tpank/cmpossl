@@ -314,16 +314,16 @@ static OSSL_CMP_MSG *process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
 static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
                                    const OSSL_CMP_MSG *req)
 {
-    OSSL_CMP_ERRORMSGCONTENT *errorContent = req->body->value.error;
-    OSSL_CMP_MSG *msg = ossl_cmp_pkiconf_new(srv_ctx->ctx);
+    OSSL_CMP_ERRORMSGCONTENT *errorContent;
+    OSSL_CMP_MSG *msg;
 
     if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL))
         return NULL;
-
+    errorContent = req->body->value.error;
     srv_ctx->process_error(srv_ctx, req, errorContent->pKIStatusInfo,
                            errorContent->errorCode, errorContent->errorDetails);
 
-    if (msg == NULL)
+    if ((msg = ossl_cmp_pkiconf_new(srv_ctx->ctx)) == NULL)
         CMPerr(0, CMP_R_ERROR_CREATING_PKICONF);
     return msg;
 }

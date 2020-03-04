@@ -35,10 +35,6 @@ int ossl_cmp_pkisi_get_status(const OSSL_CMP_PKISI *si)
     return ossl_cmp_asn1_get_int(si->status);
 }
 
-/*
- * return the declared identifier and a short explanation for the PKIStatus
- * value as specified in RFC4210, Appendix F.
- */
 const char *ossl_cmp_PKIStatus_to_string(int status)
 {
     switch (status) {
@@ -67,21 +63,13 @@ const char *ossl_cmp_PKIStatus_to_string(int status)
     }
 }
 
-/*
- * returns a pointer to the statusString contained in a PKIStatusInfo
- * returns NULL on error
- */
-OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusstring(const OSSL_CMP_PKISI *si)
+OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusString(const OSSL_CMP_PKISI *si)
 {
     if (!ossl_assert(si != NULL))
         return NULL;
     return si->statusString;
 }
 
-/*
- * returns the FailureInfo bits of the given PKIStatusInfo
- * returns -1 on error
- */
 int ossl_cmp_pkisi_get_pkifailureinfo(const OSSL_CMP_PKISI *si)
 {
     int i;
@@ -95,12 +83,9 @@ int ossl_cmp_pkisi_get_pkifailureinfo(const OSSL_CMP_PKISI *si)
     return res;
 }
 
-/*
- * internal function
+/*-
  * convert PKIFailureInfo number to human-readable string
- *
- * returns pointer to static string
- * returns NULL on error
+ * returns pointer to static string, or NULL on error
  */
 static const char *CMP_PKIFAILUREINFO_to_string(int number)
 {
@@ -164,11 +149,7 @@ static const char *CMP_PKIFAILUREINFO_to_string(int number)
     }
 }
 
-/*
- * checks PKIFailureInfo bits in a given PKIStatusInfo
- * returns 1 if a given bit is set, 0 if not, -1 on error
- */
-int ossl_cmp_pkisi_pkifailureinfo_check(const OSSL_CMP_PKISI *si, int bit_index)
+int ossl_cmp_pkisi_check_pkifailureinfo(const OSSL_CMP_PKISI *si, int bit_index)
 {
     if (!ossl_assert(si != NULL && si->failInfo != NULL))
         return -1;
@@ -180,7 +161,7 @@ int ossl_cmp_pkisi_pkifailureinfo_check(const OSSL_CMP_PKISI *si, int bit_index)
     return ASN1_BIT_STRING_get_bit(si->failInfo, bit_index);
 }
 
-/*
+/*-
  * place human-readable error string created from PKIStatusInfo in given buffer
  * returns pointer to the same buffer containing the string, or NULL on error
  */
@@ -253,10 +234,6 @@ char *snprint_PKIStatusInfo_parts(long status, long fail_info,
     return buf;
 }
 
-/*
- * place human-readable error string created from PKIStatusInfo in given buffer
- * returns pointer to the same buffer containing the string, or NULL on error
- */
 char *OSSL_CMP_snprint_PKIStatusInfo(const OSSL_CMP_PKISI *statusInfo,
                                      char *buf, size_t bufsize)
 {
@@ -274,11 +251,6 @@ char *OSSL_CMP_snprint_PKIStatusInfo(const OSSL_CMP_PKISI *statusInfo,
                                        statusInfo->statusString, buf, bufsize);
 }
 
-/*
- * place human-readable error string created from a PKIStatusInfo fetched from
- * ctx in given buffer
- * returns pointer to the same buffer containing the string, or NULL on error
- */
 char *OSSL_CMP_CTX_snprint_PKIStatus(const OSSL_CMP_CTX *ctx, char *buf,
                                      size_t bufsize)
 {
@@ -293,7 +265,7 @@ char *OSSL_CMP_CTX_snprint_PKIStatus(const OSSL_CMP_CTX *ctx, char *buf,
                                        buf, bufsize);
 }
 
-/*
+/*-
  * Creates a new PKIStatusInfo structure and fills it in
  * returns a pointer to the structure on success, NULL on error
  * note: strongly overlaps with TS_RESP_CTX_set_status_info()
