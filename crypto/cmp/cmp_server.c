@@ -164,7 +164,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     int bodytype;
     int certReqId;
 
-    if (!ossl_assert(srv_ctx != NULL && req != NULL))
+    if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL))
         return NULL;
 
     switch (ossl_cmp_msg_get_bodytype(req)) {
@@ -253,7 +253,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
     ASN1_INTEGER *serial;
     OSSL_CMP_PKISI *si;
 
-    if (!ossl_assert(srv_ctx != NULL && req != NULL))
+    if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL))
         return NULL;
 
     /*
@@ -274,6 +274,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
     tmpl = details->certDetails;
     issuer = OSSL_CRMF_CERTTEMPLATE_get0_issuer(tmpl);
     serial = OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(tmpl);
+    /* here issuer and serial may safely be NULL */
     if ((certId = OSSL_CRMF_CERTID_gen(issuer, serial)) == NULL)
         return NULL;
     if ((si = srv_ctx->process_rr(srv_ctx, req, issuer, serial)) == NULL)
@@ -316,6 +317,9 @@ static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
     OSSL_CMP_ERRORMSGCONTENT *errorContent = req->body->value.error;
     OSSL_CMP_MSG *msg = ossl_cmp_pkiconf_new(srv_ctx->ctx);
 
+    if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL))
+        return NULL;
+
     srv_ctx->process_error(srv_ctx, req, errorContent->pKIStatusInfo,
                            errorContent->errorCode, errorContent->errorDetails);
 
@@ -327,11 +331,18 @@ static OSSL_CMP_MSG *process_error(OSSL_CMP_SRV_CTX *srv_ctx,
 static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
                                       const OSSL_CMP_MSG *req)
 {
-    OSSL_CMP_CTX *ctx = srv_ctx->ctx;
-    OSSL_CMP_CERTCONFIRMCONTENT *ccc = req->body->value.certConf;
-    int num = sk_OSSL_CMP_CERTSTATUS_num(ccc);
+    OSSL_CMP_CTX *ctx;
+    OSSL_CMP_CERTCONFIRMCONTENT *ccc;
+    int num;
     OSSL_CMP_MSG *msg = NULL;
     OSSL_CMP_CERTSTATUS *status = NULL;
+
+    if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL))
+        return NULL;
+
+    ctx = srv_ctx->ctx;
+    ccc = req->body->value.certConf;
+    num = sk_OSSL_CMP_CERTSTATUS_num(ccc);
 
     if (OSSL_CMP_CTX_get_option(ctx, OSSL_CMP_OPT_IMPLICITCONFIRM) == 1) {
         CMPerr(0, CMP_R_ERROR_UNEXPECTED_CERTCONF);
@@ -351,9 +362,8 @@ static OSSL_CMP_MSG *process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         ASN1_OCTET_STRING *certHash = status->certHash;
         OSSL_CMP_PKISI *si = status->statusInfo;
 
-        if (!srv_ctx->process_certConf(srv_ctx, req, certReqId, certHash))
+        if (!srv_ctx->process_certConf(srv_ctx, req, certReqId, certHash, si))
             return NULL; /* reason code may be: CMP_R_CERTHASH_UNMATCHED */
-
 
         if (si != NULL && ossl_cmp_pkisi_get_status(si)
             != OSSL_CMP_PKISTATUS_accepted) {
@@ -381,7 +391,7 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
     int64_t check_after = 0;
     OSSL_CMP_MSG *msg = NULL;
 
-    if (!ossl_assert(srv_ctx != NULL))
+    if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL))
         return NULL;
 
     prc = req->body->value.pollReq;

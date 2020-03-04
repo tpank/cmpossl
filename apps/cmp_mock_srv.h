@@ -30,5 +30,5 @@ int ossl_cmp_mock_srv_set_send_error(OSSL_CMP_SRV_CTX *srv_ctx, int val);
 int ossl_cmp_mock_srv_set_pollCount(OSSL_CMP_SRV_CTX *srv_ctx, int count);
 int ossl_cmp_mock_srv_set_checkAfterTime(OSSL_CMP_SRV_CTX *srv_ctx, int sec);
 
-# endif /* !defined OPENSSL_NO_CMP */
-#endif /* ! OSSL_APPS_CMP_MOCK_SRV_H */
+# endif /* !defined(OPENSSL_NO_CMP) */
+#endif /* !defined(OSSL_APPS_CMP_MOCK_SRV_H) */

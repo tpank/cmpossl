@@ -912,4 +912,4 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                                 ossl_cmp_allow_unprotected_cb_t cb, int cb_arg);
 int ossl_cmp_verify_popo(const OSSL_CMP_MSG *msg, int accept_RAVerified);
 
-#endif /* !defined OSSL_CRYPTO_CMP_LOCAL_H */
+#endif /* !defined(OSSL_CRYPTO_CMP_LOCAL_H) */

@@ -26,7 +26,7 @@ OpenSSL.
 OSSL_CMP_STATUSINFO_new() creates a new PKIStatusInfo structure and fills it
 with the given values. It sets the status field to B<status>.
 If B<text> is not NULL, it is copied to statusString.
-B<fail_info> is is interpreted as bit pattern for the failInfo field.
+B<fail_info> is interpreted as bit pattern for the failInfo field.
 
 OSSL_CMP_CTX_snprint_PKIStatus() takes the PKIStatusInfo components contained
 in the given CMP context and places a human-readable string created from them

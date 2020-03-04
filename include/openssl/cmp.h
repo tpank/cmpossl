@@ -388,7 +388,8 @@ typedef void (*OSSL_CMP_SRV_error_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
 typedef int (*OSSL_CMP_SRV_certConf_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                           const OSSL_CMP_MSG *req,
                                           int certReqId,
-                                          const ASN1_OCTET_STRING *certHash);
+                                          const ASN1_OCTET_STRING *certHash,
+                                          OSSL_CMP_PKISI *si);
 typedef int (*OSSL_CMP_SRV_pollReq_cb_t)(OSSL_CMP_SRV_CTX *srv_ctx,
                                          const OSSL_CMP_MSG *req, int certReqId,
                                          OSSL_CMP_MSG **certReq,
@@ -412,5 +413,5 @@ int OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(OSSL_CMP_SRV_CTX *srv_ctx,
 #  ifdef  __cplusplus
 }
 #  endif
-# endif /* !defined OPENSSL_NO_CMP */
-#endif /* !defined OPENSSL_CMP_H */
+# endif /* !defined(OPENSSL_NO_CMP) */
+#endif /* !defined(OPENSSL_CMP_H) */

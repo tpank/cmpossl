@@ -138,5 +138,5 @@ X509
 #  ifdef __cplusplus
 }
 #  endif
-# endif /* !defined OPENSSL_NO_CRMF */
-#endif /* !defined OPENSSL_CRMF_H */
+# endif /* !defined(OPENSSL_NO_CRMF) */
+#endif /* !defined(OPENSSL_CRMF_H) */
