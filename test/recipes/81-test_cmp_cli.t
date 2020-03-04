@@ -87,7 +87,7 @@ sub load_config {
     $server_dn = $server_dn // $ca_dn;
 }
 
-my @ca_configurations = (); # ("EJBCA", "Insta", "CmpWsRa");
+my @ca_configurations = (); # ("EJBCA", "Insta", "SimpleLra");
 @ca_configurations = split /\s+/, $ENV{CMP_TESTS} if $ENV{CMP_TESTS};
 # set env variable, e.g., CMP_TESTS="EJBCA Insta" to include certain CAs
 

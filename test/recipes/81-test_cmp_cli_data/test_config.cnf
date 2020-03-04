@@ -1,5 +1,4 @@
 [default]
-batch = 1
 #proxy = 194.145.60.1:9400
 totaltimeout = 10 # prevent, e.g., infinite polling due to error
 trusted = root.crt
@@ -9,7 +8,6 @@ cmd = ir
 out_trusted = root.crt
 certout = test.cert.pem
 policies = certificatePolicies
-policies_critical = 1 # gets ignored
 
 ############################# CA configurations
 
@@ -50,7 +48,7 @@ unprotectederrors = 0
 column = 1
 sleep = 3
 
-[CmpWsRa] # this is a Siemens-only test configuration
+[SimpleLra] # this is a Siemens-only test configuration
 #attime = 1564704000
 server_cn = localhost
 server_ip = 127.0.0.1
@@ -76,7 +74,6 @@ sleep = 0
 msgtimeout = 15
 totaltimeout =
 tls_used = 0
-tls_host = "Product PKI Playground TLS Client" # temporary hack instead of 'localhost'
 
 [credentials]
 ref =
@@ -123,7 +120,7 @@ issuer =
 days =
 reqexts =
 sans =
-san_default = 0
+san_nodefault = 0
 #popo =
 implicitconfirm = 0
 disableconfirm = 0
@@ -152,7 +149,8 @@ subjectAltName = @alt_names
 [alt_names]
 DNS.0 = localhost
 IP.0 = 127.0.0.1
-IP.1 = 192.168.1.1
+IP.1 = 192.168.0.1
+URI.0 = http://192.168.0.2
 
 [reqexts_invalidkey]
 subjectAltName = @alt_names_3
