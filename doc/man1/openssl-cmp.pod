@@ -68,7 +68,6 @@ B<openssl> B<cmp>
 
 [B<-ownform> I<PEM|DER|P12>]
 [B<-keyform> I<PEM|DER|P12>]
-[B<-crlform> I<PEM|DER>]
 [B<-otherform> I<PEM|DER|P12>]
 [B<-otherpass> I<arg>]
 [B<-engine> I<id>]
@@ -89,16 +88,6 @@ B<openssl> B<cmp>
 [B<-rspout>]
 [B<-use_mock_srv>]
 
-[B<-crl_check>]
-[B<-crl_check_all>]
-[B<-crl_download>]
-[B<-crls> I<URLs>]
-[B<-crl_timeout>]
-[B<-ocsp_check_all>]
-[B<-ocsp_use_aia>]
-[B<-ocsp_url> I<url>]
-[B<-ocsp_timeout> I<seconds>]
-[B<-ocsp_status>]
 [B<-policy> I<arg>]
 [B<-purpose> I<purpose>]
 [B<-verify_name> I<name>]
@@ -116,6 +105,8 @@ B<openssl> B<cmp>
 [B<-use_deltas>]
 [B<-policy_print>]
 [B<-check_ss_sig>]
+[B<-crl_check>]
+[B<-crl_check_all>]
 [B<-trusted_first>]
 [B<-suiteB_128_only>]
 [B<-suiteB_128>]
@@ -249,7 +240,6 @@ Non-trusted intermediate certificate(s) that may be useful
 for building certificate chains when verifying
 the CMP server (when checking signature-based CMP message protection),
 the own TLS client cert (when constructing the TLS client cert chain),
-stapled OCSP responses (when establishing TLS connections),
 and/or the newly enrolled certificate.
 These may get added to the extraCerts field sent in requests as far as needed.
 
@@ -694,11 +684,6 @@ Default value is PEM.
 Format to try first when reading key files.
 Default value is PEM.
 
-=item B<-crlform> I<PEM|DER>
-
-Format to try first when reading CRL files.
-Default value is PEM.
-
 =item B<-otherform> I<PEM|DER|P12>
 
 Format to try first when reading files and to use for writing files containing
@@ -824,7 +809,6 @@ As many files are written as needed to store the complete transaction.
 Use the internal mock server for testing the client.
 This works at API level, bypassing HTTP transport.
 
-
 =back
 
 
@@ -832,76 +816,14 @@ This works at API level, bypassing HTTP transport.
 
 =over 4
 
-=item B<-crl_check>
-
-The B<-crl_check>, B<-crl_download>, and B<-crls> options enable mandatory
-certificate status checking for at least the leaf certificate
-using CRLs unless OCSP is enabled and succeeds.
-
-=item B<-crl_check_all>
-
-Extend revocation status checking (using CRLs) to full certificate chain.
-
-=item B<-crl_download>
-
-Retrieve CRLs from distribution points given in certificates,
-as primary source.
-
-This option enables CRL checking for, e.g., the CMP/TLS server certificate
-as it is the leaf certificate of the certificate chain.
-Compare B<X509_V_FLAG_CRL_CHECK>.
-
-=item B<-crls> I<URLs>
-
-Use given CRL(s) as secondary source of certificate revocation information.
-The URLs argument may be a single element or a comma- or whitespace-separated
-list,
-each element starting with C<http:> or C<file:> or being a filename or pathname.
-
-This option enables CRL checking for, e.g., the CMP/TLS server certificate
-as it is the leaf certificate of the certificate chain.
-Compare B<X509_V_FLAG_CRL_CHECK>.
-
-=item B<-crl_timeout> I<seconds>
-
-Timeout for online retrieval of CRL from CRL distribution points (CDPs)
-or 0 for infinite.
-Default is 10 seconds.
-
-=item B<-ocsp_check_all>
-
-Require revocation status checking (via OCSP) for full certificate chain.
-On OCSP response error try revocation status checking using CRLs if enabled.
-This option has little sense without B<-ocsp_use_aia> or B<-ocsp_url>.
-
-=item B<-ocsp_use_aia>
-
-Use OCSP with any AIA entries in certificates as primary URL of OCSP responder.
-On OCSP response error try revocation status checking using CRLs if enabled.
-
-=item B<-ocsp_url> I<url>
-
-Use OCSP with given URL as secondary (fallback) address of OCSP responder.
-On OCSP response error try revocation status checking using CRLs if enabled.
-
-=item B<-ocsp_timeout> I<seconds>
-
-Timeout for retrieving responses from OCSP responders or 0 for infinite.
-Default is 10 seconds.
-
-=item B<-ocsp_status>
-
-Enable certificate status for TLS server certificate via OCSP stapling.
-Multi-stapling is not (yet) supported.
-Not available before OpenSSL 1.1.
-
 =item B<-policy>, B<-purpose>, B<-verify_name>, B<-verify_depth>,
 B<-attime>,
 B<-ignore_critical>, B<-issuer_checks>,
 B<-policy_check>,
 B<-explicit_policy>, B<-inhibit_any>, B<-inhibit_map>,
 B<-x509_strict>, B<-extended_crl>, B<-use_deltas>,
-B<-policy_print>, B<-check_ss_sig>, B<-trusted_first>,
+B<-policy_print>, B<-check_ss_sig>, B<-crl_check>, B<-crl_check_all>,
+B<-trusted_first>,
 B<-suiteB_128_only>, B<-suiteB_128>, B<-suiteB_192>,
 B<-partial_chain>, B<-no_alt_chains>, B<-no_check_time>,
 B<-auth_level>,
