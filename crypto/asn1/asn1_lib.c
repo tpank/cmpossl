@@ -389,3 +389,35 @@ unsigned char *ASN1_STRING_data(ASN1_STRING *x)
     return x->data;
 }
 #endif
+
+char *sk_ASN1_UTF8STRING2text(STACK_OF(ASN1_UTF8STRING) *text, char sep,
+                              int max_len)
+{
+    int i;
+    ASN1_UTF8STRING *current;
+    int length = 0;
+    char *result = NULL;
+    char *p;
+
+    for (i = 0; i < sk_ASN1_UTF8STRING_num(text); ++i) {
+        current = sk_ASN1_UTF8STRING_value(text, i);
+        if (ASN1_STRING_length(current) > max_len - length - 1)
+            return NULL;
+        length += ASN1_STRING_length(current);
+        length += 1; /* separator character */
+    }
+    if ((result = OPENSSL_malloc(length)) == NULL)
+        return NULL;
+
+    for (i = 0, p = result; i < sk_ASN1_UTF8STRING_num(text); ++i) {
+        current = sk_ASN1_UTF8STRING_value(text, i);
+        length = ASN1_STRING_length(current);
+        if (i > 0)
+            *p++ = sep;
+        strncpy(p, (const char *)ASN1_STRING_get0_data(current), length);
+        p += length;
+    }
+    *p = '\0';
+
+    return result;
+}

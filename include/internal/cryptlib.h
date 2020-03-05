@@ -235,6 +235,7 @@ static ossl_inline void ossl_sleep(unsigned long millis)
 }
 #endif /* defined OPENSSL_SYS_UNIX */
 
-char *sk_ASN1_UTF8STRING2text(STACK_OF(ASN1_UTF8STRING) *text, char sep);
+char *sk_ASN1_UTF8STRING2text(STACK_OF(ASN1_UTF8STRING) *text, char sep,
+                              int max_len);
 
 #endif
