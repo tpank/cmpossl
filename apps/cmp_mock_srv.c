@@ -8,6 +8,7 @@
  * https://www.openssl.org/source/license.html
  */
 
+#include "apps.h"
 #include "cmp_mock_srv.h"
 
 #include <openssl/cmp.h>
@@ -42,7 +43,7 @@ static void mock_srv_ctx_free(mock_srv_ctx *ctx)
     OPENSSL_free(ctx);
 }
 
-static mock_srv_ctx *ctx_new(void)
+static mock_srv_ctx *mock_srv_ctx_new(void)
 {
     mock_srv_ctx *ctx = OPENSSL_zalloc(sizeof(mock_srv_ctx));
 
@@ -200,21 +201,20 @@ static OSSL_CMP_PKISI *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         if ((ctx->certReq = OSSL_CMP_MSG_dup(cert_req)) == NULL)
             return NULL;
         return OSSL_CMP_STATUSINFO_new(OSSL_CMP_PKISTATUS_waiting, 0, NULL);
-    } else {
-        if (ctx->certOut != NULL
-                && (*certOut = X509_dup(ctx->certOut)) == NULL)
-            goto err;
-        if (ctx->chainOut != NULL
-                && (*chainOut = X509_chain_up_ref(ctx->chainOut)) == NULL)
-            goto err;
-        if (ctx->caPubsOut != NULL
-                && (*caPubs = X509_chain_up_ref(ctx->caPubsOut)) == NULL)
-            goto err;
-        if (ctx->statusOut != NULL
-                && (si = OSSL_CMP_PKISI_dup(ctx->statusOut)) == NULL)
-            goto err;
-        return si;
     }
+    if (ctx->certOut != NULL
+            && (*certOut = X509_dup(ctx->certOut)) == NULL)
+        goto err;
+    if (ctx->chainOut != NULL
+            && (*chainOut = X509_chain_up_ref(ctx->chainOut)) == NULL)
+        goto err;
+    if (ctx->caPubsOut != NULL
+            && (*caPubs = X509_chain_up_ref(ctx->caPubsOut)) == NULL)
+        goto err;
+    if (ctx->statusOut != NULL
+            && (si = OSSL_CMP_PKISI_dup(ctx->statusOut)) == NULL)
+        goto err;
+    return si;
 
  err:
     X509_free(*certOut);
@@ -279,7 +279,6 @@ static void process_error(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *error,
                           const OSSL_CMP_PKIFREETEXT *errorDetails)
 {
     mock_srv_ctx *ctx = OSSL_CMP_SRV_CTX_get0_custom_ctx(srv_ctx);
-    BIO *bio = NULL;
     char buf[OSSL_CMP_PKISI_BUFLEN];
     char *sibuf;
     int i;
@@ -289,41 +288,35 @@ static void process_error(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *error,
         return;
     }
 
-    bio = BIO_new_fp(stderr, BIO_NOCLOSE);
-    if (bio == NULL)
-        goto err;
-
-    BIO_printf(bio, "mock server received error:\n");
+    BIO_printf(bio_err, "mock server received error:\n");
 
     if (statusInfo == NULL) {
-        BIO_printf(bio, "pkiStatusInfo absent\n");
+        BIO_printf(bio_err, "pkiStatusInfo absent\n");
     } else {
         sibuf = OSSL_CMP_snprint_PKIStatusInfo(statusInfo, buf, sizeof(buf));
-        BIO_printf(bio, "pkiStatusInfo: %s\n",
+        BIO_printf(bio_err, "pkiStatusInfo: %s\n",
                    sibuf != NULL ? sibuf: "<invalid>");
     }
 
     if (errorCode == NULL)
-        BIO_printf(bio, "errorCode absent\n");
+        BIO_printf(bio_err, "errorCode absent\n");
     else
-        BIO_printf(bio, "errorCode: %ld\n", ASN1_INTEGER_get(errorCode));
+        BIO_printf(bio_err, "errorCode: %ld\n", ASN1_INTEGER_get(errorCode));
 
     if (sk_ASN1_UTF8STRING_num(errorDetails) <= 0) {
-        BIO_printf(bio, "errorDetails absent\n");
+        BIO_printf(bio_err, "errorDetails absent\n");
     } else {
-        BIO_printf(bio, "errorDetails: ");
+        BIO_printf(bio_err, "errorDetails: ");
         for (i = 0; i < sk_ASN1_UTF8STRING_num(errorDetails); i++) {
             if (i > 0)
-                BIO_printf(bio, ", ");
-            BIO_printf(bio, "\"");
-            ASN1_STRING_print(bio, sk_ASN1_UTF8STRING_value(errorDetails, i));
-            BIO_printf(bio, "\"");
+                BIO_printf(bio_err, ", ");
+            BIO_printf(bio_err, "\"");
+            ASN1_STRING_print(bio_err,
+                              sk_ASN1_UTF8STRING_value(errorDetails, i));
+            BIO_printf(bio_err, "\"");
         }
-        BIO_printf(bio, "\n");
+        BIO_printf(bio_err, "\n");
     }
-
- err:
-    BIO_free(bio);
 }
 
 static int process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
@@ -349,7 +342,7 @@ static int process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         return 0;
     }
 
-    if ((digest = OSSL_CMP_X509_digest(ctx->certOut)) == NULL)
+    if ((digest = X509_digest_sig(ctx->certOut)) == NULL)
         return 0;
     if (ASN1_OCTET_STRING_cmp(certHash, digest) != 0) {
         ASN1_OCTET_STRING_free(digest);
@@ -392,7 +385,7 @@ static int process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
 OSSL_CMP_SRV_CTX *ossl_cmp_mock_srv_new(void)
 {
     OSSL_CMP_SRV_CTX *srv_ctx = OSSL_CMP_SRV_CTX_new();
-    mock_srv_ctx *ctx = ctx_new();
+    mock_srv_ctx *ctx = mock_srv_ctx_new();
 
     if (srv_ctx != NULL && ctx != NULL
             && OSSL_CMP_SRV_CTX_init(srv_ctx, ctx, process_cert_request,

@@ -412,7 +412,7 @@ of outgoing CMP messages, with the fallback being
 the B<subjectName> set via B<OSSL_CMP_CTX_set1_subjectName()>.
 The B<cert> argument may be NULL to clear the entry.
 
-OSSL_CMP_CTX_set1_pkey() sets in the B<ctx> the private key corresponding to
+OSSL_CMP_CTX_set1_pkey() sets the private key corresponding to
 the client certificate B<clCert> set via B<OSSL_CMP_CTX_set1_clCert()>.
 This key is used create signature-based protection (protectionAlg = MSG_SIG_ALG)
 of outgoing messages

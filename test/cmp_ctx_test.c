@@ -118,7 +118,8 @@ static int msg_total_size_log_cb(const char *func, const char *file, int line,
                                  OSSL_CMP_severity level, const char *msg)
 {
     msg_total_size += strlen(msg);
-    printf("total=%d len=%ld msg=\"%s\"\n", msg_total_size, strlen(msg), msg);
+    BIO_printf(bio_err, "total=%d len=%ld msg=\"%s\"\n",
+               msg_total_size, strlen(msg), msg);
     return 1;
 }
 

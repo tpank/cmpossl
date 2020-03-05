@@ -166,7 +166,7 @@ int ossl_cmp_pkisi_check_pkifailureinfo(const OSSL_CMP_PKISI *si, int bit_index)
  * returns pointer to the same buffer containing the string, or NULL on error
  */
 static
-char *snprint_PKIStatusInfo_parts(long status, long fail_info,
+char *snprint_PKIStatusInfo_parts(int status, int fail_info,
                                   const OSSL_CMP_PKIFREETEXT *status_strings,
                                   char *buf, size_t bufsize)
 {

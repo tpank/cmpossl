@@ -189,11 +189,7 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     } else {
         OSSL_CRMF_MSGS *reqs = req->body->value.ir; /* same for cr and kur */
 
-        /*
-         * TODO: handle multiple elements, in case multiple requests have
-         * been sent - see https://github.com/mpeylo/cmpossl/issues/67
-         */
-        if (sk_OSSL_CRMF_MSG_num(reqs) != 1) {
+        if (sk_OSSL_CRMF_MSG_num(reqs) != 1) { /* TODO: handle case > 1 */
             CMPerr(0, CMP_R_MULTIPLE_REQUESTS_NOT_SUPPORTED);
             return NULL;
         }
@@ -213,15 +209,19 @@ static OSSL_CMP_MSG *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         if (si == NULL)
             return NULL;
     } else {
+        OSSL_CMP_PKIHEADER *hdr = OSSL_CMP_MSG_get0_header(req);
+
         si = srv_ctx->process_cert_request(srv_ctx, req, certReqId, crm, p10cr,
                                            &certOut, &chainOut, &caPubs);
         if (si == NULL)
             goto err;
         /* set OSSL_CMP_OPT_IMPLICITCONFIRM if and only if transaction ends */
-        OSSL_CMP_CTX_set_option(srv_ctx->ctx, OSSL_CMP_OPT_IMPLICITCONFIRM,
-                                ossl_cmp_hdr_has_implicitConfirm(req->header)
-                                    && srv_ctx->grantImplicitConfirm
-                                    && certOut != NULL /* not start polling */);
+        if (!OSSL_CMP_CTX_set_option(srv_ctx->ctx, OSSL_CMP_OPT_IMPLICITCONFIRM,
+                                     ossl_cmp_hdr_has_implicitConfirm(hdr)
+                                         && srv_ctx->grantImplicitConfirm
+                                         /* do not set if polling starts: */
+                                         && certOut != NULL))
+            goto err;
     }
 
     msg = ossl_cmp_certRep_new(srv_ctx->ctx, bodytype, certReqId, si,
@@ -256,11 +256,8 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
     if (!ossl_assert(srv_ctx != NULL && srv_ctx->ctx != NULL && req != NULL))
         return NULL;
 
-    /*
-     * TODO: handle multiple elements, in case multiple requests have
-     * been sent - see https://github.com/mpeylo/cmpossl/issues/67
-     */
     if (sk_OSSL_CMP_REVDETAILS_num(req->body->value.rr) != 1) {
+        /* TODO: handle multiple elements if multiple requests have been sent */
         CMPerr(0, CMP_R_MULTIPLE_REQUESTS_NOT_SUPPORTED);
         return NULL;
     }
@@ -395,11 +392,7 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
         return NULL;
 
     prc = req->body->value.pollReq;
-    /*
-     * TODO: handle multiple elements, in case multiple requests have
-     * been sent - see https://github.com/mpeylo/cmpossl/issues/67
-     */
-    if (sk_OSSL_CMP_POLLREQ_num(prc) != 1) {
+    if (sk_OSSL_CMP_POLLREQ_num(prc) != 1) { /* TODO: handle case > 1 */
         CMPerr(0, CMP_R_MULTIPLE_REQUESTS_NOT_SUPPORTED);
         return NULL;
     }
