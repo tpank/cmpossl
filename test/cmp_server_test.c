@@ -66,7 +66,7 @@ static int execute_test_handle_request(CMP_SRV_TEST_FIXTURE *fixture)
     OSSL_CMP_CTX *client_ctx;
     OSSL_CMP_CTX *cmp_ctx;
     char *dummy_custom_ctx = "@test_dummy", *custom_ctx;
-    OSSL_CMP_MSG *rsp;
+    OSSL_CMP_MSG *rsp = NULL;
     OSSL_CMP_ERRORMSGCONTENT *errorContent;
     int res = 0;
 
@@ -105,6 +105,7 @@ static int execute_test_handle_request(CMP_SRV_TEST_FIXTURE *fixture)
     res = 1;
 
  end:
+    OSSL_CMP_MSG_free(rsp);
     OSSL_CMP_CTX_free(client_ctx);
     return res;
 }
