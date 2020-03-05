@@ -1943,7 +1943,7 @@ static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 
     if (opt_tls_cert != NULL && opt_tls_key != NULL) {
         X509 *cert;
-        STACK_OF(X509) *certs;
+        STACK_OF(X509) *certs = NULL;
 
         if (!load_certs_autofmt(opt_tls_cert, &certs, opt_ownform, 1,
                                 opt_tls_keypass,
