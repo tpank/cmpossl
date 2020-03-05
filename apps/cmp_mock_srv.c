@@ -9,13 +9,10 @@
  */
 
 #include "cmp_mock_srv.h"
-#ifdef OPENSSL_NO_CMP
-NON_EMPTY_TRANSLATION_UNIT
-#else
 
-# include <openssl/cmp.h>
-# include <openssl/err.h>
-# include <openssl/cmperr.h>
+#include <openssl/cmp.h>
+#include <openssl/err.h>
+#include <openssl/cmperr.h>
 
 /* the context for the CMP mock server */
 typedef struct
@@ -414,5 +411,3 @@ void ossl_cmp_mock_srv_free(OSSL_CMP_SRV_CTX *srv_ctx)
         mock_srv_ctx_free(OSSL_CMP_SRV_CTX_get0_custom_ctx(srv_ctx));
     OSSL_CMP_SRV_CTX_free(srv_ctx);
 }
-
-#endif /* !defined(OPENSSL_NO_CMP) */
