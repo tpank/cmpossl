@@ -340,42 +340,35 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
     return 0;
 }
 
-/*
- * Send certConf for IR, CR or KUR sequences and check response
- * returns 1 on success, 0 on error
- */
+/* Send certConf for IR, CR or KUR sequences and check response */
 int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
                                const char *txt)
 {
     OSSL_CMP_MSG *certConf = NULL;
     OSSL_CMP_MSG *PKIconf = NULL;
-    int success = 0;
+    int res = 0;
 
     /* OSSL_CMP_certConf_new() also checks if all necessary options are set */
     if ((certConf = ossl_cmp_certConf_new(ctx, fail_info, txt)) == NULL)
         goto err;
 
-    success = send_receive_check(ctx, certConf, &PKIconf,
-                                 OSSL_CMP_PKIBODY_PKICONF,
-                                 CMP_R_PKICONF_NOT_RECEIVED);
+    res = send_receive_check(ctx, certConf, &PKIconf, OSSL_CMP_PKIBODY_PKICONF,
+                             CMP_R_PKICONF_NOT_RECEIVED);
 
  err:
     OSSL_CMP_MSG_free(certConf);
     OSSL_CMP_MSG_free(PKIconf);
-    return success;
+    return res;
 }
 
-/*
- * Send given error and check response
- * returns 1 on success, 0 on error
- */
+/* Send given error and check response */
 int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
                             const char *txt, int errorCode, const char *details)
 {
     OSSL_CMP_MSG *error = NULL;
     OSSL_CMP_PKISI *si = NULL;
     OSSL_CMP_MSG *PKIconf = NULL;
-    int success = 0;
+    int res = 0;
 
     if ((si = OSSL_CMP_STATUSINFO_new(status, fail_info, txt)) == NULL)
         goto err;
@@ -383,14 +376,14 @@ int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
     if ((error = ossl_cmp_error_new(ctx, si, errorCode, details, 0)) == NULL)
         goto err;
 
-    success = send_receive_check(ctx, error, &PKIconf, OSSL_CMP_PKIBODY_PKICONF,
-                                 CMP_R_PKICONF_NOT_RECEIVED);
+    res = send_receive_check(ctx, error, &PKIconf, OSSL_CMP_PKIBODY_PKICONF,
+                             CMP_R_PKICONF_NOT_RECEIVED);
 
  err:
     OSSL_CMP_MSG_free(error);
     OSSL_CMP_PKISI_free(si);
     OSSL_CMP_MSG_free(PKIconf);
-    return success;
+    return res;
 }
 
 /*
