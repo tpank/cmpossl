@@ -57,9 +57,6 @@ static OSSL_CMP_PKISI *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
     return NULL;
 }
 
-/*
- * Tests #######
- */
 static int execute_test_handle_request(CMP_SRV_TEST_FIXTURE *fixture)
 {
     OSSL_CMP_SRV_CTX *ctx = fixture->srv_ctx;
