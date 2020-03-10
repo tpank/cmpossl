@@ -219,7 +219,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     } else {
         OSSL_CMP_ERRORMSGCONTENT *emc = (*rep)->body->value.error;
         OSSL_CMP_PKISI *si = emc->pKIStatusInfo;
-        char buf[OSSL_CMP_PKISI_BUFLEN] = "";
+        char buf[OSSL_CMP_PKISI_BUFLEN];
 
         if (emc->errorCode != NULL
                 && BIO_snprintf(buf, sizeof(buf), "errorCode=%ld, ",
@@ -394,7 +394,7 @@ int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
 static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
                               OSSL_CMP_CERTRESPONSE *crep)
 {
-    char *buf = NULL;
+    char buf[OSSL_CMP_PKISI_BUFLEN];
     X509 *crt = NULL;
     EVP_PKEY *privkey;
 
@@ -450,11 +450,8 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
     return crt;
 
  err:
-    if ((buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL
-            && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf,
-                                              OSSL_CMP_PKISI_BUFLEN) != NULL)
+    if (OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf, sizeof(buf)) != NULL)
         ERR_add_error_data(1, buf);
-    OPENSSL_free(buf);
     return NULL;
 }
 
@@ -702,7 +699,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     const int rsid = OSSL_CMP_REVREQSID;
     OSSL_CMP_REVREPCONTENT *rrep = NULL;
     OSSL_CMP_PKISI *si = NULL;
-    char *buf = NULL;
+    char buf[OSSL_CMP_PKISI_BUFLEN];
     X509 *result = NULL;
 
     if (ctx == NULL) {
@@ -810,14 +807,9 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     }
 
  err:
-    /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
-    if (result == NULL) {
-        if ((buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL
-                && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf,
-                                                  OSSL_CMP_PKISI_BUFLEN) != NULL)
-            ERR_add_error_data(1, buf);
-        OPENSSL_free(buf);
-    }
+    if (result == NULL
+            && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf, sizeof(buf)) != NULL)
+        ERR_add_error_data(1, buf);
 
  end:
     OSSL_CMP_MSG_free(rr);
