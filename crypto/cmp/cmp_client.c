@@ -808,7 +808,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
  err:
     if (result == NULL
             && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf, sizeof(buf)) != NULL)
-            ERR_add_error_data(1, buf);
+        ERR_add_error_data(1, buf);
 
  end:
     OSSL_CMP_MSG_free(rr);
