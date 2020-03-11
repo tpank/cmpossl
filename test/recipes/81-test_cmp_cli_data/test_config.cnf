@@ -8,6 +8,7 @@ cmd = ir
 out_trusted = root.crt
 certout = test.cert.pem
 policies = certificatePolicies
+verbosity = 7
 
 ############################# CA configurations
 
@@ -40,11 +41,12 @@ recipient = /C=FI/O=Insta Demo/CN=Insta Demo CA
 subject = /C=FI/O=Insta Demo/CN=ECC-EE
 pbm_secret = pass:insta
 ref = 3078
-secret = $pbm_secret
+#secret = $pbm_secret
 key =
 cert =
 ignore_keyusage = 1
 unprotectederrors = 0
+crls = "../../../../../creds/crls/InstaDemoCA.crl"
 column = 1
 sleep = 3
 
@@ -65,6 +67,9 @@ key  = signer.p12
 keypass = pass:12345
 ignore_keyusage = 0
 unprotectederrors = 1 # EJBCA sends error messages and negative responses without protection
+crls = "../../../../../creds/crls/PPKIPlaygroundInfrastructureIssuingCAv10.crl, ../../../../../creds/crls/PPKIPlaygroundECCRootCAv10.crl, ../../../../../creds/crls/PPKIPlaygroundInfrastructureRootCAv10.crl, ../../../../../creds/crls/PPKIPlaygroundRSARootCAv10.crl"
+cdps = "http://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+ECC+Root+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE, https://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+Infrastructure+Root+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE"
+ocsp = "http://ppki-playground.ct.siemens.com/ejbca/publicweb/status/ocsp"
 column = 0
 sleep = 0
 
@@ -74,6 +79,7 @@ sleep = 0
 msgtimeout = 15
 totaltimeout =
 tls_used = 0
+crls =
 
 [credentials]
 ref =
@@ -85,6 +91,7 @@ extracerts =
 geninfo = # TODO move geninfo tests to commands section
 digest =
 unprotectedrequests =
+crls =
 
 [verification]
 recipient =
@@ -94,6 +101,7 @@ trusted =
 untrusted =
 unprotectederrors =
 extracertsout =
+crls =
 
 [tls]
 server =
@@ -110,6 +118,7 @@ cacertsout =
 infotype =
 oldcert =
 revreason =
+crls =
 
 [enrollment]
 cmd =
@@ -128,6 +137,21 @@ certout =
 out_trusted =
 oldcert =
 csr =
+crls =
+
+[certstatus]
+msgtimeout = 15
+totaltimeout =
+cert = signer.crt
+key = signer.p12
+keypass = pass:12345
+cmd = cr
+secret =
+trusted = root.crt
+untrusted =
+unprotectederrors =
+extracertsout =
+tls_trusted =
 
 ############################# extra cert template contents
 
