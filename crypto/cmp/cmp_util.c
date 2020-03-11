@@ -9,6 +9,8 @@
  * https://www.openssl.org/source/license.html
  */
 
+#if 0 /* cmp_util is not used +/
+
 #include <string.h>
 #include <openssl/cmp_util.h>
 #include "cmp_local.h" /* just for decls of internal functions defined here */
@@ -447,3 +449,5 @@ int ossl_cmp_asn1_octet_string_set1_bytes(ASN1_OCTET_STRING **tgt,
     *tgt = new;
     return 1;
 }
+
+#endif
