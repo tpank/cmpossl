@@ -608,21 +608,6 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
     return ret;
 }
 
-static void log_server_proxy_info(OSSL_CMP_CTX *ctx)
-{
-    const char *server = ctx->serverName;
-    const char *proxy = ctx->proxyName;
-    int proxy_port = ctx->proxyPort;
-
-    if (server == NULL)
-        server = "(no server name)";
-    if (proxy == NULL)
-        ossl_cmp_log2(INFO, ctx, "contacting %s:%d", server, ctx->serverPort);
-    else
-        ossl_cmp_log4(INFO, ctx, "contacting %s:%d via %s:%d",
-                      server, ctx->serverPort, proxy, proxy_port);
-}
-
 /*
  * Do the full sequence CR/IR/KUR/P10CR, CP/IP/KUP/CP,
  * certConf, PKIconf, and potential polling.
@@ -654,7 +639,6 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, int req_type, int req_err,
     if ((req = ossl_cmp_certReq_new(ctx, req_type, req_err)) == NULL)
         goto err;
 
-    log_server_proxy_info(ctx);
     if (!send_receive_check(ctx, req, &rep, rep_type, rep_err))
         goto err;
 
@@ -708,7 +692,6 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     if ((rr = ossl_cmp_rr_new(ctx)) == NULL)
         goto end;
 
-    log_server_proxy_info(ctx);
     if (!send_receive_check(ctx, rr, &rp, OSSL_CMP_PKIBODY_RP,
                             CMP_R_RP_NOT_RECEIVED))
         goto end;
@@ -861,7 +844,6 @@ STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
     if ((genm = ossl_cmp_genm_new(ctx)) == NULL)
         goto err;
 
-    log_server_proxy_info(ctx);
     if (!send_receive_check(ctx, genm, &genp, OSSL_CMP_PKIBODY_GENP,
                             CMP_R_GENP_NOT_RECEIVED))
         goto err;
