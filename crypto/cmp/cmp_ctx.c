@@ -1490,7 +1490,7 @@ int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
     OSSL_cmp_log_cb_t log_fn =
         ctx == NULL || ctx->log_cb == NULL ? OSSL_CMP_puts : ctx->log_cb;
 
-    BIO_snprintf(component, sizeof(component), "OpenSSL:%s", func);
+    BIO_snprintf(component, sizeof(component), "%s", func);
     va_start(arg_ptr, fmt);
     BIO_vsnprintf(msg, sizeof(msg), fmt, arg_ptr);
     res = (*log_fn)(component, file, lineno, level, msg);
