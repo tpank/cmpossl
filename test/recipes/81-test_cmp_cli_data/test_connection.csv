@@ -52,10 +52,10 @@ EJBCA,Insta,description, -section,val, -server,val, -proxy,val, -path,val, -msgt
 1,1,totaltimeout non-digit, -section,,,,,,,,BLANK,, -totaltimeout,asdf,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
 1,1,tls_used not given, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,BLANK,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345,BLANK,,BLANK,
-1,1,argument for tls_used, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,, -tls_used,0,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
+1,1,argument given for tls_used, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,, -tls_used,0,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 1,-,handshake failure due to missing tls params, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,, -tls_used,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
-0,-,tls with converted certificates, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.crt, -tls_key,EJBCACMPSignerTLS.key.pem,BLANK,,BLANK,,BLANK,
+0,-,tls with PEM credential files, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.crt, -tls_key,EJBCACMPSignerTLS.key.pem,BLANK,,BLANK,,BLANK,
 TBD Keyfile does not match,TBD Keyfile does not match,tls .pem file with 1000 certs, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS_big_1000.crt.pem, -tls_key,EJBCACMPSignerTLS.key.pem,BLANK,,BLANK,,BLANK,
 BIG TBD Key file doesnt match,TBD Key file doesnt match,tls big .pem filebig converted to p12, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS_big_1000.crt.pem.p12, -tls_key,EJBCACMPSignerTLS_big_1000.crt.pem.p12, -tls_keypass,pass:12345,BLANK,,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -89,6 +89,6 @@ TBD,TBD,tls expired cert, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-
 1,-,tls_host bad IP syntax: extra '.', -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt, -tls_host,127.0.0..1
 1,-,tls_host bad DNS syntax: extra '.', -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt, -tls_host,localhost..com
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
-TBD,-,tls certificate not suitable for tls, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,signer.crt, -tls_key,signer.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,
+TBD,-,tls certificate not suitable for TLS, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,signer.crt, -tls_key,signer.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,
 1,-,tls_cert non-existent file, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,idontexist, -tls_key,idontexist, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,
 1,-,tls_cert empty, -section,, -server,_SERVER_CN:9443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,emptycert.crt, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,
