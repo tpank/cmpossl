@@ -641,21 +641,21 @@ static varref cmp_vars[] = { /* must be in same order as enumerated above! */
 # define CMP_print(bio, prefix, msg, a1, a2, a3) \
     (PRINT_LOCATION(bio), \
      BIO_printf(bio, "CMP %s: " msg "\n", prefix, a1, a2, a3))
-# define CMP_INFO(msg, a1, a2, a3) CMP_print(bio_out, "info", msg, a1, a2, a3)
+# define CMP_INFO(msg, a1, a2, a3)  CMP_print(bio_out, "info", msg, a1, a2, a3)
 # define CMP_info(msg)              CMP_INFO(msg"%s%s%s", "", "", "")
 # define CMP_info1(msg, a1)         CMP_INFO(msg"%s%s",   a1, "", "")
 # define CMP_info2(msg, a1, a2)     CMP_INFO(msg"%s",     a1, a2, "")
 # define CMP_info3(msg, a1, a2, a3) CMP_INFO(msg,         a1, a2, a3)
-# define CMP_WARN(m, a1, a2, a3) CMP_print(bio_out, "warning", m, a1, a2, a3)
+# define CMP_WARN(m, a1, a2, a3)    CMP_print(bio_out, "warning", m, a1, a2, a3)
 # define CMP_warn(msg)              CMP_WARN(msg"%s%s%s", "", "", "")
 # define CMP_warn1(msg, a1)         CMP_WARN(msg"%s%s",   a1, "", "")
 # define CMP_warn2(msg, a1, a2)     CMP_WARN(msg"%s",     a1, a2, "")
 # define CMP_warn3(msg, a1, a2, a3) CMP_WARN(msg,         a1, a2, a3)
-# define CMP_ERR(msg, a1, a2, a3) CMP_print(bio_err, "error", msg, a1, a2, a3)
-# define CMP_err(msg)              CMP_ERR(msg"%s%s%s", "", "", "")
-# define CMP_err1(msg, a1)         CMP_ERR(msg"%s%s",   a1, "", "")
-# define CMP_err2(msg, a1, a2)     CMP_ERR(msg"%s",     a1, a2, "")
-# define CMP_err3(msg, a1, a2, a3) CMP_ERR(msg,         a1, a2, a3)
+# define CMP_ERR(msg, a1, a2, a3)   CMP_print(bio_err, "error", msg, a1, a2, a3)
+# define CMP_err(msg)               CMP_ERR(msg"%s%s%s", "", "", "")
+# define CMP_err1(msg, a1)          CMP_ERR(msg"%s%s",   a1, "", "")
+# define CMP_err2(msg, a1, a2)      CMP_ERR(msg"%s",     a1, a2, "")
+# define CMP_err3(msg, a1, a2, a3)  CMP_ERR(msg,         a1, a2, a3)
 
 static int print_to_bio_out(const char *func, const char *file, int line,
                             OSSL_CMP_severity level, const char *msg)
@@ -2342,6 +2342,8 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 {
     int ret = 0;
+    char server_buf[200] = { '\0' };
+    char proxy_buf[200] = { '\0' };
     char *proxy_host = NULL;
     char *proxy_port_str = NULL;
 
@@ -2359,6 +2361,11 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto oom;
     if (opt_proxy != NULL && !OSSL_CMP_CTX_set1_proxy(ctx, opt_proxy))
         goto oom;
+    (void)BIO_snprintf(server_buf, sizeof(server_buf), "http%s://%s:%d",
+                       opt_tls_used ? "s" : "", opt_server, server_port);
+    if (opt_proxy != NULL)
+        (void)BIO_snprintf(proxy_buf, sizeof(proxy_buf), " via %s", opt_proxy);
+    CMP_info2("will contact %s%s", server_buf, proxy_buf);
 
     if (!transform_opts())
         goto err;
