@@ -145,13 +145,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     OSSL_cmp_transfer_cb_t transfer_cb = ctx->transfer_cb;
 
     if (transfer_cb == NULL) {
-#if !defined(OPENSSL_NO_OCSP)
         transfer_cb = NULL; /* TODO: will be OSSL_CMP_MSG_http_perform of chunk 10 */
-#else
-        CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
-        ossl_cmp_add_error_txt("; ", "HTTP transfer not possible due to OPENSSL_NO_OCSP");
-        return 0;
-#endif
     }
 
     msgtimeout = ctx->msgtimeout; /* backup original value */
