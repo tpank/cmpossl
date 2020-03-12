@@ -41,7 +41,7 @@ recipient = /C=FI/O=Insta Demo/CN=Insta Demo CA
 subject = /C=FI/O=Insta Demo/CN=ECC-EE
 pbm_secret = pass:insta
 ref = 3078
-#secret = $pbm_secret
+secret = $pbm_secret
 key =
 cert =
 ignore_keyusage = 1
@@ -110,7 +110,6 @@ cdps =
 ocsp =
 
 [verification]
-recipient =
 expected_sender =
 srvcert =
 trusted =
@@ -153,10 +152,12 @@ ocsp =
 
 [certstatus]
 cmd = cr
+server_port = 9080
 secret = # force using signature-based protection
 cert = signer.crt
 key = signer.p12
 keypass = pass:12345
+tls_used = # only enabled for appropriate tests
 # by default using any crls, cdps, and ocsp
 
 ############################# extra cert template contents

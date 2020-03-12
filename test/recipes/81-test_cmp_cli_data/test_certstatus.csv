@@ -1,12 +1,11 @@
 EJBCA,Insta,description, -section,val, -crls,val, -cdps,val, -ocsp,val, -trusted,val, -untrusted,val, -check_all, -check_any, -use_cdp, -use_aia, -ocsp_last, -stapling,val1, -opt1,arg1, -opt2,arg2
 ,,,,,,,,,,,,,,,,,,,,,,,,,
-0,0,default test crl, -section,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,,,,,,,
+0,0,default test crl, -section,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,,,, -server,_SERVER_CN:_SERVER_PORT,,
 1,1,check_all without enabled checking, -section,,-crls,"", -cdps,"", -ocsp,"",BLANK,,BLANK,, -check_all,,,,,,,,,,
 1,1,check_any without enabled checking, -section,,-crls,"", -cdps,"", -ocsp,"",BLANK,,BLANK,,, -check_any,,,,,,,,,
 1,1,both check_any and check_all enabled, -section,,-crls,"", -cdps,"", -ocsp,"",BLANK,,BLANK,, -check_all, -check_any,,,,,,,,,
-0,0,use_cdp entries in certs, -section,, -crls,"", -cdps,"", -ocsp,"",BLANK,,BLANK,,,, -use_cdp,,,,,,,,
-0,0,use_aia entries in certs, -section,, -crls,"", -cdps,"", -ocsp,"",BLANK,,BLANK,,,,, -use_aia,,,,,,,
-0,0,stapling without ocsp option, -section,, -crls,"", -cdps,"", -ocsp,"",BLANK,,BLANK,,,,,,, -stapling,,,,,
+0,0,use_cdp entries in certs, -section,, -crls,"", -cdps,"", -ocsp,"",BLANK,,BLANK,,,, -use_cdp,,,,, -server,_SERVER_CN:_SERVER_PORT,,
+0,0,use_aia entries in certs, -section,, -crls,"", -cdps,"", -ocsp,"",BLANK,,BLANK,,,,, -use_aia,,,, -server,_SERVER_CN:_SERVER_PORT,,
+0,0,stapling without ocsp option, -section,, -crls,"", -cdps,"", -ocsp,"",BLANK,,BLANK,,,,,,, -stapling,, -server,_SERVER_CN:_SERVER_PORT,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,
-http://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+ECC+Issuing+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE
