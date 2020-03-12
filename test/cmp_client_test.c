@@ -68,6 +68,7 @@ static CMP_SES_TEST_FIXTURE *set_up(const char *const test_case_name)
             || !OSSL_CMP_CTX_set1_pkey(srv_cmp_ctx, server_key))
         goto err;
     if (!TEST_ptr(fixture->cmp_ctx = ctx = OSSL_CMP_CTX_new())
+            || !OSSL_CMP_CTX_set_log_cb(fixture->cmp_ctx, print_to_bio_out)
             || !OSSL_CMP_CTX_set_transfer_cb(ctx, OSSL_CMP_CTX_server_perform)
             || !OSSL_CMP_CTX_set_transfer_cb_arg(ctx, fixture->srv_ctx)
             || !OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_SEND, 1)

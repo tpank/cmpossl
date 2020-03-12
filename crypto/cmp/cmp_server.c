@@ -607,7 +607,7 @@ OSSL_CMP_MSG * OSSL_CMP_CTX_server_perform(OSSL_CMP_CTX *client_ctx,
     }
 
     if ((srv_ctx = OSSL_CMP_CTX_get_transfer_cb_arg(client_ctx)) == NULL) {
-        CMPerr(0, CMP_R_ERROR_TRANSFERRING_OUT);
+        CMPerr(0, CMP_R_TRANSFER_ERROR);
         return 0;
     }
 

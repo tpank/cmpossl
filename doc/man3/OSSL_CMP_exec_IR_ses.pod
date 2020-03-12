@@ -26,32 +26,28 @@ OSSL_CMP_certConf_cb
 
 =head1 DESCRIPTION
 
-This is the API for doing CMP (Certificate Management Protocol)  client-server
-message sequences using with OpenSSL.
+This is the API for doing CMP (Certificate Management Protocol)
+client-server message sequences using OpenSSL.
 The default conveying protocol is HTTP.
 
-OSSL_CMP_exec_IR_ses() does the transaction which obtains an initial certificate
-from the CA.
-A populated OSSL_CMP_CTX structure has to be given as argument.
+OSSL_CMP_exec_IR_ses() obtains an initial certificate from the CA.
+A populated OSSL_CMP_CTX structure is required as an argument.
 
-OSSL_CMP_exec_CR_ses() requests an additional certificate
-from the CA.
-A populated OSSL_CMP_CTX structure has to be given as argument.
+OSSL_CMP_exec_CR_ses() requests an additional certificate from the CA.
+A populated OSSL_CMP_CTX structure is required as an argument.
 
 OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx) requests in PKCS#10 CSR form
 a certificate from the CA.
-A populated OSSL_CMP_CTX structure has to be given as argument.
+A populated OSSL_CMP_CTX structure is required as an argument.
 
-OSSL_CMP_exec_KUR_ses() does the transaction which obtains an updated
-certificate from the CA.
-A populated OSSL_CMP_CTX structure has to be given
-as argument.
+OSSL_CMP_exec_KUR_ses() obtains an updated certificate from the CA.
+A populated OSSL_CMP_CTX structure is required as an argument.
 
 OSSL_CMP_exec_RR_ses() requests the revocation of a certificate at the CA.
 
 OSSL_CMP_exec_GENM_ses() sends a general message with any ITAVs specified in the
 B<ctx>->genm_itavs, and returns the list of B<ITAV>s received in the GenRep.
-This can be used, for instance, to poll for the CRL or CA Key Updates.
+This can be used, for instance, to poll for CRLs or CA Key Updates.
 
 OSSL_CMP_certConf_cb() is a basic certificate confirmation callback validating
 that the new certificate can be verified with the trusted/untrusted certificates
@@ -62,6 +58,11 @@ validated by the client, this callback is not set by default in the context.
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
+
+=head1 BUGS
+
+So far the CMP client implementation is limited to one request per CMP message
+(and consequently to at most one response component per CMP message).
 
 =head1 RETURN VALUES
 
