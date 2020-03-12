@@ -157,7 +157,6 @@ secret = # force using signature-based protection
 cert = signer.crt
 key = signer.p12
 keypass = pass:12345
-tls_used = # only enabled for appropriate tests
 # by default using any crls, cdps, and ocsp
 
 ############################# extra cert template contents
