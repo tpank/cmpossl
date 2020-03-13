@@ -415,13 +415,17 @@ static OSSL_CMP_MSG *process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
 }
 
 /*
- * Determines whether missing protection is allowed
+ * Determine whether missing/invalid protection of request message is allowed.
+ * Return 1 on acceptance, 0 on rejection, or -1 on (internal) error.
  */
 static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                                  const OSSL_CMP_MSG *req,
                                  int invalid_protection,
                                  int accept_unprotected_requests)
 {
+    if (!ossl_assert(ctx != NULL && req != NULL))
+        return -1;
+
     if (accept_unprotected_requests) {
         ossl_cmp_log1(WARN, ctx, "ignoring %s protection of request message",
                       invalid_protection ? "invalid" : "missing");

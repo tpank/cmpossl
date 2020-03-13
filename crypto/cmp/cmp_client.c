@@ -31,18 +31,20 @@
                         || (t) == OSSL_CMP_PKIBODY_KUP)
 
 /*
- * Evaluate whether there's an standard-violating exception configured for
- * handling errors without protection or with invalid protection
+ * Evaluate whether there's an exception (violating the standard) configured for
+ * handling negative responses without protection or with invalid protection.
+ * Return 1 on acceptance, 0 on rejection, or -1 on (internal) error.
  */
 static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                                  const OSSL_CMP_MSG *rep,
-                                 int invalid_protection, int expected_type)
+                                 int invalid_protection,
+                                 int expected_type /* ignored here */)
 {
     int rcvd_type = ossl_cmp_msg_get_bodytype(rep /* may be NULL */);
     const char *msg_type = NULL;
 
     if (!ossl_assert(ctx != NULL && rep != NULL))
-        return 0;
+        return -1;
 
     if (!ctx->unprotectedErrors)
         return 0;
@@ -56,10 +58,11 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
             OSSL_CMP_PKISI *si =
                 ossl_cmp_revrepcontent_get_pkisi(rep->body->value.rp,
                                                  OSSL_CMP_REVREQSID);
+
+            if (si == NULL)
+                return -1;
             if (ossl_cmp_pkisi_get_status(si) == OSSL_CMP_PKISTATUS_rejection)
                 msg_type = "revocation response message with rejection status";
-            else
-                msg_type = "revocation response message without rejection status";
             break;
         }
     case OSSL_CMP_PKIBODY_PKICONF:
@@ -69,15 +72,14 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
         if (IS_CREP(rcvd_type)) {
             OSSL_CMP_CERTREPMESSAGE *crepmsg = rep->body->value.ip;
             OSSL_CMP_CERTRESPONSE *crep =
-                ossl_cmp_certrepmessage_get0_certresponse(crepmsg, -1);
+                ossl_cmp_certrepmessage_get0_certresponse(crepmsg,
+                                                          -1 /* any rid */);
 
             if (sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response) > 1)
-                /* a specific error could be misleading here */
-                return 0;
+                return -1;
             /* TODO: handle potentially multiple CertResponses in CertRepMsg */
             if (crep == NULL)
-                /* a specific error could be misleading here */
-                return 0;
+                return -1;
             if (ossl_cmp_pkisi_get_status(crep->status)
                 == OSSL_CMP_PKISTATUS_rejection)
                 msg_type = "CertRepMessage with rejection status";
@@ -315,7 +317,8 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             prep = NULL;
             sleep((unsigned int)check_after);
         } else {
-            ossl_cmp_info(ctx, "got ip/cp/kup after polling");
+            ossl_cmp_info(ctx, "received got ip/cp/kup after polling");
+            /* any other body type has been rejected by send_receive_check() */
             break;
         }
     }
