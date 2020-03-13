@@ -318,11 +318,11 @@ B<WARNING:> This setting leads to unspecified behavior and it is meant
 exclusively to allow interoperability with server implementations violating
 RFC 4210.
 
-    OSSL_CMP_OPT_MSGTIMEOUT
+    OSSL_CMP_OPT_MSG_TIMEOUT
         Number of seconds (or 0 for infinite) a CMP message round trip is
         allowed to take before a timeout error is returned. Default is 120.
 
-    OSSL_CMP_OPT_TOTALTIMEOUT
+    OSSL_CMP_OPT_TOTAL_TIMEOUT
         Maximum total number of seconds an enrollment (including polling)
         may take. Default is 0 (infinite).
 

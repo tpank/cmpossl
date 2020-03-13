@@ -30,10 +30,10 @@ my $no_proxy = $ENV{no_proxy} // $ENV{NO_PROXY};
 my @cmp_basic_tests = (
     [ "output help",                      [ "-help"], 0 ],
     [ "unknown CLI parameter",            [ "-asdffdsa"], 1 ],
-    [ "bad int syntax: non-digit",        [ "-msgtimeout", "a/" ], 1 ],
-    [ "bad int syntax: float",            [ "-msgtimeout", "3.14" ], 1 ],
-    [ "bad int syntax: trailing garbage", [ "-msgtimeout", "314_+" ], 1 ],
-    [ "bad int: out of range",            [ "-msgtimeout", "2147483648" ], 1 ],
+    [ "bad int syntax: non-digit",        [ "-msg_timeout", "a/" ], 1 ],
+    [ "bad int syntax: float",            [ "-msg_timeout", "3.14" ], 1 ],
+    [ "bad int syntax: trailing garbage", [ "-msg_timeout", "314_+" ], 1 ],
+    [ "bad int: out of range",            [ "-msg_timeout", "2147483648" ], 1 ],
 );
 
 my $test_config = "test_config.cnf";

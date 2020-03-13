@@ -99,8 +99,8 @@ struct ossl_cmp_ctx_st {
     int permitTAInExtraCertsForIR; /* whether to include root certs from
                      extracerts when validating? Used for 3GPP-style E.7 */
 
-    int implicitConfirm;  /* set implicitConfirm in IR/KUR/CR messages */
-    int disableConfirm;  /* disable confirmation messages in IR/KUR/CR
+    int implicit_confirm;  /* set implicitConfirm in IR/KUR/CR messages */
+    int disable_confirm;  /* disable confirmation messages in IR/KUR/CR
                             message exchanges to cope with broken server */
     int unprotectedSend; /* send unprotected PKI messages */
     int unprotectedErrors; /* accept negative responses with no/invalid prot. */
@@ -123,9 +123,9 @@ struct ossl_cmp_ctx_st {
     char *serverPath;
     char *proxyName;
     int proxyPort;
-    int msgtimeout; /* maximum time in seconds to wait for
+    int msg_timeout; /* maximum time in seconds to wait for
                        each CMP message round trip to complete */
-    int totaltimeout; /* maximum number seconds an enrollment may take, incl.
+    int total_timeout; /* maximum number seconds an enrollment may take, incl.
          attempts polling for a response if a 'waiting' PKIStatus is received */
     time_t end_time;
     OSSL_cmp_http_cb_t http_cb;

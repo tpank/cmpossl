@@ -143,7 +143,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
     int rv;
     int ret = 0;
     BIO *fbio = BIO_new(BIO_f_buffer());
-    time_t max_time = ctx->msgtimeout > 0 ? time(NULL) + ctx->msgtimeout : 0;
+    time_t max_time = ctx->msg_timeout > 0 ? time(NULL) + ctx->msg_timeout : 0;
 
     if (mbuf == NULL || fbio == NULL) {
         BIO_printf(bio_err, "%s: out of memory", prog);
@@ -448,7 +448,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort)
         return CMP_R_NULL_ARGUMENT;
 
-    max_time = ctx->msgtimeout > 0 ? time(NULL) + ctx->msgtimeout : 0;
+    max_time = ctx->msg_timeout > 0 ? time(NULL) + ctx->msg_timeout : 0;
 
     if ((hbio = CMP_new_http_bio(ctx)) == NULL)
         goto err;
@@ -459,7 +459,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 #if 1
     (void)ERR_set_mark();
     CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, CMP_R_ERROR_CONNECTING);
-    rv = bio_connect(hbio, ctx->msgtimeout);
+    rv = bio_connect(hbio, ctx->msg_timeout);
     if (rv <= 0) {
         err = (rv == 0) ? CMP_R_CONNECT_TIMEOUT : CMP_R_ERROR_CONNECTING;
         goto err;

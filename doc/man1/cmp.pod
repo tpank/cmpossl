@@ -14,8 +14,8 @@ S<[B<-section names>]>
 S<[B<-server address[:port]>]>
 S<[B<-proxy address[:port]>]>
 S<[B<-path remote_path>]>
-S<[B<-msgtimeout seconds>]>
-S<[B<-totaltimeout seconds>]>
+S<[B<-msg_timeout seconds>]>
+S<[B<-total_timeout seconds>]>
 
 S<[B<-trusted filenames>]>
 S<[B<-untrustedE<nbsp>sources>]>
@@ -56,8 +56,8 @@ S<[B<-out_trusted filenames>]>
 S<[B<-verify_hostname cn>]>
 S<[B<-verify_ip ip>]>
 S<[B<-verify_email email>]>
-S<[B<-implicitconfirm>]>
-S<[B<-disableconfirm>]>
+S<[B<-implicit_confirm>]>
+S<[B<-disable_confirm>]>
 S<[B<-certout filename>]>
 
 S<[B<-oldcert filename>]>
@@ -170,12 +170,12 @@ The environment variable C<no_proxy> (or else C<NO_PROXY>) is respected.
 
 HTTP path location to use for the CMP server (aka CMP alias). Defaults to "/".
 
-=item B<-msgtimeout seconds>
+=item B<-msg_timeout seconds>
 
 Number of seconds (or 0 for infinite) a CMP message round trip is
 allowed to take before a timeout error is returned. Default is 120.
 
-=item B<-totaltimeout seconds>
+=item B<-total_timeout seconds>
 
 Maximum number seconds an enrollment may take, including attempts polling for
 certificates on C<waiting> PKIStatus. Default is 0 (infinite).
@@ -539,11 +539,11 @@ When verification of the newly enrolled certificate is enabled (with the
 B<-out_trusted> option), check if there is
 an email address Subject Alternative Name matching the given email address.
 
-=item B<-implicitconfirm>
+=item B<-implicit_confirm>
 
 Request implicit confirmation of the newly enrolled certificate.
 
-=item B<-disableconfirm>
+=item B<-disable_confirm>
 
 Do not send certificate confirmation message for newly enrolled certificate to
 cope with broken servers not supporting implicit confirmation correctly.

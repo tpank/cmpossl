@@ -142,8 +142,8 @@ static char *opt_proxy = NULL;
 static int proxy_port = 8080;
 
 static char *opt_path = "/";
-static int opt_msgtimeout = -1;
-static int opt_totaltimeout = -1;
+static int opt_msg_timeout = -1;
+static int opt_total_timeout = -1;
 
 static int opt_tls_used = 0;
 static char *opt_tls_cert = NULL;
@@ -367,7 +367,7 @@ typedef enum OPTION_choice {
     OPT_CONFIG, OPT_SECTION,
 
     OPT_SERVER, OPT_PROXY, OPT_PATH,
-    OPT_MSGTIMEOUT, OPT_TOTALTIMEOUT,
+    OPT_MSG_TIMEOUT, OPT_TOTAL_TIMEOUT,
 
     OPT_TRUSTED, OPT_UNTRUSTED, OPT_SRVCERT,
     OPT_RECIPIENT, OPT_EXPECT_SENDER,
@@ -445,9 +445,9 @@ OPTIONS cmp_options[] = {
      "The env variable 'no_proxy' (or else NO_PROXY) is respected"},
     {"path", OPT_PATH, 's',
      "HTTP path location inside the server (aka CMP alias). Default '/'"},
-    {"msgtimeout", OPT_MSGTIMEOUT, 'n',
+    {"msg_timeout", OPT_MSG_TIMEOUT, 'n',
      "Timeout per CMP message round trip (or 0 for none). Default 120 seconds"},
-    {"totaltimeout", OPT_TOTALTIMEOUT, 'n',
+    {"total_timeout", OPT_TOTAL_TIMEOUT, 'n',
      "Overall time an enrollment incl. polling may take. Default 0 = infinite"},
 
     {OPT_MORE_STR, 0, 0, "\nServer authentication options:"},
@@ -537,9 +537,9 @@ OPTIONS cmp_options[] = {
      "CSR in PKCS#10 format to use in p10cr for legacy support"},
     {"out_trusted", OPT_OUT_TRUSTED, 's',
      "Trusted certificates to use for verifying the newly enrolled certificate"},
-    {"implicitconfirm", OPT_IMPLICITCONFIRM, '-',
+    {"implicit_confirm", OPT_IMPLICITCONFIRM, '-',
      "Request implicit confirmation of newly enrolled certificate"},
-    {"disableconfirm", OPT_DISABLECONFIRM, '-',
+    {"disable_confirm", OPT_DISABLECONFIRM, '-',
      "Do not confirm newly enrolled certificate."},
     {OPT_MORE_STR, 0, 0,
      "WARNING: This setting leads to behavior violating RFC 4210"},
@@ -715,7 +715,7 @@ static varref cmp_vars[] = {/* must be in the same order as enumerated above! */
     {&opt_config}, {&opt_section},
 
     {&opt_server}, {&opt_proxy}, {&opt_path},
-    {(char **)&opt_msgtimeout}, {(char **)&opt_totaltimeout},
+    {(char **)&opt_msg_timeout}, {(char **)&opt_total_timeout},
 
     {&opt_trusted}, {&opt_untrusted}, {&opt_srvcert},
     {&opt_recipient}, {&opt_expect_sender},
@@ -1488,7 +1488,7 @@ static X509_CRL *LOCAL_load_crl_crldp(STACK_OF(DIST_POINT) *crldp)
  * THIS IS crls_http_cb() FROM AND LOCAL TO apps.c,
  * but using LOCAL_load_crl_crldp instead of the one from apps.c
  * This variant does support non-blocking I/O using a timeout, yet note
- * that if opt_crl_timeout > opt_msgtimeout the latter is overridden.
+ * that if opt_crl_timeout > opt_msg_timeout the latter is overridden.
  *
  * Example of downloading CRLs from CRLDP: not usable for real world as it
  * always downloads and doesn't cache anything.
@@ -3581,12 +3581,12 @@ static int setup_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    if (opt_msgtimeout >= 0)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_MSGTIMEOUT,
-                                      opt_msgtimeout);
-    if (opt_totaltimeout >= 0)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_TOTALTIMEOUT,
-                                      opt_totaltimeout);
+    if (opt_msg_timeout >= 0)
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_MSG_TIMEOUT,
+                                      opt_msg_timeout);
+    if (opt_total_timeout >= 0)
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_TOTAL_TIMEOUT,
+                                      opt_total_timeout);
 
     if (opt_reqin != NULL || opt_reqout != NULL ||
         opt_rspin != NULL || opt_rspout != NULL
@@ -3969,12 +3969,12 @@ static int get_opts(int argc, char **argv)
         case OPT_PATH:
             opt_path = opt_str("path");
             break;
-        case OPT_MSGTIMEOUT:
-            if ((opt_msgtimeout = opt_nat()) < 0)
+        case OPT_MSG_TIMEOUT:
+            if ((opt_msg_timeout = opt_nat()) < 0)
                 goto opt_err;
             break;
-        case OPT_TOTALTIMEOUT:
-            if ((opt_totaltimeout = opt_nat()) < 0)
+        case OPT_TOTAL_TIMEOUT:
+            if ((opt_total_timeout = opt_nat()) < 0)
                 goto opt_err;
             break;
 

@@ -324,7 +324,7 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
         goto err;
 
     /* header */
-    if (ctx->implicitConfirm)
+    if (ctx->implicit_confirm)
         if (!OSSL_CMP_MSG_set_implicitConfirm(msg))
             goto err;
 
@@ -382,7 +382,7 @@ OSSL_CMP_MSG *OSSL_CMP_certrep_new(OSSL_CMP_CTX *ctx, int bodytype,
     repMsg = msg->body->value.ip; /* value.ip is same for cp and kup */
 
     /* header */
-    if (ctx->implicitConfirm && !OSSL_CMP_MSG_set_implicitConfirm(msg))
+    if (ctx->implicit_confirm && !OSSL_CMP_MSG_set_implicitConfirm(msg))
         goto oom;
 
     /* body */

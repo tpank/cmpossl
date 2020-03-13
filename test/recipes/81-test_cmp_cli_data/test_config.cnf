@@ -1,6 +1,6 @@
 [default]
 #proxy = 194.145.60.1:9400
-totaltimeout = 10 # prevent, e.g., infinite polling due to error
+total_timeout = 10 # prevent, e.g., infinite polling due to error
 trusted = root.crt
 newkey = test.ECC256p.pem
 newkeypass = 
@@ -81,8 +81,8 @@ sleep = 0
 ############################# aspects
 
 [connection]
-msgtimeout = 10
-totaltimeout =
+msg_timeout = 10
+total_timeout =
 server_port = 9080
 # reset any per-CA TLS options to default:
 tls_used =
@@ -140,8 +140,8 @@ reqexts =
 sans =
 san_nodefault = 0
 #popo =
-implicitconfirm = 0
-disableconfirm = 0
+implicit_confirm = 0
+disable_confirm = 0
 certout =
 out_trusted =
 oldcert =

@@ -151,8 +151,8 @@ static int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
     ctx->popoMethod = OSSL_CRMF_POPO_SIGNATURE;
     ctx->revocationReason = CRL_REASON_NONE;
     ctx->permitTAInExtraCertsForIR = 0;
-    ctx->implicitConfirm = 0;
-    ctx->disableConfirm = 0;
+    ctx->implicit_confirm = 0;
+    ctx->disable_confirm = 0;
     ctx->unprotectedSend = 0;
     ctx->unprotectedErrors = 0;
     ctx->ignore_keyusage = 0;
@@ -174,8 +174,8 @@ static int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
         goto err;
     ctx->proxyName = NULL;
     ctx->proxyPort = 8080;
-    ctx->msgtimeout = 2 * 60;
-    ctx->totaltimeout = 0;
+    ctx->msg_timeout = 2 * 60;
+    ctx->total_timeout = 0;
  /* ctx->end_time = */
     ctx->http_cb = NULL;
     ctx->http_cb_arg = NULL;
@@ -1303,12 +1303,12 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
     if (ctx == NULL)
         goto err;
     switch (opt) {
-    case OSSL_CMP_OPT_IMPLICITCONFIRM:
-        ctx->implicitConfirm = val;
+    case OSSL_CMP_OPT_IMPLICIT_CONFIRM:
+        ctx->implicit_confirm = val;
         break;
     /* to cope with broken server ignoring implicit confirmation */
-    case OSSL_CMP_OPT_DISABLECONFIRM:
-        ctx->disableConfirm = val;
+    case OSSL_CMP_OPT_DISABLE_CONFIRM:
+        ctx->disable_confirm = val;
         break;
     case OSSL_CMP_OPT_UNPROTECTED_SEND:
         ctx->unprotectedSend = val;
@@ -1343,11 +1343,11 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
     case OSSL_CMP_OPT_MAC_ALGNID:
         ctx->pbm_mac = val;
         break;
-    case OSSL_CMP_OPT_MSGTIMEOUT:
-        ctx->msgtimeout = val;
+    case OSSL_CMP_OPT_MSG_TIMEOUT:
+        ctx->msg_timeout = val;
         break;
-    case OSSL_CMP_OPT_TOTALTIMEOUT:
-        ctx->totaltimeout = val;
+    case OSSL_CMP_OPT_TOTAL_TIMEOUT:
+        ctx->total_timeout = val;
         break;
     case OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR:
         ctx->permitTAInExtraCertsForIR = val;

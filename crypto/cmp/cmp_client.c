@@ -164,20 +164,20 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                               OSSL_CMP_MSG **rep, int expected_type,
                               int not_received)
 {
-    int msgtimeout = ctx->msgtimeout; /* backup original value */
+    int msg_timeout = ctx->msg_timeout; /* backup original value */
     STACK_OF(X509) *extracerts;
     int err, rcvd_type;
 
     if ((expected_type == OSSL_CMP_PKIBODY_POLLREP ||
          IS_ENOLLMENT(expected_type))
-        && ctx->totaltimeout != 0) { /* total timeout is not infinite */
+        && ctx->total_timeout != 0) { /* total timeout is not infinite */
         int64_t time_left = (int64_t)(ctx->end_time - time(NULL));
         if (time_left <= 0) {
             CMPerr(CMP_F_SEND_RECEIVE_CHECK, CMP_R_TOTAL_TIMEOUT);
             return 0;
         }
-        if (ctx->msgtimeout == 0 || time_left < ctx->msgtimeout)
-            ctx->msgtimeout = (int)time_left;
+        if (ctx->msg_timeout == 0 || time_left < ctx->msg_timeout)
+            ctx->msg_timeout = (int)time_left;
     }
 
     OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO, "sending %s", type_string);
@@ -190,7 +190,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
          */
     else
         err = CMP_R_ERROR_SENDING_REQUEST;
-    ctx->msgtimeout = msgtimeout; /* restore original value */
+    ctx->msg_timeout = msg_timeout; /* restore original value */
 
     if (err != 0) {
         if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
@@ -250,7 +250,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
  *
  * A total timeout may have been set in the context.  The function will continue
  * to poll until the timeout is reached and then poll a last time even when that
- * is before the "checkAfter" sent by the server. If ctx->totaltimeout is 0, the
+ * is before the "checkAfter" sent by the server. If ctx->total_timeout is 0, the
  * timeout is disabled.
  *
  * returns 1 on success, returns received PKIMESSAGE in *msg argument
@@ -306,7 +306,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
                             "received polling response, waiting check_after =  "
                             "%ld sec before next polling request", check_after);
 
-            if (ctx->totaltimeout != 0) { /* total timeout is not infinite */
+            if (ctx->total_timeout != 0) { /* total timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
                 int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
                 if (time_left <= 0) {
@@ -618,7 +618,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
 
     /* TODO: better move certConf exchange to do_certreq_seq() such that
        also more low-level errors with CertReqMessages get reported to server */
-    if (!ctx->disableConfirm && !OSSL_CMP_MSG_check_implicitConfirm(*resp))
+    if (!ctx->disable_confirm && !OSSL_CMP_MSG_check_implicitConfirm(*resp))
         if (!OSSL_CMP_exchange_certConf(ctx, fail_info, txt))
             ret = 0;
 
@@ -660,7 +660,7 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
     if (ctx == NULL)
         return NULL;
 
-    ctx->end_time = time(NULL) + ctx->totaltimeout;
+    ctx->end_time = time(NULL) + ctx->total_timeout;
     ctx->lastPKIStatus = -1;
 
     /* check if all necessary options are set done by OSSL_CMP_certreq_new */
