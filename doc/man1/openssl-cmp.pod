@@ -15,8 +15,8 @@ B<openssl> B<cmp>
 [B<-proxy> I<[http://]address[:port][/path]>]
 [B<-no_proxy> I<addresses>]
 [B<-path> I<remote_path>]
-[B<-msgtimeout> I<seconds>]
-[B<-totaltimeout> I<seconds>]
+[B<-msg_timeout> I<seconds>]
+[B<-total_timeout> I<seconds>]
 
 [B<-trusted> I<filenames>]
 [B<-untrusted> I<sources>]
@@ -59,8 +59,8 @@ B<openssl> B<cmp>
 [B<-verify_hostname> I<cn>]
 [B<-verify_ip> I<ip>]
 [B<-verify_email> I<email>]
-[B<-implicitconfirm>]
-[B<-disableconfirm>]
+[B<-implicit_confirm>]
+[B<-disable_confirm>]
 [B<-certout> I<filename>]
 
 [B<-oldcert> I<filename>]
@@ -204,16 +204,16 @@ Default is from the environment variable C<no_proxy> if set, else C<NO_PROXY>.
 HTTP path at the CMP server (aka CMP alias) to use for POST requests.
 Defaults to "/".
 
-=item B<-msgtimeout> I<seconds>
+=item B<-msg_timeout> I<seconds>
 
-Number of seconds (or 0 for infinite) a CMP message round trip is
-allowed to take before a timeout error is returned.
+Number of seconds (or 0 for infinite) a CMP request-response message round trip
+is allowed to take before a timeout error is returned.
 Default is 120.
 
-=item B<-totaltimeout> I<seconds>
+=item B<-total_timeout> I<seconds>
 
-Maximum number seconds an enrollment may take, including attempts polling for
-certificates on C<waiting> PKIStatus.
+Maximum number seconds an overall enrollment transaction may take,
+including attempts polling for certificates on C<waiting> PKIStatus.
 Default is 0 (infinite).
 
 =back
@@ -612,11 +612,11 @@ When verification of the newly enrolled certificate is enabled (with the
 B<-out_trusted> option), check if there is
 an email address Subject Alternative Name matching the given email address.
 
-=item B<-implicitconfirm>
+=item B<-implicit_confirm>
 
 Request implicit confirmation of newly enrolled certificates.
 
-=item B<-disableconfirm>
+=item B<-disable_confirm>
 
 Do not send certificate confirmation message for newly enrolled certificate
 without requesting implicit confirmation

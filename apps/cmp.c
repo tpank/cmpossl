@@ -144,8 +144,8 @@ static int server_port = OSSL_CMP_DEFAULT_PORT;
 static char *opt_proxy = NULL;
 static char *opt_no_proxy = NULL;
 static char *opt_path = "/";
-static int opt_msgtimeout = -1;
-static int opt_totaltimeout = -1;
+static int opt_msg_timeout = -1;
+static int opt_total_timeout = -1;
 
 /* server authentication */
 static char *opt_trusted = NULL;
@@ -191,8 +191,8 @@ static int opt_policy_oids_critical = 0;
 static int opt_popo = OSSL_CRMF_POPO_NONE - 1;
 static char *opt_csr = NULL;
 static char *opt_out_trusted = NULL;
-static int opt_implicitConfirm = 0;
-static int opt_disableConfirm = 0;
+static int opt_implicit_confirm = 0;
+static int opt_disable_confirm = 0;
 static char *opt_certout = NULL;
 
 /* certificate enrollment and revocation */
@@ -264,7 +264,7 @@ typedef enum OPTION_choice {
     OPT_CONFIG, OPT_SECTION,
 
     OPT_SERVER, OPT_PROXY, OPT_NO_PROXY, OPT_PATH,
-    OPT_MSGTIMEOUT, OPT_TOTALTIMEOUT,
+    OPT_MSG_TIMEOUT, OPT_TOTAL_TIMEOUT,
 
     OPT_TRUSTED, OPT_UNTRUSTED, OPT_SRVCERT,
     OPT_RECIPIENT, OPT_EXPECT_SENDER,
@@ -282,7 +282,7 @@ typedef enum OPTION_choice {
     OPT_SANS, OPT_SAN_NODEFAULT,
     OPT_POLICIES, OPT_POLICY_OIDS, OPT_POLICY_OIDS_CRITICAL,
     OPT_POPO, OPT_CSR,
-    OPT_OUT_TRUSTED, OPT_IMPLICITCONFIRM, OPT_DISABLECONFIRM,
+    OPT_OUT_TRUSTED, OPT_IMPLICIT_CONFIRM, OPT_DISABLE_CONFIRM,
     OPT_CERTOUT,
 
     OPT_OLDCERT, OPT_REVREASON,
@@ -337,9 +337,9 @@ const OPTIONS cmp_options[] = {
      "Default from environment variable 'no_proxy', else 'NO_PROXY', else none"},
     {"path", OPT_PATH, 's',
      "HTTP path (aka CMP alias) at the CMP server. Default \"/\""},
-    {"msgtimeout", OPT_MSGTIMEOUT, 'n',
+    {"msg_timeout", OPT_MSG_TIMEOUT, 'n',
      "Timeout per CMP message round trip (or 0 for none). Default 120 seconds"},
-    {"totaltimeout", OPT_TOTALTIMEOUT, 'n',
+    {"total_timeout", OPT_TOTAL_TIMEOUT, 'n',
      "Overall time an enrollment incl. polling may take. Default 0 = infinite"},
 
     OPT_SECTION("Server authentication"),
@@ -433,9 +433,9 @@ const OPTIONS cmp_options[] = {
      "CSR file in PKCS#10 format to use in p10cr for legacy support"},
     {"out_trusted", OPT_OUT_TRUSTED, 's',
      "Certificates to trust when verifying newly enrolled certificates"},
-    {"implicitconfirm", OPT_IMPLICITCONFIRM, '-',
+    {"implicit_confirm", OPT_IMPLICIT_CONFIRM, '-',
      "Request implicit confirmation of newly enrolled certificates"},
-    {"disableconfirm", OPT_DISABLECONFIRM, '-',
+    {"disable_confirm", OPT_DISABLE_CONFIRM, '-',
      "Do not confirm newly enrolled certificate w/o requesting implicit"},
     {OPT_MORE_STR, 0, 0,
      "confirmation. WARNING: This leads to behavior violating RFC 4210"},
@@ -577,7 +577,7 @@ static varref cmp_vars[] = { /* must be in same order as enumerated above! */
     {&opt_config}, {&opt_section},
 
     {&opt_server}, {&opt_proxy}, {&opt_no_proxy}, {&opt_path},
-    {(char **)&opt_msgtimeout}, {(char **)&opt_totaltimeout},
+    {(char **)&opt_msg_timeout}, {(char **)&opt_total_timeout},
 
     {&opt_trusted}, {&opt_untrusted}, {&opt_srvcert},
     {&opt_recipient}, {&opt_expect_sender},
@@ -596,7 +596,7 @@ static varref cmp_vars[] = { /* must be in same order as enumerated above! */
     {&opt_policies}, {&opt_policy_oids}, {(char **)&opt_policy_oids_critical},
     {(char **)&opt_popo}, {&opt_csr},
     {&opt_out_trusted},
-    {(char **)&opt_implicitConfirm}, {(char **)&opt_disableConfirm},
+    {(char **)&opt_implicit_confirm}, {(char **)&opt_disable_confirm},
     {&opt_certout},
 
     {&opt_oldcert}, {(char **)&opt_revreason},
@@ -1895,10 +1895,10 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx)
         (void)OSSL_CMP_CTX_set_certConf_cb_arg(ctx, out_trusted);
     }
 
-    if (opt_disableConfirm)
+    if (opt_disable_confirm)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_DISABLE_CONFIRM, 1);
 
-    if (opt_implicitConfirm)
+    if (opt_implicit_confirm)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_IMPLICIT_CONFIRM, 1);
 
     (void)OSSL_CMP_CTX_set_certConf_cb(ctx, OSSL_CMP_certConf_cb);
@@ -2289,8 +2289,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_popo >= OSSL_CRMF_POPO_NONE)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_POPO_METHOD,
-                                      opt_popo);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_POPO_METHOD, opt_popo);
 
     if (opt_csr != NULL) {
         if (opt_cmd != CMP_P10CR) {
@@ -2430,12 +2429,12 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         }
     }
 
-    if (opt_msgtimeout >= 0) /* must do this before setup_ssl_ctx() */
+    if (opt_msg_timeout >= 0) /* must do this before setup_ssl_ctx() */
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_MSG_TIMEOUT,
-                                      opt_msgtimeout);
-    if (opt_totaltimeout >= 0)
+                                      opt_msg_timeout);
+    if (opt_total_timeout >= 0)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_TOTAL_TIMEOUT,
-                                      opt_totaltimeout);
+                                      opt_total_timeout);
 
     if (opt_reqin != NULL || opt_reqout != NULL
             || opt_rspin != NULL || opt_rspout != NULL || opt_use_mock_srv)
@@ -2937,12 +2936,12 @@ static int get_opts(int argc, char **argv)
         case OPT_PATH:
             opt_path = opt_str("path");
             break;
-        case OPT_MSGTIMEOUT:
-            if ((opt_msgtimeout = opt_nat()) < 0)
+        case OPT_MSG_TIMEOUT:
+            if ((opt_msg_timeout = opt_nat()) < 0)
                 goto opt_err;
             break;
-        case OPT_TOTALTIMEOUT:
-            if ((opt_totaltimeout = opt_nat()) < 0)
+        case OPT_TOTAL_TIMEOUT:
+            if ((opt_total_timeout = opt_nat()) < 0)
                 goto opt_err;
             break;
         case OPT_TLS_USED:
@@ -3084,11 +3083,11 @@ static int get_opts(int argc, char **argv)
         case OPT_OUT_TRUSTED:
             opt_out_trusted = opt_str("out_trusted");
             break;
-        case OPT_IMPLICITCONFIRM:
-            opt_implicitConfirm = 1;
+        case OPT_IMPLICIT_CONFIRM:
+            opt_implicit_confirm = 1;
             break;
-        case OPT_DISABLECONFIRM:
-            opt_disableConfirm = 1;
+        case OPT_DISABLE_CONFIRM:
+            opt_disable_confirm = 1;
             break;
         case OPT_CERTOUT:
             opt_certout = opt_str("certout");
