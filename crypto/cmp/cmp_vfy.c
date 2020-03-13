@@ -426,7 +426,7 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     char *sname = NULL;
     char *skid_str = NULL;
     const ASN1_OCTET_STRING *skid = msg->header->senderKID;
-    OSSL_cmp_log_cb_t backup_log_cb = ctx->log_cb;
+    OSSL_CMP_log_cb_t backup_log_cb = ctx->log_cb;
     int res = 0;
 
     if (sender == NULL || msg->body == NULL)

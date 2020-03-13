@@ -9,14 +9,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#ifndef _WIN32
-# include <unistd.h>
-#else
-# include <windows.h>
-# define sleep(x) Sleep((x) * 1000)
-#endif
-
 #include "cmp_local.h"
+#include "internal/cryptlib.h"
 
 /* explicit #includes not strictly needed since implied by the above: */
 #include <openssl/bio.h>
@@ -138,20 +132,19 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     const char *req_type_str =
         ossl_cmp_bodytype_to_string(ossl_cmp_msg_get_bodytype(req));
     const char *expected_type_str = ossl_cmp_bodytype_to_string(expected_type);
-    int msgtimeout;
-    int err = 0;
+    int msg_timeout;
     int bt;
     time_t now = time(NULL);
     int time_left;
-    OSSL_cmp_transfer_cb_t transfer_cb = ctx->transfer_cb;
+    OSSL_CMP_transfer_cb_t transfer_cb = ctx->transfer_cb;
 
     if (transfer_cb == NULL)
         transfer_cb = NULL; /* TODO: will be OSSL_CMP_MSG_http_perform of chunk 10 */
 
     *rep = NULL;
-    msgtimeout = ctx->msgtimeout; /* backup original value */
+    msg_timeout = ctx->msg_timeout; /* backup original value */
     if ((IS_CREP(expected_type) || expected_type == OSSL_CMP_PKIBODY_POLLREP)
-            && ctx->totaltimeout > 0 /* total timeout is not infinite */) {
+            && ctx->total_timeout > 0 /* timeout is not infinite */) {
         if (now >= ctx->end_time) {
             CMPerr(0, CMP_R_TOTAL_TIMEOUT);
             return 0;
@@ -162,8 +155,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             return 0;
         }
         time_left = (int)(ctx->end_time - now);
-        if (ctx->msgtimeout == 0 || time_left < ctx->msgtimeout)
-            ctx->msgtimeout = time_left;
+        if (ctx->msg_timeout == 0 || time_left < ctx->msg_timeout)
+            ctx->msg_timeout = time_left;
     }
 
     /* should print error queue since transfer_cb may call ERR_clear_error() */
@@ -171,22 +164,12 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     ossl_cmp_log1(INFO, ctx, "sending %s", req_type_str);
 
-    if ((*rep = (*transfer_cb)(ctx, req)) == NULL) {
-        err = ERR_GET_REASON(ERR_peek_error());
-        if (err == 0) /* the application failed to provide a reason */
-            err = CMP_R_TRANSFER_ERROR;
-    }
-    ctx->msgtimeout = msgtimeout; /* restore original value */
+    if ((*rep = (*transfer_cb)(ctx, req)) == NULL)
+        CMPerr(0, CMP_R_TRANSFER_ERROR);
+    ctx->msg_timeout = msg_timeout; /* restore original value */
 
     if (*rep == NULL) {
-        /*-
-         * sending failed in case
-         * err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
-         * err == CMP_R_READ_TIMEOUT ||
-         * err == CMP_R_ERROR_DECODING_MESSAGE
-         * else there was an issue receiving the response
-         */
-        CMPerr(0, CMP_R_ERROR_SENDING_REQUEST);
+        CMPerr(0, CMP_R_TRANSFER_ERROR); /* or receiving response */
         ERR_add_error_data(1, req_type_str);
         ERR_add_error_data(2, ", expected response: ", expected_type_str);
         return 0;
@@ -244,16 +227,16 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     return 0;
 }
 
-/*
+/*-
  * When a 'waiting' PKIStatus has been received, this function is used to
  * attempt to poll for a response message.
  *
- * A total timeout may have been set in the context.  The function will continue
- * to poll until the timeout is reached and then poll a last time even when that
- * is before the "checkAfter" sent by the server. If ctx->totaltimeout is 0, the
- * timeout is disabled.
+ * A transaction timeout may have been set in the context.
+ * If ctx->total_timeout is 0, the timeout is disabled.
+ * The function will continue to poll until the timeout is reached (if enabled)
+ * and then poll a last time even when that is before the "checkAfter" received.
  *
- * returns 1 on success, returns received PKIMESSAGE in *msg argument
+ * returns 1 on success, returns received PKIMESSAGE in *out argument
  * returns 0 on error or when timeout is reached without a received message
  */
 static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
@@ -298,7 +281,7 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
                           "received polling response, waiting for check_after = %ld seconds",
                           check_after);
 
-            if (ctx->totaltimeout > 0) { /* total timeout is not infinite */
+            if (ctx->total_timeout > 0) { /* timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
                 int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
 
@@ -315,7 +298,7 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             preq = NULL;
             OSSL_CMP_MSG_free(prep);
             prep = NULL;
-            sleep((unsigned int)check_after);
+            ossl_sleep(1000 * check_after);
         } else {
             ossl_cmp_info(ctx, "received got ip/cp/kup after polling");
             /* any other body type has been rejected by send_receive_check() */
@@ -434,7 +417,7 @@ static X509 *get1_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
         ossl_cmp_log1(ERROR, ctx,
                       "received unsupported PKIStatus %d for certificate",
                       ctx->status);
-        CMPerr(0, CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS);
+        CMPerr(0, CMP_R_UNKNOWN_PKISTATUS);
         goto err;
     }
     if (crt == NULL) /* according to PKIStatus, we can expect a cert */
@@ -625,9 +608,11 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, int req_type, int req_err,
         CMPerr(0, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
+    if (!ossl_cmp_ctx_set0_newCert(ctx, NULL))
+        return NULL;
 
-    if (ctx->totaltimeout > 0) /* else ctx->end_time is not used */
-        ctx->end_time = time(NULL) + ctx->totaltimeout;
+    if (ctx->total_timeout > 0) /* else ctx->end_time is not used */
+        ctx->end_time = time(NULL) + ctx->total_timeout;
     ctx->status = -1;
 
     /* OSSL_CMP_certreq_new() also checks if all necessary options are set */
@@ -647,24 +632,30 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, int req_type, int req_err,
     return result;
 }
 
-/*
- * Do the full sequence for RR, including RR, RP, and potential polling
- *
- * All options need to be set in the context,
- * in particular oldCert, the certificate to be revoked.
- *
- * TODO: this function can only revoke one certificate so far,
- * should be possible for several (num_RevDetails > 1) according to 5.3.9
- *
- * The RFC is vague in which PKIStatus should be returned by the server, so we
- * take "accepted, "grantedWithMods", and "revocationWarning" as success,
- * "revocationNotification" is used by some CAs as an indication that the
- * certificate was already revoked, "rejection" as indication that the
- * revocation was rejected, and do not expect "waiting" or "keyUpdateWarning"
- * (which are handled as error).
- *
- * returns the revoked cert on success, NULL on error
- */
+X509 *OSSL_CMP_exec_IR_ses(OSSL_CMP_CTX *ctx)
+{
+    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_IR,
+                          CMP_R_ERROR_CREATING_IR, OSSL_CMP_PKIBODY_IP);
+}
+
+X509 *OSSL_CMP_exec_CR_ses(OSSL_CMP_CTX *ctx)
+{
+    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_CR,
+                          CMP_R_ERROR_CREATING_CR, OSSL_CMP_PKIBODY_CP);
+}
+
+X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx)
+{
+    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_KUR,
+                          CMP_R_ERROR_CREATING_KUR, OSSL_CMP_PKIBODY_KUP);
+}
+
+X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx)
+{
+    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_P10CR,
+                          CMP_R_ERROR_CREATING_P10CR, OSSL_CMP_PKIBODY_CP);
+}
+
 X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_MSG *rr = NULL;
@@ -718,7 +709,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         break;
     case OSSL_CMP_PKISTATUS_revocationNotification:
         /* interpretation as warning or error depends on CA */
-        ossl_cmp_info(ctx,
+        ossl_cmp_warn(ctx,
                       "revocation accepted (PKIStatus=revocationNotification)");
         result = ctx->oldCert;
         break;
@@ -748,11 +739,14 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
             result = NULL;
             goto err;
         }
-        if (X509_NAME_cmp(issuer, OSSL_CRMF_CERTID_get0_issuer(cid)) != 0
-                || ASN1_INTEGER_cmp(serial,
-                                    OSSL_CRMF_CERTID_get0_serialNumber(cid))
-            != 0) {
+        if (X509_NAME_cmp(issuer, OSSL_CRMF_CERTID_get0_issuer(cid)) != 0) {
             CMPerr(0, CMP_R_WRONG_CERTID_IN_RP);
+            result = NULL;
+            goto err;
+        }
+        if (ASN1_INTEGER_cmp(serial,
+                             OSSL_CRMF_CERTID_get0_serialNumber(cid)) != 0) {
+            CMPerr(0, CMP_R_WRONG_SERIAL_IN_RP);
             result = NULL;
             goto err;
         }
@@ -776,37 +770,6 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     return result;
 }
 
-X509 *OSSL_CMP_exec_IR_ses(OSSL_CMP_CTX *ctx)
-{
-    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_IR,
-                          CMP_R_ERROR_CREATING_IR, OSSL_CMP_PKIBODY_IP);
-}
-
-X509 *OSSL_CMP_exec_CR_ses(OSSL_CMP_CTX *ctx)
-{
-    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_CR,
-                          CMP_R_ERROR_CREATING_CR, OSSL_CMP_PKIBODY_CP);
-}
-
-X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx)
-{
-    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_KUR,
-                          CMP_R_ERROR_CREATING_KUR, OSSL_CMP_PKIBODY_KUP);
-}
-
-X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx)
-{
-    return do_certreq_seq(ctx, OSSL_CMP_PKIBODY_P10CR,
-                          CMP_R_ERROR_CREATING_P10CR, OSSL_CMP_PKIBODY_CP);
-}
-
-/*
- * Send a general message to the server to request information specified in the
- * InfoType and Value (itav) given in the ctx->genm_itavs, see section 5.3.19
- * and E.5.
- *
- * returns pointer to stack of ITAVs received in the answer or NULL on error
- */
 STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_MSG *genm = NULL;

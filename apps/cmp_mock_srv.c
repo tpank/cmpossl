@@ -187,7 +187,7 @@ static OSSL_CMP_PKISI *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
         return NULL;
     }
     if (ctx->sendError) {
-        CMPerr(0, CMP_R_ERROR_PROCESSING_MSG);
+        CMPerr(0, CMP_R_ERROR_PROCESSING_MESSAGE);
         return NULL;
     }
 
@@ -238,7 +238,7 @@ static OSSL_CMP_PKISI *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
         return NULL;
     }
     if (ctx->sendError || ctx->certOut == NULL) {
-        CMPerr(0, CMP_R_ERROR_PROCESSING_MSG);
+        CMPerr(0, CMP_R_ERROR_PROCESSING_MESSAGE);
         return NULL;
     }
 
@@ -264,7 +264,7 @@ static int process_genm(OSSL_CMP_SRV_CTX *srv_ctx,
         return 0;
     }
     if (ctx->sendError) {
-        CMPerr(0, CMP_R_ERROR_PROCESSING_MSG);
+        CMPerr(0, CMP_R_ERROR_PROCESSING_MESSAGE);
         return 0;
     }
 
@@ -332,7 +332,7 @@ static int process_certConf(OSSL_CMP_SRV_CTX *srv_ctx,
         return 0;
     }
     if (ctx->sendError || ctx->certOut == NULL) {
-        CMPerr(0, CMP_R_ERROR_PROCESSING_MSG);
+        CMPerr(0, CMP_R_ERROR_PROCESSING_MESSAGE);
         return 0;
     }
 
@@ -366,7 +366,7 @@ static int process_pollReq(OSSL_CMP_SRV_CTX *srv_ctx,
     }
     if (ctx->sendError || ctx->certReq == NULL) {
         *certReq = NULL;
-        CMPerr(0, CMP_R_ERROR_PROCESSING_MSG);
+        CMPerr(0, CMP_R_ERROR_PROCESSING_MESSAGE);
         return 0;
     }
 

@@ -2086,7 +2086,6 @@ CMP_R_CERTREQMSG_NOT_FOUND:157:certreqmsg not found
 CMP_R_CERTRESPONSE_NOT_FOUND:113:certresponse not found
 CMP_R_CERT_AND_KEY_DO_NOT_MATCH:114:cert and key do not match
 CMP_R_ENCOUNTERED_KEYUPDATEWARNING:176:encountered keyupdatewarning
-CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS:189:encountered unsupported pkistatus
 CMP_R_ENCOUNTERED_WAITING:162:encountered waiting
 CMP_R_ERROR_CALCULATING_PROTECTION:115:error calculating protection
 CMP_R_ERROR_CREATING_CERTCONF:116:error creating certconf
@@ -2103,16 +2102,13 @@ CMP_R_ERROR_CREATING_POLLREP:123:error creating pollrep
 CMP_R_ERROR_CREATING_POLLREQ:124:error creating pollreq
 CMP_R_ERROR_CREATING_RP:125:error creating rp
 CMP_R_ERROR_CREATING_RR:126:error creating rr
-CMP_R_ERROR_DECODING_MESSAGE:166:error decoding message
 CMP_R_ERROR_PARSING_PKISTATUS:107:error parsing pkistatus
-CMP_R_ERROR_PROCESSING_MSG:158:error processing msg
+CMP_R_ERROR_PROCESSING_MESSAGE:158:error processing message
 CMP_R_ERROR_PROTECTING_MESSAGE:127:error protecting message
-CMP_R_ERROR_SENDING_REQUEST:168:error sending request
 CMP_R_ERROR_SETTING_CERTHASH:128:error setting certhash
 CMP_R_ERROR_UNEXPECTED_CERTCONF:160:error unexpected certconf
 CMP_R_ERROR_VALIDATING_PROTECTION:140:error validating protection
 CMP_R_FAILED_EXTRACTING_PUBKEY:141:failed extracting pubkey
-CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE:171:failed to receive pkimessage
 CMP_R_FAILURE_OBTAINING_RANDOM:110:failure obtaining random
 CMP_R_FAIL_INFO_OUT_OF_RANGE:129:fail info out of range
 CMP_R_INVALID_ARGS:100:invalid args
@@ -2133,7 +2129,6 @@ CMP_R_PKIBODY_ERROR:146:pkibody error
 CMP_R_PKISTATUSINFO_NOT_FOUND:132:pkistatusinfo not found
 CMP_R_POLLING_FAILED:172:polling failed
 CMP_R_POTENTIALLY_INVALID_CERTIFICATE:147:potentially invalid certificate
-CMP_R_READ_TIMEOUT:179:read timeout
 CMP_R_RECEIVED_ERROR:180:received error
 CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP:181:\
 	received negative checkafter in pollrep
@@ -2160,6 +2155,7 @@ CMP_R_WRONG_ALGORITHM_OID:138:wrong algorithm oid
 CMP_R_WRONG_CERTID_IN_RP:187:wrong certid in rp
 CMP_R_WRONG_PBM_VALUE:155:wrong pbm value
 CMP_R_WRONG_RP_COMPONENT_COUNT:188:wrong rp component count
+CMP_R_WRONG_SERIAL_IN_RP:173:wrong serial in rp
 CMS_R_ADD_SIGNER_ERROR:99:add signer error
 CMS_R_ATTRIBUTE_ERROR:161:attribute error
 CMS_R_CERTIFICATE_ALREADY_PRESENT:175:certificate already present

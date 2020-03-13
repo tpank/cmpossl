@@ -44,7 +44,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_CERTRESPONSE_NOT_FOUND                     113
 #  define CMP_R_CERT_AND_KEY_DO_NOT_MATCH                  114
 #  define CMP_R_ENCOUNTERED_KEYUPDATEWARNING               176
-#  define CMP_R_ENCOUNTERED_UNSUPPORTED_PKISTATUS          189
 #  define CMP_R_ENCOUNTERED_WAITING                        162
 #  define CMP_R_ERROR_CALCULATING_PROTECTION               115
 #  define CMP_R_ERROR_CREATING_CERTCONF                    116
@@ -61,16 +60,13 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_ERROR_CREATING_POLLREQ                     124
 #  define CMP_R_ERROR_CREATING_RP                          125
 #  define CMP_R_ERROR_CREATING_RR                          126
-#  define CMP_R_ERROR_DECODING_MESSAGE                     166
 #  define CMP_R_ERROR_PARSING_PKISTATUS                    107
-#  define CMP_R_ERROR_PROCESSING_MSG                       158
+#  define CMP_R_ERROR_PROCESSING_MESSAGE                   158
 #  define CMP_R_ERROR_PROTECTING_MESSAGE                   127
-#  define CMP_R_ERROR_SENDING_REQUEST                      168
 #  define CMP_R_ERROR_SETTING_CERTHASH                     128
 #  define CMP_R_ERROR_UNEXPECTED_CERTCONF                  160
 #  define CMP_R_ERROR_VALIDATING_PROTECTION                140
 #  define CMP_R_FAILED_EXTRACTING_PUBKEY                   141
-#  define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE               171
 #  define CMP_R_FAILURE_OBTAINING_RANDOM                   110
 #  define CMP_R_FAIL_INFO_OUT_OF_RANGE                     129
 #  define CMP_R_INVALID_ARGS                               100
@@ -90,7 +86,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_PKISTATUSINFO_NOT_FOUND                    132
 #  define CMP_R_POLLING_FAILED                             172
 #  define CMP_R_POTENTIALLY_INVALID_CERTIFICATE            147
-#  define CMP_R_READ_TIMEOUT                               179
 #  define CMP_R_RECEIVED_ERROR                             180
 #  define CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP    181
 #  define CMP_R_RECIPNONCE_UNMATCHED                       148
@@ -114,6 +109,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_WRONG_CERTID_IN_RP                         187
 #  define CMP_R_WRONG_PBM_VALUE                            155
 #  define CMP_R_WRONG_RP_COMPONENT_COUNT                   188
+#  define CMP_R_WRONG_SERIAL_IN_RP                         173
 
 # endif
 #endif

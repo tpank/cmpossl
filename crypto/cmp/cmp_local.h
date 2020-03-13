@@ -28,11 +28,11 @@
  * this structure is used to store the context for CMP sessions
  */
 struct ossl_cmp_ctx_st {
-    OSSL_cmp_log_cb_t log_cb; /* log callback for error/debug/etc. output */
+    OSSL_CMP_log_cb_t log_cb; /* log callback for error/debug/etc. output */
     OSSL_CMP_severity log_verbosity; /* level of verbosity of log output */
 
     /* message transfer */
-    OSSL_cmp_transfer_cb_t transfer_cb; /* default: OSSL_CMP_MSG_http_perform */
+    OSSL_CMP_transfer_cb_t transfer_cb; /* default: OSSL_CMP_MSG_http_perform */
     void *transfer_cb_arg; /* allows to store optional argument to cb */
     /* HTTP-based transfer */
     char *serverPath;
@@ -40,8 +40,8 @@ struct ossl_cmp_ctx_st {
     int serverPort;
     char *proxyName;
     int proxyPort;
-    int msgtimeout; /* max seconds to wait for each CMP message round trip */
-    int totaltimeout; /* maximum number seconds an enrollment may take, incl. */
+    int msg_timeout; /* max seconds to wait for each CMP message round trip */
+    int total_timeout; /* max number of seconds an enrollment may take, incl. */
     /* attempts polling for a response if a 'waiting' PKIStatus is received */
     time_t end_time; /* session start time + totaltimeout */
     OSSL_HTTP_bio_cb_t http_cb;
@@ -122,7 +122,7 @@ struct ossl_cmp_ctx_st {
     STACK_OF(X509) *extraCertsIn; /* extraCerts received from server */
 
     /* certificate confirmation */
-    OSSL_cmp_certConf_cb_t certConf_cb; /* callback for app checking new cert */
+    OSSL_CMP_certConf_cb_t certConf_cb; /* callback for app checking new cert */
     void *certConf_cb_arg; /* allows to store an argument individual to cb */
 } /* OSSL_CMP_CTX */;
 

@@ -128,8 +128,6 @@ confirmation of newly enrolled certificates if requested.
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
 
-=head1 BUGS
-
 So far the CMP server implementation is limited to one request per CMP message
 (and consequently to at most one response component per CMP message).
 

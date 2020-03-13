@@ -183,7 +183,7 @@ static int test_exec_IR_ses_poll_timeout(void)
     fixture->expected = 0;
     ossl_cmp_mock_srv_set_pollCount(fixture->srv_ctx, pollCount + 1);
     ossl_cmp_mock_srv_set_checkAfterTime(fixture->srv_ctx, checkAfter);
-    OSSL_CMP_CTX_set_option(fixture->cmp_ctx, OSSL_CMP_OPT_TOTALTIMEOUT, tout);
+    OSSL_CMP_CTX_set_option(fixture->cmp_ctx, OSSL_CMP_OPT_TOTAL_TIMEOUT, tout);
     EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     return result;
 }
@@ -204,7 +204,7 @@ static int test_exec_CR_ses_implicit_confirm(void)
     fixture->exec_cert_ses_cb = OSSL_CMP_exec_CR_ses;
     fixture->expected = 1;
     OSSL_CMP_CTX_set_option(fixture->cmp_ctx,
-                            OSSL_CMP_OPT_IMPLICITCONFIRM, 1);
+                            OSSL_CMP_OPT_IMPLICIT_CONFIRM, 1);
     OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(fixture->srv_ctx, 1);
     EXECUTE_TEST(execute_exec_certrequest_ses_test, tear_down);
     return result;

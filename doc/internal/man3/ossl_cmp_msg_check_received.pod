@@ -2,6 +2,7 @@
 
 =head1 NAME
 
+ossl_cmp_allow_unprotected_cb_t,
 ossl_cmp_msg_check_received
 - does all checks on a received CMP message that can be done generically
 

@@ -20,34 +20,55 @@ OSSL_CMP_certConf_cb
  X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx);
  X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx);
  X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx);
- STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx;
+ STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx);
  int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
                           const char **text);
 
 =head1 DESCRIPTION
 
-This is the API for doing CMP (Certificate Management Protocol)
-client-server message sequences using OpenSSL.
+This is the OpenSSL API for doing CMP (Certificate Management Protocol)
+client-server transactions, i.e., sequences of CMP requests and responses.
+
+All functions take a populated OSSL_CMP_CTX structure as their first argument.
+Usually the server name, port, and path ("CMP alias") need to be set, as well as
+credentials the client can use for authenticating itself to the client.
+In order to authenticate the server the client typically needs a trust store.
+For performing certificate enrollment requests the certificate template needs
+to be sufficiently filled in, giving at least the subject name and key.
+The functions return their respective main results directly, while there are
+also accessor functions for retrieving various results and status information
+from the B<ctx>. See L<OSSL_CMP_CTX_new(3)> etc. for details.
+
 The default conveying protocol is HTTP.
+Timeout values may be given per request-response pair and per transaction.
+See L<OSSL_CMP_MSG_http_perform(3)> for details.
 
-OSSL_CMP_exec_IR_ses() obtains an initial certificate from the CA.
-A populated OSSL_CMP_CTX structure is required as an argument.
+OSSL_CMP_exec_IR_ses() requests an initial certificate from the given PKI.
 
-OSSL_CMP_exec_CR_ses() requests an additional certificate from the CA.
-A populated OSSL_CMP_CTX structure is required as an argument.
+OSSL_CMP_exec_CR_ses() requests an additional certificate.
 
-OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx) requests in PKCS#10 CSR form
-a certificate from the CA.
-A populated OSSL_CMP_CTX structure is required as an argument.
+OSSL_CMP_exec_P10CR_ses() conveys a legacy PKCS#10 CSR requesting a certificate.
 
-OSSL_CMP_exec_KUR_ses() obtains an updated certificate from the CA.
-A populated OSSL_CMP_CTX structure is required as an argument.
+OSSL_CMP_exec_KUR_ses() obtains an updated certificate.
 
-OSSL_CMP_exec_RR_ses() requests the revocation of a certificate at the CA.
+All these four types of certificate enrollment may be blocked until the
+CAs or an intermedate PKI component can fully process and answer the request.
 
-OSSL_CMP_exec_GENM_ses() sends a general message with any ITAVs specified in the
-B<ctx>->genm_itavs, and returns the list of B<ITAV>s received in the GenRep.
+OSSL_CMP_exec_RR_ses() requests the revocation of the certificate
+specified in the B<ctx> using L<OSSL_CMP_CTX_set1_oldCert(3)>.
+RFC 4210 is vague in which PKIStatus should be returned by the server.
+We take "accepted" and "grantedWithMods" as clear success and handle
+"revocationWarning" and "revocationNotification" just as warnings because CAs
+typically return them as an indication that the certificate was already revoked.
+"rejection" is a clear error. The values "waiting" and "keyUpdateWarning"
+make no sense for revocation and thus are treated as an error as well.
+
+OSSL_CMP_exec_GENM_ses() sends a general message containing the sequence of
+infoType and infoValue pairs (InfoTypeAndValue; short: B<ITAV>)
+provided in the B<ctx> using L<OSSL_CMP_CTX_push0_genm_ITAV(3)>.
+It returns the list of B<ITAV>s received in the GenRep.
 This can be used, for instance, to poll for CRLs or CA Key Updates.
+See RFC 4210 section 5.3.19 and appendix E.5 for details.
 
 OSSL_CMP_certConf_cb() is a basic certificate confirmation callback validating
 that the new certificate can be verified with the trusted/untrusted certificates
@@ -58,8 +79,6 @@ validated by the client, this callback is not set by default in the context.
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
-
-=head1 BUGS
 
 So far the CMP client implementation is limited to one request per CMP message
 (and consequently to at most one response component per CMP message).
