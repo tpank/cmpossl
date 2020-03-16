@@ -204,25 +204,21 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         OSSL_CMP_PKISI *si = emc->pKIStatusInfo;
         char buf[OSSL_CMP_PKISI_BUFLEN];
 
+        if (save_statusInfo(ctx, si)
+                && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf, sizeof(buf)) != NULL)
+            ERR_add_error_data(1, buf);
         if (emc->errorCode != NULL
-                && BIO_snprintf(buf, sizeof(buf), "errorCode=%ld, ",
+                && BIO_snprintf(buf, sizeof(buf), "; errorCode: %ld",
                                 ASN1_INTEGER_get(emc->errorCode)) > 0)
             ERR_add_error_data(1, buf);
-        *buf = '\0';
         if (emc->errorDetails != NULL) {
             char *text = sk_ASN1_UTF8STRING2text(emc->errorDetails, ", ",
                                                  OSSL_CMP_PKISI_BUFLEN - 1);
 
-            if (text != NULL
-                    && BIO_snprintf(buf, sizeof(buf), "errorDetails=%s, ",
-                                    text) > 0)
-                ERR_add_error_data(1, buf);
+            if (text != NULL)
+                ERR_add_error_data(2, "; errorDetails: ", text);
             OPENSSL_free(text);
         }
-        *buf = '\0';
-        if (save_statusInfo(ctx, si)
-                && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf, sizeof(buf)) != NULL)
-            ERR_add_error_data(1, buf);
     }
     return 0;
 }
@@ -231,9 +227,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
  * When a 'waiting' PKIStatus has been received, this function is used to
  * attempt to poll for a response message.
  *
- * A transaction timeout may have been set in the context.
- * If ctx->total_timeout is 0, the timeout is disabled.
- * The function will continue to poll until the timeout is reached (if enabled)
+ * A transaction timeout is enabled if ctx->total_timeout is > 0.
+ * In this case the function will continue to poll until the timeout is reached
  * and then poll a last time even when that is before the "checkAfter" received.
  *
  * returns 1 on success, returns received PKIMESSAGE in *out argument
@@ -243,7 +238,6 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
 {
     OSSL_CMP_MSG *preq = NULL;
     OSSL_CMP_MSG *prep = NULL;
-    OSSL_CMP_POLLREP *pollRep = NULL;
 
     ossl_cmp_info(ctx,
                   "received 'waiting' PKIStatus, starting to poll for response");
@@ -257,8 +251,12 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
 
         /* handle potential pollRep */
         if (ossl_cmp_msg_get_bodytype(prep) == OSSL_CMP_PKIBODY_POLLREP) {
-            int64_t check_after;
             OSSL_CMP_POLLREPCONTENT *prc = prep->body->value.pollRep;
+            OSSL_CMP_POLLREP *pollRep = NULL;
+            int64_t check_after;
+            char str[OSSL_CMP_PKISI_BUFLEN];
+            int len;
+            char *text;
 
             /* TODO: handle potentially multiple elements in pollRep */
             if (sk_OSSL_CMP_POLLREP_num(prc) > 1) {
@@ -276,10 +274,22 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
                 CMPerr(0, CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP);
                 goto err;
             }
-            /* TODO: print OPTIONAL reason (PKIFreeText) from message */
-            ossl_cmp_log1(INFO, ctx,
-                          "received polling response, waiting for check_after = %ld seconds",
-                          check_after);
+            if (pollRep->reason == NULL
+                    || (len = BIO_snprintf(str, OSSL_CMP_PKISI_BUFLEN,
+                                           " with reason = '")) < 0) {
+                *str = '\0';
+            } else {
+                text = sk_ASN1_UTF8STRING2text(pollRep->reason, ", ",
+                                               sizeof(str) - len - 2);
+                if (text == NULL
+                        || BIO_snprintf(str + len, sizeof(str) - len,
+                                        "%s'", text) < 0)
+                    *str = '\0';
+            }
+            ossl_cmp_log2(INFO, ctx,
+                          "received polling response%s, waiting for check_after = %ld seconds",
+                          str, check_after);
+            OPENSSL_free(text);
 
             if (ctx->total_timeout > 0) { /* timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
@@ -300,7 +310,7 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             prep = NULL;
             ossl_sleep(1000 * check_after);
         } else {
-            ossl_cmp_info(ctx, "received got ip/cp/kup after polling");
+            ossl_cmp_info(ctx, "received ip/cp/kup after polling");
             /* any other body type has been rejected by send_receive_check() */
             break;
         }
@@ -503,7 +513,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         OSSL_CMP_MSG_free(*resp);
         *resp = NULL;
         if (poll_for_response(ctx, rid, resp)) {
-            goto retry; /* got rp/cp/kup which might still indicate 'waiting' */
+            goto retry; /* got ip/cp/kup which might still indicate 'waiting' */
         } else {
             CMPerr(0, CMP_R_POLLING_FAILED);
             *resp = NULL;

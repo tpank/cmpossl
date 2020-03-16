@@ -306,6 +306,7 @@ static void process_error(OSSL_CMP_SRV_CTX *srv_ctx, const OSSL_CMP_MSG *error,
     if (sk_ASN1_UTF8STRING_num(errorDetails) <= 0) {
         BIO_printf(bio_err, "errorDetails absent\n");
     } else {
+        /* TODO could use sk_ASN1_UTF8STRING2text() if exported */
         BIO_printf(bio_err, "errorDetails: ");
         for (i = 0; i < sk_ASN1_UTF8STRING_num(errorDetails); i++) {
             if (i > 0)
