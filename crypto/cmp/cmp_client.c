@@ -268,7 +268,6 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
             int64_t check_after;
             char str[OSSL_CMP_PKISI_BUFLEN];
             int len;
-            char *text;
 
             /* TODO: handle potentially multiple elements in pollRep */
             if (sk_OSSL_CMP_POLLREP_num(prc) > 1) {
@@ -309,17 +308,18 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
                                            " with reason = '")) < 0) {
                 *str = '\0';
             } else {
-                text = sk_ASN1_UTF8STRING2text(pollRep->reason, ", ",
-                                               sizeof(str) - len - 2);
+                char *text = sk_ASN1_UTF8STRING2text(pollRep->reason, ", ",
+                                                     sizeof(str) - len - 2);
+
                 if (text == NULL
                         || BIO_snprintf(str + len, sizeof(str) - len,
                                         "%s'", text) < 0)
                     *str = '\0';
+                OPENSSL_free(text);
             }
             ossl_cmp_log2(INFO, ctx,
                           "received polling response%s; checkAfter = %ld seconds",
                           str, check_after);
-            OPENSSL_free(text);
 
             OSSL_CMP_MSG_free(preq);
             preq = NULL;
