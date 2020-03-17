@@ -231,16 +231,17 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
  * In this case the function will continue to poll until the timeout is reached
  * and then poll a last time even when that is before the "checkAfter" received.
  *
- * returns 1 on success, returns received PKIMESSAGE in *out argument
+ * returns 1 on success, returns received PKIMESSAGE in *rep argument
  * returns 0 on error or when timeout is reached without a received message
  */
-static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
+static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **rep)
 {
     OSSL_CMP_MSG *preq = NULL;
     OSSL_CMP_MSG *prep = NULL;
 
     ossl_cmp_info(ctx,
                   "received 'waiting' PKIStatus, starting to poll for response");
+    *rep = NULL;
     for (;;) {
         /* TODO: handle potentially multiple poll requests per message */
         if ((preq = ossl_cmp_pollReq_new(ctx, rid)) == NULL)
@@ -263,17 +264,34 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
                 CMPerr(0, CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED);
                 goto err;
             }
-            if ((pollRep = ossl_cmp_pollrepcontent_get0_pollrep(prc, rid))
-                == NULL)
+            pollRep = ossl_cmp_pollrepcontent_get0_pollrep(prc, rid);
+            if (pollRep == NULL)
                 goto err;
+
             if (!ASN1_INTEGER_get_int64(&check_after, pollRep->checkAfter)) {
                 CMPerr(0, CMP_R_BAD_CHECKAFTER_IN_POLLREP);
                 goto err;
             }
-            if (check_after < 0) {
-                CMPerr(0, CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP);
+            if (check_after < 0 || (uint64_t)check_after > ULONG_MAX / 1000) {
+                CMPerr(0, CMP_R_CHECKAFTER_OUT_OF_RANGE);
+                if (BIO_snprintf(str, OSSL_CMP_PKISI_BUFLEN, "value = %ld",
+                                 check_after) >= 0)
+                    ERR_add_error_data(1, str);
                 goto err;
             }
+            if (ctx->total_timeout > 0) { /* timeout is not infinite */
+                const int exp = 5; /* expected max time per msg round trip */
+                int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
+
+                if (time_left <= 0) {
+                    CMPerr(0, CMP_R_TOTAL_TIMEOUT);
+                    goto err;
+                }
+                if (time_left < check_after)
+                    check_after = time_left;
+                /* poll one last time just when timeout was reached */
+            }
+
             if (pollRep->reason == NULL
                     || (len = BIO_snprintf(str, OSSL_CMP_PKISI_BUFLEN,
                                            " with reason = '")) < 0) {
@@ -291,19 +309,6 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
                           str, check_after);
             OPENSSL_free(text);
 
-            if (ctx->total_timeout > 0) { /* timeout is not infinite */
-                const int exp = 5; /* expected max time per msg round trip */
-                int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
-
-                if (time_left <= 0) {
-                    CMPerr(0, CMP_R_TOTAL_TIMEOUT);
-                    goto err;
-                }
-                if (time_left < check_after)
-                    check_after = time_left;
-                /* poll one last time just when timeout was reached */
-            }
-
             OSSL_CMP_MSG_free(preq);
             preq = NULL;
             OSSL_CMP_MSG_free(prep);
@@ -319,7 +324,7 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
         goto err;
 
     OSSL_CMP_MSG_free(preq);
-    *out = prep;
+    *rep = prep;
 
     return 1;
  err:

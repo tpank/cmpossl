@@ -43,6 +43,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_CERTREQMSG_NOT_FOUND                       157
 #  define CMP_R_CERTRESPONSE_NOT_FOUND                     113
 #  define CMP_R_CERT_AND_KEY_DO_NOT_MATCH                  114
+#  define CMP_R_CHECKAFTER_OUT_OF_RANGE                    181
 #  define CMP_R_ENCOUNTERED_KEYUPDATEWARNING               176
 #  define CMP_R_ENCOUNTERED_WAITING                        162
 #  define CMP_R_ERROR_CALCULATING_PROTECTION               115
@@ -87,7 +88,6 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_POLLING_FAILED                             172
 #  define CMP_R_POTENTIALLY_INVALID_CERTIFICATE            147
 #  define CMP_R_RECEIVED_ERROR                             180
-#  define CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP    181
 #  define CMP_R_RECIPNONCE_UNMATCHED                       148
 #  define CMP_R_REQUEST_NOT_ACCEPTED                       149
 #  define CMP_R_REQUEST_REJECTED_BY_SERVER                 182

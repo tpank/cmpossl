@@ -2085,6 +2085,7 @@ CMP_R_CERTIFICATE_NOT_FOUND:112:certificate not found
 CMP_R_CERTREQMSG_NOT_FOUND:157:certreqmsg not found
 CMP_R_CERTRESPONSE_NOT_FOUND:113:certresponse not found
 CMP_R_CERT_AND_KEY_DO_NOT_MATCH:114:cert and key do not match
+CMP_R_CHECKAFTER_OUT_OF_RANGE:181:checkafter out of range
 CMP_R_ENCOUNTERED_KEYUPDATEWARNING:176:encountered keyupdatewarning
 CMP_R_ENCOUNTERED_WAITING:162:encountered waiting
 CMP_R_ERROR_CALCULATING_PROTECTION:115:error calculating protection
@@ -2130,8 +2131,6 @@ CMP_R_PKISTATUSINFO_NOT_FOUND:132:pkistatusinfo not found
 CMP_R_POLLING_FAILED:172:polling failed
 CMP_R_POTENTIALLY_INVALID_CERTIFICATE:147:potentially invalid certificate
 CMP_R_RECEIVED_ERROR:180:received error
-CMP_R_RECEIVED_NEGATIVE_CHECKAFTER_IN_POLLREP:181:\
-	received negative checkafter in pollrep
 CMP_R_RECIPNONCE_UNMATCHED:148:recipnonce unmatched
 CMP_R_REQUEST_NOT_ACCEPTED:149:request not accepted
 CMP_R_REQUEST_REJECTED_BY_SERVER:182:request rejected by server
