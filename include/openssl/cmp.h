@@ -415,10 +415,15 @@ X509 *OSSL_CMP_exec_IR_ses(OSSL_CMP_CTX *ctx);
 X509 *OSSL_CMP_exec_CR_ses(OSSL_CMP_CTX *ctx);
 X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx);
 X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx);
-X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx);
-STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx);
+# define OSSL_CMP_IR    OSSL_CMP_PKIBODY_IR
+# define OSSL_CMP_CR    OSSL_CMP_PKIBODY_CR
+# define OSSL_CMP_P10CR OSSL_CMP_PKIBODY_P10CR
+# define OSSL_CMP_KUR   OSSL_CMP_PKIBODY_KUR
+int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type);
 int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
                          const char **text);
+X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx);
+STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx);
 
 #  ifdef  __cplusplus
 }

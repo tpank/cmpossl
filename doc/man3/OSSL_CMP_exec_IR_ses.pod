@@ -6,6 +6,11 @@ OSSL_CMP_exec_IR_ses,
 OSSL_CMP_exec_CR_ses,
 OSSL_CMP_exec_P10CR_ses,
 OSSL_CMP_exec_KUR_ses,
+OSSL_CMP_IR,
+OSSL_CMP_CR,
+OSSL_CMP_P10CR,
+OSSL_CMP_KUR,
+OSSL_CMP_try_certreq,
 OSSL_CMP_exec_RR_ses,
 OSSL_CMP_exec_GENM_ses,
 OSSL_CMP_certConf_cb
@@ -19,10 +24,15 @@ OSSL_CMP_certConf_cb
  X509 *OSSL_CMP_exec_CR_ses(OSSL_CMP_CTX *ctx);
  X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx);
  X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx);
- X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx);
- STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx);
+ #define OSSL_CMP_IR
+ #define OSSL_CMP_CR
+ #define OSSL_CMP_P10CR
+ #define OSSL_CMP_KUR
+ int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type);
  int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
                           const char **text);
+ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx);
+ STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx);
 
 =head1 DESCRIPTION
 
@@ -51,8 +61,38 @@ OSSL_CMP_exec_P10CR_ses() conveys a legacy PKCS#10 CSR requesting a certificate.
 
 OSSL_CMP_exec_KUR_ses() obtains an updated certificate.
 
-All these four types of certificate enrollment may be blocked until the
+All these four types of certificate enrollment may be blocked by sleeping until the
 CAs or an intermedate PKI component can fully process and answer the request.
+
+OSSL_CMP_try_certreq() is an alternative to these four functions with
+more uniformity w.r.t. the certificate request type and
+more flexibility w.r.t. what to do after receiving a checkAfter value.
+Besides the B<ctx> it takes the type of request (ir/cr/p10cr/kur) as an argument.
+When called for the first time (with no certificate request currently in progress
+for the given B<ctx>) it starts requesting a new certificate.
+Otherwise (i.e., according to B<ctx> a 'waiting' status has been received before)
+it continues polling for the pending request
+unless the B<req_type> argument is < 0, which aborts the request.
+If the requested certificate is available the function returns -1 and
+the caller can use B<OSSL_CMP_CTX_get0_newCert()> to retrieve the new certificate.
+If no error occurred but no certificate is available yet then
+OSSL_CMP_try_certreq() remembers in the CMP context that polling should be retried
+and returns a positive 'checkAfter' value indicating the number of seconds
+the caller should let pass before trying again.
+In this case the caller can decide to sleep for some time and/or do anything else
+before retrying by calling OSSL_CMP_try_certreq() again with the same parameter
+values as before.
+In this case OSSL_CMP_try_certreq() polls to see
+whether meanwhile the requested certificate is available.
+In case the caller decides to abort the pending certificate request and provides
+a negative value as the B<req_type> argument then OSSL_CMP_try_certreq()
+aborts the CMP transaction by sending an error message to the server.
+
+OSSL_CMP_certConf_cb() is a basic certificate confirmation callback validating
+that the new certificate can be verified with the trusted/untrusted certificates
+in B<ctx>.
+As there is no requirement in RFC 4210 that the certificate can be
+validated by the client, this callback is not set by default in the context.
 
 OSSL_CMP_exec_RR_ses() requests the revocation of the certificate
 specified in the B<ctx> using L<OSSL_CMP_CTX_set1_oldCert(3)>.
@@ -70,12 +110,6 @@ It returns the list of B<ITAV>s received in the GenRep.
 This can be used, for instance, to poll for CRLs or CA Key Updates.
 See RFC 4210 section 5.3.19 and appendix E.5 for details.
 
-OSSL_CMP_certConf_cb() is a basic certificate confirmation callback validating
-that the new certificate can be verified with the trusted/untrusted certificates
-in B<ctx>.
-As there is no requirement in RFC 4210 that the certificate can be
-validated by the client, this callback is not set by default in the context.
-
 =head1 NOTES
 
 CMP is defined in RFC 4210 (and CRMF in RFC 4211).
@@ -91,6 +125,16 @@ pointer to the newly obtained X509 certificate on success, B<NULL> on error.
 This pointer will be freed implicitly by OSSL_CMP_CTX_free() or
 CSSL_CMP_CTX_reinit().
 
+OSSL_CMP_try_certreq() returns -1 if the requested certificate is available
+via B<OSSL_CMP_CTX_get0_newCert()>, the checkAfter value (which is > 0)
+in case a 'waiting' status has been received (then B<OSSL_CMP_CTX_get0_newCert()>
+yields NULL),
+1 on successfully aborting a pending certificate request, and 0 on error.
+
+OSSL_CMP_certConf_cb() returns B<fail_info> if it is not equal to B<0>,
+else B<0> on successful validation,
+or else a bit field with the B<OSSL_CMP_PKIFAILUREINFO_incorrectData> bit set.
+
 OSSL_CMP_exec_RR_ses() returns the
 pointer to the revoked certificate on success, B<NULL> on error.
 This pointer will be freed implicitly by OSSL_CMP_CTX_free().
@@ -98,10 +142,6 @@ This pointer will be freed implicitly by OSSL_CMP_CTX_free().
 OSSL_CMP_exec_GENM_ses() returns a
 pointer to the received B<ITAV> sequence on success, B<NULL> on error.
 This pointer must be freed by the caller.
-
-OSSL_CMP_certConf_cb() returns B<fail_info> if it is not equal to B<0>,
-else B<0> on successful validation,
-or else a bit field with the B<OSSL_CMP_PKIFAILUREINFO_incorrectData> bit set.
 
 =head1 EXAMPLES
 
