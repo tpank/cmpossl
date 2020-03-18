@@ -419,7 +419,7 @@ X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx);
 # define OSSL_CMP_CR    OSSL_CMP_PKIBODY_CR
 # define OSSL_CMP_P10CR OSSL_CMP_PKIBODY_P10CR
 # define OSSL_CMP_KUR   OSSL_CMP_PKIBODY_KUR
-int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type);
+int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type, int *checkAfter);
 int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
                          const char **text);
 X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx);

@@ -238,13 +238,13 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
  * In this case polling will continue until the timeout is reached and then
  * polling is done a last time even if this is before the "checkAfter" time.
  *
- * Returns on receiving pollRep the included checkAfter value > 0 if sleep == 0.
- * Returns -1 on success and provides the received PKIMESSAGE in *rep.
- *            In this case the caller is responsible for freeing *rep.
+ * Returns -1 on receiving pollRep if sleep == 0, setting the checkAfter value.
+ * Returns 1 on success and provides the received PKIMESSAGE in *rep.
+ *           In this case the caller is responsible for freeing *rep.
  * Returns 0 on error (which includes the case that timeout has been reached).
  */
 static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
-                             OSSL_CMP_MSG **rep)
+                             OSSL_CMP_MSG **rep, int *checkAfter)
 {
     OSSL_CMP_MSG *preq = NULL;
     OSSL_CMP_MSG *prep = NULL;
@@ -281,7 +281,7 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
                 CMPerr(0, CMP_R_BAD_CHECKAFTER_IN_POLLREP);
                 goto err;
             }
-            if (check_after <= 0 || (uint64_t)check_after
+            if (check_after < 0 || (uint64_t)check_after
                 > (sleep ? ULONG_MAX / 1000 : INT_MAX)) {
                 CMPerr(0, CMP_R_CHECKAFTER_OUT_OF_RANGE);
                 if (BIO_snprintf(str, OSSL_CMP_PKISI_BUFLEN, "value = %ld",
@@ -324,10 +324,13 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
             preq = NULL;
             OSSL_CMP_MSG_free(prep);
             prep = NULL;
-            if (sleep)
+            if (sleep) {
                 ossl_sleep((unsigned long)(1000 * check_after));
-            else
-                return (int)check_after; /* exits the loop */
+            } else {
+                if (checkAfter != NULL)
+                    *checkAfter = (int)check_after;
+                return -1; /* exits the loop */
+            }
         } else {
             ossl_cmp_info(ctx, "received ip/cp/kup after polling");
             /* any other body type has been rejected by send_receive_check() */
@@ -340,7 +343,7 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
     OSSL_CMP_MSG_free(preq);
     *rep = prep;
 
-    return -1; /* success */
+    return 1;
  err:
     OSSL_CMP_MSG_free(preq);
     OSSL_CMP_MSG_free(prep);
@@ -495,13 +498,14 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
 
 /*-
  * Perform the generic handling of certificate responses for IR/CR/KUR/P10CR.
- * Returns on receiving pollRep the included checkAfter value > 0 if sleep == 0.
- * Returns -1 on success and provides the received PKIMESSAGE in *resp.
+ * Returns -1 on receiving pollRep if sleep == 0, setting the checkAfter value.
+ * Returns 1 on success and provides the received PKIMESSAGE in *resp.
  * Returns 0 on error (which includes the case that timeout has been reached).
  * Regardless of success, caller is responsible for freeing *resp (unless NULL).
  */
 static int cert_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
-                         OSSL_CMP_MSG **resp, int req_type, int expected_type)
+                         OSSL_CMP_MSG **resp, int *checkAfter,
+                         int req_type, int expected_type)
 {
     EVP_PKEY *rkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 0);
     int fail_info = 0; /* no failure */
@@ -510,7 +514,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
     OSSL_CMP_CERTRESPONSE *crep;
     X509 *cert;
     char *subj = NULL;
-    int ret = -1 /* success */;
+    int ret = 1;
 
  retry:
     crepmsg = (*resp)->body->value.ip; /* same for cp and kup */
@@ -536,13 +540,12 @@ static int cert_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
     if (ossl_cmp_pkisi_get_status(crep->status) == OSSL_CMP_PKISTATUS_waiting) {
         OSSL_CMP_MSG_free(*resp);
         *resp = NULL;
-        if ((ret = poll_for_response(ctx, sleep, rid, resp)) != 0) {
-            if (ret > 0) /* at this point implies sleep == 0 */
-                return ret; /* checkAfter to be returned */
+        if ((ret = poll_for_response(ctx, sleep, rid, resp, checkAfter)) != 0) {
+            if (ret == -1) /* at this point implies sleep == 0 */
+                return ret; /* waiting */
             goto retry; /* got ip/cp/kup, which may still indicate 'waiting' */
         } else {
             CMPerr(0, CMP_R_POLLING_FAILED);
-            *resp = NULL;
             return 0;
         }
     }
@@ -620,7 +623,7 @@ static int cert_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
     return ret;
 }
 
-int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type)
+int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type, int *checkAfter)
 {
     OSSL_CMP_MSG *req = NULL;
     OSSL_CMP_MSG *rep = NULL;
@@ -654,11 +657,12 @@ int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type)
                                            0 /* TODO better fail_info value? */,
                                            "polling aborted", 0 /* errorCode */,
                                            "by application");
-        res = poll_for_response(ctx, 0 /* no sleep */, rid, &rep);
-        if (res >= 0) /* waiting or error */
+        res = poll_for_response(ctx, 0 /* no sleep */, rid, &rep, checkAfter);
+        if (res <= 0) /* waiting or error */
             return res;
     }
-    res = cert_response(ctx, 0 /* no sleep */, rid, &rep, req_type, rep_type);
+    res = cert_response(ctx, 0 /* no sleep */, rid, &rep, checkAfter,
+                        req_type, rep_type);
 
  err:
     OSSL_CMP_MSG_free(req);
@@ -700,7 +704,8 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, int req_type, int req_err,
     if (!send_receive_check(ctx, req, &rep, rep_type))
         goto err;
 
-    if (!cert_response(ctx, 1 /* sleep */, rid, &rep, req_type, rep_type))
+    if (cert_response(ctx, 1 /* sleep */, rid, &rep, NULL, req_type, rep_type)
+        <= 0)
         goto err;
 
     result = ctx->newCert;

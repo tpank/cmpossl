@@ -28,7 +28,7 @@ OSSL_CMP_certConf_cb
  #define OSSL_CMP_CR
  #define OSSL_CMP_P10CR
  #define OSSL_CMP_KUR
- int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type);
+ int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type, int *checkAfter);
  int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
                           const char **text);
  X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx);
@@ -64,27 +64,29 @@ OSSL_CMP_exec_KUR_ses() obtains an updated certificate.
 All these four types of certificate enrollment may be blocked by sleeping until the
 CAs or an intermedate PKI component can fully process and answer the request.
 
-OSSL_CMP_try_certreq() is an alternative to these four functions with
-more uniformity w.r.t. the certificate request type and
-more flexibility w.r.t. what to do after receiving a checkAfter value.
-Besides the B<ctx> it takes the type of request (ir/cr/p10cr/kur) as an argument.
-When called for the first time (with no certificate request currently in progress
-for the given B<ctx>) it starts requesting a new certificate.
-Otherwise (i.e., according to B<ctx> a 'waiting' status has been received before)
+OSSL_CMP_try_certreq() is an alternative to these four functions that is
+more uniform regarding the type of the certificate request to use and
+more flexible regarding what to do after receiving a checkAfter value.
+When called for the first time (with no certificate request in progress for
+the given B<ctx>) it starts a new transaction by sending a certificate request
+of the given type,
+which may be IR, CR, P10CR, or KUR as specified by the B<req_type> parameter.
+Otherwise (when according to B<ctx> a 'waiting' status has been received before)
 it continues polling for the pending request
 unless the B<req_type> argument is < 0, which aborts the request.
-If the requested certificate is available the function returns -1 and
-the caller can use B<OSSL_CMP_CTX_get0_newCert()> to retrieve the new certificate.
+If the requested certificate is available the function returns 1 and the
+caller can use B<OSSL_CMP_CTX_get0_newCert()> to retrieve the new certificate.
 If no error occurred but no certificate is available yet then
-OSSL_CMP_try_certreq() remembers in the CMP context that polling should be retried
-and returns a positive 'checkAfter' value indicating the number of seconds
-the caller should let pass before trying again.
-In this case the caller can decide to sleep for some time and/or do anything else
-before retrying by calling OSSL_CMP_try_certreq() again with the same parameter
-values as before.
-In this case OSSL_CMP_try_certreq() polls to see
-whether meanwhile the requested certificate is available.
-In case the caller decides to abort the pending certificate request and provides
+OSSL_CMP_try_certreq() remembers in the CMP context that it should be retried
+and returns -1 after assigning the received checkAfter value
+via the output pointer argument (unless it is NULL).
+The checkAfter value indicates the number of seconds the caller should let pass
+before trying again. The caller is free to sleep for the given number of seconds
+or for some other time and/or to do anything else before retrying by calling
+OSSL_CMP_try_certreq() again with the same parameter values as before.
+OSSL_CMP_try_certreq() then polls
+to see whether meanwhile the requested certificate is available.
+If the caller decides to abort the pending certificate request and provides
 a negative value as the B<req_type> argument then OSSL_CMP_try_certreq()
 aborts the CMP transaction by sending an error message to the server.
 
@@ -125,11 +127,13 @@ pointer to the newly obtained X509 certificate on success, B<NULL> on error.
 This pointer will be freed implicitly by OSSL_CMP_CTX_free() or
 CSSL_CMP_CTX_reinit().
 
-OSSL_CMP_try_certreq() returns -1 if the requested certificate is available
-via B<OSSL_CMP_CTX_get0_newCert()>, the checkAfter value (which is > 0)
-in case a 'waiting' status has been received (then B<OSSL_CMP_CTX_get0_newCert()>
-yields NULL),
-1 on successfully aborting a pending certificate request, and 0 on error.
+OSSL_CMP_try_certreq() returns 1 if the requested certificate is available
+via B<OSSL_CMP_CTX_get0_newCert()>
+or on successfully aborting a pending certificate request, 0 on error, and -1
+in case a 'waiting' status has been received and checkAfter value is available.
+In the latter case B<OSSL_CMP_CTX_get0_newCert()> yields NULL
+and the output parameter B<checkAfter> has been used to
+assign the received value unless B<checkAfter> is NULL.
 
 OSSL_CMP_certConf_cb() returns B<fail_info> if it is not equal to B<0>,
 else B<0> on successful validation,

@@ -235,39 +235,44 @@ static int test_exec_P10CR_ses(void)
 
 static int execute_try_certreq_poll_test(CMP_SES_TEST_FIXTURE *fixture)
 {
-    int type = OSSL_CMP_KUR;
-    int check_after = 5;
+    OSSL_CMP_CTX *ctx = fixture->cmp_ctx;
+    int check_after;
+    const int CHECK_AFTER = 5;
+    const int TYPE = OSSL_CMP_KUR;
 
-    ossl_cmp_mock_srv_set_checkAfterTime(fixture->srv_ctx, check_after);
-    return TEST_int_eq(check_after, OSSL_CMP_try_certreq(fixture->cmp_ctx, type))
-        && TEST_ptr_eq(OSSL_CMP_CTX_get0_newCert(fixture->cmp_ctx), NULL)
-        && TEST_int_eq(check_after, OSSL_CMP_try_certreq(fixture->cmp_ctx, type))
-        && TEST_ptr_eq(OSSL_CMP_CTX_get0_newCert(fixture->cmp_ctx), NULL)
-        && TEST_int_eq(fixture->expected,
-                       OSSL_CMP_try_certreq(fixture->cmp_ctx, type))
-        && TEST_int_eq(0, X509_cmp(OSSL_CMP_CTX_get0_newCert(fixture->cmp_ctx),
-                                   client_cert));
+    ossl_cmp_mock_srv_set_pollCount(fixture->srv_ctx, 3);
+    ossl_cmp_mock_srv_set_checkAfterTime(fixture->srv_ctx, CHECK_AFTER);
+    return TEST_int_eq(-1, OSSL_CMP_try_certreq(ctx, TYPE, &check_after))
+        && check_after == CHECK_AFTER
+        && TEST_ptr_eq(OSSL_CMP_CTX_get0_newCert(ctx), NULL)
+        && TEST_int_eq(-1, OSSL_CMP_try_certreq(ctx, TYPE, &check_after))
+        && check_after == CHECK_AFTER
+        && TEST_ptr_eq(OSSL_CMP_CTX_get0_newCert(ctx), NULL)
+        && TEST_int_eq(fixture->expected, OSSL_CMP_try_certreq(ctx, TYPE, NULL))
+        && TEST_int_eq(0, X509_cmp(OSSL_CMP_CTX_get0_newCert(ctx), client_cert));
 }
 
 static int test_try_certreq_poll(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
-    fixture->expected = -1;
-    ossl_cmp_mock_srv_set_pollCount(fixture->srv_ctx, 3);
+    fixture->expected = 1;
     EXECUTE_TEST(execute_try_certreq_poll_test, tear_down);
     return result;
 }
 
 static int execute_try_certreq_poll_abort_test(CMP_SES_TEST_FIXTURE *fixture)
 {
-    int type = OSSL_CMP_CR;
-    int check_after = INT_MAX;
+    OSSL_CMP_CTX *ctx = fixture->cmp_ctx;
+    int check_after;
+    const int CHECK_AFTER = INT_MAX;
+    const int TYPE = OSSL_CMP_CR;
 
-    ossl_cmp_mock_srv_set_checkAfterTime(fixture->srv_ctx, check_after);
-    return TEST_int_eq(check_after, OSSL_CMP_try_certreq(fixture->cmp_ctx, type))
-        && TEST_ptr_eq(OSSL_CMP_CTX_get0_newCert(fixture->cmp_ctx), NULL)
-        && TEST_int_eq(fixture->expected, OSSL_CMP_try_certreq(fixture->cmp_ctx,
-                                                               -1))
+    ossl_cmp_mock_srv_set_pollCount(fixture->srv_ctx, 3);
+    ossl_cmp_mock_srv_set_checkAfterTime(fixture->srv_ctx, CHECK_AFTER);
+    return TEST_int_eq(-1, OSSL_CMP_try_certreq(ctx, TYPE, &check_after))
+        && check_after == CHECK_AFTER
+        && TEST_ptr_eq(OSSL_CMP_CTX_get0_newCert(ctx), NULL)
+        && TEST_int_eq(fixture->expected, OSSL_CMP_try_certreq(ctx, -1, NULL))
         && TEST_ptr_eq(OSSL_CMP_CTX_get0_newCert(fixture->cmp_ctx), NULL);
 }
 
@@ -275,7 +280,6 @@ static int test_try_certreq_poll_abort(void)
 {
     SETUP_TEST_FIXTURE(CMP_SES_TEST_FIXTURE, set_up);
     fixture->expected = 1;
-    ossl_cmp_mock_srv_set_pollCount(fixture->srv_ctx, 3);
     EXECUTE_TEST(execute_try_certreq_poll_abort_test, tear_down);
     return result;
 }
