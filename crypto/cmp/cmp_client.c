@@ -165,8 +165,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     ossl_cmp_log1(INFO, ctx, "sending %s", req_type_str);
 
-    if ((*rep = (*transfer_cb)(ctx, req)) == NULL)
-        CMPerr(0, CMP_R_TRANSFER_ERROR);
+    *rep = (*transfer_cb)(ctx, req);
     ctx->msg_timeout = msg_timeout; /* restore original value */
 
     if (*rep == NULL) {
