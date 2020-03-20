@@ -354,7 +354,7 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
 int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
                                const char *txt)
 {
-    OSSL_CMP_MSG *certConf = NULL;
+    OSSL_CMP_MSG *certConf;
     OSSL_CMP_MSG *PKIconf = NULL;
     int res = 0;
 
@@ -854,7 +854,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 
 STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
 {
-    OSSL_CMP_MSG *genm = NULL;
+    OSSL_CMP_MSG *genm;
     OSSL_CMP_MSG *genp = NULL;
     STACK_OF(OSSL_CMP_ITAV) *rcvd_itavs = NULL;
 
