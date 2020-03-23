@@ -29,6 +29,8 @@
 #include <openssl/rsa.h>
 #include <openssl/ts.h>
 #include <openssl/x509v3.h>
+#include <openssl/cmp.h>
+#include <openssl/crmf.h>
 #include <openssl/cms.h>
 #include <openssl/ess.h>
 #include <openssl/err.h>
@@ -135,6 +137,49 @@ static ASN1_ITEM_EXP *item_type[] = {
     ASN1_ITEM_ref(OCSP_SERVICELOC),
     ASN1_ITEM_ref(OCSP_SIGNATURE),
     ASN1_ITEM_ref(OCSP_SINGLERESP),
+#endif
+#ifndef OPENSSL_NO_CMP
+    /* the types commented out below are non-public */
+    /* ASN1_ITEM_ref(OSSL_CMP_CAKEYUPDANNCONTENT), */
+    /* ASN1_ITEM_ref(OSSL_CMP_CERTIFIEDKEYPAIR), */
+    /* ASN1_ITEM_ref(OSSL_CMP_CERTORENCCERT), */
+    /* ASN1_ITEM_ref(OSSL_CMP_CERTREPMESSAGE), */
+    /* ASN1_ITEM_ref(OSSL_CMP_CERTRESPONSE), */
+    /* ASN1_ITEM_ref(OSSL_CMP_CERTSTATUS), */
+    /* ASN1_ITEM_ref(OSSL_CMP_CHALLENGE), */
+    /* ASN1_ITEM_ref(OSSL_CMP_ERRORMSGCONTENT), */
+    /* ASN1_ITEM_ref(OSSL_CMP_ITAV), */
+    /* ASN1_ITEM_ref(OSSL_CMP_KEYRECREPCONTENT), */
+    ASN1_ITEM_ref(OSSL_CMP_MSG),
+    /* ASN1_ITEM_ref(OSSL_CMP_PKIBODY), */
+    ASN1_ITEM_ref(OSSL_CMP_PKIHEADER),
+    ASN1_ITEM_ref(OSSL_CMP_PKISI),
+    /* ASN1_ITEM_ref(OSSL_CMP_POLLREQ), */
+    /* ASN1_ITEM_ref(OSSL_CMP_POLLREP), */
+    /* ASN1_ITEM_ref(OSSL_CMP_PROTECTEDPART), */
+    /* ASN1_ITEM_ref(OSSL_CMP_REVANNCONTENT), */
+    /* ASN1_ITEM_ref(OSSL_CMP_REVDETAILS), */
+    /* ASN1_ITEM_ref(OSSL_CMP_REVREPCONTENT), */
+    /* ASN1_ITEM_ref(OSSL_CRMF_ATTRIBUTETYPEANDVALUE), */
+    ASN1_ITEM_ref(OSSL_CRMF_CERTID),
+    ASN1_ITEM_ref(OSSL_CRMF_CERTTEMPLATE),
+    /* ASN1_ITEM_ref(OSSL_CRMF_CERTREQUEST), */
+    /* ASN1_ITEM_ref(OSSL_CRMF_ENCKEYWITHID), */
+    /* ASN1_ITEM_ref(OSSL_CRMF_ENCKEYWITHID_IDENTIFIER), */
+    ASN1_ITEM_ref(OSSL_CRMF_ENCRYPTEDVALUE),
+    ASN1_ITEM_ref(OSSL_CRMF_MSG),
+    ASN1_ITEM_ref(OSSL_CRMF_MSGS),
+    /* ASN1_ITEM_ref(OSSL_CRMF_OPTIONALVALIDITY), */
+    ASN1_ITEM_ref(OSSL_CRMF_PBMPARAMETER),
+    ASN1_ITEM_ref(OSSL_CRMF_PKIPUBLICATIONINFO),
+    /* ASN1_ITEM_ref(OSSL_CRMF_PKMACVALUE), */
+    /* ASN1_ITEM_ref(OSSL_CRMF_POPO), */
+    /* ASN1_ITEM_ref(OSSL_CRMF_POPOPRIVKEY), */
+    /* ASN1_ITEM_ref(OSSL_CRMF_POPOSIGNINGKEY), */
+    /* ASN1_ITEM_ref(OSSL_CRMF_POPOSIGNINGKEYINPUT), */
+    /* ASN1_ITEM_ref(OSSL_CRMF_POPOSIGNINGKEYINPUT_AUTHINFO), */
+    /* ASN1_ITEM_ref(OSSL_CRMF_PRIVATEKEYINFO), */
+    ASN1_ITEM_ref(OSSL_CRMF_SINGLEPUBINFO),
 #endif
     ASN1_ITEM_ref(OTHERNAME),
     ASN1_ITEM_ref(PBE2PARAM),
@@ -296,7 +341,6 @@ int FuzzerInitialize(int *argc, char ***argv)
 int FuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     int n;
-
 
     for (n = 0; item_type[n] != NULL; ++n) {
         const uint8_t *b = buf;
