@@ -181,10 +181,10 @@ section (as far as present) can provide per-option fallback values.
 
 =over 4
 
-=item B<-server> I<address[:port]>
+=item B<-server> I<[http[s]://]address[:port]>
 
-The IP address or DNS hostname and optionally port (defaulting to 80)
-of the CMP server to connect to using HTTP/S transport.
+The IP address or DNS hostname and optionally port (defaulting to 80 or 443)
+of the CMP server to connect to using HTTP(S) transport.
 
 =item B<-proxy> I<[http://]address[:port][/path]>
 
@@ -1013,7 +1013,7 @@ subsequently loaded sections and on the command line.
 After including in the configuration file the following sections:
 
   [cmp]
-  server = 127.0.0.1:80
+  server = 127.0.0.1
   path = pkix/
   trusted = capubs.pem
   cert = cl_cert.pem
@@ -1041,7 +1041,7 @@ the above enrollment invocations reduce to
 Requesting "all relevant information" with an empty General Message.
 This prints information about all received ITAV B<infoType>s to stdout.
 
-  openssl cmp -cmd genm -server 127.0.0.1:80 -path pkix/ \
+  openssl cmp -cmd genm -server 127.0.0.1 -path pkix/ \
     -ref 1234 -secret pass:1234-5678-1234-5678 \
     -recipient "/CN=CMPserver"
 

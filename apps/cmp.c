@@ -52,8 +52,6 @@ static char *opt_config = NULL;
 # define SECTION_NAME_MAX 40 /* max length of section name */
 # define DEFAULT_SECTION "default"
 static char *opt_section = CMP_SECTION;
-# define HTTP_HDR "http://"
-# define HTTPS_HDR "https://"
 
 # undef PROG
 # define PROG cmp_main
@@ -139,8 +137,8 @@ typedef enum {
 
 /* message transfer */
 static char *opt_server = NULL;
-static char server_port_s[32];
-static int server_port = OSSL_CMP_DEFAULT_PORT;
+static char server_port_s[32] = { '\0' };
+static int server_port = 0;
 static char *opt_proxy = NULL;
 static char *opt_no_proxy = NULL;
 static char *opt_path = "/";
@@ -326,7 +324,7 @@ const OPTIONS cmp_options[] = {
 
     OPT_SECTION("Message transfer"),
     {"server", OPT_SERVER, 's',
-     "address[:port] of CMP server. Default port 80."},
+     "[http[s]://]address[:port] of CMP server. Default port 80 or 443."},
     {OPT_MORE_STR, 0, 0,
      "The address may be a DNS name or an IP address"},
     {"proxy", OPT_PROXY, 's',
@@ -1406,19 +1404,23 @@ static int parse_addr(char **opt_string, int port, const char *name)
 {
     char *port_string;
 
-    if (strncmp(*opt_string, HTTP_HDR, strlen(HTTP_HDR)) == 0)
-        *opt_string += strlen(HTTP_HDR);
-
-    if ((port_string = strrchr(*opt_string, ':')) == NULL) {
-        CMP_info2("using default port %d for %s", port, name);
-        return port;
+    if (strncmp(*opt_string, OSSL_HTTP_PREFIX, strlen(OSSL_HTTP_PREFIX)) == 0) {
+        *opt_string += strlen(OSSL_HTTP_PREFIX);
+    } else if (strncmp(*opt_string, OSSL_HTTPS_PREFIX,
+                       strlen(OSSL_HTTPS_PREFIX)) == 0) {
+        *opt_string += strlen(OSSL_HTTPS_PREFIX);
+        if (port == 0)
+            port = 443; /* == integer value of OSSL_HTTPS_PORT */
     }
+
+    if ((port_string = strrchr(*opt_string, ':')) == NULL)
+        return port; /* using default */
     *(port_string++) = '\0';
     port = atoint(port_string);
     if ((port <= 0) || (port > 65535)) {
         CMP_err2("invalid %s port '%s' given, sane range 1-65535",
                  name, port_string);
-        return 0;
+        return -1;
     }
     return port;
 }
@@ -2350,18 +2352,20 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         CMP_err("missing server address[:port]");
         goto err;
     } else if ((server_port =
-                parse_addr(&opt_server, server_port, "server")) == 0) {
+                parse_addr(&opt_server, server_port, "server")) < 0) {
         goto err;
     }
-    BIO_snprintf(server_port_s, sizeof(server_port_s), "%d", server_port);
-    if (!OSSL_CMP_CTX_set1_serverName(ctx, opt_server)
+    if (server_port != 0)
+        BIO_snprintf(server_port_s, sizeof(server_port_s), "%d", server_port);
+    if (!OSSL_CMP_CTX_set1_server(ctx, opt_server)
             || !OSSL_CMP_CTX_set_serverPort(ctx, server_port)
             || !OSSL_CMP_CTX_set1_serverPath(ctx, opt_path))
         goto oom;
     if (opt_proxy != NULL && !OSSL_CMP_CTX_set1_proxy(ctx, opt_proxy))
         goto oom;
-    (void)BIO_snprintf(server_buf, sizeof(server_buf), "http%s://%s:%d",
-                       opt_tls_used ? "s" : "", opt_server, server_port);
+    (void)BIO_snprintf(server_buf, sizeof(server_buf), "http%s://%s%s%s",
+                       opt_tls_used ? "s" : "", opt_server,
+                       server_port == 0 ? "" : ":", server_port_s);
     if (opt_proxy != NULL)
         (void)BIO_snprintf(proxy_buf, sizeof(proxy_buf), " via %s", opt_proxy);
     CMP_info2("will contact %s%s", server_buf, proxy_buf);
@@ -2403,8 +2407,9 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         CMP_warn("missing -recipient, -srvcert, -issuer, -oldcert or -cert; recipient will be set to \"NULL-DN\"");
 
     if (opt_infotype_s) {
-        char id_buf[87] = "id-it-";
-        strncat(id_buf, opt_infotype_s, 80);
+        char id_buf[100] = "id-it-";
+
+        strncat(id_buf, opt_infotype_s, sizeof(id_buf) - strlen(id_buf) - 1);
         if ((opt_infotype = OBJ_sn2nid(id_buf)) == NID_undef) {
             CMP_err("unknown OID name in -infotype option");
             goto err;
