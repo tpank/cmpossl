@@ -25,6 +25,13 @@ extern "C" {
 
 typedef BIO *(*OSSL_HTTP_bio_cb_t)(BIO *bio, void *arg, int connect, int detail);
 
+# define OSSL_HTTP_NAME "http"
+# define OSSL_HTTPS_NAME "https"
+# define OSSL_HTTP_PREFIX OSSL_HTTP_NAME"://"
+# define OSSL_HTTPS_PREFIX OSSL_HTTPS_NAME"://"
+# define OSSL_HTTP_PORT "80"
+# define OSSL_HTTPS_PORT "443"
+
 BIO *OSSL_HTTP_get(const char *url, const char *proxy, const char *no_proxy,
                    BIO *bio, BIO *rbio,
                    OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
