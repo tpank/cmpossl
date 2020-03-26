@@ -153,13 +153,16 @@ const char *http_adapt_proxy(const char *proxy, const char *no_proxy,
         proxy = getenv(use_ssl ? "https_proxy" : "http_proxy");
     if (proxy == NULL)
         proxy = getenv(use_ssl ? "HTTPS_PROXY" : "HTTP_PROXY");
-    if (proxy != NULL && strncmp(proxy, OSSL_HTTP_PREFIX, http_len) == 0)
-        proxy += http_len; /* skip any leading "http://" */
-    if (proxy != NULL && strncmp(proxy, OSSL_HTTPS_PREFIX, https_len) == 0)
-        proxy += https_len; /* skip any leading "https://" */
-    if (proxy != NULL && *proxy == '\0')
-        proxy = NULL;
-    if (proxy != NULL && !http_use_proxy(no_proxy, server))
-        proxy = NULL;
+    if (proxy == NULL)
+        return NULL;
+
+    /* skip any leading "http://" or "https://" */
+    if (strncmp(proxy, OSSL_HTTP_PREFIX, http_len) == 0)
+        proxy += http_len;
+    else if (strncmp(proxy, OSSL_HTTPS_PREFIX, https_len) == 0)
+        proxy += https_len;
+
+    if (*proxy == '\0' || !http_use_proxy(no_proxy, server))
+        return NULL;
     return proxy;
 }
