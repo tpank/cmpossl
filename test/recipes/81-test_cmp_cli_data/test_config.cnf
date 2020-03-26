@@ -73,7 +73,7 @@ keypass = pass:12345
 ignore_keyusage = 0
 unprotectederrors = 1 # EJBCA sends error messages and negative responses without protection
 crls = "../../../../../creds/crls/PPKIPlaygroundInfrastructureIssuingCAv10.crl, ../../../../../creds/crls/PPKIPlaygroundECCRootCAv10.crl, ../../../../../creds/crls/PPKIPlaygroundInfrastructureRootCAv10.crl, ../../../../../creds/crls/PPKIPlaygroundRSARootCAv10.crl"
-cdps = "http://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+ECC+Root+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE, https://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+Infrastructure+Root+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE"
+cdps = "https://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+Infrastructure+Issuing+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE, https://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+Infrastructure+Root+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE, http://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+ECC+Issuing+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE, http://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+ECC+Root+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE"
 ocsp = "http://ppki-playground.ct.siemens.com/ejbca/publicweb/status/ocsp"
 column = 0
 sleep = 0
@@ -157,7 +157,8 @@ secret = # force using signature-based protection
 cert = signer.crt
 key = signer.p12
 keypass = pass:12345
-# by default using any crls, cdps, and ocsp
+# by default using crls, ocsp, and cdps as defined above
+verbosity = 7
 
 ############################# extra cert template contents
 
