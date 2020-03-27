@@ -1,7 +1,7 @@
 [default]
 batch = 1
 #proxy = 194.145.60.1:9400
-totaltimeout = 8 # prevent, e.g., infinite polling due to error
+total_timeout = 8 # prevent, e.g., infinite polling due to error
 trusted = root.crt
 newkey = test.ECC256p.pem
 newkeypass = pass:
@@ -73,8 +73,8 @@ sleep = 0
 ############################# aspects
 
 [connection]
-msgtimeout = 15
-totaltimeout =
+msg_timeout = 15
+total_timeout =
 tls_used =
 tls_cert =
 tls_key =
@@ -129,8 +129,8 @@ reqexts =
 sans =
 san_default = 0
 #popo =
-implicitconfirm = 0
-disableconfirm = 0
+implicit_confirm = 0
+disable_confirm = 0
 certout =
 out_trusted =
 oldcert =
