@@ -35,21 +35,21 @@
 OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
                                         const OSSL_CMP_MSG *req)
 {
-    char server_port[32];
+    char server_port[32] = { '\0' };
     STACK_OF(CONF_VALUE) *headers = NULL;
-    OSSL_CMP_MSG *res = NULL;
     const char *const content_type_pkix = "application/pkixcmp";
+    OSSL_CMP_MSG *res;
 
-    if (ctx == NULL || req == NULL
-            || ctx->server == NULL || ctx->serverPort == 0) {
+    if (ctx == NULL || req == NULL) {
         CMPerr(0, CMP_R_NULL_ARGUMENT);
-        return 0;
+        return NULL;
     }
 
     if (!X509V3_add_value("Pragma", "no-cache", &headers))
         return NULL;
 
-    BIO_snprintf(server_port, sizeof(server_port), "%d", ctx->serverPort);
+    if (ctx->serverPort != 0)
+        BIO_snprintf(server_port, sizeof(server_port), "%d", ctx->serverPort);
 
     res = (OSSL_CMP_MSG *)
         OSSL_HTTP_post_asn1(ctx->server, server_port, ctx->serverPath,

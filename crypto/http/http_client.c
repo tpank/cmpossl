@@ -856,6 +856,8 @@ BIO *OSSL_HTTP_transfer(const char *server, const char *port, const char *path,
             HTTPerr(0, ERR_R_PASSED_NULL_PARAMETER);
             return NULL;
         }
+        if (*port == '\0')
+            port = NULL;
         if (port == NULL && strchr(server, ':') == NULL)
             port = use_ssl ? OSSL_HTTPS_PORT : OSSL_HTTP_PORT;
         proxy = http_adapt_proxy(proxy, no_proxy, server, use_ssl);
