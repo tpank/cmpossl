@@ -60,7 +60,7 @@ LIBCMP_INC ?= $(LIBCMP_OUT)/include_cmp
 LIBCMP=$(LIBCMP_OUT)/libcmp$(DLL)
 #VERSION=.0
 
-CC=gcc
+CC ?= gcc
 ifdef NDEBUG
     override CFLAGS += -DNDEBUG=1 -O2
 else
