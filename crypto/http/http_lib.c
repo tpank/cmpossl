@@ -133,7 +133,7 @@ int http_use_proxy(const char *no_proxy, const char *server)
     if (no_proxy == NULL)
         no_proxy = getenv("no_proxy");
     if (no_proxy == NULL)
-        no_proxy = getenv("NO_PROXY");
+        no_proxy = getenv(OPENSSL_NO_PROXY);
     if (no_proxy != NULL)
         found = strstr(no_proxy, server);
     while (found != NULL
@@ -152,7 +152,8 @@ const char *http_adapt_proxy(const char *proxy, const char *no_proxy,
     if (proxy == NULL)
         proxy = getenv(use_ssl ? "https_proxy" : "http_proxy");
     if (proxy == NULL)
-        proxy = getenv(use_ssl ? "HTTPS_PROXY" : "HTTP_PROXY");
+        proxy = getenv(use_ssl ? OPENSSL_HTTP_PROXY :
+                       OPENSSL_HTTPS_PROXY);
     if (proxy == NULL)
         return NULL;
 

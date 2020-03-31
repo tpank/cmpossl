@@ -31,6 +31,9 @@ typedef BIO *(*OSSL_HTTP_bio_cb_t)(BIO *bio, void *arg, int connect, int detail)
 # define OSSL_HTTPS_PREFIX OSSL_HTTPS_NAME"://"
 # define OSSL_HTTP_PORT "80"
 # define OSSL_HTTPS_PORT "443"
+# define OPENSSL_NO_PROXY "NO_PROXY"
+# define OPENSSL_HTTP_PROXY "HTTP_PROXY"
+# define OPENSSL_HTTPS_PROXY "HTTPS_PROXY"
 
 BIO *OSSL_HTTP_get(const char *url, const char *proxy, const char *no_proxy,
                    BIO *bio, BIO *rbio,
