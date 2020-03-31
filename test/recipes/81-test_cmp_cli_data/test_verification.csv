@@ -56,7 +56,7 @@ TBD cert file does not exist, -,srvcert expired, -section,, -recipient,"""",BLAN
 0, -,trusted big file, -section,, -recipient,_CA_DN,BLANK,,BLANK,, -trusted,root_big.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,
 1,1,trusted empty, -section,, -recipient,_CA_DN,BLANK,,BLANK,, -trusted,,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
-1, -,not matching trusted cert, -section,, -recipient,_CA_DN,BLANK,,BLANK,, -trusted,signerWrong.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
+1,-,not matching trusted cert, -section,, -recipient,_CA_DN,BLANK,,BLANK,, -trusted,signerWrong.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
 -,1,not matching trusted cert, -section,, -recipient,_CA_DN,BLANK,,BLANK,, -trusted,signerWrong.crt,BLANK,,BLANK, -unprotectederrors,BLANK, -secret,"""", -cert,signer.crt, -key,signer.p12, -keypass,pass:12345
 1,1,trusted empty file, -section,, -recipient,_CA_DN,BLANK,,BLANK,, -trusted,emptycert.crt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,
 1,1,trusted random file, -section,, -recipient,_CA_DN,BLANK,,BLANK,, -trusted,random.txt,BLANK,,BLANK, -unprotectederrors,BLANK,,,,,,,,

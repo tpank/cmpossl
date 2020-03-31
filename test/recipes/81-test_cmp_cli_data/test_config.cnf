@@ -4,12 +4,13 @@ batch = 1
 total_timeout = 8 # prevent, e.g., infinite polling due to error
 trusted = root.crt
 newkey = test.ECC256p.pem
-newkeypass = pass:
+newkeypass = # pass:
 cmd = ir
 out_trusted = root.crt
 certout = test.cert.pem
-policy_oids = 1.2.3.4 # gets ignored
-policy_oids_critical = 1 # gets ignored
+policies = certificatePolicies
+#policy_oids = 1.2.3.4
+#policy_oids_critical = 1
 
 ############################# CA configurations
 
@@ -50,7 +51,7 @@ unprotectederrors = 0
 column = 1
 sleep = 3
 
-[CmpWsRa] # this is a Siemens-only test configuration
+[SimpleLra] # this is a Siemens-only test configuration
 #attime = 1564704000
 server_cn = localhost
 server_ip = 127.0.0.1
@@ -137,6 +138,12 @@ oldcert =
 csr =
 
 ############################# extra cert template contents
+
+[certificatePolicies]
+certificatePolicies = "critical, @pkiPolicy"
+
+[pkiPolicy]
+policyIdentifier = 1.2.3.4
 
 [reqexts]
 basicConstraints = CA:FALSE
