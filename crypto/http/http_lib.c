@@ -130,6 +130,10 @@ int http_use_proxy(const char *no_proxy, const char *server)
         return 0;
     sl = strlen(server);
 
+    /*
+     * using environment variable names, both lowercase and uppercase variants,
+     * compatible with other HTTP client implementations like wget, curl and git
+     */
     if (no_proxy == NULL)
         no_proxy = getenv("no_proxy");
     if (no_proxy == NULL)
@@ -149,6 +153,10 @@ const char *http_adapt_proxy(const char *proxy, const char *no_proxy,
     const int http_len = strlen(OSSL_HTTP_PREFIX);
     const int https_len = strlen(OSSL_HTTPS_PREFIX);
 
+    /*
+     * using environment variable names, both lowercase and uppercase variants,
+     * compatible with other HTTP client implementations like wget, curl and git
+     */
     if (proxy == NULL)
         proxy = getenv(use_ssl ? "https_proxy" : "http_proxy");
     if (proxy == NULL)
