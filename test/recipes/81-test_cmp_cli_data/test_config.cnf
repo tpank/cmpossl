@@ -1,6 +1,7 @@
 [default]
+batch = 1 # needed for cmp-dev
 #proxy = 194.145.60.1:9400
-total_timeout = 10 # prevent, e.g., infinite polling due to error
+total_timeout = 8 # prevent, e.g., infinite polling due to error
 trusted = root.crt
 newkey = test.ECC256p.pem
 newkeypass = 
@@ -48,16 +49,17 @@ ignore_keyusage = 1
 unprotectederrors = 0
 crls = "../../../../../creds/crls/InstaDemoCA.crl"
 column = 1
-sleep = 3
+sleep = 4
+# 3 is not sufficient for enrollment tests: sometimes leads to HTTP code 503 (Service Unavailable)
 
 [SimpleLra] # this is a Siemens-only test configuration
 #attime = 1564704000
 server_cn = localhost
 server_ip = 127.0.0.1
-server_port = 9443
+server_port = 9080 # 9443
 server_cert = signer.crt
 server = $server_cn:$server_port
-tls_used = 1
+# tls_used = 1 # must not be set for cmp-dev
 tls_cert = EJBCACMPSignerTLS.p12
 tls_key = $tls_cert
 tls_keypass = pass:12345
@@ -166,7 +168,7 @@ verbosity = 7
 certificatePolicies = "critical, @pkiPolicy"
 
 [pkiPolicy]
-policyIdentifier =  1.2.3.4
+policyIdentifier = 1.2.3.4
 
 [reqexts]
 basicConstraints = CA:FALSE
