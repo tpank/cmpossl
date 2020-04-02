@@ -12,7 +12,7 @@ use strict;
 use warnings;
 
 use POSIX;
-use OpenSSL::Test qw/:DEFAULT with data_file data_dir/;
+use OpenSSL::Test qw/:DEFAULT with data_file data_dir bldtop_dir/;
 use OpenSSL::Test::Utils;
 use Data::Dumper; # for debugging purposes only
 
@@ -105,7 +105,7 @@ sub test_cmp_cli {
         my $OK = shift == $expected_exit;
         print Dumper @args if !($ENV{HARNESS_VERBOSE} eq 2 && $OK); # for debugging purposes only
         return $OK; } },
-         sub { ok(run(app(["openssl", "cmp", @$params,])),
+         sub { ok(run(cmd([(bldtop_dir"/apps/openssl"), "cmp", @$params,])),
                   $title); });
 }
 
