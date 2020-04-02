@@ -66,8 +66,8 @@ sub load_config {
     while (<CH>) {
         if (m/\[\s*$name\s*\]/) {
             $active = 1;
-            } elsif (m/\[\s*.*?\s*\]/) {
-                $active = 0;
+        } elsif (m/\[\s*.*?\s*\]/) {
+            $active = 0;
         } elsif ($active) {
             $ca_dn = $1 if m/\s*recipient\s*=\s*(.*)?\s*$/;
             $server_dn = $1 if m/\s*ra\s*=\s*(.*)?\s*$/;
@@ -77,7 +77,7 @@ sub load_config {
             $server_cert = $1 if m/\s*server_cert\s*=\s*(.*)?\s*$/;
             $secret = $1 if m/\s*pbm_secret\s*=\s*(.*)?\s*$/;
             $column = $1 if m/\s*column\s*=\s*(.*)?\s*$/;
-                $sleep = $1 if m/\s*sleep\s*=\s*(.*)?\s*$/;
+            $sleep = $1 if m/\s*sleep\s*=\s*(.*)?\s*$/;
         }
     }
     close CH;
@@ -144,36 +144,37 @@ indir data_dir() => sub {
 };
 
 sub load_tests {
-        my $name = shift;
-        my $aspect = shift;
-	my $file = data_file("test_$aspect.csv");
-	my @result;
+    my $name = shift;
+    my $aspect = shift;
+    my $file = data_file("test_$aspect.csv");
+    my @result;
 
-	open(my $data, '<', $file) || die "Cannot load $file\n";
-	LOOP: while (my $line = <$data>) {
-		chomp $line;
-		# next LOOP if ($line =~ m/tls_/i); # skip tests requiring TLS
-		$line =~ s{\r\n}{\n}g; # adjust line endings
-		$line =~ s{_CA_DN}{$ca_dn}g;
-		$line =~ s{_SERVER_DN}{$server_dn}g;
-		$line =~ s{_SERVER_CN}{$server_cn}g;
-		$line =~ s{_SERVER_IP}{$server_ip}g;
-		$line =~ s{_SERVER_PORT}{$server_port}g;
-		$line =~ s{_SRVCERT}{$server_cert}g;
-		$line =~ s{_SECRET}{$secret}g;
-		next LOOP if $no_proxy && $no_proxy =~ $server_cn && $line =~ m/,-proxy,/;
-		$line =~ s{-section,,}{-section,,-proxy,$proxy,} unless $line =~ m/,-proxy,/;
-		$line =~ s{-section,,}{-config,../$test_config,-section,$name $aspect,};
-		my @fields = grep /\S/, split ",", $line;
-                s/^<EMPTY>$// for (@fields); # used for proxy=""
-                s/^\s+// for (@fields); # remove leading  whitepace from elements
-                s/\s+$// for (@fields); # remove trailing whitepace from elements
-                s/^\"(\".*?\")\"$/$1/ for (@fields); # remove escaping from quotation marks from elements
-		my $expected_exit = $fields[$column];
-		my $title = $fields[2];
-		next LOOP if (!defined($expected_exit) or ($expected_exit ne 0 and $expected_exit ne 1));
-		@fields = grep {$_ ne 'BLANK'} @fields[3..@fields-1];
-		push @result, [$title, \@fields, $expected_exit];
-	}
-	return \@result;
+    open(my $data, '<', $file) || die "Cannot load $file\n";
+  LOOP:
+    while (my $line = <$data>) {
+        chomp $line;
+        # next LOOP if $line =~ m/tls_/; # skips tests requiring TLS
+        $line =~ s{\r\n}{\n}g; # adjust line endings
+        $line =~ s{_CA_DN}{$ca_dn}g;
+        $line =~ s{_SERVER_DN}{$server_dn}g;
+        $line =~ s{_SERVER_CN}{$server_cn}g;
+        $line =~ s{_SERVER_IP}{$server_ip}g;
+        $line =~ s{_SERVER_PORT}{$server_port}g;
+        $line =~ s{_SRVCERT}{$server_cert}g;
+        $line =~ s{_SECRET}{$secret}g;
+        next LOOP if $no_proxy && $no_proxy =~ $server_cn && $line =~ m/,-proxy,/;
+        $line =~ s{-section,,}{-section,,-proxy,$proxy,} unless $line =~ m/,-proxy,/;
+        $line =~ s{-section,,}{-config,../$test_config,-section,$name $aspect,};
+        my @fields = grep /\S/, split ",", $line;
+        s/^<EMPTY>$// for (@fields); # used for proxy=""
+        s/^\s+// for (@fields); # remove leading  whitepace from elements
+        s/\s+$// for (@fields); # remove trailing whitepace from elements
+        s/^\"(\".*?\")\"$/$1/ for (@fields); # remove escaping from quotation marks from elements
+        my $expected_exit = $fields[$column];
+        my $title = $fields[2];
+        next LOOP if (!defined($expected_exit) or ($expected_exit ne 0 and $expected_exit ne 1));
+        @fields = grep {$_ ne 'BLANK'} @fields[3..@fields-1];
+        push @result, [$title, \@fields, $expected_exit];
+    }
+    return \@result;
 }
