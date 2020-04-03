@@ -955,33 +955,105 @@ Accept RAVERIFED as proof-of-possession (POPO).
 
 =back
 
+
 =head1 NOTES
 
 When setting up CMP configurations and experimenting with enrollment options
 typically various errors occur until the configuration is correct and complete.
-When the CMP server side reports an error via CMP the client will by default
-check the protection of the response message.
-Yet at least CMP services based on EJBCA tend not to protect negative responses.
-In this case
-the client will reject such error responses and their contents are not shown
-although they usually contain hints that would be helpful for debugging.
-In order to support debugging the setup the CMP client offers a workaround
-via the B<-unprotected_errors> option, which allows accepting such messages.
-
-Note: in these examples the C<\> at line ends means
-the invocation should be all on one line.
+When the CMP server reports an error the client will by default
+check the protection of the CMP response message.
+Yet some CMP services, in particular those based on EJBCA,
+tend not to protect negative responses.
+In this case the client will reject them, and thus their contents are not shown
+although they usually contain hints that would be helpful for diagnostics.
+For assisting in such cases the CMP client offers a workaround via the
+B<-unprotected_errors> option, which allows accepting such negative messages.
 
 
 =head1 EXAMPLES
 
+=head2 Simple examples using the default OpenSSL configuration file
+
+This CMP client implementation comes with demonstrative CMP sections
+in the example configuration file F<openssl/apps/openssl.cnf>,
+which can be used to interact conveniently with the Insta Demo CA.
+
+In order to enroll an initial certificate from that CA it is sufficient
+to issue the following shell commands.
+
+  cd openssl
+  export OPENSSL_CONF=apps/openssl.cnf
+  apps/openssl cmp -section insta
+
+This should produce the file F<insta.cert.pem> containing a new certificate
+for the private key held in F<test/insta.priv.pem>.
+It can be viewed using, e.g., 
+
+  apps/openssl x509 -noout -text -in insta.cert.pem
+
+In case the network setup requires using an HTTP proxy it may be given as usual
+via the environment variable B<http_proxy> or via the B<proxy> option or
+the CMP command-line argument B<-proxy>, for example
+
+  -proxy http://192.168.1.1:8080
+
+In the Insta Demo CA scenario both clients and the server may use the pre-shared
+secret "insta" and the reference value "3078" to authenticate to each other.
+
+Alternatively, CMP messages may be protected in signature-based manner,
+where the trust anchor is pre-installed in F<test/insta_ca.cert.pem>
+and the client may use any certificate already obtained from that CA,
+as specified in the B<[signature]> section of the example configuration.
+This can be used in combination with the B<[insta]> section simply by
+
+  apps/openssl cmp -section insta,signature
+
+By default the CMP IR message type is used, yet CR works equally here.
+This may be specified directly at the command line:
+
+  apps/openssl cmp -section insta -cmd cr
+
+or by referencing in addition the B<[cr]> section of the example configuration:
+
+  apps/openssl cmp -section insta,cr
+
+In order to update the enrolled certificate one may call
+
+  apps/openssl cmp -section insta,kur
+
+using with PBM-based protection or
+
+  apps/openssl cmp -section insta,kur,signature
+
+using signature-based protection.
+
+In a similar way any previously enrolled certificate may be revoked by
+
+  apps/openssl cmp -section insta,rr -trusted test/insta_ca.cert.pem
+
+or
+
+  apps/openssl cmp -section insta,rr,signature
+
+Many more options can be used in the configuration file
+and/or on the command line.
+
+
 =head2 Certificate enrollment
 
+The following examples at first do not make use of a configuration file.
+They assume that a CMP server can be contacted on the local TCP port 80
+and accepts requests under the alias "/pkix/".
+
 For enrolling its very first certificate the client generates a first client key
-and sends an initial request message to a CMP server running on the local host,
+and sends an initial request message to the local CMP server
 using a pre-shared secret key for mutual authentication.
 In this example the client does not have the CA certificate yet,
 so we specify the name of the CA with the B<-recipient> option
 and save any CA certificates that we may receive in the C<capubs.pem> file.
+
+In below command line usage examples the C<\> at line ends is just used
+for formatting; each of the command invocations should be on a single line.
 
   openssl genrsa -out cl_key.pem
   openssl cmp -cmd ir -server 127.0.0.1:80 -path pkix/ \
@@ -989,6 +1061,7 @@ and save any CA certificates that we may receive in the C<capubs.pem> file.
     -recipient "/CN=CMPserver" \
     -newkey cl_key.pem -subject "/CN=MyName" \
     -cacertsout capubs.pem -certout cl_cert.pem
+
 
 =head2 Certificate update
 
@@ -1007,12 +1080,23 @@ Then it can start using the new cert and key.
 
 This command sequence can be repated as often as needed.
 
-=head2 Using a configuration file
+
+=head2 Requesting information from CMP server
+
+Requesting "all relevant information" with an empty General Message.
+This prints information about all received ITAV B<infoType>s to stdout.
+
+  openssl cmp -cmd genm -server 127.0.0.1 -path pkix/ \
+    -ref 1234 -secret pass:1234-5678-1234-5678 \
+    -recipient "/CN=CMPserver"
+
+
+=head2 Using a custom configuration file
 
 For CMP client invocations, in particular for certificate enrollment,
 usually many parameters need to be set, which is tedious and error-prone to do
 on the command line.
-Therefore the client also offers the possibility to read
+Therefore the client offers the possibility to read
 options from sections of the OpenSSL config file, usually called B<openssl.cnf>.
 The values found there can still be extended and even overridden by any
 subsequently loaded sections and on the command line.
@@ -1043,16 +1127,7 @@ the above enrollment invocations reduce to
   openssl cmp -section cmp,cmp-init
   openssl cmp -cmd kur -newkey cl_key_new.pem
 
-=head2 Requesting information from CMP server
-
-Requesting "all relevant information" with an empty General Message.
-This prints information about all received ITAV B<infoType>s to stdout.
-
-  openssl cmp -cmd genm -server 127.0.0.1 -path pkix/ \
-    -ref 1234 -secret pass:1234-5678-1234-5678 \
-    -recipient "/CN=CMPserver"
-
-Making use of the configuration file sectins given above, this call reduces to
+and the above genm call reduces to
 
   openssl cmp -section cmp,cmp-init -cmd genm
 
