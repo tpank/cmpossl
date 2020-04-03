@@ -2368,7 +2368,8 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
                        server_port == 0 ? "" : ":", server_port_s);
     if (opt_proxy != NULL)
         (void)BIO_snprintf(proxy_buf, sizeof(proxy_buf), " via %s", opt_proxy);
-    CMP_info2("will contact %s%s", server_buf, proxy_buf);
+    CMP_info3("will contact %s%s/%s", server_buf, proxy_buf,
+              opt_path[0] == '/' ? opt_path + 1 : opt_path);
 
     if (!transform_opts())
         goto err;
