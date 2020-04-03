@@ -28,7 +28,7 @@ cert = signer.crt
 key  = signer.p12
 keypass = pass:12345
 ignore_keyusage = 0
-unprotectederrors = 1 # EJBCA sends error messages and negative responses without protection
+unprotected_errors = 1 # EJBCA sends error messages and negative responses without protection
 column = 0
 sleep = 1
 
@@ -47,7 +47,7 @@ secret = $pbm_secret
 key =
 cert =
 ignore_keyusage = 1
-unprotectederrors = 0
+unprotected_errors = 0
 column = 1
 sleep = 4
 # 3 is not sufficient for enrollment tests: sometimes leads to HTTP code 503 (Service Unavailable)
@@ -68,7 +68,7 @@ cert = signer.crt
 key  = signer.p12
 keypass = pass:12345
 ignore_keyusage = 0
-unprotectederrors = 1 # EJBCA sends error messages and negative responses without protection
+unprotected_errors = 1 # EJBCA sends error messages and negative responses without protection
 column = 0
 sleep = 0
 
@@ -93,7 +93,7 @@ keypass =
 extracerts =
 geninfo = # TODO move geninfo tests to commands section
 digest =
-unprotectedrequests =
+unprotected_requests =
 
 [verification]
 recipient =
@@ -101,7 +101,7 @@ expected_sender =
 srvcert =
 trusted =
 untrusted =
-unprotectederrors =
+unprotected_errors =
 extracertsout =
 
 [tls]

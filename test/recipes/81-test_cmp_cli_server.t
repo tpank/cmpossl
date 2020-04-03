@@ -57,12 +57,12 @@ sub run_client {
                 "-no_proxy", "127.0.0.1",
                 "-srvcert", catfile($datadir, "server.crt"),
                 "-no_check_time",
-                # "-unprotectedrequests",
+                # "-unprotected_requests",
                 "-cert", catfile($datadir, "client.crt"),
                 "-key", catfile($datadir, "client.key"),
                 "-cmd", "ir",
                 "-certout", $outfile,
-                "-unprotectederrors"]))
+                "-unprotected_errors"]))
         && compare_text($outfile, $rsp_cert) == 0);
     unlink $outfile;
 }

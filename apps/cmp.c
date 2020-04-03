@@ -44,10 +44,6 @@
 # include <openssl/x509.h>
 
 static char *opt_config = NULL;
-/*
- * TODO add example [cmp] section to apps/openssl.cnf
- * as requested in https://github.com/mpeylo/cmpossl/issues/124
- */
 # define CMP_SECTION "cmp"
 # define SECTION_NAME_MAX 40 /* max length of section name */
 # define DEFAULT_SECTION "default"
@@ -63,8 +59,8 @@ static CONF *conf = NULL; /* OpenSSL config file context structure */
 static OSSL_CMP_CTX *cmp_ctx = NULL; /* the client-side CMP context */
 
 /*
- * a copy from apps.c just for visibility reasons,
- * TODO DvO remove when setup_engine_no_default() is integrated (PR #4277)
+ * A copy from apps/lib/apps.c just for visibility reasons
+ * TODO remove when setup_engine_no_default() is integrated (PR #4277)
  */
 # ifndef OPENSSL_NO_ENGINE
 /* Try to load an engine in a sharable library */
@@ -86,8 +82,8 @@ static UI_METHOD *ui_method = NULL;
 # endif
 
 /*
- * an adapted copy of setup_engine() from apps.c, TODO DvO replace this by
- * setup_engine_flags() when merged upstream in apps.c (PR #4277)
+ * An adapted copy of setup_engine() from apps/lib/apps.c
+ * TODO replace this by setup_engine_flags() when in apps/lib/apps.c (PR #4277)
  */
 static ENGINE *setup_engine_no_default(const char *engine, int debug)
 {
@@ -152,7 +148,7 @@ static char *opt_srvcert = NULL;
 static char *opt_recipient = NULL;
 static char *opt_expect_sender = NULL;
 static int opt_ignore_keyusage = 0;
-static int opt_unprotectedErrors = 0;
+static int opt_unprotected_errors = 0;
 static char *opt_extracertsout = NULL;
 static char *opt_cacertsout = NULL;
 
@@ -165,7 +161,7 @@ static char *opt_keypass = NULL;
 static char *opt_digest = NULL;
 static char *opt_mac = NULL;
 static char *opt_extracerts = NULL;
-static int opt_unprotectedRequests = 0;
+static int opt_unprotected_requests = 0;
 
 /* generic message */
 static char *opt_cmd_s = NULL;
@@ -266,12 +262,12 @@ typedef enum OPTION_choice {
 
     OPT_TRUSTED, OPT_UNTRUSTED, OPT_SRVCERT,
     OPT_RECIPIENT, OPT_EXPECT_SENDER,
-    OPT_IGNORE_KEYUSAGE, OPT_UNPROTECTEDERRORS,
+    OPT_IGNORE_KEYUSAGE, OPT_UNPROTECTED_ERRORS,
     OPT_EXTRACERTSOUT, OPT_CACERTSOUT,
 
     OPT_REF, OPT_SECRET, OPT_CERT, OPT_KEY, OPT_KEYPASS,
     OPT_DIGEST, OPT_MAC, OPT_EXTRACERTS,
-    OPT_UNPROTECTEDREQUESTS,
+    OPT_UNPROTECTED_REQUESTS,
 
     OPT_CMD, OPT_INFOTYPE, OPT_GENINFO,
 
@@ -354,7 +350,7 @@ const OPTIONS cmp_options[] = {
      "DN of expected response sender. Defaults to DN of -srvcert, if provided"},
     {"ignore_keyusage", OPT_IGNORE_KEYUSAGE, '-',
      "Ignore CMP signer cert key usage, else 'digitalSignature' must be allowed"},
-    {"unprotectederrors", OPT_UNPROTECTEDERRORS, '-',
+    {"unprotected_errors", OPT_UNPROTECTED_ERRORS, '-',
      "Accept missing or invalid protection of regular error messages and negative"},
     {OPT_MORE_STR, 0, 0,
      "certificate responses (ip/cp/kup), revocation responses (rp), and PKIConf"},
@@ -383,7 +379,7 @@ const OPTIONS cmp_options[] = {
      "MAC algorithm to use in PBM-based message protection. Default \"hmac-sha1\""},
     {"extracerts", OPT_EXTRACERTS, 's',
      "Certificates to append in extraCerts field of outgoing messages"},
-    {"unprotectedrequests", OPT_UNPROTECTEDREQUESTS, '-',
+    {"unprotected_requests", OPT_UNPROTECTED_REQUESTS, '-',
      "Send messages without CMP-level protection"},
 
     OPT_SECTION("Generic message"),
@@ -579,12 +575,12 @@ static varref cmp_vars[] = { /* must be in same order as enumerated above! */
 
     {&opt_trusted}, {&opt_untrusted}, {&opt_srvcert},
     {&opt_recipient}, {&opt_expect_sender},
-    {(char **)&opt_ignore_keyusage}, {(char **)&opt_unprotectedErrors},
+    {(char **)&opt_ignore_keyusage}, {(char **)&opt_unprotected_errors},
     {&opt_extracertsout}, {&opt_cacertsout},
 
     {&opt_ref}, {&opt_secret}, {&opt_cert}, {&opt_key}, {&opt_keypass},
     {&opt_digest}, {&opt_mac}, {&opt_extracerts},
-    {(char **)&opt_unprotectedRequests},
+    {(char **)&opt_unprotected_requests},
 
     {&opt_cmd_s}, {&opt_infotype_s}, {&opt_geninfo},
 
@@ -708,7 +704,7 @@ static int sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
     return 1;
 }
 
-/* TODO DvO push this and related functions upstream (PR #multifile) */
+/* TODO potentially move to apps/lib/ */
 static char *next_item(char *opt) /* in list separated by comma and/or space */
 {
     /* advance to separator (comma or whitespace), if any */
@@ -729,16 +725,15 @@ static char *next_item(char *opt) /* in list separated by comma and/or space */
 }
 
 /*
- * code for loading certs and keys
- * TODO DvO the whole Cert and Key loading logic should be given upstream
- * to be included in apps.c, and then used from here (PR #4930, PR #4940,
- * #autofmt)
+ * Code for loading certs and keys
+ * TODO potentially move the whole cert and key loading logic to apps/lib/
+ * and then just use it here. See also PR #4930 and PR #4940
  */
 
 /*
- * TODO DvO when load_cert_pass() from apps.c is merged upstream (PR #4930)
+ * TODO when load_cert_pass() from apps/lib/apps.c is merged (PR #4930)
  * remove this declaration of load_pkcs12(),
- * which has been copied from apps.c just for visibility reasons
+ * which has been copied from apps/lib/apps.c just for visibility reasons
  */
 static int load_pkcs12(BIO *in, const char *desc,
                        pem_password_cb *pem_cb, void *cb_data,
@@ -799,7 +794,7 @@ static int load_pkcs12(BIO *in, const char *desc,
 }
 
 /*
- * TODO DvO remove when load_cert_pass() is merged upstream in apps.c (PR #4930)
+ * TODO remove when load_cert_pass() is merged in apps/lib/apps.c (PR #4930)
  * and after generalizing it w.r.t. timeout
  */
 static X509 *load_cert_pass(const char *file, int format, const char *pass,
@@ -833,10 +828,11 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     } else if (format == FORMAT_PEM) {
         x = PEM_read_bio_X509_AUX(cert, NULL, wrap_password_callback, &cb_data);
     } else if (format == FORMAT_PKCS12) {
-        EVP_PKEY *pkey = NULL;  /* &pkey is required for matching cert */
-        /* TODO RS check return value and print error message */
-        load_pkcs12(cert, cert_descrip, wrap_password_callback,
-                    &cb_data, &pkey, &x, NULL);
+        EVP_PKEY *pkey = NULL; /* pkey is required for matching the cert */
+
+        if (!load_pkcs12(cert, cert_descrip, wrap_password_callback,
+                         &cb_data, &pkey, &x, NULL))
+            goto end;
         EVP_PKEY_free(pkey);
     } else {
         BIO_printf(bio_err, "bad input format specified for %s file '%s'\n",
@@ -854,7 +850,7 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     return (x);
 }
 
-/* TODO DvO remove when load_csr() is merged upstream in apps.c (PR #4940) */
+/* TODO remove when load_csr() is merged in apps/lib/apps.c (PR #4940) */
 static X509_REQ *load_csr(const char *file, int format, const char *desc)
 {
     X509_REQ *req = NULL;
@@ -878,7 +874,7 @@ static X509_REQ *load_csr(const char *file, int format, const char *desc)
     return req;
 }
 
-/* TODO DvO push this and related functions upstream (PR #autofmt) */
+/* TODO potentially move this and related functions to apps/lib/apps.c */
 static int adjust_format(const char **infile, int format, int engine_ok)
 {
     if (!strncmp(*infile, "http://", 7) || !strncmp(*infile, "https://", 8)) {
@@ -913,7 +909,7 @@ static int adjust_format(const char **infile, int format, int engine_ok)
     return format;
 }
 
-/* TODO DvO extend app_get_pass() from apps.c this way (PR #app_get_pass) */
+/* TODO extend app_get_pass() from apps/lib/apps.c this way */
 static char *get_passwd(const char *pass, const char *desc)
 {
     char *result = NULL;
@@ -934,7 +930,7 @@ static void cleanse(char *str)
         OPENSSL_cleanse(str, strlen(str));
 }
 
-/* TODO DvO: push this and related functions upstream (PR #autofmt) */
+/* TODO potentially move this and related functions to apps/lib/ */
 static EVP_PKEY *load_key_autofmt(EVP_PKEY *(*load_fn)(const char *, int, int,
                                                        const char *, ENGINE *e,
                                                        const char *),
@@ -980,7 +976,7 @@ static EVP_PKEY *load_pubkey_autofmt(const char *file, int format,
     return load_key_autofmt(load_pubkey, file, format, pass, e, desc);
 }
 
-/* TODO DvO: push this and related functions upstream (PR #autofmt) */
+/* TODO potentially move this and related functions to apps/lib/ */
 static X509 *load_cert_autofmt(const char *infile, int format,
                                const char *pass, const char *desc)
 {
@@ -1004,7 +1000,7 @@ static X509 *load_cert_autofmt(const char *infile, int format,
     return cert;
 }
 
-/* TODO DvO: push this and related functions upstream (PR #autofmt) */
+/* TODO potentially move this and related functions to apps/lib/ */
 static X509_REQ *load_csr_autofmt(const char *infile, int format,
                                   const char *desc)
 {
@@ -1034,8 +1030,7 @@ static X509_REQ *load_csr_autofmt(const char *infile, int format,
 
 /*
  * Initialize or extend, if *certs != NULL, a certificate stack.
- *
- * TODO DvO replace by generalized load_certs() when merged upstream (PR #4930)
+ * TODO replace by generalized load_certs() when merged in lib/apps.c (PR #4930)
  */
 static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
                                   int format, const char *pass,
@@ -1089,7 +1084,7 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
     return ret;
 }
 
-/* TODO DvO push this and related functions upstream (PR #autofmt) */
+/* TODO potentially move this and related functions to apps/lib/ */
 static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
                               int format, int exclude_http, const char *pass,
                               const char *desc)
@@ -1501,7 +1496,7 @@ static int set_gennames(OSSL_CMP_CTX *ctx, char *names, const char *desc)
     return 1;
 }
 
-/* TODO DvO push this and related functions upstream (PR #multifile) */
+/* TODO potentially move to apps/lib/ */
 /*
  * create cert store structure with certificates read from given file(s)
  * returns pointer to created X509_STORE on success, NULL on error
@@ -1535,7 +1530,7 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     return store;
 }
 
-/* TODO DvO push this and related functions upstream (PR #multifile) */
+/* TODO potentially move to apps/lib/ */
 static STACK_OF(X509) *load_certs_multifile(char *files, int format,
                                             const char *pass, const char *desc)
 {
@@ -1761,7 +1756,7 @@ static OSSL_CMP_SRV_CTX *setup_srv_ctx(ENGINE *e)
         }
         X509_free(cert);
     }
-    /* TODO TPa: find a cleaner solution than this hack with typecasts */
+    /* TODO find a cleaner solution not requiring type casts */
     if (!setup_certs(opt_rsp_extracerts,
                      "CMP extra certificates for mock server", srv_ctx,
                      (add_X509_stack_fn_t)ossl_cmp_mock_srv_set1_chainOut,
@@ -1878,7 +1873,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx)
     if (opt_ignore_keyusage)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_IGNORE_KEYUSAGE, 1);
 
-    if (opt_unprotectedErrors)
+    if (opt_unprotected_errors)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_ERRORS, 1);
 
     if (opt_out_trusted != NULL) { /* for use in OSSL_CMP_certConf_cb() */
@@ -2064,8 +2059,8 @@ static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
  */
 static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 {
-    if (!opt_unprotectedRequests && opt_secret == NULL && opt_cert == NULL) {
-        CMP_err("must give client credentials unless -unprotectedrequests is set");
+    if (!opt_unprotected_requests && opt_secret == NULL && opt_cert == NULL) {
+        CMP_err("must give client credentials unless -unprotected_requests is set");
         goto err;
     }
 
@@ -2151,7 +2146,7 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto err;
     cleanse(opt_otherpass);
 
-    if (opt_unprotectedRequests)
+    if (opt_unprotected_requests)
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_UNPROTECTED_SEND, 1);
 
     if (opt_digest != NULL) {
@@ -2451,7 +2446,7 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     if (opt_cmd == CMP_KUR) {
         char *ref_cert = opt_oldcert != NULL ? opt_oldcert : opt_cert;
         if (ref_cert == NULL) {
-            CMP_err("missing certificate to be updated");
+            CMP_err("missing -oldcert option for certificate to be updated");
             goto err;
         }
         if (opt_subject != NULL)
@@ -3005,8 +3000,8 @@ static int get_opts(int argc, char **argv)
         case OPT_EXTRACERTS:
             opt_extracerts = opt_str("extracerts");
             break;
-        case OPT_UNPROTECTEDREQUESTS:
-            opt_unprotectedRequests = 1;
+        case OPT_UNPROTECTED_REQUESTS:
+            opt_unprotected_requests = 1;
             break;
 
         case OPT_TRUSTED:
@@ -3027,8 +3022,8 @@ static int get_opts(int argc, char **argv)
         case OPT_IGNORE_KEYUSAGE:
             opt_ignore_keyusage = 1;
             break;
-        case OPT_UNPROTECTEDERRORS:
-            opt_unprotectedErrors = 1;
+        case OPT_UNPROTECTED_ERRORS:
+            opt_unprotected_errors = 1;
             break;
         case OPT_EXTRACERTSOUT:
             opt_extracertsout = opt_str("extracertsout");

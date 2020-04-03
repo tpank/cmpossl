@@ -25,7 +25,7 @@ B<openssl> B<cmp>
 [B<-recipient> I<name>]
 [B<-expect_sender> I<name>]
 [B<-ignore_keyusage>]
-[B<-unprotectederrors>]
+[B<-unprotected_errors>]
 [B<-extracertsout> I<filename>]
 [B<-cacertsout> I<filename>]
 
@@ -37,7 +37,7 @@ B<openssl> B<cmp>
 [B<-digest> I<name>]
 [B<-mac> I<name>]
 [B<-extracerts> I<sources>]
-[B<-unprotectedrequests>]
+[B<-unprotected_requests>]
 
 [B<-cmd> I<ir|cr|kur|p10cr|rr|genm>]
 [B<-infotype> I<name>]
@@ -303,7 +303,7 @@ Ignore key usage restrictions in CMP signer certificates when verifying
 signature-based protection of incoming CMP messages,
 else C<digitalSignature> must be allowed for signer certificate.
 
-=item B<-unprotectederrors>
+=item B<-unprotected_errors>
 
 Accept missing or invalid protection of negative responses from the server.
 This applies to the following message types and contents:
@@ -391,8 +391,8 @@ These may get added to the extraCerts field sent in requests as far as needed.
 
 The corresponding private key file for the client's current certificate given in
 the B<-cert> option.
-This will be used for signature-based message protection
-unless the B<-secret> option indicating PBM or B<-unprotectedrequests> is given.
+This will be used for signature-based message protection unless
+the B<-secret> option indicating PBM or B<-unprotected_requests> is given.
 
 =item B<-keypass> I<arg>
 
@@ -427,7 +427,7 @@ Certificates to append in the extraCerts field when sending messages.
 Multiple filenames or URLs may be given, separated by commas and/or whitespace.
 Each source may contain multiple certificates.
 
-=item B<-unprotectedrequests>
+=item B<-unprotected_requests>
 
 Send messages without CMP-level protection.
 
@@ -949,24 +949,24 @@ Accept RAVERIFED as proof-of-possession (POPO).
 
 =back
 
+=head1 NOTES
 
-=head1 EXAMPLES
-
-Note:
-when using CMP for the first time and experimenting with enrollment options
-it typically happens that errors occur until the configuration is correct.
-When the server side reports an error via CMP the client will by default
+When setting up CMP configurations and experimenting with enrollment options
+typically various errors occur until the configuration is correct and complete.
+When the CMP server side reports an error via CMP the client will by default
 check the protection of the response message.
-Yet there are CMP services based on EJBCA,
-which tends not to protect negative responses.
+Yet at least CMP services based on EJBCA tend not to protect negative responses.
 In this case
 the client will reject such error responses and their contents are not shown
 although they usually contain hints that would be helpful for debugging.
 In order to support debugging the setup the CMP client offers a workaround
-via the B<-unprotectederrors> option, which allows accepting such messages.
+via the B<-unprotected_errors> option, which allows accepting such messages.
 
 Note: in these examples the C<\> at line ends means
 the invocation should be all on one line.
+
+
+=head1 EXAMPLES
 
 =head2 Certificate enrollment
 
