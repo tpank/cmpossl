@@ -2214,7 +2214,8 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_days > 0)
-        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_VALIDITY_DAYS, opt_days);
+        (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_VALIDITY_DAYS,
+                                      opt_days);
 
     if (opt_policies != NULL && opt_policy_oids != NULL) {
         CMP_err("cannot have policies both via -policies and via -policy_oids");
@@ -2333,6 +2334,69 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
  err:
     return 0;
 }
+
+static int handle_opt_geninfo(OSSL_CMP_CTX *ctx)
+{
+    long value;
+    ASN1_OBJECT *type;
+    ASN1_INTEGER *aint;
+    ASN1_TYPE *val;
+    OSSL_CMP_ITAV *itav;
+    char *endstr;
+    char *valptr = strchr(opt_geninfo, ':');
+
+    if (valptr == NULL) {
+        CMP_err("missing ':' in -geninfo option");
+        return 0;
+    }
+    valptr[0] = '\0';
+    valptr++;
+
+    if (strncmp(valptr, "int:", 4) != 0) {
+        CMP_err("missing 'int:' in -geninfo option");
+        return 0;
+    }
+    valptr += 4;
+
+    value = strtol(valptr, &endstr, 10);
+    if (endstr == valptr || *endstr != '\0') {
+        CMP_err("cannot parse int in -geninfo option");
+        return 0;
+    }
+
+    type = OBJ_txt2obj(opt_geninfo, 1);
+    if (type == NULL) {
+        CMP_err("cannot parse OID in -geninfo option");
+        return 0;
+    }
+
+    aint = ASN1_INTEGER_new();
+    if (aint == NULL || !ASN1_INTEGER_set(aint, value))
+        goto oom;
+
+    val = ASN1_TYPE_new();
+    if (val == NULL) {
+        ASN1_INTEGER_free(aint);
+        goto oom;
+    }
+    ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
+    itav = OSSL_CMP_ITAV_create(type, val);
+    if (itav == NULL) {
+        ASN1_TYPE_free(val);
+        goto oom;
+    }
+
+    if (!OSSL_CMP_CTX_push0_geninfo_ITAV(ctx, itav)) {
+        OSSL_CMP_ITAV_free(itav);
+        return 0;
+    }
+    return 1;
+
+ oom:
+    CMP_err("out of memory");
+    return 0;
+}
+
 
 /*
  * set up the client-side OSSL_CMP_CTX based on options from config file/CLI
@@ -2466,7 +2530,6 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 # ifndef OPENSSL_NO_SOCK
         (void)OSSL_CMP_CTX_set_http_cb(ctx, app_http_tls_cb);
 # endif
-    } else {
     }
 
     if (!setup_protection_ctx(ctx, e))
@@ -2480,61 +2543,8 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
                          ctx, "expected sender"))
         goto oom;
 
-    if (opt_geninfo != NULL) {
-        long value;
-        ASN1_OBJECT *type;
-        ASN1_INTEGER *aint;
-        ASN1_TYPE *val;
-        OSSL_CMP_ITAV *itav;
-        char *endstr;
-        char *valptr = strchr(opt_geninfo, ':');
-
-        if (valptr == NULL) {
-            CMP_err("missing ':' in -geninfo option");
-            goto err;
-        }
-        valptr[0] = '\0';
-        valptr++;
-
-        if (strncmp(valptr, "int:", 4) != 0) {
-            CMP_err("missing 'int:' in -geninfo option");
-            goto err;
-        }
-        valptr += 4;
-
-        value = strtol(valptr, &endstr, 10);
-        if (endstr == valptr || *endstr != '\0') {
-            CMP_err("cannot parse int in -geninfo option");
-            goto err;
-        }
-
-        type = OBJ_txt2obj(opt_geninfo, 1);
-        if (type == NULL) {
-            CMP_err("cannot parse OID in -geninfo option");
-            goto err;
-        }
-
-        aint = ASN1_INTEGER_new();
-        if (aint == NULL || !ASN1_INTEGER_set(aint, value))
-            goto oom;
-
-        val = ASN1_TYPE_new();
-        if (val == NULL) {
-            ASN1_INTEGER_free(aint);
-            goto oom;
-        }
-        ASN1_TYPE_set(val, V_ASN1_INTEGER, aint);
-        itav = OSSL_CMP_ITAV_create(type, val);
-        if (itav == NULL) {
-            ASN1_TYPE_free(val);
-            goto oom;
-        }
-
-        if (!OSSL_CMP_CTX_push0_geninfo_ITAV(ctx, itav)) {
-            OSSL_CMP_ITAV_free(itav);
-            goto err;
-        }
-    }
+    if (opt_geninfo != NULL && !handle_opt_geninfo(ctx))
+        goto err;
 
     ret = 1;
 
