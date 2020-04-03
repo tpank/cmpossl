@@ -12,7 +12,7 @@ ENDIF
 # Source for the 'openssl' program
 $OPENSSLSRC=\
         openssl.c progs.c \
-        asn1pars.c ca.c ciphers.c cmp.c cmp_mock_srv.c cms.c crl.c crl2p7.c \
+        asn1pars.c ca.c ciphers.c cmp.c cms.c crl.c crl2p7.c \
         dgst.c ec.c ecparam.c enc.c engine.c errstr.c \
         genpkey.c kdf.c mac.c nseq.c ocsp.c passwd.c pkcs12.c pkcs7.c \
         pkcs8.c pkey.c pkeyparam.c pkeyutl.c prime.c rand.c req.c \
