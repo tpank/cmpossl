@@ -66,8 +66,8 @@ sub load_config {
     while (<CH>) {
         if (m/\[\s*$name\s*\]/) {
             $active = 1;
-            } elsif (m/\[\s*.*?\s*\]/) {
-                $active = 0;
+        } elsif (m/\[\s*.*?\s*\]/) {
+            $active = 0;
         } elsif ($active) {
             $ca_dn = $1 if m/\s*recipient\s*=\s*(.*)?\s*$/;
             $server_dn = $1 if m/\s*ra\s*=\s*(.*)?\s*$/;
@@ -77,7 +77,7 @@ sub load_config {
             $server_cert = $1 if m/\s*server_cert\s*=\s*(.*)?\s*$/;
             $secret = $1 if m/\s*pbm_secret\s*=\s*(.*)?\s*$/;
             $column = $1 if m/\s*column\s*=\s*(.*)?\s*$/;
-                $sleep = $1 if m/\s*sleep\s*=\s*(.*)?\s*$/;
+            $sleep = $1 if m/\s*sleep\s*=\s*(.*)?\s*$/;
         }
     }
     close CH;
@@ -93,17 +93,22 @@ my @ca_configurations = (); # ("EJBCA", "Insta", "SimpleLra");
 
 my @all_aspects = ("connection", "verification", "credentials", "commands", "enrollment");
 @all_aspects = split /\s+/, $ENV{CMP_ASPECTS} if $ENV{CMP_ASPECTS};
-# set env variable, e.g., CMP_ASPECTS="commands" to select specific aspects
+# set env variable, e.g., CMP_ASPECTS="commands enrollment" to select specific aspects
+
+my $logfile =  "failures.log";
+open(my $log, ">", $logfile) or die "Can't open $logfile for writing: $!";
 
 sub test_cmp_cli {
     my @args = @_;
     my $name = shift;
+    my $aspect = shift;
     my $title = shift;
     my $params = shift;
     my $expected_exit = shift;
     with({ exit_checker => sub {
         my $OK = shift == $expected_exit;
-        print Dumper @args if !($ENV{HARNESS_VERBOSE} eq 2 && $OK); # for debugging purposes only
+        print $log "$name $aspect \"$title\" $expected_exit     ".(bldtop_dir"/apps/openssl cmp ").join(' ', map { $_ eq "" ? '""' : $_ =~ m/ / ? '"'.$_.'"' : $_ } @$params)."\n" if !$OK;
+        print Dumper @args if !($ENV{HARNESS_VERBOSE} eq 0 && $OK); # for debugging purposes, does not work
         return $OK; } },
          sub { ok(run(cmd([(bldtop_dir"/apps/openssl"), "cmp", @$params,])),
                   $title); });
@@ -117,7 +122,7 @@ sub test_cmp_cli_aspect {
         plan tests => scalar @$tests;
         foreach (@$tests) {
           SKIP: {
-              test_cmp_cli($name, $$_[0], $$_[1], $$_[2]);
+              test_cmp_cli($name, $aspect, $$_[0], $$_[1], $$_[2]);
               sleep($sleep);
             }
         }
@@ -127,7 +132,7 @@ sub test_cmp_cli_aspect {
 indir data_dir() => sub {
     plan tests => 1 + @ca_configurations * @all_aspects;
 
-    test_cmp_cli_aspect("basic", "", \@cmp_basic_tests);
+    test_cmp_cli_aspect("CLI", "basic", \@cmp_basic_tests);
 
     # TODO: complete and thoroughly review _all_ of the around 500 test cases
     foreach my $name (@ca_configurations) {
@@ -143,6 +148,8 @@ indir data_dir() => sub {
     };
 };
 
+close($log);
+
 sub load_tests {
     my $name = shift;
     my $aspect = shift;
@@ -153,7 +160,7 @@ sub load_tests {
   LOOP:
     while (my $line = <$data>) {
         chomp $line;
-        next LOOP if $line =~ m/TLS/i; # skip tests requiring TLS
+        # next LOOP if $line =~ m/tls_/; # skips tests requiring TLS
         $line =~ s{\r\n}{\n}g; # adjust line endings
         $line =~ s{_CA_DN}{$ca_dn}g;
         $line =~ s{_SERVER_DN}{$server_dn}g;
@@ -176,5 +183,6 @@ sub load_tests {
         @fields = grep {$_ ne 'BLANK'} @fields[3..@fields-1];
         push @result, [$title, \@fields, $expected_exit];
     }
+    close($data);
     return \@result;
 }
