@@ -26,31 +26,29 @@
 # define F_OK 0
 #endif
 
-#ifndef OPENSSL_NO_CMP
-
-# include <openssl/ui.h>
-# include <openssl/pkcs12.h>
-# include <openssl/ssl.h>
+#include <openssl/ui.h>
+#include <openssl/pkcs12.h>
+#include <openssl/ssl.h>
 
 /* explicit #includes not strictly needed since implied by the above: */
-# include <stdlib.h>
-# include <openssl/cmp.h>
-# include <openssl/cmp_util.h>
-# include <openssl/crmf.h>
-# include <openssl/crypto.h>
-# include <openssl/err.h>
-# include <openssl/pem.h>
-# include <openssl/objects.h>
-# include <openssl/x509.h>
+#include <stdlib.h>
+#include <openssl/cmp.h>
+#include <openssl/cmp_util.h>
+#include <openssl/crmf.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
+#include <openssl/objects.h>
+#include <openssl/x509.h>
 
 static char *opt_config = NULL;
-# define CMP_SECTION "cmp"
-# define SECTION_NAME_MAX 40 /* max length of section name */
-# define DEFAULT_SECTION "default"
+#define CMP_SECTION "cmp"
+#define SECTION_NAME_MAX 40 /* max length of section name */
+#define DEFAULT_SECTION "default"
 static char *opt_section = CMP_SECTION;
 
-# undef PROG
-# define PROG cmp_main
+#undef PROG
+#define PROG cmp_main
 static char *prog = "cmp";
 
 static int read_config(void);
@@ -62,7 +60,7 @@ static OSSL_CMP_CTX *cmp_ctx = NULL; /* the client-side CMP context */
  * A copy from apps/lib/apps.c just for visibility reasons
  * TODO remove when setup_engine_no_default() is integrated (PR #4277)
  */
-# ifndef OPENSSL_NO_ENGINE
+#ifndef OPENSSL_NO_ENGINE
 /* Try to load an engine in a sharable library */
 static ENGINE *try_load_engine(const char *engine)
 {
@@ -79,7 +77,7 @@ static ENGINE *try_load_engine(const char *engine)
 }
 
 static UI_METHOD *ui_method = NULL;
-# endif
+#endif
 
 /*
  * An adapted copy of setup_engine() from apps/lib/apps.c
@@ -89,7 +87,7 @@ static ENGINE *setup_engine_no_default(const char *engine, int debug)
 {
     ENGINE *e = NULL;
 
-# ifndef OPENSSL_NO_ENGINE
+#ifndef OPENSSL_NO_ENGINE
     if (engine != NULL) {
         if (strcmp(engine, "auto") == 0) {
             BIO_printf(bio_err, "enabling auto ENGINE support\n");
@@ -106,18 +104,18 @@ static ENGINE *setup_engine_no_default(const char *engine, int debug)
             return NULL;
         if (!ENGINE_ctrl_cmd(e, "SET_USER_INTERFACE", 0, ui_method, 0, 1))
             return NULL;
-#  if defined(SET_ENGINE_METHOD_ALL)
+# if defined(SET_ENGINE_METHOD_ALL)
         if (!ENGINE_set_default(e, ENGINE_METHOD_ALL)) {
             BIO_printf(bio_err, "can't use that engine\n");
             ERR_print_errors(bio_err);
             ENGINE_free(e);
             return NULL;
         }
-#  endif
+# endif
 
         BIO_printf(bio_err, "engine \"%s\" set\n", ENGINE_get_id(e));
     }
-# endif
+#endif
     return e;
 }
 
@@ -283,9 +281,9 @@ typedef enum OPTION_choice {
 
     OPT_OWNFORM, OPT_KEYFORM, OPT_OTHERFORM,
     OPT_OTHERPASS,
-# ifndef OPENSSL_NO_ENGINE
+#ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
-# endif
+#endif
 
     OPT_TLS_USED, OPT_TLS_CERT, OPT_TLS_KEY,
     OPT_TLS_KEYPASS,
@@ -460,7 +458,7 @@ const OPTIONS cmp_options[] = {
      "Format (PEM/DER/P12) to try first reading cert files of others. Default PEM"},
     {"otherpass", OPT_OTHERPASS, 's',
      "Pass phrase source potentially needed for loading certificates of others"},
-# ifndef OPENSSL_NO_ENGINE
+#ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's',
      "Use crypto engine with given identifier, possibly a hardware device."},
     {OPT_MORE_STR, 0, 0,
@@ -469,7 +467,7 @@ const OPTIONS cmp_options[] = {
      "Options like -key specifying keys held in the engine can give key IDs"},
     {OPT_MORE_STR, 0, 0,
      "prefixed by 'engine:', e.g. '-key engine:pkcs11:object=mykey;pin-value=1234'"},
-# endif
+#endif
 
     OPT_SECTION("TLS connection"),
     {"tls_used", OPT_TLS_USED, '-',
@@ -597,9 +595,9 @@ static varref cmp_vars[] = { /* must be in same order as enumerated above! */
 
     {&opt_ownform_s}, {&opt_keyform_s}, {&opt_otherform_s},
     {&opt_otherpass},
-# ifndef OPENSSL_NO_ENGINE
+#ifndef OPENSSL_NO_ENGINE
     {&opt_engine},
-# endif
+#endif
 
     {(char **)&opt_tls_used}, {&opt_tls_cert}, {&opt_tls_key},
     {&opt_tls_keypass},
@@ -624,32 +622,32 @@ static varref cmp_vars[] = { /* must be in same order as enumerated above! */
     {NULL}
 };
 
-# ifndef NDEBUG
-#  define FUNC (strcmp(OPENSSL_FUNC, "(unknown function)") == 0 \
-                ? "CMP" : "OPENSSL_FUNC")
-#  define PRINT_LOCATION(bio) BIO_printf(bio, "%s:%s:%d:", \
-                                         FUNC, OPENSSL_FILE, OPENSSL_LINE)
-# else
-#  define PRINT_LOCATION(bio) ((void)0)
-# endif
-# define CMP_print(bio, prefix, msg, a1, a2, a3) \
+#ifndef NDEBUG
+# define FUNC (strcmp(OPENSSL_FUNC, "(unknown function)") == 0  \
+               ? "CMP" : "OPENSSL_FUNC")
+# define PRINT_LOCATION(bio) BIO_printf(bio, "%s:%s:%d:", \
+                                        FUNC, OPENSSL_FILE, OPENSSL_LINE)
+#else
+# define PRINT_LOCATION(bio) ((void)0)
+#endif
+#define CMP_print(bio, prefix, msg, a1, a2, a3) \
     (PRINT_LOCATION(bio), \
      BIO_printf(bio, "CMP %s: " msg "\n", prefix, a1, a2, a3))
-# define CMP_INFO(msg, a1, a2, a3)  CMP_print(bio_out, "info", msg, a1, a2, a3)
-# define CMP_info(msg)              CMP_INFO(msg"%s%s%s", "", "", "")
-# define CMP_info1(msg, a1)         CMP_INFO(msg"%s%s",   a1, "", "")
-# define CMP_info2(msg, a1, a2)     CMP_INFO(msg"%s",     a1, a2, "")
-# define CMP_info3(msg, a1, a2, a3) CMP_INFO(msg,         a1, a2, a3)
-# define CMP_WARN(m, a1, a2, a3)    CMP_print(bio_out, "warning", m, a1, a2, a3)
-# define CMP_warn(msg)              CMP_WARN(msg"%s%s%s", "", "", "")
-# define CMP_warn1(msg, a1)         CMP_WARN(msg"%s%s",   a1, "", "")
-# define CMP_warn2(msg, a1, a2)     CMP_WARN(msg"%s",     a1, a2, "")
-# define CMP_warn3(msg, a1, a2, a3) CMP_WARN(msg,         a1, a2, a3)
-# define CMP_ERR(msg, a1, a2, a3)   CMP_print(bio_err, "error", msg, a1, a2, a3)
-# define CMP_err(msg)               CMP_ERR(msg"%s%s%s", "", "", "")
-# define CMP_err1(msg, a1)          CMP_ERR(msg"%s%s",   a1, "", "")
-# define CMP_err2(msg, a1, a2)      CMP_ERR(msg"%s",     a1, a2, "")
-# define CMP_err3(msg, a1, a2, a3)  CMP_ERR(msg,         a1, a2, a3)
+#define CMP_INFO(msg, a1, a2, a3)  CMP_print(bio_out, "info", msg, a1, a2, a3)
+#define CMP_info(msg)              CMP_INFO(msg"%s%s%s", "", "", "")
+#define CMP_info1(msg, a1)         CMP_INFO(msg"%s%s",   a1, "", "")
+#define CMP_info2(msg, a1, a2)     CMP_INFO(msg"%s",     a1, a2, "")
+#define CMP_info3(msg, a1, a2, a3) CMP_INFO(msg,         a1, a2, a3)
+#define CMP_WARN(m, a1, a2, a3)    CMP_print(bio_out, "warning", m, a1, a2, a3)
+#define CMP_warn(msg)              CMP_WARN(msg"%s%s%s", "", "", "")
+#define CMP_warn1(msg, a1)         CMP_WARN(msg"%s%s",   a1, "", "")
+#define CMP_warn2(msg, a1, a2)     CMP_WARN(msg"%s",     a1, a2, "")
+#define CMP_warn3(msg, a1, a2, a3) CMP_WARN(msg,         a1, a2, a3)
+#define CMP_ERR(msg, a1, a2, a3)   CMP_print(bio_err, "error", msg, a1, a2, a3)
+#define CMP_err(msg)               CMP_ERR(msg"%s%s%s", "", "", "")
+#define CMP_err1(msg, a1)          CMP_ERR(msg"%s%s",   a1, "", "")
+#define CMP_err2(msg, a1, a2)      CMP_ERR(msg"%s",     a1, a2, "")
+#define CMP_err3(msg, a1, a2, a3)  CMP_ERR(msg,         a1, a2, a3)
 
 static int print_to_bio_out(const char *func, const char *file, int line,
                             OSSL_CMP_severity level, const char *msg)
@@ -808,11 +806,11 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     cb_data.prompt_info = file;
 
     if (format == FORMAT_HTTP) {
-# if !defined(OPENSSL_NO_SOCK)
+#if !defined(OPENSSL_NO_SOCK)
         x = X509_load_http(file, NULL, NULL, 10);
-# else
+#else
         CMP_err1("http(s) not supported loading cert from '%s'\n", file);
-# endif
+#endif
         goto end;
     }
     if (file == NULL) {
@@ -1120,7 +1118,7 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
  * The string must not be freed as long as cert_verify_cb() may use it.
  * returns 1 on success, 0 on error.
  */
-# define X509_STORE_EX_DATA_HOST 0
+#define X509_STORE_EX_DATA_HOST 0
 static int truststore_set_host_etc(X509_STORE *ts, char *host)
 {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
@@ -1288,12 +1286,12 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
              * The following workaround unfortunately requires re-protection.
              * See also https://github.com/mpeylo/cmpossl/issues/8
              */
-# if defined(USE_TRANSACTIONID_WORKAROUND)
+#if defined(USE_TRANSACTIONID_WORKAROUND)
             hdr = OSSL_CMP_MSG_get0_header(req_new);
             if (!OSSL_CMP_CTX_set1_transactionID(hdr, NULL)
                     || !ossl_cmp_msg_protect(ctx, req_new))
                 goto err;
-# endif
+#endif
         }
     }
 
@@ -1305,9 +1303,9 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
         if (opt_use_mock_srv) {
             res = OSSL_CMP_CTX_server_perform(ctx, actual_req);
         } else {
-# if !defined(OPENSSL_NO_SOCK)
+#if !defined(OPENSSL_NO_SOCK)
             res = OSSL_CMP_MSG_http_perform(ctx, actual_req);
-# endif
+#endif
         }
     }
     if (res == NULL)
@@ -1619,11 +1617,11 @@ static int transform_opts(void)
         return 0;
     }
 
-# ifdef OPENSSL_NO_ENGINE
-#  define FORMAT_OPTIONS (OPT_FMT_PEMDER | OPT_FMT_PKCS12 | OPT_FMT_ENGINE)
-# else
-#  define FORMAT_OPTIONS (OPT_FMT_PEMDER | OPT_FMT_PKCS12)
-# endif
+#ifdef OPENSSL_NO_ENGINE
+# define FORMAT_OPTIONS (OPT_FMT_PEMDER | OPT_FMT_PKCS12 | OPT_FMT_ENGINE)
+#else
+# define FORMAT_OPTIONS (OPT_FMT_PEMDER | OPT_FMT_PKCS12)
+#endif
 
     if (opt_keyform_s != NULL
             && !opt_format(opt_keyform_s, FORMAT_OPTIONS, &opt_keyform)) {
@@ -1631,7 +1629,7 @@ static int transform_opts(void)
         return 0;
     }
 
-# undef FORMAT_OPTIONS
+#undef FORMAT_OPTIONS
 
     if (opt_ownform_s != NULL
             && !opt_format(opt_ownform_s, OPT_FMT_PEMDER | OPT_FMT_PKCS12,
@@ -2523,9 +2521,9 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         info->ssl_ctx = setup_ssl_ctx(ctx, e);
         if (info->ssl_ctx == NULL)
             goto err; /* info will be freed along with CMP ctx */
-# ifndef OPENSSL_NO_SOCK
+#ifndef OPENSSL_NO_SOCK
         (void)OSSL_CMP_CTX_set_http_cb(ctx, app_http_tls_cb);
-# endif
+#endif
     }
 
     if (!setup_protection_ctx(ctx, e))
@@ -2556,10 +2554,10 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 /* Very basic HTTP server: initializiation */
 static BIO *init_http_server(const char *port)
 {
-# ifdef OPENSSL_NO_SOCK
+#ifdef OPENSSL_NO_SOCK
     CMP_err("Error setting up accept BIO - sockets not supported");
     return NULL;
-# else
+#else
     BIO *acbio = NULL, *bufbio;
 
     bufbio = BIO_new(BIO_f_buffer());
@@ -2586,15 +2584,15 @@ static BIO *init_http_server(const char *port)
     BIO_free_all(acbio);
     BIO_free(bufbio);
     return NULL;
-# endif
+#endif
 }
 
 /* Very basic HTTP server: read request */
 static int http_server_get_req(BIO **pcbio, BIO *acbio)
 {
-# ifdef OPENSSL_NO_SOCK
+#ifdef OPENSSL_NO_SOCK
     return 0;
-# else
+#else
     int len;
     char inbuf[2048], reqbuf[2048];
     BIO *cbio = NULL;
@@ -2628,7 +2626,7 @@ static int http_server_get_req(BIO **pcbio, BIO *acbio)
     }
 
     return 1;
-# endif
+#endif
 }
 
 /* Very basic HTTP server: send CMP response */
@@ -3128,11 +3126,11 @@ static int get_opts(int argc, char **argv)
         case OPT_OTHERPASS:
             opt_otherpass = opt_str("otherpass");
             break;
-# ifndef OPENSSL_NO_ENGINE
+#ifndef OPENSSL_NO_ENGINE
         case OPT_ENGINE:
             opt_engine = opt_str("engine");
             break;
-# endif
+#endif
 
         case OPT_BATCH:
             opt_batch = 1;
@@ -3318,15 +3316,15 @@ int cmp_main(int argc, char **argv)
     ret = 0;
 
     if (opt_batch) {
-# ifndef OPENSSL_NO_ENGINE
+#ifndef OPENSSL_NO_ENGINE
         UI_METHOD *ui_fallback_method;
-#  ifndef OPENSSL_NO_UI_CONSOLE
+# ifndef OPENSSL_NO_UI_CONSOLE
         ui_fallback_method = UI_OpenSSL();
-#  else
+# else
         ui_fallback_method = (UI_METHOD *)UI_null();
-#  endif
-        UI_method_set_reader(ui_fallback_method, NULL);
 # endif
+        UI_method_set_reader(ui_fallback_method, NULL);
+#endif
     }
 
     if (opt_engine != NULL)
@@ -3557,5 +3555,3 @@ int cmp_main(int argc, char **argv)
 
     return ret == 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
-
-#endif /* !defined OPENSSL_NO_CMP */
