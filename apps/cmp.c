@@ -2422,13 +2422,14 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto oom;
     if (opt_proxy != NULL && !OSSL_CMP_CTX_set1_proxy(ctx, opt_proxy))
         goto oom;
-    (void)BIO_snprintf(server_buf, sizeof(server_buf), "http%s://%s%s%s",
+    (void)BIO_snprintf(server_buf, sizeof(server_buf), "http%s://%s%s%s/%s",
                        opt_tls_used ? "s" : "", opt_server,
-                       server_port == 0 ? "" : ":", server_port_s);
+                       server_port == 0 ? "" : ":", server_port_s,
+                       opt_path[0] == '/' ? opt_path + 1 : opt_path);
+
     if (opt_proxy != NULL)
         (void)BIO_snprintf(proxy_buf, sizeof(proxy_buf), " via %s", opt_proxy);
-    CMP_info3("will contact %s%s/%s", server_buf, proxy_buf,
-              opt_path[0] == '/' ? opt_path + 1 : opt_path);
+    CMP_info2("will contact %s%s", server_buf, proxy_buf);
 
     if (!transform_opts())
         goto err;
