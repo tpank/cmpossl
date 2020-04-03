@@ -176,7 +176,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     if (*rep == NULL) {
         CMPerr(0, CMP_R_TRANSFER_ERROR); /* or receiving response */
-        ERR_add_error_data(1, req_type_str);
+        ERR_add_error_data(2, "request sent: ", req_type_str);
         ERR_add_error_data(2, ", expected response: ", expected_type_str);
         return 0;
     }
