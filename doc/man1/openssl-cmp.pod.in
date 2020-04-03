@@ -52,7 +52,7 @@ B<openssl> B<cmp>
 [B<-sans> I<spec>]
 [B<-san_nodefault>]
 [B<-policies> I<name>]
-[B<-policy_oid> I<names>]
+[B<-policy_oids> I<names>]
 [B<-policy_oids_critical>]
 [B<-popo> I<number>]
 [B<-csr> I<filename>]
