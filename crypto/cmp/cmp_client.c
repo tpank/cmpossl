@@ -754,6 +754,10 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         CMPerr(0, CMP_R_INVALID_ARGS);
         return 0;
     }
+    if (ctx->oldCert == NULL) {
+        CMPerr(0, CMP_R_MISSING_REFERENCE_CERT);
+        return 0;
+    }
     ctx->status = -1;
 
     /* OSSL_CMP_rr_new() also checks if all necessary options are set */
@@ -764,10 +768,17 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         goto end;
 
     rrep = rp->body->value.rp;
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if (sk_OSSL_CMP_PKISI_num(rrep->status) != num_RevDetails) {
         CMPerr(0, CMP_R_WRONG_RP_COMPONENT_COUNT);
         goto end;
     }
+#else
+    if (sk_OSSL_CMP_PKISI_num(rrep->status) < 1) {
+        CMPerr(0, CMP_R_WRONG_RP_COMPONENT_COUNT);
+        goto end;
+    }
+#endif
 
     /* evaluate PKIStatus field */
     si = ossl_cmp_revrepcontent_get_pkisi(rrep, rsid);
@@ -822,15 +833,19 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
             goto err;
         }
         if (X509_NAME_cmp(issuer, OSSL_CRMF_CERTID_get0_issuer(cid)) != 0) {
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
             CMPerr(0, CMP_R_WRONG_CERTID_IN_RP);
             result = NULL;
             goto err;
+#endif
         }
         if (ASN1_INTEGER_cmp(serial,
                              OSSL_CRMF_CERTID_get0_serialNumber(cid)) != 0) {
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
             CMPerr(0, CMP_R_WRONG_SERIAL_IN_RP);
             result = NULL;
             goto err;
+#endif
         }
     }
 

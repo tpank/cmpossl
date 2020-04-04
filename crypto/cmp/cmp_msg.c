@@ -219,9 +219,14 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype, int rid)
 
     if (rkey == NULL)
         rkey = ctx->pkey; /* default is independent of ctx->oldClCert */
-    if (rkey == NULL
-            || (bodytype == OSSL_CMP_PKIBODY_KUR && refcert == NULL)) {
-        CMPerr(0, CMP_R_INVALID_ARGS);
+    if (rkey == NULL) {
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+#endif
+    }
+    if (bodytype == OSSL_CMP_PKIBODY_KUR && refcert == NULL) {
+        CMPerr(0, CMP_R_MISSING_REFERENCE_CERT);
         return NULL;
     }
     if ((crm = OSSL_CRMF_MSG_new()) == NULL)
