@@ -44,12 +44,19 @@ static int allow_unprotected(const OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *rep,
 
 static void cmp_client_process_response(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
+    X509_NAME *name = X509_NAME_new();
+    ASN1_INTEGER *serial = ASN1_INTEGER_new();
+
     ctx->unprotectedSend = 1; /* satisfy ossl_cmp_msg_protect() */
     ctx->disableConfirm = 1; /* check just one response message */
-    (void)OSSL_CMP_CTX_set1_secretValue(ctx, (unsigned char *)"",
-                                        0); /* prevent too unspecific error */
     ctx->popoMethod = OSSL_CRMF_POPO_NONE; /* satisfy ossl_cmp_certReq_new() */
     ctx->oldCert = X509_new(); /* satisfy crm_new() and ossl_cmp_rr_new() */
+    if (!OSSL_CMP_CTX_set1_secretValue(ctx, (unsigned char *)"",
+                                       0) /* prevent too unspecific error */
+            || ctx->oldCert == NULL
+            || name == NULL || !X509_set_issuer_name(ctx->oldCert, name)
+            || serial == NULL || !X509_set_serialNumber(ctx->oldCert, serial))
+        goto err;
 
     (void)OSSL_CMP_CTX_set_transfer_cb(ctx, transfer_cb);
     (void)OSSL_CMP_CTX_set_transfer_cb_arg(ctx, msg);
@@ -79,6 +86,9 @@ static void cmp_client_process_response(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         (void)ossl_cmp_msg_check_received(ctx, msg, allow_unprotected, 0);
         break;
     }
+ err:
+    X509_NAME_free(name);
+    ASN1_INTEGER_free(serial);
 }
 
 static OSSL_CMP_PKISI *process_cert_request(OSSL_CMP_SRV_CTX *srv_ctx,
