@@ -28,13 +28,12 @@ int FuzzerInitialize(int *argc, char ***argv)
 }
 
 static int num_responses;
+
 static OSSL_CMP_MSG *transfer_cb(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req)
 {
-    OSSL_CMP_MSG *rsp = (OSSL_CMP_MSG *)OSSL_CMP_CTX_get_transfer_cb_arg(ctx);
-
     if (num_responses++ > 2)
         return NULL; /* prevent loops due to repeated pollRep */
-    return OSSL_CMP_MSG_dup(rsp);
+    return (OSSL_CMP_MSG *)OSSL_CMP_CTX_get_transfer_cb_arg(ctx);
 }
 
 static int allow_unprotected(const OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *rep,

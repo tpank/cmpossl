@@ -322,7 +322,9 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
 
             OSSL_CMP_MSG_free(preq);
             preq = NULL;
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
             OSSL_CMP_MSG_free(prep);
+#endif
             prep = NULL;
             if (sleep) {
                 ossl_sleep((unsigned long)(1000 * check_after));
@@ -346,7 +348,9 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
     return 1;
  err:
     OSSL_CMP_MSG_free(preq);
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     OSSL_CMP_MSG_free(prep);
+#endif
     return 0;
 }
 
@@ -366,7 +370,9 @@ int ossl_cmp_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,
 
  err:
     OSSL_CMP_MSG_free(certConf);
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     OSSL_CMP_MSG_free(PKIconf);
+#endif
     return res;
 }
 
@@ -390,7 +396,9 @@ int ossl_cmp_exchange_error(OSSL_CMP_CTX *ctx, int status, int fail_info,
  err:
     OSSL_CMP_MSG_free(error);
     OSSL_CMP_PKISI_free(si);
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     OSSL_CMP_MSG_free(PKIconf);
+#endif
     return res;
 }
 
@@ -538,7 +546,9 @@ static int cert_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
     }
 
     if (ossl_cmp_pkisi_get_status(crep->status) == OSSL_CMP_PKISTATUS_waiting) {
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
         OSSL_CMP_MSG_free(*resp);
+#endif
         *resp = NULL;
         if ((ret = poll_for_response(ctx, sleep, rid, resp, checkAfter)) != 0) {
             if (ret == -1) /* at this point implies sleep == 0 */
@@ -666,7 +676,9 @@ int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type, int *checkAfter)
 
  err:
     OSSL_CMP_MSG_free(req);
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     OSSL_CMP_MSG_free(rep);
+#endif
     return res;
 }
 
@@ -711,7 +723,9 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, int req_type, int req_err,
     result = ctx->newCert;
  err:
     OSSL_CMP_MSG_free(req);
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     OSSL_CMP_MSG_free(rep);
+#endif
     return result;
 }
 
@@ -863,7 +877,9 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 
  end:
     OSSL_CMP_MSG_free(rr);
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     OSSL_CMP_MSG_free(rp);
+#endif
     return result;
 }
 
@@ -890,7 +906,9 @@ STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
 
  err:
     OSSL_CMP_MSG_free(genm);
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     OSSL_CMP_MSG_free(genp);
+#endif
 
     return rcvd_itavs; /* recv_itavs == NULL indicates an error */
 }
