@@ -164,7 +164,8 @@ int FuzzerTestOneInput(const uint8_t *buf, size_t len)
         OSSL_CMP_CTX *client_ctx = OSSL_CMP_CTX_new();
 
         i2d_OSSL_CMP_MSG_bio(out, msg);
-        ASN1_item_print(out, (ASN1_VALUE *)msg, 4, ASN1_ITEM_rptr(OSSL_CMP_MSG), NULL);
+        ASN1_item_print(out, (ASN1_VALUE *)msg, 4,
+                        ASN1_ITEM_rptr(OSSL_CMP_MSG), NULL);
         BIO_free(out);
 
         if (client_ctx != NULL)
