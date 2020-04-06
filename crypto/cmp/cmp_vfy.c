@@ -168,7 +168,9 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx, X509_STORE *trusted_store,
 
  err:
     /* directly output any fresh errors, needed for check_msg_find_cert() */
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     OSSL_CMP_CTX_print_errors(ctx);
+#endif
     X509_STORE_CTX_free(csc);
     return valid;
 }
@@ -468,7 +470,9 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     }
 
     /* dump any hitherto errors to avoid confusion when printing further ones */
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     OSSL_CMP_CTX_print_errors(ctx);
+#endif
 
     /*
      * try first cached scrt, used successfully earlier in same transaction,

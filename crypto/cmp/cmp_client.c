@@ -161,7 +161,9 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     }
 
     /* should print error queue since transfer_cb may call ERR_clear_error() */
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     OSSL_CMP_CTX_print_errors(ctx);
+#endif
 
     ossl_cmp_log1(INFO, ctx, "sending %s", req_type_str);
 
