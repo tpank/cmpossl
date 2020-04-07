@@ -36,6 +36,12 @@ static OSSL_CMP_MSG *transfer_cb(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req)
     return (OSSL_CMP_MSG *)OSSL_CMP_CTX_get_transfer_cb_arg(ctx);
 }
 
+static int print_noop(const char *func, const char *file, int line,
+                      OSSL_CMP_severity level, const char *msg)
+{
+    return 1;
+}
+
 static int allow_unprotected(const OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *rep,
                              int invalid_protection, int expected_type)
 {
@@ -60,6 +66,7 @@ static void cmp_client_process_response(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 
     (void)OSSL_CMP_CTX_set_transfer_cb(ctx, transfer_cb);
     (void)OSSL_CMP_CTX_set_transfer_cb_arg(ctx, msg);
+    (void)OSSL_CMP_CTX_set_log_cb(ctx, print_noop);
     num_responses = 0;
     switch (msg->body != NULL ? msg->body->type : -1) {
     case OSSL_CMP_PKIBODY_IP:
