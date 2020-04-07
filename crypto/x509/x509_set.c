@@ -185,8 +185,8 @@ void X509_SIG_INFO_set(X509_SIG_INFO *siginf, int mdnid, int pknid,
     siginf->flags = flags;
 }
 
-int X509_get_signature_info(X509 *x, int *mdnid, int *pknid, int *secbits,
-                            uint32_t *flags)
+int X509_get_signature_info(/* TODO should be const */ X509 *x, int *mdnid,
+                            int *pknid, int *secbits, uint32_t *flags)
 {
     X509_check_purpose(x, -1, -1);
     return X509_SIG_INFO_get(&x->siginf, mdnid, pknid, secbits, flags);

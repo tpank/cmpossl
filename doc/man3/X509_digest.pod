@@ -17,7 +17,7 @@ PKCS7_ISSUER_AND_SERIAL_digest
 
  int X509_digest(const X509 *data, const EVP_MD *type, unsigned char *md,
                  unsigned int *len);
- ASN1_OCTET_STRING *X509_digest_sig(const X509 *cert);
+ ASN1_OCTET_STRING *X509_digest_sig(X509 *cert);
 
  int X509_CRL_digest(const X509_CRL *data, const EVP_MD *type, unsigned char *md,
                      unsigned int *len);

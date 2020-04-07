@@ -459,7 +459,7 @@ int X509_digest(const X509 *data, const EVP_MD *type, unsigned char *md,
 }
 
 /* calculate cert digest using the same hash algorithm as in its signature */
-ASN1_OCTET_STRING *X509_digest_sig(const X509 *cert)
+ASN1_OCTET_STRING *X509_digest_sig(/* TODO should be const */ X509 *cert)
 {
     unsigned int len;
     unsigned char hash[EVP_MAX_MD_SIZE];
@@ -472,9 +472,9 @@ ASN1_OCTET_STRING *X509_digest_sig(const X509 *cert)
         return NULL;
     }
 
-    if (!OBJ_find_sigid_algs(X509_get_signature_nid(cert), &md_NID, NULL)
+    if (!X509_get_signature_info(cert, &md_NID, NULL, NULL, NULL)
             || (md = EVP_get_digestbynid(md_NID)) == NULL) {
-        CMPerr(0, X509_R_UNSUPPORTED_ALGORITHM);
+        X509err(0, X509_R_UNSUPPORTED_ALGORITHM);
         return NULL;
     }
     if (!X509_digest(cert, md, hash, &len)
