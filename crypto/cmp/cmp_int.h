@@ -731,7 +731,7 @@ OSSL_CMP_CERTSTATUS structure. This is used in the certConf message, for
 example, to confirm that the certificate was received successfully.
 */
 int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
-                                const X509 *cert);
+                                X509 *cert);
 int CMP_ITAV_stack_item_push0(STACK_OF(OSSL_CMP_ITAV) **
                               itav_sk_p, OSSL_CMP_ITAV *itav);
 

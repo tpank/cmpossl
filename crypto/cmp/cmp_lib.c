@@ -734,7 +734,7 @@ int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
  * returns 1 on success, 0 on error
  */
 int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
-                                const X509 *cert)
+                                X509 *cert)
 {
     unsigned int len;
     unsigned char hash[EVP_MAX_MD_SIZE];
@@ -750,7 +750,7 @@ int CMP_CERTSTATUS_set_certHash(OSSL_CMP_CERTSTATUS *certStatus,
      * -- the hash of the certificate, using the same hash algorithm
      * -- as is used to create and verify the certificate signature
      */
-    if (OBJ_find_sigid_algs(X509_get_signature_nid(cert), &md_NID, NULL)
+    if (X509_get_signature_info(cert, &md_NID, NULL, NULL, NULL)
             && (md = EVP_get_digestbynid(md_NID)) != NULL) {
         if (!X509_digest(cert, md, hash, &len))
             goto err;
