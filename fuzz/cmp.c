@@ -33,7 +33,8 @@ static OSSL_CMP_MSG *transfer_cb(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req)
 {
     if (num_responses++ > 2)
         return NULL; /* prevent loops due to repeated pollRep */
-    return (OSSL_CMP_MSG *)OSSL_CMP_CTX_get_transfer_cb_arg(ctx);
+    return OSSL_CMP_MSG_dup((OSSL_CMP_MSG *)
+                            OSSL_CMP_CTX_get_transfer_cb_arg(ctx));
 }
 
 static int print_noop(const char *func, const char *file, int line,
