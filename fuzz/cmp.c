@@ -87,7 +87,8 @@ static void cmp_client_process_response(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
         (void)OSSL_CMP_exec_RR_ses(ctx);
         break;
     case OSSL_CMP_PKIBODY_GENP:
-        (void)OSSL_CMP_exec_GENM_ses(ctx);
+        sk_OSSL_CMP_ITAV_pop_free(OSSL_CMP_exec_GENM_ses(ctx),
+                                  OSSL_CMP_ITAV_free);
         break;
     default:
         (void)ossl_cmp_msg_check_received(ctx, msg, allow_unprotected, 0);
