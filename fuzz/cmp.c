@@ -178,6 +178,8 @@ int FuzzerTestOneInput(const uint8_t *buf, size_t len)
         if (client_ctx != NULL)
             cmp_client_process_response(client_ctx, msg);
         if (srv_ctx != NULL
+            && OSSL_CMP_CTX_set_log_cb(OSSL_CMP_SRV_CTX_get0_cmp_ctx(srv_ctx),
+                                       print_noop)
             && OSSL_CMP_SRV_CTX_init(srv_ctx, NULL, process_cert_request,
                                      process_rr, process_genm, process_error,
                                      process_certConf, process_pollReq))
