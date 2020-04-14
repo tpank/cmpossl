@@ -133,8 +133,6 @@ static int execute_calc_protection_signature_test(CMP_PROTECT_TEST_FIXTURE *
     ASN1_BIT_STRING *protection =
         ossl_cmp_calc_protection(fixture->msg, NULL, fixture->privkey);
     int ret = (TEST_ptr(protection)
-                   && TEST_true(ASN1_STRING_cmp(protection,
-                                                fixture->msg->protection) == 0)
                    && TEST_true(verify_signature(fixture->msg, protection,
                                                  fixture->pubkey,
                                                  fixture->cmp_ctx->digest)));

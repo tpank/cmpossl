@@ -39,17 +39,8 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
     ASN1_BIT_STRING *prot = NULL;
     OSSL_CMP_PROTECTEDPART prot_part;
     const ASN1_OBJECT *algorOID = NULL;
-    int len;
-    size_t prot_part_der_len;
-    unsigned char *prot_part_der = NULL;
-    size_t sig_len;
-    unsigned char *protection = NULL;
     const void *ppval = NULL;
     int pptype = 0;
-    OSSL_CRMF_PBMPARAMETER *pbm = NULL;
-    ASN1_STRING *pbm_str = NULL;
-    const unsigned char *pbm_str_uc = NULL;
-    EVP_MD_CTX *evp_ctx = NULL;
     int md_NID;
     const EVP_MD *md = NULL;
 
@@ -60,80 +51,82 @@ ASN1_BIT_STRING *ossl_cmp_calc_protection(const OSSL_CMP_MSG *msg,
     prot_part.header = msg->header;
     prot_part.body = msg->body;
 
-    len = i2d_OSSL_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
-    if (len < 0 || prot_part_der == NULL) {
-        CMPerr(0, CMP_R_ERROR_CALCULATING_PROTECTION);
-        goto end;
-    }
-    prot_part_der_len = (size_t) len;
-
     if (msg->header->protectionAlg == NULL) {
         CMPerr(0, CMP_R_UNKNOWN_ALGORITHM_ID);
-        goto end;
+        return NULL;
     }
     X509_ALGOR_get0(&algorOID, &pptype, &ppval, msg->header->protectionAlg);
 
     if (secret != NULL && pkey == NULL) {
-        if (ppval == NULL) {
-            CMPerr(0, CMP_R_ERROR_CALCULATING_PROTECTION);
-            goto end;
-        }
-        if (NID_id_PasswordBasedMAC != OBJ_obj2nid(algorOID)) {
+        int len;
+        unsigned char *prot_part_der = NULL;
+        size_t prot_part_der_len;
+        size_t sig_len;
+        unsigned char *protection = NULL;
+        OSSL_CRMF_PBMPARAMETER *pbm = NULL;
+        ASN1_STRING *pbm_str = NULL;
+        const unsigned char *pbm_str_uc = NULL;
+
+        if (OBJ_obj2nid(algorOID) != NID_id_PasswordBasedMAC) {
             CMPerr(0, CMP_R_WRONG_ALGORITHM_OID);
-            goto end;
+            return NULL;
         }
+        if (ppval == NULL) {
+            CMPerr(0, CMP_R_UNKNOWN_ALGORITHM_ID);
+            return NULL;
+        }
+
+        len = i2d_OSSL_CMP_PROTECTEDPART(&prot_part, &prot_part_der);
+        if (len < 0 || prot_part_der == NULL) {
+            CMPerr(0, CMP_R_ERROR_CALCULATING_PROTECTION);
+            goto pbm_end;
+        }
+        prot_part_der_len = (size_t) len;
+
         pbm_str = (ASN1_STRING *)ppval;
         pbm_str_uc = pbm_str->data;
         pbm = d2i_OSSL_CRMF_PBMPARAMETER(NULL, &pbm_str_uc, pbm_str->length);
-        if (pbm == NULL) {
-            CMPerr(0, CMP_R_WRONG_ALGORITHM_OID);
-            goto end;
-        }
-
-        if (!OSSL_CRMF_pbm_new(pbm, prot_part_der, prot_part_der_len,
-                               secret->data, secret->length,
-                               &protection, &sig_len))
-            goto end;
-    } else if (secret == NULL && pkey != NULL) {
-        /* TODO combine this with large parts of CRMF_poposigningkey_init() */
-        /* EVP_DigestSignInit() checks that pkey type is correct for the alg */
-
-        if (!OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
-                || (md = EVP_get_digestbynid(md_NID)) == NULL
-                || (evp_ctx = EVP_MD_CTX_new()) == NULL) {
-            CMPerr(0, CMP_R_UNKNOWN_ALGORITHM_ID);
-            goto end;
-        }
-        if (EVP_DigestSignInit(evp_ctx, NULL, md, NULL, pkey) <= 0
-                || EVP_DigestSignUpdate(evp_ctx, prot_part_der,
-                                        prot_part_der_len) <= 0
-                || EVP_DigestSignFinal(evp_ctx, NULL, &sig_len) <= 0
-                || (protection = OPENSSL_malloc(sig_len)) == NULL
-                || EVP_DigestSignFinal(evp_ctx, protection, &sig_len) <= 0) {
+        if (pbm == NULL
+                || !OSSL_CRMF_pbm_new(pbm, prot_part_der, prot_part_der_len,
+                                      secret->data, secret->length,
+                                      &protection, &sig_len)
+                || ((prot = ASN1_BIT_STRING_new()) == NULL)) {
             CMPerr(0, CMP_R_ERROR_CALCULATING_PROTECTION);
-            goto end;
+            goto pbm_end;
         }
+
+        /* OpenSSL defaults bit strings to be encoded as ASN.1 NamedBitList */
+        prot->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
+        prot->flags |= ASN1_STRING_FLAG_BITS_LEFT;
+        if (!ASN1_BIT_STRING_set(prot, protection, sig_len)) {
+            ASN1_BIT_STRING_free(prot);
+            prot = NULL;
+        }
+
+    pbm_end:
+        OSSL_CRMF_PBMPARAMETER_free(pbm);
+        OPENSSL_free(protection);
+        OPENSSL_free(prot_part_der);
+        return prot;
+
+    } else if (secret == NULL && pkey != NULL) {
+        if (!OBJ_find_sigid_algs(OBJ_obj2nid(algorOID), &md_NID, NULL)
+                || (md = EVP_get_digestbynid(md_NID)) == NULL) {
+            CMPerr(0, CMP_R_UNKNOWN_ALGORITHM_ID);
+            return NULL;
+        }
+        if ((prot = ASN1_BIT_STRING_new()) == NULL)
+            return NULL;
+        if (ASN1_item_sign(ASN1_ITEM_rptr(OSSL_CMP_PROTECTEDPART),
+                           msg->header->protectionAlg, NULL, prot,
+                           &prot_part, pkey, md))
+            return prot;
+        ASN1_BIT_STRING_free(prot);
+        CMPerr(0, CMP_R_ERROR_CALCULATING_PROTECTION);
     } else {
         CMPerr(0, CMP_R_INVALID_ARGS);
-        goto end;
     }
-
-    if ((prot = ASN1_BIT_STRING_new()) == NULL)
-        goto end;
-    /* OpenSSL defaults all bit strings to be encoded as ASN.1 NamedBitList */
-    prot->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
-    prot->flags |= ASN1_STRING_FLAG_BITS_LEFT;
-    if (!ASN1_BIT_STRING_set(prot, protection, sig_len)) {
-        ASN1_BIT_STRING_free(prot);
-        prot = NULL;
-    }
-
- end:
-    OSSL_CRMF_PBMPARAMETER_free(pbm);
-    EVP_MD_CTX_free(evp_ctx);
-    OPENSSL_free(protection);
-    OPENSSL_free(prot_part_der);
-    return prot;
+    return NULL;
 }
 
 int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
