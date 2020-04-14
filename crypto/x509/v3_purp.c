@@ -840,13 +840,13 @@ int x509_check_issued_int(X509 *issuer, X509 *subject, OPENSSL_CTX *libctx,
          */
         EVP_PKEY *i_pkey = X509_get0_pubkey(issuer);
         X509_ALGOR *s_algor = &subject->cert_info.signature;
-        int s_pknid = NID_undef, s_mdnid = NID_undef;
+        int s_pknid;
 
         if (i_pkey == NULL)
             return X509_V_ERR_NO_ISSUER_PUBLIC_KEY;
 
         if (!OBJ_find_sigid_algs(OBJ_obj2nid(s_algor->algorithm),
-                                 &s_mdnid, &s_pknid)
+                                 NULL, &s_pknid)
             || EVP_PKEY_type(s_pknid) != EVP_PKEY_base_id(i_pkey))
             return X509_V_ERR_SIGNATURE_ALGORITHM_MISMATCH;
     }
