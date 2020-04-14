@@ -103,6 +103,7 @@ unknown algorithms or malformed parameters).
 X509_REQ_set1_signature_algo() returns 0 on success; or 1 on an
 error (e.g. null ALGO pointer). X509_REQ_set0_signature does
 not return an error value.
+
 X509_SIG_INFO_set() and X509_SIG_INFO_init() do not return any values.
 
 =head1 SEE ALSO
@@ -137,6 +138,7 @@ added in OpenSSL 1.1.0.
 
 The X509_REQ_set0_signature() and X509_REQ_set1_signature_algo()
 were added in OpenSSL 1.1.1e.
+
 The X509_SIG_INFO_init() function was added in OpenSSL 3.0.
 
 =head1 COPYRIGHT
