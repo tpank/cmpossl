@@ -70,8 +70,8 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     prot_part_der_len = (size_t) len;
 
     /* verify signature of protected part */
-    if (!OBJ_find_sigid_algs(OBJ_obj2nid(msg->header->protectionAlg->algorithm),
-                             &digest_nid, &pk_nid)
+    if (!OSSL_get_signature_info(msg->header->protectionAlg, msg->protection,
+                                 &digest_nid, &pk_nid, NULL, NULL)
             || digest_nid == NID_undef || pk_nid == NID_undef
             || (digest = EVP_get_digestbynid(digest_nid)) == NULL) {
         CMPerr(0, CMP_R_ALGORITHM_NOT_SUPPORTED);
@@ -626,7 +626,8 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
          * 5.1.3.3.  Signature
          */
     default:
-        if (!OBJ_find_sigid_algs(OBJ_obj2nid(alg->algorithm), NULL, &pk_nid)
+        if (!OSSL_get_signature_info(alg, msg->protection,
+                                     NULL, &pk_nid, NULL, NULL)
                 || pk_nid == NID_undef) {
             CMPerr(0, CMP_R_UNKNOWN_ALGORITHM_ID);
             break;
@@ -698,7 +699,7 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                       "received CMP message contains more than 10 extraCerts");
 
     /* validate message protection */
-    if (msg->header->protectionAlg != 0) {
+    if (msg->header->protectionAlg != NULL) {
         /* detect explicitly permitted exceptions for invalid protection */
         if (!OSSL_CMP_validate_msg(ctx, msg)
                 && (cb == NULL || (*cb)(ctx, msg, 1, cb_arg) <= 0)) {

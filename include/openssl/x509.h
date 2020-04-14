@@ -574,6 +574,9 @@ void X509_SIG_INFO_set(X509_SIG_INFO *siginf, int mdnid, int pknid,
 
 int X509_get_signature_info(X509 *x, int *mdnid, int *pknid, int *secbits,
                             uint32_t *flags);
+int OSSL_get_signature_info(const X509_ALGOR *alg, const ASN1_STRING *sig,
+                            int *mdnid,
+                            int *pknid, int *secbits, uint32_t *flags);
 
 void X509_get0_signature(const ASN1_BIT_STRING **psig,
                          const X509_ALGOR **palg, const X509 *x);

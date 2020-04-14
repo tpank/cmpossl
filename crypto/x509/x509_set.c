@@ -249,3 +249,13 @@ void x509_init_sig_info(X509 *x)
 {
     x509_sig_info_init(&x->siginf, &x->sig_alg, &x->signature);
 }
+
+int OSSL_get_signature_info(const X509_ALGOR *alg, const ASN1_STRING *sig,
+                            int *mdnid,
+                            int *pknid, int *secbits, uint32_t *flags)
+{
+    X509_SIG_INFO siginf;
+
+    x509_sig_info_init(&siginf, alg, sig);
+    return X509_SIG_INFO_get(&siginf, mdnid, pknid, secbits, flags);
+}

@@ -305,28 +305,25 @@ int X509_signature_dump(BIO *bp, const ASN1_STRING *sig, int indent)
 int X509_signature_print(BIO *bp, const X509_ALGOR *sigalg,
                          const ASN1_STRING *sig)
 {
-    int sig_nid;
     int indent = 4;
+    int pkey_nid;
+    const EVP_PKEY_ASN1_METHOD *ameth;
+
     if (BIO_printf(bp, "%*sSignature Algorithm: ", indent, "") <= 0)
         return 0;
     if (i2a_ASN1_OBJECT(bp, sigalg->algorithm) <= 0)
         return 0;
 
-    if (sig && BIO_printf(bp, "\n%*sSignature Value:", indent, "") <= 0)
+    if (sig != NULL && BIO_printf(bp, "\n%*sSignature Value:", indent, "") <= 0)
         return 0;
-    sig_nid = OBJ_obj2nid(sigalg->algorithm);
-    if (sig_nid != NID_undef) {
-        int pkey_nid, dig_nid;
-        const EVP_PKEY_ASN1_METHOD *ameth;
-        if (OBJ_find_sigid_algs(sig_nid, &dig_nid, &pkey_nid)) {
-            ameth = EVP_PKEY_asn1_find(NULL, pkey_nid);
-            if (ameth && ameth->sig_print)
-                return ameth->sig_print(bp, sigalg, sig, indent + 4, 0);
-        }
+    if (OSSL_get_signature_info(sigalg, sig, NULL, &pkey_nid, NULL, NULL)) {
+        ameth = EVP_PKEY_asn1_find(NULL, pkey_nid);
+        if (ameth && ameth->sig_print)
+            return ameth->sig_print(bp, sigalg, sig, indent + 4, 0);
     }
     if (BIO_write(bp, "\n", 1) != 1)
         return 0;
-    if (sig)
+    if (sig != NULL)
         return X509_signature_dump(bp, sig, indent + 4);
     return 1;
 }
