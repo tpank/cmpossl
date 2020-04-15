@@ -371,8 +371,8 @@ cmd = ir # default operation, can be overridden on cmd line with, e.g., kur
 
 # Certificate enrollment
 subject = "/CN=openssl-cmp-test"
-newkey = test/insta.priv.pem
-out_trusted = test/insta_ca.cert.pem
+newkey = insta.priv.pem
+out_trusted = insta.ca.crt
 certout = insta.cert.pem
 
 [pbm] # Password-based protection for Insta CA
@@ -382,11 +382,11 @@ secret = $insta::secret # pass:insta
 
 [signature] # Signature-based protection for Insta CA
 # Server authentication
-trusted = test/insta_ca.cert.pem # does not include keyUsage digitalSignature
+trusted = insta.ca.crt # does not include keyUsage digitalSignature
 
 # Client authentication
 secret = # disable PBM
-key = $insta::newkey # test/insta.priv.pem
+key = $insta::newkey # insta.priv.pem
 cert = $insta::certout # insta.cert.pem
 
 [ir]
@@ -401,6 +401,6 @@ cmd = kur
 oldcert = $insta::certout # insta.cert.pem
 
 [rr]
-# Certificate evocation
+# Certificate revocation
 cmd = rr
 oldcert = $insta::certout # insta.cert.pem
