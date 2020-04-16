@@ -24,12 +24,15 @@ setup("test_cmp_cli_server");
 plan skip_all => "This test is not supported in a no-cmp build"
     if disabled("cmp");
 
+plan skip_all => "This test is not supported in a no-ec build"
+    if disabled("ec");
+
+plan tests => 3;
+
 my $datadir = srctop_dir("test", "recipes", "81-test_cmp_cli_server_data");
 my $rsp_cert = catfile($datadir, "client.crt");
 my $outfile = "newcert.crt";
 my $localport = 1700;
-
-plan tests => 3;
 
 sub start_mock_server {
     system ("LD_LIBRARY_PATH=../../ ../../apps/openssl cmp" .
