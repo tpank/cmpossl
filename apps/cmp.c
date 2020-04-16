@@ -730,8 +730,7 @@ static char *next_item(char *opt) /* in list separated by comma and/or space */
 
 /*
  * TODO when load_cert_pass() from apps/lib/apps.c is merged (PR #4930)
- * remove this declaration of load_pkcs12(),
- * which has been copied from apps/lib/apps.c just for visibility reasons
+ * merge this variant of load_pkcs12() into the one in apps/lib/apps.c
  */
 static int load_pkcs12(BIO *in, const char *desc,
                        pem_password_cb *pem_cb, void *cb_data,
@@ -796,7 +795,7 @@ static int load_pkcs12(BIO *in, const char *desc,
  * and after generalizing it w.r.t. timeout
  */
 static X509 *load_cert_pass(const char *file, int format, const char *pass,
-                            const char *cert_descrip)
+                            const char *desc)
 {
     X509 *x = NULL;
     BIO *cert = NULL;
@@ -826,23 +825,21 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     } else if (format == FORMAT_PEM) {
         x = PEM_read_bio_X509_AUX(cert, NULL, wrap_password_callback, &cb_data);
     } else if (format == FORMAT_PKCS12) {
-        EVP_PKEY *pkey = NULL; /* pkey is required for matching the cert */
+        EVP_PKEY *pkey = NULL; /* pkey is required by PKCS12_parse() */
 
-        if (!load_pkcs12(cert, cert_descrip, wrap_password_callback,
+        if (!load_pkcs12(cert, desc, wrap_password_callback,
                          &cb_data, &pkey, &x, NULL))
             goto end;
         EVP_PKEY_free(pkey);
     } else {
         BIO_printf(bio_err, "bad input format specified for %s file '%s'\n",
-                   cert_descrip, file);
-        goto end;
+                   desc, file);
     }
 
  end:
     if (x == NULL) {
         ERR_print_errors(bio_err);
-        BIO_printf(bio_err, "unable to load %s from '%s'\n",
-                   cert_descrip, file);
+        BIO_printf(bio_err, "unable to load %s from '%s'\n", desc, file);
     }
     BIO_free(cert);
     return (x);
@@ -875,13 +872,14 @@ static X509_REQ *load_csr(const char *file, int format, const char *desc)
 /* TODO potentially move this and related functions to apps/lib/apps.c */
 static int adjust_format(const char **infile, int format, int engine_ok)
 {
-    if (!strncmp(*infile, "http://", 7) || !strncmp(*infile, "https://", 8)) {
+    if (!strncasecmp(*infile, "http://", 7)
+            || !strncasecmp(*infile, "https://", 8)) {
         format = FORMAT_HTTP;
-    } else if (engine_ok && strncmp(*infile, "engine:", 7) == 0) {
+    } else if (engine_ok && strncasecmp(*infile, "engine:", 7) == 0) {
         *infile += 7;
         format = FORMAT_ENGINE;
     } else {
-        if (strncmp(*infile, "file:", 5) == 0)
+        if (strncasecmp(*infile, "file:", 5) == 0)
             *infile += 5;
         /*
          * the following is a heuristic whether first to try PEM or DER
@@ -890,15 +888,15 @@ static int adjust_format(const char **infile, int format, int engine_ok)
         if (strlen(*infile) >= 4) {
             const char *extension = *infile + strlen(*infile) - 4;
 
-            if (strncmp(extension, ".crt", 4) == 0
-                    || strncmp(extension, ".pem", 4) == 0)
+            if (strncasecmp(extension, ".crt", 4) == 0
+                    || strncasecmp(extension, ".pem", 4) == 0)
                 /* weak recognition of PEM format */
                 format = FORMAT_PEM;
-            else if (strncmp(extension, ".cer", 4) == 0
-                         || strncmp(extension, ".der", 4) == 0)
+            else if (strncasecmp(extension, ".cer", 4) == 0
+                         || strncasecmp(extension, ".der", 4) == 0)
                 /* weak recognition of DER format */
                 format = FORMAT_ASN1;
-            else if (strncmp(extension, ".p12", 4) == 0)
+            else if (strncasecmp(extension, ".p12", 4) == 0)
                 /* weak recognition of PKCS#12 format */
                 format = FORMAT_PKCS12;
             /* else retain given format */
@@ -1165,8 +1163,7 @@ static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */,
  *
  * returns 1 on success, 0 on error
  */
-static int write_PKIMESSAGE(OSSL_CMP_CTX *ctx,
-                            const OSSL_CMP_MSG *msg, char **filenames)
+static int write_PKIMESSAGE(const OSSL_CMP_MSG *msg, char **filenames)
 {
     char *file;
     FILE *f;
@@ -1208,7 +1205,7 @@ static int write_PKIMESSAGE(OSSL_CMP_CTX *ctx,
  *
  * returns a pointer to the parsed OSSL_CMP_MSG, null on error
  */
-static OSSL_CMP_MSG *read_PKIMESSAGE(OSSL_CMP_CTX *ctx, char **filenames)
+static OSSL_CMP_MSG *read_PKIMESSAGE(char **filenames)
 {
     char *file;
     FILE *f;
@@ -1271,13 +1268,13 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
     OSSL_CMP_PKIHEADER *hdr;
 
     if (req != NULL && opt_reqout != NULL
-            && !write_PKIMESSAGE(ctx, req, &opt_reqout))
+            && !write_PKIMESSAGE(req, &opt_reqout))
         goto err;
     if (opt_reqin != NULL) {
         if (opt_rspin != NULL) {
             CMP_warn("-reqin is ignored since -rspin is present");
         } else {
-            if ((req_new = read_PKIMESSAGE(ctx, &opt_reqin)) == NULL)
+            if ((req_new = read_PKIMESSAGE(&opt_reqin)) == NULL)
                 goto err;
             /*-
              * The transaction ID in req_new may not be fresh.
@@ -1296,7 +1293,7 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
     }
 
     if (opt_rspin != NULL) {
-        res = read_PKIMESSAGE(ctx, &opt_rspin);
+        res = read_PKIMESSAGE(&opt_rspin);
     } else {
         const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
 
@@ -1327,7 +1324,7 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
         }
     }
 
-    if (opt_rspout != NULL && !write_PKIMESSAGE(ctx, res, &opt_rspout)) {
+    if (opt_rspout != NULL && !write_PKIMESSAGE(res, &opt_rspout)) {
         OSSL_CMP_MSG_free(res);
         res = NULL;
     }
@@ -1397,10 +1394,11 @@ static int parse_addr(char **opt_string, int port, const char *name)
 {
     char *port_string;
 
-    if (strncmp(*opt_string, OSSL_HTTP_PREFIX, strlen(OSSL_HTTP_PREFIX)) == 0) {
+    if (strncasecmp(*opt_string, OSSL_HTTP_PREFIX,
+                    strlen(OSSL_HTTP_PREFIX)) == 0) {
         *opt_string += strlen(OSSL_HTTP_PREFIX);
-    } else if (strncmp(*opt_string, OSSL_HTTPS_PREFIX,
-                       strlen(OSSL_HTTPS_PREFIX)) == 0) {
+    } else if (strncasecmp(*opt_string, OSSL_HTTPS_PREFIX,
+                           strlen(OSSL_HTTPS_PREFIX)) == 0) {
         *opt_string += strlen(OSSL_HTTPS_PREFIX);
         if (port == 0)
             port = 443; /* == integer value of OSSL_HTTPS_PORT */
@@ -2345,7 +2343,7 @@ static int handle_opt_geninfo(OSSL_CMP_CTX *ctx)
     valptr[0] = '\0';
     valptr++;
 
-    if (strncmp(valptr, "int:", 4) != 0) {
+    if (strncasecmp(valptr, "int:", 4) != 0) {
         CMP_err("missing 'int:' in -geninfo option");
         return 0;
     }
@@ -2611,7 +2609,7 @@ static int http_server_get_req(BIO **pcbio, BIO *acbio)
     if (len <= 0)
         return 0;
 
-    if (strncmp(reqbuf, "POST ", 5) != 0) {
+    if (strncasecmp(reqbuf, "POST ", 5) != 0) {
         CMP_err1("Invalid request -- bad HTTP verb: %s", client);
         return 0;
     }
