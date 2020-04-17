@@ -40,7 +40,7 @@ Finally, perform the actual fuzzing:
     fuzz/helper.py $FUZZER
 
 where $FUZZER is one of the executables in `fuzz/`.
-It will until run until you stop it.
+It will run until you stop it.
 
 If you get a crash, you should find a corresponding input file in
 `fuzz/corpora/$FUZZER-crash/`.
