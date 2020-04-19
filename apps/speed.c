@@ -143,13 +143,8 @@ static int usertime = 1;
 
 static double Time_F(int s);
 static void print_message(const char *s, long num, int length, int tm);
-#if !defined(OPENSSL_NO_RSA) || !defined(OPENSSL_NO_DSA) \
-    || !defined(OPENSSL_NO_EC)
-# if !defined(OPENSSL_NO_DEPRECATED_3_0)
 static void pkey_print_message(const char *str, const char *str2,
                                long num, unsigned int bits, int sec);
-# endif
-#endif
 static void print_result(int alg, int run_no, int count, double time_used);
 #ifndef NO_FORK
 static int do_multi(int multi, int size_num);
@@ -1464,9 +1459,7 @@ int speed_main(int argc, char **argv)
 #endif
 #if !defined(OPENSSL_NO_RSA) || !defined(OPENSSL_NO_DSA) \
     || !defined(OPENSSL_NO_EC)
-# if !defined(OPENSSL_NO_DEPRECATED_3_0)
     long rsa_count = 1;
-# endif
 #endif
     openssl_speed_sec_t seconds = { SECONDS, RSA_SECONDS, DSA_SECONDS,
                                     ECDSA_SECONDS, ECDH_SECONDS,
@@ -3779,9 +3772,6 @@ static void print_message(const char *s, long num, int length, int tm)
 #endif
 }
 
-#if !defined(OPENSSL_NO_RSA) || !defined(OPENSSL_NO_DSA) \
-    || !defined(OPENSSL_NO_EC)
-# if !defined(OPENSSL_NO_DEPRECATED_3_0)
 static void pkey_print_message(const char *str, const char *str2, long num,
                                unsigned int bits, int tm)
 {
@@ -3799,8 +3789,6 @@ static void pkey_print_message(const char *str, const char *str2, long num,
     (void)BIO_flush(bio_err);
 #endif
 }
-# endif
-#endif
 
 static void print_result(int alg, int run_no, int count, double time_used)
 {
