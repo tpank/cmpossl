@@ -167,13 +167,13 @@ static int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
     ctx->untrusted_certs = sk_X509_new_null();
 
     ctx->serverName = NULL;
-    ctx->serverPort = 8080;
+    ctx->serverPort = 80;
     /* serverPath must be an empty string if not set since it's not mandatory */
     ctx->serverPath = OPENSSL_zalloc(1); /* freed by OSSL_CMP_CTX_free() */
     if (ctx->serverPath == NULL)
         goto err;
     ctx->proxyName = NULL;
-    ctx->proxyPort = 8080;
+    ctx->proxyPort = 80;
     ctx->msg_timeout = 2 * 60;
     ctx->total_timeout = 0;
  /* ctx->end_time = */
