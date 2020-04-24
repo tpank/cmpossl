@@ -83,7 +83,7 @@ sleep = 0
 ############################# aspects
 
 [connection]
-msg_timeout = 10
+msg_timeout = 0 # workaround for TLS, TODO: should be, e.g., 5
 total_timeout =
 server_port = 9080
 # reset any per-CA TLS options to default:
