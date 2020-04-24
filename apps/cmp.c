@@ -41,6 +41,10 @@
 #include <openssl/objects.h>
 #include <openssl/x509.h>
 
+DEFINE_STACK_OF(X509)
+DEFINE_STACK_OF(X509_EXTENSION)
+DEFINE_STACK_OF(OSSL_CMP_ITAV)
+
 static char *opt_config = NULL;
 #define CMP_SECTION "cmp"
 #define SECTION_NAME_MAX 40 /* max length of section name */
@@ -725,7 +729,7 @@ static char *next_item(char *opt) /* in list separated by comma and/or space */
 /*
  * Code for loading certs and keys
  * TODO potentially move the whole cert and key loading logic to apps/lib/
- * and then just use it here. See also PR #4930 and PR #4940
+ * and then just use it here. See also PR #4930
  */
 
 /*
@@ -845,30 +849,6 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     return (x);
 }
 
-/* TODO remove when load_csr() is merged in apps/lib/apps.c (PR #4940) */
-static X509_REQ *load_csr(const char *file, int format, const char *desc)
-{
-    X509_REQ *req = NULL;
-    BIO *in;
-
-    in = bio_open_default(file, 'r', format);
-    if (in == NULL)
-        goto end;
-
-    if (format == FORMAT_ASN1)
-        req = d2i_X509_REQ_bio(in, NULL);
-    else if (format == FORMAT_PEM)
-        req = PEM_read_bio_X509_REQ(in, NULL, NULL, NULL);
-    else if (desc != NULL)
-        BIO_printf(bio_err, "unsupported format for CSR loading\n");
-
- end:
-    if (req == NULL && desc != NULL)
-        BIO_printf(bio_err, "unable to load X509 request\n");
-    BIO_free(in);
-    return req;
-}
-
 /* TODO potentially move this and related functions to apps/lib/apps.c */
 static int adjust_format(const char **infile, int format, int engine_ok)
 {
@@ -977,7 +957,6 @@ static X509 *load_cert_autofmt(const char *infile, int format,
                                const char *pass, const char *desc)
 {
     X509 *cert;
-    /* BIO_printf(bio_out, "Loading %s from file '%s'\n", desc, infile); */
     char *pass_string = get_passwd(pass, desc);
     BIO *bio_bak = bio_err;
 
@@ -1001,7 +980,6 @@ static X509_REQ *load_csr_autofmt(const char *infile, int format,
                                   const char *desc)
 {
     X509_REQ *csr;
-    /* BIO_printf(bio_out, "loading %s from file '%s'\n", desc, infile); */
     BIO *bio_bak = bio_err;
     int can_retry;
 
@@ -1089,7 +1067,6 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
     char *pass_string;
     BIO *bio_bak = bio_err;
 
-    /* BIO_printf(bio_out, "loading %s from file '%s'\n", desc, infile); */
     format = adjust_format(&infile, format, 0);
     if (exclude_http && format == FORMAT_HTTP) {
         BIO_printf(bio_err, "error: HTTP retrieval not allowed for %s\n", desc);
@@ -1505,7 +1482,6 @@ static X509_STORE *load_certstore(char *input, const char *desc)
     if (input == NULL)
         goto err;
 
-    /* BIO_printf(bio_out, "loading %s from file '%s'\n", desc, input); */
     while (input != NULL) {
         char *next = next_item(input);           \
 
