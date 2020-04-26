@@ -774,9 +774,9 @@ int ossl_cmp_msg_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
      * the peer does not need to send them again in the same transaction.
      * For efficiency, the extraCerts are prepended so they get used first.
      */
-    if (!ossl_cmp_sk_X509_add1_certs(ctx->untrusted_certs, msg->extraCerts,
-                                     0 /* this allows self-issued certs */,
-                                     1 /* no_dups */, 1 /* prepend */))
+    if (!OSSL_sk_X509_add1_certs(ctx->untrusted_certs, msg->extraCerts,
+                                 0 /* this allows self-issued certs */,
+                                 1 /* no_dups */, 1 /* prepend */))
         return -1;
 
     return rcvd_type;

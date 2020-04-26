@@ -427,7 +427,7 @@ OSSL_CMP_MSG *ossl_cmp_certRep_new(OSSL_CMP_CTX *ctx, int bodytype,
             && (repMsg->caPubs = X509_chain_up_ref(caPubs)) == NULL)
         goto err;
     if (chain != NULL
-            && !ossl_cmp_sk_X509_add1_certs(msg->extraCerts, chain, 0, 1, 0))
+            && !OSSL_sk_X509_add1_certs(msg->extraCerts, chain, 0, 1, 0))
         goto err;
 
     if (!unprotectedErrors

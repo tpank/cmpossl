@@ -138,21 +138,19 @@ int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
             && (msg->extraCerts = sk_X509_new_null()) == NULL)
         return 0;
 
-    if (ctx->clCert != NULL) {
-        /* Make sure that our own cert gets sent, in the first position */
-        if (!X509_up_ref(ctx->clCert))
+    if (ctx->clCert != NULL && ctx->pkey != NULL) {
+        /* make sure that our own cert is included in the first position */
+        if (!OSSL_sk_X509_add1_cert(msg->extraCerts, ctx->clCert, 1, 1))
             return 0;
-        if (!sk_X509_push(msg->extraCerts, ctx->clCert)) {
-            X509_free(ctx->clCert);
-            return 0;
-        }
+
         /* if we have untrusted store, try to add intermediate certs */
         if (ctx->untrusted_certs != NULL) {
             STACK_OF(X509) *chain =
                 ossl_cmp_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
-            int res = ossl_cmp_sk_X509_add1_certs(msg->extraCerts, chain,
-                                                  1 /* no self-issued */,
-                                                  1 /* no duplicates */, 0);
+            int res = OSSL_sk_X509_add1_certs(msg->extraCerts, chain,
+                                              1 /* no self-issued */,
+                                              1 /* no duplicates */, 0);
+
             sk_X509_pop_free(chain, X509_free);
             if (res == 0)
                 return 0;
@@ -160,8 +158,8 @@ int ossl_cmp_msg_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
     }
 
     /* add any additional certificates from ctx->extraCertsOut */
-    if (!ossl_cmp_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
-                                     1 /* no duplicates */, 0))
+    if (!OSSL_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
+                                 1 /* no duplicates */, 0))
         return 0;
 
     /* if none was found avoid empty ASN.1 sequence */

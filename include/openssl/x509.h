@@ -789,6 +789,10 @@ unsigned long X509_issuer_name_hash_old(X509 *a);
 unsigned long X509_subject_name_hash_old(X509 *x);
 # endif
 
+int OSSL_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
+                           int no_dup, int prepend);
+int OSSL_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
+                            int no_self_issued, int no_dups, int prepend);
 int X509_cmp(const X509 *a, const X509 *b);
 int X509_NAME_cmp(const X509_NAME *a, const X509_NAME *b);
 unsigned long X509_NAME_hash(const X509_NAME *x);

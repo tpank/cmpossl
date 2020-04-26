@@ -163,6 +163,55 @@ int X509_cmp(const X509 *a, const X509 *b)
     return rv;
 }
 
+int OSSL_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
+                           int no_dup, int prepend)
+{
+    if (sk == NULL) {
+        X509err(0, ERR_R_PASSED_NULL_PARAMETER);
+        return 0;
+    }
+    if (no_dup) {
+        /*
+         * not using sk_X509_set_cmp_func() and sk_X509_find()
+         * because this re-orders the certs on the stack
+         */
+        int i;
+
+        for (i = 0; i < sk_X509_num(sk); i++) {
+            if (X509_cmp(sk_X509_value(sk, i), cert) == 0)
+                return 1;
+        }
+    }
+    if (!X509_up_ref(cert))
+        return 0;
+    if (!sk_X509_insert(sk, cert, prepend ? 0 : -1)) {
+        X509_free(cert);
+        return 0;
+    }
+    return 1;
+}
+
+int OSSL_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
+                            int no_self_issued, int no_dups, int prepend)
+/* compiler would allow 'const' for the list of certs, yet they are up-ref'ed */
+{
+    int i;
+
+    if (sk == NULL) {
+        X509err(0, ERR_R_PASSED_NULL_PARAMETER);
+        return 0;
+    }
+    for (i = 0; i < sk_X509_num(certs); i++) { /* certs may be NULL */
+        X509 *cert = sk_X509_value(certs, i);
+
+        if (!no_self_issued || X509_check_issued(cert, cert) != X509_V_OK) {
+            if (!OSSL_sk_X509_add1_cert(sk, cert, no_dups, prepend))
+                return 0;
+        }
+    }
+    return 1;
+}
+
 int X509_NAME_cmp(const X509_NAME *a, const X509_NAME *b)
 {
     int ret;
