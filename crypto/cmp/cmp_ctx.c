@@ -295,7 +295,7 @@ int OSSL_CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert)
  * it be rejected.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_certConf_cb_t cb)
+int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_CMP_certConf_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
@@ -1048,7 +1048,7 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_senderNonce(const OSSL_CMP_CTX *ctx)
  * Set the host name of the (HTTP) proxy server to use for all connections
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_proxyName(OSSL_CMP_CTX *ctx, const char *name)
+int OSSL_CMP_CTX_set1_proxy(OSSL_CMP_CTX *ctx, const char *name)
 {
     if (ctx == NULL || name == NULL)
         goto err;
@@ -1072,15 +1072,15 @@ int OSSL_CMP_CTX_set1_proxyName(OSSL_CMP_CTX *ctx, const char *name)
  * Set the (HTTP) host name of the CA server
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_serverName(OSSL_CMP_CTX *ctx, const char *name)
+int OSSL_CMP_CTX_set1_server(OSSL_CMP_CTX *ctx, const char *address)
 {
-    if (ctx == NULL || name == NULL)
+    if (ctx == NULL || address == NULL)
         goto err;
 
     OPENSSL_free(ctx->serverName);
     ctx->serverName = NULL;
 
-    ctx->serverName = BUF_strdup(name);
+    ctx->serverName = BUF_strdup(address);
     if (!ctx->serverName) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SERVERNAME, ERR_R_MALLOC_FAILURE);
         return 0;
@@ -1112,7 +1112,7 @@ int OSSL_CMP_CTX_set_proxyPort(OSSL_CMP_CTX *ctx, int port)
  * sets the http connect/disconnect callback function to be used for HTTP(S)
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_http_cb_t cb)
+int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_HTTP_bio_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
@@ -1154,7 +1154,7 @@ void *OSSL_CMP_CTX_get_http_cb_arg(const OSSL_CMP_CTX *ctx)
  * Set callback function for sending CMP request and receiving response.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_cmp_transfer_cb_t cb)
+int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_CMP_transfer_cb_t cb)
 {
     if (ctx == NULL)
         goto err;
@@ -1316,7 +1316,7 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
     case OSSL_CMP_OPT_UNPROTECTED_ERRORS:
         ctx->unprotectedErrors = val;
         break;
-    case OSSL_CMP_OPT_VALIDITYDAYS:
+    case OSSL_CMP_OPT_VALIDITY_DAYS:
         ctx->days = val;
         break;
     case OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT:
@@ -1331,7 +1331,7 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
     case OSSL_CMP_OPT_IGNORE_KEYUSAGE:
         ctx->ignore_keyusage = val;
         break;
-    case OSSL_CMP_OPT_POPOMETHOD:
+    case OSSL_CMP_OPT_POPO_METHOD:
         ctx->popoMethod = val;
         break;
     case OSSL_CMP_OPT_DIGEST_ALGNID:

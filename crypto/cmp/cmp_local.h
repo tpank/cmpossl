@@ -110,7 +110,7 @@ struct ossl_cmp_ctx_st {
     int failInfoCode; /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
     OSSL_CMP_log_cb_t log_cb; /* log callback for error/debug/etc. output */
-    OSSL_cmp_certConf_cb_t certConf_cb;   /* callback for letting the user check
+    OSSL_CMP_certConf_cb_t certConf_cb;   /* callback for letting the user check
                            the received certificate and reject if necessary */
     void *certConf_cb_arg; /* allows to store an argument individual to cb */
     X509_STORE *trusted_store;    /* store for trusted (root) certificates and
@@ -128,9 +128,9 @@ struct ossl_cmp_ctx_st {
     int total_timeout; /* maximum number seconds an enrollment may take, incl.
          attempts polling for a response if a 'waiting' PKIStatus is received */
     time_t end_time;
-    OSSL_cmp_http_cb_t http_cb;
+    OSSL_HTTP_bio_cb_t http_cb;
     void *http_cb_arg; /* allows to store optional argument to cb */
-    OSSL_cmp_transfer_cb_t transfer_cb;
+    OSSL_CMP_transfer_cb_t transfer_cb;
     void *transfer_cb_arg; /* allows to store optional argument to cb */
 } /* OSSL_CMP_CTX */;
 
