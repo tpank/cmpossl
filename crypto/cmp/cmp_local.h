@@ -109,7 +109,7 @@ struct ossl_cmp_ctx_st {
     /* TODO: this should be a stack since there could be more than one */
     int failInfoCode; /* failInfoCode of last received IP/CP/KUP */
     /* TODO: this should be a stack since there could be more than one */
-    OSSL_cmp_log_cb_t log_cb; /* log callback for error/debug/etc. output */
+    OSSL_CMP_log_cb_t log_cb; /* log callback for error/debug/etc. output */
     OSSL_cmp_certConf_cb_t certConf_cb;   /* callback for letting the user check
                            the received certificate and reject if necessary */
     void *certConf_cb_arg; /* allows to store an argument individual to cb */

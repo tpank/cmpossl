@@ -131,7 +131,7 @@ typedef int (*OSSL_cmp_log_cb_t)(const char *func, const char *file, int line,
                                  OSSL_CMP_severity level, const char *msg);
 
 /* use of the logging callback for outputting error queue */
-void OSSL_CMP_print_errors_cb(OSSL_cmp_log_cb_t log_fn);
+void OSSL_CMP_print_errors_cb(OSSL_CMP_log_cb_t log_fn);
 # endif /* ifdef CMP_STANDALONE */
 
 #  ifdef  __cplusplus
