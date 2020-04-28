@@ -20,6 +20,21 @@
 #include <openssl/err.h>
 #include <openssl/x509.h>
 
+const char *ossl_cmp_bodytype_to_string(int type)
+{
+    static const char *type_names[] = {
+        "IR", "IP", "CR", "CP", "P10CR",
+        "POPDECC", "POPDECR", "KUR", "KUP",
+        "KRR", "KRP", "RR", "RP", "CCR", "CCP",
+        "CKUANN", "CANN", "RANN", "CRLANN", "PKICONF", "NESTED",
+        "GENM", "GENP", "ERROR", "CERTCONF", "POLLREQ", "POLLREP",
+    };
+
+    if (type < 0 || type > OSSL_CMP_PKIBODY_TYPE_MAX)
+        return "illegal body type";
+    return type_names[type];
+}
+
 /*
  * Add an extension (or NULL on OOM) to the given extension stack, consuming it.
  *

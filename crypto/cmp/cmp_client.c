@@ -160,14 +160,21 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
  * Regardless of success, caller is responsible for freeing *rep (unless NULL).
  */
 static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
-                              const char *type_string, int func,
+                              const char *req_type_str, int func,
                               OSSL_CMP_MSG **rep, int expected_type,
                               int not_received)
 {
+    const char *expected_type_str = ossl_cmp_bodytype_to_string(expected_type);
     int msg_timeout = ctx->msg_timeout; /* backup original value */
     STACK_OF(X509) *extracerts;
     int err, rcvd_type;
+    OSSL_CMP_transfer_cb_t transfer_cb = ctx->transfer_cb;
 
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+    if (transfer_cb == NULL)
+        transfer_cb = OSSL_CMP_MSG_http_perform;
+#endif
+    *rep = NULL;
     if ((expected_type == OSSL_CMP_PKIBODY_POLLREP ||
          IS_ENOLLMENT(expected_type))
         && ctx->total_timeout != 0) { /* total timeout is not infinite */
@@ -180,19 +187,17 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
             ctx->msg_timeout = (int)time_left;
     }
 
-    OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO, "sending %s", type_string);
-    if (ctx->transfer_cb != NULL)
-        err = (ctx->transfer_cb)(ctx, req, rep);
+    OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO, "sending %s", req_type_str);
+    if (transfer_cb != NULL)
+        *rep = (*transfer_cb)(ctx, req);
         /* may produce, e.g., CMP_R_ERROR_TRANSFERRING_OUT
          *                 or CMP_R_ERROR_TRANSFERRING_IN
          * DO NOT DELETE the two error reason codes in this comment, they are
          * for mkerr.pl
          */
-    else
-        err = CMP_R_ERROR_SENDING_REQUEST;
     ctx->msg_timeout = msg_timeout; /* restore original value */
-
-    if (err != 0) {
+    if (*rep == NULL) {
+        err = ERR_GET_REASON(ERR_peek_error());
         if (err == CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE ||
             err == CMP_R_READ_TIMEOUT ||
             err == CMP_R_ERROR_DECODING_MESSAGE) {
@@ -200,13 +205,14 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         }
         else {
             CMPerr(func, CMP_R_ERROR_SENDING_REQUEST);
-            OSSL_CMP_add_error_data(type_string);
         }
-        *rep = NULL;
+        ERR_add_error_data(4, "request sent: ", req_type_str,
+                           ", expected response: ", expected_type_str);
         return 0;
     }
 
-    OSSL_CMP_info(ctx, "got response");
+    OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO, "received %s",
+                    ossl_cmp_bodytype_to_string(OSSL_CMP_MSG_get_bodytype(*rep)));
     if((rcvd_type = OSSL_CMP_MSG_check_received(ctx, *rep, unprotected_exception,
                                                 expected_type)) < 0)
         return 0;
@@ -359,7 +365,7 @@ int OSSL_CMP_exchange_certConf(OSSL_CMP_CTX *ctx, int fail_info,const char *txt)
     if ((certConf = OSSL_CMP_certConf_new(ctx, fail_info, txt)) == NULL)
         goto err;
 
-    success = send_receive_check(ctx, certConf, "certConf",
+    success = send_receive_check(ctx, certConf, "CERTCONF",
                                  CMP_F_OSSL_CMP_EXCHANGE_CERTCONF, &PKIconf,
                                  OSSL_CMP_PKIBODY_PKICONF,
                                  CMP_R_PKICONF_NOT_RECEIVED);
@@ -720,7 +726,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     if ((rr = OSSL_CMP_rr_new(ctx)) == NULL)
         goto end;
 
-    if (!send_receive_check(ctx, rr, "rr", CMP_F_OSSL_CMP_EXEC_RR_SES,
+    if (!send_receive_check(ctx, rr, "RR", CMP_F_OSSL_CMP_EXEC_RR_SES,
                             &rp, OSSL_CMP_PKIBODY_RP, CMP_R_RP_NOT_RECEIVED))
         goto end;
 
@@ -819,28 +825,28 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 
 X509 *OSSL_CMP_exec_IR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "ir", CMP_F_OSSL_CMP_EXEC_IR_SES,
+    return do_certreq_seq(ctx, "IR", CMP_F_OSSL_CMP_EXEC_IR_SES,
                           OSSL_CMP_PKIBODY_IR, CMP_R_ERROR_CREATING_IR,
                           OSSL_CMP_PKIBODY_IP, CMP_R_IP_NOT_RECEIVED);
 }
 
 X509 *OSSL_CMP_exec_CR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "cr", CMP_F_OSSL_CMP_EXEC_CR_SES,
+    return do_certreq_seq(ctx, "CR", CMP_F_OSSL_CMP_EXEC_CR_SES,
                           OSSL_CMP_PKIBODY_CR, CMP_R_ERROR_CREATING_CR,
                           OSSL_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED);
 }
 
 X509 *OSSL_CMP_exec_KUR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "kur", CMP_F_OSSL_CMP_EXEC_KUR_SES,
+    return do_certreq_seq(ctx, "KUR", CMP_F_OSSL_CMP_EXEC_KUR_SES,
                           OSSL_CMP_PKIBODY_KUR, CMP_R_ERROR_CREATING_KUR,
                           OSSL_CMP_PKIBODY_KUP, CMP_R_KUP_NOT_RECEIVED);
 }
 
 X509 *OSSL_CMP_exec_P10CR_ses(OSSL_CMP_CTX *ctx)
 {
-    return do_certreq_seq(ctx, "p10cr", CMP_F_OSSL_CMP_EXEC_P10CR_SES,
+    return do_certreq_seq(ctx, "P10CR", CMP_F_OSSL_CMP_EXEC_P10CR_SES,
                           OSSL_CMP_PKIBODY_P10CR, CMP_R_ERROR_CREATING_P10CR,
                           OSSL_CMP_PKIBODY_CP, CMP_R_CP_NOT_RECEIVED);
 }
@@ -861,7 +867,7 @@ STACK_OF(OSSL_CMP_ITAV) *OSSL_CMP_exec_GENM_ses(OSSL_CMP_CTX *ctx)
     if ((genm = OSSL_CMP_genm_new(ctx)) == NULL)
         goto err;
 
-    if (!send_receive_check(ctx, genm, "genm",
+    if (!send_receive_check(ctx, genm, "GENM",
                             CMP_F_OSSL_CMP_EXEC_GENM_SES, &genp,
                             OSSL_CMP_PKIBODY_GENP, CMP_R_GENP_NOT_RECEIVED))
          goto err;

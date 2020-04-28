@@ -179,12 +179,7 @@ static int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
  /* ctx->end_time = */
     ctx->http_cb = NULL;
     ctx->http_cb_arg = NULL;
-    ctx->transfer_cb =
-#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-        OSSL_CMP_MSG_http_perform;
-#else
-        NULL;
-#endif
+    ctx->transfer_cb = NULL;
     ctx->transfer_cb_arg = NULL;
     return 1;
 

@@ -731,6 +731,8 @@ void OSSL_CMP_add_error_txt(const char *separator, const char *txt);
 #  define OSSL_CMP_PKIBODY_CERTCONF 24
 #  define OSSL_CMP_PKIBODY_POLLREQ  25
 #  define OSSL_CMP_PKIBODY_POLLREP  26
+#  define OSSL_CMP_PKIBODY_TYPE_MAX OSSL_CMP_PKIBODY_POLLREP
+const char *ossl_cmp_bodytype_to_string(int type);
 OSSL_CMP_MSG *OSSL_CMP_MSG_create(OSSL_CMP_CTX *ctx, int bodytype);
 OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int bodytype,
                                    int err_code);

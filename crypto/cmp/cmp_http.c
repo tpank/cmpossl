@@ -432,11 +432,11 @@ static int CMP_sendreq(BIO *bio, const char *host, const char *path,
 /*
  * Send the PKIMessage req and on success place the response in *res.
  * Any previous error is likely to be removed by ERR_clear_error().
- * returns 0 on success, else a CMP error reason code defined in cmp.h
+ * returns pointer to the response message on success, else NULL.
  */
-int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
-                              OSSL_CMP_MSG **res)
+OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req)
 {
+    OSSL_CMP_MSG *res = NULL;
     int rv;
     char *path = NULL;
     size_t pos = 0, pathlen = 0;
@@ -444,9 +444,11 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     int err = ERR_R_MALLOC_FAILURE;
     time_t max_time;
 
-    if (ctx == NULL || req == NULL || res == NULL ||
-        ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort)
-        return CMP_R_NULL_ARGUMENT;
+    if (ctx == NULL || req == NULL ||
+        ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort){
+        CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
 
     max_time = ctx->msg_timeout > 0 ? time(NULL) + ctx->msg_timeout : 0;
 
@@ -495,7 +497,7 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 
     BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
 
-    rv = CMP_sendreq(hbio, ctx->serverName, path, req, res, max_time);
+    rv = CMP_sendreq(hbio, ctx->serverName, path, req, &res, max_time);
     OPENSSL_free(path);
     if (rv == -3)
         err = CMP_R_FAILED_TO_SEND_REQUEST;
@@ -519,11 +521,11 @@ int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     }
 
     if (ctx->http_cb && (*ctx->http_cb)(ctx, hbio, ERR_peek_error()) == NULL)
-        err = ERR_R_MALLOC_FAILURE;
+        CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, ERR_R_MALLOC_FAILURE);
     BIO_free_all(hbio); /* also frees any (e.g., SSL/TLS) BIOs linked with hbio
        and, like BIO_reset(hbio), calls SSL_shutdown() to notify/alert peer */
 
-    return err;
+    return res;
 }
 
 /* TODO DvO push that upstream as a separate PR #crls_timeout_local */

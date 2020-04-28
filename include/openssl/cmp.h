@@ -380,9 +380,8 @@ typedef BIO *(*OSSL_HTTP_bio_cb_t) (OSSL_CMP_CTX *ctx, BIO *hbio,
 int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_HTTP_bio_cb_t cb);
 int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg);
 void *OSSL_CMP_CTX_get_http_cb_arg(const OSSL_CMP_CTX *ctx);
-typedef int (*OSSL_CMP_transfer_cb_t) (OSSL_CMP_CTX *ctx,
-                                       const OSSL_CMP_MSG *req,
-                                       OSSL_CMP_MSG **res);
+typedef OSSL_CMP_MSG *(*OSSL_CMP_transfer_cb_t) (OSSL_CMP_CTX *ctx,
+                                                 const OSSL_CMP_MSG *req);
 int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_CMP_transfer_cb_t cb);
 int OSSL_CMP_CTX_set_transfer_cb_arg(OSSL_CMP_CTX *ctx, void *arg);
 void *OSSL_CMP_CTX_get_transfer_cb_arg(const OSSL_CMP_CTX *ctx);
@@ -466,8 +465,8 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx);
 int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
                            BIO *bio_err, const char *prog);
 #  if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
-int OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
-                              OSSL_CMP_MSG **out);
+OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
+                                        const OSSL_CMP_MSG *req);
 #  endif
 
 /* from cmp_server.c */
