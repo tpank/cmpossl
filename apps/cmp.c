@@ -288,6 +288,7 @@ typedef enum OPTION_choice {
 #ifndef OPENSSL_NO_ENGINE
     OPT_ENGINE,
 #endif
+    OPT_PROV_ENUM,
 
     OPT_TLS_USED, OPT_TLS_CERT, OPT_TLS_KEY,
     OPT_TLS_KEYPASS,
@@ -472,6 +473,7 @@ const OPTIONS cmp_options[] = {
     {OPT_MORE_STR, 0, 0,
      "prefixed by 'engine:', e.g. '-key engine:pkcs11:object=mykey;pin-value=1234'"},
 #endif
+    OPT_PROV_OPTIONS,
 
     OPT_SECTION("TLS connection"),
     {"tls_used", OPT_TLS_USED, '-',
@@ -2764,6 +2766,7 @@ static int read_config(void)
     long num = 0;
     char *txt = NULL;
     const OPTIONS *opt;
+    int provider_option;
     int verification_option;
 
     /*
@@ -2777,9 +2780,11 @@ static int read_config(void)
             i--;
             continue;
         }
+        provider_option = (OPT_PROV__FIRST <= opt->retval
+                               && opt->retval < OPT_PROV__LAST);
         verification_option = (OPT_V__FIRST <= opt->retval
                                    && opt->retval < OPT_V__LAST);
-        if (verification_option)
+        if (provider_option || verification_option)
             i--;
         if (cmp_vars[i].txt == NULL) {
             CMP_err1("internal: cmp_vars array too short, i=%d", i);
@@ -2813,13 +2818,13 @@ static int read_config(void)
             return 0;
             break;
         }
-        if (verification_option) {
+        if (provider_option || verification_option) {
             int conf_argc = 1;
             char *conf_argv[3];
             char arg1[82];
 
             BIO_snprintf(arg1, 81, "-%s", (char *)opt->name);
-            conf_argv[0] = ""; /* dummy prog name */
+            conf_argv[0] = prog;
             conf_argv[1] = arg1;
             if (opt->valtype == '-') {
                 if (num != 0)
@@ -2832,7 +2837,9 @@ static int read_config(void)
             if (conf_argc > 1) {
                 (void)opt_init(conf_argc, conf_argv, cmp_options);
 
-                if (!opt_verify(opt_next(), vpm)) {
+                if (provider_option
+                    ? !opt_provider(opt_next())
+                    : !opt_verify(opt_next(), vpm)) {
                     CMP_err2("for option '%s' in config file section '%s'",
                              opt->name, opt_section);
                     return 0;
@@ -3105,6 +3112,10 @@ static int get_opts(int argc, char **argv)
             opt_engine = opt_str("engine");
             break;
 #endif
+        case OPT_PROV_CASES:
+            if (!opt_provider(o))
+                goto opt_err;
+            break;
 
         case OPT_BATCH:
             opt_batch = 1;

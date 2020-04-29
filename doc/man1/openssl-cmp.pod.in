@@ -72,6 +72,7 @@ B<openssl> B<cmp>
 [B<-otherform> I<PEM|DER|P12>]
 [B<-otherpass> I<arg>]
 [B<-engine> I<id>]
+{- $OpenSSL::safe::opt_provider_synopsis -}
 
 [B<-tls_used>]
 [B<-tls_cert> I<filename>]
@@ -722,6 +723,8 @@ the engine.
  The following example utilizes the RFC 7512 PKCS #11 URI scheme
 as supported, e.g., by libp11:
 C<-key engine:pkcs11:object=my-private-key;type=private;pin-value=1234>
+
+{- $OpenSSL::safe::opt_provider_item -}
 
 =back
 
