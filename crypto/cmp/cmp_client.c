@@ -211,7 +211,8 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         char buf[OSSL_CMP_PKISI_BUFLEN];
 
         if (save_statusInfo(ctx, si)
-                && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf, sizeof(buf)) != NULL)
+                && OSSL_CMP_CTX_snprint_PKIStatus(ctx, buf,
+                                                  sizeof(buf)) != NULL)
             ERR_add_error_data(1, buf);
         if (emc->errorCode != NULL
                 && BIO_snprintf(buf, sizeof(buf), "; errorCode: %ld",
