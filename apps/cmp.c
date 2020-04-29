@@ -396,7 +396,7 @@ const OPTIONS cmp_options[] = {
     {"proxy", OPT_PROXY, 's',
      "[http[s]://]address[:port][/path] of HTTP(S) proxy to use; path is ignored"},
     {"no_proxy", OPT_NO_PROXY, 's',
-     "List of addresses of servers not use use HTTP(S) proxy for"},
+     "List of addresses of servers not to use HTTP(S) proxy for"},
     {OPT_MORE_STR, 0, 0,
      "Default from environment variable 'no_proxy', else 'NO_PROXY', else none"},
     {"path", OPT_PATH, 's',
@@ -908,6 +908,12 @@ static void cleanse(char *str)
         OPENSSL_cleanse(str, strlen(str));
 }
 
+static void clear_free(char *str)
+{
+    if (str != NULL)
+        OPENSSL_clear_free(str, strlen(str));
+}
+
 /* TODO potentially move this and related functions to apps/lib/ */
 static EVP_PKEY *load_key_autofmt(EVP_PKEY *(*load_fn)(const char *, int, int,
                                                        const char *, ENGINE *e,
@@ -935,8 +941,7 @@ static EVP_PKEY *load_key_autofmt(EVP_PKEY *(*load_fn)(const char *, int, int,
         ERR_print_errors(bio_err);
         BIO_printf(bio_err, "error: unable to load %s from '%s'\n", desc, file);
     }
-    if (pass_string != NULL)
-        OPENSSL_clear_free(pass_string, strlen(pass_string));
+    clear_free(pass_string);
     return pkey;
 }
 
@@ -972,8 +977,7 @@ static X509 *load_cert_autofmt(const char *infile, int format,
         format = (format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM);
         cert = load_cert_pass(infile, format, pass_string, desc);
     }
-    if (pass_string != NULL)
-        OPENSSL_clear_free(pass_string, strlen(pass_string));
+    clear_free(pass_string);
     return cert;
 }
 
@@ -1085,8 +1089,7 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
         ERR_clear_error();
         ret = load_certs_also_pkcs12(infile, certs, format2, pass_string, desc);
     }
-    if (pass_string != NULL)
-        OPENSSL_clear_free(pass_string, strlen(pass_string));
+    clear_free(pass_string);
     return ret;
 }
 
@@ -1653,7 +1656,7 @@ static OSSL_CMP_SRV_CTX *setup_srv_ctx(ENGINE *e)
             cleanse(opt_srv_secret);
             res = OSSL_CMP_CTX_set1_secretValue(ctx, (unsigned char *)pass_str,
                                                 strlen(pass_str));
-            OPENSSL_clear_free(pass_str, strlen(pass_str));
+            clear_free(pass_str);
             if (res == 0)
                 goto err;
         }
@@ -2056,7 +2059,7 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             res = OSSL_CMP_CTX_set1_secretValue(ctx,
                                                 (unsigned char *)pass_string,
                                                 strlen(pass_string));
-            OPENSSL_clear_free(pass_string, strlen(pass_string));
+            clear_free(pass_string);
             if (res == 0)
                 goto err;
         }
