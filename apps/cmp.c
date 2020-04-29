@@ -1244,13 +1244,9 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
     } else {
         const OSSL_CMP_MSG *actual_req = opt_reqin != NULL ? req_new : req;
 
-        if (opt_use_mock_srv) {
-            res = OSSL_CMP_CTX_server_perform(ctx, actual_req);
-        } else {
-#if !defined(OPENSSL_NO_SOCK)
-            res = OSSL_CMP_MSG_http_perform(ctx, actual_req);
-#endif
-        }
+        res = opt_use_mock_srv
+            ? OSSL_CMP_CTX_server_perform(ctx, actual_req)
+            : OSSL_CMP_MSG_http_perform(ctx, actual_req);
     }
     if (res == NULL)
         goto err;
@@ -1866,9 +1862,6 @@ static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     if (ssl_ctx == NULL)
         goto err;
 
-    SSL_CTX_set_options(ssl_ctx,
-                        SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 |
-                        SSL_OP_NO_TLSv1);
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
 
     if (opt_tls_trusted != NULL) {
@@ -1984,9 +1977,7 @@ static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
                                      opt_tls_host : opt_server))
             /* TODO: is the server host name correct for TLS via proxy? */
             goto err;
-        SSL_CTX_set_verify(ssl_ctx,
-                           SSL_VERIFY_PEER |
-                           SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+        SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, NULL);
     }
     return ssl_ctx;
  err:
@@ -2669,14 +2660,14 @@ static char opt_item[SECTION_NAME_MAX + 1];
 static const char *prev_item(const char *opt, const char *end)
 {
     const char *beg;
-    int len;
+    size_t len;
 
     if (end == opt)
         return NULL;
     beg = end;
     while (beg != opt && beg[-1] != ',' && !isspace(beg[-1]))
         beg--;
-    len = (int)(end - beg);
+    len = end - beg;
     if (len > SECTION_NAME_MAX)
         len = SECTION_NAME_MAX;
     strncpy(opt_item, beg, len);
@@ -3423,7 +3414,7 @@ int cmp_main(int argc, char **argv)
         {
             /* print PKIStatusInfo (this is in case there has been no error) */
             int status = OSSL_CMP_CTX_get_status(cmp_ctx);
-            char *buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN);
+            char *buf = app_malloc(OSSL_CMP_PKISI_BUFLEN, "PKIStatusInfo buf");
             const char *string =
                 OSSL_CMP_CTX_snprint_PKIStatus(cmp_ctx, buf,
                                                OSSL_CMP_PKISI_BUFLEN);
