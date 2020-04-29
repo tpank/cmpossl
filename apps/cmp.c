@@ -1140,99 +1140,64 @@ static X509_STORE *sk_X509_to_store(X509_STORE *store /* may be NULL */,
     return store;
 }
 
-/*-
- * Writes OSSL_CMP_MSG DER-encoded to the file specified with outfile
- *
- * returns 1 on success, 0 on error
- */
+/* write OSSL_CMP_MSG DER-encoded to the specified file name item */
 static int write_PKIMESSAGE(const OSSL_CMP_MSG *msg, char **filenames)
 {
     char *file;
-    FILE *f;
-    int res = 0;
+    BIO *bio;
 
     if (msg == NULL || filenames == NULL) {
         CMP_err("NULL arg to write_PKIMESSAGE");
         return 0;
     }
     if (*filenames == NULL) {
-        CMP_err("not enough file names have been provided for writing message");
+        CMP_err("Not enough file names provided for writing PKIMessage");
         return 0;
     }
 
     file = *filenames;
     *filenames = next_item(file);
-    f = fopen(file, "wb");
-    if (f == NULL) {
-        CMP_err1("cannot open file '%s' for writing", file);
-    } else {
-        unsigned char *out = NULL;
-        int len = i2d_OSSL_CMP_MSG(msg, &out);
-
-        if (len >= 0) {
-            if ((size_t)len == fwrite(out, sizeof(*out), len, f))
-                res = 1;
-            else
-                CMP_err1("cannot write file '%s'", file);
-            OPENSSL_free(out);
-        }
-        fclose(f);
+    bio = BIO_new_file(file, "wb");
+    if (bio == NULL) {
+        CMP_err1("Cannot open file '%s' for writing", file);
+        return 0;
     }
-    return res;
+    if (i2d_OSSL_CMP_MSG_bio(bio, msg) < 0) {
+        CMP_err1("Cannot write PKIMessage to file '%s'", file);
+        BIO_free(bio);
+        return 0;
+    }
+    BIO_free(bio);
+    return 1;
 }
 
-/*-
- * Reads a DER-encoded OSSL_CMP_MSG from the file specified in infile
- * The OSS_CMP_MSG must be freed by the caller
- *
- * returns a pointer to the parsed OSSL_CMP_MSG, null on error
- */
+/* read DER-encoded OSSL_CMP_MSG from the specified file name item */
 static OSSL_CMP_MSG *read_PKIMESSAGE(char **filenames)
 {
     char *file;
-    FILE *f;
-    long fsize;
-    unsigned char *in;
-    OSSL_CMP_MSG *ret = NULL;
+    BIO *bio;
+    OSSL_CMP_MSG *ret;
 
     if (filenames == NULL) {
         CMP_err("NULL arg to read_PKIMESSAGE");
-        return 0;
+        return NULL;
     }
     if (*filenames == NULL) {
-        CMP_err("Not enough file names have been provided for reading message");
-        return 0;
+        CMP_err("Not enough file names provided for reading PKIMessage");
+        return NULL;
     }
 
     file = *filenames;
     *filenames = next_item(file);
-    f = fopen(file, "rb");
-    if (f == NULL) {
-        CMP_err1("cannot open file '%s' for reading", file);
-    } else {
-        fseek(f, 0, SEEK_END);
-        fsize = ftell(f);
-        fseek(f, 0, SEEK_SET);
-        if (fsize < 0) {
-            CMP_err1("cannot get size of file '%s'", file);
-        } else {
-            in = OPENSSL_malloc(fsize);
-            if (in == NULL) {
-                CMP_err1("Out of memory reading '%s'", file);
-            } else {
-                if ((size_t)fsize != fread(in, 1, fsize, f)) {
-                    CMP_err1("cannot read file '%s'", file);
-                } else {
-                    const unsigned char *p = in;
-                    ret = d2i_OSSL_CMP_MSG(NULL, &p, fsize);
-                    if (ret == NULL)
-                        CMP_err1("cannot parse PKIMessage in file '%s'", file);
-                }
-                OPENSSL_free(in);
-            }
-        }
-        fclose(f);
+    bio = BIO_new_file(file, "rb");
+    if (bio == NULL) {
+        CMP_err1("Cannot open file '%s' for reading", file);
+        return NULL;
     }
+    ret = d2i_OSSL_CMP_MSG_bio(bio, NULL);
+    if (ret == NULL)
+        CMP_err1("Cannot read PKIMessage from file '%s'", file);
+    BIO_free(bio);
     return ret;
 }
 
