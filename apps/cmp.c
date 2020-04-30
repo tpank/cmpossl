@@ -2845,7 +2845,7 @@ static int read_config(void)
             char arg1[82];
 
             BIO_snprintf(arg1, 81, "-%s", (char *)opt->name);
-            conf_argv[0] = ""; /* dummy prog name */
+            conf_argv[0] = prog;
             conf_argv[1] = arg1;
             if (opt->valtype == '-') {
                 if (num != 0)
