@@ -1097,12 +1097,7 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
     return ret;
 }
 
-/*
- * set the expected host name/IP addr and clears the email addr in the given ts.
- * The string must not be freed as long as cert_verify_cb() may use it.
- * returns 1 on success, 0 on error.
- */
-#define X509_STORE_EX_DATA_HOST 0
+/* set expected host name/IP addr and clears the email addr in the given ts */
 static int truststore_set_host_etc(X509_STORE *ts, char *host)
 {
     X509_VERIFY_PARAM *ts_vpm = X509_STORE_get0_param(ts);
@@ -1115,13 +1110,6 @@ static int truststore_set_host_etc(X509_STORE *ts, char *host)
     X509_VERIFY_PARAM_set_hostflags(ts_vpm,
                                     X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT |
                                     X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-    /*
-     * Unfortunately there is no OpenSSL API function for retrieving the hosts/
-     * ip entries in X509_VERIFY_PARAM. So we store the host value in ex_data
-     * for use in cert_verify_cb() below.
-     */
-    if (!X509_STORE_set_ex_data(ts, X509_STORE_EX_DATA_HOST, host))
-        return 0;
     return (host != NULL && X509_VERIFY_PARAM_set1_ip_asc(ts_vpm, host))
         || X509_VERIFY_PARAM_set1_host(ts_vpm, host, 0);
 }
@@ -1273,45 +1261,6 @@ static OSSL_CMP_MSG *read_write_req_resp(OSSL_CMP_CTX *ctx,
 }
 
 /*
- * This function is a callback used by OpenSSL's verify_cert function.
- * It is called at the end of a cert verification to allow an opportunity
- * to gather and output information regarding a failing cert verification,
- * and to possibly change the result of the verification.
- * This callback is also activated when constructing our own TLS chain:
- * tls_construct_client_certificate() -> ssl3_output_cert_chain() ->
- * ssl_add_cert_chain() -> X509_verify_cert() where errors are ignored.
- * returns 0 if and only if the cert verification is considered failed.
- */
-static int print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
-{
-    int res = X509_STORE_CTX_print_verify_cb(ok, ctx);
-
-    if (ok == 0 && ctx != NULL) {
-        int cert_error = X509_STORE_CTX_get_error(ctx);
-        X509_STORE *ts = X509_STORE_CTX_get0_store(ctx);
-        const char *host = NULL;
-
-        switch (cert_error) {
-        case X509_V_ERR_HOSTNAME_MISMATCH:
-        case X509_V_ERR_IP_ADDRESS_MISMATCH:
-            /*
-             * Unfortunately there is no OpenSSL API function for retrieving the
-             * hosts/ip entries in X509_VERIFY_PARAM. So we use ts->ex_data.
-             * This works for names we set ourselves but not verify_hostname
-             * used for OSSL_CMP_certConf_cb.
-             */
-            host = X509_STORE_get_ex_data(ts, X509_STORE_EX_DATA_HOST);
-            if (host != NULL)
-                ERR_add_error_data(2, "\nexpected hostname = ", host);
-            break;
-        default:
-            break;
-        }
-    }
-    return res;
-}
-
-/*
  * parse string as integer value, not allowing trailing garbage, see also
  * https://www.gnu.org/software/libc/manual/html_node/Parsing-of-Integers.html
  *
@@ -1366,7 +1315,7 @@ static int set1_store_parameters(X509_STORE *ts)
         return 0;
     }
 
-    X509_STORE_set_verify_cb(ts, print_cert_verify_cb);
+    X509_STORE_set_verify_cb(ts, X509_STORE_CTX_print_verify_cb);
 
     return 1;
 }
@@ -1865,7 +1814,7 @@ static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             goto err;
         SSL_CTX_set_cert_store(ssl_ctx, trust_store);
         /* for improved diagnostics on SSL_CTX_build_cert_chain() errors: */
-        X509_STORE_set_verify_cb(trust_store, print_cert_verify_cb);
+        X509_STORE_set_verify_cb(trust_store, X509_STORE_CTX_print_verify_cb);
     }
 
     if (opt_tls_cert != NULL && opt_tls_key != NULL) {
