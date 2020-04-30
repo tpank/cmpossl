@@ -41,6 +41,10 @@
 #include <openssl/objects.h>
 #include <openssl/x509.h>
 
+DEFINE_STACK_OF(X509)
+DEFINE_STACK_OF(X509_EXTENSION)
+DEFINE_STACK_OF(OSSL_CMP_ITAV)
+
 static char *opt_config = NULL;
 #define CMP_SECTION "cmp"
 #define SECTION_NAME_MAX 40 /* max length of section name */
@@ -846,30 +850,6 @@ static X509 *load_cert_pass(const char *file, int format, const char *pass,
     }
     BIO_free(cert);
     return (x);
-}
-
-/* TODO remove when load_csr() is merged in apps/lib/apps.c (PR #4940) */
-static X509_REQ *load_csr(const char *file, int format, const char *desc)
-{
-    X509_REQ *req = NULL;
-    BIO *in;
-
-    in = bio_open_default(file, 'r', format);
-    if (in == NULL)
-        goto end;
-
-    if (format == FORMAT_ASN1)
-        req = d2i_X509_REQ_bio(in, NULL);
-    else if (format == FORMAT_PEM)
-        req = PEM_read_bio_X509_REQ(in, NULL, NULL, NULL);
-    else if (desc != NULL)
-        BIO_printf(bio_err, "unsupported format for CSR loading\n");
-
- end:
-    if (req == NULL && desc != NULL)
-        BIO_printf(bio_err, "unable to load X509 request\n");
-    BIO_free(in);
-    return req;
 }
 
 /* TODO potentially move this and related functions to apps/lib/apps.c */
