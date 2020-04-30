@@ -2357,21 +2357,6 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     if (!setup_verification_ctx(ctx))
         goto err;
 
-    if ((opt_tls_cert != NULL || opt_tls_key != NULL
-         || opt_tls_keypass != NULL || opt_tls_extra != NULL
-         || opt_tls_trusted != NULL || opt_tls_host != NULL)
-            && !opt_tls_used)
-        CMP_warn("TLS options(s) given but not -tls_used");
-    if ((opt_tls_cert != NULL || opt_tls_key != NULL
-         || opt_tls_keypass != NULL) && opt_tls_used) {
-        if (opt_tls_key == NULL) {
-            CMP_err("missing -tls_key option");
-            goto err;
-        } else if (opt_tls_cert == NULL) {
-            CMP_err("missing -tls_cert option");
-        }
-    }
-
     if (opt_msg_timeout >= 0) /* must do this before setup_ssl_ctx() */
         (void)OSSL_CMP_CTX_set_option(ctx, OSSL_CMP_OPT_MSG_TIMEOUT,
                                       opt_msg_timeout);
@@ -2387,26 +2372,40 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             || opt_rspin != NULL || opt_rspout != NULL || opt_use_mock_srv)
         (void)OSSL_CMP_CTX_set_transfer_cb(ctx, read_write_req_resp);
 
+    if ((opt_tls_cert != NULL || opt_tls_key != NULL
+         || opt_tls_keypass != NULL || opt_tls_extra != NULL
+         || opt_tls_trusted != NULL || opt_tls_host != NULL)
+            && !opt_tls_used)
+        CMP_warn("TLS options(s) given but not -tls_used");
     if (opt_tls_used) {
-        APP_HTTP_TLS_INFO *info = OPENSSL_zalloc(sizeof(*info));
+        APP_HTTP_TLS_INFO *info;
 
+        if (opt_tls_cert != NULL
+            || opt_tls_key != NULL || opt_tls_keypass != NULL) {
+            if (opt_tls_key == NULL) {
+                CMP_err("missing -tls_key option");
+                goto err;
+            } else if (opt_tls_cert == NULL) {
+                CMP_err("missing -tls_cert option");
+                goto err;
+            }
+        }
         if (opt_use_mock_srv) {
             CMP_err("cannot use TLS options together with -use_mock_srv");
             goto err;
         }
-        if (info == NULL)
+        if ((info = OPENSSL_zalloc(sizeof(*info))) == NULL)
             goto err;
         (void)OSSL_CMP_CTX_set_http_cb_arg(ctx, info);
+        /* info will be freed along with CMP ctx */
         info->server = opt_server;
         info->port = server_port_s;
         info->use_proxy = opt_proxy != NULL;
         info->timeout = OSSL_CMP_CTX_get_option(ctx, OSSL_CMP_OPT_MSG_TIMEOUT);
         info->ssl_ctx = setup_ssl_ctx(ctx, e);
         if (info->ssl_ctx == NULL)
-            goto err; /* info will be freed along with CMP ctx */
-#ifndef OPENSSL_NO_SOCK
+            goto err;
         (void)OSSL_CMP_CTX_set_http_cb(ctx, app_http_tls_cb);
-#endif
     }
 
     if (!setup_protection_ctx(ctx, e))
