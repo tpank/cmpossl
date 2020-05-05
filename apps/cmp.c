@@ -574,7 +574,7 @@ const OPTIONS cmp_options[] = {
     {"accept_unprot_err", OPT_ACCEPT_UNPROT_ERR, '-',
      "Accept unprotected error messages from client"},
     {"accept_raverified", OPT_ACCEPT_RAVERIFIED, '-',
-     "Accept RAVERIFED as proof-of-possession (POPO)"},
+     "Accept RAVERIFIED as proof-of-possession (POPO)"},
 
     OPT_V_OPTIONS,
     {NULL}
@@ -1053,9 +1053,9 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
     }
     if (format == FORMAT_PKCS12 || format == FORMAT_ASN1) {
         if (cert) {
-            if ((*certs) == NULL)
+            if (*certs == NULL)
                 *certs = sk_X509_new_null();
-            if (*certs)
+            if (*certs != NULL)
                 ret = sk_X509_insert(*certs, cert, 0);
             else
                 X509_free(cert);
@@ -1801,6 +1801,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx)
     return 0;
 }
 
+#ifndef OPENSSL_NO_SOCK
 /*
  * set up ssl_ctx for the OSSL_CMP_CTX based on options from config file/CLI.
  * Returns pointer on success, NULL on error
@@ -1939,6 +1940,7 @@ static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     SSL_CTX_free(ssl_ctx);
     return NULL;
 }
+#endif
 
 /*
  * set up protection aspects of OSSL_CMP_CTX based on options from config
@@ -2389,6 +2391,10 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             && !opt_tls_used)
         CMP_warn("TLS options(s) given but not -tls_used");
     if (opt_tls_used) {
+#ifdef OPENSSL_NO_SOCK
+        BIO_printf(bio_err, "Cannot use TLS - sockets not supported\n");
+        goto err;
+#else
         APP_HTTP_TLS_INFO *info;
 
         if (opt_tls_cert != NULL
@@ -2417,6 +2423,7 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         if (info->ssl_ctx == NULL)
             goto err;
         (void)OSSL_CMP_CTX_set_http_cb(ctx, app_http_tls_cb);
+#endif
     }
 
     if (!setup_protection_ctx(ctx, e))
