@@ -13,6 +13,17 @@
 #include <ctype.h>
 
 #include "apps.h"
+/* TODO add when PR#11736 is merged: #include "http_server.h" */
+/* TODO remove when PR#11736 is merged: */
+#ifndef OPENSSL_NO_SOCK
+static BIO *http_server_init(const char *prog, const char *port) {return NULL;}
+static int http_server_get_req(const ASN1_ITEM *it, ASN1_VALUE **preq,
+                               BIO **pcbio, BIO *acbio, const char *prog, 
+                               int accept_get, int timeout) { return -1; }
+static int http_server_send_resp(BIO *cbio, const char *ct, const ASN1_ITEM *it,
+                                 const ASN1_VALUE *val) { return 0; }
+#endif
+/* end TODO remove when PR#11736 is merged */
 #include "s_apps.h"
 #include "progs.h"
 
@@ -2433,101 +2444,6 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     goto err;
 }
 
-/* Very basic HTTP server: initializiation */
-static BIO *init_http_server(const char *port)
-{
-#ifdef OPENSSL_NO_SOCK
-    CMP_err("Error setting up accept BIO - sockets not supported");
-    return NULL;
-#else
-    BIO *acbio = NULL, *bufbio;
-
-    bufbio = BIO_new(BIO_f_buffer());
-    if (bufbio == NULL)
-        goto err;
-    acbio = BIO_new(BIO_s_accept());
-    if (acbio == NULL
-        || BIO_set_bind_mode(acbio, BIO_BIND_REUSEADDR) < 0
-        || BIO_set_accept_port(acbio, port) < 0) {
-        CMP_err("Error setting up accepting BIO");
-        goto err;
-    }
-
-    BIO_set_accept_bios(acbio, bufbio);
-    bufbio = NULL;
-    if (BIO_do_accept(acbio) <= 0) {
-        CMP_err("Error starting accepting");
-        goto err;
-    }
-
-    return acbio;
-
- err:
-    BIO_free_all(acbio);
-    BIO_free(bufbio);
-    return NULL;
-#endif
-}
-
-/* Very basic HTTP server: read request */
-static int http_server_get_req(BIO **pcbio, BIO *acbio)
-{
-#ifdef OPENSSL_NO_SOCK
-    return 0;
-#else
-    int len;
-    char inbuf[2048], reqbuf[2048];
-    BIO *cbio = NULL;
-    const char *client;
-
-    /* Connection loss before accept() is routine, ignore silently */
-    if (BIO_do_accept(acbio) <= 0)
-        return 0;
-
-    cbio = BIO_pop(acbio);
-    *pcbio = cbio;
-    client = BIO_get_peer_name(cbio);
-
-    /* Read the request line. */
-    len = BIO_gets(cbio, reqbuf, sizeof(reqbuf));
-    if (len <= 0)
-        return 0;
-
-    if (strncasecmp(reqbuf, "POST ", 5) != 0) {
-        CMP_err1("Invalid request -- bad HTTP verb: %s", client);
-        return 0;
-    }
-
-    /* Read and skip past the headers. */
-    for (;;) {
-        len = BIO_gets(cbio, inbuf, sizeof(inbuf));
-        if (len <= 0)
-            return 0;
-        if ((inbuf[0] == '\r') || (inbuf[0] == '\n'))
-            break;
-    }
-
-    return 1;
-#endif
-}
-
-/* Very basic HTTP server: send CMP response */
-static int http_server_send_cmp_response(BIO *cbio, OSSL_CMP_MSG *resp)
-{
-    char http_resp[] =
-        "HTTP/1.0 200 OK\r\nContent-Type: application/pkixcmp\r\n"
-        "Content-Length: %d\r\n\r\n";
-
-    if (cbio == NULL)
-        return 0;
-    BIO_printf(cbio, http_resp, i2d_OSSL_CMP_MSG(resp, NULL));
-    if (i2d_OSSL_CMP_MSG_bio(cbio, resp) <= 0)
-        return 0;
-
-    (void)BIO_flush(cbio);
-    return 1;
-}
-
 /*
  * write out the given certificate to the output specified by bio.
  * Depending on options use either PEM or DER format.
@@ -3258,34 +3174,47 @@ int cmp_main(int argc, char **argv)
 
 
     if (opt_port != NULL) { /* act as very basic CMP HTTP server */
-        BIO *acbio = NULL;
+#ifdef OPENSSL_NO_SOCK
+        BIO_printf(bio_err, "Cannot act as server - sockets not supported\n");
+#else
+        BIO *acbio;
         BIO *cbio = NULL;
-        OSSL_CMP_MSG *req = NULL;
-        OSSL_CMP_MSG *resp = NULL;
+        int msgs = 0;
 
-        acbio = init_http_server(opt_port);
-        if (acbio == NULL)
-            goto srv_err;
-        for (i = 0; opt_max_msgs <= 0 || i < opt_max_msgs; i++) {
-            if (!http_server_get_req(&cbio, acbio))
+        if ((acbio = http_server_init(prog, opt_port)) == NULL)
+            goto err;
+        while (opt_max_msgs <= 0 || msgs < opt_max_msgs) {
+            OSSL_CMP_MSG *req = NULL;
+            OSSL_CMP_MSG *resp = NULL;
+
+            ret = http_server_get_req(ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                                      (ASN1_VALUE **)&req, &cbio, acbio,
+                                      prog, 0, 0);
+            if (ret == 0)
                 continue;
-            req = d2i_OSSL_CMP_MSG_bio(cbio, NULL);
-            if (req == NULL) {
-                CMP_err("Error parsing CMP request");
-                goto srv_err;
-            }
-            if ((resp = OSSL_CMP_CTX_server_perform(cmp_ctx, req)) == NULL)
-                goto srv_err;
-            if (!http_server_send_cmp_response(cbio, resp))
-                goto srv_err;
-        }
-        ret = 1;
+            if (ret++ == -1)
+                break; /* fatal error */
 
-     srv_err:
-        BIO_free(cbio);
+            ret = 0;
+            msgs++;
+            if (req != NULL) {
+                resp = OSSL_CMP_CTX_server_perform(cmp_ctx, req);
+                OSSL_CMP_MSG_free(req);
+                if (resp == NULL)
+                    break; /* treated as fatal error */
+                ret = http_server_send_resp(cbio, "application/pkixcmp",
+                                            ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                                            (const ASN1_VALUE *)resp);
+                OSSL_CMP_MSG_free(resp);
+                if (!ret)
+                    break; /* treated as fatal error */
+            }
+            BIO_free_all(cbio);
+            cbio = NULL;
+        }
+        BIO_free_all(cbio);
         BIO_free_all(acbio);
-        OSSL_CMP_MSG_free(req);
-        OSSL_CMP_MSG_free(resp);
+#endif
         goto err;
     }
     /* else act as CMP client */
