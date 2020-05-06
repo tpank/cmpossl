@@ -67,9 +67,9 @@ B<openssl> B<cmp>
 [B<-oldcert> I<filename>]
 [B<-revreason> I<number>]
 
-[B<-ownform> I<PEM|DER|P12>]
-[B<-keyform> I<PEM|DER|P12>]
-[B<-otherform> I<PEM|DER|P12>]
+[B<-certform> I<PEM|DER>]
+[B<-keyform> I<PEM|DER|P12|ENGINE>]
+[B<-certsform> I<PEM|DER|P12>]
 [B<-otherpass> I<arg>]
 [B<-engine> I<id>]
 {- $OpenSSL::safe::opt_provider_synopsis -}
@@ -684,21 +684,19 @@ Send messages without CMP-level protection.
 
 =over 4
 
-=item B<-ownform> I<PEM|DER|P12>
+=item B<-certform> I<PEM|DER>
 
-Format to try first when reading files and to use for writing files containing
-own (i.e., client-side) certificates.
+File format to use when saving a certificate to a file.
 Default value is PEM.
 
 =item B<-keyform> I<PEM|DER|P12>
 
-Format to try first when reading key files.
+Format to assume when reading key files.
 Default value is PEM.
 
-=item B<-otherform> I<PEM|DER|P12>
+=item B<-certsform> I<PEM|DER|P12>
 
-Format to try first when reading files and to use for writing files containing
-certificates of other parties (i.e., the server side).
+Format to try first when reading multiple certificates from file(s).
 Default value is PEM.
 
 =item B<-otherpass> I<arg>
@@ -870,7 +868,7 @@ Act as CMP HTTP server mock-up listening on the given port.
 Maximum number of CMP (request) messages the CMP HTTP server mock-up
 should handle, which must be non-negative.
 The default value is 0, which means that no limit is imposed.
-In any case the mock server terminates on internal errors, but not when it
+In any case the server terminates on internal errors, but not when it
 detects a CMP-level error that it can successfully answer with an error message.
 
 =item B<-srv_ref> I<value>
@@ -883,7 +881,7 @@ Password source for server authentication with a pre-shared key (secret).
 
 =item B<-srv_cert> I<filename>
 
-Certificate used by the server.
+Certificate of the server.
 
 =item B<-srv_key> I<filename>
 
@@ -891,7 +889,7 @@ Private key used by the server for signing messages.
 
 =item B<-srv_keypass> I<arg>
 
-Server private key (and cert file) pass phrase source.
+Server private key (and cert) file pass phrase source.
 
 =item B<-srv_trusted> I<filenames>
 
@@ -911,7 +909,7 @@ Extra certificates to be included in mock certification responses.
 
 =item B<-rsp_capubs> I<filenames>
 
-CA certificates to be included in mock ip response.
+CA certificates to be included in mock Initialization Response (IP) message.
 
 =item B<-poll_count> I<number>
 
