@@ -429,7 +429,7 @@ int smime_main(int argc, char **argv)
         if (encerts == NULL)
             goto end;
         while (*argv != NULL) {
-            cert = load_cert(*argv, FORMAT_PEM,
+            cert = load_cert(*argv, FORMAT_PEM, NULL,
                              "recipient certificate file");
             if (cert == NULL)
                 goto end;
@@ -448,7 +448,7 @@ int smime_main(int argc, char **argv)
     }
 
     if (recipfile != NULL && (operation == SMIME_DECRYPT)) {
-        if ((recip = load_cert(recipfile, FORMAT_PEM,
+        if ((recip = load_cert(recipfile, FORMAT_PEM, NULL,
                                "recipient certificate file")) == NULL) {
             ERR_print_errors(bio_err);
             goto end;
@@ -548,7 +548,7 @@ int smime_main(int argc, char **argv)
         for (i = 0; i < sk_OPENSSL_STRING_num(sksigners); i++) {
             signerfile = sk_OPENSSL_STRING_value(sksigners, i);
             keyfile = sk_OPENSSL_STRING_value(skkeys, i);
-            signer = load_cert(signerfile, FORMAT_PEM,
+            signer = load_cert(signerfile, FORMAT_PEM, NULL,
                                "signer certificate");
             if (signer == NULL)
                 goto end;

@@ -1719,7 +1719,8 @@ int s_client_main(int argc, char **argv)
     }
 
     if (cert_file != NULL) {
-        cert = load_cert(cert_file, cert_format, "client certificate file");
+        cert = load_cert(cert_file, cert_format, NULL,
+                         "client certificate file");
         if (cert == NULL)
             goto end;
     }

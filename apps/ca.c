@@ -585,7 +585,7 @@ end_of_options:
             && (certfile = lookup_conf(conf, section, ENV_CERTIFICATE)) == NULL)
             goto end;
 
-        x509 = load_cert(certfile, certformat, "CA certificate");
+        x509 = load_cert(certfile, certformat, NULL, "CA certificate");
         if (x509 == NULL)
             goto end;
 
@@ -1262,7 +1262,7 @@ end_of_options:
             goto end;
         } else {
             X509 *revcert;
-            revcert = load_cert(infile, certformat, infile);
+            revcert = load_cert(infile, certformat, NULL, infile);
             if (revcert == NULL)
                 goto end;
             if (dorevoke == 2)
@@ -1395,7 +1395,7 @@ static int certify_cert(X509 **xret, const char *infile, int certformat,
     EVP_PKEY *pktmp = NULL;
     int ok = -1, i;
 
-    if ((req = load_cert(infile, certformat, infile)) == NULL)
+    if ((req = load_cert(infile, certformat, NULL, infile)) == NULL)
         goto end;
     if (verbose)
         X509_print(bio_err, req);

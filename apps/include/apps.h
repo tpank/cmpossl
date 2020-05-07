@@ -106,23 +106,20 @@ char *get_passwd(const char *pass, const char *desc);
 int app_passwd(const char *arg1, const char *arg2, char **pass1, char **pass2);
 int add_oid_section(CONF *conf);
 X509_REQ *load_csr(const char *file, int format, const char *desc);
-X509 *load_cert(const char *file, int format, const char *desc);
+X509 *load_cert(const char *uri, int format, const char *pass, const char *desc);
 X509_CRL *load_crl(const char *infile, int format, const char *desc);
 void cleanse(char *str);
 void clear_free(char *str);
-EVP_PKEY *load_key(const char *file, int format, int maybe_stdin,
+EVP_PKEY *load_key(const char *uri, int format, int maybe_stdin,
                    const char *pass, ENGINE *e, const char *desc);
-EVP_PKEY *load_pubkey(const char *file, int format, int maybe_stdin,
+EVP_PKEY *load_pubkey(const char *uri, int format, int maybe_stdin,
                       const char *pass, ENGINE *e, const char *desc);
 int load_certs(const char *file, STACK_OF(X509) **certs, int format,
                const char *pass, const char *desc);
 int load_crls(const char *file, STACK_OF(X509_CRL) **crls, int format,
               const char *pass, const char *desc);
-int STORE_load_key_cert_crl(const char *uri, const char *pass, const char *desc,
-                            EVP_PKEY **ppkey, X509 **pcert, X509_CRL **pcrl);
-EVP_PKEY *STORE_load_pkey(const char *uri, const char *pass, const char *desc);
-X509 *STORE_load_cert(const char *uri, const char *pass, const char *desc);
-X509_CRL *STORE_load_crl(const char *uri, const char *desc);
+int load_key_cert_crl(const char *uri, const char *pass, const char *desc,
+                      EVP_PKEY **ppkey, X509 **pcert, X509_CRL **pcrl);
 X509_STORE *setup_verify(const char *CAfile, int noCAfile,
                          const char *CApath, int noCApath,
                          const char *CAstore, int noCAstore);

@@ -1739,7 +1739,7 @@ int s_server_main(int argc, char *argv[])
         if (s_key == NULL)
             goto end;
 
-        s_cert = load_cert(s_cert_file, s_cert_format,
+        s_cert = load_cert(s_cert_file, s_cert_format, NULL,
                            "server certificate file");
 
         if (s_cert == NULL)
@@ -1756,7 +1756,7 @@ int s_server_main(int argc, char *argv[])
             if (s_key2 == NULL)
                 goto end;
 
-            s_cert2 = load_cert(s_cert_file2, s_cert_format,
+            s_cert2 = load_cert(s_cert_file2, s_cert_format, NULL,
                                 "second server certificate file");
 
             if (s_cert2 == NULL)
@@ -1801,7 +1801,7 @@ int s_server_main(int argc, char *argv[])
         if (s_dkey == NULL)
             goto end;
 
-        s_dcert = load_cert(s_dcert_file, s_dcert_format,
+        s_dcert = load_cert(s_dcert_file, s_dcert_format, NULL,
                             "second server certificate file");
 
         if (s_dcert == NULL) {

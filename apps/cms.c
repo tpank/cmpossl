@@ -576,7 +576,7 @@ int cms_main(int argc, char **argv)
             if (operation == SMIME_ENCRYPT) {
                 if (encerts == NULL && (encerts = sk_X509_new_null()) == NULL)
                     goto end;
-                cert = load_cert(opt_arg(), FORMAT_PEM,
+                cert = load_cert(opt_arg(), FORMAT_PEM, NULL,
                                  "recipient certificate file");
                 if (cert == NULL)
                     goto end;
@@ -756,7 +756,7 @@ int cms_main(int argc, char **argv)
             if ((encerts = sk_X509_new_null()) == NULL)
                 goto end;
         while (*argv) {
-            if ((cert = load_cert(*argv, FORMAT_PEM,
+            if ((cert = load_cert(*argv, FORMAT_PEM, NULL,
                                   "recipient certificate file")) == NULL)
                 goto end;
             sk_X509_push(encerts, cert);
@@ -774,7 +774,7 @@ int cms_main(int argc, char **argv)
     }
 
     if (recipfile != NULL && (operation == SMIME_DECRYPT)) {
-        if ((recip = load_cert(recipfile, FORMAT_PEM,
+        if ((recip = load_cert(recipfile, FORMAT_PEM, NULL,
                                "recipient certificate file")) == NULL) {
             ERR_print_errors(bio_err);
             goto end;
@@ -782,7 +782,7 @@ int cms_main(int argc, char **argv)
     }
 
     if (originatorfile != NULL) {
-        if ((originator = load_cert(originatorfile, FORMAT_PEM,
+        if ((originator = load_cert(originatorfile, FORMAT_PEM, NULL,
                                     "originator certificate file")) == NULL) {
              ERR_print_errors(bio_err);
              goto end;
@@ -790,7 +790,7 @@ int cms_main(int argc, char **argv)
     }
 
     if (operation == SMIME_SIGN_RECEIPT) {
-        if ((signer = load_cert(signerfile, FORMAT_PEM,
+        if ((signer = load_cert(signerfile, FORMAT_PEM, NULL,
                                 "receipt signer certificate file")) == NULL) {
             ERR_print_errors(bio_err);
             goto end;
@@ -1019,7 +1019,8 @@ int cms_main(int argc, char **argv)
             signerfile = sk_OPENSSL_STRING_value(sksigners, i);
             keyfile = sk_OPENSSL_STRING_value(skkeys, i);
 
-            signer = load_cert(signerfile, FORMAT_PEM, "signer certificate");
+            signer = load_cert(signerfile, FORMAT_PEM, NULL,
+                               "signer certificate");
             if (signer == NULL) {
                 ret = 2;
                 goto end;

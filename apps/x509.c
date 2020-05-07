@@ -631,7 +631,7 @@ int x509_main(int argc, char **argv)
         if (!X509_set_pubkey(x, fkey != NULL ? fkey : X509_REQ_get0_pubkey(req)))
             goto end;
     } else {
-        x = load_cert(infile, informat, "Certificate");
+        x = load_cert(infile, informat, NULL, "Certificate");
         if (x == NULL)
             goto end;
         if (fkey != NULL && !X509_set_pubkey(x, fkey))
@@ -641,7 +641,7 @@ int x509_main(int argc, char **argv)
     }
 
     if (CA_flag) {
-        xca = load_cert(CAfile, CAformat, "CA Certificate");
+        xca = load_cert(CAfile, CAformat, NULL, "CA Certificate");
         if (xca == NULL)
             goto end;
     }

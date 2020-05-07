@@ -441,7 +441,8 @@ int ocsp_main(int argc, char **argv)
             path = opt_arg();
             break;
         case OPT_ISSUER:
-            issuer = load_cert(opt_arg(), FORMAT_PEM, "issuer certificate");
+            issuer = load_cert(opt_arg(), FORMAT_PEM, NULL,
+                               "issuer certificate");
             if (issuer == NULL)
                 goto end;
             if (issuers == NULL) {
@@ -453,7 +454,7 @@ int ocsp_main(int argc, char **argv)
             break;
         case OPT_CERT:
             X509_free(cert);
-            cert = load_cert(opt_arg(), FORMAT_PEM, "certificate");
+            cert = load_cert(opt_arg(), FORMAT_PEM, NULL, "certificate");
             if (cert == NULL)
                 goto end;
             if (cert_id_md == NULL)
@@ -592,7 +593,8 @@ int ocsp_main(int argc, char **argv)
     if (rsignfile != NULL) {
         if (rkeyfile == NULL)
             rkeyfile = rsignfile;
-        rsigner = load_cert(rsignfile, FORMAT_PEM, "responder certificate");
+        rsigner = load_cert(rsignfile, FORMAT_PEM, NULL,
+                            "responder certificate");
         if (rsigner == NULL) {
             BIO_printf(bio_err, "Error loading responder certificate\n");
             goto end;
@@ -686,7 +688,7 @@ redo_accept:
     if (signfile != NULL) {
         if (keyfile == NULL)
             keyfile = signfile;
-        signer = load_cert(signfile, FORMAT_PEM, "signer certificate");
+        signer = load_cert(signfile, FORMAT_PEM, NULL, "signer certificate");
         if (signer == NULL) {
             BIO_printf(bio_err, "Error loading signer certificate\n");
             goto end;
