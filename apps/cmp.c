@@ -693,6 +693,7 @@ static int sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
          * because this re-orders the certs on the stack
          */
         int i;
+
         for (i = 0; i < sk_X509_num(sk); i++) {
             if (X509_cmp(sk_X509_value(sk, i), cert) == 0)
                 return 1;
@@ -1488,12 +1489,11 @@ static OSSL_CMP_SRV_CTX *setup_srv_ctx(ENGINE *e)
     if (opt_srv_trusted != NULL) {
         X509_STORE *ts =
             load_certstore(opt_srv_trusted, "certificates trusted by server");
-        char *NULL_host = NULL; /* for CMP level, no host etc */
 
         if (ts == NULL)
             goto err;
         if (!set1_store_parameters(ts)
-                || !truststore_set_host_etc(ts, NULL_host)
+                || !truststore_set_host_etc(ts, NULL)
                 || !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
             goto err;
@@ -1590,7 +1590,6 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx)
 
     if (opt_srvcert != NULL || opt_trusted != NULL) {
         X509_STORE *ts = NULL;
-        char *NULL_host = NULL; /* for CMP level, no host etc */
 
         if (opt_srvcert != NULL) {
             X509 *srvcert;
@@ -1628,7 +1627,7 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx)
                  * clear any expected host/ip/email address;
                  * opt_expect_sender is used instead
                  */
-                || !truststore_set_host_etc(ts, NULL_host)
+                || !truststore_set_host_etc(ts, NULL)
                 || !OSSL_CMP_CTX_set0_trustedStore(ctx, ts)) {
             X509_STORE_free(ts);
             goto oom;
@@ -2379,6 +2378,7 @@ static int save_certs(OSSL_CMP_CTX *ctx,
 static void print_itavs(STACK_OF(OSSL_CMP_ITAV) *itavs)
 {
     OSSL_CMP_ITAV *itav = NULL;
+    char buf[128];
     int i;
     int n = sk_OSSL_CMP_ITAV_num(itavs); /* itavs == NULL leads to 0 */
 
@@ -2388,7 +2388,6 @@ static void print_itavs(STACK_OF(OSSL_CMP_ITAV) *itavs)
     }
 
     for (i = 0; i < n; i++) {
-        char buf[128];
         itav = sk_OSSL_CMP_ITAV_value(itavs, i);
         OBJ_obj2txt(buf, 128, OSSL_CMP_ITAV_get0_type(itav), 0);
         CMP_info1("genp contains ITAV of type: %s", buf);
