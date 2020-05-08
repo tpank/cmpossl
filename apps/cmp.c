@@ -24,13 +24,13 @@ static int http_server_send_resp(BIO *cbio, const char *ct, const ASN1_ITEM *it,
                                  const ASN1_VALUE *val) { return 0; }
 #endif
 /* end TODO remove when PR#11736 is merged */
-/* TODO remove when PR#11745 is merged: */
+/* TODO remove when PR#11755 is merged: */
 static char *get_passwd(const char *pass, const char *desc) { return NULL; }
 static void cleanse(char *str) {}
 static void clear_free(char *str) {}
-static X509 *STORE_load_cert(const char *uri, const char *pass,
-                             const char *desc) { return NULL; }
-/* end TODO remove when PR#11745 is merged */
+static X509 *load_cert_pass(const char *uri, int maybe_stdin,
+                            const char *pass, const char *desc) {return NULL; }
+/* end TODO remove when PR#11755 is merged */
 #include "s_apps.h"
 #include "progs.h"
 
@@ -693,7 +693,6 @@ static int sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
          * because this re-orders the certs on the stack
          */
         int i;
-
         for (i = 0; i < sk_X509_num(sk); i++) {
             if (X509_cmp(sk_X509_value(sk, i), cert) == 0)
                 return 1;
@@ -748,6 +747,26 @@ static char *next_item(char *opt) /* in list separated by comma and/or space */
             opt++;
     }
     return *opt == '\0' ? NULL : opt; /* NULL indicates end of input */
+}
+
+static EVP_PKEY *load_key_pwd(const char *uri, int format,
+                              const char *pass, ENGINE *e, const char *desc)
+{
+    char *pass_string = get_passwd(pass, desc);
+    EVP_PKEY *pkey = load_key(uri, format, 0, pass_string, e, desc);
+
+    clear_free(pass_string);
+    return pkey;
+}
+
+static X509 *load_cert_pwd(const char *uri, const char *pass, const char *desc)
+{
+    X509 *cert;
+    char *pass_string = get_passwd(pass, desc);
+
+    cert = load_cert_pass(uri, 0, pass_string, desc);
+    clear_free(pass_string);
+    return cert;
 }
 
 /*
@@ -810,61 +829,6 @@ static int load_pkcs12(BIO *in, const char *desc,
  die:
     PKCS12_free(p12);
     return ret;
-}
-
-/*
- * TODO remove when load_cert_pass() is merged in apps/lib/apps.c (PR #4930)
- * and after generalizing it w.r.t. timeout
- */
-static X509 *load_cert_pass(const char *file, int format, const char *pass,
-                            const char *desc)
-{
-    X509 *x = NULL;
-    BIO *cert = NULL;
-    PW_CB_DATA cb_data;
-
-    cb_data.password = pass;
-    cb_data.prompt_info = file;
-
-    if (format == FORMAT_HTTP) {
-#if !defined(OPENSSL_NO_SOCK)
-        x = X509_load_http(file, NULL, NULL, 10);
-#else
-        CMP_err1("http(s) not supported loading cert from '%s'\n", file);
-#endif
-        goto end;
-    }
-    if (file == NULL) {
-        unbuffer(stdin);
-        cert = dup_bio_in(format);
-    } else {
-        cert = bio_open_default(file, 'r', format);
-    }
-    if (cert == NULL)
-        goto end;
-    if (format == FORMAT_ASN1) {
-        x = d2i_X509_bio(cert, NULL);
-    } else if (format == FORMAT_PEM) {
-        x = PEM_read_bio_X509_AUX(cert, NULL, wrap_password_callback, &cb_data);
-    } else if (format == FORMAT_PKCS12) {
-        EVP_PKEY *pkey = NULL; /* pkey is required by PKCS12_parse() */
-
-        if (!load_pkcs12(cert, desc, wrap_password_callback,
-                         &cb_data, &pkey, &x, NULL))
-            goto end;
-        EVP_PKEY_free(pkey);
-    } else {
-        BIO_printf(bio_err, "bad input format specified for %s file '%s'\n",
-                   desc, file);
-    }
-
- end:
-    if (x == NULL) {
-        ERR_print_errors(bio_err);
-        BIO_printf(bio_err, "unable to load %s from '%s'\n", desc, file);
-    }
-    BIO_free(cert);
-    return (x);
 }
 
 /* TODO potentially move this and related functions to apps/lib/apps.c */
@@ -958,7 +922,7 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
             BIO_free(bio);
         }
     } else if (format == FORMAT_ASN1) { /* load only one cert in this case */
-        cert = load_cert_pass(file, format, pass, desc);
+        cert = load_cert_pwd(file, pass, desc); /* no format spec used here */
     }
     if (format == FORMAT_PKCS12 || format == FORMAT_ASN1) {
         if (cert) {
@@ -1385,6 +1349,7 @@ static int setup_certs(char *files, const char *desc, void *ctx,
                 ret = (*addn_fn)(ctx, certs);
             } else {
                 int i;
+
                 for (i = 0; i < sk_X509_num(certs /* may be NULL */); i++)
                     ret &= (*add1_fn)(ctx, sk_X509_value(certs, i));
             }
@@ -1499,9 +1464,8 @@ static OSSL_CMP_SRV_CTX *setup_srv_ctx(ENGINE *e)
         goto err;
     }
     if (opt_srv_cert != NULL) {
-        X509 *srv_cert = STORE_load_cert(opt_srv_cert, opt_srv_keypass,
-                                         "certificate of the server");
-        /* from server perspective the server is the client */
+        X509 *srv_cert = load_cert_pwd(opt_srv_cert, opt_srv_keypass,
+                                       "certificate of the server");
         if (srv_cert == NULL || !OSSL_CMP_CTX_set1_clCert(ctx, srv_cert)) {
             X509_free(srv_cert);
             goto err;
@@ -1509,8 +1473,9 @@ static OSSL_CMP_SRV_CTX *setup_srv_ctx(ENGINE *e)
         X509_free(srv_cert);
     }
     if (opt_srv_key != NULL) {
-        EVP_PKEY *pkey = load_key(opt_srv_key, opt_keyform, 0, opt_srv_keypass,
-                                  e, "private key for server cert");
+        EVP_PKEY *pkey = load_key_pwd(opt_srv_key, opt_keyform,
+                                      opt_srv_keypass,
+                                      e, "private key for server cert");
 
         if (pkey == NULL || !OSSL_CMP_CTX_set1_pkey(ctx, pkey)) {
             EVP_PKEY_free(pkey);
@@ -1545,8 +1510,8 @@ static OSSL_CMP_SRV_CTX *setup_srv_ctx(ENGINE *e)
         CMP_err("must give -rsp_cert for mock server");
         goto err;
     } else {
-        X509 *cert = STORE_load_cert(opt_rsp_cert, opt_keypass,
-                                     "cert to be returned by the mock server");
+        X509 *cert = load_cert_pwd(opt_rsp_cert, opt_keypass,
+                                   "cert to be returned by the mock server");
 
         if (cert == NULL)
             goto err;
@@ -1638,8 +1603,8 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx)
                 CMP_warn("-recipient option is ignored since -srvcert option is present");
                 opt_recipient = NULL;
             }
-            srvcert = STORE_load_cert(opt_srvcert, opt_otherpass,
-                                      "directly trusted CMP server certificate");
+            srvcert = load_cert_pwd(opt_srvcert, opt_otherpass,
+                                    "directly trusted CMP server certificate");
             if (srvcert == NULL)
                 /*
                  * opt_otherpass is needed in case
@@ -1805,8 +1770,8 @@ static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             }
         }
 
-        pkey = load_key(opt_tls_key, opt_keyform, 0,  opt_tls_keypass,
-                        e, "TLS client private key");
+        pkey = load_key_pwd(opt_tls_key, opt_keyform, opt_tls_keypass,
+                            e, "TLS client private key");
         cleanse(opt_tls_keypass);
         if (pkey == NULL)
             goto err;
@@ -1890,8 +1855,8 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto err;
 
     if (opt_key != NULL) {
-        EVP_PKEY *pkey = load_key(opt_key, opt_keyform, 0, opt_keypass,
-                                  e, "private key for CMP client certificate");
+        EVP_PKEY *pkey = load_key_pwd(opt_key, opt_keyform, opt_keypass, e,
+                                      "private key for CMP client certificate");
 
         if (pkey == NULL || !OSSL_CMP_CTX_set1_pkey(ctx, pkey)) {
             EVP_PKEY_free(pkey);
@@ -1988,7 +1953,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         const int format = opt_keyform;
         const char *pass = opt_newkeypass;
         const char *desc = "new private or public key for cert to be enrolled";
-        EVP_PKEY *pkey = load_key(file, format, 0, pass, e, NULL);
+        EVP_PKEY *pkey = load_key_pwd(file, format, pass, e, NULL);
         int priv = 1;
 
         if (pkey == NULL) {
@@ -2101,8 +2066,8 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
 
     if (opt_oldcert != NULL) {
-        X509 *oldcert = STORE_load_cert(opt_oldcert, opt_keypass,
-                                        "certificate to be updated/revoked");
+        X509 *oldcert = load_cert_pwd(opt_oldcert, opt_keypass,
+                                      "certificate to be updated/revoked");
         /* opt_keypass is needed if opt_oldcert is an encrypted PKCS#12 file */
         if (oldcert == NULL)
             goto err;
