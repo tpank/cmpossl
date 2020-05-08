@@ -262,7 +262,7 @@ static int opt_check_after = 1;
 static int opt_grant_implicitconf = 0;
 
 static int opt_pkistatus = OSSL_CMP_PKISTATUS_accepted;
-static int opt_failure = -1;
+static int opt_failure = INT_MIN;
 static int opt_failurebits = 0;
 static char *opt_statusstring = NULL;
 static int opt_send_error = 0;
@@ -940,11 +940,13 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
 
     for (i = 0; ret && i < sk_X509_num(*certs); i++) {
         int cmp;
+
         cert = sk_X509_value(*certs, i);
         cmp = X509_cmp_timeframe(vpm, X509_get0_notBefore(cert),
                                  X509_get0_notAfter(cert));
         if (cmp != 0) {
             char *s = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
+
             CMP_warn3("certificate from '%s' with subject '%s' %s", file, s,
                       cmp > 0 ? "has expired" : "not yet valid");
             OPENSSL_free(s);
@@ -1235,8 +1237,8 @@ static int set_gennames(OSSL_CMP_CTX *ctx, char *names, const char *desc)
 
     for (; names != NULL; names = next) {
         GENERAL_NAME *n;
-        next = next_item(names);
 
+        next = next_item(names);
         if (strcmp(names, "critical") == 0) {
             (void)OSSL_CMP_CTX_set_option(ctx,
                                           OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL,
@@ -1421,7 +1423,7 @@ static int transform_opts(void)
 
 static OSSL_CMP_SRV_CTX *setup_srv_ctx(ENGINE *e)
 {
-    OSSL_CMP_CTX *ctx = NULL; /* extra CMP (client) ctx partly used by server */
+    OSSL_CMP_CTX *ctx; /* extra CMP (client) ctx partly used by server */
     OSSL_CMP_SRV_CTX *srv_ctx = ossl_cmp_mock_srv_new();
 
     if (srv_ctx == NULL)
@@ -1467,6 +1469,7 @@ static OSSL_CMP_SRV_CTX *setup_srv_ctx(ENGINE *e)
     if (opt_srv_cert != NULL) {
         X509 *srv_cert = load_cert_pwd(opt_srv_cert, opt_srv_keypass,
                                        "certificate of the server");
+
         if (srv_cert == NULL || !OSSL_CMP_CTX_set1_cert(ctx, srv_cert)) {
             X509_free(srv_cert);
             goto err;
@@ -1537,12 +1540,12 @@ static OSSL_CMP_SRV_CTX *setup_srv_ctx(ENGINE *e)
     if (opt_grant_implicitconf)
         (void)OSSL_CMP_SRV_CTX_set_grant_implicit_confirm(srv_ctx, 1);
 
-    if (opt_failure < -1 || opt_failure > OSSL_CMP_PKIFAILUREINFO_MAX) {
-        CMP_err1("-failure out of range, should be >= 0 and <= %d",
-                 OSSL_CMP_PKIFAILUREINFO_MAX);
-        goto err;
-    }
-    if (opt_failure >= 0) {
+    if (opt_failure != INT_MIN) { /* option has been set explicity */
+        if (opt_failure < 0 || OSSL_CMP_PKIFAILUREINFO_MAX < opt_failure) {
+            CMP_err1("-failure out of range, should be >= 0 and <= %d",
+                     OSSL_CMP_PKIFAILUREINFO_MAX);
+            goto err;
+        }
         if (opt_failurebits != 0)
             CMP_warn("-failurebits overrides -failure");
         else
@@ -1642,8 +1645,10 @@ static int setup_verification_ctx(OSSL_CMP_CTX *ctx)
 
     if (opt_out_trusted != NULL) { /* for use in OSSL_CMP_certConf_cb() */
         X509_VERIFY_PARAM *out_vpm = NULL;
-        X509_STORE *out_trusted = load_certstore(opt_out_trusted,
-                                                 "trusted certs for verifying newly enrolled cert");
+        X509_STORE *out_trusted =
+            load_certstore(opt_out_trusted,
+                           "trusted certs for verifying newly enrolled cert");
+
         if (out_trusted == NULL)
             goto err;
         /* any -verify_hostname, -verify_ip, and -verify_email apply here */
@@ -1687,7 +1692,7 @@ static SSL_CTX *setup_ssl_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 
     ssl_ctx = SSL_CTX_new(TLS_client_method());
     if (ssl_ctx == NULL)
-        goto err;
+        return NULL;
 
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
 
@@ -1833,10 +1838,10 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         goto err;
     }
     if (opt_secret != NULL) {
-        char *pass_string = NULL;
+        char *pass_string = get_passwd(opt_secret, "PBMAC");
         int res;
 
-        if ((pass_string = get_passwd(opt_secret, "PBMAC")) != NULL) {
+        if (pass_string != NULL) {
             cleanse(opt_secret);
             res = OSSL_CMP_CTX_set1_secretValue(ctx,
                                                 (unsigned char *)pass_string,
@@ -1910,6 +1915,7 @@ static int setup_protection_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
 
     if (opt_digest != NULL) {
         int digest = OBJ_ln2nid(opt_digest);
+
         if (digest == NID_undef) {
             CMP_err1("digest algorithm name not recognized: '%s'", opt_digest);
             goto err;
@@ -2054,6 +2060,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         } else {
             X509_REQ *csr =
                 load_csr_autofmt(opt_csr, "PKCS#10 CSR for p10cr");
+
             if (csr == NULL)
                 goto err;
             if (!OSSL_CMP_CTX_set1_p10CSR(ctx, csr)) {
@@ -2068,6 +2075,7 @@ static int setup_request_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
         X509 *oldcert = load_cert_pwd(opt_oldcert, opt_keypass,
                                       "certificate to be updated/revoked");
         /* opt_keypass is needed if opt_oldcert is an encrypted PKCS#12 file */
+
         if (oldcert == NULL)
             goto err;
         if (!OSSL_CMP_CTX_set1_oldCert(ctx, oldcert)) {
@@ -2205,6 +2213,7 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
     }
     if (opt_cmd == CMP_KUR) {
         char *ref_cert = opt_oldcert != NULL ? opt_oldcert : opt_cert;
+
         if (ref_cert == NULL) {
             CMP_err("missing -oldcert option for certificate to be updated");
             goto err;
@@ -2226,7 +2235,7 @@ static int setup_client_ctx(OSSL_CMP_CTX *ctx, ENGINE *e)
             && opt_oldcert == NULL && opt_cert == NULL)
         CMP_warn("missing -recipient, -srvcert, -issuer, -oldcert or -cert; recipient will be set to \"NULL-DN\"");
 
-    if (opt_infotype_s) {
+    if (opt_infotype_s != NULL) {
         char id_buf[100] = "id-it-";
 
         strncat(id_buf, opt_infotype_s, sizeof(id_buf) - strlen(id_buf) - 1);
@@ -3237,9 +3246,10 @@ int cmp_main(int argc, char **argv)
 
     ossl_cmp_mock_srv_free(OSSL_CMP_CTX_get_transfer_cb_arg(cmp_ctx));
     {
-        APP_HTTP_TLS_INFO *http_tls_info;
+        APP_HTTP_TLS_INFO *http_tls_info =
+            OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx);
 
-        if ((http_tls_info = OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx)) != NULL) {
+        if (http_tls_info!= NULL) {
             SSL_CTX_free(http_tls_info->ssl_ctx);
             OPENSSL_free(http_tls_info);
         }
