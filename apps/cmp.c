@@ -13,17 +13,7 @@
 #include <ctype.h>
 
 #include "apps.h"
-/* TODO add when PR#11736 is merged: #include "http_server.h" */
-/* TODO remove when PR#11736 is merged: */
-#ifndef OPENSSL_NO_SOCK
-static BIO *http_server_init(const char *prog, const char *port) {return NULL;}
-static int http_server_get_req(const ASN1_ITEM *it, ASN1_VALUE **preq,
-                               BIO **pcbio, BIO *acbio, const char *prog, 
-                               int accept_get, int timeout) { return -1; }
-static int http_server_send_resp(BIO *cbio, const char *ct, const ASN1_ITEM *it,
-                                 const ASN1_VALUE *val) { return 0; }
-#endif
-/* end TODO remove when PR#11736 is merged */
+#include "http_server.h"
 /* TODO remove when PR#11755 is merged: */
 static char *get_passwd(const char *pass, const char *desc) { return NULL; }
 static void cleanse(char *str) {}
@@ -3066,15 +3056,15 @@ int cmp_main(int argc, char **argv)
         BIO *cbio = NULL;
         int msgs = 0;
 
-        if ((acbio = http_server_init(prog, opt_port)) == NULL)
+        if ((acbio = http_server_init_bio(prog, opt_port)) == NULL)
             goto err;
         while (opt_max_msgs <= 0 || msgs < opt_max_msgs) {
             OSSL_CMP_MSG *req = NULL;
             OSSL_CMP_MSG *resp = NULL;
 
-            ret = http_server_get_req(ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                                      (ASN1_VALUE **)&req, &cbio, acbio,
-                                      prog, 0, 0);
+            ret = http_server_get_asn1_req(ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                                           (ASN1_VALUE **)&req, &cbio, acbio,
+                                           prog, 0, 0);
             if (ret == 0)
                 continue;
             if (ret++ == -1)
@@ -3087,9 +3077,9 @@ int cmp_main(int argc, char **argv)
                 OSSL_CMP_MSG_free(req);
                 if (resp == NULL)
                     break; /* treated as fatal error */
-                ret = http_server_send_resp(cbio, "application/pkixcmp",
-                                            ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                                            (const ASN1_VALUE *)resp);
+                ret = http_server_send_asn1_resp(cbio, "application/pkixcmp",
+                                                 ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                                                 (const ASN1_VALUE *)resp);
                 OSSL_CMP_MSG_free(resp);
                 if (!ret)
                     break; /* treated as fatal error */
@@ -3249,7 +3239,7 @@ int cmp_main(int argc, char **argv)
         APP_HTTP_TLS_INFO *http_tls_info =
             OSSL_CMP_CTX_get_http_cb_arg(cmp_ctx);
 
-        if (http_tls_info!= NULL) {
+        if (http_tls_info != NULL) {
             SSL_CTX_free(http_tls_info->ssl_ctx);
             OPENSSL_free(http_tls_info);
         }
