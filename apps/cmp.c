@@ -68,67 +68,11 @@ static int read_config(void);
 static CONF *conf = NULL; /* OpenSSL config file context structure */
 static OSSL_CMP_CTX *cmp_ctx = NULL; /* the client-side CMP context */
 
-/*
- * A copy from apps/lib/apps.c just for visibility reasons
- * TODO remove when setup_engine_no_default() is integrated (PR #4277)
- */
-#ifndef OPENSSL_NO_ENGINE
-/* Try to load an engine in a sharable library */
-static ENGINE *try_load_engine(const char *engine)
+/* TODO remove when new setup_engine_flags() is in apps/lib/apps.c (PR #4277) */
+static
+ENGINE *setup_engine_flags(const char *engine, unsigned int flags, int debug)
 {
-    ENGINE *e = ENGINE_by_id("dynamic");
-
-    if (e != NULL) {
-        if (!ENGINE_ctrl_cmd_string(e, "SO_PATH", engine, 0)
-                || !ENGINE_ctrl_cmd_string(e, "LOAD", NULL, 0)) {
-            ENGINE_free(e);
-            e = NULL;
-        }
-    }
-    return e;
-}
-
-static UI_METHOD *ui_method = NULL;
-#endif
-
-/*
- * An adapted copy of setup_engine() from apps/lib/apps.c
- * TODO replace this by setup_engine_flags() when in apps/lib/apps.c (PR #4277)
- */
-static ENGINE *setup_engine_no_default(const char *engine, int debug)
-{
-    ENGINE *e = NULL;
-
-#ifndef OPENSSL_NO_ENGINE
-    if (engine != NULL) {
-        if (strcmp(engine, "auto") == 0) {
-            BIO_printf(bio_err, "enabling auto ENGINE support\n");
-            ENGINE_register_all_complete();
-            return NULL;
-        }
-        if ((e = ENGINE_by_id(engine)) == NULL
-                && (e = try_load_engine(engine)) == NULL) {
-            BIO_printf(bio_err, "invalid engine \"%s\"\n", engine);
-            ERR_print_errors(bio_err);
-            return NULL;
-        }
-        if (debug && !ENGINE_ctrl(e, ENGINE_CTRL_SET_LOGSTREAM, 0, bio_err, 0))
-            return NULL;
-        if (!ENGINE_ctrl_cmd(e, "SET_USER_INTERFACE", 0, ui_method, 0, 1))
-            return NULL;
-# if defined(SET_ENGINE_METHOD_ALL)
-        if (!ENGINE_set_default(e, ENGINE_METHOD_ALL)) {
-            BIO_printf(bio_err, "can't use that engine\n");
-            ERR_print_errors(bio_err);
-            ENGINE_free(e);
-            return NULL;
-        }
-# endif
-
-        BIO_printf(bio_err, "engine \"%s\" set\n", ENGINE_get_id(e));
-    }
-#endif
-    return e;
+    return setup_engine(engine, debug);
 }
 
 /* the type of cmp command we want to send */
@@ -3013,7 +2957,7 @@ int cmp_main(int argc, char **argv)
     }
 
     if (opt_engine != NULL)
-        e = setup_engine_no_default(opt_engine, 0);
+        e = setup_engine_flags(opt_engine, 0 /* not: ENGINE_METHOD_ALL */, 0);
 
     if (opt_port != NULL) {
         if (opt_use_mock_srv) {
