@@ -69,7 +69,7 @@ BIG TBD Key file doesnt match,TBD Key file doesnt match,tls big .pem filebig con
 1,1,tls keypass prefix wrong, -section,, -server,_SERVER_CN:443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,passo:12345,BLANK,,BLANK,
 1,1,tls keypass empty password, -section,, -server,_SERVER_CN:443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:,BLANK,,BLANK,
 1,1,tls keypass missing argument, -section,, -server,_SERVER_CN:443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,,BLANK,,BLANK,
-0,-,tls keypass no prefix, -section,, -server,_SERVER_CN:443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,12345,BLANK,,BLANK,
+PR11755,-,tls keypass no prefix, -section,, -server,_SERVER_CN:443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,12345,BLANK,,BLANK,
 1,1,tls no keypass, -section,, -server,_SERVER_CN:443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_cert,EJBCACMPSignerTLS.p12,BLANK,,BLANK,,BLANK,
 1,1,tls no cert, -section,, -server,_SERVER_CN:443,,,,,BLANK,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345,BLANK,,BLANK,
 1,1,tls no key, -section,, -server,_SERVER_CN:443,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12,BLANK,, -tls_keypass,pass:12345,BLANK,,BLANK,

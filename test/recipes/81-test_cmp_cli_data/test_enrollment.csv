@@ -21,7 +21,7 @@ TBD,TBD,colon missing and no pw, -section,, -cmd,ir, -newkey,test.ECC256p_pass_1
 1,1,wrong password for encrypted pem, -section,, -cmd,ir, -newkey,cmp --help ,, -newkeypass,pass:wrong,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
 0,0,newkeypass ignored, -section,, -cmd,ir, -newkey,test.ECC256p.pem,, -newkeypass,abcdefghijklmnop,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
 1,1,newkeypass fp invalid, -section,, -cmd,ir, -newkey,test.ECC256p_pass_12345.pem,, -newkeypass,fp:4,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
-0,0,newkeypass no prefix, -section,, -cmd,ir, -newkey,test.ECC256p_pass_12345.pem,, -newkeypass,12345,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
+PR11755,PR11755,newkeypass no prefix, -section,, -cmd,ir, -newkey,test.ECC256p_pass_12345.pem,, -newkeypass,12345,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 1,1,subject argument missing, -section,, -cmd,ir, -newkey,test.ECC256p.pem,, -newkeypass,pass:, -subject,BLANK,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
 1,1,subject empty, -section,, -cmd,ir, -newkey,test.ECC256p.pem,, -newkeypass,pass:, -subject,"""",BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,, -certout,test.cert.pem,, -out_trusted,root.crt,,BLANK,,BLANK,,,
