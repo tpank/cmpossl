@@ -14,13 +14,6 @@
 
 #include "apps.h"
 #include "http_server.h"
-/* TODO remove when PR#11755 is merged: */
-static char *get_passwd(const char *pass, const char *desc) { return NULL; }
-static void cleanse(char *str) {}
-static void clear_free(char *str) {}
-static X509 *load_cert_pass(const char *uri, int maybe_stdin,
-                            const char *pass, const char *desc) {return NULL; }
-/* end TODO remove when PR#11755 is merged */
 #include "s_apps.h"
 #include "progs.h"
 
@@ -45,13 +38,164 @@ static X509 *load_cert_pass(const char *uri, int maybe_stdin,
 #include <openssl/crmf.h>
 #include <openssl/crypto.h>
 #include <openssl/err.h>
-#include <openssl/pem.h>
+#include <openssl/store.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
 
 DEFINE_STACK_OF(X509)
 DEFINE_STACK_OF(X509_EXTENSION)
 DEFINE_STACK_OF(OSSL_CMP_ITAV)
+
+/* start TODO remove when PR #11755 is merged */
+static char *get_passwd(const char *pass, const char *desc)
+{
+    char *result = NULL;
+
+    app_passwd(pass, NULL, &result, NULL);
+    return result;
+}
+
+static void cleanse(char *str)
+{
+    if (str != NULL)
+        OPENSSL_cleanse(str, strlen(str));
+}
+
+static void clear_free(char *str)
+{
+    if (str != NULL)
+        OPENSSL_clear_free(str, strlen(str));
+}
+
+static int load_key_cert_crl(const char *uri, int maybe_stdin,
+                             const char *pass, const char *desc,
+                             EVP_PKEY **ppkey, X509 **pcert, X509_CRL **pcrl)
+{
+    PW_CB_DATA uidata;
+    OSSL_STORE_CTX *ctx = NULL;
+    int ret = 0;
+
+    if (ppkey != NULL)
+        *ppkey = NULL;
+    if (pcert != NULL)
+        *pcert = NULL;
+    if (pcrl != NULL)
+        *pcrl = NULL;
+
+    uidata.password = pass;
+    uidata.prompt_info = uri;
+
+    ctx = OSSL_STORE_open(uri, get_ui_method(), &uidata, NULL, NULL);
+    if (ctx == NULL) {
+        BIO_printf(bio_err, "Could not open file or uri %s for loading %s\n",
+                   uri, desc);
+        goto end;
+    }
+
+    for (;;) {
+        OSSL_STORE_INFO *info = OSSL_STORE_load(ctx);
+        int type = info == NULL ? 0 : OSSL_STORE_INFO_get_type(info);
+        const char *infostr =
+            info == NULL ? NULL : OSSL_STORE_INFO_type_string(type);
+        int err = 0;
+
+        if (info == NULL) {
+            if (OSSL_STORE_eof(ctx))
+                ret = 1;
+            break;
+        }
+
+        switch (type) {
+        case OSSL_STORE_INFO_PKEY:
+            if (ppkey != NULL && *ppkey == NULL)
+                err = ((*ppkey = OSSL_STORE_INFO_get1_PKEY(info)) == NULL);
+            break;
+        case OSSL_STORE_INFO_CERT:
+            if (pcert != NULL && *pcert == NULL)
+                err = ((*pcert = OSSL_STORE_INFO_get1_CERT(info)) == NULL);
+            break;
+        case OSSL_STORE_INFO_CRL:
+            if (pcrl != NULL && *pcrl == NULL)
+                err = ((*pcrl = OSSL_STORE_INFO_get1_CRL(info)) == NULL);
+            break;
+        default:
+            /* skip any other type */
+            break;
+        }
+        OSSL_STORE_INFO_free(info);
+        if (err) {
+            BIO_printf(bio_err, "Could not read %s of %s from %s\n",
+                       infostr, desc, uri);
+            break;
+        }
+    }
+
+ end:
+    if (ctx != NULL)
+        OSSL_STORE_close(ctx);
+    if (!ret)
+        ERR_print_errors(bio_err);
+    return ret;
+}
+
+static
+EVP_PKEY *load_key_preliminary(const char *uri, int format, int may_stdin,
+                               const char *pass, ENGINE *e, const char *desc)
+{
+    EVP_PKEY *pkey = NULL;
+
+    if (desc == NULL)
+        desc = "private key";
+
+    if (format == FORMAT_ENGINE) {
+        if (e == NULL) {
+            BIO_printf(bio_err, "No engine specified for loading %s\n", desc);
+        } else {
+#ifndef OPENSSL_NO_ENGINE
+            PW_CB_DATA cb_data;
+
+            cb_data.password = pass;
+            cb_data.prompt_info = uri;
+            if (ENGINE_init(e)) {
+                pkey = ENGINE_load_private_key(e, uri,
+                                               (UI_METHOD *)get_ui_method(),
+                                               &cb_data);
+                ENGINE_finish(e);
+            }
+            if (pkey == NULL) {
+                BIO_printf(bio_err, "Cannot load %s from engine\n", desc);
+                ERR_print_errors(bio_err);
+            }
+#else
+            BIO_printf(bio_err, "Engines not supported for loading %s\n", desc);
+#endif
+        }
+    } else {
+        (void)load_key_cert_crl(uri, may_stdin, pass, desc, &pkey, NULL, NULL);
+    }
+
+    if (pkey == NULL) {
+        BIO_printf(bio_err, "Unable to load %s\n", desc);
+        ERR_print_errors(bio_err);
+    }
+    return pkey;
+}
+
+static X509 *load_cert_pass(const char *uri, int maybe_stdin,
+                            const char *pass, const char *desc)
+{
+    X509 *cert = NULL;
+
+    if (desc == NULL)
+        desc = "certificate";
+    (void)load_key_cert_crl(uri, maybe_stdin, pass, desc, NULL, &cert, NULL);
+    if (cert == NULL) {
+        BIO_printf(bio_err, "Unable to load %s\n", desc);
+        ERR_print_errors(bio_err);
+    }
+    return cert;
+}
+/* end TODO remove when PR #11755 is merged */
 
 static char *opt_config = NULL;
 #define CMP_SECTION "cmp"
@@ -688,7 +832,7 @@ static EVP_PKEY *load_key_pwd(const char *uri, int format,
                               const char *pass, ENGINE *e, const char *desc)
 {
     char *pass_string = get_passwd(pass, desc);
-    EVP_PKEY *pkey = load_key(uri, format, 0, pass_string, e, desc);
+    EVP_PKEY *pkey = load_key_preliminary(uri, format, 0, pass_string, e, desc);
 
     clear_free(pass_string);
     return pkey;
@@ -704,10 +848,7 @@ static X509 *load_cert_pwd(const char *uri, const char *pass, const char *desc)
     return cert;
 }
 
-/*
- * TODO when load_cert_pass() from apps/lib/apps.c is merged (PR #4930)
- * merge this variant of load_pkcs12() into the one in apps/lib/apps.c
- */
+/* TODO remove when PR #4930 is merged */
 static int load_pkcs12(BIO *in, const char *desc,
                        pem_password_cb *pem_cb, void *cb_data,
                        EVP_PKEY **pkey, X509 **cert, STACK_OF(X509) **ca)
@@ -718,10 +859,13 @@ static int load_pkcs12(BIO *in, const char *desc,
     int ret = 0;
     PKCS12 *p12 = d2i_PKCS12_bio(in, NULL);
 
+    if (desc == NULL)
+        desc = "PKCS12 input";
     if (p12 == NULL) {
         BIO_printf(bio_err, "error loading PKCS12 file for %s\n", desc);
         goto die;
     }
+
     /* See if an empty password will do */
     if (PKCS12_verify_mac(p12, "", 0) || PKCS12_verify_mac(p12, NULL, 0)) {
         pass = "";
@@ -744,23 +888,6 @@ static int load_pkcs12(BIO *in, const char *desc,
         pass = tpass;
     }
     ret = PKCS12_parse(p12, pass, pkey, cert, ca);
-    if (ret && *ca != NULL) {
-        int i; /* other certs are for some reason in reverted order */
-        STACK_OF(X509) *certs = sk_X509_new_null();
-        for (i = 0; i < sk_X509_num(*ca); i++)
-            if (certs == NULL
-                    || !sk_X509_insert(certs, sk_X509_value(*ca, i), 0)) {
-                sk_X509_pop_free(certs, X509_free);
-                sk_X509_pop_free(*ca, X509_free);
-                X509_free(*cert);
-                EVP_PKEY_free(*pkey);
-                ret = 0;
-                goto die;
-            }
-        sk_X509_free(*ca);
-        *ca = certs;
-    }
-
  die:
     PKCS12_free(p12);
     return ret;
@@ -831,22 +958,19 @@ static X509_REQ *load_csr_autofmt(const char *infile, const char *desc)
     return csr;
 }
 
-/*
- * Initialize or extend, if *certs != NULL, a certificate stack.
- * TODO replace by generalized load_certs() when merged in lib/apps.c (PR #4930)
- */
-static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
+/* TODO replace by calling generalized load_certs() when PR #4930 is merged */
+static int load_certs_preliminary(const char *file, STACK_OF(X509) **certs,
                                   int format, const char *pass,
                                   const char *desc)
 {
     X509 *cert = NULL;
     int ret = 0;
-    int i;
 
     if (format == FORMAT_PKCS12) {
         BIO *bio = bio_open_default(file, 'r', format);
+
         if (bio != NULL) {
-            EVP_PKEY *pkey = NULL; /* &pkey is required for matching cert */
+            EVP_PKEY *pkey = NULL; /* pkey is needed until PR #4930 is merged */
             PW_CB_DATA cb_data;
 
             cb_data.password = pass;
@@ -857,7 +981,8 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
             BIO_free(bio);
         }
     } else if (format == FORMAT_ASN1) { /* load only one cert in this case */
-        cert = load_cert_pwd(file, pass, desc); /* no format spec used here */
+        CMP_warn1("can load only one certificate in DER format from %s", file);
+        cert = load_cert_pass(file, 0, pass, desc);
     }
     if (format == FORMAT_PKCS12 || format == FORMAT_ASN1) {
         if (cert) {
@@ -871,22 +996,26 @@ static int load_certs_also_pkcs12(const char *file, STACK_OF(X509) **certs,
     } else {
         ret = load_certs(file, certs, format, pass, desc);
     }
+    return ret;
+}
 
-    for (i = 0; ret && i < sk_X509_num(*certs); i++) {
-        int cmp;
+static void warn_certs_expired(const char *file, STACK_OF(X509) **certs)
+{
+    int i, res;
+    X509 *cert;
+    char *subj;
 
+    for (i = 0; i < sk_X509_num(*certs); i++) {
         cert = sk_X509_value(*certs, i);
-        cmp = X509_cmp_timeframe(vpm, X509_get0_notBefore(cert),
+        res = X509_cmp_timeframe(vpm, X509_get0_notBefore(cert),
                                  X509_get0_notAfter(cert));
-        if (cmp != 0) {
-            char *s = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
-
-            CMP_warn3("certificate from '%s' with subject '%s' %s", file, s,
-                      cmp > 0 ? "has expired" : "not yet valid");
-            OPENSSL_free(s);
+        if (res != 0) {
+            subj = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
+            CMP_warn3("certificate from '%s' with subject '%s' %s", file, subj,
+                      res > 0 ? "has expired" : "not yet valid");
+            OPENSSL_free(subj);
         }
     }
-    return ret;
 }
 
 /*
@@ -909,15 +1038,18 @@ static int load_certs_autofmt(const char *infile, STACK_OF(X509) **certs,
     pass_string = get_passwd(pass, desc);
     if (format != FORMAT_HTTP)
         bio_err = NULL; /* do not show errors on more than one try */
-    ret = load_certs_also_pkcs12(infile, certs, format, pass_string, desc);
+    ret = load_certs_preliminary(infile, certs, format, pass_string, desc);
     bio_err = bio_bak;
     if (!ret && format != FORMAT_HTTP) {
         int format2 = format == FORMAT_PEM ? FORMAT_ASN1 : FORMAT_PEM;
 
         ERR_clear_error();
-        ret = load_certs_also_pkcs12(infile, certs, format2, pass_string, desc);
+        ret = load_certs_preliminary(infile, certs, format2, pass_string, desc);
     }
     clear_free(pass_string);
+
+    if (ret)
+        warn_certs_expired(infile, certs);
     return ret;
 }
 
