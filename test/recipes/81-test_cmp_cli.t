@@ -55,18 +55,9 @@ my $secret;     # The secret for PBM
 my $column;     # The column number of the expected result
 my $sleep = 0;  # The time to sleep between two requests
 
-sub load_config {
-    my $name = shift;
-    open (CH, $test_config) or die "Can't open $test_config: $!";
-    $ca_dn = undef;
-    $server_dn = undef;
-    $server_cn = undef;
-    $server_ip = undef;
-    $server_port = undef;
-    $server_cert = undef;
-    $secret = undef;
-    $column = undef;
-    $sleep = undef;
+sub load_server_config {
+    my $name = shift; # name of section to load
+    open (CH, $test_config) or die "Connot open $test_config: $!";
     my $active = 0;
     while (<CH>) {
         if (m/\[\s*$name\s*\]/) {
@@ -86,21 +77,23 @@ sub load_config {
         }
     }
     close CH;
-    die "Can't find all CA config values in $test_config section [$name]\n"
+    die "Can't find all CMP server config values in $test_config section [$name]\n"
         if !defined $ca_dn || !defined $server_cn || !defined $server_ip || !defined $server_port ||
            !defined $server_cert || !defined $secret || !defined $column || !defined $sleep;
     $server_dn = $server_dn // $ca_dn;
 }
 
-my @ca_configurations = (); # ("EJBCA", "Insta", "SimpleLra");
-@ca_configurations = split /\s+/, $ENV{CMP_TESTS} if $ENV{CMP_TESTS};
+my @server_configurations = (); # ("EJBCA", "Insta", "SimpleLra");
+@server_configurations = split /\s+/, $ENV{CMP_TESTS} if $ENV{CMP_TESTS};
 # set env variable, e.g., CMP_TESTS="EJBCA Insta" to include certain CAs
 
 my @all_aspects = ("connection", "verification", "credentials", "commands", "enrollment");
 @all_aspects = split /\s+/, $ENV{CMP_ASPECTS} if $ENV{CMP_ASPECTS};
-# set env variable, e.g., CMP_ASPECTS="commands" to select specific aspects
+# set env variable, e.g., CMP_ASPECTS="commands enrollment" to select specific aspects
 
 sub test_cmp_cli {
+    my $app = "/apps/openssl cmp";;
+    my $path_app = bldtop_dir($app);
     my @args = @_;
     my $name = shift;
     my $title = shift;
@@ -109,7 +102,7 @@ sub test_cmp_cli {
     with({ exit_checker => sub {
         my $OK = shift == $expected_exit;
         return $OK; } },
-         sub { ok(run(cmd([(bldtop_dir"/apps/openssl"), "cmp", @$params,])),
+         sub { ok(run(cmd([$path_app, @$params,])),
                   $title); });
 }
 
@@ -129,17 +122,18 @@ sub test_cmp_cli_aspect {
 }
 
 indir data_dir() => sub {
-    plan tests => 1 + @ca_configurations * @all_aspects;
+    plan tests => 1 + @server_configurations * @all_aspects;
 
     test_cmp_cli_aspect("basic", "", \@cmp_basic_tests);
 
     # TODO: complete and thoroughly review _all_ of the around 500 test cases
-    foreach my $name (@ca_configurations) {
+    foreach my $name (@server_configurations) {
         $name = chop_dblquot($name);
-        load_config($name);
-        indir $name => sub {
-            foreach my $aspect (@all_aspects) {
-                $aspect = chop_dblquot($aspect);
+        load_server_config($name);
+        foreach my $aspect (@all_aspects) {
+            $aspect = chop_dblquot($aspect);
+            load_server_config($aspect); # update with any aspect-specific settings
+            indir $name => sub {
                 my $tests = load_tests($name, $aspect);
                 test_cmp_cli_aspect($name, $aspect, $tests);
             };
