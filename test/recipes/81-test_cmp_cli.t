@@ -27,16 +27,16 @@ $proxy =~ s/^\"(.*?)\"$/$1/; # chop any leading/trailing '"' (for Windows)
 $proxy =~ s{http://}{};
 my $no_proxy = $ENV{no_proxy} // $ENV{NO_PROXY};
 
+my $test_config = "test_config.cnf";
+
 my @cmp_basic_tests = (
     [ "output help",                      [ "-help"], 0 ],
-    [ "unknown CLI parameter",            [ "-asdffdsa"], 1 ],
-    [ "bad int syntax: non-digit",        [ "-msg_timeout", "a/" ], 1 ],
-    [ "bad int syntax: float",            [ "-msg_timeout", "3.14" ], 1 ],
-    [ "bad int syntax: trailing garbage", [ "-msg_timeout", "314_+" ], 1 ],
-    [ "bad int: out of range",            [ "-msg_timeout", "2147483648" ], 1 ],
+    [ "unknown CLI parameter",            [ "-config", $test_config, "-asdffdsa"], 1 ],
+    [ "bad int syntax: non-digit",        [ "-config", $test_config, "-msg_timeout", "a/" ], 1 ],
+    [ "bad int syntax: float",            [ "-config", $test_config, "-msg_timeout", "3.14" ], 1 ],
+    [ "bad int syntax: trailing garbage", [ "-config", $test_config, "-msg_timeout", "314_+" ], 1 ],
+    [ "bad int: out of range",            [ "-config", $test_config, "-msg_timeout", "2147483648" ], 1 ],
 );
-
-my $test_config = "test_config.cnf";
 
 # the CA server configuration consists of:
                 # The CA name (implies directoy with certs etc. and CA-specific section in config file)
@@ -103,7 +103,6 @@ sub test_cmp_cli {
     my $expected_exit = shift;
     with({ exit_checker => sub {
         my $OK = shift == $expected_exit;
-        print Dumper @args if !($ENV{HARNESS_VERBOSE} eq 2 && $OK); # for debugging purposes only
         return $OK; } },
          sub { ok(run(cmd([(bldtop_dir"/apps/openssl"), "cmp", @$params,])),
                   $title); });
@@ -153,7 +152,6 @@ sub load_tests {
   LOOP:
     while (my $line = <$data>) {
         chomp $line;
-        # next LOOP if $line =~ m/tls_/; # skips tests requiring TLS
         $line =~ s{\r\n}{\n}g; # adjust line endings
         $line =~ s{_CA_DN}{$ca_dn}g;
         $line =~ s{_SERVER_DN}{$server_dn}g;
