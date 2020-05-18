@@ -32,10 +32,10 @@ my $test_config = "test_config.cnf";
 my @cmp_basic_tests = (
     [ "output help",                      [ "-help"], 0 ],
     [ "unknown CLI parameter",            [ "-config", $test_config, "-asdffdsa"], 1 ],
-    [ "bad int syntax: non-digit",        [ "-config", $test_config, "-msg_timeout", "a/" ], 1 ],
-    [ "bad int syntax: float",            [ "-config", $test_config, "-msg_timeout", "3.14" ], 1 ],
-    [ "bad int syntax: trailing garbage", [ "-config", $test_config, "-msg_timeout", "314_+" ], 1 ],
-    [ "bad int: out of range",            [ "-config", $test_config, "-msg_timeout", "2147483648" ], 1 ],
+    [ "bad int syntax: non-digit",        [ "-config", $test_config, "-days", "a/" ], 1 ],
+    [ "bad int syntax: float",            [ "-config", $test_config, "-days", "3.14" ], 1 ],
+    [ "bad int syntax: trailing garbage", [ "-config", $test_config, "-days", "314_+" ], 1 ],
+    [ "bad int: out of range",            [ "-config", $test_config, "-days", "2147483648" ], 1 ],
 );
 
 # the CA server configuration consists of:
