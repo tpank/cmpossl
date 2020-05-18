@@ -21,9 +21,14 @@ setup("test_cmp_cli");
 plan skip_all => "This test is not supported in a no-cmp build"
     if disabled("cmp");
 
+sub chop_dblquot { # chop any leading & trailing '"' (needed for Windows)
+    my $str = shift;
+    $str =~ s/^\"(.*?)\"$/$1/;
+    return $str;
+}
+
 my $proxy = "<EMPTY>";
-$proxy = $ENV{http_proxy} // $ENV{HTTP_PROXY} // $proxy;
-$proxy =~ s/^\"(.*?)\"$/$1/; # chop any leading/trailing '"' (for Windows)
+$proxy = chop_dblquot($ENV{http_proxy} // $ENV{HTTP_PROXY} // $proxy);
 $proxy =~ s{http://}{};
 my $no_proxy = $ENV{no_proxy} // $ENV{NO_PROXY};
 
@@ -38,7 +43,7 @@ my @cmp_basic_tests = (
     [ "bad int: out of range",            [ "-config", $test_config, "-days", "2147483648" ], 1 ],
 );
 
-# the CA server configuration consists of:
+# the CMP server configuration consists of:
                 # The CA name (implies directoy with certs etc. and CA-specific section in config file)
 my $ca_dn;      # The CA's Distinguished Name
 my $server_dn;  # The server's Distinguished Name
@@ -130,11 +135,11 @@ indir data_dir() => sub {
 
     # TODO: complete and thoroughly review _all_ of the around 500 test cases
     foreach my $name (@ca_configurations) {
-        $name =~ s/^\"(.*?)\"$/$1/; # chop any leading/trailing '"' (for Win)
+        $name = chop_dblquot($name);
         load_config($name);
         indir $name => sub {
             foreach my $aspect (@all_aspects) {
-                $aspect =~ s/^\"(.*?)\"$/$1/; # chop any leading/trailing '"'
+                $aspect = chop_dblquot($aspect);
                 my $tests = load_tests($name, $aspect);
                 test_cmp_cli_aspect($name, $aspect, $tests);
             };
