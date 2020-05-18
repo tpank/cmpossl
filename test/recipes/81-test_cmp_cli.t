@@ -32,6 +32,7 @@ $proxy = chop_dblquot($ENV{http_proxy} // $ENV{HTTP_PROXY} // $proxy);
 $proxy =~ s{http://}{};
 my $no_proxy = $ENV{no_proxy} // $ENV{NO_PROXY};
 
+my $app = "/apps/openssl cmp";;
 my $test_config = "test_config.cnf";
 
 my @cmp_basic_tests = (
@@ -77,7 +78,7 @@ sub load_server_config {
         }
     }
     close CH;
-    die "Can't find all CMP server config values in $test_config section [$name]\n"
+    die "Cannot find all CMP server config values in $test_config section [$name]\n"
         if !defined $ca_dn || !defined $server_cn || !defined $server_ip || !defined $server_port ||
            !defined $server_cert || !defined $secret || !defined $column || !defined $sleep;
     $server_dn = $server_dn // $ca_dn;
@@ -91,16 +92,26 @@ my @all_aspects = ("connection", "verification", "credentials", "commands", "enr
 @all_aspects = split /\s+/, $ENV{CMP_ASPECTS} if $ENV{CMP_ASPECTS};
 # set env variable, e.g., CMP_ASPECTS="commands enrollment" to select specific aspects
 
+my $faillog;
+if ($ENV{HARNESS_FAILLOG}) {
+    my $file = $ENV{HARNESS_FAILLOG};
+    open($faillog, ">", $file) or die "Cannot open $file for writing: $!";
+}
+
 sub test_cmp_cli {
-    my $app = "/apps/openssl cmp";;
-    my $path_app = bldtop_dir($app);
-    my @args = @_;
     my $name = shift;
+    my $aspect = shift;
     my $title = shift;
     my $params = shift;
     my $expected_exit = shift;
+    my $path_app = bldtop_dir($app);
     with({ exit_checker => sub {
-        my $OK = shift == $expected_exit;
+        my $actual_exit = shift;
+        my $OK = $actual_exit == $expected_exit;
+        if ($faillog && !$OK) {
+            my $invocation = ("$path_app ").join(' ', map { $_ eq "" ? '""' : $_ =~ m/ / ? '"'.$_.'"' : $_ } @$params);
+            print $faillog "$name $aspect \"$title\" expected=$expected_exit actual=$actual_exit     ".$invocation."\n";
+        }
         return $OK; } },
          sub { ok(run(cmd([$path_app, @$params,])),
                   $title); });
@@ -114,7 +125,7 @@ sub test_cmp_cli_aspect {
         plan tests => scalar @$tests;
         foreach (@$tests) {
           SKIP: {
-              test_cmp_cli($name, $$_[0], $$_[1], $$_[2]);
+              test_cmp_cli($name, $aspect, $$_[0], $$_[1], $$_[2]);
               sleep($sleep);
             }
         }
@@ -124,7 +135,7 @@ sub test_cmp_cli_aspect {
 indir data_dir() => sub {
     plan tests => 1 + @server_configurations * @all_aspects;
 
-    test_cmp_cli_aspect("basic", "", \@cmp_basic_tests);
+    test_cmp_cli_aspect("CLI", "basic", \@cmp_basic_tests);
 
     # TODO: complete and thoroughly review _all_ of the around 500 test cases
     foreach my $name (@server_configurations) {
@@ -141,13 +152,15 @@ indir data_dir() => sub {
     };
 };
 
+close($faillog) if $faillog;
+
 sub load_tests {
     my $name = shift;
     my $aspect = shift;
     my $file = data_file("test_$aspect.csv");
     my @result;
 
-    open(my $data, '<', $file) || die "Cannot load $file\n";
+    open(my $data, '<', $file) || die "Cannot open $file for reading: $!";
   LOOP:
     while (my $line = <$data>) {
         chomp $line;
@@ -173,5 +186,6 @@ sub load_tests {
         @fields = grep {$_ ne 'BLANK'} @fields[3..@fields-1];
         push @result, [$title, \@fields, $expected_exit];
     }
+    close($data);
     return \@result;
 }

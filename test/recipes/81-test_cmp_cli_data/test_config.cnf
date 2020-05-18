@@ -11,7 +11,7 @@ certout = test.cert.pem
 policies = certificatePolicies
 # verbosity = 7
 
-############################# CA configurations
+############################# server configurations
 
 [EJBCA]
 server_cn = ec2-204-236-244-127.compute-1.amazonaws.com
@@ -83,9 +83,9 @@ sleep = 0
 ############################# aspects
 
 [connection]
+server_port = 9080
 msg_timeout = 0 # workaround for TLS, TODO: should be, e.g., 5
 total_timeout =
-server_port = 9080
 # reset any per-CA TLS options to default:
 tls_used =
 tls_cert =
@@ -153,8 +153,8 @@ cdps =
 ocsp =
 
 [certstatus]
-cmd = cr
 server_port = 9080
+cmd = cr
 secret = # force using signature-based protection
 cert = signer.crt
 key = signer.p12
