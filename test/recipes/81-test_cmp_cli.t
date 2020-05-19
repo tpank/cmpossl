@@ -138,15 +138,15 @@ indir data_dir() => sub {
     test_cmp_cli_aspect("CLI", "basic", \@cmp_basic_tests);
 
     # TODO: complete and thoroughly review _all_ of the around 500 test cases
-    foreach my $name (@server_configurations) {
-        $name = chop_dblquot($name);
-        load_server_config($name);
+    foreach my $server_name (@server_configurations) {
+        $server_name = chop_dblquot($server_name);
+        load_server_config($server_name);
         foreach my $aspect (@all_aspects) {
             $aspect = chop_dblquot($aspect);
             load_server_config($aspect); # update with any aspect-specific settings
-            indir $name => sub {
-                my $tests = load_tests($name, $aspect);
-                test_cmp_cli_aspect($name, $aspect, $tests);
+            indir $server_name => sub {
+                my $tests = load_tests($server_name, $aspect);
+                test_cmp_cli_aspect($server_name, $aspect, $tests);
             };
         };
     };
