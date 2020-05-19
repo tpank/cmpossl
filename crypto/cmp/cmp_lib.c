@@ -489,15 +489,10 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         goto err;
 
     /* determine recipient entry in PKIHeader */
-    if (ctx->srvCert != NULL) {
-        rcp = X509_get_subject_name(ctx->srvCert);
-        /* set also as expected_sender of responses unless set explicitly */
-        if (ctx->expected_sender == NULL && rcp != NULL &&
-            !OSSL_CMP_CTX_set1_expected_sender(ctx, rcp))
-        goto err;
-    }
-    else if (ctx->recipient != NULL)
+    if (ctx->recipient != NULL)
         rcp = ctx->recipient;
+    else if (ctx->srvCert != NULL)
+        rcp = X509_get_subject_name(ctx->srvCert);
     else if (ctx->issuer != NULL)
         rcp = ctx->issuer;
     else if (ctx->oldClCert != NULL)

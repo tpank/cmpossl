@@ -698,6 +698,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     X509_ALGOR *alg;
     int nid = NID_undef, pk_nid = NID_undef;
     OPENSSL_CMP_CONST ASN1_OBJECT *algorOID = NULL;
+    const X509_NAME *expected_sender;
 
     if (ctx == NULL || msg == NULL || msg->header == NULL) {
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_NULL_ARGUMENT);
@@ -767,12 +768,15 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
          * Mitigates risk to accept misused certificate of an unauthorized
          * entity of a trusted hierarchy.
          */
-        if (ctx->expected_sender != NULL) {
+        expected_sender = ctx->expected_sender;
+        if (expected_sender == NULL && ctx->srvCert != NULL)
+            expected_sender = X509_get_subject_name(ctx->srvCert);
+        if (expected_sender != NULL) {
             /* set explicitly or subject of ctx->srvCert */
             X509_NAME *sender_name = msg->header->sender->d.directoryName;
-            if (X509_NAME_cmp(ctx->expected_sender, sender_name) != 0) {
+            if (X509_NAME_cmp(expected_sender, sender_name) != 0) {
                 CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
-                add_name_mismatch_data("", sender_name, ctx->expected_sender);
+                add_name_mismatch_data("", sender_name, expected_sender);
                 break;
             }
         }/* Note: if recipient was NULL-DN it could be learned here if needed */
