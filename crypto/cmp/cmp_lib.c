@@ -476,11 +476,12 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         goto err;
 
     /*
-     * if neither client cert nor subject name given, sender name is not known
-     * to the client and in that case set to NULL-DN
+     * if neither client cert nor oldCert nor subject are given,
+     * sender name is not known to the client and thus set to NULL-DN
      */
-    sender = ctx->clCert != NULL ?
-        X509_get_subject_name(ctx->clCert) : ctx->subjectName;
+    sender = ctx->clCert != NULL ? X509_get_subject_name(ctx->clCert) :
+        ctx->oldCert != NULL ? X509_get_subject_name(ctx->oldCert) :
+        ctx->subjectName;
     if (sender == NULL && ctx->referenceValue == NULL) {
         CMPerr(CMP_F_OSSL_CMP_PKIHEADER_INIT, CMP_R_NO_SENDER_NO_REFERENCE);
         goto err;
