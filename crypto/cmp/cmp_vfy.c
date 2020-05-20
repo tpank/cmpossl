@@ -704,6 +704,33 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_NULL_ARGUMENT);
         return 0;
     }
+
+    /* validate sender name of received msg */
+    if (msg->header->sender->type != GEN_DIRNAME) {
+        CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG,
+               CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
+        return 0; /* TODO FR#42: support for more than X509_NAME */
+    }
+    /*
+     * Compare actual sender name of response with expected sender name.
+     * Mitigates risk to accept misused PBM secret
+     * or misused certificate of an unauthorized entity of a trusted hierarchy.
+     */
+    expected_sender = ctx->expected_sender;
+    if (expected_sender == NULL && ctx->srvCert != NULL)
+        expected_sender = X509_get_subject_name(ctx->srvCert);
+    if (expected_sender != NULL) {
+        /* set explicitly or subject of ctx->srvCert */
+        X509_NAME *sender_name = msg->header->sender->d.directoryName;
+
+        if (X509_NAME_cmp(expected_sender, sender_name) != 0) {
+            CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
+            add_name_mismatch_data("", sender_name, expected_sender);
+            return 0;
+        }
+    }
+    /* Note: if recipient was NULL-DN it could be learned here if needed */
+
     if ((alg = msg->header->protectionAlg) == NULL || /* unprotected message */
         msg->protection == NULL || msg->protection->data == NULL) {
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_MISSING_PROTECTION);
@@ -757,30 +784,6 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNKNOWN_ALGORITHM_ID);
             break;
         }
-        /* validate sender name of received msg */
-        if (msg->header->sender->type != GEN_DIRNAME) {
-            CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG,
-                   CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
-            break; /* FR#42: support for more than X509_NAME */
-        }
-        /*
-         * Compare actual sender name of response with expected sender name.
-         * Mitigates risk to accept misused certificate of an unauthorized
-         * entity of a trusted hierarchy.
-         */
-        expected_sender = ctx->expected_sender;
-        if (expected_sender == NULL && ctx->srvCert != NULL)
-            expected_sender = X509_get_subject_name(ctx->srvCert);
-        if (expected_sender != NULL) {
-            /* set explicitly or subject of ctx->srvCert */
-            X509_NAME *sender_name = msg->header->sender->d.directoryName;
-            if (X509_NAME_cmp(expected_sender, sender_name) != 0) {
-                CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
-                add_name_mismatch_data("", sender_name, expected_sender);
-                break;
-            }
-        }/* Note: if recipient was NULL-DN it could be learned here if needed */
-
         if (find_validate_srvcert_and_msg(ctx, msg) != 0)
             return 1;
 
