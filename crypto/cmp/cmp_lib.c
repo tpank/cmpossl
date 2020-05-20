@@ -495,8 +495,8 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
         rcp = X509_get_subject_name(ctx->srvCert);
     else if (ctx->issuer != NULL)
         rcp = ctx->issuer;
-    else if (ctx->oldClCert != NULL)
-        rcp = X509_get_issuer_name(ctx->oldClCert);
+    else if (ctx->oldCert != NULL)
+        rcp = X509_get_issuer_name(ctx->oldCert);
     else if (ctx->clCert != NULL)
         rcp = X509_get_issuer_name(ctx->clCert);
     if (!OSSL_CMP_PKIHEADER_set1_recipient(hdr, rcp))

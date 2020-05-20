@@ -46,7 +46,7 @@ ASN1_SEQUENCE(OSSL_CMP_CTX) = {
     ASN1_OPT(OSSL_CMP_CTX, srvCert, X509),
     ASN1_OPT(OSSL_CMP_CTX, validatedSrvCert, X509),
     ASN1_OPT(OSSL_CMP_CTX, clCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, oldClCert, X509),
+    ASN1_OPT(OSSL_CMP_CTX, oldCert, X509),
     ASN1_OPT(OSSL_CMP_CTX, p10CSR, X509_REQ),
     ASN1_OPT(OSSL_CMP_CTX, issuer, X509_NAME),
     ASN1_OPT(OSSL_CMP_CTX, subjectName, X509_NAME),
@@ -786,16 +786,16 @@ int OSSL_CMP_CTX_set1_oldCert(OSSL_CMP_CTX *ctx, X509 *cert)
     if (ctx == NULL || cert == NULL)
         goto err;
 
-    X509_free(ctx->oldClCert);
-    ctx->oldClCert = NULL;
+    X509_free(ctx->oldCert);
+    ctx->oldCert = NULL;
 
-    if ((ctx->oldClCert = X509_dup((X509 *)cert)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_OLDCLCERT, ERR_R_MALLOC_FAILURE);
+    if ((ctx->oldCert = X509_dup((X509 *)cert)) == NULL) {
+        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_OLDCERT, ERR_R_MALLOC_FAILURE);
         return 0;
     }
     return 1;
  err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_OLDCLCERT, CMP_R_NULL_ARGUMENT);
+    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_OLDCERT, CMP_R_NULL_ARGUMENT);
     return 0;
 }
 

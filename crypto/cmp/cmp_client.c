@@ -743,11 +743,11 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     switch (OSSL_CMP_PKISI_PKIStatus_get(si)) {
     case OSSL_CMP_PKISTATUS_accepted:
         OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=accepted)");
-        result = ctx->oldClCert;
+        result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_grantedWithMods:
         OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=grantedWithMods)");
-        result = ctx->oldClCert;
+        result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_rejection:
         /* interpretation as warning or error depends on CA */
@@ -756,13 +756,13 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         goto err;
     case OSSL_CMP_PKISTATUS_revocationWarning:
         OSSL_CMP_info(ctx, "revocation accepted (PKIStatus=revocationWarning)");
-        result = ctx->oldClCert;
+        result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_revocationNotification:
         /* interpretation as warning or error depends on CA */
         OSSL_CMP_info(ctx,
                       "revocation accepted (PKIStatus=revocationNotification)");
-        result = ctx->oldClCert;
+        result = ctx->oldCert;
         break;
     case OSSL_CMP_PKISTATUS_waiting:
     case OSSL_CMP_PKISTATUS_keyUpdateWarning:

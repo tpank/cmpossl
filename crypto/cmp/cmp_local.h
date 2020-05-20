@@ -48,8 +48,8 @@ struct ossl_cmp_ctx_st {
                                trust chain has been validated */
     X509 *clCert;
     /* current client certificate used to identify and sign for MSG_SIG_ALG */
-    X509 *oldClCert; /* for KUR: certificate to be updated;
-                        for RR: certificate to be revoked */
+    X509 *oldCert; /* for KUR: certificate to be updated;
+                      for RR: certificate to be revoked */
     X509_REQ *p10CSR; /* for P10CR: PKCS#10 CSR to be sent */
     X509_NAME *issuer;  /* issuer name to used in cert template */
     X509_NAME *subjectName; /* subject name to be used in the cert template.

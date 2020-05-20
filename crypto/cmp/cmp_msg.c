@@ -238,7 +238,7 @@ static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
 static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype, int rid)
 {
     OSSL_CRMF_MSG *crm = NULL;
-    X509 *refcert = ctx->oldClCert != NULL ? ctx->oldClCert : ctx->clCert;
+    X509 *refcert = ctx->oldCert != NULL ? ctx->oldCert : ctx->clCert;
     /* refcert defaults to current client cert */
     EVP_PKEY *rkey = OSSL_CMP_CTX_get0_newPkey(ctx, /* ignored */ 0);
     STACK_OF(GENERAL_NAME) *default_sans = NULL;
@@ -248,7 +248,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype, int rid)
     X509_EXTENSIONS *exts = NULL;
 
     if (rkey == NULL)
-        rkey = ctx->pkey; /* default is independent of ctx->oldClCert */
+        rkey = ctx->pkey; /* default is independent of ctx->oldCert */
     if (rkey == NULL ||
         (bodytype == OSSL_CMP_PKIBODY_KUR && refcert == NULL)) {
         CMPerr(CMP_F_CRM_NEW, CMP_R_INVALID_ARGS);
@@ -349,7 +349,7 @@ OSSL_CMP_MSG *OSSL_CMP_certreq_new(OSSL_CMP_CTX *ctx, int type, int err_code)
         EVP_PKEY *privkey = OSSL_CMP_CTX_get0_newPkey(ctx, /* ignored */ 1);
 
         if (privkey == NULL)
-            privkey = ctx->pkey; /* default is independent of ctx->oldClCert */
+            privkey = ctx->pkey; /* default is independent of ctx->oldCert */
         if ((crm = crm_new(ctx, type, OSSL_CMP_CERTREQID)) == NULL
             || !OSSL_CRMF_MSG_create_popo(crm, privkey, ctx->digest,
                                           ctx->popoMethod)
@@ -520,7 +520,7 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
 }
 
 /*
- * Creates a new Revocation Request PKIMessage for ctx->oldClCert based on
+ * Creates a new Revocation Request PKIMessage for ctx->oldCert based on
  * the settings in ctx.
  * returns a pointer to the PKIMessage on success, NULL on error
  */
@@ -531,7 +531,7 @@ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
     OSSL_CMP_REVDETAILS *rd = NULL;
     int ret;
 
-    if (ctx == NULL || ctx->oldClCert == NULL) {
+    if (ctx == NULL || ctx->oldCert == NULL) {
         CMPerr(CMP_F_OSSL_CMP_RR_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
@@ -546,13 +546,13 @@ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
     /*
      * Fill the template from the contents of the certificate to be revoked;
      */
-    if ((pubkey = X509_get_pubkey(ctx->oldClCert)) == NULL)
+    if ((pubkey = X509_get_pubkey(ctx->oldCert)) == NULL)
         goto err;
     ret = OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
                                       NULL/* pubkey would be redundant */,
                                       NULL/* subject would be redundant */,
-                                      X509_get_issuer_name(ctx->oldClCert),
-                                      X509_get_serialNumber(ctx->oldClCert));
+                                      X509_get_issuer_name(ctx->oldCert),
+                                      X509_get_serialNumber(ctx->oldCert));
     EVP_PKEY_free(pubkey);
     if (ret == 0)
         goto err;
