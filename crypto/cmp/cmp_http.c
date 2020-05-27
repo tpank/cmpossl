@@ -119,9 +119,8 @@ static int bio_connect(BIO *bio, int timeout) {
              * unless using BIO_reset(), blocking next connect() may crash and
              * non-blocking next BIO_do_handshake() will fail
              */
-            goto retry;
         }
-        if (BIO_should_retry(bio)) {
+        if (errno == ETIMEDOUT || BIO_should_retry(bio)) {
             /* will not actually wait if timeout == 0 (i.e., blocking BIO) */
             rv = bio_wait(bio, (int)(max_time - time(NULL)));
             if (rv > 0)
