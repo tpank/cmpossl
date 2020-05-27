@@ -106,24 +106,35 @@ static int bio_connect(BIO *bio, int timeout) {
         BIO_set_nbio(bio, 1);
  retry: /* it does not help here to set SSL_MODE_AUTO_RETRY */
     rv = BIO_do_connect(bio); /* This indirectly calls ERR_clear_error(); */
-    /*
-     * in blocking case, despite blocking BIO, BIO_do_connect() timed out
-     * when non-blocking, BIO_do_connect() timed out early
-     * with rv == -1 and errno == 0
-     */
-    if (rv <= 0 && (errno == ETIMEDOUT ||
-                    ERR_GET_REASON(ERR_peek_error()) == ETIMEDOUT)) {
-        ERR_clear_error();
-        (void)BIO_reset(bio);
-        /*
-         * otherwise, blocking next connect() may crash and
-         * non-blocking next BIO_do_connect() will fail
-         */
-        goto retry;
-    }
-    if (rv <= 0 && BIO_should_retry(bio)) {
-        if (blocking || (rv = bio_wait(bio, (int)(max_time - time(NULL)))) > 0)
+    if (rv <= 0) {
+        if (errno == ETIMEDOUT) {
+            /*
+             * if blocking, despite blocking BIO, BIO_do_connect() timed out
+             * when non-blocking, BIO_do_connect() timed out early
+             * with rv == -1 and errno == 0
+             */
+            ERR_clear_error();
+            (void)BIO_reset(bio);
+            /*
+             * unless using BIO_reset(), blocking next connect() may crash and
+             * non-blocking next BIO_do_handshake() will fail
+             */
             goto retry;
+        }
+        if (BIO_should_retry(bio)) {
+            /* will not actually wait if timeout == 0 (i.e., blocking BIO) */
+            rv = bio_wait(bio, (int)(max_time - time(NULL)));
+            if (rv > 0)
+                goto retry;
+            if (rv == 0)
+                CMPerr(0, CMP_R_CONNECT_TIMEOUT);
+            else
+                BIOerr(0, BIO_R_CONNECT_ERROR);
+        } else {
+            rv = -1;
+            if (ERR_peek_error() == 0) /* missing error queue entry */
+                BIOerr(0, BIO_R_CONNECT_ERROR); /* workaround: general error */
+        }
     }
     return rv;
 }
