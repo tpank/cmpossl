@@ -788,7 +788,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             return 1;
 
         if (ctx->srvCert != NULL) /* add cert matching diagnostics */
-            (void)cert_acceptable(ctx, ctx->srvCert, msg);
+            /*(void)cert_acceptable(ctx, ctx->srvCert, msg)*/;
 
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_NO_SUITABLE_SERVER_CERT);
         break;
