@@ -29,7 +29,7 @@ EJBCA,Insta,description, -section,val, -crls,val, -cdps,val, -ocsp,val, -crls_ti
 ,,,,,,,,,,,,,,,,,,,,,,,,,
 0,-,stapling enabled (but other methods succeed), -section,,,,,,,,,, -stapling,,
 -,0,only stapling without TLS, -section,,,,,,,,,, -stapling,,
-1,TBD,only stapling with TLS (but SimpleLra does not staple), -section,, -crls,"", -cdps,"", -ocsp,"",,, -stapling,, -server,_SERVER_CN:9443,-tls_used,
+1,TBD,only stapling with TLS (but SimpleLra does not staple), -section,, -crls,"", -cdps,"", -ocsp,"",,, -stapling,, -server,_SERVER_HOST:9443,-tls_used,
 1,1,stapling with parameter, -section,,,,,,,,,,,,,,,, -stapling,asdf,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,
 1,-,wrong CRLs only, -section,, -crls,"../../../../../creds/crls/InstaDemoCA.crl", -cdps,"", -ocsp,"",,,,,,,,,,,,,,,
@@ -46,8 +46,8 @@ EJBCA,Insta,description, -section,val, -crls,val, -cdps,val, -ocsp,val, -crls_ti
 0,0,ocsp_timeout infinite, -section,,,,,,,,,,,,,,,,,,, -ocsp_timeout,0,,
 0,0,crls_timeout negative (default value), -section,,,,,,,,,,,,,,,,,,, -crls_timeout,-5,,
 0,0,ocsp_timeout negative (default value), -section,,,,,,,,,,,,,,,,,,, -ocsp_timeout,-5,,
-1,1,crls_timeout too short, -section,,,,,,,,,,,,,, -use_cdp,,,,, -crls_timeout,1, -server,_SERVER_CN:9000
-1,1,ocsp_timeout too short, -section,,,,,,,,,,,,,,, -use_aia,,,, -ocsp_timeout,1, -server,_SERVER_CN:9000
+1,1,crls_timeout too short, -section,,,,,,,,,,,,,, -use_cdp,,,,, -crls_timeout,1, -server,_SERVER_HOST:9000
+1,1,ocsp_timeout too short, -section,,,,,,,,,,,,,,, -use_aia,,,, -ocsp_timeout,1, -server,_SERVER_HOST:9000
 1,1,crls_timeout without parameter, -section,,,,,,,,,,,,,,,,,,, -crls_timeout,,,
 1,1,ocsp_timeout without parameter, -section,,,,,,,,,,,,,,,,,,, -ocsp_timeout,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,
