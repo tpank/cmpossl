@@ -399,16 +399,14 @@ int OSSL_CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
 {
     if (ctx == NULL)
         goto err;
-    if (extraCertsIn == NULL)
-        goto err;
 
     /* if there are already inbound extraCerts on the stack delete them */
     if (ctx->extraCertsIn != NULL) {
         sk_X509_pop_free(ctx->extraCertsIn, X509_free);
         ctx->extraCertsIn = NULL;
     }
-
-    if ((ctx->extraCertsIn = X509_chain_up_ref(extraCertsIn)) == NULL) {
+    if (extraCertsIn != NULL
+        && (ctx->extraCertsIn = X509_chain_up_ref(extraCertsIn)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSIN, ERR_R_MALLOC_FAILURE);
         return 0;
     }

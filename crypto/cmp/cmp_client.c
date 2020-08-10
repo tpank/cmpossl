@@ -166,7 +166,6 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
 {
     const char *expected_type_str = ossl_cmp_bodytype_to_string(expected_type);
     int msg_timeout = ctx->msg_timeout; /* backup original value */
-    STACK_OF(X509) *extracerts;
     int err, rcvd_type;
     OSSL_CMP_transfer_cb_t transfer_cb = ctx->transfer_cb;
 
@@ -230,20 +229,13 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
     }
 
     /*
-     * copy received extraCerts to ctx->extraCertsIn so they can be retrieved,
-     * yet only if list is non-empty in order to retain any pre-existing ones
+     * merge received extraCerts into the untrusted certs, such that
+     * the peer does not need to send them again (in this and any further
+     * transaction) and such that they are also available to ctx->certConf_cb
      */
-    if (sk_X509_num((extracerts = (*rep)->extraCerts)) > 0) {
-        if (!OSSL_CMP_CTX_set1_extraCertsIn(ctx, extracerts) ||
-        /*
-         * merge them also into the untrusted certs, such that the peer does
-         * not need to send them again (in this and any further transaction)
-         * and such that they are also available to ctx->certConf_cb
-         */
-            !OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, extracerts,
-                                         0, 1/* no dups */))
-            return 0;
-    }
+    if (!OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, (*rep)->extraCerts,
+                                     0, 1/* no dups */))
+        return 0;
 
     return 1;
 }
@@ -594,6 +586,9 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         && !OSSL_CMP_CTX_set1_caPubs(ctx, crepmsg->caPubs))
         return 0;
 
+    /* copy received extraCerts to ctx->extraCertsIn so they can be retrieved */
+    if (!OSSL_CMP_CTX_set1_extraCertsIn(ctx, (*resp)->extraCerts))
+        return 0;
     if (req_type != OSSL_CMP_PKIBODY_P10CR
             && !(X509_check_private_key(ctx->newClCert, rkey))) {
         fail_info = 1 << OSSL_CMP_PKIFAILUREINFO_incorrectData;
