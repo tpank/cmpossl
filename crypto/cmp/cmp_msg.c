@@ -805,3 +805,38 @@ int i2d_OSSL_CMP_MSG_bio(BIO *bio, const OSSL_CMP_MSG *msg)
 {
     return ASN1_i2d_bio_of(OSSL_CMP_MSG, i2d_OSSL_CMP_MSG, bio, msg);
 }
+
+OSSL_CMP_MSG *OSSL_CMP_MSG_read(const char *file)
+{
+    OSSL_CMP_MSG *msg = NULL;
+    BIO *bio = NULL;
+
+    if (file == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+
+    if ((bio = BIO_new_file(file, "rb")) == NULL)
+        return NULL;
+    msg = d2i_OSSL_CMP_MSG_bio(bio, NULL);
+    BIO_free(bio);
+    return msg;
+}
+
+int OSSL_CMP_MSG_write(const char *file, const OSSL_CMP_MSG *msg)
+{
+    BIO *bio;
+    int res;
+
+    if (file == NULL || msg == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return -1;
+    }
+
+    bio = BIO_new_file(file, "wb");
+    if (bio == NULL)
+        return -2;
+    res = i2d_OSSL_CMP_MSG_bio(bio, msg);
+    BIO_free(bio);
+    return res;
+}

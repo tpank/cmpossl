@@ -449,6 +449,8 @@ ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
 /* from cmp_msg.c */
 OSSL_CMP_MSG *d2i_OSSL_CMP_MSG_bio(BIO *bio, OSSL_CMP_MSG **msg);
 int i2d_OSSL_CMP_MSG_bio(BIO *bio, const OSSL_CMP_MSG *msg);
+OSSL_CMP_MSG *OSSL_CMP_MSG_read(const char *file);
+int OSSL_CMP_MSG_write(const char *file, const OSSL_CMP_MSG *msg);
 /* support application-level CMP debugging in cmp.c: */
 OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
 
