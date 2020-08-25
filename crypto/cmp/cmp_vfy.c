@@ -51,14 +51,14 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE,
                CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE);
         err = 2;
-        goto cert_err;
+        goto sig_err;
     }
 
     pubkey = X509_get_pubkey((X509 *)cert);
     if (pubkey == NULL) {
         CMPerr(CMP_F_CMP_VERIFY_SIGNATURE, CMP_R_FAILED_EXTRACTING_PUBKEY);
         err = 2;
-        goto cert_err;
+        goto sig_err;
     }
 
     /* create the DER representation of protected part */
@@ -103,7 +103,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     OPENSSL_free(prot_part_der);
     EVP_PKEY_free(pubkey);
 
- cert_err:
+ sig_err:
     if (err == 2) { /* print diagnostics on cert verification error */
         X509_STORE *ts = cmp_ctx->trusted_store; /* may be empty, not NULL */
         X509_STORE_CTX *csc = X509_STORE_CTX_new();
@@ -115,6 +115,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
             X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
             (void)(*verify_cb)(0, csc);
         }
+        OSSL_CMP_err(cmp_ctx, "validating CMP signature using certificate failed");
         put_cert_verify_err(CMP_F_CMP_VERIFY_SIGNATURE,
                             CMP_R_ERROR_VALIDATING_PROTECTION);
         X509_STORE_CTX_free(csc);
