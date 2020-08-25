@@ -700,6 +700,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     OPENSSL_CMP_CONST ASN1_OBJECT *algorOID = NULL;
     const X509_NAME *expected_sender;
 
+    OSSL_CMP_debug(ctx, "validating CMP message");
     if (ctx == NULL || msg == NULL || msg->header == NULL) {
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_NULL_ARGUMENT);
         return 0;
@@ -763,6 +764,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
                     /* allows self-signed and not self-signed certs */
                     break;
             }
+            OSSL_CMP_debug(ctx, "succeeded validating CMP message using PBM");
             return 1;
         }
         break;
@@ -784,8 +786,10 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNKNOWN_ALGORITHM_ID);
             break;
         }
-        if (find_validate_srvcert_and_msg(ctx, msg) != 0)
+        if (find_validate_srvcert_and_msg(ctx, msg) != 0) {
+            OSSL_CMP_debug(ctx, "succeeded validating CMP message using signatures");
             return 1;
+        }
 
         if (ctx->srvCert != NULL) /* add cert matching diagnostics */
             /*(void)cert_acceptable(ctx, ctx->srvCert, msg)*/;
