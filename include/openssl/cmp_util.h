@@ -67,11 +67,11 @@ int OSSL_CMP_puts(const char *component, const char *file, int lineno,
 int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
                     const char *func, const char *file, int lineno,
                     OSSL_CMP_severity level, const char *fmt, ...);
-#define OSSL_CMP_alert(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_ALERT, msg)
-#define OSSL_CMP_err(ctx, msg)   OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)
-#define OSSL_CMP_warn(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN , msg)
-#define OSSL_CMP_info(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO , msg)
-#define OSSL_CMP_debug(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_DEBUG, msg)
+#define ossl_cmp_alert(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_ALERT, msg)
+#define ossl_cmp_err(ctx, msg)   OSSL_CMP_printf(ctx, OSSL_CMP_FL_ERR  , msg)
+#define ossl_cmp_warn(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_WARN , msg)
+#define ossl_cmp_info(ctx, msg)  OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO , msg)
+#define ossl_cmp_debug(ctx, msg) OSSL_CMP_printf(ctx, OSSL_CMP_FL_DEBUG, msg)
 int  OSSL_CMP_log_init(void);
 void OSSL_CMP_log_close(void);
 
@@ -79,6 +79,8 @@ typedef int (*OSSL_CMP_log_cb_t) (const char *component,
                                   const char *file, int lineno,
                                   OSSL_CMP_severity level, const char *msg);
 
+STACK_OF(X509) *ossl_cmp_build_cert_chain(X509_STORE *store,
+                                          STACK_OF(X509) *certs, X509 *cert);
 # else /* ifdef CMP_STANDALONE */
 /*
  * convenience functions for CMP-specific logging via the trace API
@@ -94,24 +96,24 @@ void OSSL_CMP_log_close(void);
 /* in OSSL_CMP_LOG_START, cannot use OPENSSL_FUNC when expands to __func__ */
 #  define OSSL_CMP_LOG_START "%s:" OPENSSL_FILE ":" \
     OSSL_CMP_MSTR(OPENSSL_LINE) ":" OSSL_CMP_LOG_PREFIX
-#  define OSSL_CMP_alert(msg) OSSL_CMP_log(ALERT, msg)
-#  define OSSL_CMP_err(msg)   OSSL_CMP_log(ERROR, msg)
-#  define OSSL_CMP_warn(msg)  OSSL_CMP_log(WARN, msg)
-#  define OSSL_CMP_info(msg)  OSSL_CMP_log(INFO, msg)
-#  define OSSL_CMP_debug(msg) OSSL_CMP_log(DEBUG, msg)
-#  define OSSL_CMP_log(level, msg) \
+#  define ossl_cmp_alert(msg) ossl_cmp_log(ALERT, msg)
+#  define ossl_cmp_err(msg)   ossl_cmp_log(ERROR, msg)
+#  define ossl_cmp_warn(msg)  ossl_cmp_log(WARN, msg)
+#  define ossl_cmp_info(msg)  ossl_cmp_log(INFO, msg)
+#  define ossl_cmp_debug(msg) ossl_cmp_log(DEBUG, msg)
+#  define ossl_cmp_log(level, msg) \
     OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": %s\n", \
                       OPENSSL_FUNC, msg))
-#  define OSSL_CMP_log1(level, fmt, arg1) \
+#  define ossl_cmp_log1(level, fmt, arg1) \
     OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", \
                       OPENSSL_FUNC, arg1))
-#  define OSSL_CMP_log2(level, fmt, arg1, arg2) \
+#  define ossl_cmp_log2(level, fmt, arg1, arg2) \
     OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", \
                       OPENSSL_FUNC, arg1, arg2))
-#  define OSSL_CMP_log3(level, fmt, arg1, arg2, arg3) \
+#  define ossl_cmp_log3(level, fmt, arg1, arg2, arg3) \
     OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", \
                       OPENSSL_FUNC, arg1, arg2, arg3))
-#  define OSSL_CMP_log4(level, fmt, arg1, arg2, arg3, arg4) \
+#  define ossl_cmp_log4(level, fmt, arg1, arg2, arg3, arg4) \
     OSSL_TRACEV(CMP, (trc_out, OSSL_CMP_LOG_START#level ": " fmt "\n", \
                       OPENSSL_FUNC, arg1, arg2, arg3, arg4))
 

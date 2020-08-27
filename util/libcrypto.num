@@ -884,14 +884,14 @@ OSSL_CMP_PKISI_statusString_get0        841	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_set_bodytype               842	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_get_bodytype               843	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_PKISI_snprint                  844	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_build_cert_chain               845	3_0_0	EXIST::FUNCTION:CMP
+ossl_cmp_build_cert_chain               845	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_MSG_check_received             846	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_ASN1_OCTET_STRING_set1         847	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_ASN1_OCTET_STRING_set1_bytes   848	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_sk_X509_add1_cert              849	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_sk_X509_add1_certs             850	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_X509_STORE_add1_certs          851	3_0_0	EXIST::FUNCTION:CMP
-OSSL_CMP_X509_STORE_get1_certs          852	3_0_0	EXIST::FUNCTION:CMP
+ossl_cmp_X509_STORE_add1_certs          851	3_0_0	EXIST::FUNCTION:CMP
+ossl_cmp_X509_STORE_get1_certs          852	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_cmp_timeframe                  853	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_validate_msg                   854	3_0_0	EXIST::FUNCTION:CMP
 OSSL_CMP_validate_cert_path             855	3_0_0	EXIST::FUNCTION:CMP

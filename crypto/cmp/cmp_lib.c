@@ -733,13 +733,6 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
             !OSSL_CMP_PKIHEADER_set1_senderKID(msg->header, ctx->referenceValue))
             goto err;
 
-        /*
-         * add any additional certificates from ctx->extraCertsOut
-         * while not needed to validate the signing cert, the option to do
-         * this might be handy for certain use cases
-         */
-        OSSL_CMP_MSG_add_extraCerts(ctx, msg);
-
         if ((msg->protection =
              CMP_calc_protection(msg, ctx->secretValue, NULL)) == NULL)
 
@@ -782,9 +775,6 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
                 !OSSL_CMP_PKIHEADER_set1_senderKID(msg->header, subjKeyIDStr))
                 goto err;
 
-            /* Add ctx->clCert followed, if possible, by its chain built
-             * from ctx->untrusted_certs, and then ctx->extraCertsOut */
-            OSSL_CMP_MSG_add_extraCerts(ctx, msg);
 
             if ((msg->protection =
                  CMP_calc_protection(msg, NULL, ctx->pkey)) == NULL)
@@ -795,6 +785,15 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
             goto err;
         }
     }
+
+    /*
+     * For signature-based protection add ctx->cert followed by its chain.
+     * Finally add any additional certificates from ctx->extraCertsOut;
+     * even if not needed to validate the protection
+     * the option to do this might be handy for certain use cases.
+     */
+    if (!OSSL_CMP_MSG_add_extraCerts(ctx, msg))
+        goto err;
 
     return 1;
  err:
@@ -816,43 +815,55 @@ int OSSL_CMP_MSG_protect(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
  */
 int OSSL_CMP_MSG_add_extraCerts(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
-    int res = 0;
-
     if (ctx == NULL || msg == NULL)
-        goto err;
+        return 0;
     if (msg->extraCerts == NULL && !(msg->extraCerts = sk_X509_new_null()))
-        goto err;
+        return 0;
 
-    res = 1;
-    if (ctx->clCert != NULL) {
-        /* Make sure that our own cert gets sent, in the first position */
-        res = sk_X509_push(msg->extraCerts, ctx->clCert)
-            && X509_up_ref(ctx->clCert);
+    /* Add first ctx->cert and its chain if using signature-based protection */
+    if (!ctx->unprotectedSend && ctx->secretValue == NULL) {
 
-        /*
-         * if we have untrusted store, try to add intermediate certs
-         */
-        if (res != 0 && ctx->untrusted_certs != NULL) {
-            STACK_OF(X509) *chain =
-                OSSL_CMP_build_cert_chain(ctx->untrusted_certs, ctx->clCert);
-            res = OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, chain,
-                                              1/* no self-signed */,
-                                              1/* no dups */);
-            sk_X509_pop_free(chain, X509_free);
+        /* if not yet done try to build chain using available untrusted certs */
+        if (ctx->chain == NULL) {
+            ossl_cmp_debug(ctx,
+                           "trying to build chain for own CMP signer cert");
+            ctx->chain = ossl_cmp_build_cert_chain(NULL,
+                                                   ctx->untrusted_certs,
+                                                   ctx->clCert);
+            if (ctx->chain != NULL) {
+                ossl_cmp_debug(ctx,
+                               "succeeded building chain for own CMP signer cert");
+            } else {
+                /* dump errors to avoid confusion when printing further ones */
+                OSSL_CMP_CTX_print_errors(ctx);
+                ossl_cmp_warn(ctx,
+                              "could not build chain for own CMP signer cert");
+            }
+        }
+        if (ctx->chain != NULL) {
+            if (!OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, ctx->chain,
+                                             1/* no self-signed */,
+                                             1/* no dups */))
+                return 0;
+        } else {
+            /* make sure that our own cert is included in the first position */
+            if (!(sk_X509_push(msg->extraCerts, ctx->clCert)
+                  && X509_up_ref(ctx->clCert)))
+                return 0;
         }
     }
 
     /* add any additional certificates from ctx->extraCertsOut */
-    OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut, 0,
-                                1 /* no dups */);
+    if (!OSSL_CMP_sk_X509_add1_certs(msg->extraCerts, ctx->extraCertsOut,
+                                     0, 1 /* no dups */))
+        return 0;
 
-    /* if none was found avoid empty ASN.1 sequence */
+    /* in case extraCerts are empty list avoid empty ASN.1 sequence */
     if (sk_X509_num(msg->extraCerts) == 0) {
         sk_X509_free(msg->extraCerts);
         msg->extraCerts = NULL;
     }
- err:
-    return res;
+    return 1;
 }
 
 /*
@@ -1563,64 +1574,71 @@ X509 *CMP_CERTRESPONSE_get_certificate(OSSL_CMP_CTX *ctx,
     return NULL;
 }
 
-/*
- * Builds up the certificate chain of certs as high up as possible using
- * the given list of certs containing all possible intermediate certificates and
- * optionally the (possible) trust anchor(s). See also ssl_add_cert_chain().
+/*-
+ * Builds the chain of intermediate CA certificates
+ * starting from the given certificate <cert>
+ * using the optional list of intermediate CA certificates <certs>.
+ * If <store> is NULL then build the chain as far up as possible, ignoring
+ * errors. Else the chain must reach a trust anchor contained in <store>.
  *
  * Intended use of this function is to find all the certificates above the trust
  * anchor needed to verify an EE's own certificate.  Those are supposed to be
- * included in the ExtraCerts field of every first sent message of a transaction
+ * included in the extraCerts field of every first CMP message of a transaction
  * when MSG_SIG_ALG is utilized.
  *
  * NOTE: This allocates a stack and increments the reference count of each cert,
  * so when not needed any more the stack and all its elements should be freed.
- * NOTE: in case there is more than one possibility for the chain,
- * OpenSSL seems to take the first one, check X509_verify_cert() for details.
+ * NOTE: In case there is more than one possibility for the chain,
+ * OpenSSL seems to take the first one; check X509_verify_cert() for details.
  *
  * returns a pointer to a stack of (up_ref'ed) X509 certificates containing:
  *      - the EE certificate given in the function arguments (cert)
  *      - all intermediate certificates up the chain toward the trust anchor
- *      - the (self-signed) trust anchor is not included
- *      returns NULL on error
+ *        whereas the (self-signed) trust anchor is not included
+ * returns NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
-                                          const X509 *cert)
+STACK_OF(X509)
+    *ossl_cmp_build_cert_chain(X509_STORE *store,
+                               STACK_OF(X509) *certs, X509 *cert)
 {
     STACK_OF(X509) *chain = NULL, *result = NULL;
-    X509_STORE *store = X509_STORE_new();
+    X509_STORE *ts = store == NULL ? X509_STORE_new() : store;
     X509_STORE_CTX *csc = NULL;
 
-    if (certs == NULL || cert == NULL || store == NULL)
+    if (ts == NULL || cert == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
         goto err;
+    }
 
-    csc = X509_STORE_CTX_new();
-    if (csc == NULL)
+    if ((csc = X509_STORE_CTX_new()) == NULL)
         goto err;
-
-    OSSL_CMP_X509_STORE_add1_certs(store, (STACK_OF(X509) *)certs, 0);
-    if (!X509_STORE_CTX_init(csc, store, (X509 *)cert, NULL))
+    if (store == NULL && certs != NULL
+            && !ossl_cmp_X509_STORE_add1_certs(ts, certs, 0))
         goto err;
+    if (!X509_STORE_CTX_init(csc, ts, cert,
+                             store == NULL ? NULL : certs))
+        goto err;
+    /* disable any cert status/revocation checking etc. */
+    X509_VERIFY_PARAM_clear_flags(X509_STORE_CTX_get0_param(csc),
+                                  ~(X509_V_FLAG_USE_CHECK_TIME
+                                    | X509_V_FLAG_NO_CHECK_TIME));
 
-    (void)ERR_set_mark();
-    /*
-     * ignore return value as it would fail without trust anchor given in store
-     */
-    (void)X509_verify_cert(csc);
-
-    /* don't leave any new errors in the queue */
-    (void)ERR_pop_to_mark();
-
+    if (X509_verify_cert(csc) <= 0 && store != NULL)
+        goto err;
     chain = X509_STORE_CTX_get0_chain(csc);
 
     /* result list to store the up_ref'ed not self-signed certificates */
     if ((result = sk_X509_new_null()) == NULL)
         goto err;
-    OSSL_CMP_sk_X509_add1_certs(result, chain, 1/* no self-signed */,
-                                1/* no dups */);
+    if (!OSSL_CMP_sk_X509_add1_certs(result, chain,
+                                     1/* no self-signed */, 1/* no dups */)) {
+        sk_X509_free(result);
+        result = NULL;
+    }
 
  err:
-    X509_STORE_free(store);
+    if (store == NULL)
+        X509_STORE_free(ts);
     X509_STORE_CTX_free(csc);
     return result;
 }
@@ -1676,7 +1694,7 @@ int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
  * certs parameter may be NULL.
  * returns 1 on success, 0 on error
  */
-int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
+int ossl_cmp_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed)
 {
     int i;
@@ -1699,7 +1717,7 @@ int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
  * Retrieves a copy of all certificates in the given store.
  * returns NULL on error
  */
-STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store)
+STACK_OF(X509) *ossl_cmp_X509_STORE_get1_certs(const X509_STORE *store)
 {
     int i;
     STACK_OF(X509) *sk;
@@ -1766,7 +1784,7 @@ int OSSL_CMP_MSG_check_received(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
                    CMP_R_MISSING_PROTECTION);
             return -1;
         }
-        OSSL_CMP_warn(ctx, "received message is not protected");
+        ossl_cmp_warn(ctx, "received message is not protected");
     }
 
     /* check CMP version number in header */

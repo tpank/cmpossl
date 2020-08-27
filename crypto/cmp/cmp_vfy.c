@@ -115,7 +115,7 @@ static int CMP_verify_signature(const OSSL_CMP_CTX *cmp_ctx,
             X509_STORE_CTX_set_error(csc, X509_V_ERR_UNSPECIFIED);
             (void)(*verify_cb)(0, csc);
         }
-        OSSL_CMP_err(cmp_ctx, "validating CMP signature using certificate failed");
+        ossl_cmp_err(cmp_ctx, "validating CMP signature using certificate failed");
         put_cert_verify_err(CMP_F_CMP_VERIFY_SIGNATURE,
                             CMP_R_ERROR_VALIDATING_PROTECTION);
         X509_STORE_CTX_free(csc);
@@ -248,7 +248,7 @@ static void print_certs(BIO *bio, const STACK_OF(X509) *certs) {
 
 static void print_store_certs(BIO *bio, X509_STORE *store) {
     if (store != NULL) {
-        STACK_OF(X509) *certs = OSSL_CMP_X509_STORE_get1_certs(store);
+        STACK_OF(X509) *certs = ossl_cmp_X509_STORE_get1_certs(store);
         print_certs(bio, certs);
         sk_X509_pop_free(certs, X509_free);
     } else {
@@ -541,7 +541,7 @@ static int find_server_cert(OSSL_CMP_CTX *ctx,
         return ret;
     OSSL_CMP_add_error_line("no suitable certificate found in untrusted certs");
 
-    trusted = OSSL_CMP_X509_STORE_get1_certs(ctx->trusted_store);
+    trusted = ossl_cmp_X509_STORE_get1_certs(ctx->trusted_store);
     ret = find_acceptable_certs(ctx, trusted, msg, found_certs);
     sk_X509_pop_free(trusted, X509_free);
     if (ret != 1)
@@ -615,7 +615,7 @@ static int find_validate_srvcert_and_msg(OSSL_CMP_CTX *ctx,
          */
         extra_store = X509_STORE_new(); /* does not include CRLs */
         if (extra_store == NULL
-            || !OSSL_CMP_X509_STORE_add1_certs(extra_store, msg->extraCerts,
+            || !ossl_cmp_X509_STORE_add1_certs(extra_store, msg->extraCerts,
                                                1/* self-signed only */)) {
             return 0;
         } else {
@@ -701,7 +701,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     OPENSSL_CMP_CONST ASN1_OBJECT *algorOID = NULL;
     const X509_NAME *expected_sender;
 
-    OSSL_CMP_debug(ctx, "validating CMP message");
+    ossl_cmp_debug(ctx, "validating CMP message");
     if (ctx == NULL || msg == NULL || msg->header == NULL) {
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_NULL_ARGUMENT);
         return 0;
@@ -758,14 +758,14 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             case OSSL_CMP_PKIBODY_CP:
             case OSSL_CMP_PKIBODY_KUP:
             case OSSL_CMP_PKIBODY_CCP:
-                if (!OSSL_CMP_X509_STORE_add1_certs(ctx->trusted_store,
+                if (!ossl_cmp_X509_STORE_add1_certs(ctx->trusted_store,
                                                     msg->body->value.ip->caPubs,
                                                     0)) /* value.ip is same for
                                                            cp, kup, and ccp */
                     /* allows self-signed and not self-signed certs */
                     break;
             }
-            OSSL_CMP_debug(ctx, "succeeded validating CMP message using PBM");
+            ossl_cmp_debug(ctx, "succeeded validating CMP message using PBM");
             return 1;
         }
         break;
@@ -788,7 +788,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
             break;
         }
         if (find_validate_srvcert_and_msg(ctx, msg) != 0) {
-            OSSL_CMP_debug(ctx, "succeeded validating CMP message using signatures");
+            ossl_cmp_debug(ctx, "succeeded validating CMP message using signatures");
             return 1;
         }
 

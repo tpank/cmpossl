@@ -48,6 +48,7 @@ struct ossl_cmp_ctx_st {
                                trust chain has been validated */
     X509 *clCert;
     /* current client certificate used to identify and sign for MSG_SIG_ALG */
+    STACK_OF(X509) *chain; /* (cached) chain of protection cert including it */
     X509 *oldCert; /* for KUR: certificate to be updated;
                       for RR: certificate to be revoked */
     X509_REQ *p10CSR; /* for P10CR: PKCS#10 CSR to be sent */
@@ -916,8 +917,6 @@ ASN1_BIT_STRING *OSSL_CMP_PKISI_failInfo_get0(const OSSL_CMP_PKISI *si);
 OSSL_CMP_PKIFREETEXT *OSSL_CMP_PKISI_statusString_get0(const OSSL_CMP_PKISI *si);
 int OSSL_CMP_MSG_set_bodytype(OSSL_CMP_MSG *msg, int type);
 int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
-STACK_OF(X509) *OSSL_CMP_build_cert_chain(const STACK_OF(X509) *certs,
-                                          const X509 *cert);
 typedef int (*allow_unprotected_cb_t) (const OSSL_CMP_CTX *ctx,
                                        const OSSL_CMP_MSG *msg,
                                        int invalid_protection, int arg);
@@ -933,9 +932,9 @@ int OSSL_CMP_sk_X509_add1_cert (STACK_OF(X509) *sk, X509 *cert,
                                 int not_duplicate);
 int OSSL_CMP_sk_X509_add1_certs(STACK_OF(X509) *sk, const STACK_OF(X509) *certs,
                                 int no_self_signed, int no_duplicates);
-int OSSL_CMP_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
+int ossl_cmp_X509_STORE_add1_certs(X509_STORE *store, STACK_OF(X509) *certs,
                                    int only_self_signed);
-STACK_OF(X509) *OSSL_CMP_X509_STORE_get1_certs(const X509_STORE *store);
+STACK_OF(X509) *ossl_cmp_X509_STORE_get1_certs(const X509_STORE *store);
 
 /* from cmp_vfy.c */
 void put_cert_verify_err(int func, int err);
