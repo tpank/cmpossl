@@ -12,6 +12,7 @@
  */
 
 #include "cmp_local.h"
+#include <string.h> /* for memcmp */
 
 /* explicit #includes not strictly needed since implied by the above: */
 #include <openssl/asn1t.h>
@@ -339,6 +340,86 @@ int OSSL_CMP_print_cert_verify_cb(int ok, X509_STORE_CTX *ctx)
     return (ok);
 }
 
+static int ASN1_STRING_cmp_workaround(const ASN1_STRING *a, const ASN1_STRING *b)
+{
+    int i;
+    int a_length = ASN1_STRING_length(a);
+    int b_length = ASN1_STRING_length(b);
+    const unsigned char *a_data = ASN1_STRING_get0_data(a);
+    const unsigned char *b_data = ASN1_STRING_get0_data(b);
+    int a_type = ASN1_STRING_type(a);
+    int b_type = ASN1_STRING_type(b);
+
+    if (a_type == V_ASN1_OCTET_STRING || a_type == V_ASN1_UTF8STRING
+        || a_type == V_ASN1_PRINTABLESTRING || a_type == V_ASN1_VISIBLESTRING
+        || a_type == V_ASN1_GENERALSTRING || a_type == V_ASN1_UNIVERSALSTRING)
+        a_type = V_ASN1_PRINTABLESTRING; /* TODO is this fine and sufficient? */
+    if (b_type == V_ASN1_OCTET_STRING || b_type == V_ASN1_UTF8STRING
+        || b_type == V_ASN1_PRINTABLESTRING || b_type == V_ASN1_VISIBLESTRING
+        || b_type == V_ASN1_GENERALSTRING || b_type == V_ASN1_UNIVERSALSTRING)
+        b_type = V_ASN1_PRINTABLESTRING; /* TODO is this fine and sufficient? */
+
+    i = a_length - b_length;
+    if (i == 0) {
+        i = memcmp(a_data, b_data, a_length);
+        if (i == 0)
+            return a_type - b_type;
+        else
+            return i;
+    } else
+        return i;
+}
+
+/* allows any order of RDNs for Distinguished Name matching */
+static int X509_NAME_cmp_workaround(const X509_NAME *a, const X509_NAME *b)
+{
+    X509_NAME *b_copy;
+    int a_pos, b_pos, n, ret;
+
+    n = X509_NAME_entry_count(a);
+    ret = n - X509_NAME_entry_count(b);
+    if (ret != 0 || n == 0)
+        return ret > 0 ? 1 : ret < 0 ? -1 : 0;
+
+    /* now we know a != NULL and b != NULL and number of name entries is same */
+    if ((b_copy = X509_NAME_dup((X509_NAME *)b)) == NULL)
+        return -2;
+
+    /*
+     * according to RFC 5280 section 7.1: Two relative distinguished names
+     * RDN1 and RDN2 match if they have the same number of naming attributes
+     * and for each naming attribute in RDN1 there is a matching naming
+     * attribute in RDN2.  Two distinguished names DN1 and DN2 match if they
+     * have the same number of RDNs, for each RDN in DN1 there is a matching
+     * RDN in DN2, and the matching RDNs appear in the same order in both DNs. 
+     */
+    for (a_pos = 0; a_pos < n; a_pos++) {
+        const X509_NAME_ENTRY *b_e, *a_e = X509_NAME_get_entry(a, a_pos);
+        const ASN1_OBJECT *a_obj = X509_NAME_ENTRY_get_object(a_e);
+
+        ret = 1;
+        b_pos = X509_NAME_get_index_by_OBJ(b_copy, a_obj, -1 /* form start */);
+        if (b_pos < 0)
+            goto end; /* no (more) such name entry in b */
+        b_e = X509_NAME_get_entry(b_copy, b_pos);
+        ret = ASN1_STRING_cmp_workaround(X509_NAME_ENTRY_get_data(a_e),
+                                         X509_NAME_ENTRY_get_data(b_e));
+        if (ret != 0)
+            goto end;
+        /* TODO check if comparison is correct for multi-valued RDNs */
+
+        /* delete name entry in b such that it is not found again */
+        ret = -2;
+        if (X509_NAME_delete_entry(b_copy, b_pos) == NULL)
+            goto end;
+    }
+    ret = 0;
+
+ end:
+    X509_NAME_free(b_copy);
+    return ret;
+}
+
 /* return 0 if time should not be checked or reference time is within frame,
    or else 1 if it s past the end, or -1 if it is before the start */
 int OSSL_CMP_cmp_timeframe(const ASN1_TIME *start,
@@ -443,7 +524,7 @@ static int cert_acceptable(OSSL_CMP_CTX *ctx, X509 *cert,
             OSSL_CMP_add_error_line("  missing subject in certificate");
             return 0;
         }
-        if (X509_NAME_cmp(name, sender_name) != 0) {
+        if (X509_NAME_cmp_workaround(name, sender_name) != 0) {
             add_name_mismatch_data("  certificate subject does not match sender:",
                                    name, sender_name);
             return 0;
@@ -725,7 +806,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
         /* set explicitly or subject of ctx->srvCert */
         X509_NAME *sender_name = msg->header->sender->d.directoryName;
 
-        if (X509_NAME_cmp(expected_sender, sender_name) != 0) {
+        if (X509_NAME_cmp_workaround(expected_sender, sender_name) != 0) {
             CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_UNEXPECTED_SENDER);
             add_name_mismatch_data("", sender_name, expected_sender);
             return 0;
