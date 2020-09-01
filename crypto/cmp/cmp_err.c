@@ -289,6 +289,8 @@ static const ERR_STRING_DATA CMP_str_reasons[] = {
     "error transferring out"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_ERROR_VALIDATING_PROTECTION),
     "error validating protection"},
+    {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_FAILED_BUILDING_OWN_CHAIN),
+    "failed building own chain"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_FAILED_EXTRACTING_PUBKEY),
     "failed extracting pubkey"},
     {ERR_PACK(ERR_LIB_CMP, 0, CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE),

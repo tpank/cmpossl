@@ -234,6 +234,7 @@ int ERR_load_CMP_strings(void);
 #  define CMP_R_WRONG_CERT_HASH                            190
 #  define CMP_R_WRONG_PBM_VALUE                            191
 #  define CMP_R_WRONG_RP_COMPONENT_COUNT                   195
+#  define CMP_R_FAILED_BUILDING_OWN_CHAIN                  197
 
 # endif
 #endif

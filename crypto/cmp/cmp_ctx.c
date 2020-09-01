@@ -749,6 +749,33 @@ int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
     return 0;
 }
 
+int OSSL_CMP_CTX_build_cert_chain(OSSL_CMP_CTX *ctx, X509_STORE *own_trusted,
+                                  STACK_OF(X509) *candidates)
+{
+    STACK_OF(X509) *chain;
+
+    if (ctx == NULL) {
+        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
+
+    if (ctx->untrusted_certs != NULL ?
+        !UTIL_sk_X509_add1_certs(ctx->untrusted_certs, candidates, 0, 1) :
+        !OSSL_CMP_CTX_set1_untrusted_certs(ctx, candidates))
+        return 0;
+
+    ossl_cmp_debug(ctx, "trying to build chain for own CMP signer cert");
+    chain = ossl_cmp_build_cert_chain(own_trusted,
+                                      ctx->untrusted_certs, ctx->clCert);
+    if (chain == NULL) {
+        CMPerr(0, CMP_R_FAILED_BUILDING_OWN_CHAIN);
+        return 0;
+    }
+    ossl_cmp_debug(ctx, "success building chain for own CMP signer cert");
+    ctx->chain = chain;
+    return 1;
+}
+
 /*
  * Set our own client certificate, used for example in KUR and when
  * doing the IR with existing certificate.

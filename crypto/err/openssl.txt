@@ -2108,6 +2108,7 @@ CMP_R_ERROR_SETTING_CERTHASH:140:error setting certhash
 CMP_R_ERROR_TRANSFERRING_IN:141:error transferring in
 CMP_R_ERROR_TRANSFERRING_OUT:142:error transferring out
 CMP_R_ERROR_VALIDATING_PROTECTION:143:error validating protection
+CMP_R_FAILED_BUILDING_OWN_CHAIN:197:failed building own chain
 CMP_R_FAILED_EXTRACTING_PUBKEY:144:failed extracting pubkey
 CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE:145:failed to receive pkimessage
 CMP_R_FAILED_TO_SEND_REQUEST:146:failed to send request
