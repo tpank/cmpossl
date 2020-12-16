@@ -269,7 +269,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
         if ((preq = OSSL_CMP_pollReq_new(ctx, rid)) == NULL)
             goto err;
 
-        if (!send_receive_check(ctx, preq, "pollReq", CMP_F_POLLFORRESPONSE,
+        if (!send_receive_check(ctx, preq, "POLLREQ", CMP_F_POLLFORRESPONSE,
                                 &prep, OSSL_CMP_PKIBODY_POLLREP,
                                 CMP_R_POLLREP_NOT_RECEIVED))
              goto err;
@@ -301,7 +301,7 @@ static int pollForResponse(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **out)
             }
             /* TODO: print OPTIONAL reason (PKIFreeText) from message */
             OSSL_CMP_printf(ctx, OSSL_CMP_FL_INFO,
-                            "received polling response, waiting check_after =  "
+                            "received polling response, waiting check_after = "
                             "%ld sec before next polling request", check_after);
 
             if (ctx->total_timeout != 0) { /* total timeout is not infinite */
