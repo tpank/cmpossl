@@ -161,7 +161,7 @@ int OSSL_CMP_validate_cert_path(OSSL_CMP_CTX *ctx,
 /*
  * Attempt to validate certificate and path using given store of trusted certs
  * (possibly including CRLs and a cert verification callback function) and
- * non-trusted intermediate certs from the given ctx and extraCerts.
+ * non-trusted intermediate certs from the given ctx and extra_untrusted.
  * The defer_errors parameter needs to be set when used in a certConf callback
  * as any following certConf exchange will likely clear the OpenSSL error queue.
  * Returns 1 on successful validation and 0 otherwise.
@@ -814,6 +814,23 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     }
     /* Note: if recipient was NULL-DN it could be learned here if needed */
 
+    if (sk_X509_num(msg->extraCerts) > 10)
+        ossl_cmp_warn(ctx,
+                      "received CMP message contains more than 10 extraCerts");
+    /*
+     * Store any extraCerts in ctx for use in find_validate_srvcert_and_msg()
+     * and for future use, such that they are available to ctx->certConf_cb and
+     * the peer does not need to send them again in the same transaction.
+     * Note that it does not help validating the message before storing the
+     * extraCerts because they do not belong to the protected msg part anyway.
+     * For efficiency, the extraCerts should be prepended so they get used first.
+     */
+    if (!OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, msg->extraCerts,
+                                     0 /* this allows self-signed certs */,
+                                     1 /* no dups */))
+        return 0;
+
+    /* validate message protection */
     if ((alg = msg->header->protectionAlg) == NULL || /* unprotected message */
         msg->protection == NULL || msg->protection->data == NULL) {
         CMPerr(CMP_F_OSSL_CMP_VALIDATE_MSG, CMP_R_MISSING_PROTECTION);
