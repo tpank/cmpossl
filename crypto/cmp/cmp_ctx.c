@@ -760,7 +760,7 @@ int OSSL_CMP_CTX_build_cert_chain(OSSL_CMP_CTX *ctx, X509_STORE *own_trusted,
     }
 
     if (ctx->untrusted_certs != NULL ?
-        !UTIL_sk_X509_add1_certs(ctx->untrusted_certs, candidates, 0, 1) :
+        !OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, candidates, 0, 1) :
         !OSSL_CMP_CTX_set1_untrusted_certs(ctx, candidates))
         return 0;
 
