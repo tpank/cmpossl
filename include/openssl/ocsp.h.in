@@ -57,7 +57,6 @@ use OpenSSL::stackhash qw(generate_stack_macros);
 # define OCSP_REVOKED_STATUS_PRIVILEGEWITHDRAWN      9
 # define OCSP_REVOKED_STATUS_AACOMPROMISE            10
 
-
 # ifndef OPENSSL_NO_OCSP
 
 #  include <openssl/x509.h>

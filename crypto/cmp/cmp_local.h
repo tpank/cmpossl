@@ -39,6 +39,7 @@ struct ossl_cmp_ctx_st {
     OSSL_CMP_transfer_cb_t transfer_cb; /* default: OSSL_CMP_MSG_http_perform */
     void *transfer_cb_arg; /* allows to store optional argument to cb */
     /* HTTP-based transfer */
+    OSSL_HTTP_REQ_CTX *http_ctx;
     char *serverPath;
     char *server;
     int serverPort;

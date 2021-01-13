@@ -150,6 +150,9 @@ int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
         return 0;
     }
 
+    (void)OSSL_HTTP_close(ctx->http_ctx, 1);
+    ctx->http_ctx = NULL;
+
     ctx->status = -1;
     ctx->failInfoCode = -1;
 
@@ -170,6 +173,7 @@ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
     if (ctx == NULL)
         return;
 
+    (void)OSSL_HTTP_close(ctx->http_ctx, 1);
     OPENSSL_free(ctx->serverPath);
     OPENSSL_free(ctx->server);
     OPENSSL_free(ctx->proxy);

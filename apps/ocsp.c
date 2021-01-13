@@ -76,7 +76,7 @@ static void make_ocsp_response(BIO *err, OCSP_RESPONSE **resp, OCSP_REQUEST *req
 
 static char **lookup_serial(CA_DB *db, ASN1_INTEGER *ser);
 static int do_responder(OCSP_REQUEST **preq, BIO **pcbio, BIO *acbio,
-                        int timeout);
+                        const char *port, int timeout);
 static int send_ocsp_response(BIO *cbio, const OCSP_RESPONSE *resp);
 static char *prog;
 
@@ -630,7 +630,7 @@ redo_accept:
 #endif
 
         req = NULL;
-        res = do_responder(&req, &cbio, acbio, req_timeout);
+        res = do_responder(&req, &cbio, acbio, port, req_timeout);
         if (res == 0)
             goto redo_accept;
 
@@ -1158,12 +1158,12 @@ static char **lookup_serial(CA_DB *db, ASN1_INTEGER *ser)
 }
 
 static int do_responder(OCSP_REQUEST **preq, BIO **pcbio, BIO *acbio,
-                        int timeout)
+                        const char *port, int timeout)
 {
 #ifndef OPENSSL_NO_SOCK
     return http_server_get_asn1_req(ASN1_ITEM_rptr(OCSP_RESPONSE),
                                     (ASN1_VALUE **)preq, NULL, pcbio, acbio,
-                                    prog, 1 /* accept_get */, timeout);
+                                    prog, port, 1 /* accept_get */, timeout);
 #else
     BIO_printf(bio_err,
                "Error getting OCSP request - sockets not supported\n");

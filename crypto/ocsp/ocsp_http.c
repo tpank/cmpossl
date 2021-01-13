@@ -28,8 +28,9 @@ OSSL_HTTP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path,
     BIO *req_mem = HTTP_asn1_item2bio(ASN1_ITEM_rptr(OCSP_REQUEST),
                                       (ASN1_VALUE *)req);
     OSSL_HTTP_REQ_CTX *res =
-        HTTP_REQ_CTX_new(io, io, 0 /* no HTTP proxy used */, NULL, NULL, path,
-                         NULL /* headers */, "application/ocsp-request",
+        HTTP_REQ_CTX_new(io, io, io, 0 /* no SSL */, NULL /* no proxy */,
+                         NULL /* no server info */, NULL /* no port info */,
+                         path, NULL /* headers */, "application/ocsp-request",
                          req_mem /* may be NULL */,
                          maxline, 0 /* default max_resp_len */,
                          0 /* no timeout, blocking indefinite */, NULL,
