@@ -46,6 +46,8 @@ TBD 1 for EJBCA but 0 for Mock,TBD,revreason removeFromCRL - not on hold, -secti
 0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 TBD 1 for EJBCA but 0 for Mock,0,revreason none, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,test.cert.pem, -revreason,-1
 0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
+0,1, --- use csr for revocation ----, -section,, -cmd,rr,,BLANK,,,BLANK,,,BLANK,,BLANK, -revreason,0, -csr,csr.pem
+0,0, --- get certificate for revocation ----, -section,, -cmd,cr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 1,1,without oldcert, -section,, -cmd,rr,,BLANK,,,BLANK,,,BLANK,,BLANK,
 1,1,oldcert is directory, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,dir/,BLANK,
 1,1,oldcert file nonexistent, -section,, -cmd,rr,,BLANK,,,BLANK,,, -oldcert,idontexist,BLANK,

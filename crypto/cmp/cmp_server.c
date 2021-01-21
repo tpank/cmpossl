@@ -291,7 +291,7 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
 {
     OSSL_CMP_MSG *msg;
     OSSL_CMP_REVDETAILS *details;
-    OSSL_CRMF_CERTID *certId;
+    OSSL_CRMF_CERTID *certId = NULL;
     OSSL_CRMF_CERTTEMPLATE *tmpl;
     X509_NAME *issuer;
     ASN1_INTEGER *serial;
@@ -318,7 +318,8 @@ static OSSL_CMP_MSG *process_rr(OSSL_CMP_SRV_CTX *srv_ctx,
         return NULL;
     }
 
-    if ((certId = OSSL_CRMF_CERTID_gen(issuer, serial)) == NULL) {
+    if (issuer != NULL && serial != NULL
+            && (certId = OSSL_CRMF_CERTID_gen(issuer, serial)) == NULL) {
         CMPerr(CMP_F_PROCESS_RR, ERR_R_MALLOC_FAILURE);
         return NULL;
     }

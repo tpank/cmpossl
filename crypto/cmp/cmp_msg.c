@@ -78,6 +78,34 @@ static int add_extension(X509_EXTENSIONS **exts, X509_EXTENSION *ext)
 #define ADD_POLICIES(exts, policies, critical) add_extension(exts, \
                X509V3_EXT_i2d(NID_certificate_policies, critical, policies))
 
+/* Add extension list to the referenced extension stack, which may be NULL */
+static int add_extensions(STACK_OF(X509_EXTENSION) **target,
+                          const STACK_OF(X509_EXTENSION) *exts)
+{
+    int i;
+
+    if (target == NULL)
+        return 0;
+
+    for (i = 0; i < sk_X509_EXTENSION_num(exts); i++) {
+        X509_EXTENSION *ext = sk_X509_EXTENSION_value(exts, i);
+        ASN1_OBJECT *obj = X509_EXTENSION_get_object(ext);
+        int idx = X509v3_get_ext_by_OBJ(*target, obj, -1);
+
+        /* Does extension exist in target? */
+        if (idx != -1) {
+            /* Delete all extensions of same type */
+            do {
+                X509_EXTENSION_free(sk_X509_EXTENSION_delete(*target, idx));
+                idx = X509v3_get_ext_by_OBJ(*target, obj, -1);
+            } while (idx != -1);
+        }
+        if (!X509v3_add_ext(target, ext, -1))
+            return 0;
+    }
+    return 1;
+}
+
 /*
  * Adds a CRL revocation reason code to an extension stack (which may be NULL)
  * returns 1 on success, 0 on error
@@ -216,18 +244,18 @@ X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin /* may be NULL */)
 
 #define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 || \
                       OSSL_CMP_CTX_reqExtensions_have_SAN(ctx))
-static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
-                                 int bodytype) {
+static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx,
+                                 X509_NAME *ref_subj,
+                                 int for_KUR) {
     if (ctx->subjectName != NULL) {
         return ctx->subjectName;
     }
-    if (refcert != NULL &&
-        (bodytype == OSSL_CMP_PKIBODY_KUR || !HAS_SAN(ctx)))
+    if (ref_subj != NULL && (for_KUR || !HAS_SAN(ctx)))
         /*
-         * For KUR, copy subjectName from reference certificate.
+         * For KUR, copy subjectName from the reference.
          * For IR or CR, do the same only if there is no subjectAltName.
          */
-        return X509_get_subject_name(refcert);
+        return ref_subj;
     return NULL;
 }
 
@@ -237,24 +265,33 @@ static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx, X509 *refcert,
  */
 static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype, int rid)
 {
+    int for_KUR = bodytype == OSSL_CMP_PKIBODY_KUR;
     OSSL_CRMF_MSG *crm = NULL;
     X509 *refcert = ctx->oldCert != NULL ? ctx->oldCert : ctx->clCert;
     /* refcert defaults to current client cert */
     EVP_PKEY *rkey = OSSL_CMP_CTX_get0_newPkey(ctx, /* ignored */ 0);
     STACK_OF(GENERAL_NAME) *default_sans = NULL;
-    X509_NAME *subject = determine_subj(ctx, refcert, bodytype);
+    X509_NAME *ref_subj =
+        ctx->p10CSR != NULL ? X509_REQ_get_subject_name(ctx->p10CSR) :
+        refcert != NULL ? X509_get_subject_name(refcert) : NULL;
+    X509_NAME *subject = determine_subj(ctx, ref_subj, for_KUR);
     X509_NAME *issuer = ctx->issuer != NULL || refcert == NULL
         ? ctx->issuer : X509_get_issuer_name(refcert);
     int crit = ctx->setSubjectAltNameCritical || subject == NULL;
     /* RFC5280: subjectAltName MUST be critical if subject is null */
     X509_EXTENSIONS *exts = NULL;
 
+    if (rkey == NULL && ctx->p10CSR != NULL)
+        rkey = X509_REQ_get0_pubkey(ctx->p10CSR);
     if (rkey == NULL)
         rkey = ctx->pkey; /* default is independent of ctx->oldCert */
-    if (rkey == NULL ||
-        (bodytype == OSSL_CMP_PKIBODY_KUR && refcert == NULL)) {
+    if (rkey == NULL) {
         CMPerr(CMP_F_CRM_NEW, CMP_R_INVALID_ARGS);
-        goto err;
+        return NULL;
+    }
+    if (for_KUR && refcert == NULL && ctx->p10CSR == NULL) {
+        CMPerr(CMP_F_CRM_NEW, CMP_R_MISSING_REFERENCE_CERT);
+        return NULL;
     }
     if ((crm = OSSL_CRMF_MSG_new()) == NULL)
         goto oom;
@@ -278,9 +315,12 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype, int rid)
     if (refcert != NULL && !ctx->SubjectAltName_nodefault)
         default_sans = X509V3_get_d2i(X509_get0_extensions(refcert),
                                       NID_subject_alt_name, NULL, NULL);
-    /* exts are copied from ctx to allow reuse */
-    if ((exts = CMP_exts_dup(ctx->reqExtensions)) == NULL)
-        goto oom;
+    if (ctx->p10CSR != NULL
+            && (exts = X509_REQ_get_extensions(ctx->p10CSR)) == NULL)
+        goto err;
+    if (ctx->reqExtensions != NULL /* augment/override existing ones */
+            && !add_extensions(&exts, ctx->reqExtensions))
+        goto err;
     if ((sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 &&
          !ADD_SANs(&exts, ctx->subjectAltNames, crit)) ||
         (!HAS_SAN(ctx) && default_sans != NULL &&
@@ -294,7 +334,7 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype, int rid)
     /* end fill certTemplate, now set any controls */
 
     /* for KUR, set OldCertId according to D.6 */
-    if (bodytype == OSSL_CMP_PKIBODY_KUR) {
+    if (for_KUR && refcert != NULL) {
         OSSL_CRMF_CERTID *cid =
             OSSL_CRMF_CERTID_gen(X509_get_issuer_name(refcert),
                                  X509_get_serialNumber(refcert));
@@ -529,11 +569,10 @@ OSSL_CMP_MSG *OSSL_CMP_pollRep_new(OSSL_CMP_CTX *ctx, int crid,
 OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_MSG *msg = NULL;
-    EVP_PKEY *pubkey = NULL;
     OSSL_CMP_REVDETAILS *rd = NULL;
     int ret;
 
-    if (ctx == NULL || ctx->oldCert == NULL) {
+    if (ctx == NULL || (ctx->oldCert == NULL && ctx->p10CSR == NULL)) {
         CMPerr(CMP_F_OSSL_CMP_RR_NEW, CMP_R_INVALID_ARGS);
         return NULL;
     }
@@ -548,14 +587,16 @@ OSSL_CMP_MSG *OSSL_CMP_rr_new(OSSL_CMP_CTX *ctx)
     /*
      * Fill the template from the contents of the certificate to be revoked;
      */
-    if ((pubkey = X509_get_pubkey(ctx->oldCert)) == NULL)
-        goto err;
-    ret = OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
-                                      NULL/* pubkey would be redundant */,
-                                      NULL/* subject would be redundant */,
-                                      X509_get_issuer_name(ctx->oldCert),
-                                      X509_get_serialNumber(ctx->oldCert));
-    EVP_PKEY_free(pubkey);
+    ret = ctx->oldCert != NULL
+    ? OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
+                                  NULL /* pubkey would be redundant */,
+                                  NULL /* subject would be redundant */,
+                                  X509_get_issuer_name(ctx->oldCert),
+                                  X509_get0_serialNumber(ctx->oldCert))
+    : OSSL_CRMF_CERTTEMPLATE_fill(rd->certDetails,
+                                  X509_REQ_get0_pubkey(ctx->p10CSR),
+                                  X509_REQ_get_subject_name(ctx->p10CSR),
+                                  NULL, NULL);
     if (ret == 0)
         goto err;
 
@@ -592,6 +633,11 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
     OSSL_CMP_PKISI *si1 = NULL;
     OSSL_CMP_MSG *msg = NULL;
 
+    if (ctx == NULL || si == NULL) {
+        CMPerr(CMP_F_OSSL_CMP_RP_NEW, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+
     if ((msg = OSSL_CMP_MSG_create(ctx, OSSL_CMP_PKIBODY_RP)) == NULL)
         goto oom;
     rep = msg->body->value.rp;
@@ -602,8 +648,11 @@ OSSL_CMP_MSG *OSSL_CMP_rp_new(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si,
 
     if ((rep->certId = sk_OSSL_CRMF_CERTID_new_null()) == NULL)
         goto oom;
-    sk_OSSL_CRMF_CERTID_push(rep->certId, cid);
-    cid = NULL;
+    if (cid != NULL) {
+        if (!sk_OSSL_CRMF_CERTID_push(rep->certId, cid))
+            goto oom;
+        cid = NULL;
+    }
 
     if (!(unprot_err &&
           OSSL_CMP_PKISI_PKIStatus_get(si) == OSSL_CMP_PKISTATUS_rejection) &&

@@ -697,9 +697,9 @@ static X509 *do_certreq_seq(OSSL_CMP_CTX *ctx, const char *type_string, int fn,
  * revocation was rejected, and do not expect "waiting" or "keyUpdateWarning"
  * (which are handled as error).
  *
- * returns the revoked cert on success, NULL on error
+ * returns 1 on success, 0 on error
  */
-X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
+int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 {
     OSSL_CMP_MSG *rr = NULL;
     OSSL_CMP_MSG *rp = NULL;
@@ -707,12 +707,16 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     const int rsid = OSSL_CMP_REVREQSID;
     OSSL_CMP_REVREPCONTENT *rrep = NULL;
     OSSL_CMP_PKISI *si = NULL;
-    X509 *result = NULL;
+    int ret = 0;
 
     if (ctx == NULL) {
         CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_INVALID_ARGS);
         return 0;
     }
+    if (ctx->oldCert == NULL && ctx->p10CSR == NULL) {
+         CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_MISSING_REFERENCE_CERT);
+         return 0;
+     }
 
     ctx->lastPKIStatus = -1;
 
@@ -738,11 +742,11 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     switch (OSSL_CMP_PKISI_PKIStatus_get(si)) {
     case OSSL_CMP_PKISTATUS_accepted:
         ossl_cmp_info(ctx, "revocation accepted (PKIStatus=accepted)");
-        result = ctx->oldCert;
+        ret = 1;
         break;
     case OSSL_CMP_PKISTATUS_grantedWithMods:
         ossl_cmp_info(ctx, "revocation accepted (PKIStatus=grantedWithMods)");
-        result = ctx->oldCert;
+        ret = 1;
         break;
     case OSSL_CMP_PKISTATUS_rejection:
         /* interpretation as warning or error depends on CA */
@@ -751,13 +755,13 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
         goto err;
     case OSSL_CMP_PKISTATUS_revocationWarning:
         ossl_cmp_info(ctx, "revocation accepted (PKIStatus=revocationWarning)");
-        result = ctx->oldCert;
+        ret = 1;
         break;
     case OSSL_CMP_PKISTATUS_revocationNotification:
         /* interpretation as warning or error depends on CA */
         ossl_cmp_info(ctx,
                       "revocation accepted (PKIStatus=revocationNotification)");
-        result = ctx->oldCert;
+        ret = 1;
         break;
     case OSSL_CMP_PKISTATUS_waiting:
     case OSSL_CMP_PKISTATUS_keyUpdateWarning:
@@ -769,7 +773,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     }
 
     /* check any present CertId in optional revCerts field */
-    if (rrep->certId != NULL) {
+    if (sk_OSSL_CRMF_CERTID_num(rrep->certId) >= 1) {
         OSSL_CRMF_CERTID *cid;
         OSSL_CRMF_CERTTEMPLATE *tmpl =
             sk_OSSL_CMP_REVDETAILS_value(rr->body->value.rr, rsid)->certDetails;
@@ -778,18 +782,18 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
 
         if (sk_OSSL_CRMF_CERTID_num(rrep->certId) != num_RevDetails) {
             CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_WRONG_RP_COMPONENT_COUNT);
-            result = NULL;
+            ret = 0;
             goto err;
         }
         if ((cid = CMP_REVREPCONTENT_CertId_get(rrep, rsid)) == NULL) {
-            result = NULL;
+            ret = 0;
             goto err;
         }
         if (X509_NAME_cmp(issuer, OSSL_CRMF_CERTID_get0_issuer(cid)) != 0
             || ASN1_INTEGER_cmp(serial,
                                 OSSL_CRMF_CERTID_get0_serialNumber(cid)) != 0) {
             CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_WRONG_CERTID_IN_RP);
-            result = NULL;
+            ret = 0;
             goto err;
         }
     }
@@ -797,13 +801,13 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     /* check number of any optionally present crls */
     if (rrep->crls != NULL && sk_X509_CRL_num(rrep->crls) != num_RevDetails) {
         CMPerr(CMP_F_OSSL_CMP_EXEC_RR_SES, CMP_R_WRONG_RP_COMPONENT_COUNT);
-        result = NULL;
+        ret = 0;
         goto err;
     }
 
  err:
     /* print out OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
-    if (result == NULL) {
+    if (ret == 0) {
         char *tempbuf;
         if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL) {
             if (OSSL_CMP_PKISI_snprint(si, tempbuf,
@@ -815,7 +819,7 @@ X509 *OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
  end:
     OSSL_CMP_MSG_free(rr);
     OSSL_CMP_MSG_free(rp);
-    return result;
+    return ret;
 }
 
 X509 *OSSL_CMP_exec_IR_ses(OSSL_CMP_CTX *ctx)

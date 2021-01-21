@@ -2124,6 +2124,7 @@ CMP_R_MISSING_KEY_INPUT_FOR_CREATING_PROTECTION:154:\
 	missing key input for creating protection
 CMP_R_MISSING_KEY_USAGE_DIGITALSIGNATURE:155:missing key usage digitalsignature
 CMP_R_MISSING_PROTECTION:156:missing protection
+CMP_R_MISSING_REFERENCE_CERT:198:missing reference cert
 CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED:157:multiple responses not supported
 CMP_R_MULTIPLE_SAN_SOURCES:158:multiple san sources
 CMP_R_NO_SENDER_NO_REFERENCE:159:no sender no reference
