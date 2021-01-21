@@ -613,8 +613,8 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
 
     X509_ALGOR_get0(&algorOID, &pptype, &ppval, msg->header->protectionAlg);
 
-    if (secret != NULL && pkey == NULL) {
-        if (NID_id_PasswordBasedMAC == OBJ_obj2nid(algorOID)) {
+    if (OBJ_obj2nid(algorOID) == NID_id_PasswordBasedMAC) {
+        if (secret != NULL) {
             if (ppval == NULL)
                 goto err;
 
@@ -627,10 +627,11 @@ ASN1_BIT_STRING *CMP_calc_protection(const OSSL_CMP_MSG *msg,
                                     &protection, &sig_len)))
                 goto err;
         } else {
-            CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_WRONG_ALGORITHM_OID);
+            CMPerr(CMP_F_CMP_CALC_PROTECTION, CMP_R_INVALID_ARGS);
+            ERR_add_error_data(1, "missing PBM secret");
             goto err;
         }
-    } else if (secret == NULL && pkey != NULL) {
+    } else if (pkey != NULL) {
         /* TODO combine this with large parts of CRMF_poposigningkey_init() */
         /* EVP_DigestSignInit() checks that pkey type is correct for the alg */
 
