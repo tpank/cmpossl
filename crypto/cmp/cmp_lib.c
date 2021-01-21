@@ -520,10 +520,18 @@ int OSSL_CMP_PKIHEADER_init(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIHEADER *hdr)
      * 128 bits of (pseudo-) random data for the start of a transaction to
      * reduce the probability of having the transactionID in use at the server.
      */
-    if (ctx->transactionID == NULL &&
-        !set1_aostr_else_random(&ctx->transactionID,NULL,
-                                OSSL_CMP_TRANSACTIONID_LENGTH))
-        goto err;
+    if (ctx->transactionID == NULL) {
+        char *tid;
+
+        if (!set1_aostr_else_random(&ctx->transactionID,NULL,
+                                    OSSL_CMP_TRANSACTIONID_LENGTH))
+            goto err;
+        tid = OPENSSL_buf2hexstr(ctx->transactionID->data,
+                                 ctx->transactionID->length);
+        if (tid != NULL)
+            OSSL_CMP_printf(ctx, OSSL_CMP_FL_DEBUG, "Starting new transaction with ID=%s", tid);
+        OPENSSL_free(tid);
+    }
     if (!OSSL_CMP_ASN1_OCTET_STRING_set1(&hdr->transactionID,
                                          ctx->transactionID))
         goto err;
