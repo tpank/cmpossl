@@ -242,13 +242,15 @@ X509_EXTENSIONS *CMP_exts_dup(const X509_EXTENSIONS *extin /* may be NULL */)
     return NULL;
 }
 
+/* a NULL-DN as an empty sequence of RDNs */
+#define IS_NULL_DN(name) (X509_NAME_get_entry(name, 0) == NULL) /* NULL-DN */
 #define HAS_SAN(ctx) (sk_GENERAL_NAME_num((ctx)->subjectAltNames) > 0 || \
                       OSSL_CMP_CTX_reqExtensions_have_SAN(ctx))
 static X509_NAME *determine_subj(OSSL_CMP_CTX *ctx,
                                  X509_NAME *ref_subj,
                                  int for_KUR) {
     if (ctx->subjectName != NULL) {
-        return ctx->subjectName;
+        return IS_NULL_DN(ctx->subjectName) ? NULL : ctx->subjectName;
     }
     if (ref_subj != NULL && (for_KUR || !HAS_SAN(ctx)))
         /*
@@ -276,7 +278,8 @@ static OSSL_CRMF_MSG *crm_new(OSSL_CMP_CTX *ctx, int bodytype, int rid)
         refcert != NULL ? X509_get_subject_name(refcert) : NULL;
     X509_NAME *subject = determine_subj(ctx, ref_subj, for_KUR);
     X509_NAME *issuer = ctx->issuer != NULL || refcert == NULL
-        ? ctx->issuer : X509_get_issuer_name(refcert);
+        ? (IS_NULL_DN(ctx->issuer) ? NULL : ctx->issuer)
+        : X509_get_issuer_name(refcert);
     int crit = ctx->setSubjectAltNameCritical || subject == NULL;
     /* RFC5280: subjectAltName MUST be critical if subject is null */
     X509_EXTENSIONS *exts = NULL;

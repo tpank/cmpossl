@@ -41,7 +41,7 @@ EJBCA,Insta,description, -section,val, -server,val, -proxy,val, -path,val, -msg_
 1,1,msg_timeout missing argument, -section,,,,,,,, -msg_timeout,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 1,1,msg_timeout negative, -section,,,,,,,, -msg_timeout,-5,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
-0,0,total_timeout 5, -section,,,,,,,,BLANK,, -total_timeout,5,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
+0,0,total_timeout 8, -section,,,,,,,,BLANK,, -total_timeout,8,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 0,0,total_timeout 0, -section,,,,,,,,BLANK,, -total_timeout,0,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
 1,1,total_timeout missing arg, -section,,,,,,,,BLANK,, -total_timeout,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
