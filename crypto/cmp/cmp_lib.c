@@ -1196,6 +1196,7 @@ int OSSL_CMP_PKISI_PKIFailureInfo_get(OSSL_CMP_PKISI *si)
     return res;
 }
 
+#if 0
 /*
  * internal function
  *
@@ -1309,6 +1310,7 @@ static char *OSSL_CMP_PKIFAILUREINFO_get_string(OSSL_CMP_PKIFAILUREINFO *fi,
     }
     return NULL; /* illegal bit position */
 }
+#endif
 
 /*
  * returns the status field of the RevRepContent with the given
@@ -1496,6 +1498,7 @@ int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg)
     return msg->body->type;
 }
 
+#if 0
 /*
  * place human-readable error string created from PKIStatusInfo in given buffer
  * returns pointer to the same buffer containing the string, or NULL on error
@@ -1539,6 +1542,7 @@ char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize)
     }
     return buf;
 }
+#endif
 
 /*
  * Retrieve a copy of the certificate, if any, from the given CertResponse.

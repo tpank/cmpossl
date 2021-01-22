@@ -24,6 +24,10 @@
 #  include <openssl/cmperr.h>
 #  endif
 
+#  ifndef ossl_assert
+#   define ossl_assert(x) (x)
+#  endif
+
 #  if OPENSSL_VERSION_NUMBER < 0x10101000L
 #   define X509_V_ERR_OCSP_VERIFY_NEEDED 73 /* Need OCSP verification */
 #   define X509_V_ERR_OCSP_VERIFY_FAILED 74 /* Could not verify cert via OCSP */
@@ -44,6 +48,7 @@
                                   |(OPENSSL_version_patch()<<4L) \
                                   |_OPENSSL_VERSION_PRE_RELEASE ))
 #  else
+#   define ERR_raise CMPerr
 #   define OSSL_CMP_DEFAULT_PORT 80
 int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
                                         X509 **pcert, X509_CRL **pcrl,
@@ -329,6 +334,7 @@ typedef STACK_OF(ASN1_UTF8STRING) OSSL_CMP_PKIFREETEXT;
  * function DECLARATIONS
  */
 /* from cmp_asn.c */
+int ossl_cmp_asn1_get_int(const ASN1_INTEGER *a);
 OSSL_CMP_ITAV *OSSL_CMP_ITAV_create(ASN1_OBJECT *type, ASN1_TYPE *value);
 void OSSL_CMP_ITAV_set0(OSSL_CMP_ITAV *itav, ASN1_OBJECT *type,
                         ASN1_TYPE *value);
@@ -442,6 +448,10 @@ int OSSL_CMP_CTX_set1_senderNonce(OSSL_CMP_CTX *ctx,
 /* from cmp_status.c */
 char *OSSL_CMP_CTX_snprint_PKIStatus(const OSSL_CMP_CTX *ctx, char *buf,
                                      size_t bufsize);
+char *OSSL_CMP_snprint_PKIStatusInfo(const OSSL_CMP_PKISI *statusInfo,
+                                     char *buf, size_t bufsize);
+OSSL_CMP_PKISI *
+OSSL_CMP_STATUSINFO_new(int status, int fail_info, const char *text);
 
 /* from cmp_hdr.c */
 /* support application-level CMP debugging in cmp.c: */

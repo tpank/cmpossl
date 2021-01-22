@@ -73,9 +73,9 @@ static void message_add_error_data(OSSL_CMP_MSG *msg)
     switch (bt) {
     case OSSL_CMP_PKIBODY_ERROR:
         if ((buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL) {
-            if (OSSL_CMP_PKISI_snprint(msg->body->value.error->
-                                       pKIStatusInfo,
-                                       buf, OSSL_CMP_PKISI_BUFLEN) != 0)
+            if (OSSL_CMP_snprint_PKIStatusInfo(msg->body->value.error->
+                                               pKIStatusInfo,
+                                               buf, OSSL_CMP_PKISI_BUFLEN) != 0)
                 ERR_add_error_data(1, buf);
             OPENSSL_free(buf);
         }
@@ -512,7 +512,7 @@ static X509 *get_cert_status(OSSL_CMP_CTX *ctx, int bodytype,
 
  err:
     if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN))) {
-        if (OSSL_CMP_PKISI_snprint(crep->status, tempbuf,OSSL_CMP_PKISI_BUFLEN))
+        if (OSSL_CMP_snprint_PKIStatusInfo(crep->status, tempbuf,OSSL_CMP_PKISI_BUFLEN))
             ERR_add_error_data(1, tempbuf);
         OPENSSL_free(tempbuf);
     }
@@ -810,8 +810,8 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
     if (ret == 0) {
         char *tempbuf;
         if ((tempbuf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL) {
-            if (OSSL_CMP_PKISI_snprint(si, tempbuf,
-                                       OSSL_CMP_PKISI_BUFLEN))
+            if (OSSL_CMP_snprint_PKIStatusInfo(si, tempbuf,
+                                               OSSL_CMP_PKISI_BUFLEN))
                 ERR_add_error_data(1, tempbuf);
             OPENSSL_free(tempbuf);
         }

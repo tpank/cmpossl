@@ -872,9 +872,12 @@ int OSSL_CMP_CTX_set1_newCert(OSSL_CMP_CTX *ctx, const X509 *cert);
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx);
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx);
 
-/* from cmp_status.c or actually cmp_lib.c */
-char *OSSL_CMP_PKISI_snprint(OSSL_CMP_PKISI *si, char *buf, int bufsize);
-#  define OSSL_CMP_PKISI_BUFLEN 1024
+/* from cmp_status.c */
+int ossl_cmp_pkisi_get_status(const OSSL_CMP_PKISI *si);
+const char *ossl_cmp_PKIStatus_to_string(int status);
+OSSL_CMP_PKIFREETEXT *ossl_cmp_pkisi_get0_statusString(const OSSL_CMP_PKISI *s);
+int ossl_cmp_pkisi_get_pkifailureinfo(const OSSL_CMP_PKISI *si);
+int ossl_cmp_pkisi_check_pkifailureinfo(const OSSL_CMP_PKISI *si, int index);
 
 /* from cmp_hdr.c or actually cmp_ctx.c */
 ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_senderNonce(const OSSL_CMP_CTX *ctx);
