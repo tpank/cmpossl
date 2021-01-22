@@ -60,18 +60,20 @@ static char *V_CMP_TABLE[] = {
     "POLLREP",
 };
 
+static int save_statusInfo(OSSL_CMP_CTX *ctx, OSSL_CMP_PKISI *si);
 /*
  * internal function
  *
  * adds error data of the given OSSL_CMP_MSG
  */
-static void message_add_error_data(OSSL_CMP_MSG *msg)
+static void message_add_error_data(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
 {
     char *buf;
     int bt = OSSL_CMP_MSG_get_bodytype(msg);
 
     switch (bt) {
     case OSSL_CMP_PKIBODY_ERROR:
+        (void)save_statusInfo(ctx, msg->body->value.error->pKIStatusInfo);
         if ((buf = OPENSSL_malloc(OSSL_CMP_PKISI_BUFLEN)) != NULL) {
             if (OSSL_CMP_snprint_PKIStatusInfo(msg->body->value.error->
                                                pKIStatusInfo,
@@ -224,7 +226,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         CMPerr(CMP_F_SEND_RECEIVE_CHECK,
                rcvd_type == OSSL_CMP_PKIBODY_ERROR ? CMP_R_RECEIVED_ERROR :
                CMP_R_UNEXPECTED_PKIBODY); /* in next line for mkerr.pl */
-        message_add_error_data(*rep);
+        message_add_error_data(ctx, *rep);
         return 0;
     }
 
@@ -570,8 +572,6 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         }
     }
 
-    if (!save_statusInfo(ctx, crep->status))
-        return 0;
     if ((ctx->newClCert = get_cert_status(ctx, (*resp)->body->type,
                                           crep)) == NULL) {
         OSSL_CMP_add_error_data("cannot extract certificate from response");
