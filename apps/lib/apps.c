@@ -2494,12 +2494,14 @@ ASN1_VALUE *app_http_post_asn1(const char *host, const char *port,
     info.use_proxy = proxy != NULL;
     info.timeout = timeout;
     info.ssl_ctx = ssl_ctx;
-    return OSSL_HTTP_post_asn1(host, port, path, ssl_ctx != NULL,
-                               proxy, no_proxy,
-                               NULL, NULL, app_http_tls_cb, &info,
-                               headers, content_type, req, req_it,
-                               0 /* maxline */,
-                               0 /* max_resp_len */, timeout, NULL, rsp_it);
+    return OSSL_HTTP_transfer_asn1(NULL, host, port, path, ssl_ctx != NULL,
+                                   proxy, no_proxy,
+                                   NULL /* bio */, NULL /* rbio */,
+                                   app_http_tls_cb, &info,
+                                   0 /* maxline */, 0 /* max_resp_len */,
+                                   headers, content_type, req, req_it,
+                                   NULL /* expected_content_type */, rsp_it,
+                                   timeout, 0 /* keep_alive */);
 }
 
 #endif

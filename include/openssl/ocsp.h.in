@@ -178,7 +178,7 @@ int OCSP_sendreq_nbio(OCSP_RESPONSE **presp, OSSL_HTTP_REQ_CTX *rctx);
 #  ifndef OPENSSL_NO_DEPRECATED_3_0
 typedef OSSL_HTTP_REQ_CTX OCSP_REQ_CTX;
 #   define OCSP_REQ_CTX_new(io, maxline) \
-        OSSL_HTTP_REQ_CTX_new(io, io, maxline, 0, 0, NULL, 1)
+        OSSL_HTTP_REQ_CTX_new(io, io, maxline)
 #   define OCSP_REQ_CTX_free(r) \
         OSSL_HTTP_REQ_CTX_free(r)
 #   define OCSP_REQ_CTX_http(rctx, op, path) \

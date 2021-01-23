@@ -100,6 +100,7 @@ static int test_http_x509(int do_get)
     BIO *wbio = BIO_new(BIO_s_mem());
     BIO *rbio = BIO_new(BIO_s_mem());
     STACK_OF(CONF_VALUE) *headers = NULL;
+    const char *const content_type = "application/x-x509-ca-cert";
     int res = 0;
 
     if (wbio == NULL || rbio == NULL)
@@ -115,15 +116,16 @@ static int test_http_x509(int do_get)
                             wbio, rbio, NULL /* bio_update_fn */, NULL,
                             headers, 0 /* maxline */,
                             0 /* max_resp_len */, 0 /* timeout */,
-                            "application/x-x509-ca-cert", x509_it)
+                            content_type, x509_it)
          :
-         OSSL_HTTP_post_asn1(SERVER, PORT, RPATH, 0 /* use_ssl */,
-                             NULL /* proxy */, NULL /* no_proxy */,
-                             wbio, rbio, NULL /* bio_update_fn */, NULL,
-                             headers, "application/x-x509-ca-cert",
-                             (ASN1_VALUE *)x509, x509_it, 0 /* maxline */,
-                             0 /* max_resp_len */, 0 /* timeout */,
-                             "application/x-x509-ca-cert", x509_it)
+         OSSL_HTTP_transfer_asn1(NULL, SERVER, PORT, RPATH, 0 /* use_ssl */,
+                                 NULL /* proxy */, NULL /* no_proxy */,
+                                 wbio, rbio, NULL /* bio_update_fn */, NULL,
+                                 0 /* maxline */, 0 /* max_resp_len */,
+                                 headers, content_type,
+                                 (ASN1_VALUE *)x509, x509_it,
+                                 content_type, x509_it,
+                                 0 /* timeout */, 0 /* keep_alive */)
          );
     res = TEST_ptr(rcert) && TEST_int_eq(X509_cmp(x509, rcert), 0);
 

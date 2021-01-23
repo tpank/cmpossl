@@ -35,12 +35,14 @@
 #  include <signal.h>
 #  define MAXERRLEN 1000 /* limit error text sent to syslog to 1000 bytes */
 # else
+#  undef LOG_DEBUG
 #  undef LOG_INFO
 #  undef LOG_WARNING
 #  undef LOG_ERR
-#  define LOG_INFO      0
-#  define LOG_WARNING   1
-#  define LOG_ERR       2
+#  define LOG_DEBUG     0
+#  define LOG_INFO      1
+#  define LOG_WARNING   2
+#  define LOG_ERR       3
 # endif
 
 /*-
@@ -68,7 +70,8 @@ BIO *http_server_init_bio(const char *prog, const char *port);
  * pcbio: pointer to variable where to place the BIO for sending the response to
  * ppath: pointer to variable where to place the request path, or NULL
  * acbio: the listening bio (typically as returned by http_server_init_bio())
- * prog: the name of the current app
+ * prog: the name of the current app, for diagnostics only
+ * port: the local port listening to, for diagnostics only
  * accept_get: whether to accept GET requests (in addition to POST requests)
  * timeout: connection timeout (in seconds), or 0 for none/infinite
  * returns 0 in case caller should retry, then *preq == *ppath == *pcbio == NULL
@@ -81,7 +84,9 @@ BIO *http_server_init_bio(const char *prog, const char *port);
  */
 int http_server_get_asn1_req(const ASN1_ITEM *it, ASN1_VALUE **preq,
                              char **ppath, BIO **pcbio, BIO *acbio,
-                             const char *prog, int accept_get, int timeout);
+                             int *found_keep_alive,
+                             const char *prog, const char *port,
+                             int accept_get, int timeout);
 
 /*-
  * Send an ASN.1-formatted HTTP response
@@ -93,7 +98,8 @@ int http_server_get_asn1_req(const ASN1_ITEM *it, ASN1_VALUE **preq,
  * resp: the response to send
  * returns 1 on success, 0 on failure
  */
-int http_server_send_asn1_resp(BIO *cbio, const char *content_type,
+int http_server_send_asn1_resp(BIO *cbio, int keep_alive,
+                               const char *content_type,
                                const ASN1_ITEM *it, const ASN1_VALUE *resp);
 
 /*-

@@ -38,8 +38,8 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
     char server_port[32] = { '\0' };
     STACK_OF(CONF_VALUE) *headers = NULL;
     const char *const content_type_pkix = "application/pkixcmp";
-    int tls_used;
-    OSSL_CMP_MSG *res;
+    int tls_used, type, keep_alive;
+    OSSL_CMP_MSG *res = NULL;
 
     if (ctx == NULL || req == NULL) {
         ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
@@ -48,22 +48,46 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx,
 
     if (!X509V3_add_value("Pragma", "no-cache", &headers))
         return NULL;
-
     if (ctx->serverPort != 0)
         BIO_snprintf(server_port, sizeof(server_port), "%d", ctx->serverPort);
-
     tls_used = OSSL_CMP_CTX_get_http_cb_arg(ctx) != NULL;
-    ossl_cmp_log2(DEBUG, ctx, "connecting to CMP server %s%s",
-                  ctx->server, tls_used ? " using TLS" : "");
+    if (ctx->http_ctx == NULL)
+        ossl_cmp_log3(DEBUG, ctx, "connecting to CMP server %s:%s%s",
+                      ctx->server, server_port, tls_used ? " using TLS" : "");
+
+    type = req->body->type;
+    keep_alive = ctx->keep_alive;
+    if (keep_alive != 0
+        /* Ask for persistent connection only if may need more round trips */
+            && type != OSSL_CMP_PKIBODY_IR
+            && type != OSSL_CMP_PKIBODY_CR
+            && type != OSSL_CMP_PKIBODY_P10CR
+            && type != OSSL_CMP_PKIBODY_KUR
+            && type != OSSL_CMP_PKIBODY_POLLREQ)
+        keep_alive = 0;
+
     res = (OSSL_CMP_MSG *)
-        OSSL_HTTP_post_asn1(ctx->server, server_port, ctx->serverPath,
-                            tls_used, ctx->proxy, ctx->no_proxy, NULL, NULL,
-                            ctx->http_cb, OSSL_CMP_CTX_get_http_cb_arg(ctx),
-                            headers, content_type_pkix, (const ASN1_VALUE *)req,
-                            ASN1_ITEM_rptr(OSSL_CMP_MSG),
-                            0, 0, ctx->msg_timeout, content_type_pkix,
-                            ASN1_ITEM_rptr(OSSL_CMP_MSG));
-    ossl_cmp_debug(ctx, "disconnected from CMP server");
+        OSSL_HTTP_transfer_asn1(&ctx->http_ctx, ctx->server, server_port,
+                                ctx->serverPath, tls_used,
+                                ctx->proxy, ctx->no_proxy,
+                                NULL /* bio */, NULL /* rbio */,
+                                ctx->http_cb, OSSL_CMP_CTX_get_http_cb_arg(ctx),
+                                0 /* max_line */, 0 /* max_resp_len */,
+                                headers, content_type_pkix,
+                                (const ASN1_VALUE *)req,
+                                ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                                content_type_pkix, ASN1_ITEM_rptr(OSSL_CMP_MSG),
+                                ctx->msg_timeout, keep_alive);
+
+    if (ctx->http_ctx == NULL)
+        ossl_cmp_debug(ctx, "disconnected from CMP server");
+    /*
+     * Note that on normal successful end of the transaction the connection
+     * is not closed at this level, but this will be done by the CMP client
+     * application via OSSL_CMP_CTX_free() or OSSL_CMP_CTX_reinit().
+     */
+    if (res != NULL)
+        ossl_cmp_debug(ctx, "finished reading response from CMP server");
     sk_CONF_VALUE_pop_free(headers, X509V3_conf_free);
     return res;
 }
