@@ -559,6 +559,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, int rid, OSSL_CMP_MSG **resp,
         }
     }
 
+    if (!save_statusInfo(ctx, crep->status))
+        return 0;
     if (OSSL_CMP_PKISI_PKIStatus_get(crep->status) ==
         OSSL_CMP_PKISTATUS_waiting) {
         OSSL_CMP_MSG_free(*resp);
