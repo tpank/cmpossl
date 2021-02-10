@@ -19,6 +19,7 @@
 
 /* explicit #includes not strictly needed since implied by the above: */
 #include <openssl/asn1t.h>
+#include <openssl/kdf.h>
 #include <openssl/crmf.h>
 #include <openssl/err.h>
 #if OPENSSL_VERSION_NUMBER >= 0x10102000L
