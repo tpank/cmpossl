@@ -215,16 +215,40 @@ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return;
-    EVP_PKEY_free(ctx->pkey);
-    EVP_PKEY_free(ctx->newPkey);
-    if (ctx->secretValue != NULL)
-        OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
+    (void)OSSL_CMP_CTX_reinit(ctx);
 
-    OPENSSL_free(ctx->serverName);
     OPENSSL_free(ctx->serverPath);
+    OPENSSL_free(ctx->serverName);
     OPENSSL_free(ctx->proxyName);
+
+    X509_free(ctx->srvCert);
+    X509_NAME_free(ctx->expected_sender);
     X509_STORE_free(ctx->trusted_store);
     sk_X509_pop_free(ctx->untrusted_certs, X509_free);
+
+    X509_free(ctx->clCert);
+    sk_X509_pop_free(ctx->chain, X509_free);
+    EVP_PKEY_free(ctx->pkey);
+    OSSL_CMP_CTX_set1_referenceValue(ctx, NULL, 0);
+    if (ctx->secretValue != NULL)
+        OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
+    OSSL_CMP_CTX_set1_secretValue(ctx, NULL, 0);
+
+    X509_NAME_free(ctx->recipient);
+    sk_OSSL_CMP_ITAV_pop_free(ctx->geninfo_itavs, OSSL_CMP_ITAV_free);
+    sk_X509_pop_free(ctx->extraCertsOut, X509_free);
+
+    EVP_PKEY_free(ctx->newPkey);
+    X509_NAME_free(ctx->issuer);
+    X509_NAME_free(ctx->subjectName);
+    sk_GENERAL_NAME_pop_free(ctx->subjectAltNames, GENERAL_NAME_free);
+    sk_X509_EXTENSION_pop_free(ctx->reqExtensions, X509_EXTENSION_free);
+    sk_POLICYINFO_pop_free(ctx->policies, POLICYINFO_free);
+    X509_free(ctx->oldCert);
+    X509_REQ_free(ctx->p10CSR);
+
+    sk_OSSL_CMP_ITAV_pop_free(ctx->genm_itavs, OSSL_CMP_ITAV_free);
+
     OPENSSL_free(ctx);
 }
 
@@ -533,13 +557,13 @@ STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx)
  */
 int OSSL_CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
 {
-    if ((ctx == NULL) || (caPubs == NULL))
+    if (ctx == NULL)
         goto err;
 
     sk_X509_pop_free(ctx->caPubs, X509_free);
     ctx->caPubs = NULL;
 
-    if ((ctx->caPubs = X509_chain_up_ref(caPubs)) == NULL) {
+    if (caPubs != NULL && (ctx->caPubs = X509_chain_up_ref(caPubs)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CAPUBS, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -583,13 +607,14 @@ int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, X509 *cert)
  */
 int OSSL_CMP_CTX_set1_recipient(OSSL_CMP_CTX *ctx, const X509_NAME *name)
 {
-    if (ctx == NULL || name == NULL)
+    if (ctx == NULL)
         goto err;
 
     X509_NAME_free(ctx->recipient);
     ctx->recipient = NULL;
 
-    if ((ctx->recipient = X509_NAME_dup((X509_NAME *)name)) == NULL) {
+    if (name != NULL
+        && (ctx->recipient = X509_NAME_dup((X509_NAME *)name)) == NULL) {
         CMPerr(CMP_F_OSSL_CMP_CTX_SET1_RECIPIENT, ERR_R_MALLOC_FAILURE);
         return 0;
     }
@@ -1019,7 +1044,7 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx)
 int OSSL_CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
                                  const ASN1_OCTET_STRING *nonce)
 {
-    if (ctx == NULL || nonce == NULL)
+    if (ctx == NULL)
         goto err;
 
     return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->recipNonce, nonce);
@@ -1045,7 +1070,7 @@ ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx)
 int OSSL_CMP_CTX_set1_senderNonce(OSSL_CMP_CTX *ctx,
                                   const ASN1_OCTET_STRING *nonce)
 {
-    if (ctx == NULL || nonce == NULL)
+    if (ctx == NULL)
         goto err;
 
     return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->senderNonce, nonce);
