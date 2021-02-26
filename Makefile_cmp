@@ -52,7 +52,7 @@ $(info detected OpenSSL version $(OPENSSL_VERSION).x)
 OSSL_VERSION_QUIRKS=-D'DEPRECATEDIN_1_2_0(f)= ' # needed for 1.2
 ifeq ($(shell expr $(OPENSSL_VERSION) \< 1.1),1) # same as comparing == 1.0
     $(info enabling compilation quirks for OpenSSL 1.0.2)
-    OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers -Wno-unused-parameter# #-D'DEPRECATEDIN_1_1_0(f)=f;' -D'DEPRECATEDIN_1_0_0(f)='
+    OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers -Wno-unused-parameter #-D'DEPRECATEDIN_1_1_0(f)=f;' -D'DEPRECATEDIN_1_0_0(f)='
 endif
 endif
 
@@ -64,15 +64,16 @@ CC ?= gcc
 ifdef NDEBUG
     override CFLAGS += -DNDEBUG=1 -O2
 else
-    override CFLAGS += -g# # not every compiler(version) supports -Og
+    override CFLAGS += -g -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -O0 # not every compiler(version) supports -Og
 endif
 override CFLAGS += -fPIC -I$(LIBCMP_INC)
 override CFLAGS += -DDEBUG_UNUSED -DPEDANTIC -pedantic -Wall -Wextra -Wswitch -Wsign-compare -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wformat -Wtype-limits -Wundef $(OSSL_VERSION_QUIRKS)# -Werror # not needed for cmp+crmf: -Wno-long-long -Wno-missing-field-initializers
 override CFLAGS += -isystem $(OPENSSL_DIR)/include # use of -isystem is critical for selecting wanted OpenSSL version
 LIBCMP_HDRS_INC = -include $(LIBCMP_INC)/openssl/crmf.h # used to force inclusion of standalone version, needed also for cmp_err.c
 
-LDFLAGS += -L$(OPENSSL_LIB) -L$(OPENSSL) -Wl,-rpath=$(OPENSSL_RPATH_LIB) -Wl,-rpath=$(OPENSSL_RPATH)
-LDLIBS  += -lcrypto
+override LDFLAGS += $(CFLAGS) # needed for -fsanitize=...
+override LDFLAGS += -L$(OPENSSL_LIB) -L$(OPENSSL) -Wl,-rpath=$(OPENSSL_RPATH_LIB) -Wl,-rpath=$(OPENSSL_RPATH)
+override LDLIBS  += -lcrypto
 
 LIBCMP_HDRS_= crmf.h cmp.h cmp_util.h cmperr.h crmferr.h safestack_backport.h
 LIBCMP_HDRS = $(patsubst %,include/openssl/%,$(LIBCMP_HDRS_))
@@ -95,8 +96,8 @@ $(LIBCMP_INC_HDRS): $(LIBCMP_HDRS) | $(LIBCMP_INC)/openssl
 
 $(LIBCMP): $(LIBCMP_INC_HDRS) $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) $(LDFLAGS) $(LDLIBS) -shared -o $@
-	@# # -Wl,-soname,libcmp$(DLL)$(VERSION)
-	@# #ln -sr $(LIBCMP) $(LIBCMP)$(VERSION)
+	@ # -Wl,-soname,libcmp$(DLL)$(VERSION)
+	@ #ln -sr $(LIBCMP) $(LIBCMP)$(VERSION)
 
 clean:
 	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP)
@@ -125,8 +126,8 @@ uninstall: install_clean
 #SRCS_TAR=cmpossl_0.1.0.orig.tar.gz
 .phony: deb deb_clean
 deb:
-	@# #tar czf $(SRCS_TAR) $(SRCS)
-	@# #rm -f $(LIBCMP) debian/tmp/usr/lib/libcmp.so*
+	@ #tar czf $(SRCS_TAR) $(SRCS)
+	@ #rm -f $(LIBCMP) debian/tmp/usr/lib/libcmp.so*
 	debuild -uc -us -I* --lintian-opts --profile debian
 	rm -r debian/tmp
 	@ #rm $(SRCS_TAR)
