@@ -394,7 +394,8 @@ static int X509_NAME_cmp_workaround(const X509_NAME *a, const X509_NAME *b)
      * RDN in DN2, and the matching RDNs appear in the same order in both DNs. 
      */
     for (a_pos = 0; a_pos < n; a_pos++) {
-        const X509_NAME_ENTRY *b_e, *a_e = X509_NAME_get_entry(a, a_pos);
+        const X509_NAME_ENTRY *a_e = X509_NAME_get_entry(a, a_pos);
+        X509_NAME_ENTRY *b_e;
         const ASN1_OBJECT *a_obj = X509_NAME_ENTRY_get_object(a_e);
 
         ret = 1;
@@ -412,6 +413,7 @@ static int X509_NAME_cmp_workaround(const X509_NAME *a, const X509_NAME *b)
         ret = -2;
         if (X509_NAME_delete_entry(b_copy, b_pos) == NULL)
             goto end;
+        X509_NAME_ENTRY_free(b_e);
     }
     ret = 0;
 
