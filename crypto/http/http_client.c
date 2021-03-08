@@ -747,7 +747,6 @@ static ASN1_VALUE *BIO_mem_d2i(BIO *mem, const ASN1_ITEM *it)
 
 static BIO *OSSL_HTTP_REQ_CTX_transfer(OSSL_HTTP_REQ_CTX *rctx)
 {
-    int sending = 1;
     int rv;
 
     if (rctx == NULL) {
@@ -760,7 +759,6 @@ static BIO *OSSL_HTTP_REQ_CTX_transfer(OSSL_HTTP_REQ_CTX *rctx)
         if (rv != -1)
             break;
         /* BIO_should_retry was true */
-        sending = 0;
         /* will not actually wait if rctx->max_time == 0 */
         if (BIO_wait(rctx->rbio, rctx->max_time, 100 /* milliseconds */) <= 0)
             return NULL;
@@ -768,7 +766,7 @@ static BIO *OSSL_HTTP_REQ_CTX_transfer(OSSL_HTTP_REQ_CTX *rctx)
 
     if (rv == 0) {
         if (rctx->redirection_url == NULL) { /* an error occurred */
-            if (sending && (rctx->state & OHS_NOREAD) != 0)
+            if (rctx->len_to_send > 0)
                 ERR_raise(ERR_LIB_HTTP, HTTP_R_ERROR_SENDING);
             else
                 ERR_raise(ERR_LIB_HTTP, HTTP_R_ERROR_RECEIVING);
