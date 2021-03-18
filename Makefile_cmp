@@ -75,10 +75,12 @@ override LDFLAGS += $(CFLAGS) # needed for -fsanitize=...
 override LDFLAGS += -L$(OPENSSL_LIB) -L$(OPENSSL) -Wl,-rpath=$(OPENSSL_RPATH_LIB) -Wl,-rpath=$(OPENSSL_RPATH)
 override LDLIBS  += -lcrypto
 
-LIBCMP_HDRS_= crmf.h cmp.h cmp_util.h cmperr.h crmferr.h safestack_backport.h
+LIBCMP_HDRS_= crmf.h cmp.h cmp_util.h cmperr.h crmferr.h safestack_backport.h openssl_backport.h types.h cryptoerr_legacy.h
+LIBCMP_HDRS_INTERNAL_ = refcount.h
 LIBCMP_HDRS = $(patsubst %,include/openssl/%,$(LIBCMP_HDRS_))
+LIBCMP_HDRS_INTERNAL = $(patsubst %,include/internal/%,$(LIBCMP_HDRS_INTERNAL_))
 LIBCMP_INC_HDRS = $(patsubst %,$(LIBCMP_INC)/openssl/%,$(LIBCMP_HDRS_))
-CMP_SRCS_ = cmp_asn.c cmp_ctx.c cmp_err.c cmp_http.c cmp_lib.c cmp_msg.c cmp_client.c cmp_server.c cmp_status.c cmp_vfy.c # not used: cmp_util.c
+CMP_SRCS_ = cmp_asn.c cmp_ctx.c cmp_err.c cmp_http.c cmp_hdr.c cmp_msg.c cmp_protect.c cmp_client.c cmp_server.c cmp_status.c cmp_vfy.c cmp_util.c openssl_backport.c
 CRMF_SRCS_ = crmf_asn.c crmf_err.c crmf_lib.c crmf_pbm.c
 LIBCMP_SRCS = $(patsubst %,crypto/crmf/%,$(CRMF_SRCS_)) $(patsubst %,crypto/cmp/%,$(CMP_SRCS_))
 
@@ -89,10 +91,14 @@ build: $(LIBCMP)
 $(LIBCMP_INC)/openssl:
 	@mkdir -p $(LIBCMP_OUT)
 	@mkdir -p $(LIBCMP_INC)/openssl
+$(LIBCMP_INC)/internal:
+	@mkdir -p $(LIBCMP_OUT)
+	@mkdir -p $(LIBCMP_INC)/internal
 
-$(LIBCMP_INC_HDRS): $(LIBCMP_HDRS) | $(LIBCMP_INC)/openssl
+$(LIBCMP_INC_HDRS): $(LIBCMP_HDRS) $(LIBCMP_HDRS_INTERNAL) | $(LIBCMP_INC)/openssl $(LIBCMP_INC)/internal
 	cp $(LIBCMP_HDRS) $(LIBCMP_INC)/openssl # --preserve=timestamps has no effect on WSL
-	@cd $(LIBCMP_INC)/openssl && ((mv crmf.h tmp2.h && /bin/echo -e "#undef CMP_STANDALONE\n#define CMP_STANDALONE\n" >tmp1.h && cat tmp1.h tmp2.h >crmf.h && touch -r tmp2.h crmf.h); rm -f tmp1.h tmp2.h)
+	@ # cd $(LIBCMP_INC)/openssl && ((mv crmf.h tmp2.h && /bin/echo -e "#undef CMP_STANDALONE\n#define CMP_STANDALONE\n" >tmp1.h && cat tmp1.h tmp2.h >crmf.h && touch -r tmp2.h crmf.h); rm -f tmp1.h tmp2.h)
+	cp $(LIBCMP_HDRS_INTERNAL) $(LIBCMP_INC)/internal # --preserve=timestamps has no effect on WSL
 
 $(LIBCMP): $(LIBCMP_INC_HDRS) $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) $(LDFLAGS) $(LDLIBS) -shared -o $@
@@ -100,7 +106,7 @@ $(LIBCMP): $(LIBCMP_INC_HDRS) $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 	@ #ln -sr $(LIBCMP) $(LIBCMP)$(VERSION)
 
 clean:
-	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP)
+	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP_INC)/internal/* $(LIBCMP)
 	rm -f $(LIBCMP) # $(LIBCMP)$(VERSION)
 	rmdir $(LIBCMP_INC)/openssl $(LIBCMP_INC) 2>/dev/null || true
 

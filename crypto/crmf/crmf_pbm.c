@@ -15,7 +15,7 @@
 #include <openssl/rand.h>
 #include <openssl/evp.h>
 
-#include "crmf_int.h"
+#include "crmf_local.h"
 
 /* explicit #includes not strictly needed since implied by the above: */
 #include <openssl/asn1t.h>
@@ -36,12 +36,14 @@
  * |macnid| e.g., NID_hmac_sha1
  * returns pointer to OSSL_CRMF_PBMPARAMETER on success, NULL on error
  */
-OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
-                                           int itercnt, int macnid)
+OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(OSSL_LIB_CTX *libctx,  size_t slen,
+                                           int owfnid, size_t itercnt,
+                                           int macnid)
 {
     OSSL_CRMF_PBMPARAMETER *pbm = NULL;
     unsigned char *salt = NULL;
 
+    (void)libctx;
     if ((pbm = OSSL_CRMF_PBMPARAMETER_new()) == NULL) {
         CRMFerr(CRMF_F_OSSL_CRMF_PBMP_NEW, ERR_R_MALLOC_FAILURE);
         goto err;
@@ -122,7 +124,8 @@ OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(size_t slen, int owfnid,
  * |maclen| if not NULL, will set variable to the length of the mac on success
  * returns 1 on success, 0 on error
  */
-int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
+int OSSL_CRMF_pbm_new(OSSL_LIB_CTX *libctx, const char *propq,
+                      const OSSL_CRMF_PBMPARAMETER *pbmp,
                       const unsigned char *msg, size_t msglen,
                       const unsigned char *sec, size_t seclen,
                       unsigned char **mac, size_t *maclen)
@@ -139,6 +142,8 @@ int OSSL_CRMF_pbm_new(const OSSL_CRMF_PBMPARAMETER *pbmp,
     EVP_MAC_CTX *mctx = NULL;
 #endif
 
+    (void)libctx;
+    (void)propq;
     if (mac == NULL || pbmp == NULL || pbmp->mac == NULL
             || pbmp->mac->algorithm == NULL || msg == NULL || sec == NULL) {
         CRMFerr(CRMF_F_OSSL_CRMF_PBM_NEW, CRMF_R_NULL_ARGUMENT);

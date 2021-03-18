@@ -1,14 +1,12 @@
 /*
- * Copyright 2007-2018 The OpenSSL Project Authors. All Rights Reserved.
- * Copyright Nokia 2007-2018
- * Copyright Siemens AG 2015-2018
+ * Copyright 2007-2020 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright Nokia 2007-2019
+ * Copyright Siemens AG 2015-2019
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
- *
- * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
 #include <openssl/asn1t.h>
@@ -19,6 +17,7 @@
 #include <openssl/cmp.h>
 #include <openssl/crmf.h>
 
+/* ASN.1 declarations from RFC4210 */
 ASN1_SEQUENCE(OSSL_CMP_REVANNCONTENT) = {
     /* OSSL_CMP_PKISTATUS is effectively ASN1_INTEGER so it is used directly */
     ASN1_SIMPLE(OSSL_CMP_REVANNCONTENT, status, ASN1_INTEGER),
@@ -69,12 +68,15 @@ ASN1_SEQUENCE(OSSL_CMP_ERRORMSGCONTENT) = {
      * so it is used directly
      *
      */
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_ERRORMSGCONTENT, errorDetails, ASN1_UTF8STRING)
+    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_ERRORMSGCONTENT, errorDetails,
+                         ASN1_UTF8STRING)
 } ASN1_SEQUENCE_END(OSSL_CMP_ERRORMSGCONTENT)
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_ERRORMSGCONTENT)
 
 ASN1_ADB_TEMPLATE(infotypeandvalue_default) = ASN1_OPT(OSSL_CMP_ITAV,
-        infoValue.other, ASN1_ANY);
+                                                       infoValue.other,
+                                                       ASN1_ANY);
+/* ITAV means InfoTypeAndValue */
 ASN1_ADB(OSSL_CMP_ITAV) = {
     /* OSSL_CMP_CMPCERTIFICATE is effectively X509 so it is used directly */
     ADB_ENTRY(NID_id_it_caProtEncCert, ASN1_OPT(OSSL_CMP_ITAV,
@@ -128,11 +130,21 @@ ASN1_SEQUENCE(OSSL_CMP_ITAV) = {
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_ITAV)
 IMPLEMENT_ASN1_DUP_FUNCTION(OSSL_CMP_ITAV)
 
+OSSL_CMP_ITAV *OSSL_CMP_ITAV_create(ASN1_OBJECT *type, ASN1_TYPE *value)
+{
+    OSSL_CMP_ITAV *itav;
+
+    if (type == NULL || (itav = OSSL_CMP_ITAV_new()) == NULL)
+        return NULL;
+    OSSL_CMP_ITAV_set0(itav, type, value);
+    return itav;
+}
+
 void OSSL_CMP_ITAV_set0(OSSL_CMP_ITAV *itav, ASN1_OBJECT *type,
                         ASN1_TYPE *value)
 {
-    itav->infoType = (ASN1_OBJECT *)type;
-    itav->infoValue.other = (ASN1_TYPE *)value;
+    itav->infoType = type;
+    itav->infoValue.other = value;
 }
 
 ASN1_OBJECT *OSSL_CMP_ITAV_get0_type(const OSSL_CMP_ITAV *itav)
@@ -154,22 +166,23 @@ int OSSL_CMP_ITAV_push0_stack_item(STACK_OF(OSSL_CMP_ITAV) **itav_sk_p,
 {
     int created = 0;
 
-    if (itav_sk_p == NULL)
+    if (itav_sk_p == NULL || itav == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         goto err;
+    }
 
     if (*itav_sk_p == NULL) {
         if ((*itav_sk_p = sk_OSSL_CMP_ITAV_new_null()) == NULL)
             goto err;
         created = 1;
     }
-    if (itav != NULL) {
-        if (!sk_OSSL_CMP_ITAV_push(*itav_sk_p, (OSSL_CMP_ITAV *)itav))
-            goto err;
-    }
+    if (!sk_OSSL_CMP_ITAV_push(*itav_sk_p, itav))
+        goto err;
     return 1;
+
  err:
     if (created != 0) {
-        sk_OSSL_CMP_ITAV_pop_free(*itav_sk_p, OSSL_CMP_ITAV_free);
+        sk_OSSL_CMP_ITAV_free(*itav_sk_p);
         *itav_sk_p = NULL;
     }
     return 0;
@@ -209,7 +222,7 @@ ASN1_SEQUENCE(OSSL_CMP_CERTIFIEDKEYPAIR) = {
                 OSSL_CMP_CERTORENCCERT),
     ASN1_EXP_OPT(OSSL_CMP_CERTIFIEDKEYPAIR, privateKey,
                  OSSL_CRMF_ENCRYPTEDVALUE, 0),
-    ASN1_EXP_OPT(OSSL_CMP_CERTIFIEDKEYPAIR, failInfo,
+    ASN1_EXP_OPT(OSSL_CMP_CERTIFIEDKEYPAIR, publicationInfo,
                  OSSL_CRMF_PKIPUBLICATIONINFO, 1)
 } ASN1_SEQUENCE_END(OSSL_CMP_CERTIFIEDKEYPAIR)
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_CERTIFIEDKEYPAIR)
@@ -230,7 +243,8 @@ ASN1_ITEM_TEMPLATE_END(OSSL_CMP_REVREQCONTENT)
 
 ASN1_SEQUENCE(OSSL_CMP_REVREPCONTENT) = {
     ASN1_SEQUENCE_OF(OSSL_CMP_REVREPCONTENT, status, OSSL_CMP_PKISI),
-    ASN1_EXP_SEQUENCE_OF_OPT(OSSL_CMP_REVREPCONTENT, certId, OSSL_CRMF_CERTID, 0),
+    ASN1_EXP_SEQUENCE_OF_OPT(OSSL_CMP_REVREPCONTENT, revCerts, OSSL_CRMF_CERTID,
+                             0),
     ASN1_EXP_SEQUENCE_OF_OPT(OSSL_CMP_REVREPCONTENT, crls, X509_CRL, 1)
 } ASN1_SEQUENCE_END(OSSL_CMP_REVREPCONTENT)
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_REVREPCONTENT)
@@ -240,7 +254,8 @@ ASN1_SEQUENCE(OSSL_CMP_KEYRECREPCONTENT) = {
     ASN1_SIMPLE(OSSL_CMP_KEYRECREPCONTENT, status, OSSL_CMP_PKISI),
     ASN1_EXP_OPT(OSSL_CMP_KEYRECREPCONTENT, newSigCert, X509, 0),
     ASN1_EXP_SEQUENCE_OF_OPT(OSSL_CMP_KEYRECREPCONTENT, caCerts, X509, 1),
-    ASN1_EXP_SEQUENCE_OF_OPT(OSSL_CMP_KEYRECREPCONTENT, keyPairHist, X509, 2)
+    ASN1_EXP_SEQUENCE_OF_OPT(OSSL_CMP_KEYRECREPCONTENT, keyPairHist,
+                             OSSL_CMP_CERTIFIEDKEYPAIR, 2)
 } ASN1_SEQUENCE_END(OSSL_CMP_KEYRECREPCONTENT)
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_KEYRECREPCONTENT)
 
@@ -279,7 +294,8 @@ ASN1_ITEM_TEMPLATE_END(OSSL_CMP_CERTCONFIRMCONTENT)
 ASN1_SEQUENCE(OSSL_CMP_CERTRESPONSE) = {
     ASN1_SIMPLE(OSSL_CMP_CERTRESPONSE, certReqId, ASN1_INTEGER),
     ASN1_SIMPLE(OSSL_CMP_CERTRESPONSE, status, OSSL_CMP_PKISI),
-    ASN1_OPT(OSSL_CMP_CERTRESPONSE, certifiedKeyPair, OSSL_CMP_CERTIFIEDKEYPAIR),
+    ASN1_OPT(OSSL_CMP_CERTRESPONSE, certifiedKeyPair,
+             OSSL_CMP_CERTIFIEDKEYPAIR),
     ASN1_OPT(OSSL_CMP_CERTRESPONSE, rspInfo, ASN1_OCTET_STRING)
 } ASN1_SEQUENCE_END(OSSL_CMP_CERTRESPONSE)
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_CERTRESPONSE)
@@ -335,8 +351,10 @@ ASN1_CHOICE(OSSL_CMP_PKIBODY) = {
     ASN1_EXP(OSSL_CMP_PKIBODY, value.cr, OSSL_CRMF_MSGS, 2),
     ASN1_EXP(OSSL_CMP_PKIBODY, value.cp, OSSL_CMP_CERTREPMESSAGE, 3),
     ASN1_EXP(OSSL_CMP_PKIBODY, value.p10cr, X509_REQ, 4),
-    ASN1_EXP(OSSL_CMP_PKIBODY, value.popdecc, OSSL_CMP_POPODECKEYCHALLCONTENT, 5),
-    ASN1_EXP(OSSL_CMP_PKIBODY, value.popdecr, OSSL_CMP_POPODECKEYRESPCONTENT, 6),
+    ASN1_EXP(OSSL_CMP_PKIBODY, value.popdecc,
+             OSSL_CMP_POPODECKEYCHALLCONTENT, 5),
+    ASN1_EXP(OSSL_CMP_PKIBODY, value.popdecr,
+             OSSL_CMP_POPODECKEYRESPCONTENT, 6),
     ASN1_EXP(OSSL_CMP_PKIBODY, value.kur, OSSL_CRMF_MSGS, 7),
     ASN1_EXP(OSSL_CMP_PKIBODY, value.kup, OSSL_CMP_CERTREPMESSAGE, 8),
     ASN1_EXP(OSSL_CMP_PKIBODY, value.krr, OSSL_CRMF_MSGS, 9),
@@ -381,11 +399,11 @@ ASN1_SEQUENCE(OSSL_CMP_PKIHEADER) = {
 } ASN1_SEQUENCE_END(OSSL_CMP_PKIHEADER)
 IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_PKIHEADER)
 
-ASN1_SEQUENCE(CMP_PROTECTEDPART) = {
+ASN1_SEQUENCE(OSSL_CMP_PROTECTEDPART) = {
     ASN1_SIMPLE(OSSL_CMP_MSG, header, OSSL_CMP_PKIHEADER),
     ASN1_SIMPLE(OSSL_CMP_MSG, body, OSSL_CMP_PKIBODY)
-} ASN1_SEQUENCE_END(CMP_PROTECTEDPART)
-IMPLEMENT_ASN1_FUNCTIONS(CMP_PROTECTEDPART)
+} ASN1_SEQUENCE_END(OSSL_CMP_PROTECTEDPART)
+IMPLEMENT_ASN1_FUNCTIONS(OSSL_CMP_PROTECTEDPART)
 
 ASN1_SEQUENCE(OSSL_CMP_MSG) = {
     ASN1_SIMPLE(OSSL_CMP_MSG, header, OSSL_CMP_PKIHEADER),
@@ -401,4 +419,3 @@ ASN1_ITEM_TEMPLATE(OSSL_CMP_MSGS) =
     ASN1_EX_TEMPLATE_TYPE(ASN1_TFLG_SEQUENCE_OF, 0, OSSL_CMP_MSGS,
                           OSSL_CMP_MSG)
 ASN1_ITEM_TEMPLATE_END(OSSL_CMP_MSGS)
-

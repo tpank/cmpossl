@@ -1,23 +1,19 @@
 /*
- * Copyright 2007-2018 The OpenSSL Project Authors. All Rights Reserved.
- * Copyright Nokia 2007-2018
- * Copyright Siemens AG 2015-2018
+ * Copyright 2007-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright Nokia 2007-2019
+ * Copyright Siemens AG 2015-2019
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
- *
- * CMP implementation by Martin Peylo, Miikka Viljanen, and David von Oheimb.
  */
 
-#include <string.h>
-#include <stdio.h>
-#ifndef _WIN32
-#include <dirent.h>
+#ifndef CMP_STANDALONE
+#include <openssl/trace.h>
 #endif
-
-#include <openssl/asn1t.h>
+#include <openssl/bio.h>
+#include <openssl/ocsp.h> /* for OCSP_REVOKED_STATUS_* */
 
 #include "cmp_local.h"
 
@@ -25,217 +21,181 @@
 #include <openssl/cmp.h>
 #include <openssl/crmf.h>
 #include <openssl/err.h>
-#include <openssl/x509v3.h>
-
-/*
- * NAMING
- * The 0 version uses the supplied structure pointer directly in the parent and
- * it will be freed up when the parent is freed. In the above example crl would
- * be freed but rev would not.
- *
- * The 1 function uses a copy of the supplied structure pointer (or in some
- * cases increases its link count) in the parent and so both (x and obj above)
- * should be freed up.
- */
-
-/* OpenSSL ASN.1 macros in CTX struct */
-/*
-ASN1_SEQUENCE(OSSL_CMP_CTX) = {
-    ASN1_OPT(OSSL_CMP_CTX, referenceValue, ASN1_OCTET_STRING),
-    ASN1_OPT(OSSL_CMP_CTX, secretValue, ASN1_OCTET_STRING),
-    ASN1_OPT(OSSL_CMP_CTX, srvCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, validatedSrvCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, clCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, oldCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, p10CSR, X509_REQ),
-    ASN1_OPT(OSSL_CMP_CTX, issuer, X509_NAME),
-    ASN1_OPT(OSSL_CMP_CTX, subjectName, X509_NAME),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, subjectAltNames, GENERAL_NAME),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, policies, POLICYINFO),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, reqExtensions, X509_EXTENSION),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, extraCertsOut, X509),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, extraCertsIn, X509),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, caPubs, X509),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, lastStatusString, ASN1_UTF8STRING),
-    ASN1_OPT(OSSL_CMP_CTX, newClCert, X509),
-    ASN1_OPT(OSSL_CMP_CTX, recipient, X509_NAME),
-    ASN1_OPT(OSSL_CMP_CTX, expected_sender, X509_NAME),
-    ASN1_OPT(OSSL_CMP_CTX, transactionID, ASN1_OCTET_STRING),
-    ASN1_OPT(OSSL_CMP_CTX, recipNonce, ASN1_OCTET_STRING),
-    ASN1_OPT(OSSL_CMP_CTX, senderNonce, ASN1_OCTET_STRING),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, geninfo_itavs, OSSL_CMP_ITAV),
-    ASN1_SEQUENCE_OF_OPT(OSSL_CMP_CTX, genm_itavs, OSSL_CMP_ITAV),
-} static_ASN1_SEQUENCE_END(OSSL_CMP_CTX)
-IMPLEMENT_STATIC_ASN1_ALLOC_FUNCTIONS(OSSL_CMP_CTX)
-*/
 
 /*
  * Get current certificate store containing trusted root CA certs
  */
 X509_STORE *OSSL_CMP_CTX_get0_trustedStore(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return NULL;
-    return ctx->trusted_store;
+    }
+    return ctx->trusted;
 }
 
 /*
  * Set certificate store containing trusted (root) CA certs and possibly CRLs
  * and a cert verification callback function used for CMP server authentication.
  * Any already existing store entry is freed. Given NULL, the entry is reset.
- * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set0_trustedStore(OSSL_CMP_CTX *ctx, X509_STORE *store)
 {
-    if (ctx->trusted_store)
-        X509_STORE_free(ctx->trusted_store);
-    ctx->trusted_store = store != NULL ? store : X509_STORE_new();;
-    return ctx->trusted_store != NULL;
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
+    X509_STORE_free(ctx->trusted);
+    ctx->trusted = store;
+    return 1;
 }
 
-/*
- * Get current list of non-trusted intermediate certs
- */
-STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted_certs(const OSSL_CMP_CTX *ctx)
+/* Get current list of non-trusted intermediate certs */
+STACK_OF(X509) *OSSL_CMP_CTX_get0_untrusted(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return NULL;
-    return ctx->untrusted_certs;
+    }
+    return ctx->untrusted;
 }
 
 /*
  * Set untrusted certificates for path construction in authentication of
  * the CMP server and potentially others (TLS server, newly enrolled cert).
- * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_untrusted_certs(OSSL_CMP_CTX *ctx,
-                                      STACK_OF(X509) *certs)
+int OSSL_CMP_CTX_set1_untrusted(OSSL_CMP_CTX *ctx, STACK_OF(X509) *certs)
 {
-    if (ctx->untrusted_certs)
-        sk_X509_pop_free(ctx->untrusted_certs, X509_free);
-    ctx->untrusted_certs = sk_X509_new_null();
-    return OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, certs, 0, 1);
-}
+    STACK_OF(X509) *untrusted = NULL;
 
-/*
- * Allocates and initializes a OSSL_CMP_CTX context structure with some
- * default values.
- * OpenSSL ASN.1 types are initialized to NULL by the call to OSSL_CMP_CTX_new()
- * returns 1 on success, 0 on error
- */
-static int OSSL_CMP_CTX_init(OSSL_CMP_CTX *ctx)
-{
     if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_INIT, CMP_R_INVALID_CONTEXT);
-        goto err;
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
     }
-
-#ifdef OpenSSL_add_all_algorithms
-    OpenSSL_add_all_algorithms(); /* needed for SHA256 with OpenSSL 1.0.2 */
-#endif
-
-    /* all other elements are initialized through ASN1 macros */
-    ctx->pkey = NULL;
-    ctx->newPkey = NULL;
-
-    ctx->pbm_slen = 16;
-    ctx->pbm_owf = NID_sha256;
-    ctx->pbm_itercnt = 500;
-    ctx->pbm_mac = NID_hmac_sha1;
-
-    ctx->days = 0;
-    ctx->SubjectAltName_nodefault = 0;
-    ctx->setSubjectAltNameCritical = 0;
-    ctx->setPoliciesCritical = 0;
-    ctx->digest = NID_sha256;
-    ctx->popoMethod = OSSL_CRMF_POPO_SIGNATURE;
-    ctx->revocationReason = CRL_REASON_NONE;
-    ctx->permitTAInExtraCertsForIR = 0;
-    ctx->implicit_confirm = 0;
-    ctx->disable_confirm = 0;
-    ctx->unprotectedSend = 0;
-    ctx->unprotectedErrors = 0;
-    ctx->ignore_keyusage = 0;
-
-    ctx->lastPKIStatus = -1;
-    ctx->failInfoCode = -1;
-
-    ctx->log_cb = NULL;
-    ctx->certConf_cb = NULL;
-    ctx->certConf_cb_arg = NULL;
-    ctx->trusted_store = X509_STORE_new();
-    ctx->untrusted_certs = sk_X509_new_null();
-
-    ctx->serverName = NULL;
-    ctx->serverPort = 80;
-    /* serverPath must be an empty string if not set since it's not mandatory */
-    ctx->serverPath = OPENSSL_zalloc(1); /* freed by OSSL_CMP_CTX_free() */
-    if (ctx->serverPath == NULL)
+    if (!ossl_x509_add_certs_new(&untrusted, certs,
+                                 X509_ADD_FLAG_UP_REF | X509_ADD_FLAG_NO_DUP))
         goto err;
-    ctx->proxyName = NULL;
-    ctx->proxyPort = 80;
-    ctx->msg_timeout = 2 * 60;
-    ctx->total_timeout = 0;
- /* ctx->end_time = */
-    ctx->http_cb = NULL;
-    ctx->http_cb_arg = NULL;
-    ctx->transfer_cb = NULL;
-    ctx->transfer_cb_arg = NULL;
+    sk_X509_pop_free(ctx->untrusted, X509_free);
+    ctx->untrusted = untrusted;
     return 1;
-
  err:
+    sk_X509_pop_free(untrusted, X509_free);
     return 0;
 }
 
-/*
- * prepare the OSSL_CMP_CTX for next use, partly re-initializing OSSL_CMP_CTX
- */
-int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
+static int cmp_ctx_set_md(OSSL_CMP_CTX *ctx, EVP_MD **pmd, int nid)
 {
-    if (ctx == NULL)
+    EVP_MD *md = EVP_MD_fetch(ctx->libctx, OBJ_nid2sn(nid), ctx->propq);
+    /* fetching in advance to be able to throw error early if unsupported */
+
+    if (md == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_UNSUPPORTED_ALGORITHM);
         return 0;
-
-    ctx->lastPKIStatus = -1;
-    ctx->failInfoCode = -1;
-
-    return OSSL_CMP_CTX_set0_statusString(ctx, NULL)
-        && OSSL_CMP_CTX_set0_newCert(ctx, NULL)
-        && OSSL_CMP_CTX_set1_caPubs(ctx, NULL)
-        && OSSL_CMP_CTX_set1_extraCertsIn(ctx, NULL)
-        && OSSL_CMP_CTX_set0_validatedSrvCert(ctx, NULL)
-        && OSSL_CMP_CTX_set1_transactionID(ctx, NULL)
-        && OSSL_CMP_CTX_set1_senderNonce(ctx, NULL)
-        && OSSL_CMP_CTX_set1_recipNonce(ctx, NULL);
+    }
+    EVP_MD_free(*pmd);
+    *pmd = md;
+    return 1;
 }
 
 /*
- * frees OSSL_CMP_CTX variables allocated in CMP_CTX_init and calls CMP_CTX_free
+ * Allocates and initializes OSSL_CMP_CTX context structure with default values.
+ * Returns new context on success, NULL on error
  */
+OSSL_CMP_CTX *OSSL_CMP_CTX_new(OSSL_LIB_CTX *libctx, const char *propq)
+{
+    OSSL_CMP_CTX *ctx = OPENSSL_zalloc(sizeof(*ctx));
+
+    if (ctx == NULL)
+        goto err;
+
+    ctx->libctx = libctx;
+    if (propq != NULL && (ctx->propq = OPENSSL_strdup(propq)) == NULL)
+        goto err;
+
+    ctx->log_verbosity = OSSL_CMP_LOG_INFO;
+
+    ctx->status = -1;
+    ctx->failInfoCode = -1;
+
+    ctx->msg_timeout = 2 * 60;
+
+    if ((ctx->untrusted = sk_X509_new_null()) == NULL)
+        goto err;
+
+    ctx->pbm_slen = 16;
+    if (!cmp_ctx_set_md(ctx, &ctx->pbm_owf, NID_sha256))
+        goto err;
+    ctx->pbm_itercnt = 500;
+    ctx->pbm_mac = NID_hmac_sha1;
+
+    if (!cmp_ctx_set_md(ctx, &ctx->digest, NID_sha256))
+        goto err;
+    ctx->popoMethod = OSSL_CRMF_POPO_SIGNATURE;
+    ctx->revocationReason = CRL_REASON_NONE;
+
+    /* all other elements are initialized to 0 or NULL, respectively */
+    return ctx;
+
+ err:
+    OSSL_CMP_CTX_free(ctx);
+    ERR_raise(ERR_LIB_X509, ERR_R_MALLOC_FAILURE);
+    return NULL;
+}
+
+/* Prepare the OSSL_CMP_CTX for next use, partly re-initializing OSSL_CMP_CTX */
+int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx)
+{
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
+
+    ctx->status = -1;
+    ctx->failInfoCode = -1;
+
+    return ossl_cmp_ctx_set0_statusString(ctx, NULL)
+        && ossl_cmp_ctx_set0_newCert(ctx, NULL)
+        && ossl_cmp_ctx_set1_newChain(ctx, NULL)
+        && ossl_cmp_ctx_set1_caPubs(ctx, NULL)
+        && ossl_cmp_ctx_set1_extraCertsIn(ctx, NULL)
+        && ossl_cmp_ctx_set0_validatedSrvCert(ctx, NULL)
+        && OSSL_CMP_CTX_set1_transactionID(ctx, NULL)
+        && OSSL_CMP_CTX_set1_senderNonce(ctx, NULL)
+        && ossl_cmp_ctx_set1_recipNonce(ctx, NULL);
+}
+
+/* Frees OSSL_CMP_CTX variables allocated in OSSL_CMP_CTX_new() */
 void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
 {
     if (ctx == NULL)
         return;
-    (void)OSSL_CMP_CTX_reinit(ctx);
 
     OPENSSL_free(ctx->serverPath);
-    OPENSSL_free(ctx->serverName);
-    OPENSSL_free(ctx->proxyName);
+    OPENSSL_free(ctx->server);
+    OPENSSL_free(ctx->proxy);
+    OPENSSL_free(ctx->no_proxy);
 
     X509_free(ctx->srvCert);
+    X509_free(ctx->validatedSrvCert);
     X509_NAME_free(ctx->expected_sender);
-    X509_STORE_free(ctx->trusted_store);
-    sk_X509_pop_free(ctx->untrusted_certs, X509_free);
+    X509_STORE_free(ctx->trusted);
+    sk_X509_pop_free(ctx->untrusted, X509_free);
 
-    X509_free(ctx->clCert);
+    X509_free(ctx->cert);
     sk_X509_pop_free(ctx->chain, X509_free);
     EVP_PKEY_free(ctx->pkey);
-    OSSL_CMP_CTX_set1_referenceValue(ctx, NULL, 0);
+    ASN1_OCTET_STRING_free(ctx->referenceValue);
     if (ctx->secretValue != NULL)
         OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
-    OSSL_CMP_CTX_set1_secretValue(ctx, NULL, 0);
+    ASN1_OCTET_STRING_free(ctx->secretValue);
+    EVP_MD_free(ctx->pbm_owf);
 
     X509_NAME_free(ctx->recipient);
-    sk_OSSL_CMP_ITAV_pop_free(ctx->geninfo_itavs, OSSL_CMP_ITAV_free);
+    EVP_MD_free(ctx->digest);
+    ASN1_OCTET_STRING_free(ctx->transactionID);
+    ASN1_OCTET_STRING_free(ctx->senderNonce);
+    ASN1_OCTET_STRING_free(ctx->recipNonce);
+    sk_OSSL_CMP_ITAV_pop_free(ctx->geninfo_ITAVs, OSSL_CMP_ITAV_free);
     sk_X509_pop_free(ctx->extraCertsOut, X509_free);
 
     EVP_PKEY_free(ctx->newPkey);
@@ -247,532 +207,519 @@ void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx)
     X509_free(ctx->oldCert);
     X509_REQ_free(ctx->p10CSR);
 
-    sk_OSSL_CMP_ITAV_pop_free(ctx->genm_itavs, OSSL_CMP_ITAV_free);
+    sk_OSSL_CMP_ITAV_pop_free(ctx->genm_ITAVs, OSSL_CMP_ITAV_free);
+
+    sk_ASN1_UTF8STRING_pop_free(ctx->statusString, ASN1_UTF8STRING_free);
+    X509_free(ctx->newCert);
+    sk_X509_pop_free(ctx->newChain, X509_free);
+    sk_X509_pop_free(ctx->caPubs, X509_free);
+    sk_X509_pop_free(ctx->extraCertsIn, X509_free);
 
     OPENSSL_free(ctx);
 }
 
-/*
- * creates and initializes a OSSL_CMP_CTX structure
- * returns pointer to created OSSL_CMP_CTX on success, NULL on error
- */
-OSSL_CMP_CTX *OSSL_CMP_CTX_new(void)
+int ossl_cmp_ctx_set_status(OSSL_CMP_CTX *ctx, int status)
 {
-    OSSL_CMP_CTX *ctx = NULL;
-
-    if ((ctx = OPENSSL_zalloc(sizeof(*ctx))) == NULL)
-        goto err;
-    if (!(OSSL_CMP_CTX_init(ctx)))
-        goto err;
-
-    return ctx;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_CREATE, ERR_R_MALLOC_FAILURE);
-    OSSL_CMP_CTX_free(ctx);
-    return NULL;
-}
-
-/*
- * returns the PKIStatus from the last CertRepMessage
- * or Revocation Response, -1 on error
- */
-int OSSL_CMP_CTX_get_status(const OSSL_CMP_CTX *ctx)
-{
-    return ctx != NULL ? ctx->lastPKIStatus : -1;
-}
-
-/*
- * returns the statusString from the last CertRepMessage
- * or Revocation Response, NULL on error
- */
-OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(const OSSL_CMP_CTX *ctx)
-{
-    return ctx != NULL ? ctx->lastStatusString : NULL;
-}
-
-int OSSL_CMP_CTX_set0_statusString(OSSL_CMP_CTX *ctx, OSSL_CMP_PKIFREETEXT *text)
-{
-    if (ctx == NULL)
+    if (!ossl_assert(ctx != NULL))
         return 0;
-
-    sk_ASN1_UTF8STRING_pop_free(ctx->lastStatusString, ASN1_UTF8STRING_free);
-    ctx->lastStatusString = text;
+    ctx->status = status;
     return 1;
 }
 
-int OSSL_CMP_CTX_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert)
+/*
+ * Returns the PKIStatus from the last CertRepMessage
+ * or Revocation Response or error message, -1 on error
+ */
+int OSSL_CMP_CTX_get_status(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
-        return 0;
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return -1;
+    }
+    return ctx->status;
+}
 
+/*
+ * Returns the statusString from the last CertRepMessage
+ * or Revocation Response or error message, NULL on error
+ */
+OSSL_CMP_PKIFREETEXT *OSSL_CMP_CTX_get0_statusString(const OSSL_CMP_CTX *ctx)
+{
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+    return ctx->statusString;
+}
+
+int ossl_cmp_ctx_set0_statusString(OSSL_CMP_CTX *ctx,
+                                   OSSL_CMP_PKIFREETEXT *text)
+{
+    if (!ossl_assert(ctx != NULL))
+        return 0;
+    sk_ASN1_UTF8STRING_pop_free(ctx->statusString, ASN1_UTF8STRING_free);
+    ctx->statusString = text;
+    return 1;
+}
+
+int ossl_cmp_ctx_set0_validatedSrvCert(OSSL_CMP_CTX *ctx, X509 *cert)
+{
+    if (!ossl_assert(ctx != NULL))
+        return 0;
     X509_free(ctx->validatedSrvCert);
     ctx->validatedSrvCert = cert;
     return 1;
 }
-/*
- * Set callback function for checking if the cert is ok or should
- * it be rejected.
- * returns 1 on success, 0 on error
- */
+
+/* Set callback function for checking if the cert is ok or should be rejected */
 int OSSL_CMP_CTX_set_certConf_cb(OSSL_CMP_CTX *ctx, OSSL_CMP_certConf_cb_t cb)
 {
-    if (ctx == NULL)
-        goto err;
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     ctx->certConf_cb = cb;
     return 1;
- err:
-    return 0;
 }
 
 /*
  * Set argument, respectively a pointer to a structure containing arguments,
- * optionally to be used by the certConf callback
- * returns 1 on success, 0 on error
+ * optionally to be used by the certConf callback.
  */
-int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void* arg)
+int OSSL_CMP_CTX_set_certConf_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
-    if (ctx == NULL)
-        goto err;
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     ctx->certConf_cb_arg = arg;
     return 1;
- err:
-    return 0;
 }
 
 /*
  * Get argument, respectively the pointer to a structure containing arguments,
- * optionally to be used by certConf callback
- * returns callback argument set previously (NULL if not set or on error)
+ * optionally to be used by certConf callback.
+ * Returns callback argument set previously (NULL if not set or on error)
  */
 void *OSSL_CMP_CTX_get_certConf_cb_arg(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return NULL;
+    }
     return ctx->certConf_cb_arg;
 }
 
-/*
- * Set a callback function for log messages.
- * returns 1 on success, 0 on error
- */
+#ifndef OPENSSL_NO_TRACE
+static size_t ossl_cmp_log_trace_cb(const char *buf, size_t cnt,
+                                    int category, int cmd, void *vdata)
+{
+    OSSL_CMP_CTX *ctx = vdata;
+    const char *msg;
+    OSSL_CMP_severity level = -1;
+    char *func = NULL;
+    char *file = NULL;
+    int line = 0;
+
+    if (buf == NULL || cnt == 0 || cmd != OSSL_TRACE_CTRL_WRITE || ctx == NULL)
+        return 0;
+    if (ctx->log_cb == NULL)
+        return 1; /* silently drop message */
+
+    msg = ossl_cmp_log_parse_metadata(buf, &level, &func, &file, &line);
+
+    if (level > ctx->log_verbosity) /* excludes the case level is unknown */
+        goto end; /* suppress output since severity is not sufficient */
+
+    if (!ctx->log_cb(func != NULL ? func : "(no func)",
+                     file != NULL ? file : "(no file)",
+                     line, level, msg))
+        cnt = 0;
+
+ end:
+    OPENSSL_free(func);
+    OPENSSL_free(file);
+    return cnt;
+}
+#endif
+
+/* Print CMP log messages (i.e., diagnostic info) via the log cb of the ctx */
+int ossl_cmp_print_log(OSSL_CMP_severity level, const OSSL_CMP_CTX *ctx,
+                       const char *func, const char *file, int line,
+                       const char *level_str, const char *format, ...)
+{
+    va_list args;
+    char hugebuf[1024 * 2];
+    int res = 0;
+
+    if (ctx == NULL || ctx->log_cb == NULL)
+        return 1; /* silently drop message */
+
+    if (level > ctx->log_verbosity) /* excludes the case level is unknown */
+        return 1; /* suppress output since severity is not sufficient */
+
+    if (format == NULL)
+        return 0;
+
+    va_start(args, format);
+
+    if (func == NULL)
+        func = "(unset function name)";
+    if (file == NULL)
+        file = "(unset file name)";
+    if (level_str == NULL)
+        level_str = "(unset level string)";
+
+#ifndef OPENSSL_NO_TRACE
+    if (OSSL_TRACE_ENABLED(CMP)) {
+        OSSL_TRACE_BEGIN(CMP) {
+            int printed =
+                BIO_snprintf(hugebuf, sizeof(hugebuf),
+                             "%s:%s:%d:" OSSL_CMP_LOG_PREFIX "%s: ",
+                             func, file, line, level_str);
+            if (printed > 0 && (size_t)printed < sizeof(hugebuf)) {
+                if (BIO_vsnprintf(hugebuf + printed,
+                                  sizeof(hugebuf) - printed, format, args) > 0)
+                    res = BIO_puts(trc_out, hugebuf) > 0;
+            }
+        } OSSL_TRACE_END(CMP);
+    }
+#else /* compensate for disabled trace API */
+    {
+        if (BIO_vsnprintf(hugebuf, sizeof(hugebuf), format, args) > 0)
+            res = ctx->log_cb(func, file, line, level, hugebuf);
+    }
+#endif
+    va_end(args);
+    return res;
+}
+
+/* Set a callback function for error reporting and logging messages */
 int OSSL_CMP_CTX_set_log_cb(OSSL_CMP_CTX *ctx, OSSL_CMP_log_cb_t cb)
 {
-    if (ctx == NULL)
-        goto err;
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     ctx->log_cb = cb;
+
+#ifndef OPENSSL_NO_TRACE
+    /* do also in case cb == NULL, to switch off logging output: */
+    if (!OSSL_trace_set_callback(OSSL_TRACE_CATEGORY_CMP,
+                                 ossl_cmp_log_trace_cb, ctx))
+        return 0;
+#endif
+
     return 1;
- err:
-    return 0;
+}
+
+/* Print OpenSSL and CMP errors via the log cb of the ctx or ERR_print_errors */
+void OSSL_CMP_CTX_print_errors(const OSSL_CMP_CTX *ctx)
+{
+    if (ctx != NULL && OSSL_CMP_LOG_ERR > ctx->log_verbosity)
+        return; /* suppress output since severity is not sufficient */
+    OSSL_CMP_print_errors_cb(ctx == NULL ? NULL : ctx->log_cb);
 }
 
 /*
- * Set or clear the reference value to be used for identification (i.e. the
- * user name) when using PBMAC.
- * returns 1 on success, 0 on error
+ * Set or clear the reference value to be used for identification
+ * (i.e., the user name) when using PBMAC.
  */
 int OSSL_CMP_CTX_set1_referenceValue(OSSL_CMP_CTX *ctx,
                                      const unsigned char *ref, int len)
 {
     if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_REFERENCEVALUE, CMP_R_INVALID_ARGS);
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    return OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->referenceValue, ref, len);
+    return ossl_cmp_asn1_octet_string_set1_bytes(&ctx->referenceValue, ref,
+                                                 len);
 }
 
-/*
- * Set or clear the password to be used for protecting messages with PBMAC
- * returns 1 on success, 0 on error
- */
+/* Set or clear the password to be used for protecting messages with PBMAC */
 int OSSL_CMP_CTX_set1_secretValue(OSSL_CMP_CTX *ctx, const unsigned char *sec,
                                   const int len)
 {
-    if (ctx == NULL){
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SECRETVALUE, CMP_R_NULL_ARGUMENT);
+    ASN1_OCTET_STRING *secretValue = NULL;
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-    if (ctx->secretValue != NULL)
+    if (ossl_cmp_asn1_octet_string_set1_bytes(&secretValue, sec, len) != 1)
+        return 0;
+    if (ctx->secretValue != NULL) {
         OPENSSL_cleanse(ctx->secretValue->data, ctx->secretValue->length);
-    return OSSL_CMP_ASN1_OCTET_STRING_set1_bytes(&ctx->secretValue, sec, len);
+        ASN1_OCTET_STRING_free(ctx->secretValue);
+    }
+    ctx->secretValue = secretValue;
+    return 1;
+}
+
+/* Returns the cert chain computed by OSSL_CMP_certConf_cb(), NULL on error */
+STACK_OF(X509) *OSSL_CMP_CTX_get1_newChain(const OSSL_CMP_CTX *ctx)
+{
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+    return X509_chain_up_ref(ctx->newChain);
 }
 
 /*
- * Returns the stack of certificates received in a response message.
- * The stack is duplicated so the caller must handle freeing it!
- * returns pointer to created stack on success, NULL on error
+ * Copies any given stack of inbound X509 certificates to newChain
+ * of the OSSL_CMP_CTX structure so that they may be retrieved later.
  */
+int ossl_cmp_ctx_set1_newChain(OSSL_CMP_CTX *ctx, STACK_OF(X509) *newChain)
+{
+    if (!ossl_assert(ctx != NULL))
+        return 0;
+
+    sk_X509_pop_free(ctx->newChain, X509_free);
+    ctx->newChain = NULL;
+    return newChain == NULL ||
+        (ctx->newChain = X509_chain_up_ref(newChain)) != NULL;
+}
+
+/* Returns the stack of extraCerts received in CertRepMessage, NULL on error */
 STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
-        goto err;
-    if (ctx->extraCertsIn == NULL)
-        return sk_X509_new_null();
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
     return X509_chain_up_ref(ctx->extraCertsIn);
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSIN_GET1, CMP_R_INVALID_ARGS);
-    return NULL;
 }
 
 /*
- * Copies the given stack of inbound X509 certificates to extraCertsIn of
- * the OSSL_CMP_CTX structure so that they may be retrieved later.
- * returns 1 on success, 0 on error
+ * Copies any given stack of inbound X509 certificates to extraCertsIn
+ * of the OSSL_CMP_CTX structure so that they may be retrieved later.
  */
-int OSSL_CMP_CTX_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
+int ossl_cmp_ctx_set1_extraCertsIn(OSSL_CMP_CTX *ctx,
                                    STACK_OF(X509) *extraCertsIn)
 {
-    if (ctx == NULL)
-        goto err;
-
-    /* if there are already inbound extraCerts on the stack delete them */
-    if (ctx->extraCertsIn != NULL) {
-        sk_X509_pop_free(ctx->extraCertsIn, X509_free);
-        ctx->extraCertsIn = NULL;
-    }
-    if (extraCertsIn != NULL
-        && (ctx->extraCertsIn = X509_chain_up_ref(extraCertsIn)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSIN, ERR_R_MALLOC_FAILURE);
+    if (!ossl_assert(ctx != NULL))
         return 0;
-    }
 
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSIN, CMP_R_NULL_ARGUMENT);
-    return 0;
+    sk_X509_pop_free(ctx->extraCertsIn, X509_free);
+    ctx->extraCertsIn = NULL;
+    return extraCertsIn == NULL
+        || (ctx->extraCertsIn = X509_chain_up_ref(extraCertsIn)) != NULL;
 }
 
 /*
- * Duplicate and push the given X509 certificate to the stack of
- * outbound certificates to send in the extraCerts field.
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_extraCertsOut_push1(OSSL_CMP_CTX *ctx, const X509 *val)
-{
-    if (ctx == NULL)
-        goto err;
-    if ((ctx->extraCertsOut == NULL &&
-         (ctx->extraCertsOut = sk_X509_new_null()) == NULL) ||
-         (!sk_X509_push(ctx->extraCertsOut, X509_dup((X509 *)val)))) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_EXTRACERTSOUT_PUSH1, CMP_R_INVALID_ARGS);
-    return 0;
-}
-
-/*
- * Duplicate and set the given stack as the new stack of X509
+ * Copies any given stack as the new stack of X509
  * certificates to send out in the extraCerts field.
- * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_set1_extraCertsOut(OSSL_CMP_CTX *ctx,
                                     STACK_OF(X509) *extraCertsOut)
 {
-    if (ctx == NULL)
-        goto err;
-    if (extraCertsOut == NULL)
-        goto err;
-
-    if (ctx->extraCertsOut) {
-        sk_X509_pop_free(ctx->extraCertsOut, X509_free);
-        ctx->extraCertsOut = NULL;
-    }
-
-    if ((ctx->extraCertsOut = X509_chain_up_ref(extraCertsOut)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSOUT, ERR_R_MALLOC_FAILURE);
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return 0;
     }
 
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXTRACERTSOUT, CMP_R_NULL_ARGUMENT);
-    return 0;
+    sk_X509_pop_free(ctx->extraCertsOut, X509_free);
+    ctx->extraCertsOut = NULL;
+    return extraCertsOut == NULL
+        || (ctx->extraCertsOut = X509_chain_up_ref(extraCertsOut)) != NULL;
 }
 
 /*
- * adds the given certificate policy
+ * Add the given policy info object
  * to the X509_EXTENSIONS of the requested certificate template.
- * returns 1 on success, -1 on parse error, and 0 on other error.
  */
 int OSSL_CMP_CTX_push0_policy(OSSL_CMP_CTX *ctx, POLICYINFO *pinfo)
 {
-    if ((ctx == NULL) || (pinfo == NULL))
-        goto err;
+    if (ctx == NULL || pinfo == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
 
-    if ((ctx->policies == NULL) &&
-        ((ctx->policies = CERTIFICATEPOLICIES_new()) == NULL))
-        goto err;
+    if (ctx->policies == NULL
+            && (ctx->policies = CERTIFICATEPOLICIES_new()) == NULL)
+        return 0;
 
     return sk_POLICYINFO_push(ctx->policies, pinfo);
-
- err:
-    return 0; /* out of memory */
 }
 
-/*
- * add an itav for geninfo of the PKI message header
- */
+/* Add an ITAV for geninfo of the PKI message header */
 int OSSL_CMP_CTX_push0_geninfo_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return 0;
-
-    return OSSL_CMP_ITAV_push0_stack_item(&ctx->geninfo_itavs, itav);
+    }
+    return OSSL_CMP_ITAV_push0_stack_item(&ctx->geninfo_ITAVs, itav);
 }
 
-/*
- * add an itav for the body of outgoing general messages
- */
+/* Add an itav for the body of outgoing general messages */
 int OSSL_CMP_CTX_push0_genm_ITAV(OSSL_CMP_CTX *ctx, OSSL_CMP_ITAV *itav)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return 0;
-
-    return OSSL_CMP_ITAV_push0_stack_item(&ctx->genm_itavs, itav);
+    }
+    return OSSL_CMP_ITAV_push0_stack_item(&ctx->genm_ITAVs, itav);
 }
 
 /*
  * Returns a duplicate of the stack of X509 certificates that
- * were received in the caPubs field of the last response message.
- * returns NULL on error
+ * were received in the caPubs field of the last CertRepMessage.
+ * Returns NULL on error
  */
 STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
-        goto err;
-    if (ctx->caPubs == NULL)
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return NULL;
+    }
     return X509_chain_up_ref(ctx->caPubs);
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_CAPUBS_GET1, CMP_R_INVALID_ARGS);
-    return NULL;
 }
 
 /*
- * Duplicate and copy the given stack of certificates to the given
+ * Copies any given stack of certificates to the given
  * OSSL_CMP_CTX structure so that they may be retrieved later.
- * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
+int ossl_cmp_ctx_set1_caPubs(OSSL_CMP_CTX *ctx, STACK_OF(X509) *caPubs)
 {
-    if (ctx == NULL)
-        goto err;
+    if (!ossl_assert(ctx != NULL))
+        return 0;
 
     sk_X509_pop_free(ctx->caPubs, X509_free);
     ctx->caPubs = NULL;
+    return caPubs == NULL || (ctx->caPubs = X509_chain_up_ref(caPubs)) != NULL;
+}
 
-    if (caPubs != NULL && (ctx->caPubs = X509_chain_up_ref(caPubs)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CAPUBS, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
+#define char_dup OPENSSL_strdup
+#define char_free OPENSSL_free
+#define DEFINE_OSSL_CMP_CTX_set1(FIELD, TYPE) /* this uses _dup */ \
+int OSSL_CMP_CTX_set1_##FIELD(OSSL_CMP_CTX *ctx, const TYPE *val) \
+{ \
+    TYPE *val_dup = NULL; \
+    \
+    if (ctx == NULL) { \
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT); \
+        return 0; \
+    } \
+    \
+    if (val != NULL && (val_dup = TYPE##_dup((TYPE *)val)) == NULL)   \
+        return 0; \
+    TYPE##_free(ctx->FIELD); \
+    ctx->FIELD = val_dup; \
+    return 1; \
+}
 
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CAPUBS, CMP_R_NULL_ARGUMENT);
-    return 0;
+#define X509_invalid(cert) (!x509v3_cache_extensions(cert))
+#define EVP_PKEY_invalid(key) 0
+#define DEFINE_OSSL_CMP_CTX_set1_up_ref(FIELD, TYPE) \
+int OSSL_CMP_CTX_set1_##FIELD(OSSL_CMP_CTX *ctx, TYPE *val) \
+{ \
+    if (ctx == NULL) { \
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT); \
+        return 0; \
+    } \
+    \
+    /* prevent misleading error later on malformed cert or provider issue */ \
+    if (val != NULL && TYPE##_invalid(val)) { \
+        ERR_raise(ERR_LIB_CMP, CMP_R_POTENTIALLY_INVALID_CERTIFICATE); \
+        return 0; \
+    } \
+    if (val != NULL && !TYPE##_up_ref(val)) \
+        return 0; \
+    TYPE##_free(ctx->FIELD); \
+    ctx->FIELD = val; \
+    return 1; \
 }
 
 /*
  * Pins the server certificate to be directly trusted (even if it is expired)
  * for verifying response messages.
  * Cert pointer is not consumed. It may be NULL to clear the entry.
- * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_srvCert(OSSL_CMP_CTX *ctx, X509 *cert)
-{
-    if (ctx == NULL)
-        goto err;
+DEFINE_OSSL_CMP_CTX_set1_up_ref(srvCert, X509)
 
-    X509_free(ctx->srvCert);
-    ctx->srvCert = NULL;
+/* Set the X509 name of the recipient. Set in the PKIHeader */
+DEFINE_OSSL_CMP_CTX_set1(recipient, X509_NAME)
 
-    if (cert == NULL)
-        return 1; /* srvCert has been cleared */
+/* Store the X509 name of the expected sender in the PKIHeader of responses */
+DEFINE_OSSL_CMP_CTX_set1(expected_sender, X509_NAME)
 
-    if ((ctx->srvCert = X509_dup(cert)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SRVCERT, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SRVCERT, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * Set the X509 name of the recipient. Set in the PKIHeader.
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_recipient(OSSL_CMP_CTX *ctx, const X509_NAME *name)
-{
-    if (ctx == NULL)
-        goto err;
-
-    X509_NAME_free(ctx->recipient);
-    ctx->recipient = NULL;
-
-    if (name != NULL
-        && (ctx->recipient = X509_NAME_dup((X509_NAME *)name)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_RECIPIENT, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_RECIPIENT, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * Store the X509 name of the expected sender in the PKIHeader of responses.
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_expected_sender(OSSL_CMP_CTX *ctx, const X509_NAME *name)
-{
-    if (ctx == NULL)
-        goto err;
-
-    X509_NAME_free(ctx->expected_sender);
-    ctx->expected_sender = NULL;
-
-    if (name == NULL)
-        return 1;
-
-    if ((ctx->expected_sender = X509_NAME_dup((X509_NAME *)name)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXPECTED_SENDER, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_EXPECTED_SENDER, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * Set the X509 name of the issuer. Set in the PKIHeader.
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_issuer(OSSL_CMP_CTX *ctx, const X509_NAME *name)
-{
-    if (ctx == NULL || name == NULL)
-        goto err;
-
-    X509_NAME_free(ctx->issuer);
-    ctx->issuer = NULL;
-
-    if ((ctx->issuer = X509_NAME_dup( (X509_NAME*)name)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_ISSUER, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
-err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_ISSUER, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
+/* Set the X509 name of the issuer. Set in the PKIHeader */
+DEFINE_OSSL_CMP_CTX_set1(issuer, X509_NAME)
 
 /*
  * Set the subject name that will be placed in the certificate
  * request. This will be the subject name on the received certificate.
- * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_subjectName(OSSL_CMP_CTX *ctx, const X509_NAME *name)
-{
-    if (ctx == NULL || name == NULL)
-        goto err;
+DEFINE_OSSL_CMP_CTX_set1(subjectName, X509_NAME)
 
-    X509_NAME_free(ctx->subjectName);
-    ctx->subjectName = NULL;
-
-    if ((ctx->subjectName = X509_NAME_dup((X509_NAME *)name)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SUBJECTNAME, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SUBJECTNAME, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * sets the X.509v3 certificate request extensions to be used in IR/CR/KUR
- * returns 1 on success, 0 on error
- */
+/* Set the X.509v3 certificate request extensions to be used in IR/CR/KUR */
 int OSSL_CMP_CTX_set0_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
 {
     if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_NULL_ARGUMENT);
-        goto err;
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
     }
-    if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 && exts != NULL &&
-        X509v3_get_ext_by_NID(exts, NID_subject_alt_name, -1) >= 0) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET0_REQEXTENSIONS, CMP_R_MULTIPLE_SAN_SOURCES);
-        goto err;
+
+    if (sk_GENERAL_NAME_num(ctx->subjectAltNames) > 0 && exts != NULL
+            && X509v3_get_ext_by_NID(exts, NID_subject_alt_name, -1) >= 0) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_MULTIPLE_SAN_SOURCES);
+        return 0;
     }
+    sk_X509_EXTENSION_pop_free(ctx->reqExtensions, X509_EXTENSION_free);
     ctx->reqExtensions = exts;
     return 1;
-
- err:
-    return 0;
-}
-
-/*
- * sets the X.509v3 certificate request extensions to be used in IR/CR/KUR
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_reqExtensions(OSSL_CMP_CTX *ctx, X509_EXTENSIONS *exts)
-{
-    int res;
-    X509_EXTENSIONS *exts_copy = CMP_exts_dup((X509_EXTENSIONS *)exts);
-
-    if (exts_copy == NULL)
-        return 0;
-    res = OSSL_CMP_CTX_set0_reqExtensions(ctx, exts_copy);
-    if (res == 0)
-        sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
-    return res;
 }
 
 /* returns 1 if ctx contains a Subject Alternative Name extension, else 0 */
 int OSSL_CMP_CTX_reqExtensions_have_SAN(OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL || ctx->reqExtensions == NULL)
-        return 0;
-    return X509v3_get_ext_by_NID(ctx->reqExtensions,
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return -1;
+    }
+    /* if one of the following conditions 'fail' this is not an error */
+    return ctx->reqExtensions != NULL
+        && X509v3_get_ext_by_NID(ctx->reqExtensions,
                                  NID_subject_alt_name, -1) >= 0;
 }
 
 /*
  * Add a GENERAL_NAME structure that will be added to the CRMF
  * request's extensions field to request subject alternative names.
- * returns 1 on success, 0 on error
  */
 int OSSL_CMP_CTX_push1_subjectAltName(OSSL_CMP_CTX *ctx,
                                       const GENERAL_NAME *name)
 {
+    GENERAL_NAME *name_dup;
+
     if (ctx == NULL || name == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, CMP_R_NULL_ARGUMENT);
-        goto err;
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
     }
 
-    if (OSSL_CMP_CTX_reqExtensions_have_SAN(ctx)) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1,
-               CMP_R_MULTIPLE_SAN_SOURCES);
-        goto err;
+    if (OSSL_CMP_CTX_reqExtensions_have_SAN(ctx) == 1) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_MULTIPLE_SAN_SOURCES);
+        return 0;
     }
 
-    if ((ctx->subjectAltNames == NULL &&
-         (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL) ||
-         !sk_GENERAL_NAME_push(ctx->subjectAltNames,
-         GENERAL_NAME_dup((GENERAL_NAME *)name))) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SUBJECTALTNAME_PUSH1, ERR_R_MALLOC_FAILURE);
-        goto err;
+    if (ctx->subjectAltNames == NULL
+            && (ctx->subjectAltNames = sk_GENERAL_NAME_new_null()) == NULL)
+        return 0;
+    if ((name_dup = GENERAL_NAME_dup((GENERAL_NAME *)name)) == NULL)
+        return 0;
+    if (!sk_GENERAL_NAME_push(ctx->subjectAltNames, name_dup)) {
+        GENERAL_NAME_free(name_dup);
+        return 0;
     }
     return 1;
-
- err:
-    return 0;
 }
+
+/*
+ * Set our own client certificate, used for example in KUR and when
+ * doing the IR with existing certificate.
+ */
+DEFINE_OSSL_CMP_CTX_set1_up_ref(cert, X509)
 
 int OSSL_CMP_CTX_build_cert_chain(OSSL_CMP_CTX *ctx, X509_STORE *own_trusted,
                                   STACK_OF(X509) *candidates)
@@ -780,20 +727,19 @@ int OSSL_CMP_CTX_build_cert_chain(OSSL_CMP_CTX *ctx, X509_STORE *own_trusted,
     STACK_OF(X509) *chain;
 
     if (ctx == NULL) {
-        CMPerr(0, CMP_R_NULL_ARGUMENT);
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return 0;
     }
 
-    if (ctx->untrusted_certs != NULL ?
-        !OSSL_CMP_sk_X509_add1_certs(ctx->untrusted_certs, candidates, 0, 1) :
-        !OSSL_CMP_CTX_set1_untrusted_certs(ctx, candidates))
+    if (!ossl_x509_add_certs_new(&ctx->untrusted, candidates,
+                                 X509_ADD_FLAG_UP_REF | X509_ADD_FLAG_NO_DUP))
         return 0;
 
     ossl_cmp_debug(ctx, "trying to build chain for own CMP signer cert");
-    chain = ossl_cmp_build_cert_chain(own_trusted,
-                                      ctx->untrusted_certs, ctx->clCert);
+    chain = ossl_cmp_build_cert_chain(ctx->libctx, ctx->propq, own_trusted,
+                                      ctx->untrusted, ctx->cert);
     if (chain == NULL) {
-        CMPerr(0, CMP_R_FAILED_BUILDING_OWN_CHAIN);
+        ERR_raise(ERR_LIB_CMP, CMP_R_FAILED_BUILDING_OWN_CHAIN);
         return 0;
     }
     ossl_cmp_debug(ctx, "success building chain for own CMP signer cert");
@@ -802,112 +748,28 @@ int OSSL_CMP_CTX_build_cert_chain(OSSL_CMP_CTX *ctx, X509_STORE *own_trusted,
 }
 
 /*
- * Set our own client certificate, used for example in KUR and when
- * doing the IR with existing certificate.
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_clCert(OSSL_CMP_CTX *ctx, X509 *cert)
-{
-    if (ctx == NULL || cert == NULL)
-        goto err;
-
-    X509_free(ctx->clCert);
-    ctx->clCert = NULL;
-
-    if ((ctx->clCert = X509_dup(cert)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CLCERT, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_CLCERT, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
  * Set the old certificate that we are updating in KUR
  * or the certificate to be revoked in RR, respectively.
- * Also used as reference cert (defaulting to clCert) for deriving subject DN
+ * Also used as reference cert (defaulting to cert) for deriving subject DN
  * and SANs. Its issuer is used as default recipient in the CMP message header.
- * returns 1 on success, 0 on error
  */
-int OSSL_CMP_CTX_set1_oldCert(OSSL_CMP_CTX *ctx, X509 *cert)
-{
-    if (ctx == NULL || cert == NULL)
-        goto err;
+DEFINE_OSSL_CMP_CTX_set1_up_ref(oldCert, X509)
 
-    X509_free(ctx->oldCert);
-    ctx->oldCert = NULL;
-
-    if ((ctx->oldCert = X509_dup((X509 *)cert)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_OLDCERT, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_OLDCERT, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
+/* Set the PKCS#10 CSR to be sent in P10CR */
+DEFINE_OSSL_CMP_CTX_set1(p10CSR, X509_REQ)
 
 /*
- * Set the PKCS#10 CSR to be sent in P10CR
- * returns 1 on success, 0 on error
+ * Set the (newly received in IP/KUP/CP) certificate in the context.
+ * TODO: this only permits for one cert to be enrolled at a time.
  */
-int OSSL_CMP_CTX_set1_p10CSR(OSSL_CMP_CTX *ctx, const X509_REQ *csr)
+int ossl_cmp_ctx_set0_newCert(OSSL_CMP_CTX *ctx, X509 *cert)
 {
-    if (ctx == NULL || csr == NULL)
-        goto err;
-
-    X509_REQ_free(ctx->p10CSR);
-    ctx->p10CSR = NULL;
-
-    if ((ctx->p10CSR = X509_REQ_dup((X509_REQ *)csr)) == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_P10CSR, ERR_R_MALLOC_FAILURE);
+    if (!ossl_assert(ctx != NULL))
         return 0;
-    }
+
+    X509_free(ctx->newCert);
+    ctx->newCert = cert;
     return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_P10CSR, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * sets the (newly received in IP/KUP/CP) client Certificate to the context
- * returns 1 on success, 0 on error
- * TODO: this only permits for one client cert to be received...
- */
-int OSSL_CMP_CTX_set0_newCert(OSSL_CMP_CTX *ctx, X509 *cert)
-{
-    if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET0_NEWCLCERT, CMP_R_NULL_ARGUMENT);
-        return 0;
-    }
-
-    X509_free(ctx->newClCert);
-    ctx->newClCert = cert;
-    return 1;
-}
-
-/*
- * sets the (newly received in IP/KUP/CP) client Certificate to the context
- * returns 1 on success, 0 on error
- * TODO: this only permits for one client cert to be received...
- */
-int OSSL_CMP_CTX_set1_newCert(OSSL_CMP_CTX *ctx, const X509 *cert)
-{
-    if (ctx == NULL || cert == NULL)
-        goto err;
-
-    X509_free(ctx->newClCert);
-    ctx->newClCert = NULL;
-
-    if (!X509_up_ref((X509 *)cert))
-        goto err;
-    ctx->newClCert = (X509 *)cert;
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_NEWCLCERT, CMP_R_NULL_ARGUMENT);
-    return 0;
 }
 
 /*
@@ -916,444 +778,230 @@ int OSSL_CMP_CTX_set1_newCert(OSSL_CMP_CTX *ctx, const X509 *cert)
  */
 X509 *OSSL_CMP_CTX_get0_newCert(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return NULL;
-    return ctx->newClCert;
+    }
+    return ctx->newCert;
 }
 
-/*
- * Set the client's private key. This creates a duplicate of the key
- * so the given pointer is not used directly.
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
-{
-    if (ctx == NULL || pkey == NULL)
-        goto err;
+/* Set the client's current private key */
+DEFINE_OSSL_CMP_CTX_set1_up_ref(pkey, EVP_PKEY)
 
-    if (!EVP_PKEY_up_ref((EVP_PKEY *)pkey))
+/* Set new key pair. Used e.g. when doing Key Update */
+int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, int priv, EVP_PKEY *pkey)
+{
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return 0;
-    if (OSSL_CMP_CTX_set0_pkey(ctx, pkey))
-        return 1;
-    EVP_PKEY_free((EVP_PKEY *)pkey); /* down ref */
-    return 0;
-
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_PKEY, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * Set the client's current private key. NOTE: this version uses
- * the given pointer directly!
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set0_pkey(OSSL_CMP_CTX *ctx, EVP_PKEY *pkey)
-{
-    if (ctx == NULL || pkey == NULL)
-        goto err;
-
-    EVP_PKEY_free(ctx->pkey);
-    ctx->pkey = NULL;
-
-    ctx->pkey = pkey;
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET0_PKEY, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * Set new key pair. Used for example when doing Key Update.
- * The key is duplicated so the original pointer is not directly used.
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_newPkey(OSSL_CMP_CTX *ctx, const EVP_PKEY *pkey)
-{
-    if (ctx == NULL || pkey == NULL)
-        goto err;
-
-    if (!EVP_PKEY_up_ref((EVP_PKEY *)pkey))
-        return 0;
-    if (OSSL_CMP_CTX_set0_newPkey(ctx, 1 /* priv */, (EVP_PKEY *)pkey))
-       return 1;
-    EVP_PKEY_free((EVP_PKEY *)pkey); /* down ref */
-    return 0;
-
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_NEWPKEY, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * Set new key pair. Used e.g. when doing Key Update.
- * NOTE: uses the pointer directly!
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set0_newPkey(OSSL_CMP_CTX *ctx, int priv /* ignored in current standalone version */, EVP_PKEY *pkey)
-{
-    if (ctx == NULL || pkey == NULL)
-        goto err;
+    }
 
     EVP_PKEY_free(ctx->newPkey);
-    ctx->newPkey = (EVP_PKEY *)pkey;
+    ctx->newPkey = pkey;
+    ctx->newPkey_priv = priv;
     return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET0_NEWPKEY, CMP_R_NULL_ARGUMENT);
-    return 0;
 }
 
-/*
- * gets the newPkey from the context, or NULL on error
- */
-EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx, int priv /* ignored in current standalone version */)
+/* Get the private/public key to use for cert enrollment, or NULL on error */
+EVP_PKEY *OSSL_CMP_CTX_get0_newPkey(const OSSL_CMP_CTX *ctx, int priv)
 {
-    return ctx == NULL ? NULL : ctx->newPkey;
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return NULL;
+    }
+
+    if (ctx->newPkey != NULL)
+        return priv && !ctx->newPkey_priv ? NULL : ctx->newPkey;
+    if (ctx->p10CSR != NULL)
+        return priv ? NULL : X509_REQ_get0_pubkey(ctx->p10CSR);
+    return ctx->pkey; /* may be NULL */
 }
 
-/*
- * sets the given transactionID to the context
- * returns 1 on success, 0 on error
- */
+/* Set the given transactionID to the context */
 int OSSL_CMP_CTX_set1_transactionID(OSSL_CMP_CTX *ctx,
                                     const ASN1_OCTET_STRING *id)
 {
-    if (ctx == NULL)
-        goto err;
-
-    return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->transactionID, id);
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_TRANSACTIONID, CMP_R_NULL_ARGUMENT);
-    return 0;
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
+    return ossl_cmp_asn1_octet_string_set1(&ctx->transactionID, id);
 }
 
-/*
- * gets the transactionID from the context
- * returns a pointer to the transactionID on success, NULL on error
- */
-ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_transactionID(const OSSL_CMP_CTX *ctx)
-{
-    return ctx == NULL ? NULL : ctx->transactionID;
-}
-
-/*
- * sets the given nonce to be used for the recipNonce in the next message to be
- * created.
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_recipNonce(OSSL_CMP_CTX *ctx,
+/* Set the nonce to be used for the recipNonce in the message created next */
+int ossl_cmp_ctx_set1_recipNonce(OSSL_CMP_CTX *ctx,
                                  const ASN1_OCTET_STRING *nonce)
 {
-    if (ctx == NULL)
-        goto err;
-
-    return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->recipNonce, nonce);
-
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_RECIPNONCE, CMP_R_NULL_ARGUMENT);
-    return 0;
+    if (!ossl_assert(ctx != NULL))
+        return 0;
+    return ossl_cmp_asn1_octet_string_set1(&ctx->recipNonce, nonce);
 }
 
-/*
- * gets the recipNonce of the given context
- * returns a pointer to the nonce on success, NULL on error
- */
-ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_recipNonce(const OSSL_CMP_CTX *ctx)
-{
-    return ctx == NULL ? NULL : ctx->recipNonce;
-}
-
-/*
- * stores the given nonce as the last senderNonce sent out
- * returns 1 on success, 0 on error
- */
+/* Stores the given nonce as the last senderNonce sent out */
 int OSSL_CMP_CTX_set1_senderNonce(OSSL_CMP_CTX *ctx,
                                   const ASN1_OCTET_STRING *nonce)
 {
-    if (ctx == NULL)
-        goto err;
-
-    return OSSL_CMP_ASN1_OCTET_STRING_set1(&ctx->senderNonce, nonce);
-
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_LAST_SENDERNONCE, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * gets the sender nonce of the last message sent
- * returns a pointer to the nonce on success, NULL on error
- */
-ASN1_OCTET_STRING *OSSL_CMP_CTX_get0_senderNonce(const OSSL_CMP_CTX *ctx)
-{
-    return ctx == NULL ? NULL : ctx->senderNonce;
-}
-
-/*
- * Set the host name of the (HTTP) proxy server to use for all connections
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_proxy(OSSL_CMP_CTX *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL)
-        goto err;
-
-    OPENSSL_free(ctx->proxyName);
-    ctx->proxyName = NULL;
-
-    ctx->proxyName = BUF_strdup(name);
-    if (ctx->proxyName == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_PROXYNAME, ERR_R_MALLOC_FAILURE);
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return 0;
     }
-
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_PROXYNAME, CMP_R_NULL_ARGUMENT);
-    return 0;
+    return ossl_cmp_asn1_octet_string_set1(&ctx->senderNonce, nonce);
 }
 
-/*
- * Set the (HTTP) host name of the CA server
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_server(OSSL_CMP_CTX *ctx, const char *address)
-{
-    if (ctx == NULL || address == NULL)
-        goto err;
+/* Set the proxy server to use for HTTP(S) connections */
+DEFINE_OSSL_CMP_CTX_set1(proxy, char)
 
-    OPENSSL_free(ctx->serverName);
-    ctx->serverName = NULL;
+/* Set the (HTTP) host name of the CMP server */
+DEFINE_OSSL_CMP_CTX_set1(server, char)
 
-    ctx->serverName = BUF_strdup(address);
-    if (!ctx->serverName) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SERVERNAME, ERR_R_MALLOC_FAILURE);
-        return 0;
-    }
+/* Set the server exclusion list of the HTTP proxy server */
+DEFINE_OSSL_CMP_CTX_set1(no_proxy, char)
 
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SERVERNAME, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * sets the (HTTP) proxy port to be used
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set_proxyPort(OSSL_CMP_CTX *ctx, int port)
-{
-    if (ctx == NULL)
-        goto err;
-
-    ctx->proxyPort = port;
-    return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET_PROXYPORT, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-
-/*
- * sets the http connect/disconnect callback function to be used for HTTP(S)
- * returns 1 on success, 0 on error
- */
+/* Set the http connect/disconnect callback function to be used for HTTP(S) */
 int OSSL_CMP_CTX_set_http_cb(OSSL_CMP_CTX *ctx, OSSL_HTTP_bio_cb_t cb)
 {
-    if (ctx == NULL)
-        goto err;
-
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     ctx->http_cb = cb;
     return 1;
- err:
-    return 0;
 }
 
-/*
- * Set argument optionally to be used by the http connect/disconnect callback
- * returns 1 on success, 0 on error
- */
+/* Set argument optionally to be used by the http connect/disconnect callback */
 int OSSL_CMP_CTX_set_http_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
-    if (ctx == NULL)
-        goto err;
-
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     ctx->http_cb_arg = arg;
     return 1;
- err:
-    return 0;
 }
 
 /*
  * Get argument optionally to be used by the http connect/disconnect callback
- * returns callback argument set previously (NULL if not set or on error)
+ * Returns callback argument set previously (NULL if not set or on error)
  */
 void *OSSL_CMP_CTX_get_http_cb_arg(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return NULL;
-
+    }
     return ctx->http_cb_arg;
 }
 
-/*
- * Set callback function for sending CMP request and receiving response.
- * returns 1 on success, 0 on error
- */
+/* Set callback function for sending CMP request and receiving response */
 int OSSL_CMP_CTX_set_transfer_cb(OSSL_CMP_CTX *ctx, OSSL_CMP_transfer_cb_t cb)
 {
-    if (ctx == NULL)
-        goto err;
-
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     ctx->transfer_cb = cb;
     return 1;
- err:
-    return 0;
 }
 
-/*
- * Set argument optionally to be used by the transfer callback
- * returns 1 on success, 0 on error
- */
+/* Set argument optionally to be used by the transfer callback */
 int OSSL_CMP_CTX_set_transfer_cb_arg(OSSL_CMP_CTX *ctx, void *arg)
 {
-    if (ctx == NULL)
-        goto err;
-
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     ctx->transfer_cb_arg = arg;
     return 1;
- err:
-    return 0;
 }
 
 /*
- * Get argument optionally to be used by the transfer callback
- * returns callback argument set previously (NULL if not set or on error)
+ * Get argument optionally to be used by the transfer callback.
+ * Returns callback argument set previously (NULL if not set or on error)
  */
 void *OSSL_CMP_CTX_get_transfer_cb_arg(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return NULL;
-
+    }
     return ctx->transfer_cb_arg;
 }
 
-/*
- * sets the (HTTP) server port to be used
- * returns 1 on success, 0 on error
- */
+/** Set the HTTP server port to be used */
 int OSSL_CMP_CTX_set_serverPort(OSSL_CMP_CTX *ctx, int port)
 {
-    if (ctx == NULL)
-        goto err;
-
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
     ctx->serverPort = port;
     return 1;
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET_SERVERPORT, CMP_R_NULL_ARGUMENT);
-    return 0;
 }
 
-/*
- * Sets the HTTP path to be used on the server (e.g "pkix/")
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set1_serverPath(OSSL_CMP_CTX *ctx, const char *path)
+/* Set the HTTP path to be used on the server (e.g "pkix/") */
+DEFINE_OSSL_CMP_CTX_set1(serverPath, char)
+
+/* Set the failInfo error code as bit encoding in OSSL_CMP_CTX */
+int ossl_cmp_ctx_set_failInfoCode(OSSL_CMP_CTX *ctx, int fail_info)
 {
-    if (ctx == NULL) {
-        CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SERVERPATH, CMP_R_NULL_ARGUMENT);
+    if (!ossl_assert(ctx != NULL))
         return 0;
-    }
-
-    /* clear the old value */
-    OPENSSL_free(ctx->serverPath);
-    ctx->serverPath = NULL;
-
-    if (path == NULL) {
-        /* clear the serverPath */
-        ctx->serverPath = OPENSSL_zalloc(1);
-        if (ctx->serverPath == NULL)
-            goto oom;
-        return 1;
-    }
-
-    ctx->serverPath = BUF_strdup(path);
-    if (ctx->serverPath == NULL)
-        goto oom;
-
-    return 1;
- oom:
-    CMPerr(CMP_F_OSSL_CMP_CTX_SET1_SERVERPATH, ERR_R_MALLOC_FAILURE);
-    return 0;
-}
-
-/*
- * Set the failInfo error code bits in OSSL_CMP_CTX based on the given
- * OSSL_CMP_PKIFAILUREINFO structure, which is allowed to be NULL
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set_failInfoCode(OSSL_CMP_CTX *ctx,
-                                  OSSL_CMP_PKIFAILUREINFO *fail_info)
-{
-    int i;
-
-    if (ctx == NULL)
-        return 0;
-    ctx->failInfoCode = 0;
-    if (fail_info == NULL)
-        return 1;
-
-    for (i = 0; i <= OSSL_CMP_PKIFAILUREINFO_MAX; i++)
-        if (ASN1_BIT_STRING_get_bit(fail_info, i))
-            ctx->failInfoCode |= (1 << i);
-
+    ctx->failInfoCode = fail_info;
     return 1;
 }
 
 /*
- * Get the failinfo error code bits in OSSL_CMP_CTX
- * returns bit string as integer on success, -1 on error
+ * Get the failInfo error code in OSSL_CMP_CTX as bit encoding.
+ * Returns bit string as integer on success, -1 on error
  */
 int OSSL_CMP_CTX_get_failInfoCode(const OSSL_CMP_CTX *ctx)
 {
-    if (ctx == NULL)
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return -1;
+    }
     return ctx->failInfoCode;
 }
 
-#if 0
-/*
- * pushes a given 0-terminated character string to ctx->freeText
- * this is intended for human consumption
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_push_freeText(OSSL_CMP_CTX *ctx, const char *text)
+/* Set a Boolean or integer option of the context to the "val" arg */
+int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val)
 {
-    if (ctx == NULL)
-        goto err;
+    int min_val;
 
-    ctx->freeText = CMP_PKIFREETEXT_push_str(ctx->freeText, text);
-    return ctx->freeText != NULL;
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return 0;
+    }
 
- err:
-    CMPerr(CMP_F_OSSL_CMP_CTX_PUSH_FREETEXT, CMP_R_NULL_ARGUMENT);
-    return 0;
-}
-#endif
-
-/*
- * sets a BOOLEAN or INT option of the context to the "val" arg
- * returns 1 on success, 0 on error
- */
-int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
-    if (ctx == NULL)
-        goto err;
     switch (opt) {
-    case OSSL_CMP_OPT_IMPLICIT_CONFIRM:
-        ctx->implicit_confirm = val;
+    case OSSL_CMP_OPT_REVOCATION_REASON:
+        min_val = OCSP_REVOKED_STATUS_NOSTATUS;
         break;
-    /* to cope with broken server ignoring implicit confirmation */
+    case OSSL_CMP_OPT_POPO_METHOD:
+        min_val = OSSL_CRMF_POPO_NONE;
+        break;
+    default:
+        min_val = 0;
+        break;
+    }
+    if (val < min_val) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_VALUE_TOO_SMALL);
+        return 0;
+    }
+
+    switch (opt) {
+    case OSSL_CMP_OPT_LOG_VERBOSITY:
+        if (val > OSSL_CMP_LOG_MAX) {
+            ERR_raise(ERR_LIB_CMP, CMP_R_VALUE_TOO_LARGE);
+            return 0;
+        }
+        ctx->log_verbosity = val;
+        break;
+    case OSSL_CMP_OPT_IMPLICIT_CONFIRM:
+        ctx->implicitConfirm = val;
+        break;
     case OSSL_CMP_OPT_DISABLE_CONFIRM:
-        ctx->disable_confirm = val;
+        ctx->disableConfirm = val;
         break;
     case OSSL_CMP_OPT_UNPROTECTED_SEND:
         ctx->unprotectedSend = val;
@@ -1377,13 +1025,19 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
         ctx->ignore_keyusage = val;
         break;
     case OSSL_CMP_OPT_POPO_METHOD:
+        if (val > OSSL_CRMF_POPO_KEYAGREE) {
+            ERR_raise(ERR_LIB_CMP, CMP_R_VALUE_TOO_LARGE);
+            return 0;
+        }
         ctx->popoMethod = val;
         break;
     case OSSL_CMP_OPT_DIGEST_ALGNID:
-        ctx->digest = val;
+        if (!cmp_ctx_set_md(ctx, &ctx->digest, val))
+            return 0;
         break;
     case OSSL_CMP_OPT_OWF_ALGNID:
-        ctx->pbm_owf = val;
+        if (!cmp_ctx_set_md(ctx, &ctx->pbm_owf, val))
+            return 0;
         break;
     case OSSL_CMP_OPT_MAC_ALGNID:
         ctx->pbm_mac = val;
@@ -1398,172 +1052,70 @@ int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val) {
         ctx->permitTAInExtraCertsForIR = val;
         break;
     case OSSL_CMP_OPT_REVOCATION_REASON:
+        if (val > OCSP_REVOKED_STATUS_AACOMPROMISE) {
+            ERR_raise(ERR_LIB_CMP, CMP_R_VALUE_TOO_LARGE);
+            return 0;
+        }
         ctx->revocationReason = val;
         break;
     default:
-        goto err;
+        ERR_raise(ERR_LIB_CMP, CMP_R_INVALID_OPTION);
+        return 0;
     }
 
     return 1;
-  err:
-    return 0;
-}
-
-#ifdef CMP_STANDALONE
-const char *VER = OPENSSL_VERSION_TEXT; /* for checking dynamic lib version */
-
-#if OPENSSL_VERSION_NUMBER < 0x10101000L
-/* used below and needed also by crmf_err.c and cmp_err.c */
-int ERR_load_strings_const(const ERR_STRING_DATA *str)
-{
-#  if OPENSSL_VERSION_NUMBER < 0x10100006L
-    ERR_load_strings(0, (ERR_STRING_DATA *)(str));
-    return 1;
-#  else
-    return ERR_load_strings(0, (ERR_STRING_DATA *)str);
-#  endif
-}
-# endif
-#endif
-
-int OSSL_CMP_log_init(void)
-{
-#ifdef CMP_STANDALONE
-    #define MAJOR_MINOR_MASK 0xfff00000L
-    if ((MAJOR_MINOR_MASK & OpenSSL_version_num() ) !=
-        (MAJOR_MINOR_MASK & OPENSSL_VERSION_NUMBER)) {
-#ifndef OPENSSL_NO_STDIO
-        fprintf(stderr, "Fatal: OpenSSL runtime version 0x%lx does not match version 0x%lx used for compiling %s\n",
-                OpenSSL_version_num(), (long)OPENSSL_VERSION_NUMBER, __FILE__);
-#endif
-        return 0; /* TODO or better exit(EXIT_FAILURE)? */
-    }
-    {
-        /* fix missing initialization of error strings */
-        static ERR_STRING_DATA str_libs[] = {
-            {ERR_PACK(ERR_LIB_CMP, 0, 0), "CMP routines"},
-            {ERR_PACK(ERR_LIB_CRMF, 0, 0), "CRMF routines"},
-            {0, NULL}
-        };
-        (void)ERR_load_strings_const(str_libs);
-        (void)ERR_load_CMP_strings();
-        (void)ERR_load_CRMF_strings();
-    }
-#endif
-    return 1;
-}
-
-void OSSL_CMP_log_close(void)
-{
-    ;
-}
-
-/* prints log messages to given stream fd */
-static int CMP_log_fd(const char *component, const char *file, int lineno,
-                      OSSL_CMP_severity level, const char *msg, FILE *fd)
-{
-    char *lvl = NULL;
-    int msg_len;
-    int msg_nl;
-    char loc[256];
-    int len = 0;
-
-    if (component == NULL)
-        component = "(no component)";
-    if (file == NULL)
-        file = "(no file)";
-    if (msg == NULL)
-        msg = "(no message)";
-    if (lineno < 0)
-        lineno = 0;
-
-#ifndef NDEBUG
-    len  = snprintf(loc+len , sizeof(loc)-len, "%s():", component);
-    len += snprintf(loc+len , sizeof(loc)-len, "%s:", file);
-    len += snprintf(loc+len , sizeof(loc)-len, "%d:", lineno);
-#else
-    if (level == OSSL_CMP_LOG_DEBUG)
-        return 1;
-    len += snprintf(loc+len , sizeof(loc)-len, "CMP");
-#endif
-
-    switch(level) {
-    case OSSL_CMP_LOG_EMERG  : lvl = "EMERGENCY"; break;
-    case OSSL_CMP_LOG_ALERT  : lvl = "ALERT"; break;
-    case OSSL_CMP_LOG_CRIT   : lvl = "CRITICAL" ; break;
-    case OSSL_CMP_LOG_ERR    : lvl = "ERROR"; break;
-    case OSSL_CMP_LOG_WARNING: lvl = "WARNING" ; break;
-    case OSSL_CMP_LOG_NOTICE : lvl = "NOTICE" ; break;
-    case OSSL_CMP_LOG_INFO   : lvl = "INFO" ; break;
-#ifndef NDEBUG
-    case OSSL_CMP_LOG_DEBUG  : lvl = "DEBUG"; break;
-#endif
-    default: break;
-    }
-
-    if (lvl != NULL)
-        len += snprintf(loc+len , sizeof(loc)-len, " %s", lvl);
-    msg_len = strlen(msg);
-    msg_nl = msg_len > 0 && msg[msg_len-1] == '\n';
-    len = fprintf(fd, "%s: %s%s", loc, msg, msg_nl != 0 ? "" : "\n");
-
-    return fflush(fd) != EOF && len >= 0;
-}
-
-/* prints errors and warnings to stderr, info and debug messages to stdout */
-int OSSL_CMP_puts(const char *component, const char *file, int lineno,
-                  OSSL_CMP_severity level, const char *msg)
-{
-#ifndef OPENSSL_NO_STDIO
-    FILE *fd = level <= OSSL_CMP_LOG_WARNING ? stderr : stdout;
-    return CMP_log_fd(component, file, lineno, level, msg, fd);
-#endif
 }
 
 /*
- * Function used for outputting error/warn/debug messages depending on callback.
- * By default or if the callback is NULL the function OSSL_CMP_puts() is used.
+ * Reads a Boolean or integer option value from the context.
+ * Returns -1 on error (which is the default OSSL_CMP_OPT_REVOCATION_REASON)
  */
-int OSSL_CMP_printf(const OSSL_CMP_CTX *ctx,
-                    const char *func, const char *file, int lineno,
-                    OSSL_CMP_severity level, const char *fmt, ...)
+int OSSL_CMP_CTX_get_option(const OSSL_CMP_CTX *ctx, int opt)
 {
-    va_list arg_ptr;
-    char component[256];
-    char msg[1024];
-    int res;
-    OSSL_CMP_log_cb_t log_fn =
-        ctx == NULL || ctx->log_cb == NULL ? OSSL_CMP_puts : ctx->log_cb;
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        return -1;
+    }
 
-    BIO_snprintf(component, sizeof(component), "%s", func);
-    va_start(arg_ptr, fmt);
-    BIO_vsnprintf(msg, sizeof(msg), fmt, arg_ptr);
-    res = (*log_fn)(component, file, lineno, level, msg);
-    va_end(arg_ptr);
-    return res;
-}
-
-/* print OpenSSL and CMP errors via the log callback or OSSL_CMP_puts */
-void OSSL_CMP_CTX_print_errors(OSSL_CMP_CTX *ctx)
-{
-    unsigned long err;
-    char component[256];
-    char msg[4096];
-    const char *file, *data;
-    int line, flags;
-    OSSL_CMP_log_cb_t log_fn =
-        ctx == NULL || ctx->log_cb == NULL ? OSSL_CMP_puts : ctx->log_cb;
-
-    while ((err = ERR_get_error_line_data(&file, &line, &data, &flags)) != 0) {
-        if (!(flags & ERR_TXT_STRING))
-            data = NULL;
-        BIO_snprintf(component, sizeof(component), "OpenSSL:%s",
-                     /* ERR_lib_error_string(err), */
-                     ERR_func_error_string(err));
-        BIO_snprintf(msg, sizeof(msg), "%s%s%s", ERR_reason_error_string(err),
-                     data == NULL ? "" : " : ", data == NULL ? "" : data);
-        if (log_fn(component, file, line, OSSL_CMP_LOG_ERR, msg) <= 0)
-            break;              /* abort outputting the error report */
+    switch (opt) {
+    case OSSL_CMP_OPT_LOG_VERBOSITY:
+        return ctx->log_verbosity;
+    case OSSL_CMP_OPT_IMPLICIT_CONFIRM:
+        return ctx->implicitConfirm;
+    case OSSL_CMP_OPT_DISABLE_CONFIRM:
+        return ctx->disableConfirm;
+    case OSSL_CMP_OPT_UNPROTECTED_SEND:
+        return ctx->unprotectedSend;
+    case OSSL_CMP_OPT_UNPROTECTED_ERRORS:
+        return ctx->unprotectedErrors;
+    case OSSL_CMP_OPT_VALIDITY_DAYS:
+        return ctx->days;
+    case OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT:
+        return ctx->SubjectAltName_nodefault;
+    case OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL:
+        return ctx->setSubjectAltNameCritical;
+    case OSSL_CMP_OPT_POLICIES_CRITICAL:
+        return ctx->setPoliciesCritical;
+    case OSSL_CMP_OPT_IGNORE_KEYUSAGE:
+        return ctx->ignore_keyusage;
+    case OSSL_CMP_OPT_POPO_METHOD:
+        return ctx->popoMethod;
+    case OSSL_CMP_OPT_DIGEST_ALGNID:
+        return EVP_MD_type(ctx->digest);
+    case OSSL_CMP_OPT_OWF_ALGNID:
+        return EVP_MD_type(ctx->pbm_owf);
+    case OSSL_CMP_OPT_MAC_ALGNID:
+        return ctx->pbm_mac;
+    case OSSL_CMP_OPT_MSG_TIMEOUT:
+        return ctx->msg_timeout;
+    case OSSL_CMP_OPT_TOTAL_TIMEOUT:
+        return ctx->total_timeout;
+    case OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR:
+        return ctx->permitTAInExtraCertsForIR;
+    case OSSL_CMP_OPT_REVOCATION_REASON:
+        return ctx->revocationReason;
+    default:
+        ERR_raise(ERR_LIB_CMP, CMP_R_INVALID_OPTION);
+        return -1;
     }
 }
-

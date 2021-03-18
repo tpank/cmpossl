@@ -162,7 +162,7 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
     BIO_push(fbio, bio);
     /* CONNECT seems only to be specified for HTTP/1.1 in RFC 2817/7231 */
     BIO_printf(fbio, "CONNECT %s:%d "HTTP_PREFIX"1.1\r\n",
-               ctx->serverName, ctx->serverPort);
+               ctx->server, ctx->serverPort);
 
     /*
      * Workaround for broken proxies which would otherwise close
@@ -337,7 +337,7 @@ static void add_conn_error_hint(const OSSL_CMP_CTX *ctx, unsigned long errdetail
 {
     char buf[200];
 
-    snprintf(buf, 200, "host '%s' port %d", ctx->serverName, ctx->serverPort);
+    snprintf(buf, 200, "host '%s' port %d", ctx->server, ctx->serverPort);
     OSSL_CMP_add_error_data(buf);
     if (errdetail == 0) {
         snprintf(buf, 200, "server has disconnected%s",
@@ -362,17 +362,26 @@ static BIO *CMP_new_http_bio(const OSSL_CMP_CTX *ctx)
     if (ctx == NULL)
         goto end;
 
-    host = ctx->proxyName;
-    port = ctx->proxyPort;
-    if (host == NULL || port == 0) {
-        host = ctx->serverName;
+    host = ctx->proxy;
+    port = 0;
+    if (host == NULL) {
+        host = ctx->server;
         port = ctx->serverPort;
+    } else {
+        # define URL_HTTP_PREFIX "http://"
+        # define URL_HTTPS_PREFIX "https://"
+        if (strncmp(host, URL_HTTP_PREFIX, strlen(URL_HTTP_PREFIX)) == 0)
+            host += strlen(URL_HTTP_PREFIX);
+        else if (strncmp(host, URL_HTTPS_PREFIX, strlen(URL_HTTPS_PREFIX)) == 0)
+            host += strlen(URL_HTTPS_PREFIX);
     }
     cbio = BIO_new_connect(host);
     if (cbio == NULL)
         goto end;
-    snprintf(buf, sizeof(buf), "%d", port);
-    (void)BIO_set_conn_port(cbio, buf);
+    if (port != 0) {
+        snprintf(buf, sizeof(buf), "%d", port);
+        (void)BIO_set_conn_port(cbio, buf);
+    }
 
  end:
     return cbio;
@@ -455,7 +464,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *r
     time_t max_time;
 
     if (ctx == NULL || req == NULL ||
-        ctx->serverName == NULL || ctx->serverPath == NULL || !ctx->serverPort){
+        ctx->server == NULL || ctx->serverPath == NULL || !ctx->serverPort){
         CMPerr(CMP_F_OSSL_CMP_MSG_HTTP_PERFORM, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
@@ -487,7 +496,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *r
         hbio = bio;
     }
 
-    pathlen = strlen(ctx->serverName) + strlen(ctx->serverPath) + 33;
+    pathlen = strlen(ctx->server) + strlen(ctx->serverPath) + 33;
     path = (char *)OPENSSL_malloc(pathlen);
     if (path == NULL)
         goto err;
@@ -497,9 +506,9 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *r
      * allowed when using a proxy
      */
     if (ctx->http_cb == NULL /* no TLS */
-        && ctx->proxyName != NULL && ctx->proxyPort != 0)
+        && ctx->proxy != NULL)
         pos = BIO_snprintf(path, pathlen-1, "http://%s:%d",
-                           ctx->serverName, ctx->serverPort);
+                           ctx->server, ctx->serverPort);
 
     /* make sure path includes a forward slash */
     if (ctx->serverPath[0] != '/')
@@ -507,7 +516,7 @@ OSSL_CMP_MSG *OSSL_CMP_MSG_http_perform(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *r
 
     BIO_snprintf(path + pos, pathlen - pos - 1, "%s", ctx->serverPath);
 
-    rv = CMP_sendreq(hbio, ctx->serverName, path, req, &res, max_time);
+    rv = CMP_sendreq(hbio, ctx->server, path, req, &res, max_time);
     OPENSSL_free(path);
     if (rv == -3)
         err = CMP_R_FAILED_TO_SEND_REQUEST;
