@@ -15,21 +15,29 @@
 #  include <openssl/opensslv.h>
 
 #  if OPENSSL_VERSION_NUMBER < 0x10100002L
-#   define ossl_inline __inline
+#   define ossl_inline inline
+#   define ossl_unused __attribute__((unused))
+#   define __owur
 #   define OPENSSL_FILE __FILE__
 #   define OPENSSL_LINE __LINE__
 #   define EVP_MD_CTX_new()      EVP_MD_CTX_create()
 #   define EVP_MD_CTX_reset(ctx) EVP_MD_CTX_init((ctx))
 #   define EVP_MD_CTX_free(ctx)  EVP_MD_CTX_destroy((ctx))
+#   define OPENSSL_clear_free(addr, num) OPENSSL_free(((void)(num), addr))
+size_t OPENSSL_strlcpy(char *dst, const char *src, size_t siz);
 #   ifndef CMP_STANDALONE
 #    define DEFINE_STACK_OF DECLARE_STACK_OF
 #   endif
+typedef u_int32_t uint32_t;
+typedef u_int64_t uint64_t;
 #  endif
 
 #  ifdef CMP_STANDALONE
 #   if OPENSSL_VERSION_NUMBER < 0x10101000L
 #    define OPENSSL_sk_new_reserve(f,n) sk_new(f) /* sorry, no reservation */
 #    define OPENSSL_sk_reserve(sk,n) 1 /* sorry, no-op */
+#    define ERR_clear_last_mark() 1 /* sorry, no-op */
+#    define HEADER_ASN1ERR_H /* block inclusion of header added in 1.1.1 */
 #   endif
 #   if OPENSSL_VERSION_NUMBER < 0x10100006L
 #    include <openssl/safestack_backport.h>
@@ -133,15 +141,20 @@ int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
 #  if OPENSSL_VERSION_NUMBER < 0x10100000L
 #   define OpenSSL_version_num SSLeay
 #   define X509_get0_subject_key_id(x) (X509_check_purpose((x),-1,-1),(x)->skid)
-#   define X509_STORE_CTX_get1_crls X509_STORE_get1_crls
 #   define OPENSSL_strndup strndup
 #   define SSL_AD_REASON_OFFSET 1000
 #   define TLS1_AD_UNKNOWN_CA     48
 #  endif
 #  if OPENSSL_VERSION_NUMBER < 0x10100005L
 #   define X509_REQ_get0_pubkey(x) X509_PUBKEY_get0((x)->req_info->pubkey)
+char *OPENSSL_buf2hexstr(const unsigned char *buffer, long len);
 #  endif
 #  if OPENSSL_VERSION_NUMBER < 0x10100006L
+#   ifndef X509_STORE_CTX_get1_crls
+#    define X509_STORE_CTX_get1_crls X509_STORE_get1_crls
+#   endif
+#   define X509_STORE_lock(store)   /* sorry, no-op */
+#   define X509_STORE_unlock(store) /* sorry, no-op */
 #   define EVP_PKEY_up_ref(x)((x)->references++)
     typedef int (*X509_STORE_CTX_check_revocation_fn) (X509_STORE_CTX *ctx);
 #   ifdef CMP_STANDALONE
@@ -149,6 +162,8 @@ DECLARE_STACK_OF(ASN1_UTF8STRING)
 #   endif
 #  endif
 #  if OPENSSL_VERSION_NUMBER < 0x10100007L
+#   define X509_ALGOR_get0(paobj, pptype, ppval, algor) \
+           X509_ALGOR_get0((ASN1_OBJECT **)paobj, pptype, (void **)ppval, algor)
 #   define X509_get0_notBefore X509_get_notBefore
 #   define X509_get0_notAfter X509_get_notAfter
 #   define X509_get_issuer_name(x) ((x)->cert_info->issuer)

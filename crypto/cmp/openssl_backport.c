@@ -17,6 +17,19 @@
 #include <openssl/err.h> /* should be implied by cmperr.h */
 #include <openssl/x509v3.h>
 
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
+/* used below and needed also by crmf_err.c and cmp_err.c */
+int ERR_load_strings_const(const ERR_STRING_DATA *str)
+{
+#  if OPENSSL_VERSION_NUMBER < 0x10100006L
+    ERR_load_strings(0, (ERR_STRING_DATA *)(str));
+    return 1;
+#  else
+    return ERR_load_strings(0, (ERR_STRING_DATA *)str);
+#  endif
+}
+# endif
+
 /*
  * auxiliary function for incrementally reporting texts via the error queue
  */
@@ -184,7 +197,11 @@ int x509v3_cache_extensions(X509 *x)
 
 int X509_self_signed(X509 *cert, ossl_unused int verify_signature)
 {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+    return X509_check_issued(cert, cert) == X509_V_OK;
+#else
     return (X509_get_extension_flags(cert) & EXFLAG_SS) != 0;
+#endif
 }
 
 int ossl_x509_add_cert_new(STACK_OF(X509) **p_sk, X509 *cert, int flags)
@@ -407,3 +424,49 @@ STACK_OF(X509) *X509_STORE_get1_all_certs(X509_STORE *store)
     sk_X509_pop_free(sk, X509_free);
     return NULL;
 }
+
+#if OPENSSL_VERSION_NUMBER < 0x10100005L
+/*
+ * Given a buffer of length 'len' return a OPENSSL_malloc'ed string with its
+ * hex representation @@@ (Contents of buffer are always kept in ASCII, also
+ * on EBCDIC machines)
+ */
+char *OPENSSL_buf2hexstr(const unsigned char *buffer, long len)
+{
+    static const char hexdig[] = "0123456789ABCDEF";
+    char *tmp, *q;
+    const unsigned char *p;
+    int i;
+
+    if ((tmp = OPENSSL_malloc(len * 3 + 1)) == NULL) {
+        CRYPTOerr(0 /* CRYPTO_F_OPENSSL_BUF2HEXSTR */, ERR_R_MALLOC_FAILURE);
+        return NULL;
+    }
+    q = tmp;
+    for (i = 0, p = buffer; i < len; i++, p++) {
+        *q++ = hexdig[(*p >> 4) & 0xf];
+        *q++ = hexdig[*p & 0xf];
+        *q++ = ':';
+    }
+    q[-1] = 0;
+#ifdef CHARSET_EBCDIC
+    ebcdic2ascii(tmp, tmp, q - tmp - 1);
+#endif
+
+    return tmp;
+}
+#endif
+
+#if OPENSSL_VERSION_NUMBER < 0x10100002L
+size_t OPENSSL_strlcpy(char *dst, const char *src, size_t size)
+{
+    size_t l = 0;
+    for (; size > 1 && *src; size--) {
+        *dst++ = *src++;
+        l++;
+    }
+    if (size)
+        *dst = '\0';
+    return l + strlen(src);
+}
+#endif
