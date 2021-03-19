@@ -13,24 +13,23 @@
 # define OPENSSL_BACKPORT_H
 
 #  include <openssl/opensslv.h>
-
-#  if OPENSSL_VERSION_NUMBER < 0x10100002L
-#   define ossl_inline inline
-#   define ossl_unused __attribute__((unused))
-#   define __owur
-#   define OPENSSL_FILE __FILE__
-#   define OPENSSL_LINE __LINE__
-#   define EVP_MD_CTX_new()      EVP_MD_CTX_create()
-#   define EVP_MD_CTX_reset(ctx) EVP_MD_CTX_init((ctx))
-#   define EVP_MD_CTX_free(ctx)  EVP_MD_CTX_destroy((ctx))
-#   define OPENSSL_clear_free(addr, num) OPENSSL_free(((void)(num), addr))
-size_t OPENSSL_strlcpy(char *dst, const char *src, size_t siz);
-#   ifndef CMP_STANDALONE
-#    define DEFINE_STACK_OF DECLARE_STACK_OF
+#   if OPENSSL_VERSION_NUMBER < 0x30000000L && !defined(CMP_STANDALONE)
+#    define CMP_STANDALONE
 #   endif
-typedef u_int32_t uint32_t;
-typedef u_int64_t uint64_t;
-#  endif
+
+#   if OPENSSL_VERSION_NUMBER < 0x10100000L
+/* compilation quirks for OpenSSL <= 1.0.2 */
+_Pragma("GCC diagnostic ignored \"-Wdiscarded-qualifiers\"")
+_Pragma("GCC diagnostic ignored \"-Wunused-parameter\"")
+#   endif
+
+#   if OPENSSL_VERSION_NUMBER < 0x10100002L
+#    define ossl_inline inline
+#    define ossl_unused __attribute__((unused))
+#    define __owur
+#    define OPENSSL_FILE __FILE__
+#    define OPENSSL_LINE __LINE__
+#   endif
 
 #  ifdef CMP_STANDALONE
 #   if OPENSSL_VERSION_NUMBER < 0x10101000L
@@ -75,6 +74,7 @@ int ERR_load_strings_const(const ERR_STRING_DATA *str);
 #   define X509_NAME_set(xn, name) X509_NAME_set((xn), (X509_NAME *)(name))
 #  endif
 #  if OPENSSL_VERSION_NUMBER < 0x10100000L
+typedef unsigned char uint8_t;
 #    define ERR_R_PASSED_INVALID_ARGUMENT CRMF_R_NULL_ARGUMENT
 #   define int64_t long
 #   define ASN1_INTEGER_get_int64(pvar, a) ((*(pvar)=ASN1_INTEGER_get(a)) != -1)
@@ -84,6 +84,19 @@ int ERR_load_strings_const(const ERR_STRING_DATA *str);
 #   define ASN1_R_TOO_LARGE ASN1_R_INVALID_NUMBER
 #   define X509_ALGOR_cmp(a,b) (OBJ_cmp((a)->algorithm, (b)->algorithm) ? OBJ_cmp((a)->algorithm, (b)->algorithm) : (!(a)->parameter && !(b)->parameter) ? 0 : ASN1_TYPE_cmp(a->parameter, b->parameter))
 #  endif
+#  if OPENSSL_VERSION_NUMBER < 0x10100002L
+#   define EVP_MD_CTX_new()      EVP_MD_CTX_create()
+#   define EVP_MD_CTX_reset(ctx) EVP_MD_CTX_init((ctx))
+#   define EVP_MD_CTX_free(ctx)  EVP_MD_CTX_destroy((ctx))
+#   define OPENSSL_clear_free(addr, num) OPENSSL_free(((void)(num), addr))
+size_t OPENSSL_strlcpy(char *dst, const char *src, size_t siz);
+#   ifndef CMP_STANDALONE
+#    define DEFINE_STACK_OF DECLARE_STACK_OF
+#   endif
+typedef u_int32_t uint32_t;
+typedef u_int64_t uint64_t;
+#  endif
+
 #  if OPENSSL_VERSION_NUMBER < 0x10100005L
 #   define X509_PUBKEY_get0(x)((x)->pkey)
 #  endif

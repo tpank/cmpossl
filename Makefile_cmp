@@ -1,6 +1,6 @@
 #!/bin/make
 # optional LIBCMP_INC defines where the libcmp header files will be placed (default: "./include_cmp")
-# optional LIBCMP_OUT defines where the resulting cmp lib will be placed (default: ".")
+# optional LIBCMP_DIR defines where the resulting cmp lib will be placed (default: ".")
 # both may contain absolute path or path relative to the dir containing this Makefile
 # optional OPENSSL_DIR defines absolute or relative path to OpenSSL installation
 
@@ -16,8 +16,8 @@ else
     LIB=lib
 endif
 
-ifeq ($(LIBCMP_OUT),)
-     LIBCMP_OUT=.
+ifeq ($(LIBCMP_DIR),)
+     LIBCMP_DIR=.
 endif
 
 SYSTEM_INCLUDE_OPENSSL=/usr/include/openssl
@@ -52,30 +52,30 @@ $(info detected OpenSSL version $(OPENSSL_VERSION).x)
 OSSL_VERSION_QUIRKS=-D'DEPRECATEDIN_1_2_0(f)= ' # needed for 1.2
 ifeq ($(shell expr $(OPENSSL_VERSION) \< 1.1),1) # same as comparing == 1.0
     $(info enabling compilation quirks for OpenSSL 1.0.2)
-    OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers -Wno-unused-parameter -Wno-unused-function #-D'DEPRECATEDIN_1_1_0(f)=f;' -D'DEPRECATEDIN_1_0_0(f)='
+    OSSL_VERSION_QUIRKS+=-Wno-discarded-qualifiers -Wno-unused-parameter #-Wno-unused-function #-D'DEPRECATEDIN_1_1_0(f)=f;' -D'DEPRECATEDIN_1_0_0(f)='
 endif
 endif
 
-LIBCMP_INC ?= $(LIBCMP_OUT)/include_cmp
-LIBCMP=$(LIBCMP_OUT)/libcmp$(DLL)
+LIBCMP_INC ?= $(LIBCMP_DIR)/include_cmp
+LIBCMP_OUT=$(LIBCMP_DIR)/libcmp$(DLL)
 #VERSION=.0
 
 CC ?= gcc
 ifdef NDEBUG
-    override CFLAGS += -DNDEBUG=1 -O2
+    override DEBUG_FLAGS = -DNDEBUG=1 -O2
 else
-    override CFLAGS += -g -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -O0 # not every compiler(version) supports -Og
+    override DEBUG_FLAGS = -g -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -O0 # not every compiler(version) supports -Og
 endif
-override CFLAGS += -fPIC -I$(LIBCMP_INC)
-override CFLAGS += -DDEBUG_UNUSED -DPEDANTIC -pedantic -Wall -Wextra -Wswitch -Wsign-compare -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wformat -Wtype-limits -Wundef $(OSSL_VERSION_QUIRKS)# -Werror # not needed for cmp+crmf: -Wno-long-long -Wno-missing-field-initializers
+override CFLAGS += $(DEBUG_FLAGS) -fPIC -DDEBUG_UNUSED -DPEDANTIC -pedantic -Wall -Wextra -Wswitch -Wsign-compare -Wmissing-prototypes -Wstrict-prototypes -Wshadow -Wformat -Wtype-limits -Wundef $(OSSL_VERSION_QUIRKS)# -Werror # not needed for cmp+crmf: -Wno-long-long -Wno-missing-field-initializers
 override CFLAGS += -isystem $(OPENSSL_DIR)/include # use of -isystem is critical for selecting wanted OpenSSL version
-LIBCMP_HDRS_INC = -include $(LIBCMP_INC)/openssl/crmf.h # used to force inclusion of standalone version, needed also for cmp_err.c
+override CFLAGS += -I$(LIBCMP_INC)
+#LIBCMP_HDRS_INC = -include $(LIBCMP_INC)/openssl/crmf.h # used to force inclusion of standalone version, needed also for cmp_err.c
+LIBCMP_HDRS_INC = -include $(LIBCMP_INC)/openssl/openssl_backport.h # used to force inclusion of standalone version
 
-override LDFLAGS += $(CFLAGS) # needed for -fsanitize=...
 override LDFLAGS += -L$(OPENSSL_LIB) -L$(OPENSSL) -Wl,-rpath=$(OPENSSL_RPATH_LIB) -Wl,-rpath=$(OPENSSL_RPATH)
 override LDLIBS  += -lcrypto
 
-LIBCMP_HDRS_= crmf.h cmp.h cmp_util.h cmperr.h crmferr.h safestack_backport.h openssl_backport.h types.h cryptoerr_legacy.h
+LIBCMP_HDRS_= crmf.h cmp.h cmp_util.h cmperr.h crmferr.h safestack_backport.h openssl_backport.h types.h http.h cryptoerr_legacy.h
 LIBCMP_HDRS_INTERNAL_ = refcount.h
 LIBCMP_HDRS = $(patsubst %,include/openssl/%,$(LIBCMP_HDRS_))
 LIBCMP_HDRS_INTERNAL = $(patsubst %,include/internal/%,$(LIBCMP_HDRS_INTERNAL_))
@@ -86,13 +86,12 @@ LIBCMP_SRCS = $(patsubst %,crypto/crmf/%,$(CRMF_SRCS_)) $(patsubst %,crypto/cmp/
 
 .phony: build clean
 
-build: $(LIBCMP)
+build: $(LIBCMP_OUT)
 
 $(LIBCMP_INC)/openssl:
-	@mkdir -p $(LIBCMP_OUT)
+	@mkdir -p $(LIBCMP_DIR)
 	@mkdir -p $(LIBCMP_INC)/openssl
 $(LIBCMP_INC)/internal:
-	@mkdir -p $(LIBCMP_OUT)
 	@mkdir -p $(LIBCMP_INC)/internal
 
 $(LIBCMP_INC_HDRS): $(LIBCMP_HDRS) $(LIBCMP_HDRS_INTERNAL) | $(LIBCMP_INC)/openssl $(LIBCMP_INC)/internal
@@ -100,15 +99,15 @@ $(LIBCMP_INC_HDRS): $(LIBCMP_HDRS) $(LIBCMP_HDRS_INTERNAL) | $(LIBCMP_INC)/opens
 	@ # cd $(LIBCMP_INC)/openssl && ((mv crmf.h tmp2.h && /bin/echo -e "#undef CMP_STANDALONE\n#define CMP_STANDALONE\n" >tmp1.h && cat tmp1.h tmp2.h >crmf.h && touch -r tmp2.h crmf.h); rm -f tmp1.h tmp2.h)
 	cp $(LIBCMP_HDRS_INTERNAL) $(LIBCMP_INC)/internal # --preserve=timestamps has no effect on WSL
 
-$(LIBCMP): $(LIBCMP_INC_HDRS) $(LIBCMP_HDRS) $(LIBCMP_SRCS)
-	$(CC) $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) $(LDFLAGS) $(LDLIBS) -shared -o $@
+$(LIBCMP_OUT): $(LIBCMP_INC_HDRS) $(LIBCMP_HDRS) $(LIBCMP_SRCS)
+	$(CC) -DCMP_STANDALONE $(CFLAGS) $(LIBCMP_HDRS_INC) $(LIBCMP_SRCS) $(LDFLAGS) $(LDLIBS) -shared -o $@
 	@ # -Wl,-soname,libcmp$(DLL)$(VERSION)
-	@ #ln -sr $(LIBCMP) $(LIBCMP)$(VERSION)
+	@ #ln -sr $(LIBCMP_OUT) $(LIBCMP_OUT)$(VERSION)
 
 clean:
-	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP_INC)/internal/* $(LIBCMP)
-	rm -f $(LIBCMP) # $(LIBCMP)$(VERSION)
-	rmdir $(LIBCMP_INC)/openssl $(LIBCMP_INC) 2>/dev/null || true
+	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP_INC)/internal/*
+	rm -f $(LIBCMP_OUT) # $(LIBCMP_OUT)$(VERSION)
+	rmdir $(LIBCMP_INC)/openssl $(LIBCMP_INC)/internal $(LIBCMP_INC) 2>/dev/null || true
 
 SYSTEM_LIB=/usr/lib
 DEST_LIB=$(DESTDIR)$(prefix)$(SYSTEM_LIB)
@@ -117,9 +116,9 @@ LIBCMP_HDRS_install = $(patsubst %,$(DEST_INC)/%,$(LIBCMP_HDRS_))
 
 .phony: install uninstall install_clean
 
-install: $(LIBCMP)
+install: $(LIBCMP_OUT)
 	mkdir -p $(DEST_LIB)
-	install -D $(LIBCMP) $(DEST_LIB)
+	install -D $(LIBCMP_OUT) $(DEST_LIB)
 	mkdir -p $(DEST_INC)
 	install -D $(LIBCMP_INC)/openssl/*.h $(DEST_INC)
 
@@ -133,7 +132,7 @@ uninstall: install_clean
 .phony: deb deb_clean
 deb:
 	@ #tar czf $(SRCS_TAR) $(SRCS)
-	@ #rm -f $(LIBCMP) debian/tmp/usr/lib/libcmp.so*
+	@ #rm -f $(LIBCMP_OUT) debian/tmp/usr/lib/libcmp.so*
 	debuild -uc -us -I* --lintian-opts --profile debian
 	rm -r debian/tmp
 	@ #rm $(SRCS_TAR)

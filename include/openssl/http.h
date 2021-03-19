@@ -1,5 +1,5 @@
 /*-
- * Copyright 2007-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2007-2019 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2019
  * Copyright Siemens AG 2015-2019
  *
@@ -9,9 +9,3 @@
  * https://www.openssl.org/source/license.html
  */
 
-#ifndef HEADER_OPENSSL_BACKPORT_TYPES_H
-# define HEADER_OPENSSL_BACKPORT_TYPES_H
-
-# include <openssl/ossl_typ.h>
-
-#endif

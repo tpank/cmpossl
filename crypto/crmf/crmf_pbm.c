@@ -113,6 +113,33 @@ OSSL_CRMF_PBMPARAMETER *OSSL_CRMF_pbmp_new(OSSL_LIB_CTX *libctx,  size_t slen,
     return NULL;
 }
 
+static unsigned char *EVP_HMAC(const EVP_MD *evp_md,
+                               const void *key, int key_len,
+                               const unsigned char *data, size_t data_len,
+                               unsigned char *md, unsigned int *md_len)
+{
+    unsigned char *res = NULL;
+#if OPENSSL_VERSION_NUMBER >= 0x10102000L
+    EVP_MAC_CTX *mctx;
+    size_t res_len;
+
+    if ((mctx = EVP_MAC_CTX_new(EVP_MAC_fetch(NULL, "HMAC", NULL))) != NULL
+            && EVP_MAC_ctrl(mctx, EVP_MAC_CTRL_SET_MD, evp_md) > 0
+            && EVP_MAC_ctrl(mctx, EVP_MAC_CTRL_SET_KEY, key, key_len) > 0
+            && EVP_MAC_init(mctx)
+            && EVP_MAC_update(mctx, data, data_len)
+        && EVP_MAC_final(mctx, md, &res_len))  {
+        res = md;
+        if (md_len != NULL)
+            *md_len = (unsigned int)res_len;
+    }
+    EVP_MAC_CTX_free(mctx);
+#else
+    res = HMAC(evp_md, key, key_len, data, data_len, md, md_len);
+#endif
+    return res;
+}
+
 /*-
  * calculates the PBM based on the settings of the given OSSL_CRMF_PBMPARAMETER
  * |pbmp| identifies the algorithms, salt to use
@@ -137,10 +164,8 @@ int OSSL_CRMF_pbm_new(OSSL_LIB_CTX *libctx, const char *propq,
     unsigned int bklen = EVP_MAX_MD_SIZE;
     int64_t iterations;
     unsigned char *mac_res = 0;
+    unsigned int maclen_uint;
     int ok = 0;
-#if OPENSSL_VERSION_NUMBER >= 0x10102000L
-    EVP_MAC_CTX *mctx = NULL;
-#endif
 
     (void)libctx;
     (void)propq;
@@ -210,32 +235,14 @@ int OSSL_CRMF_pbm_new(OSSL_LIB_CTX *libctx, const char *propq,
         goto err;
     }
 
-#if OPENSSL_VERSION_NUMBER >= 0x10102000L
-    if ((mctx = EVP_MAC_CTX_new(EVP_get_macbyname("HMAC"))) == NULL
-            || EVP_MAC_ctrl(mctx, EVP_MAC_CTRL_SET_MD, m) <= 0
-            || EVP_MAC_ctrl(mctx, EVP_MAC_CTRL_SET_KEY, basekey, bklen) <= 0
-            || !EVP_MAC_init(mctx)
-            || !EVP_MAC_update(mctx, msg, msglen)
-            || !EVP_MAC_final(mctx, mac_res, maclen))
-        goto err;
-
-    ok = 1;
-#else
-    {
-        unsigned int maclen_;
-        if (HMAC(m, basekey, bklen, msg, msglen, mac_res, &maclen_) != NULL) {
-            *maclen = (size_t)maclen_;
-            ok = 1;
-        }
+    if (EVP_HMAC(m, basekey, bklen, msg, msglen, mac_res, &maclen_uint) != NULL) {
+        *maclen = (size_t)maclen_uint;
+        ok = 1;
     }
-#endif
 
  err:
     /* cleanup */
     OPENSSL_cleanse(basekey, bklen);
-#if OPENSSL_VERSION_NUMBER >= 0x10102000L
-    EVP_MAC_CTX_free(mctx);
-#endif
     EVP_MD_CTX_free(ctx);
 
     if (ok == 1) {
