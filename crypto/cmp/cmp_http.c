@@ -362,18 +362,25 @@ static BIO *CMP_new_http_bio(const OSSL_CMP_CTX *ctx)
     if (ctx == NULL)
         goto end;
 
-    host = ctx->proxy;
-    port = 0;
-    if (host == NULL) {
+    if (ctx->proxy == NULL) {
         host = ctx->server;
         port = ctx->serverPort;
     } else {
         # define URL_HTTP_PREFIX "http://"
         # define URL_HTTPS_PREFIX "https://"
-        if (strncmp(host, URL_HTTP_PREFIX, strlen(URL_HTTP_PREFIX)) == 0)
-            host += strlen(URL_HTTP_PREFIX);
-        else if (strncmp(host, URL_HTTPS_PREFIX, strlen(URL_HTTPS_PREFIX)) == 0)
+        host = ctx->proxy;
+        port = 0;
+        if (strncmp(host, URL_HTTPS_PREFIX, strlen(URL_HTTPS_PREFIX)) == 0) {
             host += strlen(URL_HTTPS_PREFIX);
+            if (strchr(host, ':') == NULL)
+                port = 443;
+        }
+        else {
+            if (strncmp(host, URL_HTTP_PREFIX, strlen(URL_HTTP_PREFIX)) == 0)
+                host += strlen(URL_HTTP_PREFIX);
+            if (strchr(host, ':') == NULL)
+                port = 80;
+        }
     }
     cbio = BIO_new_connect(host);
     if (cbio == NULL)
