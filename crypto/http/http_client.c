@@ -342,7 +342,7 @@ static int OSSL_HTTP_REQ_CTX_add1_headers(OSSL_HTTP_REQ_CTX *rctx,
 static OSSL_HTTP_REQ_CTX *http_req_ctx_new(int free_wbio, BIO *wbio, BIO *rbio,
                                            OSSL_HTTP_bio_cb_t bio_update_fn,
                                            void *arg, int use_ssl,
-                                           const char *proxy,
+                                           const char *proxy, /* may be URL */
                                            const char *server, const char *port,
                                            int maxline, unsigned long max_len,
                                            int overall_timeout)
@@ -762,10 +762,11 @@ int OSSL_HTTP_REQ_CTX_nbio(OSSL_HTTP_REQ_CTX *rctx)
 /* set up a new connection BIO, to HTTP server or to HTTP(S) proxy if given */
 static BIO *HTTP_new_bio(const char *server /* optionally includes ":port" */,
                          const char *server_port /* explicit server port */,
-                         const char *proxy /* optionally includes ":port" */)
+                         int use_ssl,
+                         const char *proxy /* optionally includes ":port" */,
+                         const char *proxy_port /* explicit proxy port */)
 {
-    const char *host = server, *host_end;
-    char host_name[100];
+    const char *host = server;
     const char *port = server_port;
     BIO *cbio;
 
@@ -774,20 +775,11 @@ static BIO *HTTP_new_bio(const char *server /* optionally includes ":port" */,
 
     if (proxy != NULL) {
         host = proxy;
-        port = NULL;
+        port = proxy_port;
     }
 
-    host_end = strchr(host, '/');
-    if (host_end != NULL) {
-        size_t host_len = host_end - host;
-
-        if (host_len < sizeof(host_name)) {
-            /* chop trailing string starting with '/' */
-            strncpy(host_name, host, host_len);
-            host_name[host_len] = '\0';
-            host = host_name;
-        }
-    }
+    if (port == NULL && strchr(host, ':') == NULL)
+        port = use_ssl ? OSSL_HTTPS_PORT : OSSL_HTTP_PORT;
 
     cbio = BIO_new_connect(host /* optionally includes ":port" */);
     if (cbio == NULL)
@@ -891,6 +883,8 @@ OSSL_HTTP_REQ_CTX *OSSL_HTTP_open(const char *server, const char *port,
         cbio = bio;
     } else {
 #ifndef OPENSSL_NO_SOCK
+        char *proxy_host = NULL, *proxy_port = NULL;
+
         if (server == NULL) {
             ERR_raise(ERR_LIB_HTTP, ERR_R_PASSED_NULL_PARAMETER);
             return NULL;
@@ -900,7 +894,15 @@ OSSL_HTTP_REQ_CTX *OSSL_HTTP_open(const char *server, const char *port,
         if (port == NULL && strchr(server, ':') == NULL)
             port = use_ssl ? OSSL_HTTPS_PORT : OSSL_HTTP_PORT;
         proxy = ossl_http_adapt_proxy(proxy, no_proxy, server, use_ssl);
-        if ((cbio = HTTP_new_bio(server, port, proxy)) == NULL)
+        if (proxy != NULL
+            && !OSSL_HTTP_parse_url(proxy, NULL /* use_ssl */, NULL /* user */,
+                                    &proxy_host, &proxy_port, NULL /* num */,
+                                    NULL /* path */, NULL, NULL))
+            return NULL;
+        cbio = HTTP_new_bio(server, port, use_ssl, proxy_host, proxy_port);
+        OPENSSL_free(proxy_host);
+        OPENSSL_free(proxy_port);
+        if (cbio == NULL)
             return NULL;
 #else
         ERR_raise(ERR_LIB_HTTP, HTTP_R_SOCK_NOT_SUPPORTED);
