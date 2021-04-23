@@ -77,7 +77,7 @@ static ASN1_VALUE *simple_get_asn1(const char *url, BIO *bio, BIO *rbio,
 {
     return OSSL_HTTP_get_asn1(url, NULL, NULL /* no proxy used */, bio,
                               rbio, NULL /* no callback for SSL/TLS */, NULL,
-                              NULL /* headers */, 1024 /* maxline */,
+                              NULL /* headers */, 1024 /* max_line */,
                               0 /* max_resp_len */, timeout,
                               NULL /* expected_content_type */, it);
 }

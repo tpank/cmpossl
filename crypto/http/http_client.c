@@ -44,7 +44,7 @@
 struct ossl_http_req_ctx_st {
     int state;                  /* Current I/O state */
     unsigned char *readbuf;     /* Buffer for reading response by line */
-    int readbuflen;             /* Buffer length, equals maxline */
+    int readbuflen;             /* Buffer length, equals max_line */
     int free_wbio;              /* wbio allocated internally, free with ctx */
     BIO *wbio;                  /* BIO to write/send request to */
     BIO *rbio;                  /* BIO to read/receive response from */
@@ -84,7 +84,7 @@ struct ossl_http_req_ctx_st {
 
 /* Low-level HTTP API implementation */
 
-OSSL_HTTP_REQ_CTX *OSSL_HTTP_REQ_CTX_new(BIO *wbio, BIO *rbio, int maxline)
+OSSL_HTTP_REQ_CTX *OSSL_HTTP_REQ_CTX_new(BIO *wbio, BIO *rbio, int max_line)
 {
     OSSL_HTTP_REQ_CTX *rctx;
 
@@ -96,7 +96,7 @@ OSSL_HTTP_REQ_CTX *OSSL_HTTP_REQ_CTX_new(BIO *wbio, BIO *rbio, int maxline)
     if ((rctx = OPENSSL_zalloc(sizeof(*rctx))) == NULL)
         return NULL;
     rctx->state = OHS_ERROR;
-    rctx->readbuflen = maxline > 0 ? maxline : HTTP_DEFAULT_MAX_LINE_LENGTH;
+    rctx->readbuflen = max_line > 0 ? max_line : HTTP_DEFAULT_MAX_LINE_LENGTH;
     rctx->readbuf = OPENSSL_malloc(rctx->readbuflen);
     rctx->wbio = wbio;
     rctx->rbio = rbio;
@@ -344,10 +344,10 @@ static OSSL_HTTP_REQ_CTX *http_req_ctx_new(int free_wbio, BIO *wbio, BIO *rbio,
                                            void *arg, int use_ssl,
                                            const char *proxy, /* may be URL */
                                            const char *server, const char *port,
-                                           int maxline, unsigned long max_len,
+                                           int max_line, unsigned long max_len,
                                            int overall_timeout)
 {
-    OSSL_HTTP_REQ_CTX *rctx = OSSL_HTTP_REQ_CTX_new(wbio, rbio, maxline);
+    OSSL_HTTP_REQ_CTX *rctx = OSSL_HTTP_REQ_CTX_new(wbio, rbio, max_line);
 
     if (rctx == NULL)
         return NULL;
@@ -864,7 +864,7 @@ OSSL_HTTP_REQ_CTX *OSSL_HTTP_open(const char *server, const char *port,
                                   const char *proxy, const char *no_proxy,
                                   int use_ssl, BIO *bio, BIO *rbio,
                                   OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
-                                  int maxline, unsigned long max_resp_len,
+                                  int max_line, unsigned long max_resp_len,
                                   int overall_timeout)
 {
     BIO *cbio; /* == bio if supplied, used as connection BIO if rbio is NULL */
@@ -931,7 +931,7 @@ OSSL_HTTP_REQ_CTX *OSSL_HTTP_open(const char *server, const char *port,
 
     rctx = http_req_ctx_new(bio == NULL, cbio, rbio != NULL ? rbio : cbio,
                             bio_update_fn, arg, use_ssl, proxy, server, port,
-                            maxline, max_resp_len, overall_timeout);
+                            max_line, max_resp_len, overall_timeout);
 
  end:
     if (rctx != NULL)
@@ -1057,7 +1057,7 @@ BIO *OSSL_HTTP_get(const char *url, const char *proxy, const char *no_proxy,
                    BIO *bio, BIO *rbio,
                    OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
                    const STACK_OF(CONF_VALUE) *headers,
-                   int maxline, unsigned long max_resp_len, int timeout,
+                   int max_line, unsigned long max_resp_len, int timeout,
                    const char *expected_ct, int expect_asn1)
 {
     char *current_url, *redirection_url;
@@ -1084,7 +1084,7 @@ BIO *OSSL_HTTP_get(const char *url, const char *proxy, const char *no_proxy,
     new_rpath:
         rctx = OSSL_HTTP_open(host, port, proxy, no_proxy,
                               use_ssl, bio, rbio, bio_update_fn, arg,
-                              maxline, max_resp_len, timeout);
+                              max_line, max_resp_len, timeout);
         if (rctx != NULL) {
             if (!OSSL_HTTP_set_request(rctx, path, headers,
                                        NULL /* content_type */,
@@ -1131,7 +1131,7 @@ ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
                                BIO *bio, BIO *rbio,
                                OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
                                const STACK_OF(CONF_VALUE) *headers,
-                               int maxline, unsigned long max_resp_len,
+                               int max_line, unsigned long max_resp_len,
                                int timeout, const char *expected_ct,
                                const ASN1_ITEM *rsp_it)
 {
@@ -1143,7 +1143,7 @@ ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
         return NULL;
     }
     mem = OSSL_HTTP_get(url, proxy, no_proxy, bio, rbio, bio_update_fn,
-                        arg, headers, maxline, max_resp_len, timeout,
+                        arg, headers, max_line, max_resp_len, timeout,
                         expected_ct, 1 /* expect_asn1 */);
     resp = BIO_mem_d2i(mem /* may be NULL */, rsp_it);
     BIO_free(mem);
@@ -1193,7 +1193,7 @@ ASN1_VALUE *OSSL_HTTP_transfer_asn1(OSSL_HTTP_REQ_CTX **prctx,
                                     const char *proxy, const char *no_proxy,
                                     BIO *bio, BIO *rbio,
                                     OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
-                                    int maxline, unsigned long max_resp_len,
+                                    int max_line, unsigned long max_resp_len,
                                     const STACK_OF(CONF_VALUE) *headers,
                                     const char *content_type,
                                     const ASN1_VALUE *req,
@@ -1208,7 +1208,7 @@ ASN1_VALUE *OSSL_HTTP_transfer_asn1(OSSL_HTTP_REQ_CTX **prctx,
     if (rctx == NULL) {
         rctx = OSSL_HTTP_open(server, port, proxy, no_proxy,
                               use_ssl, bio, rbio, bio_update_fn, arg,
-                              maxline, max_resp_len, timeout);
+                              max_line, max_resp_len, timeout);
         timeout = -1; /* Already set during opening the connection */
     }
     if (rctx != NULL) {

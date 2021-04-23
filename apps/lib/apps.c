@@ -2470,7 +2470,7 @@ ASN1_VALUE *app_http_get_asn1(const char *url, const char *proxy,
     info.ssl_ctx = ssl_ctx;
     resp = OSSL_HTTP_get_asn1(url, proxy, no_proxy,
                               NULL, NULL, app_http_tls_cb, &info,
-                              headers, 0 /* maxline */, 0 /* max_resp_len */,
+                              headers, 0 /* max_line */, 0 /* max_resp_len */,
                               timeout, expected_content_type, it);
  end:
     OPENSSL_free(server);
@@ -2498,7 +2498,7 @@ ASN1_VALUE *app_http_post_asn1(const char *host, const char *port,
                                    proxy, no_proxy,
                                    NULL /* bio */, NULL /* rbio */,
                                    app_http_tls_cb, &info,
-                                   0 /* maxline */, 0 /* max_resp_len */,
+                                   0 /* max_line */, 0 /* max_resp_len */,
                                    headers, content_type, req, req_it,
                                    NULL /* expected_content_type */, rsp_it,
                                    timeout, 0 /* keep_alive */);

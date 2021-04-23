@@ -37,7 +37,7 @@ extern "C" {
 #define HTTP_DEFAULT_MAX_RESP_LEN (100 * 1024)
 
 /* Low-level HTTP API */
-OSSL_HTTP_REQ_CTX *OSSL_HTTP_REQ_CTX_new(BIO *wbio, BIO *rbio, int maxline);
+OSSL_HTTP_REQ_CTX *OSSL_HTTP_REQ_CTX_new(BIO *wbio, BIO *rbio, int max_line);
 void OSSL_HTTP_REQ_CTX_free(OSSL_HTTP_REQ_CTX *rctx);
 int OSSL_HTTP_REQ_CTX_set_request_line(OSSL_HTTP_REQ_CTX *rctx, int method_POST,
                                        const char *server, const char *port,
@@ -63,7 +63,7 @@ OSSL_HTTP_REQ_CTX *OSSL_HTTP_open(const char *server, const char *port,
                                   const char *proxy, const char *no_proxy,
                                   int use_ssl, BIO *bio, BIO *rbio,
                                   OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
-                                  int maxline, unsigned long max_resp_len,
+                                  int max_line, unsigned long max_resp_len,
                                   int overall_timeout);
 int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
                             const char *proxyuser, const char *proxypass,
@@ -78,14 +78,14 @@ BIO *OSSL_HTTP_get(const char *url, const char *proxy, const char *no_proxy,
                    BIO *bio, BIO *rbio,
                    OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
                    const STACK_OF(CONF_VALUE) *headers,
-                   int maxline, unsigned long max_resp_len, int timeout,
+                   int max_line, unsigned long max_resp_len, int timeout,
                    const char *expected_content_type, int expect_asn1);
 ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
                                const char *proxy, const char *no_proxy,
                                BIO *bio, BIO *rbio,
                                OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
                                const STACK_OF(CONF_VALUE) *headers,
-                               int maxline, unsigned long max_resp_len,
+                               int max_line, unsigned long max_resp_len,
                                int timeout, const char *expected_content_type,
                                const ASN1_ITEM *rsp_it);
 ASN1_VALUE *OSSL_HTTP_transfer_asn1(OSSL_HTTP_REQ_CTX **prctx,
@@ -94,7 +94,7 @@ ASN1_VALUE *OSSL_HTTP_transfer_asn1(OSSL_HTTP_REQ_CTX **prctx,
                                     const char *proxy, const char *no_proxy,
                                     BIO *bio, BIO *rbio,
                                     OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
-                                    int maxline, unsigned long max_resp_len,
+                                    int max_line, unsigned long max_resp_len,
                                     const STACK_OF(CONF_VALUE) *headers,
                                     const char *content_type,
                                     const ASN1_VALUE *req,

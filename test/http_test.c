@@ -114,14 +114,14 @@ static int test_http_x509(int do_get)
          OSSL_HTTP_get_asn1("http://"SERVER":"PORT"/"RPATH,
                             NULL /* proxy */, NULL /* no_proxy */,
                             wbio, rbio, NULL /* bio_update_fn */, NULL,
-                            headers, 0 /* maxline */,
+                            headers, 0 /* max_line */,
                             0 /* max_resp_len */, 0 /* timeout */,
                             content_type, x509_it)
          :
          OSSL_HTTP_transfer_asn1(NULL, SERVER, PORT, RPATH, 0 /* use_ssl */,
                                  NULL /* proxy */, NULL /* no_proxy */,
                                  wbio, rbio, NULL /* bio_update_fn */, NULL,
-                                 0 /* maxline */, 0 /* max_resp_len */,
+                                 0 /* max_line */, 0 /* max_resp_len */,
                                  headers, content_type,
                                  (ASN1_VALUE *)x509, x509_it,
                                  content_type, x509_it,

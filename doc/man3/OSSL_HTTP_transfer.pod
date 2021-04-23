@@ -23,7 +23,7 @@ OSSL_HTTP_close
                                    const char *proxy, const char *no_proxy,
                                    int use_ssl, BIO *bio, BIO *rbio,
                                    OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
-                                   int maxline, unsigned long max_resp_len,
+                                   int max_line, unsigned long max_resp_len,
                                    int overall_timeout);
  int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
                              const char *proxyuser, const char *proxypass,
@@ -38,14 +38,14 @@ OSSL_HTTP_close
                     BIO *bio, BIO *rbio,
                     OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
                     const STACK_OF(CONF_VALUE) *headers,
-                    int maxline, unsigned long max_resp_len, int timeout,
+                    int max_line, unsigned long max_resp_len, int timeout,
                     const char *expected_content_type, int expect_asn1);
  ASN1_VALUE *OSSL_HTTP_get_asn1(const char *url,
                                 const char *proxy, const char *no_proxy,
                                 BIO *bio, BIO *rbio,
                                 OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
                                 const STACK_OF(CONF_VALUE) *headers,
-                                int maxline, unsigned long max_resp_len,
+                                int max_line, unsigned long max_resp_len,
                                 int timeout, const char *expected_content_type,
                                 const ASN1_ITEM *rsp_it);
  ASN1_VALUE *OSSL_HTTP_transfer_asn1(OSSL_HTTP_REQ_CTX **prctx,
@@ -54,7 +54,7 @@ OSSL_HTTP_close
                                      const char *proxy, const char *no_proxy,
                                      BIO *bio, BIO *rbio,
                                      OSSL_HTTP_bio_cb_t bio_update_fn, void *arg,
-                                     int maxline, unsigned long max_resp_len,
+                                     int max_line, unsigned long max_resp_len,
                                      const STACK_OF(CONF_VALUE) *headers,
                                      const char *content_type,
                                      const ASN1_VALUE *req,
@@ -135,7 +135,7 @@ Here is a simple example that supports TLS connections (but not via a proxy):
 
 After disconnect the modified BIO will be deallocated using BIO_free_all().
 
-The I<maxline> parameter specifies the response header maximum line length.
+The I<max_line> parameter specifies the response header maximum line length.
 A value <= 0 indicates that
 the B<HTTP_DEFAULT_MAX_LINE_LENGTH> of 4KiB should be used.
 This length is also used as the number of content bytes that are read at a time.
