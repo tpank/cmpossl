@@ -136,12 +136,6 @@ int OSSL_CMP_validate_cert_path(const OSSL_CMP_CTX *ctx,
     return valid;
 }
 
-static int no_log_cb(ossl_unused const char *func, ossl_unused const char *file, ossl_unused int line,
-                     ossl_unused OSSL_CMP_severity level, ossl_unused const char *msg)
-{
-    return 1;
-}
-
 static int verify_cb_cert(X509_STORE* ts, X509* cert, int err)
 {
     X509_STORE_CTX *csc = X509_STORE_CTX_new();
@@ -277,8 +271,7 @@ static int cert_acceptable(const OSSL_CMP_CTX *ctx,
     if (time_cmp != 0) {
         err = time_cmp > 0 ? X509_V_ERR_CERT_HAS_EXPIRED
                            : X509_V_ERR_CERT_NOT_YET_VALID;
-        if (ctx->log_cb != no_log_cb /* logging not temporarily disabled */
-                && ctx->log_cb != NULL
+        if (ctx->log_cb != NULL /* logging not temporarily disabled */
                 && ts != NULL && X509_STORE_get_verify_cb(ts) != NULL)
             (void)verify_cb_cert(ts, cert, err); /* allows logging the error */
         ossl_cmp_warn(ctx, time_cmp > 0 ? "cert has expired"
@@ -488,7 +481,7 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
 
     /* enable clearing irrelevant errors in attempts to validate sender certs */
     (void)ERR_set_mark();
-    ctx->log_cb = no_log_cb; /* temporarily disable logging */
+    ctx->log_cb = NULL; /* temporarily disable logging */
 
     /*
      * try first cached scrt, used successfully earlier in same transaction,
