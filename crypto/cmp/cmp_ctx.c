@@ -22,6 +22,8 @@
 #include <openssl/crmf.h>
 #include <openssl/err.h>
 
+#define x509_chain_up_ref(c) (c == NULL ? c: X509_chain_up_ref(c))
+
 /*
  * Get current certificate store containing trusted root CA certs
  */
@@ -462,7 +464,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_get1_newChain(const OSSL_CMP_CTX *ctx)
         ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
-    return X509_chain_up_ref(ctx->newChain);
+    return x509_chain_up_ref(ctx->newChain);
 }
 
 /*
@@ -487,7 +489,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_get1_extraCertsIn(const OSSL_CMP_CTX *ctx)
         ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
-    return X509_chain_up_ref(ctx->extraCertsIn);
+    return x509_chain_up_ref(ctx->extraCertsIn);
 }
 
 /*
@@ -573,7 +575,7 @@ STACK_OF(X509) *OSSL_CMP_CTX_get1_caPubs(const OSSL_CMP_CTX *ctx)
         ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
         return NULL;
     }
-    return X509_chain_up_ref(ctx->caPubs);
+    return x509_chain_up_ref(ctx->caPubs);
 }
 
 /*
