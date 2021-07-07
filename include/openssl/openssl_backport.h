@@ -350,28 +350,6 @@ int ossl_x509_add_cert_new(STACK_OF(X509) **p_sk, X509 *cert, int flags);
 /* from internal/cryptlib.h: */
 #define ossl_assert(x) ((x) != 0)
 int openssl_strerror_r(int errnum, char *buf, size_t buflen);
-/* from internal/constant_time.h: */
-#define OSSL_INTERNAL_CONSTANT_TIME_H
-static ossl_inline unsigned int constant_time_msb(unsigned int a)
-{
-    return 0 - (a >> (sizeof(a) * 8 - 1));
-}
-static ossl_inline unsigned int constant_time_is_zero(unsigned int a)
-{
-    return constant_time_msb(~a & (a - 1));
-}
-static ossl_inline size_t constant_time_msb_s(size_t a)
-{
-    return 0 - (a >> (sizeof(a) * 8 - 1));
-}
-static ossl_inline size_t constant_time_is_zero_s(size_t a)
-{
-    return constant_time_msb_s(~a & (a - 1));
-}
-static ossl_inline size_t constant_time_eq_s(size_t a, size_t b)
-{
-    return constant_time_is_zero_s(a ^ b);
-}
 /* system-specific variants defining ossl_sleep() */
 #ifdef OPENSSL_SYS_UNIX
 # include <unistd.h>

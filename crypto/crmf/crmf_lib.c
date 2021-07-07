@@ -29,9 +29,8 @@
 #include <openssl/asn1t.h>
 
 #include "crmf_local.h"
-#ifndef CMP_STANDALONE
 #include "internal/constant_time.h"
-#endif
+#include "internal/sizes.h"
 
 /* explicit #includes not strictly needed since implied by the above: */
 #include <openssl/crmf.h>

@@ -76,7 +76,7 @@ override LDFLAGS += -L$(OPENSSL_LIB) -L$(OPENSSL) -Wl,-rpath=$(OPENSSL_RPATH_LIB
 override LDLIBS  += -lcrypto
 
 LIBCMP_HDRS_= crmf.h cmp.h cmp_util.h cmperr.h crmferr.h safestack_backport.h openssl_backport.h types.h http.h cryptoerr_legacy.h
-LIBCMP_HDRS_INTERNAL_ = refcount.h
+LIBCMP_HDRS_INTERNAL_ = refcount.h sizes.h constant_time.h
 LIBCMP_HDRS = $(patsubst %,include/openssl/%,$(LIBCMP_HDRS_))
 LIBCMP_HDRS_INTERNAL = $(patsubst %,include/internal/%,$(LIBCMP_HDRS_INTERNAL_))
 LIBCMP_INC_HDRS = $(patsubst %,$(LIBCMP_INC)/openssl/%,$(LIBCMP_HDRS_))
@@ -107,7 +107,8 @@ $(LIBCMP_OUT): $(LIBCMP_INC_HDRS) $(LIBCMP_HDRS) $(LIBCMP_SRCS)
 clean:
 	rm -f $(LIBCMP_INC)/openssl/* $(LIBCMP_INC)/internal/*
 	rm -f $(LIBCMP_OUT) # $(LIBCMP_OUT)$(VERSION)
-	rmdir $(LIBCMP_INC)/openssl $(LIBCMP_INC)/internal $(LIBCMP_INC) 2>/dev/null || true
+	rm -r $(LIBCMP_INC)/openssl $(LIBCMP_INC)/internal
+	rmdir $(LIBCMP_INC) 2>/dev/null || true
 
 SYSTEM_LIB=/usr/lib
 DEST_LIB=$(DESTDIR)$(prefix)$(SYSTEM_LIB)
