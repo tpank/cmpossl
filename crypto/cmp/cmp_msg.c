@@ -1043,7 +1043,8 @@ int OSSL_CMP_MSG_update_transactionID(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg)
             || ossl_cmp_msg_protect(ctx, msg);
 }
 
-OSSL_CMP_MSG *OSSL_CMP_MSG_read(const char *file)
+OSSL_CMP_MSG *OSSL_CMP_MSG_read(const char *file, ossl_unused OSSL_LIB_CTX *libctx,
+                                ossl_unused const char *propq)
 {
     OSSL_CMP_MSG *msg = NULL;
     BIO *bio = NULL;

@@ -35,7 +35,7 @@ _Pragma("GCC diagnostic ignored \"-Wunused-parameter\"")
 #   if OPENSSL_VERSION_NUMBER < 0x10101000L
 #    define OPENSSL_sk_new_reserve(f,n) sk_new(f) /* sorry, no reservation */
 #    define OPENSSL_sk_reserve(sk,n) 1 /* sorry, no-op */
-#    define ERR_clear_last_mark() 1 /* sorry, no-op */
+static ossl_unused ossl_inline int ERR_clear_last_mark(void) { return 1; } /* sorry, no-op */
 #    define HEADER_ASN1ERR_H /* block inclusion of header added in 1.1.1 */
 #   endif
 #   if OPENSSL_VERSION_NUMBER < 0x10100006L
@@ -278,8 +278,10 @@ DECLARE_ASN1_DUP_FUNCTION(X509_PUBKEY)
 #define X509_STORE_CTX_new_ex(libctx, propq) ((void)(libctx), (void)(propq), X509_STORE_CTX_new())
 #define RAND_bytes_ex(ctx, buf, num) RAND_bytes(((void)(ctx), buf), num)
 typedef struct ossl_cmp_ctx_st OSSL_CMP_CTX;
-typedef BIO *(*OSSL_HTTP_bio_cb_t) (OSSL_CMP_CTX *ctx, BIO *hbio,
-                                    unsigned long detail);
+typedef BIO *(*OSSL_HTTP_bio_cb_t)(BIO *bio, void *arg, int connect, int detail);
+int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
+                            const char *proxyuser, const char *proxypass,
+                            int timeout, BIO *bio_err, const char *prog);
 # define X509_ADD_FLAG_DEFAULT  0
 # define X509_ADD_FLAG_UP_REF   0x1
 # define X509_ADD_FLAG_PREPEND  0x2
@@ -308,6 +310,7 @@ typedef BIO *(*OSSL_HTTP_bio_cb_t) (OSSL_CMP_CTX *ctx, BIO *hbio,
 # endif
 # define X509_FLAG_EXTENSIONS_ONLY_KID   (1L << 13)
 # define OCSP_REVOKED_STATUS_AACOMPROMISE            10
+# define ossl_isspace isspace
 # define CMP_R_CONNECT_TIMEOUT CMP_R_TOTAL_TIMEOUT
 # define CMP_R_READ_TIMEOUT CMP_R_TOTAL_TIMEOUT
 # define CMP_R_ERROR_CONNECTING CMP_R_TRANSFER_ERROR
@@ -315,6 +318,13 @@ typedef BIO *(*OSSL_HTTP_bio_cb_t) (OSSL_CMP_CTX *ctx, BIO *hbio,
 # define CMP_R_TLS_ERROR CMP_R_TRANSFER_ERROR
 # define CMP_R_FAILED_TO_RECEIVE_PKIMESSAGE CMP_R_TRANSFER_ERROR
 # define CMP_R_ERROR_DECODING_MESSAGE CMP_R_TRANSFER_ERROR
+# define BIO_R_CONNECT_TIMEOUT BIO_R_CONNECT_ERROR
+# define BIO_R_TRANSFER_TIMEOUT BIO_R_CONNECT_ERROR
+# define BIO_R_TRANSFER_ERROR BIO_R_CONNECT_ERROR
+# define ERR_LIB_HTTP ERR_LIB_CMP
+# define HTTP_R_CONNECT_FAILURE CMP_R_TRANSFER_ERROR
+# define HTTP_R_HEADER_PARSE_ERROR CMP_R_TRANSFER_ERROR
+# define HTTP_R_RECEIVED_WRONG_HTTP_VERSION CMP_R_TRANSFER_ERROR
 # define ERR_SYSTEM_ERROR(err) 0
 # define ERR_add_error_txt(sep, txt) ossl_cmp_add_error_txt(sep, txt)
 # define OSSL_CMP_add_error_data(txt) ERR_add_error_txt(" : ", txt)
