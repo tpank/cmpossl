@@ -297,10 +297,14 @@ DECLARE_ASN1_DUP_FUNCTION(X509_PUBKEY)
                                               X509_PUBKEY_get0(b)) == 0))
 #  define EVP_PKEY_CTX_new_from_pkey(libctx, pkey, propq) \
     EVP_PKEY_CTX_new(((void)(libctx), (void)(propq), pkey), NULL)
+#  define EVP_CIPHER_get_block_size EVP_CIPHER_block_size
+#  define EVP_CIPHER_get_key_length EVP_CIPHER_key_length
+#  define EVP_CIPHER_get_iv_length EVP_CIPHER_iv_length
+#  define EVP_CIPHER_fetch(l, n, p) ((EVP_CIPHER *)EVP_get_cipherbyname(n))
 #  define X509_new_ex(libctx, propq) ((void)(libctx), (void)(propq), X509_new())
 #  define X509_STORE_CTX_new_ex(libctx, propq) \
     ((void)(libctx), (void)(propq), X509_STORE_CTX_new())
-#  define RAND_bytes_ex(ctx, buf, num) RAND_bytes(((void)(ctx), buf), num)
+#  define RAND_bytes_ex(ctx, buf, num, x) RAND_bytes(((void)(ctx), buf), num)
 typedef struct ossl_cmp_ctx_st OSSL_CMP_CTX;
 typedef BIO *(*OSSL_HTTP_bio_cb_t)(BIO *b, void *arg, int connect, int detail);
 int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,

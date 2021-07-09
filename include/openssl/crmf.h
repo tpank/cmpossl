@@ -69,6 +69,7 @@ SKM_DEFINE_STACK_OF_INTERNAL(OSSL_CRMF_MSG, OSSL_CRMF_MSG, OSSL_CRMF_MSG)
 #define sk_OSSL_CRMF_MSG_set(sk, idx, ptr) ((OSSL_CRMF_MSG *)OPENSSL_sk_set(ossl_check_OSSL_CRMF_MSG_sk_type(sk), (idx), ossl_check_OSSL_CRMF_MSG_type(ptr)))
 #define sk_OSSL_CRMF_MSG_find(sk, ptr) OPENSSL_sk_find(ossl_check_OSSL_CRMF_MSG_sk_type(sk), ossl_check_OSSL_CRMF_MSG_type(ptr))
 #define sk_OSSL_CRMF_MSG_find_ex(sk, ptr) OPENSSL_sk_find_ex(ossl_check_OSSL_CRMF_MSG_sk_type(sk), ossl_check_OSSL_CRMF_MSG_type(ptr))
+#define sk_OSSL_CRMF_MSG_find_all(sk, ptr, pnum) OPENSSL_sk_find_all(ossl_check_OSSL_CRMF_MSG_sk_type(sk), ossl_check_OSSL_CRMF_MSG_type(ptr), pnum)
 #define sk_OSSL_CRMF_MSG_sort(sk) OPENSSL_sk_sort(ossl_check_OSSL_CRMF_MSG_sk_type(sk))
 #define sk_OSSL_CRMF_MSG_is_sorted(sk) OPENSSL_sk_is_sorted(ossl_check_const_OSSL_CRMF_MSG_sk_type(sk))
 #define sk_OSSL_CRMF_MSG_dup(sk) ((STACK_OF(OSSL_CRMF_MSG) *)OPENSSL_sk_dup(ossl_check_const_OSSL_CRMF_MSG_sk_type(sk)))
@@ -103,6 +104,7 @@ SKM_DEFINE_STACK_OF_INTERNAL(OSSL_CRMF_CERTID, OSSL_CRMF_CERTID, OSSL_CRMF_CERTI
 #define sk_OSSL_CRMF_CERTID_set(sk, idx, ptr) ((OSSL_CRMF_CERTID *)OPENSSL_sk_set(ossl_check_OSSL_CRMF_CERTID_sk_type(sk), (idx), ossl_check_OSSL_CRMF_CERTID_type(ptr)))
 #define sk_OSSL_CRMF_CERTID_find(sk, ptr) OPENSSL_sk_find(ossl_check_OSSL_CRMF_CERTID_sk_type(sk), ossl_check_OSSL_CRMF_CERTID_type(ptr))
 #define sk_OSSL_CRMF_CERTID_find_ex(sk, ptr) OPENSSL_sk_find_ex(ossl_check_OSSL_CRMF_CERTID_sk_type(sk), ossl_check_OSSL_CRMF_CERTID_type(ptr))
+#define sk_OSSL_CRMF_CERTID_find_all(sk, ptr, pnum) OPENSSL_sk_find_all(ossl_check_OSSL_CRMF_CERTID_sk_type(sk), ossl_check_OSSL_CRMF_CERTID_type(ptr), pnum)
 #define sk_OSSL_CRMF_CERTID_sort(sk) OPENSSL_sk_sort(ossl_check_OSSL_CRMF_CERTID_sk_type(sk))
 #define sk_OSSL_CRMF_CERTID_is_sorted(sk) OPENSSL_sk_is_sorted(ossl_check_const_OSSL_CRMF_CERTID_sk_type(sk))
 #define sk_OSSL_CRMF_CERTID_dup(sk) ((STACK_OF(OSSL_CRMF_CERTID) *)OPENSSL_sk_dup(ossl_check_const_OSSL_CRMF_CERTID_sk_type(sk)))
@@ -134,8 +136,12 @@ int OSSL_CRMF_pbm_new(OSSL_LIB_CTX *libctx, const char *propq,
 /* crmf_lib.c */
 int OSSL_CRMF_MSG_set1_regCtrl_regToken(OSSL_CRMF_MSG *msg,
                                         const ASN1_UTF8STRING *tok);
+ASN1_UTF8STRING
+*OSSL_CRMF_MSG_get0_regCtrl_regToken(const OSSL_CRMF_MSG *msg);
 int OSSL_CRMF_MSG_set1_regCtrl_authenticator(OSSL_CRMF_MSG *msg,
                                              const ASN1_UTF8STRING *auth);
+ASN1_UTF8STRING
+*OSSL_CRMF_MSG_get0_regCtrl_authenticator(const OSSL_CRMF_MSG *msg);
 int
 OSSL_CRMF_MSG_PKIPublicationInfo_push0_SinglePubInfo(OSSL_CRMF_PKIPUBLICATIONINFO *pi,
                                                      OSSL_CRMF_SINGLEPUBINFO *spi);
@@ -151,17 +157,27 @@ int OSSL_CRMF_MSG_set_PKIPublicationInfo_action(OSSL_CRMF_PKIPUBLICATIONINFO *pi
                                                 int action);
 int OSSL_CRMF_MSG_set1_regCtrl_pkiPublicationInfo(OSSL_CRMF_MSG *msg,
                                                   const OSSL_CRMF_PKIPUBLICATIONINFO *pi);
+OSSL_CRMF_PKIPUBLICATIONINFO
+*OSSL_CRMF_MSG_get0_regCtrl_pkiPublicationInfo(const OSSL_CRMF_MSG *msg);
 int OSSL_CRMF_MSG_set1_regCtrl_protocolEncrKey(OSSL_CRMF_MSG *msg,
                                                const X509_PUBKEY *pubkey);
+X509_PUBKEY
+*OSSL_CRMF_MSG_get0_regCtrl_protocolEncrKey(const OSSL_CRMF_MSG *msg);
 int OSSL_CRMF_MSG_set1_regCtrl_oldCertID(OSSL_CRMF_MSG *msg,
                                          const OSSL_CRMF_CERTID *cid);
+OSSL_CRMF_CERTID
+*OSSL_CRMF_MSG_get0_regCtrl_oldCertID(const OSSL_CRMF_MSG *msg);
 OSSL_CRMF_CERTID *OSSL_CRMF_CERTID_gen(const X509_NAME *issuer,
                                        const ASN1_INTEGER *serial);
 
 int OSSL_CRMF_MSG_set1_regInfo_utf8Pairs(OSSL_CRMF_MSG *msg,
                                          const ASN1_UTF8STRING *utf8pairs);
+ASN1_UTF8STRING
+*OSSL_CRMF_MSG_get0_regInfo_utf8Pairs(const OSSL_CRMF_MSG *msg);
 int OSSL_CRMF_MSG_set1_regInfo_certReq(OSSL_CRMF_MSG *msg,
                                        const OSSL_CRMF_CERTREQUEST *cr);
+OSSL_CRMF_CERTREQUEST
+*OSSL_CRMF_MSG_get0_regInfo_certReq(const OSSL_CRMF_MSG *msg);
 
 int OSSL_CRMF_MSG_set0_validity(OSSL_CRMF_MSG *crm,
                                 ASN1_TIME *notBefore, ASN1_TIME *notAfter);
@@ -182,13 +198,18 @@ int OSSL_CRMF_MSGS_verify_popo(const OSSL_CRMF_MSGS *reqs,
                                int rid, int acceptRAVerified,
                                OSSL_LIB_CTX *libctx, const char *propq);
 OSSL_CRMF_CERTTEMPLATE *OSSL_CRMF_MSG_get0_tmpl(const OSSL_CRMF_MSG *crm);
-ASN1_INTEGER
+const ASN1_INTEGER
 *OSSL_CRMF_CERTTEMPLATE_get0_serialNumber(const OSSL_CRMF_CERTTEMPLATE *tmpl);
 const X509_NAME
+*OSSL_CRMF_CERTTEMPLATE_get0_subject(const OSSL_CRMF_CERTTEMPLATE *tmpl);
+const X509_NAME
 *OSSL_CRMF_CERTTEMPLATE_get0_issuer(const OSSL_CRMF_CERTTEMPLATE *tmpl);
+X509_EXTENSIONS
+*OSSL_CRMF_CERTTEMPLATE_get0_extensions(const OSSL_CRMF_CERTTEMPLATE *tmpl);
 const X509_NAME
 *OSSL_CRMF_CERTID_get0_issuer(const OSSL_CRMF_CERTID *cid);
-ASN1_INTEGER *OSSL_CRMF_CERTID_get0_serialNumber(const OSSL_CRMF_CERTID *cid);
+const ASN1_INTEGER
+*OSSL_CRMF_CERTID_get0_serialNumber(const OSSL_CRMF_CERTID *cid);
 int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
                                 EVP_PKEY *pubkey,
                                 const X509_NAME *subject,
