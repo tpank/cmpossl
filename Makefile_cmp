@@ -76,8 +76,9 @@ override LDFLAGS += -L$(OPENSSL_LIB) -L$(OPENSSL) -Wl,-rpath=$(OPENSSL_RPATH_LIB
 override LDLIBS  += -lcrypto
 
 LIBCMP_HDRS_= crmf.h cmp.h cmp_util.h cmperr.h crmferr.h safestack_backport.h \
-  openssl_backport.h types.h http.h cryptoerr_legacy.h asn1err.h kdf.h kdferr.h
-LIBCMP_HDRS_INTERNAL_ = refcount.h sizes.h constant_time.h
+  openssl_backport.h types.h http.h cryptoerr_legacy.h trace.h macros.h \
+  asn1err.h kdf.h kdferr.h
+LIBCMP_HDRS_INTERNAL_ = refcount.h sizes.h constant_time.h cryptlib.h
 LIBCMP_HDRS = $(patsubst %,include/openssl/%,$(LIBCMP_HDRS_))
 LIBCMP_HDRS_INTERNAL = $(patsubst %,include/internal/%,$(LIBCMP_HDRS_INTERNAL_))
 LIBCMP_INC_HDRS = $(patsubst %,$(LIBCMP_INC)/openssl/%,$(LIBCMP_HDRS_))

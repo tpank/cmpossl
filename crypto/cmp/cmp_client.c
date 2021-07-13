@@ -10,9 +10,8 @@
  */
 
 #include "cmp_local.h"
-# ifndef CMP_STANDALONE
 #include "internal/cryptlib.h"
-#endif
+#include "e_os.h" /* ossl_sleep() */
 
 /* explicit #includes not strictly needed since implied by the above: */
 #include <openssl/bio.h>
@@ -20,8 +19,7 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/x509v3.h>
-
-#include "openssl/cmp_util.h"
+#include <openssl/cmp_util.h>
 
 #define IS_CREP(t) ((t) == OSSL_CMP_PKIBODY_IP || (t) == OSSL_CMP_PKIBODY_CP \
                         || (t) == OSSL_CMP_PKIBODY_KUP)
@@ -34,9 +32,9 @@
 static int unprotected_exception(const OSSL_CMP_CTX *ctx,
                                  const OSSL_CMP_MSG *rep,
                                  int invalid_protection,
-                                 ossl_unused int expected_type /* ignored here */)
+                                 ossl_unused int expected_type)
 {
-    int rcvd_type = ossl_cmp_msg_get_bodytype(rep /* may be NULL */);
+    int rcvd_type = OSSL_CMP_MSG_get_bodytype(rep /* may be NULL */);
     const char *msg_type = NULL;
 
     if (!ossl_assert(ctx != NULL && rep != NULL))
@@ -73,7 +71,6 @@ static int unprotected_exception(const OSSL_CMP_CTX *ctx,
 
             if (sk_OSSL_CMP_CERTRESPONSE_num(crepmsg->response) > 1)
                 return -1;
-            /* TODO: handle potentially multiple CertResponses in CertRepMsg */
             if (crep == NULL)
                 return -1;
             if (ossl_cmp_pkisi_get_status(crep->status)
@@ -135,7 +132,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         || expected_type == OSSL_CMP_PKIBODY_POLLREP
         || expected_type == OSSL_CMP_PKIBODY_PKICONF;
     const char *req_type_str =
-        ossl_cmp_bodytype_to_string(ossl_cmp_msg_get_bodytype(req));
+        ossl_cmp_bodytype_to_string(OSSL_CMP_MSG_get_bodytype(req));
     const char *expected_type_str = ossl_cmp_bodytype_to_string(expected_type);
     int msg_timeout;
     int bt;
@@ -180,7 +177,7 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
         return 0;
     }
 
-    bt = ossl_cmp_msg_get_bodytype(*rep);
+    bt = OSSL_CMP_MSG_get_bodytype(*rep);
     /*
      * The body type in the 'bt' variable is not yet verified.
      * Still we use this preliminary value already for a progress report because
@@ -219,14 +216,14 @@ static int send_receive_check(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *req,
                                                   sizeof(buf)) != NULL)
             ERR_add_error_data(1, buf);
         if (emc->errorCode != NULL
-                && BIO_snprintf(buf, sizeof(buf), "; errorCode: %ld",
+                && BIO_snprintf(buf, sizeof(buf), "; errorCode: %08lX",
                                 ASN1_INTEGER_get(emc->errorCode)) > 0)
             ERR_add_error_data(1, buf);
         if (emc->errorDetails != NULL) {
-            char *text = sk_ASN1_UTF8STRING2text(emc->errorDetails, ", ",
-                                                 OSSL_CMP_PKISI_BUFLEN - 1);
+            char *text = ossl_sk_ASN1_UTF8STRING2text(emc->errorDetails, ", ",
+                                                      OSSL_CMP_PKISI_BUFLEN - 1);
 
-            if (text != NULL)
+            if (text != NULL && *text != '\0')
                 ERR_add_error_data(2, "; errorDetails: ", text);
             OPENSSL_free(text);
         }
@@ -264,7 +261,6 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
                   "received 'waiting' PKIStatus, starting to poll for response");
     *rep = NULL;
     for (;;) {
-        /* TODO: handle potentially multiple poll requests per message */
         if ((preq = ossl_cmp_pollReq_new(ctx, rid)) == NULL)
             goto err;
 
@@ -272,14 +268,13 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
             goto err;
 
         /* handle potential pollRep */
-        if (ossl_cmp_msg_get_bodytype(prep) == OSSL_CMP_PKIBODY_POLLREP) {
+        if (OSSL_CMP_MSG_get_bodytype(prep) == OSSL_CMP_PKIBODY_POLLREP) {
             OSSL_CMP_POLLREPCONTENT *prc = prep->body->value.pollRep;
             OSSL_CMP_POLLREP *pollRep = NULL;
             int64_t check_after;
             char str[OSSL_CMP_PKISI_BUFLEN];
             int len;
 
-            /* TODO: handle potentially multiple elements in pollRep */
             if (sk_OSSL_CMP_POLLREP_num(prc) > 1) {
                 ERR_raise(ERR_LIB_CMP, CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED);
                 goto err;
@@ -300,6 +295,25 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
                     ERR_add_error_data(1, str);
                 goto err;
             }
+
+            if (pollRep->reason == NULL
+                    || (len = BIO_snprintf(str, OSSL_CMP_PKISI_BUFLEN,
+                                           " with reason = '")) < 0) {
+                *str = '\0';
+            } else {
+                char *text = ossl_sk_ASN1_UTF8STRING2text(pollRep->reason, ", ",
+                                                          sizeof(str) - len - 2);
+
+                if (text == NULL
+                        || BIO_snprintf(str + len, sizeof(str) - len,
+                                        "%s'", text) < 0)
+                    *str = '\0';
+                OPENSSL_free(text);
+            }
+            ossl_cmp_log2(INFO, ctx,
+                          "received polling response%s; checkAfter = %ld seconds",
+                          str, check_after);
+
             if (ctx->total_timeout > 0) { /* timeout is not infinite */
                 const int exp = 5; /* expected max time per msg round trip */
                 int64_t time_left = (int64_t)(ctx->end_time - exp - time(NULL));
@@ -312,24 +326,6 @@ static int poll_for_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
                     check_after = time_left;
                 /* poll one last time just when timeout was reached */
             }
-
-            if (pollRep->reason == NULL
-                    || (len = BIO_snprintf(str, OSSL_CMP_PKISI_BUFLEN,
-                                           " with reason = '")) < 0) {
-                *str = '\0';
-            } else {
-                char *text = sk_ASN1_UTF8STRING2text(pollRep->reason, ", ",
-                                                     sizeof(str) - len - 2);
-
-                if (text == NULL
-                        || BIO_snprintf(str + len, sizeof(str) - len,
-                                        "%s'", text) < 0)
-                    *str = '\0';
-                OPENSSL_free(text);
-            }
-            ossl_cmp_log2(INFO, ctx,
-                          "received polling response%s; checkAfter = %ld seconds",
-                          str, check_after);
 
             OSSL_CMP_MSG_free(preq);
             preq = NULL;
@@ -498,9 +494,8 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
         return fail_info;
 
     ossl_cmp_debug(ctx, "trying to build chain for newly enrolled cert");
-    chain = ossl_cmp_build_cert_chain(ctx->libctx, ctx->propq,
-                                      out_trusted /* may be NULL */,
-                                      ctx->untrusted, cert);
+    chain = X509_build_chain(cert, ctx->untrusted, out_trusted /* maybe NULL */,
+                             0, ctx->libctx, ctx->propq);
     if (sk_X509_num(chain) > 0)
         X509_free(sk_X509_shift(chain)); /* remove leaf (EE) cert */
     if (out_trusted != NULL) {
@@ -533,7 +528,8 @@ int OSSL_CMP_certConf_cb(OSSL_CMP_CTX *ctx, X509 *cert, int fail_info,
  */
 static int cert_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
                          OSSL_CMP_MSG **resp, int *checkAfter,
-                         ossl_unused int req_type, ossl_unused int expected_type)
+                         ossl_unused int req_type,
+                         ossl_unused int expected_type)
 {
     EVP_PKEY *rkey = OSSL_CMP_CTX_get0_newPkey(ctx /* may be NULL */, 0);
     int fail_info = 0; /* no failure */
@@ -554,7 +550,6 @@ static int cert_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
         ERR_raise(ERR_LIB_CMP, CMP_R_MULTIPLE_RESPONSES_NOT_SUPPORTED);
         return 0;
     }
-    /* TODO: handle potentially multiple CertResponses in CertRepMsg */
     crep = ossl_cmp_certrepmessage_get0_certresponse(crepmsg, rid);
     if (crep == NULL)
         return 0;
@@ -625,9 +620,8 @@ static int cert_response(OSSL_CMP_CTX *ctx, int sleep, int rid,
     if (fail_info != 0) /* immediately log error before any certConf exchange */
         ossl_cmp_log1(ERROR, ctx,
                       "rejecting newly enrolled cert with subject: %s", subj);
-
     /*
-     * TODO: better move certConf exchange to do_certreq_seq() such that
+     * certConf exchange should better be moved to do_certreq_seq() such that
      * also more low-level errors with CertReqMessages get reported to server
      */
     if (!ctx->disableConfirm
@@ -690,9 +684,8 @@ int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type,
     } else {
         if (req_type < 0)
             return ossl_cmp_exchange_error(ctx, OSSL_CMP_PKISTATUS_rejection,
-                                           0 /* TODO better fail_info value? */,
-                                           "polling aborted", 0 /* errorCode */,
-                                           "by application");
+                                           0, "polling aborted",
+                                           0 /* errorCode */, "by application");
         res = poll_for_response(ctx, 0 /* no sleep */, rid, &rep, checkAfter);
         if (res <= 0) /* waiting or error */
             return res;
@@ -710,7 +703,6 @@ int OSSL_CMP_try_certreq(OSSL_CMP_CTX *ctx, int req_type,
  * certConf, PKIconf, and polling if required.
  * Will sleep as long as indicated by the server (according to checkAfter).
  * All enrollment options need to be present in the context.
- * TODO: another function to request two certificates at once should be created.
  * Returns pointer to received certificate, or NULL if none was received.
  */
 X509 *OSSL_CMP_exec_certreq(OSSL_CMP_CTX *ctx, int req_type,
@@ -831,6 +823,7 @@ int OSSL_CMP_exec_RR_ses(OSSL_CMP_CTX *ctx)
             goto err;
         }
         if ((cid = ossl_cmp_revrepcontent_get_CertId(rrep, rsid)) == NULL) {
+            ERR_raise(ERR_LIB_CMP, CMP_R_MISSING_CERTID);
             ret = 0;
             goto err;
         }

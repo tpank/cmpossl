@@ -123,7 +123,7 @@ void ossl_cmp_add_error_txt(const char *separator, const char *txt)
     } while (*txt != '\0');
 }
 
-int x509_print_ex_brief(BIO *bio, X509 *cert, unsigned long neg_cflags)
+int ossl_x509_print_ex_brief(BIO *bio, X509 *cert, unsigned long neg_cflags)
 {
     unsigned long flags = ASN1_STRFLGS_RFC2253 | ASN1_STRFLGS_ESC_QUOTE |
         XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN;
@@ -187,7 +187,7 @@ int x509_set0_libctx(ossl_unused X509 *x, ossl_unused OSSL_LIB_CTX *libctx, ossl
     return 1;
 }
 
-int x509v3_cache_extensions(X509 *x)
+int ossl_x509v3_cache_extensions(X509 *x)
 {
     X509_check_ca(x);
 
@@ -271,32 +271,112 @@ int ossl_x509_add_certs_new(STACK_OF(X509) **p_sk, STACK_OF(X509) *certs,
 }
 
 /* calculate cert digest using the same hash algorithm as in its signature */
-ASN1_OCTET_STRING *X509_digest_sig(const X509 *cert)
+ASN1_OCTET_STRING *X509_digest_sig(const X509 *cert,
+                                   EVP_MD **md_used, int *md_is_fallback)
 {
     unsigned int len;
     unsigned char hash[EVP_MAX_MD_SIZE];
-    int md_NID;
-    const EVP_MD *md = NULL;
-    ASN1_OCTET_STRING *new = NULL;
+    int mdnid, pknid;
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+    const
+#endif
+    EVP_MD *md = NULL;
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    const char *md_name;
+#endif
+    ASN1_OCTET_STRING *new;
+
+    if (md_used != NULL)
+        *md_used = NULL;
+    if (md_is_fallback != NULL)
+        *md_is_fallback = 0;
 
     if (cert == NULL) {
         ERR_raise(ERR_LIB_X509, ERR_R_PASSED_NULL_PARAMETER);
         return NULL;
     }
 
-    if (!OBJ_find_sigid_algs(X509_get_signature_nid(cert), &md_NID, NULL)
-            || (md = EVP_get_digestbynid(md_NID)) == NULL) {
+    if (!OBJ_find_sigid_algs(X509_get_signature_nid(cert), &mdnid, &pknid)) {
+        ERR_raise(ERR_LIB_X509, X509_R_UNKNOWN_SIGID_ALGS);
+        return NULL;
+    }
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    if (mdnid == NID_undef) {
+        if (pknid == EVP_PKEY_RSA_PSS) {
+            RSA_PSS_PARAMS *pss = ossl_rsa_pss_decode(&cert->sig_alg);
+            const EVP_MD *mgf1md, *mmd = NULL;
+            int saltlen, trailerfield;
+
+            if (pss == NULL
+                || !ossl_rsa_pss_get_param_unverified(pss, &mmd, &mgf1md,
+                                                      &saltlen,
+                                                      &trailerfield)
+                ||  mmd == NULL) {
+                RSA_PSS_PARAMS_free(pss);
+                ERR_raise(ERR_LIB_X509, X509_R_UNSUPPORTED_ALGORITHM);
+                return NULL;
+            }
+            RSA_PSS_PARAMS_free(pss);
+            /* Fetch explicitly and do not fallback */
+            if ((md = EVP_MD_fetch(cert->libctx, EVP_MD_get0_name(mmd),
+                                   cert->propq)) == NULL)
+                /* Error code from fetch is sufficient */
+                return NULL;
+        } else
+        if (pknid != NID_undef) {
+            /* A known algorithm, but without a digest */
+            switch (pknid) {
+            case NID_ED25519: /* Follow CMS default given in RFC8419 */
+                md_name = "SHA512";
+                break;
+            case NID_ED448: /* Follow CMS default given in RFC8419 */
+                md_name = "SHAKE256";
+                break;
+            default: /* Fall back to SHA-256 */
+                md_name = "SHA256";
+                break;
+            }
+            if ((md = EVP_MD_fetch(cert->libctx, md_name,
+                                   cert->propq)) == NULL)
+                return NULL;
+            if (md_is_fallback != NULL)
+                *md_is_fallback = 1;
+        } else {
+            /* A completely unknown algorithm */
+            ERR_raise(ERR_LIB_X509, X509_R_UNSUPPORTED_ALGORITHM);
+            return NULL;
+        }
+    } else if ((md = EVP_MD_fetch(cert->libctx, OBJ_nid2sn(mdnid),
+                                  cert->propq)) == NULL
+               && (md = (EVP_MD *)EVP_get_digestbynid(mdnid)) == NULL) {
+        ERR_raise(ERR_LIB_X509, X509_R_UNSUPPORTED_ALGORITHM);
+        return NULL;
+    }
+#else
+    if ((md = EVP_get_digestbynid(mdnid)) == NULL) {
         ERR_raise(ERR_LIB_CMP, X509_R_UNSUPPORTED_ALGORITHM);
         return NULL;
     }
+#endif
     if (!X509_digest(cert, md, hash, &len)
             || (new = ASN1_OCTET_STRING_new()) == NULL)
-        return NULL;
-    if (!(ASN1_OCTET_STRING_set(new, hash, len))) {
-        ASN1_OCTET_STRING_free(new);
-        return NULL;
+        goto err;
+    if ((ASN1_OCTET_STRING_set(new, hash, len))) {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        if (md_used != NULL)
+            *md_used = md;
+        else
+            EVP_MD_free(md);
+#endif
+        return new;
     }
-    return new;
+    ASN1_OCTET_STRING_free(new);
+ err:
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_MD_free(md);
+#endif
+    return NULL;
 }
 
 void ERR_raise_data(ossl_unused int lib, int reason, const char *fmt, ...)
@@ -308,11 +388,12 @@ void ERR_raise_data(ossl_unused int lib, int reason, const char *fmt, ...)
     va_start(ap, fmt);
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
-    ERR_add_error_txt("", buf); /* sorry, ignoring further args */
+    ERR_add_error_txt("", buf); /* sorry, ignoring further args - really?? */
 }
 
-char *sk_ASN1_UTF8STRING2text(STACK_OF(ASN1_UTF8STRING) *text, const char *sep,
-                              size_t max_len /* excluding NUL terminator */)
+char *ossl_sk_ASN1_UTF8STRING2text(STACK_OF(ASN1_UTF8STRING) *text,
+                                   const char *sep,
+                                   size_t max_len /* excl. NUL terminator */)
 {
     int i;
     ASN1_UTF8STRING *current;
@@ -424,6 +505,53 @@ STACK_OF(X509) *X509_STORE_get1_all_certs(X509_STORE *store)
     sk_X509_pop_free(sk, X509_free);
     return NULL;
 }
+
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+STACK_OF(X509) *X509_build_chain(X509 *cert, STACK_OF(X509) *certs,
+                                 X509_STORE *store, int with_self_signed,
+                                 OSSL_LIB_CTX *libctx, const char *propq)
+{
+    STACK_OF(X509) *chain = NULL, *result = NULL;
+    X509_STORE *ts = store == NULL ? X509_STORE_new() : store;
+    X509_STORE_CTX *csc = NULL;
+    int flags = X509_ADD_FLAG_UP_REF;
+
+    if (ts == NULL || cert == NULL) {
+        ERR_raise(ERR_LIB_CMP, CMP_R_NULL_ARGUMENT);
+        goto err;
+    }
+
+    if ((csc = X509_STORE_CTX_new_ex(libctx, propq)) == NULL)
+        goto err;
+    if (store == NULL && certs != NULL
+            && !ossl_cmp_X509_STORE_add1_certs(ts, certs, 0))
+        goto err;
+    if (!X509_STORE_CTX_init(csc, ts, cert,
+                             store == NULL ? NULL : certs))
+        goto err;
+    /* disable any cert status/revocation checking etc. */
+    X509_VERIFY_PARAM_clear_flags(X509_STORE_CTX_get0_param(csc),
+                                  ~(X509_V_FLAG_USE_CHECK_TIME
+                                    | X509_V_FLAG_NO_CHECK_TIME));
+
+    if (X509_verify_cert(csc) <= 0 && store != NULL)
+        goto err;
+    chain = X509_STORE_CTX_get0_chain(csc);
+    if (sk_X509_num(chain) > 1 && !with_self_signed)
+        flags |= X509_ADD_FLAG_NO_SS;
+
+    if (!ossl_x509_add_certs_new(&result, chain, flags)) {
+        sk_X509_free(result);
+        result = NULL;
+    }
+
+ err:
+    if (store == NULL)
+        X509_STORE_free(ts);
+    X509_STORE_CTX_free(csc);
+    return result;
+}
+#endif
 
 #if OPENSSL_VERSION_NUMBER < 0x10100005L
 /*

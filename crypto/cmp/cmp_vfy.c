@@ -58,7 +58,7 @@ static int verify_signature(const OSSL_CMP_CTX *cmp_ctx,
     }
 
  sig_err:
-    res = x509_print_ex_brief(bio, cert, X509_FLAG_NO_EXTENSIONS);
+    res = ossl_x509_print_ex_brief(bio, cert, X509_FLAG_NO_EXTENSIONS);
     ERR_raise(ERR_LIB_CMP, CMP_R_ERROR_VALIDATING_SIGNATURE);
     if (res)
         ERR_add_error_mem_bio("\n", bio);
@@ -287,7 +287,7 @@ static int cert_acceptable(const OSSL_CMP_CTX *ctx,
     if (!check_kid(ctx, X509_get0_subject_key_id(cert), msg->header->senderKID))
         return 0;
     /* prevent misleading error later in case x509v3_cache_extensions() fails */
-    if (!x509v3_cache_extensions(cert)) {
+    if (!ossl_x509v3_cache_extensions(cert)) {
         ossl_cmp_warn(ctx, "cert appears to be invalid");
         return 0;
     }
@@ -427,7 +427,7 @@ static int check_msg_all_certs(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
 
     if (mode_3gpp
             && ((!ctx->permitTAInExtraCertsForIR
-                     || ossl_cmp_msg_get_bodytype(msg) != OSSL_CMP_PKIBODY_IP)))
+                     || OSSL_CMP_MSG_get_bodytype(msg) != OSSL_CMP_PKIBODY_IP)))
         return 0;
 
     ossl_cmp_info(ctx,
@@ -472,6 +472,7 @@ static int check_msg_find_cert(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
     if (sender == NULL || msg->body == NULL)
         return 0; /* other NULL cases already have been checked */
     if (sender->type != GEN_DIRNAME) {
+        /* Possibly support more than X509_NAME */
         ERR_raise(ERR_LIB_CMP, CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
         return 0;
     }
@@ -591,7 +592,7 @@ int OSSL_CMP_validate_msg(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg)
              * the caPubs field may be directly trusted as a root CA
              * certificate by the initiator.'
              */
-            switch (ossl_cmp_msg_get_bodytype(msg)) {
+            switch (OSSL_CMP_MSG_get_bodytype(msg)) {
             case -1:
                 return 0;
             case OSSL_CMP_PKIBODY_IP:
@@ -687,7 +688,7 @@ int ossl_cmp_msg_check_update(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
     /* validate sender name of received msg */
     if (hdr->sender->type != GEN_DIRNAME) {
         ERR_raise(ERR_LIB_CMP, CMP_R_SENDER_GENERALNAME_TYPE_NOT_SUPPORTED);
-        return 0; /* TODO FR#42: support for more than X509_NAME */
+        return 0;
     }
     /*
      * Compare actual sender name of response with expected sender name.
@@ -747,7 +748,7 @@ int ossl_cmp_msg_check_update(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
 #endif
     }
 
-    if (ossl_cmp_msg_get_bodytype(msg) < 0) {
+    if (OSSL_CMP_MSG_get_bodytype(msg) < 0) {
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
         ERR_raise(ERR_LIB_CMP, CMP_R_PKIBODY_ERROR);
         return 0;
@@ -808,7 +809,7 @@ int ossl_cmp_msg_check_update(OSSL_CMP_CTX *ctx, const OSSL_CMP_MSG *msg,
          * the caPubs field may be directly trusted as a root CA
          * certificate by the initiator.'
          */
-        switch (ossl_cmp_msg_get_bodytype(msg)) {
+        switch (OSSL_CMP_MSG_get_bodytype(msg)) {
         case OSSL_CMP_PKIBODY_IP:
         case OSSL_CMP_PKIBODY_CP:
         case OSSL_CMP_PKIBODY_KUP:

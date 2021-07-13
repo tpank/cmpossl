@@ -51,11 +51,13 @@ int ERR_load_strings_const(const ERR_STRING_DATA *str);
 #  endif
 #  ifndef  ERR_LIB_CRMF
 #   define ERR_LIB_CRMF (ERR_LIB_USER - 2)
+int ossl_err_load_CRMF_strings(void);
 #  endif
 #  undef  CRMFerr
 #  define CRMFerr(f, r) ERR_PUT_error(ERR_LIB_CRMF, 0, (r), __FILE__, __LINE__)
 #  ifndef  ERR_LIB_CMP
 #   define ERR_LIB_CMP (ERR_LIB_USER - 1)
+int ossl_err_load_CMP_strings(void);
 #  endif
 #  undef  CMPerr
 #  define CMPerr(f, r) ERR_PUT_error(ERR_LIB_CMP, 0, (r), __FILE__, __LINE__)
@@ -66,7 +68,6 @@ int ERR_load_strings_const(const ERR_STRING_DATA *str);
 #  include <openssl/crmferr.h>
 # endif
 # include <openssl/x509v3.h> /* for GENERAL_NAME etc. */
-
 # ifndef  DECLARE_ASN1_DUP_FUNCTION
 #  define DECLARE_ASN1_DUP_FUNCTION(type) \
     DECLARE_ASN1_DUP_FUNCTION_name(type, type)
@@ -149,6 +150,8 @@ typedef u_int64_t uint64_t;
 # else
 #  define ERR_raise CMPerr
 void ERR_raise_data(int lib, int reason, const char *fmt, ...);
+#  define ERR_R_UNSUPPORTED (7|ERR_R_FATAL) /* dummy */
+#  define ERR_SYSTEM_FLAG ((unsigned int)INT_MAX + 1)
 #  define OSSL_CMP_DEFAULT_PORT 80
 int OSSL_CMP_load_cert_crl_http_timeout(const char *url, int req_timeout,
                                         X509 **pcert, X509_CRL **pcrl,
@@ -281,6 +284,12 @@ typedef void OSSL_LIB_CTX;
 DECLARE_ASN1_DUP_FUNCTION(X509_PUBKEY)
 #  define OSSL_DEPRECATEDIN_3_0
 
+#  define X509_new_ex(libctx, propq) ((void)(libctx), (void)(propq), X509_new())
+#  define ASN1_item_new_ex(it, l, pq) ((void)(l), (void)(pq), ASN1_item_new(it))
+#  define ASN1_item_d2i_ex(a, in, len, it, libctx, propq) \
+    ((void)(libctx), (void)(propq), ASN1_item_d2i(a, in, len, it))
+#  define ASN1_item_d2i_bio_ex(it, in, pval, libctx, propq) \
+    ((void)(libctx), (void)(propq), ASN1_item_d2i_bio(it, in, pval))
 #  define ASN1_item_sign_ex(it, algor1, algor2, signature, data, \
                             id, pkey, md, libctx, propq) \
     ASN1_item_sign(it, algor1, algor2, signature, (void *)(data), \
@@ -297,11 +306,12 @@ DECLARE_ASN1_DUP_FUNCTION(X509_PUBKEY)
                                               X509_PUBKEY_get0(b)) == 0))
 #  define EVP_PKEY_CTX_new_from_pkey(libctx, pkey, propq) \
     EVP_PKEY_CTX_new(((void)(libctx), (void)(propq), pkey), NULL)
+#  define EVP_PKEY_get_id EVP_PKEY_id
+#  define EVP_MD_get_type EVP_MD_type
 #  define EVP_CIPHER_get_block_size EVP_CIPHER_block_size
 #  define EVP_CIPHER_get_key_length EVP_CIPHER_key_length
 #  define EVP_CIPHER_get_iv_length EVP_CIPHER_iv_length
 #  define EVP_CIPHER_fetch(l, n, p) ((EVP_CIPHER *)EVP_get_cipherbyname(n))
-#  define X509_new_ex(libctx, propq) ((void)(libctx), (void)(propq), X509_new())
 #  define X509_STORE_CTX_new_ex(libctx, propq) \
     ((void)(libctx), (void)(propq), X509_STORE_CTX_new())
 #  define RAND_bytes_ex(ctx, buf, num, x) RAND_bytes(((void)(ctx), buf), num)
@@ -340,6 +350,7 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
 #  define X509_FLAG_EXTENSIONS_ONLY_KID (1L << 13)
 #  define OCSP_REVOKED_STATUS_AACOMPROMISE 10
 #  define ossl_isspace isspace
+#  define X509_R_UNKNOWN_SIGID_ALGS 144
 #  define CMP_R_CONNECT_TIMEOUT CMP_R_TOTAL_TIMEOUT
 #  define CMP_R_READ_TIMEOUT CMP_R_TOTAL_TIMEOUT
 #  define CMP_R_ERROR_CONNECTING CMP_R_TRANSFER_ERROR
@@ -367,9 +378,20 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
 void ossl_cmp_add_error_txt(const char *separator, const char *txt);
 void ERR_add_error_mem_bio(const char *separator, BIO *bio);
 
-ASN1_OCTET_STRING *X509_digest_sig(const X509 *cert);
-char *sk_ASN1_UTF8STRING2text(STACK_OF(ASN1_UTF8STRING) *text, const char *sep,
-                              size_t max_len /* excluding NUL terminator */);
+ASN1_OCTET_STRING *X509_digest_sig(const X509 *cert,
+                                   EVP_MD **md_used, int *md_is_fallback);
+STACK_OF(X509) *X509_build_chain(X509 *target, STACK_OF(X509) *certs,
+                                 X509_STORE *store, int with_self_signed,
+                                 OSSL_LIB_CTX *libctx, const char *propq);
+#  define X509_chain_up_ref(c) (c == NULL ? c: X509_chain_up_ref(c)) /* hack */
+#  define ASN1_VALUE_dup(a) ASN1_VALUE_dup((ASN1_VALUE *)(a)) /* hack */
+#  define X509_REQ_dup(r) X509_REQ_dup((X509_REQ *)(r)) /* hack */
+#  define X509_NAME_dup(n) X509_NAME_dup((X509_NAME *)(n)) /* hack */
+#  define GENERAL_NAME_dup(n) GENERAL_NAME_dup((GENERAL_NAME *)(n)) /* hack */
+
+char *ossl_sk_ASN1_UTF8STRING2text(STACK_OF(ASN1_UTF8STRING) *text,
+                                   const char *sep,
+                                   size_t max_len /* excl. NUL terminator */);
 int X509_cmp_timeframe(const X509_VERIFY_PARAM *vpm,
                        const ASN1_TIME *start, const ASN1_TIME *end);
 STACK_OF(X509) *X509_STORE_get1_all_certs(X509_STORE *store);
@@ -380,8 +402,8 @@ int OSSL_CMP_proxy_connect(BIO *bio, OSSL_CMP_CTX *ctx,
                            BIO *bio_err, const char *prog);
 /* from crypto/x509.h: */
 int x509_set0_libctx(X509 *x, OSSL_LIB_CTX *libctx, const char *propq);
-int x509v3_cache_extensions(X509 *x);
-int x509_print_ex_brief(BIO *bio, X509 *cert, unsigned long neg_cflags);
+int ossl_x509v3_cache_extensions(X509 *x);
+int ossl_x509_print_ex_brief(BIO *bio, X509 *cert, unsigned long neg_cflags);
 int ossl_cmp_sk_X509_add1_cert(STACK_OF(X509) *sk, X509 *cert,
                                int no_dup, int prepend);
 int ossl_cmp_sk_X509_add1_certs(STACK_OF(X509) *sk, STACK_OF(X509) *certs,
@@ -392,45 +414,12 @@ int ossl_x509_add_cert_new(STACK_OF(X509) **p_sk, X509 *cert, int flags);
 /* from internal/cryptlib.h: */
 #  define ossl_assert(x) ((x) != 0)
 int openssl_strerror_r(int errnum, char *buf, size_t buflen);
-/* system-specific variants defining ossl_sleep() */
-#  ifdef OPENSSL_SYS_UNIX
-#   include <unistd.h>
-static ossl_inline void ossl_sleep(unsigned long millis)
-{
-#   ifdef OPENSSL_SYS_VXWORKS
-    struct timespec ts;
-    ts.tv_sec = (long int) (millis / 1000);
-    ts.tv_nsec = (long int) (millis % 1000) * 1000000ul;
-    nanosleep(&ts, NULL);
-#   elif defined(__TANDEM) && !defined(_REENTRANT)
-#    include <cextdecs.h(PROCESS_DELAY_)>
-    /* HPNS does not support usleep for non threaded apps */
-    PROCESS_DELAY_(millis * 1000);
-#   else
-    usleep((unsigned int)(millis * 1000));
-#   endif
-}
-#  elif defined(_WIN32)
-#   include <windows.h>
-static ossl_inline void ossl_sleep(unsigned long millis)
-{
-    Sleep(millis);
-}
-#  else
-/* Fallback to a busy wait */
-static ossl_inline void ossl_sleep(unsigned long millis)
-{
-    struct timeval start, now;
-    unsigned long elapsedms;
 
-    gettimeofday(&start, NULL);
-    do {
-        gettimeofday(&now, NULL);
-        elapsedms = (((now.tv_sec - start.tv_sec) * 1000000)
-                     + now.tv_usec - start.tv_usec) / 1000;
-    } while (elapsedms < millis);
-}
-#  endif /* defined OPENSSL_SYS_UNIX */
+typedef struct ossl_http_req_ctx_st OSSL_HTTP_REQ_CTX;
+# define ASN1_OP_DUP_POST -1 /* dummy */
+# define ASN1_OP_GET0_LIBCTX -2 /* dummy */
+# define ASN1_OP_GET0_PROPQ -3 /* dummy */
+# define ossl_x509_set0_libctx(crt, libctx, propq) 0 /* dummy */
 
 # endif /* OPENSSL_VERSION_NUMBER < 0x30000000L */
 

@@ -12,6 +12,8 @@
  * https://www.openssl.org/source/license.html
  */
 
+
+
 #ifndef OPENSSL_CMP_H
 # define OPENSSL_CMP_H
 
@@ -21,9 +23,7 @@
 #  include <openssl/crmf.h>
 #  include <openssl/cmperr.h>
 #  include <openssl/cmp_util.h>
-#ifndef CMP_STANDALONE
 #  include <openssl/http.h>
-#endif
 
 /* explicit #includes not strictly needed since implied by the above: */
 #  include <openssl/types.h>
@@ -213,7 +213,7 @@ typedef struct ossl_cmp_pkiheader_st OSSL_CMP_PKIHEADER;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_PKIHEADER)
 typedef struct ossl_cmp_msg_st OSSL_CMP_MSG;
 DECLARE_ASN1_DUP_FUNCTION(OSSL_CMP_MSG)
-DECLARE_ASN1_ENCODE_FUNCTIONS(OSSL_CMP_MSG, OSSL_CMP_MSG, OSSL_CMP_MSG)
+DECLARE_ASN1_ENCODE_FUNCTIONS_const(OSSL_CMP_MSG, OSSL_CMP_MSG)
 typedef struct ossl_cmp_certstatus_st OSSL_CMP_CERTSTATUS;
 SKM_DEFINE_STACK_OF_INTERNAL(OSSL_CMP_CERTSTATUS, OSSL_CMP_CERTSTATUS, OSSL_CMP_CERTSTATUS)
 #define sk_OSSL_CMP_CERTSTATUS_num(sk) OPENSSL_sk_num(ossl_check_const_OSSL_CMP_CERTSTATUS_sk_type(sk))
@@ -235,6 +235,7 @@ SKM_DEFINE_STACK_OF_INTERNAL(OSSL_CMP_CERTSTATUS, OSSL_CMP_CERTSTATUS, OSSL_CMP_
 #define sk_OSSL_CMP_CERTSTATUS_set(sk, idx, ptr) ((OSSL_CMP_CERTSTATUS *)OPENSSL_sk_set(ossl_check_OSSL_CMP_CERTSTATUS_sk_type(sk), (idx), ossl_check_OSSL_CMP_CERTSTATUS_type(ptr)))
 #define sk_OSSL_CMP_CERTSTATUS_find(sk, ptr) OPENSSL_sk_find(ossl_check_OSSL_CMP_CERTSTATUS_sk_type(sk), ossl_check_OSSL_CMP_CERTSTATUS_type(ptr))
 #define sk_OSSL_CMP_CERTSTATUS_find_ex(sk, ptr) OPENSSL_sk_find_ex(ossl_check_OSSL_CMP_CERTSTATUS_sk_type(sk), ossl_check_OSSL_CMP_CERTSTATUS_type(ptr))
+#define sk_OSSL_CMP_CERTSTATUS_find_all(sk, ptr, pnum) OPENSSL_sk_find_all(ossl_check_OSSL_CMP_CERTSTATUS_sk_type(sk), ossl_check_OSSL_CMP_CERTSTATUS_type(ptr), pnum)
 #define sk_OSSL_CMP_CERTSTATUS_sort(sk) OPENSSL_sk_sort(ossl_check_OSSL_CMP_CERTSTATUS_sk_type(sk))
 #define sk_OSSL_CMP_CERTSTATUS_is_sorted(sk) OPENSSL_sk_is_sorted(ossl_check_const_OSSL_CMP_CERTSTATUS_sk_type(sk))
 #define sk_OSSL_CMP_CERTSTATUS_dup(sk) ((STACK_OF(OSSL_CMP_CERTSTATUS) *)OPENSSL_sk_dup(ossl_check_const_OSSL_CMP_CERTSTATUS_sk_type(sk)))
@@ -263,6 +264,7 @@ SKM_DEFINE_STACK_OF_INTERNAL(OSSL_CMP_ITAV, OSSL_CMP_ITAV, OSSL_CMP_ITAV)
 #define sk_OSSL_CMP_ITAV_set(sk, idx, ptr) ((OSSL_CMP_ITAV *)OPENSSL_sk_set(ossl_check_OSSL_CMP_ITAV_sk_type(sk), (idx), ossl_check_OSSL_CMP_ITAV_type(ptr)))
 #define sk_OSSL_CMP_ITAV_find(sk, ptr) OPENSSL_sk_find(ossl_check_OSSL_CMP_ITAV_sk_type(sk), ossl_check_OSSL_CMP_ITAV_type(ptr))
 #define sk_OSSL_CMP_ITAV_find_ex(sk, ptr) OPENSSL_sk_find_ex(ossl_check_OSSL_CMP_ITAV_sk_type(sk), ossl_check_OSSL_CMP_ITAV_type(ptr))
+#define sk_OSSL_CMP_ITAV_find_all(sk, ptr, pnum) OPENSSL_sk_find_all(ossl_check_OSSL_CMP_ITAV_sk_type(sk), ossl_check_OSSL_CMP_ITAV_type(ptr), pnum)
 #define sk_OSSL_CMP_ITAV_sort(sk) OPENSSL_sk_sort(ossl_check_OSSL_CMP_ITAV_sk_type(sk))
 #define sk_OSSL_CMP_ITAV_is_sorted(sk) OPENSSL_sk_is_sorted(ossl_check_const_OSSL_CMP_ITAV_sk_type(sk))
 #define sk_OSSL_CMP_ITAV_dup(sk) ((STACK_OF(OSSL_CMP_ITAV) *)OPENSSL_sk_dup(ossl_check_const_OSSL_CMP_ITAV_sk_type(sk)))
@@ -293,6 +295,7 @@ SKM_DEFINE_STACK_OF_INTERNAL(OSSL_CMP_PKISI, OSSL_CMP_PKISI, OSSL_CMP_PKISI)
 #define sk_OSSL_CMP_PKISI_set(sk, idx, ptr) ((OSSL_CMP_PKISI *)OPENSSL_sk_set(ossl_check_OSSL_CMP_PKISI_sk_type(sk), (idx), ossl_check_OSSL_CMP_PKISI_type(ptr)))
 #define sk_OSSL_CMP_PKISI_find(sk, ptr) OPENSSL_sk_find(ossl_check_OSSL_CMP_PKISI_sk_type(sk), ossl_check_OSSL_CMP_PKISI_type(ptr))
 #define sk_OSSL_CMP_PKISI_find_ex(sk, ptr) OPENSSL_sk_find_ex(ossl_check_OSSL_CMP_PKISI_sk_type(sk), ossl_check_OSSL_CMP_PKISI_type(ptr))
+#define sk_OSSL_CMP_PKISI_find_all(sk, ptr, pnum) OPENSSL_sk_find_all(ossl_check_OSSL_CMP_PKISI_sk_type(sk), ossl_check_OSSL_CMP_PKISI_type(ptr), pnum)
 #define sk_OSSL_CMP_PKISI_sort(sk) OPENSSL_sk_sort(ossl_check_OSSL_CMP_PKISI_sk_type(sk))
 #define sk_OSSL_CMP_PKISI_is_sorted(sk) OPENSSL_sk_is_sorted(ossl_check_const_OSSL_CMP_PKISI_sk_type(sk))
 #define sk_OSSL_CMP_PKISI_dup(sk) ((STACK_OF(OSSL_CMP_PKISI) *)OPENSSL_sk_dup(ossl_check_const_OSSL_CMP_PKISI_sk_type(sk)))
@@ -320,6 +323,7 @@ SKM_DEFINE_STACK_OF_INTERNAL(OSSL_CMP_CERTREPMESSAGE, OSSL_CMP_CERTREPMESSAGE, O
 #define sk_OSSL_CMP_CERTREPMESSAGE_set(sk, idx, ptr) ((OSSL_CMP_CERTREPMESSAGE *)OPENSSL_sk_set(ossl_check_OSSL_CMP_CERTREPMESSAGE_sk_type(sk), (idx), ossl_check_OSSL_CMP_CERTREPMESSAGE_type(ptr)))
 #define sk_OSSL_CMP_CERTREPMESSAGE_find(sk, ptr) OPENSSL_sk_find(ossl_check_OSSL_CMP_CERTREPMESSAGE_sk_type(sk), ossl_check_OSSL_CMP_CERTREPMESSAGE_type(ptr))
 #define sk_OSSL_CMP_CERTREPMESSAGE_find_ex(sk, ptr) OPENSSL_sk_find_ex(ossl_check_OSSL_CMP_CERTREPMESSAGE_sk_type(sk), ossl_check_OSSL_CMP_CERTREPMESSAGE_type(ptr))
+#define sk_OSSL_CMP_CERTREPMESSAGE_find_all(sk, ptr, pnum) OPENSSL_sk_find_all(ossl_check_OSSL_CMP_CERTREPMESSAGE_sk_type(sk), ossl_check_OSSL_CMP_CERTREPMESSAGE_type(ptr), pnum)
 #define sk_OSSL_CMP_CERTREPMESSAGE_sort(sk) OPENSSL_sk_sort(ossl_check_OSSL_CMP_CERTREPMESSAGE_sk_type(sk))
 #define sk_OSSL_CMP_CERTREPMESSAGE_is_sorted(sk) OPENSSL_sk_is_sorted(ossl_check_const_OSSL_CMP_CERTREPMESSAGE_sk_type(sk))
 #define sk_OSSL_CMP_CERTREPMESSAGE_dup(sk) ((STACK_OF(OSSL_CMP_CERTREPMESSAGE) *)OPENSSL_sk_dup(ossl_check_const_OSSL_CMP_CERTREPMESSAGE_sk_type(sk)))
@@ -349,6 +353,7 @@ SKM_DEFINE_STACK_OF_INTERNAL(OSSL_CMP_CERTRESPONSE, OSSL_CMP_CERTRESPONSE, OSSL_
 #define sk_OSSL_CMP_CERTRESPONSE_set(sk, idx, ptr) ((OSSL_CMP_CERTRESPONSE *)OPENSSL_sk_set(ossl_check_OSSL_CMP_CERTRESPONSE_sk_type(sk), (idx), ossl_check_OSSL_CMP_CERTRESPONSE_type(ptr)))
 #define sk_OSSL_CMP_CERTRESPONSE_find(sk, ptr) OPENSSL_sk_find(ossl_check_OSSL_CMP_CERTRESPONSE_sk_type(sk), ossl_check_OSSL_CMP_CERTRESPONSE_type(ptr))
 #define sk_OSSL_CMP_CERTRESPONSE_find_ex(sk, ptr) OPENSSL_sk_find_ex(ossl_check_OSSL_CMP_CERTRESPONSE_sk_type(sk), ossl_check_OSSL_CMP_CERTRESPONSE_type(ptr))
+#define sk_OSSL_CMP_CERTRESPONSE_find_all(sk, ptr, pnum) OPENSSL_sk_find_all(ossl_check_OSSL_CMP_CERTRESPONSE_sk_type(sk), ossl_check_OSSL_CMP_CERTRESPONSE_type(ptr), pnum)
 #define sk_OSSL_CMP_CERTRESPONSE_sort(sk) OPENSSL_sk_sort(ossl_check_OSSL_CMP_CERTRESPONSE_sk_type(sk))
 #define sk_OSSL_CMP_CERTRESPONSE_is_sorted(sk) OPENSSL_sk_is_sorted(ossl_check_const_OSSL_CMP_CERTRESPONSE_sk_type(sk))
 #define sk_OSSL_CMP_CERTRESPONSE_dup(sk) ((STACK_OF(OSSL_CMP_CERTRESPONSE) *)OPENSSL_sk_dup(ossl_check_const_OSSL_CMP_CERTRESPONSE_sk_type(sk)))
@@ -376,25 +381,29 @@ void OSSL_CMP_MSG_free(OSSL_CMP_MSG *msg);
 OSSL_CMP_CTX *OSSL_CMP_CTX_new(OSSL_LIB_CTX *libctx, const char *propq);
 void OSSL_CMP_CTX_free(OSSL_CMP_CTX *ctx);
 int OSSL_CMP_CTX_reinit(OSSL_CMP_CTX *ctx);
-/* various CMP options: */
+/* CMP general options: */
 #  define OSSL_CMP_OPT_LOG_VERBOSITY 0
-#  define OSSL_CMP_OPT_MSG_TIMEOUT 1
-#  define OSSL_CMP_OPT_TOTAL_TIMEOUT 2
-#  define OSSL_CMP_OPT_VALIDITY_DAYS 3
-#  define OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT 4
-#  define OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL 5
-#  define OSSL_CMP_OPT_POLICIES_CRITICAL 6
-#  define OSSL_CMP_OPT_POPO_METHOD 7
-#  define OSSL_CMP_OPT_DIGEST_ALGNID 8
-#  define OSSL_CMP_OPT_OWF_ALGNID 9
-#  define OSSL_CMP_OPT_MAC_ALGNID 10
-#  define OSSL_CMP_OPT_REVOCATION_REASON 11
-#  define OSSL_CMP_OPT_IMPLICIT_CONFIRM 12
-#  define OSSL_CMP_OPT_DISABLE_CONFIRM 13
-#  define OSSL_CMP_OPT_UNPROTECTED_SEND 14
-#  define OSSL_CMP_OPT_UNPROTECTED_ERRORS 15
-#  define OSSL_CMP_OPT_IGNORE_KEYUSAGE 16
-#  define OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR 17
+/* CMP transfer options: */
+#  define OSSL_CMP_OPT_KEEP_ALIVE 10
+#  define OSSL_CMP_OPT_MSG_TIMEOUT 11
+#  define OSSL_CMP_OPT_TOTAL_TIMEOUT 12
+/* CMP request options: */
+#  define OSSL_CMP_OPT_VALIDITY_DAYS 20
+#  define OSSL_CMP_OPT_SUBJECTALTNAME_NODEFAULT 21
+#  define OSSL_CMP_OPT_SUBJECTALTNAME_CRITICAL 22
+#  define OSSL_CMP_OPT_POLICIES_CRITICAL 23
+#  define OSSL_CMP_OPT_POPO_METHOD 24
+#  define OSSL_CMP_OPT_IMPLICIT_CONFIRM 25
+#  define OSSL_CMP_OPT_DISABLE_CONFIRM 26
+#  define OSSL_CMP_OPT_REVOCATION_REASON 27
+/* CMP protection options: */
+#  define OSSL_CMP_OPT_UNPROTECTED_SEND 30
+#  define OSSL_CMP_OPT_UNPROTECTED_ERRORS 31
+#  define OSSL_CMP_OPT_OWF_ALGNID 32
+#  define OSSL_CMP_OPT_MAC_ALGNID 33
+#  define OSSL_CMP_OPT_DIGEST_ALGNID 34
+#  define OSSL_CMP_OPT_IGNORE_KEYUSAGE 35
+#  define OSSL_CMP_OPT_PERMIT_TA_IN_EXTRACERTS_FOR_IR 36
 int OSSL_CMP_CTX_set_option(OSSL_CMP_CTX *ctx, int opt, int val);
 int OSSL_CMP_CTX_get_option(const OSSL_CMP_CTX *ctx, int opt);
 /* CMP-specific callback for logging and outputting the error queue: */
@@ -488,6 +497,7 @@ ASN1_OCTET_STRING *OSSL_CMP_HDR_get0_recipNonce(const OSSL_CMP_PKIHEADER *hdr);
 
 /* from cmp_msg.c */
 OSSL_CMP_PKIHEADER *OSSL_CMP_MSG_get0_header(const OSSL_CMP_MSG *msg);
+int OSSL_CMP_MSG_get_bodytype(const OSSL_CMP_MSG *msg);
 int OSSL_CMP_MSG_update_transactionID(OSSL_CMP_CTX *ctx, OSSL_CMP_MSG *msg);
 OSSL_CRMF_MSG *OSSL_CMP_CTX_setup_CRM(OSSL_CMP_CTX *ctx, int for_KUR, int rid);
 OSSL_CMP_MSG *OSSL_CMP_MSG_read(const char *file, OSSL_LIB_CTX *libctx,

@@ -18,6 +18,7 @@
 #else
 # include <winsock.h> /* for type fd_set */
 #endif
+#include "e_os.h" /* ossl_sleep() */
 
 #include <openssl/asn1t.h>
 #include <openssl/ocsp.h>
