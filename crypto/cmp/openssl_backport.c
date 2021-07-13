@@ -17,6 +17,8 @@
 #include <openssl/err.h> /* should be implied by cmperr.h */
 #include <openssl/x509v3.h>
 
+#include "e_os.h" /* ossl_sleep() */
+
 #if OPENSSL_VERSION_NUMBER < 0x10101000L
 /* used below and needed also by crmf_err.c and cmp_err.c */
 int ERR_load_strings_const(const ERR_STRING_DATA *str)
@@ -379,16 +381,28 @@ ASN1_OCTET_STRING *X509_digest_sig(const X509 *cert,
     return NULL;
 }
 
-void ERR_raise_data(ossl_unused int lib, int reason, const char *fmt, ...)
+static const char *_file_;
+static int _line_;
+static const char *_func_;
+void ERR_set_debug(const char *file, int line, const char *func)
+{
+    _file_ = file;
+    _line_ = line;
+    _func_ = func;
+}
+void ERR_raise_data_(ossl_unused int lib, int reason, const char *fmt, ...)
 {
     va_list ap;
-    char buf[200];
+    char buf[200] = "";
 
-    CMPerr(lib, reason);
+    if (_func_ != NULL) /* workaround for missing function name */
+        snprintf(buf, sizeof(buf), "%s():", _func_);
+    ERR_PUT_error(lib, 0, reason, _file_, _line_);
     va_start(ap, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, ap);
+    vsnprintf(buf + strlen(buf), sizeof(buf) -  strlen(buf), fmt, ap);
     va_end(ap);
-    ERR_add_error_txt("", buf); /* sorry, ignoring further args - really?? */
+    ERR_add_error_txt("", buf);
+    /* sorry, does not support any further calls to ERR_add_error_txt() */
 }
 
 char *ossl_sk_ASN1_UTF8STRING2text(STACK_OF(ASN1_UTF8STRING) *text,
@@ -507,6 +521,193 @@ STACK_OF(X509) *X509_STORE_get1_all_certs(X509_STORE *store)
 }
 
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
+#if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+
+/* from apps.h */
+# ifndef openssl_fdset
+#  if defined(OPENSSL_SYSNAME_WIN32) \
+   || defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)
+#   define openssl_fdset(a,b) FD_SET((unsigned int)a, b)
+#  else
+#   define openssl_fdset(a,b) FD_SET(a, b)
+#  endif
+# endif
+
+/* from bio_sock.c */
+/*
+ * Wait on fd at most until max_time; succeed immediately if max_time == 0.
+ * If for_read == 0 then assume to wait for writing, else wait for reading.
+ * Returns -1 on error, 0 on timeout, and 1 on success.
+ */
+static int BIO_socket_wait(int fd, int for_read, time_t max_time)
+{
+    fd_set confds;
+    struct timeval tv;
+    time_t now;
+
+    if (fd < 0 || fd >= FD_SETSIZE)
+        return -1;
+    if (max_time == 0)
+        return 1;
+
+    now = time(NULL);
+    if (max_time <= now)
+        return 0;
+
+    FD_ZERO(&confds);
+    openssl_fdset(fd, &confds);
+    tv.tv_usec = 0;
+    tv.tv_sec = (long)(max_time - now); /* might overflow */
+    return select(fd + 1, for_read ? &confds : NULL,
+                  for_read ? NULL : &confds, NULL, &tv);
+}
+
+/* from bio_lib.c */
+/* Internal variant of the below BIO_wait() not calling BIOerr() */
+static int bio_wait(BIO *bio, time_t max_time, unsigned int nap_milliseconds)
+{
+#ifndef OPENSSL_NO_SOCK
+    int fd;
+#endif
+    long sec_diff;
+
+    if (max_time == 0) /* no timeout */
+        return 1;
+
+#ifndef OPENSSL_NO_SOCK
+    if (BIO_get_fd(bio, &fd) > 0 && fd < FD_SETSIZE)
+        return BIO_socket_wait(fd, BIO_should_read(bio), max_time);
+#endif
+    /* fall back to polling since no sockets are available */
+
+    sec_diff = (long)(max_time - time(NULL)); /* might overflow */
+    if (sec_diff < 0)
+        return 0; /* clearly timeout */
+
+    /* now take a nap at most the given number of milliseconds */
+    if (sec_diff == 0) { /* we are below the 1 seconds resolution of max_time */
+        if (nap_milliseconds > 1000)
+            nap_milliseconds = 1000;
+    } else { /* for sec_diff > 0, take min(sec_diff * 1000, nap_milliseconds) */
+        if ((unsigned long)sec_diff * 1000 < nap_milliseconds)
+            nap_milliseconds = (unsigned int)sec_diff * 1000;
+    }
+    ossl_sleep(nap_milliseconds);
+    return 1;
+}
+
+/* from bio_lib.c */
+/*-
+ * Wait on (typically socket-based) BIO at most until max_time.
+ * Succeed immediately if max_time == 0.
+ * If sockets are not available support polling: succeed after waiting at most
+ * the number of nap_milliseconds in order to avoid a tight busy loop.
+ * Call BIOerr(...) on timeout or error.
+ * Returns -1 on error, 0 on timeout, and 1 on success.
+ */
+int BIO_wait(BIO *bio, time_t max_time, unsigned int nap_milliseconds)
+{
+    int rv = bio_wait(bio, max_time, nap_milliseconds);
+
+    if (rv <= 0)
+        ERR_raise(ERR_LIB_BIO,
+                  rv == 0 ? BIO_R_TRANSFER_TIMEOUT : BIO_R_TRANSFER_ERROR);
+    return rv;
+}
+
+/* from bio_lib.c */
+/*
+ * Connect via given BIO using BIO_do_connect() until success/timeout/error.
+ * Parameter timeout == 0 means no timeout, < 0 means exactly one try.
+ * For non-blocking and potentially even non-socket BIOs perform polling with
+ * the given density: between polls sleep nap_milliseconds using BIO_wait()
+ * in order to avoid a tight busy loop.
+ * Returns -1 on error, 0 on timeout, and 1 on success.
+ */
+int BIO_do_connect_retry(BIO *bio, int timeout, int nap_milliseconds)
+{
+    int blocking = timeout <= 0;
+    time_t max_time = timeout > 0 ? time(NULL) + timeout : 0;
+    int rv;
+
+    if (bio == NULL) {
+        ERR_raise(ERR_LIB_BIO, ERR_R_PASSED_NULL_PARAMETER);
+        return -1;
+    }
+
+    if (nap_milliseconds < 0)
+        nap_milliseconds = 100;
+    BIO_set_nbio(bio, !blocking);
+
+ retry:
+    ERR_set_mark();
+    rv = BIO_do_connect(bio);
+
+    if (rv <= 0) { /* could be timeout or retryable error or fatal error */
+        int err = ERR_peek_last_error();
+        int reason = ERR_GET_REASON(err);
+        int do_retry = BIO_should_retry(bio); /* may be 1 only if !blocking */
+
+        if (ERR_GET_LIB(err) == ERR_LIB_BIO) {
+            switch (reason) {
+            case ERR_R_SYS_LIB:
+                /*
+                 * likely retryable system error occurred, which may be
+                 * EAGAIN (resource temporarily unavailable) some 40 secs after
+                 * calling getaddrinfo(): Temporary failure in name resolution
+                 * or a premature ETIMEDOUT, some 30 seconds after connect()
+                 */
+            case BIO_R_CONNECT_ERROR:
+            case BIO_R_NBIO_CONNECT_ERROR:
+                /* some likely retryable connection error occurred */
+                (void)BIO_reset(bio); /* often needed to avoid retry failure */
+                do_retry = 1;
+                break;
+            default:
+                break;
+            }
+        }
+        if (timeout >= 0 && do_retry) {
+            ERR_pop_to_mark();
+            /* will not actually wait if timeout == 0 (i.e., blocking BIO): */
+            rv = bio_wait(bio, max_time, nap_milliseconds);
+            if (rv > 0)
+                goto retry;
+            ERR_raise(ERR_LIB_BIO,
+                      rv == 0 ? BIO_R_CONNECT_TIMEOUT : BIO_R_CONNECT_ERROR);
+        } else {
+            ERR_clear_last_mark();
+            rv = -1;
+            if (err == 0) /* missing error queue entry */
+                /* workaround: general error */
+                ERR_raise(ERR_LIB_BIO, BIO_R_CONNECT_ERROR);
+        }
+    } else {
+        ERR_clear_last_mark();
+    }
+
+    return rv;
+}
+#  endif /* !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK) */
+
+BIO *ASN1_item_i2d_mem_bio(const ASN1_ITEM *it, const ASN1_VALUE *val)
+{
+    BIO *res;
+
+    if (it == NULL || val == NULL) {
+        ERR_raise(ERR_LIB_ASN1, ERR_R_PASSED_NULL_PARAMETER);
+        return NULL;
+    }
+
+    if ((res = BIO_new(BIO_s_mem())) == NULL)
+        return NULL;
+    if (ASN1_item_i2d_bio(it, res, val) <= 0) {
+        BIO_free(res);
+        res = NULL;
+    }
+    return res;
+}
+
 STACK_OF(X509) *X509_build_chain(X509 *cert, STACK_OF(X509) *certs,
                                  X509_STORE *store, int with_self_signed,
                                  OSSL_LIB_CTX *libctx, const char *propq)

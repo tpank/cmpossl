@@ -75,16 +75,19 @@ LIBCMP_HDRS_INC = -include $(LIBCMP_INC)/openssl/openssl_backport.h # used to fo
 override LDFLAGS += -L$(OPENSSL_LIB) -L$(OPENSSL) -Wl,-rpath=$(OPENSSL_RPATH_LIB) -Wl,-rpath=$(OPENSSL_RPATH)
 override LDLIBS  += -lcrypto
 
-LIBCMP_HDRS_= crmf.h cmp.h cmp_util.h cmperr.h crmferr.h safestack_backport.h \
-  openssl_backport.h types.h http.h cryptoerr_legacy.h trace.h macros.h \
-  asn1err.h kdf.h kdferr.h
-LIBCMP_HDRS_INTERNAL_ = refcount.h sizes.h constant_time.h cryptlib.h
+LIBCMP_HDRS_= cmp_util.h cmp.h cmperr.h crmf.h crmferr.h http.h httperr.h \
+  safestack_backport.h openssl_backport.h cryptoerr_legacy.h \
+  types.h trace.h macros.h asn1err.h kdf.h kdferr.h
+LIBCMP_HDRS_INTERNAL_ = refcount.h sizes.h constant_time.h cryptlib.h sockets.h
 LIBCMP_HDRS = $(patsubst %,include/openssl/%,$(LIBCMP_HDRS_))
 LIBCMP_HDRS_INTERNAL = $(patsubst %,include/internal/%,$(LIBCMP_HDRS_INTERNAL_))
 LIBCMP_INC_HDRS = $(patsubst %,$(LIBCMP_INC)/openssl/%,$(LIBCMP_HDRS_))
 CMP_SRCS_ = cmp_asn.c cmp_ctx.c cmp_err.c cmp_http.c cmp_hdr.c cmp_msg.c cmp_protect.c cmp_client.c cmp_server.c cmp_status.c cmp_vfy.c cmp_util.c openssl_backport.c
 CRMF_SRCS_ = crmf_asn.c crmf_err.c crmf_lib.c crmf_pbm.c
-LIBCMP_SRCS = $(patsubst %,crypto/crmf/%,$(CRMF_SRCS_)) $(patsubst %,crypto/cmp/%,$(CMP_SRCS_))
+HTTP_SRCS_ = http_client.c http_err.c http_lib.c
+LIBCMP_SRCS = $(patsubst %,crypto/crmf/%,$(CRMF_SRCS_)) \
+    $(patsubst %,crypto/cmp/%,$(CMP_SRCS_)) \
+    $(patsubst %,crypto/http/%,$(HTTP_SRCS_))
 
 .phony: build clean
 
@@ -129,7 +132,7 @@ install_clean:
 
 uninstall: install_clean
 
-#SRCS=$(shell ls Makefile_cmp include/openssl/{{cmp,crmf}{,err}.h,safestack_backport.h} crypto/{cmp,crmf}/*.{c,h})
+#SRCS=$(shell ls Makefile_cmp include/openssl/{{cmp,crmf,http}{,err}.h,safestack_backport.h} crypto/{cmp,crmf,http}/*.{c,h})
 #SRCS_TAR=cmpossl_0.1.0.orig.tar.gz
 .phony: deb deb_clean
 deb:

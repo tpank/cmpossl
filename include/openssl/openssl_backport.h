@@ -49,6 +49,10 @@ static ossl_unused ossl_inline int \
 #   include <openssl/err.h>
 int ERR_load_strings_const(const ERR_STRING_DATA *str);
 #  endif
+#  ifndef  ERR_LIB_HTTP
+#   define ERR_LIB_HTTP (ERR_LIB_USER - 3)
+int ossl_err_load_HTTP_strings(void);
+#  endif
 #  ifndef  ERR_LIB_CRMF
 #   define ERR_LIB_CRMF (ERR_LIB_USER - 2)
 int ossl_err_load_CRMF_strings(void);
@@ -140,6 +144,7 @@ typedef u_int64_t uint64_t;
 # if OPENSSL_VERSION_NUMBER < 0x10100004L
 #  define OPENSSL_FILE __FILE__
 #  define OPENSSL_LINE __LINE__
+#  define BIO_up_ref(b)((b)->references++)
 # endif
 # if OPENSSL_VERSION_NUMBER >= 0x30000000L
 #  define OpenSSL_version_num() ((unsigned long) \
@@ -148,8 +153,12 @@ typedef u_int64_t uint64_t;
                                   | (OPENSSL_version_patch() << 4L) \
                                   | _OPENSSL_VERSION_PRE_RELEASE))
 # else
-#  define ERR_raise CMPerr
-void ERR_raise_data(int lib, int reason, const char *fmt, ...);
+#  define ERR_raise(lib, r) \
+    ERR_PUT_error((lib), 0, (r), OPENSSL_FILE, OPENSSL_LINE)
+#  define ERR_raise_data \
+    (ERR_set_debug(OPENSSL_FILE, OPENSSL_LINE, OPENSSL_FUNC), ERR_raise_data_)
+void ERR_set_debug(const char *file, int line, const char *func);
+void ERR_raise_data_(int lib, int reason, const char *fmt, ...);
 #  define ERR_R_UNSUPPORTED (7|ERR_R_FATAL) /* dummy */
 #  define ERR_SYSTEM_FLAG ((unsigned int)INT_MAX + 1)
 #  define OSSL_CMP_DEFAULT_PORT 80
@@ -284,12 +293,15 @@ typedef void OSSL_LIB_CTX;
 DECLARE_ASN1_DUP_FUNCTION(X509_PUBKEY)
 #  define OSSL_DEPRECATEDIN_3_0
 
+    BIO *ASN1_item_i2d_mem_bio(const ASN1_ITEM *it, const ASN1_VALUE *val);
 #  define X509_new_ex(libctx, propq) ((void)(libctx), (void)(propq), X509_new())
 #  define ASN1_item_new_ex(it, l, pq) ((void)(l), (void)(pq), ASN1_item_new(it))
 #  define ASN1_item_d2i_ex(a, in, len, it, libctx, propq) \
     ((void)(libctx), (void)(propq), ASN1_item_d2i(a, in, len, it))
 #  define ASN1_item_d2i_bio_ex(it, in, pval, libctx, propq) \
     ((void)(libctx), (void)(propq), ASN1_item_d2i_bio(it, in, pval))
+#  define ASN1_item_d2i_bio(it, in, pval) \
+    ((in) == NULL ? NULL : ASN1_item_d2i_bio(it, in, pval)) /* hack */
 #  define ASN1_item_sign_ex(it, algor1, algor2, signature, data, \
                             id, pkey, md, libctx, propq) \
     ASN1_item_sign(it, algor1, algor2, signature, (void *)(data), \
@@ -349,7 +361,11 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
 #  endif
 #  define X509_FLAG_EXTENSIONS_ONLY_KID (1L << 13)
 #  define OCSP_REVOKED_STATUS_AACOMPROMISE 10
+
+#  include <ctype.h>
 #  define ossl_isspace isspace
+#  define ossl_isprint isprint
+
 #  define X509_R_UNKNOWN_SIGID_ALGS 144
 #  define CMP_R_CONNECT_TIMEOUT CMP_R_TOTAL_TIMEOUT
 #  define CMP_R_READ_TIMEOUT CMP_R_TOTAL_TIMEOUT
@@ -361,10 +377,6 @@ int OSSL_HTTP_proxy_connect(BIO *bio, const char *server, const char *port,
 #  define BIO_R_CONNECT_TIMEOUT BIO_R_CONNECT_ERROR
 #  define BIO_R_TRANSFER_TIMEOUT BIO_R_CONNECT_ERROR
 #  define BIO_R_TRANSFER_ERROR BIO_R_CONNECT_ERROR
-#  define ERR_LIB_HTTP ERR_LIB_CMP
-#  define HTTP_R_CONNECT_FAILURE CMP_R_TRANSFER_ERROR
-#  define HTTP_R_HEADER_PARSE_ERROR CMP_R_TRANSFER_ERROR
-#  define HTTP_R_RECEIVED_WRONG_HTTP_VERSION CMP_R_TRANSFER_ERROR
 #  define ERR_SYSTEM_ERROR(err) 0
 #  define ERR_add_error_txt(sep, txt) ossl_cmp_add_error_txt(sep, txt)
 #  define OSSL_CMP_add_error_data(txt) ERR_add_error_txt(" : ", txt)
@@ -380,10 +392,17 @@ void ERR_add_error_mem_bio(const char *separator, BIO *bio);
 
 ASN1_OCTET_STRING *X509_digest_sig(const X509 *cert,
                                    EVP_MD **md_used, int *md_is_fallback);
+#  if !defined(OPENSSL_NO_OCSP) && !defined(OPENSSL_NO_SOCK)
+int BIO_wait(BIO *bio, time_t max_time, unsigned int nap_milliseconds);
+int BIO_do_connect_retry(BIO *bio, int timeout, int nap_milliseconds);
+#  endif
+
 STACK_OF(X509) *X509_build_chain(X509 *target, STACK_OF(X509) *certs,
                                  X509_STORE *store, int with_self_signed,
                                  OSSL_LIB_CTX *libctx, const char *propq);
 #  define X509_chain_up_ref(c) (c == NULL ? c: X509_chain_up_ref(c)) /* hack */
+#  define ASN1_item_i2d_bio(it, res, val) \
+    ASN1_item_i2d_bio(it, res, (ASN1_VALUE *)(val)) /* hack */
 #  define ASN1_VALUE_dup(a) ASN1_VALUE_dup((ASN1_VALUE *)(a)) /* hack */
 #  define X509_REQ_dup(r) X509_REQ_dup((X509_REQ *)(r)) /* hack */
 #  define X509_NAME_dup(n) X509_NAME_dup((X509_NAME *)(n)) /* hack */

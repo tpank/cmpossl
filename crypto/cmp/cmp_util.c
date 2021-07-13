@@ -24,6 +24,7 @@
 int OSSL_CMP_log_open(void) /* is designed to be idempotent */
 {
 #ifdef OPENSSL_NO_TRACE
+    ossl_err_load_HTTP_strings();
     ossl_err_load_CRMF_strings();
     ossl_err_load_CMP_strings();
     return 1;
@@ -31,6 +32,7 @@ int OSSL_CMP_log_open(void) /* is designed to be idempotent */
 # ifndef OPENSSL_NO_STDIO
     BIO *bio = BIO_new_fp(stdout, BIO_NOCLOSE);
 
+    ossl_err_load_HTTP_strings();
     ossl_err_load_CRMF_strings();
     ossl_err_load_CMP_strings();
     if (bio != NULL && OSSL_trace_set_channel(OSSL_TRACE_CATEGORY_CMP, bio))
