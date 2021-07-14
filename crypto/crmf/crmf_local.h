@@ -22,6 +22,7 @@
 # include <openssl/safestack.h>
 # include <openssl/x509.h>
 # include <openssl/x509v3.h>
+# include <openssl/cms.h>
 
 /*-
  * EncryptedValue ::= SEQUENCE {
@@ -50,6 +51,24 @@ struct ossl_crmf_encryptedvalue_st {
     ASN1_OCTET_STRING *valueHint; /* 4 */
     ASN1_BIT_STRING *encValue;
 } /* OSSL_CRMF_ENCRYPTEDVALUE */;
+
+
+/*
+ *    EncryptedKey ::= CHOICE {
+ *       encryptedValue        EncryptedValue, -- deprecated
+ *       envelopedData     [0] EnvelopedData }
+ *       -- The encrypted private key MUST be placed in the envelopedData
+ *       -- encryptedContentInfo encryptedContent OCTET STRING.
+ */
+typedef struct ossl_crmf_encryptedkey_st {
+    int type;
+    union {
+        OSSL_CRMF_ENCRYPTEDVALUE *encryptedValue;
+        CMS_ContentInfo *envelopedData;
+        /* When supported, CMS_ContentInfo needs to be replaced by CMS_ENVELOPEDDATA */
+    } value;
+} OSSL_CRMF_ENCRYPTEDKEY;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDKEY)
 
 /*-
  *  Attributes ::= SET OF Attribute

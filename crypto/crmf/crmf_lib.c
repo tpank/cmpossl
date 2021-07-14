@@ -613,7 +613,7 @@ int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
  * returns NULL on error or if no certificate available
  */
 X509
-*OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(const OSSL_CRMF_ENCRYPTEDVALUE *ecert,
+*OSSL_CRMF_ENCRYPTEDKEY_get1_encCert(const OSSL_CRMF_ENCRYPTEDKEY *ecert,
                                        OSSL_LIB_CTX *libctx, const char *propq,
                                        EVP_PKEY *pkey)
 {
@@ -630,13 +630,16 @@ X509
     int n, outlen = 0;
     EVP_PKEY_CTX *pkctx = NULL; /* private key context */
 
-    if (ecert == NULL || ecert->symmAlg == NULL || ecert->encSymmKey == NULL
-            || ecert->encValue == NULL || pkey == NULL) {
+    if (ecert == NULL
+            || ecert->value.encryptedValue == NULL
+            || ecert->value.encryptedValue->symmAlg == NULL
+            || ecert->value.encryptedValue->encSymmKey == NULL
+            || pkey == NULL) {
         ERR_raise(ERR_LIB_CRMF, CRMF_R_NULL_ARGUMENT);
         return NULL;
     }
 
-    if ((symmAlg = OBJ_obj2nid(ecert->symmAlg->algorithm)) == 0) {
+    if ((symmAlg = OBJ_obj2nid(ecert->value.encryptedValue->symmAlg->algorithm)) == 0) {
         ERR_raise(ERR_LIB_CRMF, CRMF_R_UNSUPPORTED_CIPHER);
         return NULL;
     }
@@ -652,7 +655,7 @@ X509
     /* first the symmetric key needs to be decrypted */
     pkctx = EVP_PKEY_CTX_new_from_pkey(libctx, pkey, propq);
     if (pkctx != NULL && EVP_PKEY_decrypt_init(pkctx)) {
-        ASN1_BIT_STRING *encKey = ecert->encSymmKey;
+        ASN1_BIT_STRING *encKey = ecert->value.encryptedValue->encSymmKey;
         size_t failure;
         int retval;
 
@@ -675,7 +678,7 @@ X509
     }
     if ((iv = OPENSSL_malloc(EVP_CIPHER_get_iv_length(cipher))) == NULL)
         goto end;
-    if (ASN1_TYPE_get_octetstring(ecert->symmAlg->parameter, iv,
+    if (ASN1_TYPE_get_octetstring(ecert->value.encryptedValue->symmAlg->parameter, iv,
                                   EVP_CIPHER_get_iv_length(cipher))
         != EVP_CIPHER_get_iv_length(cipher)) {
         ERR_raise(ERR_LIB_CRMF, CRMF_R_MALFORMED_IV);
@@ -686,7 +689,7 @@ X509
      * d2i_X509 changes the given pointer, so use p for decoding the message and
      * keep the original pointer in outbuf so the memory can be freed later
      */
-    if ((p = outbuf = OPENSSL_malloc(ecert->encValue->length +
+    if ((p = outbuf = OPENSSL_malloc(ecert->value.encryptedValue->encValue->length +
                                      EVP_CIPHER_get_block_size(cipher))) == NULL
             || (evp_ctx = EVP_CIPHER_CTX_new()) == NULL)
         goto end;
@@ -694,8 +697,8 @@ X509
 
     if (!EVP_DecryptInit(evp_ctx, cipher, ek, iv)
             || !EVP_DecryptUpdate(evp_ctx, outbuf, &outlen,
-                                  ecert->encValue->data,
-                                  ecert->encValue->length)
+                                  ecert->value.encryptedValue->encValue->data,
+                                  ecert->value.encryptedValue->encValue->length)
             || !EVP_DecryptFinal(evp_ctx, outbuf + outlen, &n)) {
         ERR_raise(ERR_LIB_CRMF, CRMF_R_ERROR_DECRYPTING_CERTIFICATE);
         goto end;

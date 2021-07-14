@@ -46,6 +46,8 @@ extern "C" {
 
 typedef struct ossl_crmf_encryptedvalue_st OSSL_CRMF_ENCRYPTEDVALUE;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDVALUE)
+typedef struct ossl_crmf_encryptedkey_st OSSL_CRMF_ENCRYPTEDKEY;
+DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_ENCRYPTEDKEY)
 typedef struct ossl_crmf_msg_st OSSL_CRMF_MSG;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_MSG)
 DECLARE_ASN1_DUP_FUNCTION(OSSL_CRMF_MSG)
@@ -216,7 +218,7 @@ int OSSL_CRMF_CERTTEMPLATE_fill(OSSL_CRMF_CERTTEMPLATE *tmpl,
                                 const X509_NAME *issuer,
                                 const ASN1_INTEGER *serial);
 X509
-*OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert(const OSSL_CRMF_ENCRYPTEDVALUE *ecert,
+*OSSL_CRMF_ENCRYPTEDKEY_get1_encCert(const OSSL_CRMF_ENCRYPTEDKEY *ecert,
                                        OSSL_LIB_CTX *libctx, const char *propq,
                                        EVP_PKEY *pkey);
 
