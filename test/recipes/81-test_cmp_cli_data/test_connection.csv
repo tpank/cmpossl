@@ -1,8 +1,8 @@
-EJBCA,Insta,description, -section,val, -server,val, -proxy,val, -path,val, -msg_timeout,int, -total_timeout,int, -tls_used,noarg, -tls_cert,val, -tls_key,val, -tls_keypass,val, -tls_trusted,val, -tls_host,valg, -no_proxy,val
+EJBCA,Insta,description, -section,val, -server,val, -proxy,val, -path,val, -msg_timeout,int, -total_timeout,int, -tls_used,noarg, -tls_cert,val, -tls_key,val, -tls_keypass,val, -tls_trusted,val, -tls_host,valg, -no_proxy,val, -keep_alive,val
 ,,,,Message transfer options:,,,,,,,,,,,TLS options:,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
 1,1,default config, -section,,,,,,,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
-1,-,default config with TLS, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,
+1,-,default config with TLS, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,-no_check_time
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
 0,0,wrong server, -section,, -server,example.com:_SERVER_PORT,,,,, -msg_timeout,1,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 0,-,wrong server with TLS port, -section,, -server,example.com:_SERVER_TLS ,,,,, -msg_timeout,5,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
@@ -54,7 +54,7 @@ EJBCA,Insta,description, -section,val, -server,val, -proxy,val, -path,val, -msg_
 0,-,handshake failure due to missing tls params, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,, -tls_used,,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 0,0,argument given for -tls_used, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,, -tls_used,0,BLANK,,BLANK,,BLANK,,BLANK,,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
-1,-,tls_used given, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,, -tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345,BLANK,,BLANK,
+1,-,tls_used given but not checking server cert, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,, -tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345,BLANK,,BLANK,
 1,-,tls with PEM credential files, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.crt, -tls_key,EJBCACMPSignerTLS.key.pem,BLANK,,BLANK,,BLANK,
 TBD Keyfile does not match,TBD Keyfile does not match,tls .pem file with 1000 certs, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,big_EJBCACMPSignerTLS.crt.pem, -tls_key,EJBCACMPSignerTLS.key.pem,BLANK,,BLANK,,BLANK,
 BIG TBD Keyfile does not match,TBD Keyfile does not match,tls big .pem file converted to p12, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,big_EJBCACMPSignerTLS.crt.pem.p12, -tls_key,big_EJBCACMPSignerTLS.crt.pem.p12, -tls_keypass,pass:12345,BLANK,,BLANK,
@@ -78,7 +78,7 @@ BIG TBD Keyfile does not match,TBD Keyfile does not match,tls big .pem file conv
 1,-,TLS keypass from file, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,file:12345.txt,BLANK,,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
 1,-,tls host explicit host, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt, -tls_host,_SERVER_HOST
-1,-,tls_trusted and no tls_host, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,
+1,-,tls_trusted and no tls_host, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,-no_check_time
 BIG TBD 1,BIG TBD 1,tls_trusted big cert file, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,big_EJBCAInfrastructureRootCAv10.crt,BLANK,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,
 TBD,TBD,tls expired cert, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,EJBCACMPSignerTLS.p12, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10_expired.crt,BLANK,
@@ -92,3 +92,11 @@ TBD,TBD,tls expired cert, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,
 TBD wrong key usage,-,tls certificate not suitable for TLS, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,signer.crt, -tls_key,signer.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,
 0,-,tls_cert non-existent file, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,idontexist, -tls_key,idontexist, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,
 0,-,tls_cert empty file, -section,, -server,_SERVER_HOST:_SERVER_TLS,,,,,BLANK,,BLANK,,-tls_used,, -tls_cert,empty.txt, -tls_key,EJBCACMPSignerTLS.p12, -tls_keypass,pass:12345, -tls_trusted,EJBCAInfrastructureRootCAv10.crt,BLANK,
+,,,,,,,,,,,,,,,,,,,
+0,0,keep_alive missing argument, -section,,,,,,,,BLANK,,,,BLANK,,BLANK,, -keep_alive,
+0,0,keep_alive negative, -section,,,,,,,,BLANK,,,,BLANK,,BLANK,, -keep_alive,-1
+1,1,keep_alive 0, -section,,,,,,,,BLANK,,,,BLANK,,BLANK,, -keep_alive,0
+1,1,keep_alive 1, -section,,,,,,,,BLANK,,,,BLANK,,BLANK,, -keep_alive,1
+1,1,keep_alive 2, -section,,,,,,,,BLANK,,,,BLANK,,BLANK,, -keep_alive,2
+0,0,keep_alive too large, -section,,,,,,,,BLANK,,,,BLANK,,BLANK,, -keep_alive,3
+0,0,keep_alive extremely large, -section,,,,,,,,BLANK,,,,BLANK,,BLANK,, -keep_alive,999999999999999999999999999
