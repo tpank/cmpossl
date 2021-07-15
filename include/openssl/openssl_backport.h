@@ -111,6 +111,8 @@ typedef u_int64_t uint64_t;
 #  define X509_PUBKEY_get0(x)((x)->pkey)
 # endif
 # if OPENSSL_VERSION_NUMBER < 0x10101000L
+int X509_STORE_add_cert_dups(X509_STORE *ctx, X509 *x);
+#  define X509_STORE_add_cert(ctx, x) X509_STORE_add_cert_dups(ctx, x)
 #  define OBJ_obj2nid(alg) \
     (OBJ_obj2nid(alg) == NID_hmac_md5  ? NID_hmacWithMD5  : \
      OBJ_obj2nid(alg) == NID_hmac_sha1 ? NID_hmacWithSHA1 : OBJ_obj2nid(alg))

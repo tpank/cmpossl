@@ -799,3 +799,30 @@ size_t OPENSSL_strlcpy(char *dst, const char *src, size_t size)
     return l + strlen(src);
 }
 #endif
+
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
+/* simulating this:
+commit c0452248ea1a59a41023a4765ef7d9825e80a62b
+Author: Rich Salz <rsalz@openssl.org>
+Date:   Thu Apr 20 15:33:42 2017 -0400
+
+    Ignore dups in X509_STORE_add_*
+*/
+int X509_STORE_add_cert_dups(X509_STORE *ctx, X509 *x)
+{
+    (void)ERR_set_mark();
+    #undef X509_STORE_add_cert
+    if (!X509_STORE_add_cert(ctx, x)) {
+        /* workaround for OpenSSL 1.0.2 and 1.1.0: */
+        unsigned long err = ERR_peek_last_error();
+
+        if (ERR_GET_LIB(err) != ERR_LIB_X509 ||
+            ERR_GET_REASON(err) != X509_R_CERT_ALREADY_IN_HASH_TABLE) {
+            (void)ERR_clear_last_mark();
+            return 0;
+        }
+    }
+    (void)ERR_pop_to_mark();
+    return 1;
+}
+#endif
