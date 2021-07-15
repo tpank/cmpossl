@@ -23,9 +23,11 @@ _Pragma("GCC diagnostic ignored \"-Wdiscarded-qualifiers\"")
 _Pragma("GCC diagnostic ignored \"-Wunused-parameter\"")
 # endif
 
-# if OPENSSL_VERSION_NUMBER < 0x10100002L
+# if OPENSSL_VERSION_NUMBER < 0x30000000L
 #  define ossl_inline inline
 #  define ossl_unused __attribute__((unused))
+# endif
+# if OPENSSL_VERSION_NUMBER < 0x10100002L
 #  define __owur
 #  define OPENSSL_FILE __FILE__
 #  define OPENSSL_LINE __LINE__
