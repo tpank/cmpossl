@@ -93,7 +93,7 @@ sleep = 4
 # 3 is not sufficient for enrollment tests: sometimes leads to HTTP code 503 (Service Unavailable)
 
 [Simple] # this is a Siemens-only test configuration
-#no_check_time = 1  # is not supported by OpenSSL 1.0.2
+#no_check_time = 1  # not yet needed here; # is not supported by OpenSSL 1.0.2
 #attime = 1564704000
 server_host = 127.0.0.1 # localhost
 server_port = 9080
@@ -106,11 +106,11 @@ tls_keypass = pass:12345
 tls_trusted = EJBCAInfrastructureRootCAv10.crt
 server_path = cmp/PlaygroundECC/
 path = $server_path
-ca_dn = /CN=PPKI Playground ECC Issuing CA v1.0/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
+ca_dn = ${ENV::EJBCA_CMP_RECIPIENT}
 recipient = $ca_dn
-server_dn = /CN=Product PKI Playground CMP Signer/OU=PPKI Playground/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
+server_dn = ${ENV::EJBCA_CMP_SERVER}
 expect_sender = $server_dn
-subject = /CN=ECC-EE/OU=PPKI Playground/OU=Corporate Technology/OU=For internal test purposes only/O=Siemens/C=DE
+subject = ${ENV::EJBCA_CMP_SUBJECT_ECC}
 kur_port = 9083
 pbm_port = 9084
 pbm_ref =
@@ -120,9 +120,9 @@ key  = signer.p12
 keypass = pass:12345
 ignore_keyusage = 0
 unprotected_errors = 1 # EJBCA sends error messages and negative responses without protection
-crls = "../../../../../creds/crls/PPKIPlaygroundInfrastructureIssuingCAv10.crl, ../../../../../creds/crls/PPKIPlaygroundECCRootCAv10.crl, ../../../../../creds/crls/PPKIPlaygroundInfrastructureRootCAv10.crl, ../../../../../creds/crls/PPKIPlaygroundRSARootCAv10.crl"
-cdps = "https://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+Infrastructure+Issuing+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE, https://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+Infrastructure+Root+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE, http://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+ECC+Issuing+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE, http://ppki-playground.ct.siemens.com/ejbca/publicweb/webdist/certdist?cmd=crl&format=DER&issuer=CN=PPKI+Playground+ECC+Root+CA+v1.0%2cOU=Corporate+Technology%2cOU=For+internal+test+purposes+only%2cO=Siemens%2cC=DE"
-ocsp = "http://ppki-playground.ct.siemens.com/ejbca/publicweb/status/ocsp"
+crls = "../../../../../creds/crls/EJBCA-InfrastructureIssuingCAv10.crl, ../../../../../creds/crls/EJBCA-ECCRootCAv10.crl, ../../../../../creds/crls/EJBCA-InfrastructureRootCAv10.crl" # ../../../../../creds/crls/EJBCA-RSARootCAv10.crl
+cdps = ${ENV::EJBCA_CDP_URL_PREFIX}Infrastructure+Issuing+CA+v1.0${ENV::EJBCA_CDP_URL_POSTFIX}, ${ENV::EJBCA_CDP_URL_PREFIX}Infrastructure+Root+CA+v1.0${ENV::EJBCA_CDP_URL_POSTFIX}, ${ENV::EJBCA_CDP_URL_PREFIX}ECC+Issuing+CA+v1.0${ENV::EJBCA_CDP_URL_POSTFIX}, ${ENV::EJBCA_CDP_URL_PREFIX}ECC+Root+CA+v1.0${ENV::EJBCA_CDP_URL_POSTFIX}
+ocsp = ${ENV::EJBCA_OCSP_URL}
 column = 0
 sleep = 0
 

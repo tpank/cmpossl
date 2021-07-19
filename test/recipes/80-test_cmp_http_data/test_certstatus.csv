@@ -33,7 +33,7 @@ EJBCA,Insta,description, -section,val, -crls,val, -cdps,val, -ocsp,val, -crls_ti
 0,0,stapling with parameter, -section,,,,,,,,,,,,,,,, -stapling,asdf,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,
 0,-,wrong CRLs only, -section,, -crls,"../../../../../creds/crls/InstaDemoCA.crl", -cdps,"", -ocsp,"",,,,,,,,,,,,,,,
--,TBD,wrong CRLs only, -section,, -crls,"../../../../../creds/crls/PPKIPlaygroundInfrastructureIssuingCAv10.crl", -cdps,"", -ocsp,"",,,,,,,,,,,,,,,
+-,TBD,wrong CRLs only, -section,, -crls,"../../../../../creds/crls/EJBCA-InfrastructureIssuingCAv10.crl", -cdps,"", -ocsp,"",,,,,,,,,,,,,,,
 0,0,crls without parameter, -section,, -crls,,,,,,,,,,,,,,,,,,,,
 0,0,cdps without parameter, -section,,,, -cdps,,,,,,,,,,,,,,,,,,
 0,0,ocsp without parameter, -section,,,,,, -ocsp,,,,,,,,,,,,,,,,
