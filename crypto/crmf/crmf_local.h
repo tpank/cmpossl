@@ -207,8 +207,8 @@ typedef struct ossl_crmf_popoprivkey_st {
         ASN1_INTEGER *subsequentMessage; /* 1 */
         ASN1_BIT_STRING *dhMAC; /* 2 */ /* Deprecated */
         OSSL_CRMF_PKMACVALUE *agreeMAC; /* 3 */
-        ASN1_NULL *encryptedKey; /* 4 */
-        /* When supported, ASN1_NULL needs to be replaced by CMS_ENVELOPEDDATA */
+        CMS_ContentInfo *encryptedKey; /* 4 */
+        /* When supported, CMS_ContentInfo needs to be replaced by CMS_ENVELOPEDDATA */
     } value;
 } OSSL_CRMF_POPOPRIVKEY;
 DECLARE_ASN1_FUNCTIONS(OSSL_CRMF_POPOPRIVKEY)
